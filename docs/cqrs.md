@@ -359,6 +359,9 @@ authentication and rate limit.
   `[Authorize]` supplies a policy *and* roles, both enforced — and a handler carrying several
   `[Authorize]` attributes, its own or a base class's, has to pass every one, exactly as a page does.
   `AuthenticationSchemes` is not read: the endpoint authenticates with the app's default scheme.
+- **An event is held to every handler it has.** A publish runs them all, so a remote publisher must pass
+  each handler's `[Authorize]`, and is let in anonymously only when every handler is `[AllowAnonymous]`;
+  handlers that disagree are [RASK124](diagnostics.md#rask124) at build time.
 - **An anonymous caller cannot enumerate your messages.** A real name and a typo get the same answer, so
   the endpoint can't be walked to discover what the app has.
 - **Both verbs require the `X-Rask-Cqrs` header**, which no cross-site markup can set — adding the GET

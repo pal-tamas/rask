@@ -81,6 +81,20 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                      + "and do the page's part with the result.",
         helpLinkUri: DiagnosticHelp.Link("RASK123"));
 
+    internal static readonly DiagnosticDescriptor Rask124 = new(
+        "RASK124",
+        "An event's handlers disagree on who may publish it",
+        "Event '{0}' is handled by {1}, which ask different things of a remote publisher; a publish runs every one of them, so the caller is held to all of their [Authorize] and may publish anonymously only when every handler is [AllowAnonymous]",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "Who may publish an event over the wire is read off its handlers, and a publish runs every handler the "
+                     + "event has. So the endpoint asks for what each of them asks — every policy, every roles set — and "
+                     + "lets an anonymous caller in only when all of them are [AllowAnonymous]. Handlers that disagree "
+                     + "usually mean one of them was written for a different caller than the others; give them the same "
+                     + "attributes, or split the event.",
+        helpLinkUri: DiagnosticHelp.Link("RASK124"));
+
     internal const string NotReadable =
         "authorization is read at compile time, and only [Authorize] and [AllowAnonymous] themselves can be seen — "
         + "write [Authorize(...)] directly";
@@ -140,7 +154,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             var model = Describe(message.Type, message.Kind, message.ResultType, compilation);
             if (model.Problem is null)
             {
-                ApplyAuthorization(model, message.Type, message.Kind, handlers);
+                ApplyAuthorization(spc, model, message.Type, message.Kind, handlers, compilation);
             }
 
             if (model.Problem is { } problem)
@@ -170,11 +184,21 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     }
 
     private static void ApplyAuthorization(
-        ContractModel model, INamedTypeSymbol type, RemoteKind kind, Dictionary<string, INamedTypeSymbol> handlers)
+        SourceProductionContext spc,
+        ContractModel model,
+        INamedTypeSymbol type,
+        RemoteKind kind,
+        Dictionary<string, List<INamedTypeSymbol>> handlers,
+        Compilation compilation)
     {
-        handlers.TryGetValue(type.ToDisplayString(), out var handler);
-        model.HasLocalHandler = handler is not null;
-        var authorization = Authorization(handler);
+        var own = handlers.TryGetValue(type.ToDisplayString(), out var found) ? found : [];
+        model.HasLocalHandler = own.Count > 0;
+        var authorization = Combined(own);
+        if (kind is RemoteKind.Event && authorization.Disagree)
+        {
+            ReportDisagreement(spc, type, own, compilation);
+        }
+
         model.Policies = authorization.Policies;
         model.RoleSets = authorization.RoleSets;
         model.AllowAnonymous = authorization.AllowAnonymous;
@@ -193,6 +217,53 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             model.SubscribeRoleSets = subscribe.RoleSets;
             model.SubscribeAnonymously = subscribe.AllowAnonymous;
         }
+    }
+
+    // An event has as many handlers as want it, and a publish runs them all — so the publisher is held to every one's
+    // [Authorize], and is let in anonymously only when each of them says so. Keeping one handler's attributes (the last
+    // one found) let an [AllowAnonymous] handler open an event whose other handler asked for a role. A query or a
+    // command has one handler, which this reads exactly as before.
+    private static (List<string> Policies, List<string> RoleSets, bool AllowAnonymous, bool Authorize, bool Disagree) Combined(
+        List<INamedTypeSymbol> handlers)
+    {
+        var each = handlers.Select(static h => Authorization(h)).ToList();
+        var anonymous = each.Count > 0 && each.TrueForAll(static a => a.AllowAnonymous);
+        var holding = anonymous ? each : each.FindAll(static a => !a.AllowAnonymous);
+
+        var policies = holding.SelectMany(static a => a.Policies).Distinct(StringComparer.Ordinal).ToList();
+        var roleSets = holding.SelectMany(static a => a.RoleSets).Distinct(StringComparer.Ordinal).ToList();
+        var authorize = holding.Exists(static a => a.Authorize);
+        var disagree = each.Select(static a => AskedOf(a.Policies, a.RoleSets, a.AllowAnonymous, a.Authorize))
+            .Distinct(StringComparer.Ordinal)
+            .Skip(1)
+            .Any();
+        return (policies, roleSets, anonymous, authorize, disagree);
+    }
+
+    // What one handler asks of a caller, as a comparable key: the order its attributes are written in says nothing.
+    private static string AskedOf(List<string> policies, List<string> roleSets, bool anonymous, bool authorize) =>
+        anonymous
+            ? "anonymous"
+            : $"{authorize}|{string.Join("\n", policies.OrderBy(static p => p, StringComparer.Ordinal))}"
+              + $"|{string.Join("\n", roleSets.OrderBy(static r => r, StringComparer.Ordinal))}";
+
+    // RASK124, where the event is written — or, for an event from a referenced project, at a handler written here. One
+    // whose event and handlers all live elsewhere was reported when that project built.
+    private static void ReportDisagreement(
+        SourceProductionContext spc, INamedTypeSymbol @event, List<INamedTypeSymbol> handlers, Compilation compilation)
+    {
+        var location = InCompilation(@event.Locations.FirstOrDefault(), compilation)
+                       ?? handlers.Select(h => InCompilation(h.Locations.FirstOrDefault(), compilation)).FirstOrDefault(static l => l is not null);
+        if (location is null)
+        {
+            return;
+        }
+
+        spc.ReportDiagnostic(Diagnostic.Create(
+            Rask124,
+            location,
+            @event.ToDisplayString(),
+            string.Join(", ", handlers.Select(static h => "'" + h.Name + "'"))));
     }
 
     // RASK101 for a record: its handler, if it has one, is reported where it is declared (CqrsDispatchGenerator).
@@ -228,14 +299,21 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static void ReportPageServices(
         SourceProductionContext spc,
         INamedTypeSymbol message,
-        Dictionary<string, INamedTypeSymbol> handlers,
+        Dictionary<string, List<INamedTypeSymbol>> handlers,
         Compilation compilation)
     {
-        if (!handlers.TryGetValue(message.ToDisplayString(), out var handler))
+        if (handlers.TryGetValue(message.ToDisplayString(), out var own))
         {
-            return;
+            foreach (var handler in own)
+            {
+                ReportPageServices(spc, message, handler, compilation);
+            }
         }
+    }
 
+    private static void ReportPageServices(
+        SourceProductionContext spc, INamedTypeSymbol message, INamedTypeSymbol handler, Compilation compilation)
+    {
         foreach (var parameter in handler.InstanceConstructors.SelectMany(static c => c.Parameters))
         {
             if (PageOnly(parameter.Type) is not { } service)
@@ -316,12 +394,13 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         }
     }
 
-    // Maps a request type to the handler that handles it here, so the endpoint can read the handler's
-    // [Authorize] without knowing the handler's type at runtime. Only the compilation being built is
-    // scanned plus the assemblies it shares a message vocabulary with — which is where handlers live.
-    private static Dictionary<string, INamedTypeSymbol> DiscoverHandlers(Compilation compilation)
+    // Maps a message type to the handlers that handle it here, so the endpoint can read their [Authorize] without
+    // knowing a handler's type at runtime. An event has as many as want it, so every one is kept. Only the
+    // compilation being built is scanned plus the assemblies it shares a message vocabulary with — which is where
+    // handlers live.
+    private static Dictionary<string, List<INamedTypeSymbol>> DiscoverHandlers(Compilation compilation)
     {
-        var map = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
+        var map = new Dictionary<string, List<INamedTypeSymbol>>(StringComparer.Ordinal);
 
         foreach (var assembly in MessageAssemblies(compilation))
         {
@@ -345,7 +424,18 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
                     if (handles && iface.TypeArguments.Length > 0)
                     {
-                        map[iface.TypeArguments[0].ToDisplayString()] = type;
+                        var message = iface.TypeArguments[0].ToDisplayString();
+                        if (!map.TryGetValue(message, out var list))
+                        {
+                            map[message] = list = [];
+                        }
+
+                        // A type seen through two references contributes once.
+                        var name = type.ToDisplayString();
+                        if (!list.Exists(h => string.Equals(h.ToDisplayString(), name, StringComparison.Ordinal)))
+                        {
+                            list.Add(type);
+                        }
                     }
                 }
             }

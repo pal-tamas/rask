@@ -1,3 +1,6 @@
+using System.Globalization;
+using Microsoft.CodeAnalysis;
+
 namespace Rask.Batteries.Generators.Tests;
 
 public sealed class EventSubscriptionGeneratorTests
@@ -173,6 +176,52 @@ public sealed class EventSubscriptionGeneratorTests
         Assert.Contains("Policies = [\"members\", \"billing\"],", codecs, StringComparison.Ordinal);
         Assert.Contains("RoleSets = [\"admin,owner\", \"finance\"],", codecs, StringComparison.Ordinal);
         Assert.Contains("SubscribePolicies = [\"members\", \"audit\"],", codecs, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ThankYou", "ReserveStock")]
+    [InlineData("ReserveStock", "ThankYou")]
+    public void An_event_is_published_only_by_a_caller_every_handler_admits_whichever_handler_is_found_last(
+        string first, string second)
+    {
+        // A publish runs every handler, but one handler's attributes were kept — the last found — so an
+        // [AllowAnonymous] handler opened an event whose other handler asked for a role.
+        var handlers = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["ThankYou"] = "[AllowAnonymous] public sealed class ThankYou : IEventHandler<OrderPlaced> { public Task Handle(OrderPlaced n) => Task.CompletedTask; }",
+            ["ReserveStock"] = "[Authorize(Roles = \"admin\")] public sealed class ReserveStock : IEventHandler<OrderPlaced> { public Task Handle(OrderPlaced n) => Task.CompletedTask; }",
+        };
+
+        var run = CodecRun("Rask.Cqrs.Client", "public sealed record OrderPlaced(Guid OrderId) : IEvent;\n"
+                                               + handlers[first] + "\n" + handlers[second]);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var codecs = run.GeneratedSource("__RaskCqrsCodecs");
+        Assert.DoesNotContain("AllowAnonymous = true,", codecs, StringComparison.Ordinal);
+        Assert.Contains("RoleSets = [\"admin\"],", codecs, StringComparison.Ordinal);
+        Assert.Contains("RequiresAuthentication = true,", codecs, StringComparison.Ordinal);
+        var warning = Assert.Single(run.Diagnostics, d => d.Id == "RASK124");
+        Assert.Equal(DiagnosticSeverity.Warning, warning.Severity);
+    }
+
+    [Fact]
+    public void An_event_s_handlers_each_add_what_they_ask_and_only_all_anonymous_lets_anyone_publish()
+    {
+        var run = CodecRun("Rask.Cqrs.Client", """
+            public sealed record Charged(Guid OrderId) : IEvent;
+            [Authorize(Policy = "members")] public sealed class Receipt : IEventHandler<Charged> { public Task Handle(Charged n) => Task.CompletedTask; }
+            [Authorize(Policy = "billing")] public sealed class Ledger : IEventHandler<Charged> { public Task Handle(Charged n) => Task.CompletedTask; }
+
+            public sealed record Pinged(Guid Id) : IEvent;
+            [AllowAnonymous] public sealed class PingA : IEventHandler<Pinged> { public Task Handle(Pinged n) => Task.CompletedTask; }
+            [AllowAnonymous] public sealed class PingB : IEventHandler<Pinged> { public Task Handle(Pinged n) => Task.CompletedTask; }
+            """);
+
+        var codecs = run.GeneratedSource("__RaskCqrsCodecs");
+        Assert.Contains("Policies = [\"members\", \"billing\"],", codecs, StringComparison.Ordinal);
+        Assert.Equal(1, Occurrences(codecs, "AllowAnonymous = true,"));
+        var warning = Assert.Single(run.Diagnostics, d => d.Id == "RASK124");
+        Assert.Contains("Demo.Charged", warning.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
     [Fact]
