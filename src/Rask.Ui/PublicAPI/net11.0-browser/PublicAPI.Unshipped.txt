@@ -9294,3 +9294,6 @@ Rask.UiFacts
 Rask.UiFacts.UiFacts() -> void
 static Rask.Ui.Fact(string! label, Rask.Core.Component? value) -> Rask.Core.HTMLDivElement!
 static Rask.Ui.Facts.get -> Rask.UiFacts!
+Rask.UiEditorSchema
+static Rask.UiEditorSchema.Allow(string! tag, params string![]! attributes) -> void
+static Rask.UiEditorSchema.Allow(string! tag, string! attribute, System.Func<string!, bool>! accepts) -> void

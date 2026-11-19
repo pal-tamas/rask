@@ -340,8 +340,11 @@ them until tagged releases begin.
   `<img src=x onerror=…>` from the database ran before the engine loaded, and a change the browser sent was written to
   the model and handed `OnChange` unchecked. After: both keep only the tags and attributes the bundled Tiptap extensions
   write (paragraphs, headings, marks, lists, blockquote, code, tables, links to http/https/mailto/tel or a path,
-  `text-align`); a script, an event handler, a `javascript:`/`data:` link, a comment are dropped. Markup a page's own
-  `ui:editor` extension adds beyond that is dropped too.
+  `text-align`); a script, an event handler, a `javascript:`/`data:` link, a comment are dropped. An app's own
+  `ui:editor` extension registers the markup it writes with `UiEditorSchema.Allow(tag, attributes…)` (or with a value
+  rule, `Allow(tag, attribute, accepts)`), and that is kept; unregistered markup is dropped. A registration cannot allow
+  a script-running or embedding tag, an `on…` handler, `style`, `srcdoc` or `srcset`, and a registered URL attribute is
+  still held to a safe link.
 - **BREAKING (Rask.WebPush, security): a user's push subscription can no longer be taken over by its endpoint.** Before:
   posting another browser's endpoint re-bound its row to whoever posted it, or — signed out — detached it from its
   user; and `POST /_rask/push/unsubscribe` took any number of anonymous requests. After: a row owned by a user is
