@@ -139,6 +139,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK121](#rask121) | Warning | A `[JSInvokable]` method is not `public` |
 | [RASK122](#rask122) | Warning | The signed-in user is kept without following `IUserProvider.Changed` |
 | [RASK123](#rask123) | Error | An `[OffThread]` message cannot run in a Web Worker |
+| [RASK126](#rask126) | Warning | Lazy-loading proxies on a context that does not allow lazy loading |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3031,3 +3032,29 @@ public sealed class ReadSheetHandler(IJSRuntime js)                     // ✗ R
 **Fix:** answer with a record the codec can encode (the shapes [RASK053](#rask053) lists), and give the handler what it
 needs in the message instead of a page service — do the page's part (a toast, a focus, a download) with the result,
 after the `await`. A handler that does not need to leave the page's thread does not need `[OffThread]`.
+
+## RASK126
+
+**Lazy-loading proxies on a context that does not allow lazy loading** · Warning
+
+Rask.Data switches lazy loading off (`ChangeTracker.LazyLoadingEnabled = false`) on every context its interceptors
+reach: a navigation read in a loop, in a component's render or in a form's validation is a query nobody wrote — N+1,
+and invisible in the code. `UseLazyLoadingProxies()` on such a context still builds the proxies, which then load
+nothing: the navigation reads null or empty, which looks like missing data.
+
+```csharp
+services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskSqlite(sp)
+    .UseLazyLoadingProxies()                                   // ✗ RASK126
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+**Fix:** say what a read needs — `Include`, a projection, a read face — and drop the proxies. If the app really wants
+lazy loading (discouraged), opt in on the same options, and the warning goes:
+
+```csharp
+    .UseLazyLoadingProxies()
+    .AllowLazyLoading()                                        // the explicit opt-in, Rask.Data
+```
+
+See [data access](data-access.md#lazy-loading-is-off).

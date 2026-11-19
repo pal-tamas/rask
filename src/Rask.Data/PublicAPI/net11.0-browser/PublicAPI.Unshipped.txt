@@ -417,3 +417,6 @@ static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System
 static Rask.Data.ModelConfigurationBuilderExtensions.OrderTextBy(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, string! collation) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.TextOrderExtensions
 static Rask.Data.TextOrderExtensions.InTextOrder(this string! text) -> string!
+Rask.Data.LazyLoadingOptionsBuilderExtensions
+static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
+static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!

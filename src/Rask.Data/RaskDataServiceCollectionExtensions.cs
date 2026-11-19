@@ -36,6 +36,10 @@ public static partial class RaskDataServiceCollectionExtensions
             // connection, so raw SQL inside the block runs inside it. Registered here so every host's contexts carry it.
             services.AddSingleton<ISaveChangesInterceptor>(AmbientTransactionInterceptor.Instance);
 
+            // Lazy loading off unless the context's options AllowLazyLoading(): a navigation read in a loop, a render or a
+            // validation would otherwise be a query nobody wrote.
+            services.AddSingleton<ISaveChangesInterceptor>(LazyLoadingGuard.Instance);
+
             // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
             services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
