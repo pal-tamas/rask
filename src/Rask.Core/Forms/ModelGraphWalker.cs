@@ -74,9 +74,18 @@ public static class ModelGraphWalker
     }
 
     // What is never walked into: a query (enumerating it runs it — a DbSet, an IQueryable navigation), reflection's
-    // own objects (a Type's properties reach every assembly loaded), a delegate, a stream, a task.
+    // own objects (a Type's properties reach every assembly loaded), a delegate, a stream, a task, a type marked
+    // [SkipValidation], and EF's lazy loader (it leads to the DbContext).
     private static bool IsOpaque(object value) =>
-        value is IQueryable or MemberInfo or Assembly or Delegate or Stream or Task;
+        value is IQueryable or MemberInfo or Assembly or Delegate or Stream or Task
+        || Skips(value.GetType())
+        || UnloadedNavigation.IsLoader(value.GetType());
+
+    // Rask's [SkipValidation], or ASP.NET Core's (Microsoft.Extensions.Validation) — matched by name, so neither
+    // package needs the other.
+    private static bool Skips(MemberInfo member) =>
+        member.GetCustomAttributes(inherit: true)
+            .Any(static a => a is SkipValidationAttribute || string.Equals(a.GetType().Name, nameof(SkipValidationAttribute), StringComparison.Ordinal));
 
     private static void ReportCapped(object root) =>
         Diagnostics.RaskDiagnostics.ReportOnce(
@@ -170,12 +179,13 @@ public static class ModelGraphWalker
         var type = instance.GetType();
         foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (prop.GetIndexParameters().Length > 0)
-            {
-                continue;
-            }
-
-            if (!prop.CanRead)
+            // A leaf leads nowhere, so it is not read at all; nor is what is marked [SkipValidation], nor an EF
+            // navigation that is not loaded (reading it would load it — UnloadedNavigation).
+            if (prop.GetIndexParameters().Length > 0
+                || !prop.CanRead
+                || IsLeaf(prop.PropertyType)
+                || Skips(prop)
+                || UnloadedNavigation.Is(instance, prop))
             {
                 continue;
             }

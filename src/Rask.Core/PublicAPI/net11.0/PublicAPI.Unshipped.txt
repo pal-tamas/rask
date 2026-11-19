@@ -19886,3 +19886,5 @@ Rask.Core.Globalization.RaskString.WorkBatchFailed = 274 -> Rask.Core.Globalizat
 Rask.Core.Globalization.RaskString.WorkBatchDone = 272 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkBatchWarned = 273 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkBatchStopped = 275 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.SkipValidationAttribute
+Rask.Core.Forms.SkipValidationAttribute.SkipValidationAttribute() -> void

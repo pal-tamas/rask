@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`[SkipValidation]`, and an unloaded EF navigation is never loaded by validation.** Before: the walk every check
+  makes of a form's model read every property, so a lazy-loading entity loaded each navigation (a query per check),
+  and nothing could say "not this one". After: `[SkipValidation]` on a property (or on a class, for every object of
+  it) leaves it unread and unvalidated — ASP.NET Core's attribute of that name is honoured too — and a navigation
+  whose entity holds EF's `ILazyLoader` (a proxy, or the injected-loader pattern) is skipped while `IsLoaded` says it is
+  not loaded. Found by name: `Rask` still references no EF.
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the

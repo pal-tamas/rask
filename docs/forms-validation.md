@@ -346,6 +346,35 @@ async Task Save(RouteModel route)
 
 <!-- demo:validation-save-fails -->
 
+### What validation walks, and what it leaves alone
+
+Every check walks the model's object graph — its properties, the items of its lists, the values of its
+dictionaries — so a rule on an address inside an order is heard with nothing declared. The walk never goes
+into a query (`IQueryable`, a `DbSet`), a delegate, a stream, a task or reflection's own objects, and stops at
+32 levels or 10,000 objects. Two more things are left alone:
+
+- **What you mark `[SkipValidation]`.** On a property, nothing under it is read or validated; on a class or a
+  struct, no object of that type is walked into (the form's own model is always validated). ASP.NET Core's
+  `[SkipValidation]` (`Microsoft.Extensions.Validation`) is honoured the same way.
+
+  ```csharp
+  public sealed class OrderForm
+  {
+      public List<OrderLine> Lines { get; set; } = [];
+
+      [SkipValidation]                 // the customer's whole history: not the form's to check
+      public Customer? Customer { get; set; }
+  }
+  ```
+
+- **An Entity Framework navigation that is not loaded.** Reading it would load it — a query per navigation per
+  check. An entity that lazy-loads holds EF's `ILazyLoader` (a proxy, or the "injected loader" pattern), and the
+  walk asks it `IsLoaded` before it reads a navigation; one not loaded is skipped, never loaded. Rask finds the
+  loader by its type's name, so `Rask` takes no dependency on EF. The delegate pattern
+  (`Action<object, string>`) cannot be asked: mark such a navigation `[SkipValidation]`. A DataAnnotations
+  attribute on a navigation itself (`[Required] Customer`) is still read by .NET's validator when its object is
+  checked.
+
 ### When the rules run
 
 A field's rules run when its value reaches the model, and a bound field says nothing until the next
