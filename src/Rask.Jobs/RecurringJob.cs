@@ -54,6 +54,20 @@ public sealed class RecurringJob
     /// <summary>Runs it once a month, on the date the next step gives.</summary>
     public MonthlyJob Monthly => new(this);
 
+    /// <summary>Whether its very first start catches up on the occurrence just past, instead of waiting for the next one.</summary>
+    public bool RunsOnFirstStart { get; private set; }
+
+    /// <summary>
+    /// Runs it once as soon as it is first scheduled — on the first start of an app that never ran it, or after its name
+    /// changed — for the occurrence that has just gone by. Without it, a new schedule waits for its next occurrence: a
+    /// nightly backup deployed at noon runs that night, not at noon.
+    /// </summary>
+    public RecurringJob RunOnFirstStart()
+    {
+        RunsOnFirstStart = true;
+        return this;
+    }
+
     /// <summary>Records its runs under <paramref name="name"/> instead of the job's type name.</summary>
     public RecurringJob Named(string name)
     {

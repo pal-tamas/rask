@@ -156,7 +156,7 @@ public sealed class JobProcessorTests
     public async Task A_recurring_job_enqueues_once_per_interval()
     {
         await using var h = new JobsHarness(o =>
-            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart());
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -178,7 +178,7 @@ public sealed class JobProcessorTests
     public async Task A_restart_within_the_interval_does_not_re_enqueue_a_recurring_job()
     {
         await using var first = new JobsHarness(o =>
-            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart());
 
         await first.Processor.StartAsync(CancellationToken.None);
         await first.WaitUntilAsync(() => Task.FromResult(first.Recorder.Ticks >= 1));
@@ -186,7 +186,7 @@ public sealed class JobProcessorTests
 
         // "Restart": a fresh processor over the SAME database at the same (still-within-interval) time.
         await using var restarted = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)),
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(),
             start: first.Clock.GetUtcNow(),
             dbPath: first.DbPath);
 

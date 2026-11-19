@@ -335,6 +335,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **BREAKING (Rask.Jobs): a new recurring schedule waits for its next occurrence.** Before: a schedule never run before
+  fired on the first poll — a `.Monthly.On(1).At(6, 0)` close-the-books deployed on the 15th ran on the 15th, an
+  `.Every(1.Hour)` job at every first boot. After: its `RecurringJobState` row starts at the occurrence just gone by, so
+  it runs at the next one; `.RunOnFirstStart()` keeps the old catch-up for a schedule that wants it. Existing rows are
+  unchanged.
 - **A queued job, outbox message or email whose payload no longer reads fails its own attempt; the rest of its batch
   goes on.** Before: a hand-edited or reshaped payload threw out of the drain — a job's lane stopped with every row
   still claimed and renewed until the host stopped, which then gave the attempt back, so the job was never retried

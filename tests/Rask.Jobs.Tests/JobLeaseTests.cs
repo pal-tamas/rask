@@ -170,9 +170,9 @@ public sealed class JobLeaseTests
         // the conflict, so neither loses — N× every recurring job, for as long as the app runs.
         var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
         await using var a = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
         await using var b = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
 
         await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
         await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
@@ -191,7 +191,7 @@ public sealed class JobLeaseTests
     [Fact]
     public async Task A_recurring_tick_whose_job_was_not_written_is_still_owed()
     {
-        await using var h = new JobsHarness(o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start);
+        await using var h = new JobsHarness(o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start);
         await using (var db = h.NewContext())
         {
             await db.Database.ExecuteSqlRawAsync(
@@ -211,6 +211,50 @@ public sealed class JobLeaseTests
     }
 
     [Fact]
+    public async Task A_new_schedule_waits_for_its_next_occurrence()
+    {
+        // Deployed at 14:00: the 03:00 run of today has gone by, and the first one is tomorrow's.
+        var deployed = new DateTimeOffset(2026, 6, 10, 14, 0, 0, TimeSpan.Zero);
+        await using var h = new JobsHarness(o => o.Run(() => new TickJob()).Named("backup").Daily.At(3, 0), deployed);
+
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        h.Clock.Advance(TimeSpan.FromHours(12)); // 02:00 tomorrow
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        var beforeItsHour = await h.CountJobsAsync();
+        h.Clock.Advance(TimeSpan.FromHours(1)); // 03:00
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(0, beforeItsHour);
+        Assert.Equal(1, await h.CountJobsAsync());
+    }
+
+    [Fact]
+    public async Task A_new_interval_schedule_first_runs_one_interval_after_it_starts()
+    {
+        await using var h = new JobsHarness(o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start);
+
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        var atStart = await h.CountJobsAsync();
+        h.Clock.Advance(TimeSpan.FromHours(1));
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(0, atStart);
+        Assert.Equal(1, await h.CountJobsAsync());
+    }
+
+    [Fact]
+    public async Task A_schedule_that_runs_on_its_first_start_catches_up_at_once()
+    {
+        var deployed = new DateTimeOffset(2026, 6, 10, 14, 0, 0, TimeSpan.Zero);
+        await using var h = new JobsHarness(
+            o => o.Run(() => new TickJob()).Named("backup").Daily.At(3, 0).RunOnFirstStart(), deployed);
+
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(1, await h.CountJobsAsync());
+    }
+
+    [Fact]
     public async Task The_first_ever_recurring_tick_is_enqueued_exactly_once()
     {
         // The first tick is the one case with no state row to compare-and-swap against: both instances try
@@ -218,9 +262,9 @@ public sealed class JobLeaseTests
         // other half, the winner must not be blocked by a NULL comparison that is never true.
         var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
         await using var a = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
         await using var b = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
 
         await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
         await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);

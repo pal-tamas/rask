@@ -972,11 +972,17 @@ public sealed partial class JobProcessor<TContext>(
 
             states.TryGetValue(definition.Name, out var state);
 
-            if (state is null && !await TryCreateStateAsync(db, definition.Name, cancellationToken).ConfigureAwait(false))
+            if (state is null)
             {
-                // Another instance created the row between our read and our insert. It will have taken the
-                // tick too, so there is nothing to do this cycle; the next poll takes the normal path.
-                continue;
+                // A schedule never run before starts as if it had just run at its latest occurrence, so it waits for the
+                // next one — unless it asked to catch up (RunOnFirstStart). Either way a lost create race means another
+                // instance made the row (and took any tick), so there is nothing to do this cycle.
+                var seeded = definition.RunsOnFirstStart ? (DateTime?)null : schedule.Tick(null, now, options.TimeZone).Next;
+                if (!await TryCreateStateAsync(db, definition.Name, seeded, cancellationToken).ConfigureAwait(false)
+                    || seeded is not null)
+                {
+                    continue;
+                }
             }
 
             var (dueBefore, next) = schedule.Tick(state?.LastEnqueuedAt, now, options.TimeZone);
@@ -1029,9 +1035,10 @@ public sealed partial class JobProcessor<TContext>(
     /// Creates the bookkeeping row for a recurring job, returning false when another instance won the race
     /// to create it. Only ever happens once in the lifetime of each recurring job.
     /// </summary>
-    private static async Task<bool> TryCreateStateAsync(TContext db, string name, CancellationToken cancellationToken)
+    private static async Task<bool> TryCreateStateAsync(
+        TContext db, string name, DateTime? lastEnqueuedAt, CancellationToken cancellationToken)
     {
-        var state = RecurringJobState.For(name);
+        var state = RecurringJobState.For(name, lastEnqueuedAt);
         db.Set<RecurringJobState>().Add(state);
         try
         {
