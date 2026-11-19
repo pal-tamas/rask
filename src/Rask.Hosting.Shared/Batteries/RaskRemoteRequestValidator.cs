@@ -43,7 +43,9 @@ internal sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
 
         var errors = new List<RequestValidationError>();
 
-        using var scope = _scopes.CreateScope();
+        // Async: a scoped service the rules resolved (a DbContext) may only dispose asynchronously.
+        var scope = _scopes.CreateAsyncScope();
+        await using var disposing = scope.ConfigureAwait(false);
         var services = scope.ServiceProvider;
 
         foreach (var entry in await DataAnnotationsFieldValidator.ValidateAwaited(request, services, Ambient.CancellationToken)

@@ -71,7 +71,7 @@ internal static class FragmentKeys
 
         if (fragment.VaryBy is { } custom)
         {
-            Append(parts, "k", Convert.ToString(custom, CultureInfo.InvariantCulture) ?? string.Empty);
+            Append(parts, "k", KeyText(custom));
         }
 
         return Prefix + name + ":" + Hash(parts);
@@ -160,6 +160,42 @@ internal static class FragmentKeys
         }
 
         return true;
+    }
+
+    // The text a VaryBy value is keyed by. A value whose text is only its type's name — a class without a ToString of
+    // its own — would key every instance alike, and hand one customer's markup to another: refused, not guessed at.
+    // A tuple's parts are held to the same rule, since its text is theirs.
+    private static string KeyText(object value)
+    {
+        Spoken(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
+    private static void Spoken(object? value)
+    {
+        if (value is null or string or IConvertible or IFormattable)
+        {
+            return;
+        }
+
+        if (value is System.Runtime.CompilerServices.ITuple tuple)
+        {
+            for (var i = 0; i < tuple.Length; i++)
+            {
+                Spoken(tuple[i]);
+            }
+
+            return;
+        }
+
+        var type = value.GetType();
+        if (string.Equals(value.ToString(), type.ToString(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Cached.VaryBy was given a {type.Name}, whose text is its type's name, so every {type.Name} would be "
+                + "stored under one key and one visitor's markup shown to another. Vary by what tells them apart: an id, "
+                + "a string, a number, a record of those, or a tuple — .VaryBy((order.Id, order.Version)).");
+        }
     }
 
     private static void Append(StringBuilder parts, string label, string value) =>

@@ -195,9 +195,10 @@ internal static class DevHostFiles
         if (end < 0)
         {
             // An opened block with no close: a half-written file, or someone deleted the end marker.
-            // Treat the rest of the file as the block rather than corrupting it further by appending a
-            // second one — the caller rewrites it whole.
-            return (start, hosts.Length);
+            // The block is what we would have written there and nothing more — it ends at the first line
+            // we never write, so the entries the developer keeps below it survive the rewrite (and the
+            // removal, which runs as root). Rewriting it whole closes it again.
+            return (start, EndOfUnclosedBlock(hosts, start));
         }
 
         end += HostsEndMarker.Length;
@@ -207,5 +208,43 @@ internal static class DevHostFiles
         }
 
         return (start, end);
+    }
+
+    // Just past the last line of an unclosed block that is one of ours: the opening marker, the comment under
+    // it, or a "127.0.0.1<tab>name.test" record as RenderHostsBlock writes it.
+    private static int EndOfUnclosedBlock(string hosts, int start)
+    {
+        var at = start;
+        while (at < hosts.Length)
+        {
+            var newline = hosts.IndexOf('\n', at);
+            var next = newline < 0 ? hosts.Length : newline + 1;
+            var line = hosts.AsSpan(at, (newline < 0 ? hosts.Length : newline) - at).TrimEnd('\r');
+            if (at != start && !IsOurs(line))
+            {
+                return at;
+            }
+
+            at = next;
+        }
+
+        return hosts.Length;
+    }
+
+    private static bool IsOurs(ReadOnlySpan<char> line)
+    {
+        if (line.StartsWith("# Added by `rask dev`", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        const string record = "127.0.0.1\t";
+        if (!line.StartsWith(record, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var name = line[record.Length..];
+        return name.EndsWith("." + DevHostName.Suffix, StringComparison.Ordinal) && !name.ContainsAny(" \t#");
     }
 }

@@ -121,7 +121,8 @@ public sealed partial class FollowedSourceDirtyMarkTests : global::Rask.Core.Ras
 
         Assert.Equal(RaskLogLevel.Warning, said.Level);
         Assert.Equal("Rask.Live", said.Category);
-        Assert.Contains("Session s1", said.Message, StringComparison.Ordinal);
+        Assert.Contains("Session " + RenderPace.Named("s1"), said.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("s1 ", said.Message, StringComparison.Ordinal);
         Assert.Contains("Asked by: Follower, FollowerHost.", said.Message, StringComparison.Ordinal);
     }
 
