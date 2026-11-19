@@ -300,9 +300,17 @@ A method silently missing from a client reads as a broken generator, so nothing 
 | `IActionResult` + `[ProducesResponseType(typeof(Post), 200)]` | `Task<Post>` |
 | `IActionResult` alone | nothing — [RASK070](diagnostics.md#rask070) |
 
+A controller is one ASP.NET serves as an API controller: `[ApiController]` on it, on a base controller, or on
+the assembly (`[assembly: ApiController]`); its client has the actions it inherits from base controllers too, and an
+abstract base gets none of its own. An action's route is its verb attribute's template, or the action's own
+`[Route]` when the verb attribute has none (`[HttpGet, Route("{id}")]`). A minimal API's client lands in the
+project's root namespace.
+
 Parameters follow ASP.NET's own `[ApiController]` binding rules: a name matching a route token binds
 from the route, a simple type from the query, and the one complex type left is the body. `[FromRoute]`,
-`[FromQuery]`, `[FromBody]` and `[FromHeader]` say so explicitly.
+`[FromQuery]`, `[FromBody]` and `[FromHeader]` say so explicitly. A route token the caller may leave out
+(`{page?}`) drops its segment when the argument is null; a record bound `[FromQuery]` is
+[RASK068](diagnostics.md#rask068) — take its members as separate parameters.
 
 Anything the caller does not supply is **not** a client parameter — `[FromServices]`, `HttpContext`,
 `CancellationToken`, `ClaimsPrincipal`, `IFormFile`. An injected service is recognised without

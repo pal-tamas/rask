@@ -43,8 +43,14 @@ internal static class RouteTemplate
     }
 
     /// <summary>Every (verb, template) pair the action declares. An action may answer more than one.</summary>
+    /// <remarks>
+    ///     A verb attribute with no template of its own takes the action's <c>[Route]</c> — <c>[HttpGet, Route("{id}")]</c>
+    ///     is <c>GET {id}</c> in ASP.NET, and reading it as the controller's bare prefix built a URL that answers
+    ///     something else. The first <c>[Route]</c> is the one the client calls when the action declares several.
+    /// </remarks>
     public static IEnumerable<(string Verb, string Template)> OfAction(IMethodSymbol action)
     {
+        var routed = OwnRoute(action);
         foreach (var attribute in action.GetAttributes())
         {
             var name = attribute.AttributeClass?.Name;
@@ -72,10 +78,53 @@ internal static class RouteTemplate
             var template = attribute.ConstructorArguments.Length > 0 &&
                 attribute.ConstructorArguments[0].Value is string declared
                 ? declared
-                : string.Empty;
+                : routed ?? string.Empty;
 
             yield return (verb, template);
         }
+    }
+
+    // The action's own [Route] template, or null when it has none.
+    private static string? OwnRoute(IMethodSymbol action)
+    {
+        foreach (var attribute in action.GetAttributes())
+        {
+            if (string.Equals(attribute.AttributeClass?.Name, "RouteAttribute", StringComparison.Ordinal) &&
+                string.Equals(attribute.AttributeClass?.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal) &&
+                attribute.ConstructorArguments.Length > 0 &&
+                attribute.ConstructorArguments[0].Value is string template)
+            {
+                return template;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The route tokens a caller may leave out: <c>{id?}</c>, and <c>{id=1}</c>, whose default the server fills.</summary>
+    public static HashSet<string> OptionalTokens(string route)
+    {
+        var optional = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var start = -1;
+        for (var i = 0; i < route.Length; i++)
+        {
+            if (route[i] == '{')
+            {
+                start = i + 1;
+            }
+            else if (route[i] == '}' && start >= 0)
+            {
+                var token = route.Substring(start, i - start);
+                if (token.EndsWith("?", StringComparison.Ordinal) || token.IndexOf('=') >= 0)
+                {
+                    optional.Add(Bare(token));
+                }
+
+                start = -1;
+            }
+        }
+
+        return optional;
     }
 
     /// <summary>

@@ -26,9 +26,9 @@ public sealed class ApiClientGeneratorTests
         namespace Microsoft.AspNetCore.Mvc
         {
             public class ControllerBase { }
-            [System.AttributeUsage(System.AttributeTargets.Class)]
+            [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Assembly)]
             public sealed class ApiControllerAttribute : System.Attribute { }
-            [System.AttributeUsage(System.AttributeTargets.Class)]
+            [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple = true)]
             public sealed class RouteAttribute : System.Attribute
             {
                 public RouteAttribute(string template) { }
@@ -54,6 +54,8 @@ public sealed class ApiClientGeneratorTests
             public sealed class FromBodyAttribute : System.Attribute { }
             [System.AttributeUsage(System.AttributeTargets.Parameter)]
             public sealed class FromHeaderAttribute : System.Attribute { }
+            [System.AttributeUsage(System.AttributeTargets.Parameter)]
+            public sealed class FromQueryAttribute : System.Attribute { }
         }
         """;
 
@@ -515,6 +517,145 @@ public sealed class ApiClientGeneratorTests
 
         Assert.Contains("\"api/Posts/\"", source, StringComparison.Ordinal);
         Assert.DoesNotContain("[Controller]", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_action_s_own_Route_is_the_template_its_verb_answers()
+    {
+        // [HttpGet, Route("{id}")] is GET api/posts/{id} in ASP.NET; the client called the bare prefix.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet, Route("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskApiClients");
+
+        Assert.False(Reported(run, "RASK068"));
+        Assert.Contains("\"api/posts/\" + global::Rask.Api.Client.ApiUri.Segment(id)", source, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_controller_that_inherits_ApiController_and_its_actions_gets_a_client_and_an_abstract_base_none()
+    {
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            public abstract class ApiBase : ControllerBase
+            {
+                [HttpGet("ping")]
+                public ActionResult<string> Ping() => null!;
+            }
+
+            [Route("api/posts")]
+            public sealed class PostsController : ApiBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskApiClients");
+
+        Assert.Contains("class PostsClient", source, StringComparison.Ordinal);
+        Assert.Contains("Get(int id", source, StringComparison.Ordinal);
+        Assert.Contains("Ping(", source, StringComparison.Ordinal);
+        Assert.Contains("\"api/posts/ping\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("class ApiBaseClient", source, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_controller_in_an_assembly_marked_ApiController_gets_a_client()
+    {
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [assembly: ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        Assert.Contains("class PostsClient", run.GeneratedSource("__RaskApiClients"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_parameter_named_like_a_keyword_and_an_optional_route_token_compile()
+    {
+        // `@class` reached the client as `int class`; `{page?}` left out was Segment(null), which throws.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{page?}")]
+                public ActionResult<string> List(int? page, string? @class) => null!;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskApiClients");
+
+        Assert.Contains("int? page, string? @class", source.Replace("global::System.", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains("\"api/posts\" + ((object)page == null ? \"\" : \"/\" + global::Rask.Api.Client.ApiUri.Segment(page))", source, StringComparison.Ordinal);
+        Assert.Contains("(object)@class", source, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void RASK068_reports_a_complex_type_bound_from_the_query()
+    {
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            public sealed record Filter(string Name, int Page);
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet]
+                public ActionResult<string> Find([FromQuery] Filter filter) => null!;
+
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK068" && d.GetMessage(System.Globalization.CultureInfo.InvariantCulture).Contains("complex type from the query", StringComparison.Ordinal));
+        var source = run.GeneratedSource("__RaskApiClients");
+        Assert.DoesNotContain("Find(", source, StringComparison.Ordinal);
+        Assert.Contains("Get(int id", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null, "TestAssembly")]
+    [InlineData("Shop.Web", "Shop.Web")]
+    public void A_minimal_api_s_client_lands_in_the_root_namespace(string? rootNamespace, string expected)
+    {
+        var options = rootNamespace is null
+            ? null
+            : new Dictionary<string, string>(StringComparer.Ordinal) { ["build_property.RootNamespace"] = rootNamespace };
+
+        var run = Run("""
+            using Microsoft.AspNetCore.Builder;
+            using Microsoft.AspNetCore.Routing;
+
+            public static class Endpoints
+            {
+                public static void Map(IEndpointRouteBuilder app) => app.MapGet("/api/ping", (int id) => "pong");
+            }
+            """ + Routing, options);
+
+        Assert.Contains($"namespace {expected}\n", run.GeneratedSource("__RaskApiClients").ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
     }
 
     [Fact]
