@@ -19819,6 +19819,7 @@ Rask.Core.Globalization.RaskString.FilterRangeTo = 277 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.FilterRangeAtLeast = 278 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FilterRangeAtMost = 279 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FilterRangeBetween = 280 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ToastClose = 281 -> Rask.Core.Globalization.RaskString
 Rask.CachedFragments
 Rask.CachedOptions
 Rask.CachedOptions.CachedOptions() -> void

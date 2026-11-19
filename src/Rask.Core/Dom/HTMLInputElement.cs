@@ -326,6 +326,12 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             return;
         }
 
+        // Drawn read-only, nobody can change it in the browser: it wires no write, so a forged frame has none to run.
+        if (typedInto && DrawnReadOnly.Is(ReadOnly, this))
+        {
+            return;
+        }
+
         if (typedInto)
         {
             WriteTypedBind(

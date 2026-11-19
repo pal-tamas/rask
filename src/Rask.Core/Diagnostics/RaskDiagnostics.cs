@@ -18,12 +18,10 @@ namespace Rask.Core.Diagnostics;
 /// </summary>
 internal static class RaskDiagnostics
 {
-    // Bounds ReportOnce's memory: past the cap the OLDEST key is forgotten to make room, so a buggy app churning
-    // distinct keys costs at most this many and may hear an old one again — where a set that stopped taking keys at
-    // the cap silenced every ReportOnce in the process for good, the constant-key warnings among them.
-    private const int ReportOnceCap = 1024;
-    private static readonly HashSet<string> ReportedOnce = new(StringComparer.Ordinal);
-    private static readonly Queue<string> ReportedOrder = new();
+    // The process's own record; a capture a test installs (Rask.Testing's CapturingDiagnostics) brings one of its own
+    // for the flow it runs on (BeginReportOnceScope), so tests in parallel neither silence nor repeat each other.
+    private static readonly ReportedOnce Global = new();
+    private static readonly AsyncLocal<ReportedOnce?> Scoped = new();
 
     /// <summary>
     ///     Where framework diagnostics go. Defaults to a <see cref="Console.Error" /> writer (matching the
@@ -49,7 +47,7 @@ internal static class RaskDiagnostics
 
     /// <summary>
     ///     Surface a diagnostic at most once per distinct <paramref name="dedupKey" />, bounded to
-    ///     the last <see cref="ReportOnceCap" /> distinct keys. <paramref name="messageFactory" /> is invoked only
+    ///     the last <see cref="ReportedOnce.Cap" /> distinct keys. <paramref name="messageFactory" /> is invoked only
     ///     when the event is actually delivered, so a condition that recurs every render on an
     ///     already-broken path (e.g. a duplicate key reappearing on each reconcile) pays nothing to build
     ///     its message after the first report. The dedup key is recorded only once the event is delivered,
@@ -71,18 +69,9 @@ internal static class RaskDiagnostics
             return;
         }
 
-        lock (ReportedOnce)
+        if (!(Scoped.Value ?? Global).Add(dedupKey))
         {
-            if (!ReportedOnce.Add(dedupKey))
-            {
-                return;
-            }
-
-            ReportedOrder.Enqueue(dedupKey);
-            if (ReportedOrder.Count > ReportOnceCap)
-            {
-                ReportedOnce.Remove(ReportedOrder.Dequeue());
-            }
+            return;
         }
 
         var diagnostic = new RaskDiagnosticEvent(level, category, messageFactory(), exception);
@@ -118,10 +107,24 @@ internal static class RaskDiagnostics
     // deterministically regardless of what earlier tests reported.
     internal static void ResetReportOnceForTests()
     {
-        lock (ReportedOnce)
-        {
-            ReportedOnce.Clear();
-            ReportedOrder.Clear();
-        }
+        (Scoped.Value ?? Global).Clear();
+    }
+
+    /// <summary>
+    ///     Gives the calling flow — and what it awaits or starts from here — a ReportOnce record of its own, empty, until
+    ///     the returned scope is disposed. What a test provokes is then reported to it once, whatever another test
+    ///     running beside it reported, and resetting it resets nobody else's.
+    /// </summary>
+    internal static ReportOnceScope BeginReportOnceScope()
+    {
+        var before = Scoped.Value;
+        Scoped.Value = new ReportedOnce();
+        return new ReportOnceScope(before);
+    }
+
+    /// <summary>Puts back the record the flow had before <see cref="BeginReportOnceScope" />.</summary>
+    internal readonly struct ReportOnceScope(ReportedOnce? before) : IDisposable
+    {
+        public void Dispose() => Scoped.Value = before;
     }
 }

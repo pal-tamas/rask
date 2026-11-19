@@ -893,4 +893,7 @@ public enum RaskString
 
     /// <summary>What a range filter's badge says after its label when both ends are set: <c>{0}</c> the least, <c>{1}</c> the most.</summary>
     FilterRangeBetween,
+
+    /// <summary>The accessible name of a toast's close control (<c>Ui.Toast</c>), which shows only a cross.</summary>
+    ToastClose,
 }

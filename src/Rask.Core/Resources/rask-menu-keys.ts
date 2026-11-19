@@ -63,7 +63,8 @@ export function typeAhead(buffer: string, key: string, cursor: number, texts: re
         repeated = repeated && buffer[i] === buffer[0];
     }
     const needle = (repeated ? key : buffer).toLocaleLowerCase();
-    const start = needle.length === 1 ? cursor + 1 : cursor;
+    // A prefix with no cursor yet is looked for from the first row, not from the last (-1 wraps to it).
+    const start = needle.length === 1 ? cursor + 1 : Math.max(cursor, 0);
     for (let i = 0; i < texts.length; i++) {
         const at = (((start + i) % texts.length) + texts.length) % texts.length;
         const text = texts[at];
