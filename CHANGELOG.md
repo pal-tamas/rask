@@ -347,7 +347,9 @@ them until tagged releases begin.
 - **The workflow `rask deploy --github-actions` writes runs on a named runner image and the CLI that wrote it.**
   Before: `runs-on: ubuntu-latest` and an unpinned `dotnet tool install --global Rask.Cli`, so a new image or a new
   CLI release changed the deploy with nothing reviewed. After: `runs-on: ubuntu-26.04` and `--version <the CLI's
-  version>`; bump it beside the CLI on your machine.
+  version>`. After a CLI upgrade, the next `rask deploy` (or `rask deploy --github-actions`) moves the pin up to the
+  new CLI and says so — never down, and nothing else in the file changes; commit it. `rask deploy --github-actions`
+  on the workflow it wrote moves the pin instead of refusing; a workflow a person wrote is still left alone.
 - **The local CA's private key is created owner-only.** Before: `rask dev`'s dev host wrote `rask-local-ca.key` with
   the process umask and narrowed it after; now it is created 0600, like every other secret the CLI writes.
 - **`rask db drop` asks once.** Before: confirming at rask's prompt handed over to `dotnet ef database drop`, which

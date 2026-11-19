@@ -40,6 +40,51 @@ internal static class GitHubActionsWorkflow
 
     private const string VersionToken = "{rask-cli-version}";
 
+    /// <summary>The first line of every workflow <see cref="Render"/> writes: how one this CLI wrote is told from one a person wrote.</summary>
+    private const string Marker = "# Written by `rask deploy --github-actions`.";
+
+    /// <summary>Whether <paramref name="workflow"/> is one <see cref="Render"/> wrote.</summary>
+    public static bool IsGenerated(string workflow) => workflow.StartsWith(Marker, StringComparison.Ordinal);
+
+    private const string InstallStep = "dotnet tool install --global Rask.Cli --version ";
+
+    /// <summary>
+    /// <paramref name="workflow"/> with its pinned CLI moved up to <paramref name="cliVersion"/>, or null when there is
+    /// nothing to move: the file is not one this CLI wrote, it pins no version, or it already pins this one or a newer
+    /// one. Only the version on the install line changes — the rest of the file is the author's. Never downgrades, so
+    /// a teammate on an older CLI leaves the pin where it is; a development build (<c>0.0.0</c>) moves nothing.
+    /// </summary>
+    public static (string Updated, string Pinned)? Repin(string workflow, string cliVersion)
+    {
+        if (!IsGenerated(workflow))
+        {
+            return null;
+        }
+
+        var at = workflow.IndexOf(InstallStep, StringComparison.Ordinal);
+        if (at < 0)
+        {
+            return null;
+        }
+
+        var start = at + InstallStep.Length;
+        var end = start;
+        while (end < workflow.Length && !char.IsWhiteSpace(workflow[end]))
+        {
+            end++;
+        }
+
+        var pinned = workflow[start..end];
+        var current = ToolVersion.Parse(cliVersion);
+        var previous = ToolVersion.Parse(pinned);
+        if (current is null || current == new Version(0, 0, 0) || (previous is not null && previous >= current))
+        {
+            return null;
+        }
+
+        return (workflow[..start] + cliVersion + workflow[end..], pinned);
+    }
+
     private const string Header = """
         # Written by `rask deploy --github-actions`.
         #
@@ -135,8 +180,8 @@ internal static class GitHubActionsWorkflow
                   restore-keys: |
                     rask-build-${{ runner.os }}-${{ runner.arch }}-
 
-              # Pinned to the CLI that wrote this file: when you upgrade the CLI on your machine, change the
-              # version here too, so CI deploys with the one you checked the deploy with.
+              # Pinned to the CLI that wrote this file. After you upgrade the CLI on your machine, your next
+              # `rask deploy` (or `rask deploy --github-actions`) moves this version up to it; commit the change.
               - name: Install the Rask CLI
                 run: dotnet tool install --global Rask.Cli --version {rask-cli-version}
 

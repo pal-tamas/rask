@@ -362,7 +362,10 @@ the repository's CI workflow (`ci.yml`, or the only other workflow that runs on 
 runs only for a successful run of a push — then checks out exactly the commit CI passed
 (`github.event.workflow_run.head_sha`), not whatever `main` has moved on to. A repository with no CI workflow yet
 gets a workflow that deploys every push to `main`, with a comment saying what to change once it has one. Manual
-runs (`workflow_dispatch`) always work. One deploy of an app runs at a time (`concurrency`, never cancelled
+runs (`workflow_dispatch`) always work. The runner image is named (`ubuntu-26.04`) and the CLI it installs is pinned
+to the version that wrote the file; after you upgrade the CLI, your next `rask deploy` (or `rask deploy
+--github-actions`) moves the pin up to it and says so — commit the change. It never moves the pin down, and it
+changes nothing else in the file. One deploy of an app runs at a time (`concurrency`, never cancelled
 half-way); different apps' pipelines deploy to the same box in parallel.
 
 The image is built **on the runner** — GitHub's runners have Docker with buildx — for the box's platform, and
@@ -496,7 +499,7 @@ files through `actions/cache`, as any cache step does.
 Nothing here can fail a deploy. A runner that cannot start a BuildKit container, a mount that cannot be copied in
 or out, a cache that cannot be written — each is one line saying so, and the build is the plain one. An older
 `deploy.yml` without the cache step still deploys; its runner just starts every time with nothing to reuse, so
-run `rask deploy --github-actions` again to rewrite it.
+delete it and run `rask deploy --github-actions` again to rewrite it.
 
 ## Release names and `/version`
 
