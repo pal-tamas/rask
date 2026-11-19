@@ -50,12 +50,15 @@ internal sealed class LazyLoadingGuard : DbCommandInterceptor, IMaterializationI
         return ValueTask.FromResult(result);
     }
 
+    /// <summary>Whether <paramref name="options" /> said AllowLazyLoading().</summary>
+    internal static bool Allows(IDbContextOptions options) =>
+        options.FindExtension<CoreOptionsExtension>()?.Interceptors?.Contains(LazyLoadingAllowed.Instance) == true;
+
     private static void SwitchOff(DbContext? context)
     {
         try
         {
-            if (context is { ChangeTracker.LazyLoadingEnabled: true }
-                && context.GetService<IDbContextOptions>().FindExtension<LazyLoadingAllowedExtension>() is null)
+            if (context is { ChangeTracker.LazyLoadingEnabled: true } && !Allows(context.GetService<IDbContextOptions>()))
             {
                 context.ChangeTracker.LazyLoadingEnabled = false;
             }

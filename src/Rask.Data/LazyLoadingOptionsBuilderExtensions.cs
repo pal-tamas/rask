@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Rask.Data;
 
@@ -26,12 +25,7 @@ public static class LazyLoadingOptionsBuilderExtensions
     public static DbContextOptionsBuilder AllowLazyLoading(this DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
-        if (optionsBuilder.Options.FindExtension<LazyLoadingAllowedExtension>() is null)
-        {
-            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new LazyLoadingAllowedExtension());
-        }
-
-        return optionsBuilder;
+        return LazyLoadingGuard.Allows(optionsBuilder.Options) ? optionsBuilder : optionsBuilder.AddInterceptors(LazyLoadingAllowed.Instance);
     }
 
     /// <inheritdoc cref="AllowLazyLoading(DbContextOptionsBuilder)" />
