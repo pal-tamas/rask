@@ -19,9 +19,10 @@ public sealed class DeployOpsTests
     }
 
     /// <summary>A ready host, a scripted `docker ps` listing, containers up, and an image for a tag query.</summary>
-    private static Func<IReadOnlyList<string>, ProcessResult> Captures(string psListing = "", bool hasPrevious = true) => args =>
+    private static Func<IReadOnlyList<string>, ProcessResult> Captures(string psListing = "", bool hasPrevious = true, bool hostDown = false) => args =>
         DeployCommandTests.IsHostProbe(args) ? new ProcessResult(0, DeployCommandTests.ReadyHostProbe, string.Empty)
-        : args.Contains("inspect") && args.Contains("image") ? new ProcessResult(hasPrevious ? 0 : 1, hasPrevious ? "sha256:0123456789abcdef\n" : string.Empty, string.Empty)
+        : hostDown && (args.Contains("ps") || args.Contains("image")) ? new ProcessResult(255, string.Empty, "ssh: connect to host box port 22: Connection refused")
+        : args.Contains("inspect") && args.Contains("image") ? hasPrevious ? new ProcessResult(0, "sha256:0123456789abcdef\n", string.Empty) : DeployCommandTests.NoSuchImage
         : args.Contains("ps") ? new ProcessResult(0, psListing, string.Empty)
         : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
         : new ProcessResult(0, string.Empty, string.Empty);
@@ -122,6 +123,20 @@ public sealed class DeployOpsTests
         await command.ExecuteAsync(["status", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
 
         Assert.Contains("nothing to go back to", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Status_on_a_host_it_cannot_read_says_so_rather_than_that_nothing_is_deployed()
+    {
+        var runner = new FakeProcessRunner { CaptureHandler = Captures(hostDown: true) };
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["status", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Connection refused", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nothing deployed", console.OutText, StringComparison.Ordinal);
     }
 
     // ── logs ────────────────────────────────────────────────────────────────────────────────────────
@@ -227,6 +242,82 @@ public sealed class DeployOpsTests
         Assert.Equal(1, exit);
         Assert.Contains("nothing to roll back to", console.ErrorText, StringComparison.Ordinal);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("run") && !i.Arguments.Contains(ProxyCommands.AppLockContainer("shop"))); // only its lock
+    }
+
+    [Fact]
+    public async Task Rollback_on_a_host_it_cannot_ask_for_the_previous_image_says_so_rather_than_that_there_is_none()
+    {
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = args => args.Contains("image") && args.Contains("inspect")
+                ? new ProcessResult(1, string.Empty, "Cannot connect to the Docker daemon")
+                : Captures("shop-blue\tshop\tshop.example.com\tblue\t8080\n")(args),
+        };
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["rollback", "--host", "deploy@box", "--app", "shop"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Cannot connect to the Docker daemon", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("nothing to roll back to", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_rollback_whose_tags_cannot_be_swapped_fails_and_says_what_to_fix()
+    {
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = Captures("shop-blue\tshop\tshop.example.com\tblue\t8080\n"),
+            RunHandler = args => args.Contains("tag") && args.Contains("shop:current") && args.Contains("shop:rollback-swap") ? 1 : 0,
+        };
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","domain":"shop.example.com"}""");
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["rollback"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("could not be swapped", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("shop:previous") && i.Arguments.Contains("tag"));
+        Assert.DoesNotContain("Rolled back.", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_port_mode_rollback_whose_previous_image_fails_brings_the_current_one_back()
+    {
+        // A --port rollback stops :current to start :previous; when :previous failed its gate the box
+        // was left serving nothing.
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","port":9000}""");
+        string? started = null;
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = Captures("shop\tshop\t\t\t9000\n"),
+
+            // The health probe runs after the start it checks, so it fails whenever :previous started last.
+            RunHandler = args =>
+            {
+                if (args.Contains("run") && args.Contains("-p"))
+                {
+                    started = args.First(a => a.StartsWith("shop:", StringComparison.Ordinal));
+                }
+
+                return args.Contains("curlimages/curl:8.23.0") && started == "shop:previous" ? 1 : 0;
+            },
+        };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["rollback"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        var runs = runner.Invocations.Where(i => !i.Captured && i.Arguments.Contains("run") && i.Arguments.Contains("-p")).ToList();
+        Assert.Equal(["shop:previous", "shop:current"], runs.Select(r => r.Arguments.First(a => a.StartsWith("shop:", StringComparison.Ordinal))));
+        Assert.Contains("Restoring shop:current", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("The version that was serving is back on port 9000", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("tag"));
     }
 
     // ── argument discipline ─────────────────────────────────────────────────────────────────────────

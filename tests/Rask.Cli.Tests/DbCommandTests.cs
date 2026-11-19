@@ -186,6 +186,21 @@ public sealed class DbCommandTests
         Assert.Contains("--yes only applies", console.ErrorText);
     }
 
+    [Theory]
+    [InlineData("update")]
+    [InlineData("drop")]
+    [InlineData("add")]
+    public async Task Json_is_refused_on_a_verb_with_no_listing_before_anything_runs(string verb)
+    {
+        var (command, runner, console) = CreateWithProject();
+
+        var exit = await command.ExecuteAsync(verb == "add" ? [verb, "Init", "--json"] : [verb, "--json", "--yes"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--json only applies to 'rask db list'", console.ErrorText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Migrate_resolves_to_the_update_verb_on_the_schema()
     {

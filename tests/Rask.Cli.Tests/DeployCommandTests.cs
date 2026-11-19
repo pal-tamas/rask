@@ -232,6 +232,9 @@ public sealed partial class DeployCommandTests
             || string.Equals(args[^1], HostSetup.ReachableScript, StringComparison.Ordinal));
 
     /// <summary>The host probe is the ssh invocation whose last argument is the probe script.</summary>
+    /// <summary>What docker answers for a tag that names no image — told apart from a host it could not reach.</summary>
+    internal static readonly ProcessResult NoSuchImage = new(1, string.Empty, "Error response from daemon: No such image: shop:previous");
+
     internal static bool IsHostProbe(IReadOnlyList<string> args) =>
         args.Count > 0 && string.Equals(args[^1], HostProbe.ProbeScript, StringComparison.Ordinal);
 
@@ -375,7 +378,7 @@ public sealed partial class DeployCommandTests
             // A first deploy: :current exists, :previous does not.
             CaptureHandler = args =>
                 IsHostProbe(args) ? new ProcessResult(0, ReadyHostProbe, string.Empty)
-                : args.Contains("inspect") && args.Contains("image") ? new ProcessResult(1, string.Empty, string.Empty)
+                : args.Contains("inspect") && args.Contains("image") ? NoSuchImage
                 : args.Contains("ps") ? new ProcessResult(0, string.Empty, string.Empty)
                 : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
                 : new ProcessResult(0, string.Empty, string.Empty),

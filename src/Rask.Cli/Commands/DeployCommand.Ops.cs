@@ -67,6 +67,12 @@ internal sealed partial class DeployCommand
     private async Task<int> StatusAsync(string host, string slug, bool asJson, CancellationToken cancellationToken)
     {
         var listing = await Capture(BuildStatusArguments(host), cancellationToken).ConfigureAwait(false);
+        if (listing.ExitCode != 0)
+        {
+            // An unreachable host or daemon lists nothing, and "nothing deployed" would be a wrong answer.
+            return Unread(host, "what runs there", listing);
+        }
+
         var apps = ParseStatusRows(listing.StandardOutput);
 
         // Before the empty-list branch: "nothing is deployed" is an answer a script wants as an empty
@@ -94,10 +100,15 @@ internal sealed partial class DeployCommand
         // Whether a rollback is even possible is the other half of "what's the state of this app".
         await Console.Out.WriteLineAsync(cancellationToken).ConfigureAwait(false);
         var rollbackTo = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        if (rollbackTo.Failure is { } failure)
+        {
+            return Unread(host, $"{slug}:{PreviousTag}", failure);
+        }
+
         Console.WriteLine(
-            rollbackTo is null
+            rollbackTo.Image is null
                 ? $"  No previous image for '{slug}' — `rask deploy rollback` has nothing to go back to yet."
-                : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo}).",
+                : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo.Image}).",
             ConsoleStyle.Dim);
         WriteDiskStatus(host, await ReadDiskStatusAsync(host, cancellationToken).ConfigureAwait(false));
 
@@ -158,7 +169,13 @@ internal sealed partial class DeployCommand
     /// </summary>
     private async Task<int> LogsAsync(string host, string slug, ParsedArguments parsed, CancellationToken cancellationToken)
     {
-        var container = await ResolveLiveContainerAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        var listing = await Capture(BuildListArguments(host), cancellationToken).ConfigureAwait(false);
+        if (listing.ExitCode != 0)
+        {
+            return Unread(host, "what runs there", listing);
+        }
+
+        var container = LiveContainer(listing, slug);
         if (container is null)
         {
             Console.WriteErrorLine($"'{slug}' isn't running on {HostName(host)} — nothing to show logs for.", ConsoleStyle.Error);
@@ -216,8 +233,13 @@ internal sealed partial class DeployCommand
         string host, string slug, string? domain, int port, int containerPort,
         IReadOnlyList<string> env, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string redirects = "")
     {
-        var image = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
-        if (image is null)
+        var lookup = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        if (lookup.Failure is { } failure)
+        {
+            return Unread(host, $"{slug}:{PreviousTag}", failure);
+        }
+
+        if (lookup.Image is not { } image)
         {
             Console.WriteErrorLine($"No previous image for '{slug}' on {HostName(host)} — nothing to roll back to.", ConsoleStyle.Error);
             Console.WriteErrorLine(
@@ -242,45 +264,80 @@ internal sealed partial class DeployCommand
         // Swap the tags so :current still names what is serving. Without this a second `rask deploy
         // rollback` would "roll back" to the image it just restored — and a later deploy would file the
         // rolled-back image away as the previous version, losing the one that was actually replaced.
-        await SwapTagsAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        // Still under the app's lock (RunActionAsync), so no deploy of this app moves a tag in between.
+        if (!await SwapTagsAsync(host, slug, cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
 
         Console.WriteLine("Rolled back. `rask deploy rollback` again to undo this.", ConsoleStyle.Dim);
         return 0;
     }
 
-    /// <summary>Exchange <c>:current</c> and <c>:previous</c> via a scratch tag, then drop the scratch.</summary>
-    private async Task SwapTagsAsync(string host, string slug, CancellationToken cancellationToken)
+    /// <summary>
+    /// Exchange <c>:current</c> and <c>:previous</c> via a scratch tag, then drop the scratch. False, said why, when a
+    /// step failed: the next deploy files <c>:current</c> away as <c>:previous</c>, so a half-swapped pair would lose a
+    /// version, and the operator has to know.
+    /// </summary>
+    private async Task<bool> SwapTagsAsync(string host, string slug, CancellationToken cancellationToken)
     {
         const string scratch = "rollback-swap";
-        await Run(BuildRetagArguments(host, slug, CurrentTag, scratch), cancellationToken).ConfigureAwait(false);
-        await Run(BuildRetagArguments(host, slug, PreviousTag, CurrentTag), cancellationToken).ConfigureAwait(false);
-        await Run(BuildRetagArguments(host, slug, scratch, PreviousTag), cancellationToken).ConfigureAwait(false);
+        (string From, string To)[] moves = [(CurrentTag, scratch), (PreviousTag, CurrentTag), (scratch, PreviousTag)];
+        foreach (var (from, to) in moves)
+        {
+            if (await Run(BuildRetagArguments(host, slug, from, to), cancellationToken).ConfigureAwait(false) != 0)
+            {
+                Console.WriteErrorLine(
+                    $"The previous version is serving, but its image tags could not be swapped: `docker tag {slug}:{from} {slug}:{to}` failed, "
+                    + $"so {slug}:{CurrentTag} may not name what serves. Put {slug}:{CurrentTag} on the serving image and {slug}:{PreviousTag} on the one "
+                    + "it replaced before the next deploy or rollback.",
+                    ConsoleStyle.Error);
+                return false;
+            }
+        }
 
-        // Removing a tag that shares an image with others only untags it — the image itself survives.
+        // Best effort: removing a tag that shares an image with others only untags it, and a scratch tag left behind
+        // is overwritten by the next swap.
         await Run(BuildUntagArguments(host, slug, scratch), cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
-    /// <summary>The image id behind <c>:previous</c>, or null when there isn't one.</summary>
-    private async Task<string?> ResolveRollbackImageAsync(string host, string slug, CancellationToken cancellationToken)
+    /// <summary>
+    /// The image id behind <c>:previous</c> — none when there isn't one, and a failure when docker could not be asked:
+    /// an unreachable host is no answer to "is there a version to go back to".
+    /// </summary>
+    private async Task<ImageLookup> ResolveRollbackImageAsync(string host, string slug, CancellationToken cancellationToken)
     {
         var result = await Capture(BuildImageExistsArguments(host, slug, PreviousTag), cancellationToken).ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
-            return null;
+            return result.StandardError.Contains("No such image", StringComparison.OrdinalIgnoreCase)
+                ? new ImageLookup(null, null)
+                : new ImageLookup(null, result);
         }
 
         var id = result.StandardOutput.Trim();
-        return id.Length == 0 ? null : Shorten(id);
+        return new ImageLookup(id.Length == 0 ? null : Shorten(id), null);
     }
 
+    /// <summary>What <see cref="ResolveRollbackImageAsync"/> found: an image, none, or the docker call that failed.</summary>
+    private readonly record struct ImageLookup(string? Image, ProcessResult? Failure);
+
     /// <summary>The container currently serving this app, from its labels (blue/green, or port-mode).</summary>
-    private async Task<string?> ResolveLiveContainerAsync(string host, string slug, CancellationToken cancellationToken)
-    {
-        var listing = await Capture(BuildListArguments(host), cancellationToken).ConfigureAwait(false);
-        var apps = ParseDeployedApps(listing.StandardOutput);
-        return apps.FirstOrDefault(a => string.Equals(a.App, slug, StringComparison.Ordinal)).Container is { Length: > 0 } container
+    private static string? LiveContainer(ProcessResult listing, string slug) =>
+        ParseDeployedApps(listing.StandardOutput).FirstOrDefault(a => string.Equals(a.App, slug, StringComparison.Ordinal)).Container is { Length: > 0 } container
             ? container
             : null;
+
+    /// <summary>Says that <paramref name="what"/> on the host could not be read, with docker's own words; 1.</summary>
+    private int Unread(string host, string what, ProcessResult result)
+    {
+        var detail = result.StandardError.Trim();
+        Console.WriteErrorLine(
+            $"Couldn't read {what} on {HostName(host)} (docker exited {result.ExitCode.ToString(CultureInfo.InvariantCulture)})"
+            + (detail.Length > 0 ? $": {detail}" : "."),
+            ConsoleStyle.Error);
+        return 1;
     }
 
     /// <summary>"sha256:8f1a…" → "8f1a…" — an image id is only ever shown to identify a version.</summary>

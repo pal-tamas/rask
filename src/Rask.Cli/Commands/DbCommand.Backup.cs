@@ -60,6 +60,17 @@ internal sealed partial class DbCommand
     /// </summary>
     private const string RemoteFilesPath = "/data/files";
 
+    /// <summary>Where the restore keeps the files it replaces until the new ones are in place.</summary>
+    private const string RemoteFilesPreviousPath = "/data/.rask-previous-files";
+
+    /// <summary>
+    /// The owner of the data volume's root — the app's user (<c>$APP_UID</c>, which the template's Dockerfile gives
+    /// <c>/data</c>). The helper runs as root, so whatever it creates or moves in would otherwise be root's, and the app
+    /// could neither write the restored database nor save a file. <c>ls -n</c> rather than <c>stat</c>, whose flags
+    /// differ between BusyBox and BSD.
+    /// </summary>
+    private const string RemoteOwner = "owner=$(ls -nd /data | awk '{print $3\":\"$4}')";
+
     /// <summary>
     /// <c>VACUUM INTO</c> the live database, then archive the stored files, inside a throwaway container on the app's
     /// data volume.
@@ -69,8 +80,10 @@ internal sealed partial class DbCommand
     /// database being written to, and it checkpoints the WAL into the output — so the single file that
     /// comes back is the whole database, not a torn one. <c>rm -f</c> first so a previous run that died
     /// between the vacuum and the cleanup cannot make this one fail with "output file already exists".
-    /// <c>mkdir -p</c> before the archive so an app that has never stored a file still gets one, and the copy down
-    /// never has to guess whether a missing archive is an app with no files or a failure.
+    /// The files directory is made before the archive when the app has never stored a file — owned by the app, which
+    /// has to write into it later — so it still gets one, and the copy down never has to guess whether a missing
+    /// archive is an app with no files or a failure. The archive's entries sit under <c>files/</c>, the layout
+    /// <see cref="StoredFilesArchive"/> writes locally too.
     /// </remarks>
     internal static IReadOnlyList<string> BuildRemoteVacuumArguments(string host, string slug) =>
     [
@@ -78,8 +91,9 @@ internal sealed partial class DbCommand
         "sh", "-c",
         $"rm -f {RemoteBackupPath} {RemoteFilesArchivePath} && apk add --no-cache sqlite >/dev/null && " +
         $"sqlite3 {RemoteDatabasePath} \"VACUUM INTO '{RemoteBackupPath}'\" && " +
-        $"mkdir -p {RemoteFilesPath} && " +
-        $"tar -C /data -czf {RemoteFilesArchivePath} --exclude=files/{StoredFilesArchive.SpoolDirectory} files",
+        $"{RemoteOwner} && " +
+        $"{{ [ -d {RemoteFilesPath} ] || {{ mkdir {RemoteFilesPath} && chown \"$owner\" {RemoteFilesPath}; }}; }} && " +
+        $"tar -C /data -czf {RemoteFilesArchivePath} --exclude=files/{StoredFilesArchive.SpoolDirectory} {StoredFilesArchive.Folder}",
     ];
 
     /// <summary>
@@ -121,24 +135,30 @@ internal sealed partial class DbCommand
     /// two, because SQLite will replay it over the file it now finds. The app must be stopped before this
     /// runs — <see cref="RestoreRemoteAsync" /> refuses otherwise.
     /// <para>
-    /// With <paramref name="withFiles"/>, the uploaded archive is unpacked into a staging directory FIRST and swapped
-    /// over the files directory only once it has come out whole, so a corrupt archive stops the restore before the
-    /// database has been touched.
+    /// With <paramref name="withFiles"/>, the uploaded archive is unpacked into a staging directory FIRST, and the
+    /// restore stops — database untouched — unless a whole <c>files/</c> directory came out of it. The current files
+    /// are moved aside, not deleted, until the new ones are in. Everything put in place is given to the volume's owner
+    /// (<see cref="RemoteOwner"/>): <c>docker cp</c> and the root helper would otherwise leave it root's, read-only to
+    /// the app.
     /// </para>
     /// </remarks>
     internal static IReadOnlyList<string> BuildRemoteReplaceArguments(string host, string slug, bool withFiles = false) =>
     [
         "-H", $"ssh://{host}", "run", "--rm", "-v", $"{slug}-data:/data", SqliteImage,
         "sh", "-c",
+        $"{RemoteOwner} && " +
         (withFiles
             ? $"rm -rf {RemoteFilesStagingPath} && mkdir {RemoteFilesStagingPath} && " +
-              $"tar -C {RemoteFilesStagingPath} -xzf {RemoteFilesArchivePath} && "
+              $"tar -C {RemoteFilesStagingPath} -xzf {RemoteFilesArchivePath} && " +
+              $"{{ [ -d {RemoteFilesStagingPath}/{StoredFilesArchive.Folder} ] || " +
+              $"{{ echo 'The stored files archive holds no {StoredFilesArchive.Folder}/ directory; nothing was restored.' >&2; exit 1; }}; }} && "
             : "") +
         $"rm -f {RemoteDatabasePath}-wal {RemoteDatabasePath}-shm && " +
-        $"mv {RemoteBackupPath} {RemoteDatabasePath}" +
+        $"mv {RemoteBackupPath} {RemoteDatabasePath} && chown \"$owner\" {RemoteDatabasePath}" +
         (withFiles
-            ? $" && rm -rf {RemoteFilesPath} && mv {RemoteFilesStagingPath}/files {RemoteFilesPath} && " +
-              $"rm -rf {RemoteFilesStagingPath} {RemoteFilesArchivePath}"
+            ? $" && rm -rf {RemoteFilesPreviousPath} && {{ [ ! -e {RemoteFilesPath} ] || mv {RemoteFilesPath} {RemoteFilesPreviousPath}; }} && " +
+              $"mv {RemoteFilesStagingPath}/{StoredFilesArchive.Folder} {RemoteFilesPath} && chown -R \"$owner\" {RemoteFilesPath} && " +
+              $"rm -rf {RemoteFilesPreviousPath} {RemoteFilesStagingPath} {RemoteFilesArchivePath}"
             : ""),
     ];
 
@@ -499,6 +519,60 @@ internal sealed partial class DbCommand
             return declined;
         }
 
+        // Read before the app is stopped: an archive that cannot be read stops the restore with the app still up.
+        string? upload = null;
+        if (withFiles && !TryPrepareArchiveForHost(archive, out upload))
+        {
+            return 1;
+        }
+
+        try
+        {
+            return await RestoreStoppedAsync(host, slug, input, upload, stopBudget, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (upload is not null && !string.Equals(upload, archive, StringComparison.Ordinal))
+            {
+                _fileSystem.TryDelete(upload);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The archive to carry up: <paramref name="archive"/> itself, or — taken locally by an older CLI, with the root's
+    /// contents at the top — a copy with every entry moved under <c>files/</c>, which is all the host restores.
+    /// </summary>
+    private bool TryPrepareArchiveForHost(string archive, out string? upload)
+    {
+        upload = null;
+        try
+        {
+            if (StoredFilesArchive.IsRooted(archive))
+            {
+                upload = archive;
+                return true;
+            }
+
+            var copy = Path.Combine(Path.GetTempPath(), $"rask-restore-{Guid.NewGuid():N}.files.tgz");
+            StoredFilesArchive.Reroot(archive, copy);
+            upload = copy;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Console.WriteErrorLine(
+                $"Couldn't read the stored files archive '{archive}', so nothing was restored: {ex.Message}",
+                ConsoleStyle.Error);
+            return false;
+        }
+    }
+
+    private async Task<int> RestoreStoppedAsync(
+        string host, string slug, string input, string? archive, TimeSpan stopBudget, CancellationToken cancellationToken)
+    {
+        var withFiles = archive is not null;
+
         // Stopping first is not politeness. Replacing the file under a live writer leaves the running
         // process holding a handle to the database it thinks it has, and the next checkpoint writes that
         // belief back over the restored one — a corrupted hybrid of the two.
@@ -514,7 +588,7 @@ internal sealed partial class DbCommand
         var restored = false;
         try
         {
-            restored = await PutBackupInPlaceAsync(host, slug, helper, input, withFiles ? archive : null, cancellationToken)
+            restored = await PutBackupInPlaceAsync(host, slug, helper, input, archive, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -537,7 +611,7 @@ internal sealed partial class DbCommand
         }
 
         Console.WriteLine(
-            withFiles ? $"Restored {input} and {archive} to {slug} on {host}." : $"Restored {input} to {slug} on {host}.",
+            withFiles ? $"Restored {input} and {StoredFilesArchive.PathFor(input)} to {slug} on {host}." : $"Restored {input} to {slug} on {host}.",
             ConsoleStyle.Success);
         return 0;
     }

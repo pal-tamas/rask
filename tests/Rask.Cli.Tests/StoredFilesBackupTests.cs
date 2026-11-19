@@ -32,7 +32,7 @@ public sealed class StoredFilesBackupTests : IDisposable
         var script = DbCommand.BuildRemoteVacuumArguments("h", "shop").Last();
 
         Assert.StartsWith("rm -f /data/.rask-backup.db /data/.rask-backup-files.tgz &&", script, StringComparison.Ordinal);
-        Assert.Contains("tar -C /data -czf /data/.rask-backup-files.tgz --exclude=files/.tmp files", script, StringComparison.Ordinal);
+        Assert.EndsWith("tar -C /data -czf /data/.rask-backup-files.tgz --exclude=files/.tmp files", script, StringComparison.Ordinal);
         Assert.True(
             script.IndexOf("VACUUM INTO", StringComparison.Ordinal) < script.IndexOf("tar ", StringComparison.Ordinal),
             "the files must be archived after the database is copied");
@@ -48,6 +48,91 @@ public sealed class StoredFilesBackupTests : IDisposable
         var move = script.IndexOf("mv /data/.rask-backup.db /data/app.db", StringComparison.Ordinal);
         var swap = script.IndexOf("mv /data/.rask-restore-files/files /data/files", StringComparison.Ordinal);
         Assert.True(extract >= 0 && move > extract && swap > move, script);
+    }
+
+    [Fact]
+    public void The_remote_restore_refuses_an_archive_without_a_files_directory_before_it_touches_the_database()
+    {
+        // An archive whose entries sat at the top deleted /data/files and then found nothing to move in.
+        var script = DbCommand.BuildRemoteReplaceArguments("h", "shop", withFiles: true).Last();
+
+        var guard = script.IndexOf("[ -d /data/.rask-restore-files/files ] ||", StringComparison.Ordinal);
+        var move = script.IndexOf("mv /data/.rask-backup.db /data/app.db", StringComparison.Ordinal);
+        Assert.True(guard >= 0 && guard < move, script);
+        Assert.DoesNotContain("rm -rf /data/files", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void What_the_remote_restore_puts_in_place_belongs_to_the_volume_s_owner_not_to_root()
+    {
+        // The helper and docker cp work as root; the app runs as $APP_UID, the owner the Dockerfile gives /data.
+        var script = DbCommand.BuildRemoteReplaceArguments("h", "shop", withFiles: true).Last();
+
+        Assert.StartsWith("owner=$(ls -nd /data | awk '{print $3\":\"$4}') && ", script, StringComparison.Ordinal);
+        Assert.Contains("chown \"$owner\" /data/app.db", script, StringComparison.Ordinal);
+        Assert.Contains("chown -R \"$owner\" /data/files", script, StringComparison.Ordinal);
+        Assert.Contains("chown \"$owner\" /data/files", DbCommand.BuildRemoteVacuumArguments("h", "shop").Last(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_local_backup_restores_on_the_host_and_the_app_can_write_to_what_came_back()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the host's script is a POSIX shell");
+        var (backup, archive) = await BackUpLocally("private/ab/avatar", "original bytes");
+        var data = HostVolume(("files/private/zz/old", "on the host before"));
+        File.Copy(backup, Path.Combine(data, ".rask-backup.db"));
+        File.Copy(archive, Path.Combine(data, ".rask-backup-files.tgz"));
+
+        RunOnHost(DbCommand.BuildRemoteReplaceArguments("h", "shop", withFiles: true).Last(), data);
+
+        Assert.Equal("original bytes", File.ReadAllText(Path.Combine(data, "files/private/ab/avatar")));
+        Assert.False(File.Exists(Path.Combine(data, "files/private/zz/old")));
+        Assert.Equal(["app.db", "files"], Directory.EnumerateFileSystemEntries(data).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        WriteARow(Path.Combine(data, "app.db"));
+        File.WriteAllText(Path.Combine(data, "files/private/ab/new"), "saved after the restore");
+    }
+
+    [Fact]
+    public void An_archive_an_older_cli_took_locally_is_re_rooted_and_restores_on_the_host()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the host's script is a POSIX shell");
+        var legacy = Path.Combine(_directory, "legacy.files.tgz");
+        WriteArchive(legacy, ("private/ab/avatar", "legacy bytes"));
+        var rooted = Path.Combine(_directory, "rooted.files.tgz");
+
+        Assert.False(StoredFilesArchive.IsRooted(legacy));
+        StoredFilesArchive.Reroot(legacy, rooted);
+
+        Assert.True(StoredFilesArchive.IsRooted(rooted));
+        var data = HostVolume();
+        File.Copy(CreateDatabase("StoredFile", Path.Combine(_directory, "b.db")), Path.Combine(data, ".rask-backup.db"));
+        File.Copy(rooted, Path.Combine(data, ".rask-backup-files.tgz"));
+        RunOnHost(DbCommand.BuildRemoteReplaceArguments("h", "shop", withFiles: true).Last(), data);
+        Assert.Equal("legacy bytes", File.ReadAllText(Path.Combine(data, "files/private/ab/avatar")));
+    }
+
+    [Fact]
+    public async Task A_host_s_backup_restores_locally_at_the_storage_root_not_under_a_files_folder()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the host's script is a POSIX shell");
+        var data = HostVolume(("files/private/ab/avatar", "host bytes"), ("files/.tmp/spool", "half a save"));
+        var vacuum = DbCommand.BuildRemoteVacuumArguments("h", "shop").Last();
+        RunOnHost(vacuum[vacuum.IndexOf("owner=", StringComparison.Ordinal)..], data);
+        var project = CreateProject();
+        var backup = CreateDatabase("StoredFile", Path.Combine(_directory, "host.db"), ("private/ab/avatar", "Disk"));
+        File.Copy(Path.Combine(data, ".rask-backup-files.tgz"), StoredFilesArchive.PathFor(backup));
+        CreateDatabase("StoredFile", Path.Combine(project, "app.db"));
+        var console = new StringConsole();
+        var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
+
+        var restored = await command.ExecuteAsync(["restore", backup, "--yes"], CancellationToken.None);
+
+        Assert.True(restored == 0, console.OutText + console.ErrorText);
+        Assert.Equal("host bytes", File.ReadAllText(Path.Combine(project, "storage/private/ab/avatar")));
+        Assert.False(Directory.Exists(Path.Combine(project, "storage/files")));
+        Assert.False(Directory.Exists(Path.Combine(project, "storage/.tmp")));
+        Assert.DoesNotContain("no bytes", console.ErrorText, StringComparison.Ordinal);
+        WriteARow(Path.Combine(project, "app.db"));
     }
 
     [Fact]
@@ -243,6 +328,65 @@ public sealed class StoredFilesBackupTests : IDisposable
         Assert.True(restored == 0, console.OutText + console.ErrorText);
         Assert.Contains("1 of 1 stored file(s)", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("private/ab/avatar", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    private async Task<(string Backup, string Archive)> BackUpLocally(string key, string bytes)
+    {
+        var project = CreateProject();
+        Write(Path.Combine(project, "storage"), key, bytes);
+        CreateDatabase("StoredFile", Path.Combine(project, "app.db"), (key, "Disk"));
+        var backup = Path.Combine(_directory, "backups", "app.db");
+        var console = new StringConsole();
+        var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
+        Assert.Equal(0, await command.ExecuteAsync(["backup", "--output", backup], CancellationToken.None));
+        return (backup, StoredFilesArchive.PathFor(backup));
+    }
+
+    // A stand-in for the app's data volume, its database the app's own.
+    private string HostVolume(params (string Path, string Content)[] files)
+    {
+        var data = Directory.CreateDirectory(Path.Combine(_directory, $"volume-{Guid.NewGuid():N}")).FullName;
+        CreateDatabase("StoredFile", Path.Combine(data, "app.db"));
+        foreach (var (path, content) in files)
+        {
+            Write(data, path, content);
+        }
+
+        return data;
+    }
+
+    // The host's script run here, its /data the stand-in volume. The tools it uses (tar, ls, awk, chown) are POSIX.
+    private static void RunOnHost(string script, string data)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo("sh") { RedirectStandardError = true };
+        start.Environment["COPYFILE_DISABLE"] = "1"; // macOS's tar would add AppleDouble entries the host's never writes
+        start.ArgumentList.Add("-c");
+        start.ArgumentList.Add(script.Replace("/data", data, StringComparison.Ordinal));
+        using var process = System.Diagnostics.Process.Start(start)!;
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.True(process.ExitCode == 0, error);
+    }
+
+    private static void WriteArchive(string path, params (string Name, string Content)[] entries)
+    {
+        using var file = File.Create(path);
+        using var gzip = new GZipStream(file, CompressionLevel.Fastest);
+        using var tar = new TarWriter(gzip);
+        foreach (var (name, content) in entries)
+        {
+            tar.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, name)
+            {
+                DataStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content)),
+            });
+        }
+    }
+
+    private static void WriteARow(string database)
+    {
+        using var connection = new SqliteConnection($"Data Source={database};Pooling=False");
+        connection.Open();
+        Exec(connection, "INSERT INTO \"StoredFile\" VALUES ('after', 'private/ab/new', 'Disk', '');");
     }
 
     private string CreateProject()

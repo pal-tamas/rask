@@ -335,6 +335,23 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A backup restores wherever it was taken, and a remote restore leaves the app able to write (review 2026-11-19).**
+  Before: `rask db backup` wrote the stored files archive root-relative on a laptop but under `files/` on the host, so
+  `rask db restore --remote` of a local backup deleted `/data/files` and found nothing to move in — every upload gone,
+  with the database already replaced — and a host backup restored locally landed in `storage/files/…`. The restored
+  `app.db` and files were also root's (the helper and `docker cp` run as root), so the app could not write them. After:
+  every archive sits under `files/` (an older local one is re-rooted before it goes up, and still restores locally);
+  the host checks a whole `files/` directory came out of the archive before it touches the database, keeps the old
+  files until the new ones are in, and gives what it put in place to the data volume's owner. A host backup of an app
+  that never stored a file creates `/data/files` as the app's, not root's.
+- **A `--port` rollback that fails brings back what was serving.** Before: `rask deploy rollback` in port mode stopped
+  `:current` to start `:previous`, and when `:previous` failed its gate the box served nothing. After: `:current` is
+  started again, and the rollback reports its failure.
+- **`rask deploy status`, `logs` and `rollback` tell an unreachable host from an empty one.** Before: a failed
+  `docker ps` or image lookup read as "Nothing deployed" or "no previous image". After: they say what docker said and
+  exit 1. A rollback whose tag swap fails says so and exits 1, naming the tags to fix, instead of "Rolled back."
+- **`rask db --json` is refused on every verb but `list`.** Before: `rask db update --json` applied the migrations and
+  then failed to find a listing in what EF printed.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of
