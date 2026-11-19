@@ -1,7 +1,7 @@
 namespace Rask.Core.Tests.Components;
 
-// InputType.ToHtml() is the single source of truth for the HTML `type` token (the analyzer RASK025 and
-// the input-type derivation both lean on it). Pin every member's token so a rename or a dropped switch
+// InputType.ToHtml() is the single source of truth for the HTML `type` token (the input-type
+// derivation leans on it). Pin every member's token so a rename or a dropped switch
 // arm can't silently regress to the "text" fallback.
 public class InputTypeExtensionsTests
 {
