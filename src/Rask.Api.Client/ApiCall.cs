@@ -47,7 +47,7 @@ public static class ApiCall
         // Resolved once, and reported. An exception naming the RELATIVE path would make a caller
         // guess which host and prefix it actually reached — the very thing a base address decides.
         var uri = Resolve(http.BaseAddress, path);
-        var reported = uri.IsAbsoluteUri ? uri.ToString() : path;
+        var reported = Reported(uri, path);
 
         using var request = CreateRequest(method, uri, body);
 
@@ -135,6 +135,19 @@ public static class ApiCall
             : new UriBuilder(baseAddress) { Path = baseAddress.AbsolutePath + PathSeparator }.Uri;
 
         return new Uri(root, path);
+    }
+
+    // Without its query: an exception message is logged, and a query carries what a GET was sent — an address, a search, a
+    // token — which no log should keep.
+    private static string Reported(Uri uri, string path)
+    {
+        if (uri.IsAbsoluteUri)
+        {
+            return uri.GetLeftPart(UriPartial.Path);
+        }
+
+        var query = path.IndexOfAny(['?', '#']);
+        return query < 0 ? path : path[..query];
     }
 
     private static ApiException Unreachable(HttpMethod method, string path, Exception cause) =>

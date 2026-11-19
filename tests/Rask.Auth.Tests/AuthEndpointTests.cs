@@ -298,6 +298,19 @@ public sealed class AuthEndpointTests
     }
 
     [Fact]
+    public async Task Signing_in_again_over_a_live_cookie_ends_the_session_it_named()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+        await RegisterOwnerAsync(client);
+
+        var again = await Post(client, "/api/auth/login", new { email = "owner@example.com", password = Password });
+
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.Equal(1, await ActiveSessionsAsync(app));
+    }
+
+    [Fact]
     public async Task Signing_out_other_devices_signs_them_out_on_their_next_request()
     {
         using var app = new EndpointApp();

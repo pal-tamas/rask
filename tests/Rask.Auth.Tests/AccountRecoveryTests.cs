@@ -417,6 +417,32 @@ public sealed class AccountRecoveryTests
         Assert.True(await IsConfirmedAsync(harness, Owner));
     }
 
+    [Fact]
+    public async Task A_confirmed_address_is_not_told_to_somebody_without_its_link()
+    {
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        var (userId, token) = Parse(harness.Mail!.LastTo(Owner)!.Link!);
+        await ConfirmAsync(harness, userId, token);
+
+        var guess = await ConfirmAsync(harness, userId, "not-the-link");
+
+        Assert.Equal(AuthError.InvalidToken, guess.Error);
+    }
+
+    [Theory]
+    [InlineData(Owner)]
+    [InlineData("nobody@example.com")]
+    public async Task A_reset_request_takes_the_same_least_time_for_any_address(string email)
+    {
+        await using var harness = await ClaimedAsync(o => o.ResetAnswerFloor = TimeSpan.FromMilliseconds(200));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        var result = await SendResetAsync(harness, email);
+
+        Assert.True(result.Succeeded);
+        Assert.True(System.Diagnostics.Stopwatch.GetElapsedTime(started) >= TimeSpan.FromMilliseconds(200));
+    }
+
     private static async Task<AuthResult> RegisterAsync(
         AuthHarness harness, string email, string? firstRunToken = null)
     {

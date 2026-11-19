@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -351,6 +352,26 @@ internal sealed partial class AccountService<TUser, TKey>(
 
         var normalized = Authenticatable.NormalizeEmail(email);
 
+        // As long for an address with no account as for one whose link is built and queued: answered sooner, the time alone
+        // would say which addresses have an account (Laravel's Timebox).
+        var started = Stopwatch.GetTimestamp();
+        try
+        {
+            await QueueResetAsync(normalized, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (options.ResetAnswerFloor - Stopwatch.GetElapsedTime(started) is { Ticks: > 0 } rest)
+            {
+                await Task.Delay(rest, TimeProvider.System, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+
+        return AuthResult.Success;
+    }
+
+    private async Task QueueResetAsync(string normalized, CancellationToken cancellationToken)
+    {
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
@@ -369,8 +390,6 @@ internal sealed partial class AccountService<TUser, TKey>(
                     ResetNotQueued(logger);
                 }
             }
-
-            return AuthResult.Success;
         }
     }
 
@@ -425,8 +444,10 @@ internal sealed partial class AccountService<TUser, TKey>(
                 db.Remove(passkey);
             }
 
+            // Ended in the same save as the new password: saved apart, a failure between the two left the new password set
+            // and whoever had the old one still signed in.
+            await Session.EndAll(db, user.AccountId, except: null, now, cancellationToken).ConfigureAwait(false);
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await sessions.EndAllAsync(user.AccountId, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             return AuthResult.Success;
         }
@@ -454,11 +475,13 @@ internal sealed partial class AccountService<TUser, TKey>(
                 return AuthResult.Fail(AuthError.InvalidToken);
             }
 
-            // Asked BEFORE checking the token (#1013): a second arrival at the page — a reload, a Back, a link opened twice —
-            // should say the address is confirmed, not that the link did not work.
+            // A second arrival at the page — a reload, a Back, a link opened twice — should say the address is confirmed, not
+            // that the link did not work (#1013). Only to the holder of a link that confirmed it, though: answered for any
+            // token, it told whoever had an account's id whether that account had confirmed its address.
             if (user.IsEmailConfirmed)
             {
-                return AuthResult.Fail(AuthError.EmailAlreadyConfirmed);
+                return AuthResult.Fail(
+                    tokens.ConfirmedWith(user, token) ? AuthError.EmailAlreadyConfirmed : AuthError.InvalidToken);
             }
 
             if (!tokens.IsValidConfirmation(user, token))

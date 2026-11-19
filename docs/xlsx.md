@@ -161,8 +161,8 @@ the last value are left out. A sheet read back has no `Total`: a written total r
 
 A file that is not a workbook, or a broken one, throws an `InvalidDataException` that says why; a sheet name it does
 not have, an `ArgumentException` that lists the ones it has. Reading is bounded: a part of the file unpacks to at
-most 256 MB and a sheet holds at most 10 million cells, so a file made to unpack without end (a zip bomb) is refused
-rather than read. Nothing is fetched or expanded from the file: a DTD is refused outright.
+most 256 MB and a sheet holds at most 2 million cells (100,000 rows of twenty columns), so a file made to unpack without
+end (a zip bomb), or to fill the memory, is refused rather than read. Nothing is fetched or expanded from the file: a DTD is refused outright.
 
 ## Safety
 

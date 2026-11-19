@@ -338,4 +338,12 @@ public sealed class XlsxReadTests
             return reader.ReadToEnd();
         }, StringComparer.Ordinal);
     }
+
+    [Fact]
+    public void A_read_holds_at_most_two_million_cells_unless_told_otherwise()
+    {
+        var limits = ReadLimits.Default;
+
+        Assert.Equal(2_000_000, limits.MaxCells);
+    }
 }

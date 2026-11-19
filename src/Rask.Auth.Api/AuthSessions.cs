@@ -230,20 +230,10 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            var sessions = await db.Set<Session>()
-                .Where(s => s.UserId == userId && s.Id != except)
-                .ToListAsync(cancellationToken)
+            var ended = await Session.EndAll(db, userId, except, clock.GetUtcNow().UtcDateTime, cancellationToken)
                 .ConfigureAwait(false);
-
-            var now = clock.GetUtcNow().UtcDateTime;
-            foreach (var session in sessions)
-            {
-                session.End(now);
-                db.Remove(session);
-            }
-
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return sessions.Count;
+            return ended;
         }
     }
 

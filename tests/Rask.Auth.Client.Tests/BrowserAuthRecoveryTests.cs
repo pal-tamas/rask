@@ -202,6 +202,28 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Equal("/bye", state.Path);
     }
 
+    [Fact]
+    public async Task A_sign_out_that_never_reached_the_server_still_empties_the_offline_cache()
+    {
+        var js = new RecordingJs();
+        var auth = new BrowserAuth(
+            new HttpClient(new OfflineHandler()) { BaseAddress = new Uri("https://localhost") },
+            new SpyUserProvider(),
+            new StubWebAuthn(),
+            new AuthClientOptions(),
+            js);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => auth.SignOut("/bye"));
+
+        Assert.Equal(["__raskOffline.clear"], js.Calls);
+    }
+
+    private sealed class OfflineHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new HttpRequestException("offline");
+    }
+
     private static BrowserAuth Auth(
         StubHandler handler,
         out SpyUserProvider users,

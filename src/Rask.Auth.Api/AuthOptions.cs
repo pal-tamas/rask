@@ -76,6 +76,10 @@ public sealed class AuthOptions
     /// </remarks>
     public TimeSpan TokenLifetime { get; set; } = TimeSpan.FromHours(1);
 
+    // The least time a reset request takes to answer, so an address with an account is answered no later than one without.
+    // Internal: a number to tune in tests, not a setting an app has reason to move.
+    internal TimeSpan ResetAnswerFloor { get; set; } = TimeSpan.FromMilliseconds(300);
+
     /// <summary>The subject line of the confirmation email.</summary>
     public string ConfirmEmailSubject { get; set; } = "Confirm your email address";
 
