@@ -4656,7 +4656,7 @@ public static partial class RaskEndpointExtensions
             DateTimeOffset.FromUnixTimeMilliseconds(lastModified),
             async path =>
             {
-                var output = File.Create(path);
+                var output = PrivateTempFile.Create(path, asynchronous: true);
                 await using (output.ConfigureAwait(false))
                 {
                     var input = file.OpenReadStream();
@@ -4763,8 +4763,11 @@ public static partial class RaskEndpointExtensions
             // client upload), so forbid MIME sniffing: paired with the attachment disposition below
             // it keeps a mislabelled file from being sniffed into an inline-rendered HTML/script.
             ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            var disposition = $"attachment; filename=\"{Uri.EscapeDataString(entry.Filename)}\"";
-            ctx.Response.Headers["Content-Disposition"] = disposition;
+            // RFC 6266: an ASCII filename= every client reads and filename*= UTF-8 for the rest, so "Jelentés.xlsx" saves as
+            // itself — percent-escaping the plain parameter saved it as "Jelent%C3%A9s.xlsx".
+            var disposition = new ContentDispositionHeaderValue("attachment");
+            disposition.SetHttpFileName(entry.Filename);
+            ctx.Response.Headers.ContentDisposition = disposition.ToString();
 
             if (entry.Bytes is { } bytes)
             {

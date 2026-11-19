@@ -48,6 +48,19 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
+    public async Task A_download_saves_under_its_own_name_accents_and_all()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var sessionId = await CreateSessionAsync(host);
+        var store = host.Server.Services.GetRequiredService<SessionDownloadStore>();
+        var entry = store.StageBytes(sessionId, "Jelentés 2026.xlsx", [1, 2, 3], "application/octet-stream");
+
+        var response = await host.Http.GetAsync($"/_rask/download/{entry.Token}", TestContext.Current.CancellationToken);
+
+        Assert.Equal("Jelentés 2026.xlsx", response.Content.Headers.ContentDisposition?.FileNameStar);
+    }
+
+    [Fact]
     public async Task A_known_download_token_returns_the_bytes_as_an_attachment_exactly_once()
     {
         using var host = RaskTestHost.Create<TestApp>();

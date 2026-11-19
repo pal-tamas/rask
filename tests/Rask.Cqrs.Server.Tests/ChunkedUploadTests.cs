@@ -80,6 +80,23 @@ public sealed class ChunkedUploadTests
     }
 
     [Fact]
+    public async Task A_spent_upload_no_handler_read_leaves_nothing_on_disk()
+    {
+        using var server = Host();
+        using var client = server.CreateClient();
+        var marker = $"leftover-{Guid.NewGuid():N}";
+        await SendChunksAsync(client, "dddd", Encoding.UTF8.GetBytes(marker), chunk: 1000);
+
+        var response = await SendMessageAsync(client, "dddd", """{"note":""");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var root = Path.Combine(Path.GetTempPath(), "rask-cqrs-uploads");
+        Assert.DoesNotContain(
+            Directory.Exists(root) ? Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories) : [],
+            path => File.ReadAllText(path).Contains(marker, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task One_users_upload_cannot_be_spent_by_another()
     {
         // An upload id is not a capability. Scoping the session to the caller who opened it is what stops

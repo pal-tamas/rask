@@ -476,7 +476,7 @@ public static partial class RaskCqrsEndpointExtensions
             }
 
             var uploads = context.RequestServices.GetRequiredService<UploadSessionStore>();
-            var assembled = uploads.Take(owner, uploadId)
+            var assembled = uploads.Take(owner, uploadId, context.Response.RegisterForDispose)
                             ?? throw new BadRequestException(
                                 StatusCodes.Status400BadRequest, "Unknown upload",
                                 "That upload session has expired, was already spent, or belongs to "

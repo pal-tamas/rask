@@ -30,6 +30,10 @@ internal sealed class OutboxQueuePanel<TContext>(
     // which correctly leaves the Delayed count permanently zero for this queue.
     protected override string RunAtProperty => nameof(OutboxMessage.OccurredAt);
 
+    // OccurredAt is when the event happened, which a retry does not change: rewritten, the dashboard and the purge's
+    // retention would date a months-old event to the moment someone pressed Retry.
+    protected override bool RetryReschedules => false;
+
     protected override Expression<Func<OutboxMessage, QueueRow>> Projection => m => new QueueRow(
         m.Id, m.Type, m.Payload, m.OccurredAt, m.OccurredAt, m.ProcessedAt, m.Attempts, m.Error, m.Payload);
 }

@@ -131,6 +131,29 @@ public sealed class QueuePanelTests
         Assert.Equal(0, (await h.Queue("outbox").Counts(CancellationToken.None)).Delayed);
     }
 
+    [Fact]
+    public async Task Retrying_an_outbox_dead_letter_keeps_when_its_event_happened()
+    {
+        await using var h = new DashboardHarness(Batteries.Outbox);
+        var occurred = h.Clock.GetUtcNow().UtcDateTime.AddDays(-30);
+        var max = h.Get<OutboxOptions>().MaxAttempts;
+        await using (var db = h.NewContext())
+        {
+            db.Set<OutboxMessage>().Add(OutboxMessage.For("Some.Event", "{}", "Some.Handler:Some.Event", occurred));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await db.Set<OutboxMessage>().ExecuteUpdateAsync(
+                s => s.SetProperty(m => m.Attempts, max).SetProperty(m => m.Error, "boom"), TestContext.Current.CancellationToken);
+        }
+
+        var retried = await h.Queue("outbox").RetryAll(CancellationToken.None);
+
+        await using var read = h.NewContext();
+        var message = await read.Set<OutboxMessage>().SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(1, retried);
+        Assert.Equal(0, message.Attempts);
+        Assert.Equal(occurred, message.OccurredAt);
+    }
+
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>
         QueueRowBuilder.Job(runAt, attempts, processedAt, error);
 

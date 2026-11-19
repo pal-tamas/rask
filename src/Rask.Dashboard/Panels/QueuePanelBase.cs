@@ -168,13 +168,24 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             .Where(scope)
             .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)
             .ExecuteUpdateAsync(
-                s => s
-                    .SetProperty(e => EF.Property<int>(e, "Attempts"), 0)
-                    .SetProperty(e => EF.Property<DateTime>(e, runAt), now)
-                    .SetProperty(e => EF.Property<string?>(e, "Error"), (string?)null),
+                s =>
+                {
+                    s.SetProperty(e => EF.Property<int>(e, "Attempts"), 0)
+                        .SetProperty(e => EF.Property<string?>(e, "Error"), (string?)null);
+                    if (RetryReschedules)
+                    {
+                        s.SetProperty(e => EF.Property<DateTime>(e, runAt), now);
+                    }
+                },
                 cancellationToken)
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    ///     Whether a retry moves <see cref="RunAtProperty" /> to now. A queue whose stand-in column is a fact about the row
+    ///     — when the event happened — keeps it: the row is eligible again either way.
+    /// </summary>
+    protected virtual bool RetryReschedules => true;
 
     private Task<int> CountAsync(TContext db, QueueFilter filter, DateTime now, CancellationToken ct) =>
         Filter(db.Set<TEntity>(), filter, now).CountAsync(ct);
