@@ -119,6 +119,11 @@ internal static class StoredFilesArchive
     /// Whether every entry sits under <c>files/</c> — the layout <see cref="Create"/> and the remote backup write. An
     /// archive an older CLI took locally holds the root's contents at the top, and answers false.
     /// </summary>
+    /// <remarks>
+    /// The one archive this misreads: an older local one whose storage root held nothing but a top-level <c>files/</c>
+    /// directory. Rask.Storage keys start <c>public/</c> or <c>private/</c>, so that takes a custom key prefix of
+    /// <c>files/</c>; such an archive restores one level too deep. Re-take the backup with this CLI to be sure.
+    /// </remarks>
     internal static bool IsRooted(string archivePath)
     {
         using var file = File.OpenRead(archivePath);
