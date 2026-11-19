@@ -14,8 +14,8 @@ internal sealed class HookServices(EventServices services, EventLife life) : IKe
         serviceType == typeof(IServiceProvider) ? this : services.GetService(life, serviceType);
 
     public object? GetKeyedService(Type serviceType, object? serviceKey) =>
-        services.GetKeyedService(serviceType, serviceKey);
+        services.GetKeyedService(life, serviceType, serviceKey);
 
     public object GetRequiredKeyedService(Type serviceType, object? serviceKey) =>
-        services.GetRequiredKeyedService(serviceType, serviceKey);
+        services.GetRequiredKeyedService(life, serviceType, serviceKey);
 }

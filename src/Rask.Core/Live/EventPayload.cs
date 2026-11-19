@@ -53,13 +53,16 @@ internal static class EventPayload
             _ => 0
         };
     }
+
+    // Every reader asks the payload's kind first: a frame is the client's to write, and TryGetProperty on an array
+    // or a string throws, which turned `[]` for a payload into a fault out of the event's handler.
     public static long ReadLong(JsonElement p, string name) =>
-        p.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var n) ? n : 0;
+        p.ValueKind == JsonValueKind.Object && p.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var n) ? n : 0;
 
     // A list of snapshots (a TouchList's Touch entries), each read by `read`; empty when the field is absent.
     public static IReadOnlyList<T> ReadList<T>(JsonElement p, string name, Func<JsonElement, T> read)
     {
-        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
+        if (p.ValueKind != JsonValueKind.Object || !p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
         {
             return [];
         }
@@ -78,7 +81,7 @@ internal static class EventPayload
 
     public static IReadOnlyList<string> ReadStrings(JsonElement p, string name)
     {
-        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
+        if (p.ValueKind != JsonValueKind.Object || !p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
         {
             return [];
         }
@@ -98,7 +101,7 @@ internal static class EventPayload
     // A string-to-string object (a DataTransfer's data by format); null when the field is absent.
     public static IReadOnlyDictionary<string, string>? ReadMap(JsonElement p, string name)
     {
-        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Object)
+        if (p.ValueKind != JsonValueKind.Object || !p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Object)
         {
             return null;
         }

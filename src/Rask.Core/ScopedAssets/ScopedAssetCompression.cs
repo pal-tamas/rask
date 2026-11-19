@@ -7,16 +7,18 @@ namespace Rask.Core.ScopedAssets;
 /// <summary>
 ///     Brotli/gzip representations of the content-addressed scoped assets served at
 ///     <c>/_rask/a/{hash}.{ext}</c> (the per-kind bundles). Because every asset is keyed by the SHA-256
-///     of its bytes and served <c>immutable</c>, each compressed representation is built exactly once
-///     and cached for the app's lifetime — a request can never observe a stale entry. Both the Server
+///     of its bytes and served <c>immutable</c>, each compressed representation is built once per
+///     registry version and cached — a request can never observe a stale entry. Both the Server
 ///     (<c>RaskEndpointExtensions.ServeAssetAsync</c>) and the published-WASM host
 ///     (<c>RaskAssetEndpoint</c>) share this so the on-the-wire bytes match across hosts.
 /// </summary>
 public static class ScopedAssetCompression
 {
-    // Keyed "{hash}.{ext}.{encoding}". Bounded by (distinct asset hashes × 2 encodings); a hot-reload
-    // hash change simply adds a new key and leaves the now-unreferenced old one (bounded by reloads).
+    // Keyed "{hash}.{ext}.{encoding}". Bounded by (distinct asset hashes × 2 encodings) of the registry as it is
+    // now: when the registry moves (a hot reload, a component registered or dropped) the cache is emptied and fills
+    // again from what is current, so the bytes of every hash a reload left behind do not stay for the app's lifetime.
     private static readonly ConcurrentDictionary<string, byte[]> _cache = new(StringComparer.Ordinal);
+    private static long _cachedAt = -1;
 
     /// <summary>
     ///     Picks the best content-encoding the client advertises — brotli over gzip — or <c>null</c> for
@@ -73,6 +75,12 @@ public static class ScopedAssetCompression
         var ext = kind == AssetKind.Css ? "css" : "js";
         var key = hash + "." + ext + "." + encoding;
         var etag = "\"" + hash + "-" + encoding + "\"";
+
+        var version = ScopedAssetRegistry.Version;
+        if (Interlocked.Exchange(ref _cachedAt, version) != version)
+        {
+            _cache.Clear();
+        }
 
         if (_cache.TryGetValue(key, out var cached))
         {
