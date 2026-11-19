@@ -659,6 +659,37 @@ public sealed class ApiClientGeneratorTests
     }
 
     [Fact]
+    public void An_edit_outside_the_controllers_re_describes_nothing_and_re_emits_nothing()
+    {
+        // The controllers were symbols in the pipeline, so every keystroke anywhere re-ran the whole generator.
+        const string controllers = """
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """;
+
+        var run = GeneratorHarness.RunAfterUnrelatedEdit(
+            new ApiClientGenerator(),
+            controllers + Mvc,
+            "public static class Elsewhere { public static int Answer() => 41; }",
+            "public static class Elsewhere { public static int Answer() => 42; }");
+
+        var result = Assert.Single(run.Results);
+        Assert.All(
+            result.TrackedSteps[ApiClientGenerator.ControllersStep].SelectMany(static step => step.Outputs),
+            static output => Assert.True(output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged, output.Reason.ToString()));
+        Assert.All(
+            result.TrackedOutputSteps.SelectMany(static step => step.Value).SelectMany(static step => step.Outputs),
+            static output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
+        Assert.Contains(result.GeneratedSources, static s => s.HintName.Contains("__RaskApiClients", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_class_that_only_looks_like_a_controller_is_ignored()
     {
         // [ApiController] without ControllerBase is not an MVC controller, and treating it as one would

@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Performance
+- **The API client and validator registry generators are incremental.** Before: both ran over the whole compilation on
+  every edit — `ApiClientGenerator` kept controller symbols in its pipeline and `ValidatorRegistryGenerator` walked
+  every type — so each keystroke in an app re-described every controller and validator. After: each controller,
+  minimal API registration and validator is read inside its own transform into a value (no symbol, location or
+  compilation crosses the pipeline), and an edit elsewhere is served from the cache (pinned by tests on the driver's
+  tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
+
 ### Added
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],

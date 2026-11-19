@@ -1,7 +1,7 @@
 namespace Rask.Generators.Shared;
 
 /// <summary>One property of an <see cref="WireKind.Object" />, as it appears on the wire.</summary>
-internal sealed class WireMember(string clrName, string wireName, WireType type, bool nullable = false)
+internal sealed class WireMember(string clrName, string wireName, WireType type, bool nullable = false) : System.IEquatable<WireMember>
 {
     /// <summary>
     ///     Whether this property may be null on the wire, for a <em>reference</em> type.
@@ -30,4 +30,18 @@ internal sealed class WireMember(string clrName, string wireName, WireType type,
 
     /// <summary>The property's shape.</summary>
     public WireType Type { get; } = type;
+
+    /// <inheritdoc />
+    public bool Equals(WireMember? other) =>
+        other is not null
+        && Nullable == other.Nullable
+        && string.Equals(ClrName, other.ClrName, System.StringComparison.Ordinal)
+        && string.Equals(WireName, other.WireName, System.StringComparison.Ordinal)
+        && Type.Equals(other.Type);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => Equals(obj as WireMember);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => System.StringComparer.Ordinal.GetHashCode(WireName);
 }

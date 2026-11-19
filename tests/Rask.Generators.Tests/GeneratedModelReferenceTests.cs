@@ -77,6 +77,36 @@ public class GeneratedModelReferenceTests
     }
 
     [Fact]
+    public void An_edit_outside_the_validators_re_reads_nothing_and_re_emits_nothing()
+    {
+        // The generator walked the whole compilation's symbols on every run, so every keystroke re-ran it.
+        const string validators = """
+            namespace Rask { public static class RaskValidators { } }
+            namespace FluentValidation { public abstract class AbstractValidator<T> { } }
+            namespace Shop
+            {
+                public sealed class Product { }
+                public sealed class ProductValidator : FluentValidation.AbstractValidator<Product> { }
+            }
+            """;
+
+        var run = GeneratorHarness.RunAfterUnrelatedEdit(
+            new ValidatorRegistryGenerator(),
+            validators,
+            "public static class Elsewhere { public static int Answer() => 41; }",
+            "public static class Elsewhere { public static int Answer() => 42; }");
+
+        var result = Assert.Single(run.Results);
+        Assert.All(
+            result.TrackedSteps[ValidatorRegistryGenerator.ValidatorsStep].SelectMany(static step => step.Outputs),
+            static output => Assert.True(output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged, output.Reason.ToString()));
+        Assert.All(
+            result.TrackedOutputSteps.SelectMany(static step => step.Value).SelectMany(static step => step.Outputs),
+            static output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
+        Assert.Contains(result.GeneratedSources, static s => s.HintName.Contains("__RaskValidatorRegistry", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Two_validators_naming_the_generated_model_two_ways_are_RASKVAL001()
     {
         // Keyed by the bare display name, `ProductModel` and `Shop.ProductModel` were two different models,

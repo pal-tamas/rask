@@ -106,29 +106,37 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         // Every class with a base list, not only the ones carrying [ApiController] themselves: the attribute is
         // inherited, so a controller deriving from an [ApiController] base — or in an assembly marked
         // [assembly: ApiController] — is one too, and ASP.NET serves it (IsApiController below decides).
+        //
+        // Each controller is described INSIDE its transform, into values (ApiEndpoint, ApiDiagnostic): no symbol,
+        // location or compilation crosses into the pipeline, so an edit elsewhere re-describes nothing and the
+        // output step is served from the cache. The transform's own compilation is what lets a Rask.Data entity's
+        // generated model, invisible to this generator, be encoded from the entity (GeneratedModelShape).
         var controllers = context.SyntaxProvider
             .CreateSyntaxProvider(
                 static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 },
-                static (ctx, ct) => ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) as INamedTypeSymbol)
-            .Where(static type => type is not null && IsApiController(type))
-            .Select(static (type, _) => type!)
+                static (ctx, ct) => DescribeController(ctx, ct))
+            .Where(static model => model is not null)
+            .Select(static (model, _) => model!)
+            .WithTrackingName(ControllersStep)
             .Collect();
 
         var minimal = context.SyntaxProvider
             .CreateSyntaxProvider(
                 static (node, _) => MinimalApi.IsCandidate(node),
-                static (ctx, _) => MinimalApi.Read(ctx.SemanticModel, (InvocationExpressionSyntax)ctx.Node))
-            .Where(static registration => registration is not null)
+                static (ctx, _) => DescribeMinimal(ctx))
+            .Where(static model => model is not null)
+            .Select(static (model, _) => model!)
+            .WithTrackingName(MinimalStep)
             .Collect();
 
-        // The whole compilation rather than its name: a Rask.Data entity's generated model is invisible to
-        // this generator, and only the compilation can say what it looks like (GeneratedModelShape). Nothing
-        // is lost to caching — the controllers above are symbols, which already differ per compilation.
+        // The assembly name only, not the compilation: it stands in for the root namespace.
+        var assemblyName = context.CompilationProvider.Select(static (c, _) => c.AssemblyName ?? string.Empty);
+
         context.RegisterSourceOutput(
-            controllers.Combine(minimal).Combine(context.CompilationProvider).Combine(baked).Combine(rootNamespace),
+            controllers.Combine(minimal).Combine(assemblyName).Combine(baked).Combine(rootNamespace),
             static (spc, input) =>
             {
-                var ((((types, registrations), compilation), isBaked), root) = input;
+                var ((((described, registrations), assembly), isBaked), root) = input;
 
                 // The browser companion compiles the client that was baked out of the server assembly.
                 // If this generator also emitted one there, every client type would be declared twice
@@ -138,44 +146,79 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     return;
                 }
 
-                Emit(spc, types, registrations, compilation, root);
+                Emit(spc, described, registrations, assembly, root);
             });
+    }
+
+    internal const string ControllersStep = "RaskApiControllers";
+
+    internal const string MinimalStep = "RaskApiMinimalEndpoints";
+
+    /// <summary>What one controller declaration contributes: its endpoints and what describing them reported.</summary>
+    private sealed record ControllerModel(string Key, EquatableArray<ApiEndpoint> Endpoints, EquatableArray<ApiDiagnostic> Diagnostics);
+
+    /// <summary>What one minimal API registration contributes; its endpoint's namespace is filled in at the output.</summary>
+    private sealed record MinimalModel(ApiEndpoint? Endpoint, EquatableArray<ApiDiagnostic> Diagnostics);
+
+    private static ControllerModel? DescribeController(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
+    {
+        if (ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) is not INamedTypeSymbol type || !IsApiController(type))
+        {
+            return null;
+        }
+
+        var report = new ApiReport();
+        var endpoints = Describe(report, type, ctx.SemanticModel.Compilation).ToList();
+        return new ControllerModel(
+            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            new EquatableArray<ApiEndpoint>(endpoints),
+            report.Diagnostics);
+    }
+
+    private static MinimalModel? DescribeMinimal(GeneratorSyntaxContext ctx)
+    {
+        if (MinimalApi.Read(ctx.SemanticModel, (InvocationExpressionSyntax)ctx.Node) is not { } registration)
+        {
+            return null;
+        }
+
+        var report = new ApiReport();
+        var endpoint = Describe(report, registration, string.Empty, ctx.SemanticModel.Compilation);
+        return new MinimalModel(endpoint, report.Diagnostics);
     }
 
     private static void Emit(
         SourceProductionContext spc,
-        ImmutableArray<INamedTypeSymbol> controllers,
-        ImmutableArray<MinimalApiRegistration?> registrations,
-        Compilation compilation,
+        ImmutableArray<ControllerModel> controllers,
+        ImmutableArray<MinimalModel> registrations,
+        string assembly,
         string? rootNamespace)
     {
         var assemblyName = rootNamespace
-                           ?? (CSharpNames.Namespace(compilation.AssemblyName ?? string.Empty) is { Length: > 0 } fromAssembly
+                           ?? (CSharpNames.Namespace(assembly) is { Length: > 0 } fromAssembly
                                ? fromAssembly
                                : "RaskGeneratedClients");
         var endpoints = new List<ApiEndpoint>();
 
-        if (!controllers.IsDefaultOrEmpty)
+        // A partial controller is reached once per declaration with a base list, and describes the same each time.
+        var described = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var controller in controllers)
         {
-            foreach (var controller in controllers.Distinct(SymbolEqualityComparer.Default).Cast<INamedTypeSymbol>())
+            if (!described.Add(controller.Key))
             {
-                foreach (var endpoint in Describe(spc, controller, compilation))
-                {
-                    endpoints.Add(endpoint);
-                }
+                continue;
             }
+
+            Report(spc, controller.Diagnostics);
+            endpoints.AddRange(controller.Endpoints);
         }
 
-        if (!registrations.IsDefaultOrEmpty)
+        foreach (var registration in registrations)
         {
-            foreach (var registration in registrations)
+            Report(spc, registration.Diagnostics);
+            if (registration.Endpoint is { } endpoint)
             {
-                var endpoint = Describe(spc, registration!, assemblyName, compilation);
-
-                if (endpoint is not null)
-                {
-                    endpoints.Add(endpoint);
-                }
+                endpoints.Add(endpoint with { ClientNamespace = assemblyName });
             }
         }
 
@@ -205,6 +248,14 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         }
 
         spc.AddSource("__RaskApiClients.g.cs", Build(emitted));
+    }
+
+    private static void Report(SourceProductionContext spc, EquatableArray<ApiDiagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            spc.ReportDiagnostic(diagnostic.ToDiagnostic());
+        }
     }
 
     // A concrete ControllerBase that is an API controller: [ApiController] on it, on a base class (the attribute is
@@ -246,7 +297,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     }
 
     private static IEnumerable<ApiEndpoint> Describe(
-        SourceProductionContext spc,
+        ApiReport spc,
         INamedTypeSymbol controller,
         Compilation compilation)
     {
@@ -281,7 +332,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
     /// <summary>Reads one minimal API registration into the same model a controller action produces.</summary>
     private static ApiEndpoint? Describe(
-        SourceProductionContext spc,
+        ApiReport spc,
         MinimalApiRegistration registration,
         string assemblyName,
         Compilation compilation)
@@ -292,28 +343,28 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
         if (string.Equals(registration.Pattern, MinimalApi.GroupedMarker, StringComparison.Ordinal))
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, registration.Site, registration.Verb + " (in a MapGroup)",
                 "it is mapped on a MapGroup, whose prefix is not visible from this call. The client "
                 + "would build the route without it and address an endpoint the server does not answer. "
-                + "Map it on the app with its full route, or call it by hand"));
+                + "Map it on the app with its full route, or call it by hand");
             return null;
         }
 
         if (registration.Pattern.Length == 0)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, registration.Site, where,
-                "its route pattern is not a compile-time constant, so no client method can name it — map it with a literal or const route"));
+                "its route pattern is not a compile-time constant, so no client method can name it — map it with a literal or const route");
             return null;
         }
 
         if (registration.Handler is null)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, registration.Site, where,
                 "its handler's parameter types are not declared. Give the lambda typed parameters, or "
-                + "pass a method group"));
+                + "pass a method group");
             return null;
         }
 
@@ -357,7 +408,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         && string.Equals(type.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal);
 
     private static ApiEndpoint? Build(
-        SourceProductionContext spc,
+        ApiReport spc,
         INamedTypeSymbol controller,
         IMethodSymbol action,
         string prefix,
@@ -386,7 +437,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     ///     showing up as a wrong URL rather than as a build error.
     /// </remarks>
     private static ApiEndpoint? Compose(
-        SourceProductionContext spc,
+        ApiReport spc,
         IMethodSymbol action,
         string route,
         string verb,
@@ -399,18 +450,18 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     {
         if (route.Contains("{*"))
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, site, declaredBy,
-                "its route has a catch-all segment, which a typed client cannot fill from a parameter — name the segments, or call it by hand"));
+                "its route has a catch-all segment, which a typed client cannot fill from a parameter — name the segments, or call it by hand");
             return null;
         }
 
         if (RouteTemplate.UnresolvedToken(route) is { } unresolved)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, site, declaredBy,
                 $"its route contains '{unresolved}', which this generator does not substitute. The client "
-                + "would call a URL with that text in it and 404. Write the segment literally"));
+                + "would call a URL with that text in it and 404. Write the segment literally");
             return null;
         }
 
@@ -432,19 +483,19 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase)));
         if (unfilled is not null)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 EndpointSkipped, site, declaredBy,
-                $"its route names '{{{unfilled}}}' but no parameter supplies it — add a parameter named '{unfilled}'"));
+                $"its route names '{{{unfilled}}}' but no parameter supplies it — add a parameter named '{unfilled}'");
             return null;
         }
 
         return new ApiEndpoint(
-            verb, route, clientName, clientNamespace, methodName, parameters, resultType, resultFqn, declaredBy);
+            verb, route, clientName, clientNamespace, methodName, new EquatableArray<ApiParameter>(parameters), resultType, resultFqn, declaredBy);
     }
 
     // The client method's parameters, in the action's own order — or false, with the reason reported.
     private static bool TryParameters(
-        SourceProductionContext spc,
+        ApiReport spc,
         IMethodSymbol action,
         IReadOnlyList<string> tokens,
         Location site,
@@ -469,9 +520,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                spc.ReportDiagnostic(Diagnostic.Create(
+                spc.Add(
                     NoWireEncoding, At(parameter), declaredBy,
-                    $"parameter '{parameter.Name}' {shape.Reason}"));
+                    $"parameter '{parameter.Name}' {shape.Reason}");
                 return false;
             }
 
@@ -479,15 +530,15 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             if (binding is null)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(
+                spc.Add(
                     EndpointSkipped, site, declaredBy,
-                    $"parameter '{parameter.Name}' would be a second request body, and a request has one — combine the bodies into one type"));
+                    $"parameter '{parameter.Name}' would be a second request body, and a request has one — combine the bodies into one type");
                 return false;
             }
 
             if (Unsendable(parameter, binding.Value, shape) is { } reason)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(EndpointSkipped, site, declaredBy, reason));
+                spc.Add(EndpointSkipped, site, declaredBy, reason);
                 return false;
             }
 
@@ -529,7 +580,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     }
 
     private static bool TryResult(
-        SourceProductionContext spc,
+        ApiReport spc,
         IMethodSymbol action,
         string declaredBy,
         Compilation compilation,
@@ -565,8 +616,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             if (declared is null)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    UntypedResult, At(action), declaredBy, returned.ToDisplayString()));
+                spc.Add(
+                    UntypedResult, At(action), declaredBy, returned.ToDisplayString());
                 return false;
             }
 
@@ -577,9 +628,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
         if (classified.Kind == WireKind.Unsupported)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(
+            spc.Add(
                 NoWireEncoding, At(action), declaredBy,
-                $"its response type '{returned.ToDisplayString()}' {classified.Reason}"));
+                $"its response type '{returned.ToDisplayString()}' {classified.Reason}");
             return false;
         }
 
