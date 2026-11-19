@@ -70,6 +70,16 @@ public class RegistrationTests
     }
 
     [Fact]
+    public void A_second_browser_database_is_refused_rather_than_snapshotted_as_the_first()
+    {
+        var services = Collection().AddRaskBrowserSqlite("app");
+
+        var refused = Assert.Throws<InvalidOperationException>(() => services.AddRaskBrowserSqlite("audit"));
+
+        Assert.Contains("\"audit\"", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddRaskBrowserSqlite_applies_the_configured_options()
     {
         var provider = Collection()

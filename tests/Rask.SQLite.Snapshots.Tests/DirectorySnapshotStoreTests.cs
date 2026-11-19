@@ -18,6 +18,29 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task A_saved_snapshot_arrives_under_its_name_with_nothing_half_copied_beside_it()
+    {
+        var source = Path.Combine(Path.GetTempPath(), $"rask-snap-src-{Guid.NewGuid():N}.db");
+        await File.WriteAllTextAsync(source, "snapshot", TestContext.Current.CancellationToken);
+        var store = new DirectorySnapshotStore(_dir, "app-*.db");
+
+        await store.Save(source, "app-1.db", CancellationToken.None);
+
+        Assert.Equal(["app-1.db"], Directory.EnumerateFiles(_dir).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public async Task A_save_that_fails_leaves_no_partial_file()
+    {
+        var store = new DirectorySnapshotStore(_dir, "app-*.db");
+        var missing = Path.Combine(Path.GetTempPath(), $"rask-snap-missing-{Guid.NewGuid():N}.db");
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => store.Save(missing, "app-1.db", CancellationToken.None));
+
+        Assert.Empty(Directory.EnumerateFiles(_dir));
+    }
+
+    [Fact]
     public async Task ListAsync_reports_matching_snapshots_newest_first()
     {
         Directory.CreateDirectory(_dir);

@@ -335,6 +335,17 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A snapshot never appears half-copied, and snapshotting leaks no file handles.** Before: the snapshot was moved from
+  the temp directory straight to its name — on another filesystem a copy, so a crash or a listing mid-copy saw a
+  partial `.db` that retention could keep in place of a whole one — and its two connections were pooled, each
+  snapshot's new path leaving one more pool holding a file open for the life of the process. After: moved under a
+  `.partial-…` name and renamed within the directory; both connections unpooled.
+- **Litestream verification leaves the app's connection pool alone.** Before: tidying its temp directory called
+  `SqliteConnection.ClearAllPools()`, closing every idle connection the app held. After: not called — the verifier's
+  own connections were already unpooled.
+- **A second `AddRaskBrowserSqlite` name is refused.** Before: the second database took the first one's snapshot
+  options, store and snapshotter, so its ticks snapshotted the first database and its own was never saved. After:
+  an `InvalidOperationException` naming both; one app keeps one browser database.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

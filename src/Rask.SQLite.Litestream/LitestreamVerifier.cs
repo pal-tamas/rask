@@ -250,7 +250,8 @@ public sealed partial class LitestreamVerifier : ISqliteBackupVerifier
     {
         try
         {
-            SqliteConnection.ClearAllPools();
+            // No pool to clear: the verifier's connections are unpooled, and ClearAllPools would close every idle
+            // connection the app holds too.
             Directory.Delete(directory, recursive: true);
         }
 #pragma warning disable CA1031 // Failing to tidy a temp directory must not turn a good verification into a bad one.
