@@ -588,8 +588,11 @@ total)` draws a pager of links under the rows — always, as Flux does, "Showing
 argument says otherwise), and steps back to the last page there is when the address names one past it — which is what
 deleting the last row of the last page leaves. The column the list sorts by unless asked, ascending, and the first page
 are each named by leaving their key out. `Empty(nothingYet, noMatch)` is what the one row of an empty list says:
-`noMatch` while the list is narrowed — the address holds a key that is not the table's own (a filter, a tab, a search),
-or a [`Ui.Filters`](#filters) before the table has a filter in force — and `nothingYet` otherwise. The page reads the
+`noMatch` while the list is narrowed — the address holds a key that narrows it (a filter, a tab, a search), or a
+[`Ui.Filters`](#filters) before the table has a filter in force — and `nothingYet` otherwise. Every key of the address
+narrows it except the table's own sort, direction and page; the key of a `Ui.EditorDialog` on the page (an open
+`?new=new` or `?edit=7` sits over the list); Rask's own `rask-*` keys; and the order a page keeps there with its own
+`OnSort` — a key whose value is a sortable heading's `Key` (`?sort=code`) or a direction (`asc`, `desc`). The page reads the
 same keys as its own query parameters and reads that page of its rows; nothing else is wired.
 
 ```csharp

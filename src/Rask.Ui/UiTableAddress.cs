@@ -72,12 +72,19 @@ internal sealed class UiTableAddress
     internal KeyValuePair<string, string?>[] FirstPage() => PageKey is { } key ? [new(key, null)] : [];
 
     /// <summary>
-    ///     What the empty row says: <see cref="NoMatch" /> while the list is narrowed — the address holds a key of its own,
-    ///     not the table's, or the <see cref="UiFilters" /> that drives it has a filter in force — otherwise
+    ///     What the empty row says: <see cref="NoMatch" /> while the list is narrowed — the address holds a key that
+    ///     narrows it, or the <see cref="UiFilters" /> that drives it has a filter in force — otherwise
     ///     <see cref="NothingYet" />.
     /// </summary>
-    internal Component? Says(RouteState? route, UiFilters? filters) =>
-        NoMatch is not null && (filters is { Active: > 0 } || Narrowed(route)) ? NoMatch : NothingYet;
+    /// <remarks>
+    ///     A key narrows the list unless it is the table's own (its sort, direction and page), the key of a
+    ///     <see cref="UiEditorDialog" /> (an open <c>?new=new</c> or <c>?edit=7</c> sits over the list and filters
+    ///     nothing), one of Rask's own <c>rask-*</c> keys, or the order a page keeps there by its own
+    ///     <see cref="UiTableColumn.OnSort" />: a key whose value names a sortable heading's key (<c>?sort=code</c>) or a
+    ///     direction (<c>asc</c>, <c>desc</c>).
+    /// </remarks>
+    internal Component? Says(RouteState? route, UiFilters? filters, IEnumerable<Component?>? parts) =>
+        NoMatch is not null && (filters is { Active: > 0 } || Narrowed(route, parts)) ? NoMatch : NothingYet;
 
     /// <summary>
     ///     Marks the sortable headings from the address — the column it names, or the first the page marked sorted, or the
@@ -140,11 +147,52 @@ internal sealed class UiTableAddress
     private bool Descending(RouteState? route) =>
         string.Equals(Read(route, DirectionKey), UiTable.Descending, StringComparison.OrdinalIgnoreCase);
 
-    // Whether the address holds a key the table does not: a filter, a tab, a search — whatever narrows the list.
-    private bool Narrowed(RouteState? route) =>
-        route?.Query.Any(pair => !Own(pair.Key) && !StringValues.IsNullOrEmpty(pair.Value)) is true;
+    // Whether the address holds a key that narrows the list — a filter, a tab, a search: not the table's own, not a
+    // dialog's over it, not Rask's, and not the order a page keeps there by its own OnSort.
+    private bool Narrowed(RouteState? route, IEnumerable<Component?>? parts)
+    {
+        if (route is null)
+        {
+            return false;
+        }
+
+        var addresses = UiListAddresses.Of(route);
+        HashSet<string>? orders = null;
+        foreach (var (key, value) in route.Query)
+        {
+            if (StringValues.IsNullOrEmpty(value) || Own(key) || addresses.IsDialog(key) || IsRasks(key))
+            {
+                continue;
+            }
+
+            orders ??= Orders(parts);
+            if (!value.All(one => one is not null && orders.Contains(one)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private bool Own(string key) => Is(key, PageKey) || Is(key, SortKey) || Is(key, DirectionKey);
+
+    private static bool IsRasks(string key) => key.StartsWith("rask-", StringComparison.OrdinalIgnoreCase);
+
+    // The values that say how the list is ordered, not what is in it: each sortable heading's key, and either direction.
+    private static HashSet<string> Orders(IEnumerable<Component?>? parts)
+    {
+        var orders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "asc", UiTable.Descending };
+        foreach (var column in Sortable(parts))
+        {
+            if (Convert.ToString(column.Key, CultureInfo.InvariantCulture) is { Length: > 0 } name)
+            {
+                orders.Add(name);
+            }
+        }
+
+        return orders;
+    }
 
     private static bool Is(string key, string? own) => own is not null && string.Equals(key, own, StringComparison.OrdinalIgnoreCase);
 

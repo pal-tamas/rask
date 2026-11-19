@@ -87,6 +87,31 @@ public sealed partial class AddressedGroupsPage : Component
         ];
 }
 
+/// <summary>
+///     A list of countries that sorts with its own <c>OnSort</c>, its order kept in the address, its filter a status, and
+///     its editor a dialog drawn after it.
+/// </summary>
+[Route("/ui-table-address/countries")]
+public sealed partial class AddressedCountriesPage : Component
+{
+    [QueryParam("sort")] public string? Sort { get; set; }
+
+    [QueryParam("status")] public string? Status { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Main[
+            Ui.Table.Empty("No countries yet.", "No country matches.")[
+                Ui.TableColumns[
+                    Ui.TableColumn.Key("name").Sortable().OnSort(() => Go.With("sort", "name"))["Name"],
+                    Ui.TableColumn.Key("code").Sortable().OnSort(() => Go.With("sort", "code"))["Code"]
+                ],
+                Ui.TableRows[AddressedSuppliers.Names.Where(name => Status is null).Select(name => Ui.TableRow.Key(name)[Ui.TableCell[name], Ui.TableCell[name]])]
+            ],
+            Ui.EditorDialog.In("new")[P["Editor"]]
+        ];
+}
+
 /// <summary>What the suppliers page lists: a test's own rows, put back before each test.</summary>
 internal static class AddressedSuppliers
 {
@@ -334,6 +359,50 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("role=\"status\">No supplier matches.</div></td>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("No suppliers yet.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_list_under_an_open_editor_dialog_says_nothing_is_in_it_yet()
+    {
+        AddressedSuppliers.Names.Clear();
+
+        var page = Page.Visit("/ui-table-address/countries?new=new");
+
+        Assert.Contains("role=\"status\">No countries yet.</div></td>", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("No country matches.", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_list_under_an_open_editor_dialog_with_a_filter_set_says_nothing_matches()
+    {
+        AddressedSuppliers.Names.Clear();
+
+        var page = Page.Visit("/ui-table-address/countries?new=new&status=closed");
+
+        Assert.Contains("role=\"status\">No country matches.</div></td>", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("No countries yet.", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_list_whose_page_keeps_its_own_sort_in_the_address_says_nothing_is_in_it_yet()
+    {
+        AddressedSuppliers.Names.Clear();
+
+        var page = Page.Visit("/ui-table-address/countries?sort=code");
+
+        Assert.Contains("role=\"status\">No countries yet.</div></td>", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("No country matches.", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_list_reads_no_filter_in_a_rask_key_of_the_address()
+    {
+        AddressedSuppliers.Names.Clear();
+
+        var page = Page.Visit("/ui-table-address/suppliers?rask-tab=two");
+
+        Assert.Contains("role=\"status\">No suppliers yet.</div></td>", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("No supplier matches.", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]

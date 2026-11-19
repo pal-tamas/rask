@@ -111,7 +111,9 @@ public sealed partial class UiTable
     /// </summary>
     /// <remarks>
     ///     Not Flux's: an addition the owner approved (2026-11-04) for a list page. The list is narrowed while the page's
-    ///     address holds a key that is not the table's own sort or page — a filter, a tab, a search — or a
+    ///     address holds a key that narrows it — a filter, a tab, a search; not the table's own sort or page, an open
+    ///     <see cref="UiEditorDialog" />'s key, a <c>rask-*</c> key, or a page's own order (a value naming a sortable
+    ///     heading's key, or <c>asc</c>/<c>desc</c>) — or a
     ///     <see cref="UiFilters" /> before the table has a filter in force. The headings stay above the row, and the row
     ///     reaches across every column.
     ///     <code>

@@ -42,6 +42,15 @@ internal sealed class UiListAddresses
         }
     }
 
+    /// <summary>Whether <paramref name="key" /> opens a dialog over a page: it says nothing of what a list holds.</summary>
+    internal bool IsDialog(string key)
+    {
+        lock (_gate)
+        {
+            return _dialogs.Contains(key);
+        }
+    }
+
     /// <summary>Where <paramref name="page" /> was last shown, its query kept; the page as given when it was not shown yet.</summary>
     internal RouteUrl Back(RouteUrl page)
     {

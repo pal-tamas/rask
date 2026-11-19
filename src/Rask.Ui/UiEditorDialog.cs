@@ -43,7 +43,22 @@ public sealed partial class UiEditorDialog : Component
     private const string Sheet = "[:where(&)]:w-full md:w-[min(84rem,100vw)]";
 
     /// <summary>The query key that says which record is open: <c>Ui.EditorDialog.In("edit")</c>. Required, and taken first.</summary>
-    public required string In { get; set; }
+    /// <remarks>
+    ///     Named to the session as the page builds the dialog, before anything renders: a list above it that renders
+    ///     first already knows the open dialog's key filters nothing (<c>Ui.Table.Empty</c>).
+    /// </remarks>
+    public required string In
+    {
+        get;
+        set
+        {
+            field = value;
+            if (UiTableAddress.Route() is { } route)
+            {
+                UiListAddresses.Of(route).Dialog(value);
+            }
+        }
+    }
 
     /// <summary>Opens it as a sheet from the right, as wide as the screen allows, for a form with rows of its own.</summary>
     public bool? Wide { get; set; }

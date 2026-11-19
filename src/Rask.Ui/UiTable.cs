@@ -231,7 +231,7 @@ public sealed partial class UiTable : UiElement, IUiHost
         var pager = Paginate ?? _address?.Pager(route);
         if (_query is { } query)
         {
-            UiTableSkeleton.Fill(query, Children, pager, _address?.Says(route, Filters));
+            UiTableSkeleton.Fill(query, Children, pager, _address?.Says(route, Filters, Children));
             marks["rask-skeleton"] = UiTableSkeleton.Word(query);
         }
 
