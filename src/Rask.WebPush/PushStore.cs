@@ -102,6 +102,27 @@ internal sealed partial class PushStore<TContext>(
         }
     }
 
+    public async Task<bool> Release(string endpoint, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
+        if (Rask.Data.CurrentUser.Id is not { } userId)
+        {
+            return false;
+        }
+
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // Only the owner's own row: knowing an endpoint is not enough to detach another user's.
+            var released = await db.Set<PushSubscriber>()
+                .Where(s => s.Endpoint == endpoint && s.UserId == userId)
+                .ExecuteUpdateAsync(set => set.SetProperty(s => s.UserId, (Guid?)null), cancellationToken)
+                .ConfigureAwait(false);
+
+            return released > 0;
+        }
+    }
+
     public Task<WebPushResult> Send(PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(subscription);

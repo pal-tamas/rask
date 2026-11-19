@@ -21,6 +21,13 @@ public interface IPush
     /// <summary>Forgets a browser's subscription. <see langword="false" /> when it was not there.</summary>
     Task<bool> Unsubscribe(string endpoint, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///     Lets go of a browser's subscription at sign-out: the row stays, as a visitor's, so the next user who signs in
+    ///     on that browser claims it by subscribing. Only the user it belongs to releases it; <see langword="false" />
+    ///     when it was not there or is another user's.
+    /// </summary>
+    Task<bool> Release(string endpoint, CancellationToken cancellationToken = default);
+
     /// <summary>Sends to one subscription and reports how the push service answered.</summary>
     Task<WebPushResult> Send(PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken = default);
 

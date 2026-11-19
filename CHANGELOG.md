@@ -349,7 +349,9 @@ them until tagged releases begin.
   posting another browser's endpoint re-bound its row to whoever posted it, or — signed out — detached it from its
   user; and `POST /_rask/push/unsubscribe` took any number of anonymous requests. After: a row owned by a user is
   renewed only by that user (a visitor's row is still claimed by the user who signs in on it), and unsubscribe answers
-  401 without a user when `RequireUser` is on and 429 past ten a minute, as subscribe does.
+  401 without a user when `RequireUser` is on and 429 past ten a minute, as subscribe does. New `Push.Release(endpoint)`
+  / `IPush.Release` / `POST /_rask/push/release`: at sign-out the owner hands the row back as a visitor's, so the next
+  user signing in on that browser claims it; only the owner can release it.
 - **Rask.WebPush: the SSRF guard judges the IPv4 address inside a NAT64, 6to4 or IPv4-compatible IPv6 address, and
   refuses Teredo and local-use NAT64.** Before: `64:ff9b::a9fe:a9fe` (the metadata service through a NAT64 gateway)
   passed as public. Also: a payload is held to RFC 8291's 3993 bytes (was 4079, which a push service may refuse), a

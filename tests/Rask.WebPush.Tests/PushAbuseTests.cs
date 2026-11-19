@@ -249,6 +249,72 @@ public sealed class PushAbuseTests
         Assert.Equal(ada, claimed.UserId);
     }
 
+    [Fact]
+    public async Task A_row_its_user_released_at_sign_out_is_claimed_by_the_next_user_who_signs_in()
+    {
+        await using var harness = new PushHarness();
+        var ada = Guid.NewGuid();
+        var bob = Guid.NewGuid();
+        bool released;
+        using (Current.UseUser(ada))
+        {
+            await harness.Push.Subscribe(PushHarness.Browser("shared"), TestContext.Current.CancellationToken);
+            released = await harness.Push.Release(PushHarness.Browser("shared").Endpoint, TestContext.Current.CancellationToken);
+        }
+
+        PushSubscriber claimed;
+        using (Current.UseUser(bob))
+        {
+            claimed = await harness.Push.Subscribe(PushHarness.Browser("shared"), TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(released);
+        Assert.Equal(bob, claimed.UserId);
+        Assert.Equal(1, harness.Rows());
+    }
+
+    [Fact]
+    public async Task Only_the_row_s_own_user_can_release_it()
+    {
+        await using var harness = new PushHarness();
+        var ada = Guid.NewGuid();
+        var endpoint = PushHarness.Browser("laptop").Endpoint;
+        using (Current.UseUser(ada))
+        {
+            await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
+        }
+
+        bool byAnother;
+        using (Current.UseUser(Guid.NewGuid()))
+        {
+            byAnother = await harness.Push.Release(endpoint, TestContext.Current.CancellationToken);
+        }
+
+        var byAVisitor = await harness.Push.Release(endpoint, TestContext.Current.CancellationToken);
+        PushSubscriber still;
+        using (Current.UseUser(Guid.NewGuid()))
+        {
+            still = await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
+        }
+
+        Assert.False(byAnother);
+        Assert.False(byAVisitor);
+        Assert.Equal(ada, still.UserId);
+    }
+
+    [Fact]
+    public async Task The_release_endpoint_answers_401_to_a_visitor()
+    {
+        await using var app = await HostAsync();
+        using var http = app.GetTestClient();
+
+        var response = await http.PostAsJsonAsync(
+            "/_rask/push/release", new { endpoint = PushHarness.Browser("a").Endpoint },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private static Task<HttpResponseMessage> UnsubscribeAsync(HttpClient http, string device) =>
         http.PostAsJsonAsync(
             "/_rask/push/unsubscribe",
