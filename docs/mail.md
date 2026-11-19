@@ -58,6 +58,11 @@ The SMTP password does not belong in that committed file: set `Rask__Mail__Smtp_
 environment (or `Rask:Mail:Smtp:Password` in user secrets). A callback — `AddRaskMail<AppDbContext>(o => …)` —
 runs after the section and wins.
 
+The connection is always encrypted unless you say otherwise: `Smtp:Security` defaults to `Auto`, which is implicit TLS
+on port 465 and a **required** STARTTLS on any other port — a server that does not offer it is refused rather than sent
+the password in the clear. `StartTls` and `SslOnConnect` name one; only `"Security": "None"` sends without TLS, for a
+local relay.
+
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {

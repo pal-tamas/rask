@@ -22,5 +22,7 @@ public sealed class AuthDbCollectionGuardTests
             nameof(PasswordHasherTests),
             // Verifies WebAuthn ceremonies against keys it generates itself. No database, and kept out of the
             // collection for the same reason: it is pure CPU work that can run beside everything else.
-            nameof(PasskeyVerifierTests));
+            nameof(PasskeyVerifierTests),
+            // Reads an address into the client it is counted as; no database.
+            nameof(AuthThrottleClientTests));
 }

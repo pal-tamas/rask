@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Rask.Auth;
 
@@ -25,6 +27,33 @@ internal sealed class AuthThrottle(TimeProvider clock)
 
     /// <summary>The window failures are counted over.</summary>
     internal TimeSpan Window { get; init; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>The client an attempt is counted against: the address, or for IPv6 the /64 it is one of.</summary>
+    /// <remarks>
+    ///     One IPv6 subscriber holds a whole /64 (RFC 6177), so counting each address on its own gives a guesser 2^64 fresh
+    ///     keys for one connection. An IPv4 address mapped into IPv6 is counted as the IPv4 address it is.
+    /// </remarks>
+    public static string? ClientOf(IPAddress? address)
+    {
+        if (address is null)
+        {
+            return null;
+        }
+
+        if (address.IsIPv4MappedToIPv6)
+        {
+            return address.MapToIPv4().ToString();
+        }
+
+        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+        {
+            return address.ToString();
+        }
+
+        var bytes = address.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new IPAddress(bytes) + "/64";
+    }
 
     /// <summary>The key for an attempt at <paramref name="email" /> from <paramref name="client" />.</summary>
     public static string Key(string purpose, string email, string? client) =>

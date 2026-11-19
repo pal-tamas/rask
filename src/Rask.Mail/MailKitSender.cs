@@ -20,7 +20,7 @@ public sealed class MailKitSender(MailOptions options) : IMailSender
         var message = MimeMailFactory.Build(mail);
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(_smtp.Host, _smtp.Port, ToSocketOptions(_smtp.Security), cancellationToken).ConfigureAwait(false);
+        await client.ConnectAsync(_smtp.Host, _smtp.Port, ToSocketOptions(_smtp.Security, _smtp.Port), cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(_smtp.User))
         {
             await client.AuthenticateAsync(_smtp.User, _smtp.Password ?? "", cancellationToken).ConfigureAwait(false);
@@ -30,11 +30,14 @@ public sealed class MailKitSender(MailOptions options) : IMailSender
         await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
     }
 
-    private static SecureSocketOptions ToSocketOptions(SmtpSecurity security) => security switch
+    // Auto is never MailKit's Auto: that is StartTlsWhenAvailable off port 465, so a server — or anything between — that
+    // stops offering STARTTLS gets the login and the mail in the clear. TLS is required on every port; only an explicit
+    // None (a local relay) sends without it.
+    internal static SecureSocketOptions ToSocketOptions(SmtpSecurity security, int port) => security switch
     {
         SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
         SmtpSecurity.SslOnConnect => SecureSocketOptions.SslOnConnect,
         SmtpSecurity.None => SecureSocketOptions.None,
-        _ => SecureSocketOptions.Auto,
+        _ => port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls,
     };
 }

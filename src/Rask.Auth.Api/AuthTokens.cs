@@ -86,8 +86,10 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
         return CryptographicOperations.FixedTimeEquals(actual, expected);
     }
 
+    // The address too: a link sent to an address the account has since left (an administrator moved it after a takeover)
+    // must not reset the password of the account at its new one.
     private static string ResetFingerprint<TKey>(Authenticatable<TKey> user)
-        where TKey : notnull => Fingerprint(user.PasswordHash);
+        where TKey : notnull => Fingerprint(user.PasswordHash + "|" + user.Email);
 
     private static string ConfirmFingerprint<TKey>(Authenticatable<TKey> user)
         where TKey : notnull =>

@@ -335,6 +335,20 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **BREAKING (Rask.Mail): `SmtpSecurity.Auto` requires TLS.** Before: `Auto` was MailKit's, which off port 465 is
+  `StartTlsWhenAvailable` — a server, or anything on the path, that stopped offering STARTTLS was sent the login and
+  the mail in the clear. After: implicit TLS on 465, a required STARTTLS on every other port. A local relay without TLS
+  now says so: `"Smtp": { "Security": "None" }`.
+- **A password-reset link dies when the account's address changes.** Before: the link was bound to the password hash
+  only, so a link mailed to an address an administrator has since moved the account away from (after a takeover)
+  still reset the password. After: it is bound to the address too. Links issued before this release stop working.
+- **A bearer token is read on every request that sends one.** Before: `AuthOptions.Bearer` issued tokens, but the
+  cookie stayed the scheme every request was authenticated with, so `Authorization: Bearer …` was ignored —
+  `/api/auth/me` answered 204 and an `[Authorize]` endpoint refused the caller. After: with bearer on, a request that
+  carries a bearer token is authenticated by it and every other by the cookie; signing in and out, challenges and
+  refusals stay the cookie's. An app that set its own `DefaultAuthenticateScheme` keeps it.
+- **Sign-in throttling counts an IPv6 client by its /64.** Before: each address was its own client, so one subscriber
+  had 2^64 fresh keys to guess from. After: the /64 is the client; an IPv4 address mapped into IPv6 counts as itself.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

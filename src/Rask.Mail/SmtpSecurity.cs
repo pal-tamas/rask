@@ -3,7 +3,10 @@ namespace Rask.Mailing;
 /// <summary>Transport security for the SMTP connection.</summary>
 public enum SmtpSecurity
 {
-    /// <summary>Let MailKit choose based on the port (STARTTLS on 587, implicit TLS on 465). The default.</summary>
+    /// <summary>
+    /// TLS by the port: implicit TLS on 465, a required STARTTLS on any other — a server that does not offer it is refused,
+    /// never written to in the clear. The default.
+    /// </summary>
     Auto,
 
     /// <summary>Connect in the clear then upgrade with STARTTLS (typically port 587).</summary>

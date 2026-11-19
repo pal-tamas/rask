@@ -446,7 +446,7 @@ public static class RaskAuthEndpointExtensions
 
     // The address a throttle is keyed on. Behind a proxy this is the proxy's address unless the app runs
     // UseForwardedHeaders, which is the ordinary ASP.NET arrangement for learning the client's.
-    private static string? Client(HttpContext context) => context.Connection.RemoteIpAddress?.ToString();
+    private static string? Client(HttpContext context) => AuthThrottle.ClientOf(context.Connection.RemoteIpAddress);
 
     // Where this app is being served from, used only when the app configured neither PasskeyOrigins nor PublicOrigin.
     // Built from the request's own scheme and host rather than the Origin header: a host is what the server was asked

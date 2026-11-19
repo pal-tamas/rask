@@ -22,7 +22,11 @@ internal sealed class EndpointApp : IDisposable
 
     /// <param name="services">Registrations a test adds after the auth battery's.</param>
     /// <param name="endpoints">Endpoints a test maps beside <c>MapRaskAuth</c>.</param>
-    public EndpointApp(Action<IServiceCollection>? services = null, Action<IEndpointRouteBuilder>? endpoints = null)
+    /// <param name="auth">Auth options a test sets after the app's own.</param>
+    public EndpointApp(
+        Action<IServiceCollection>? services = null,
+        Action<IEndpointRouteBuilder>? endpoints = null,
+        Action<AuthOptions>? auth = null)
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"rask-auth-endpoints-{Guid.NewGuid():N}.db");
 
@@ -43,6 +47,7 @@ internal sealed class EndpointApp : IDisposable
                     {
                         o.FirstRunToken = Token;
                         o.SignInAttemptsPerMinute = 3;
+                        auth?.Invoke(o);
                     });
                     services?.Invoke(registered);
                 });
