@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Hosting.Shared;
 
@@ -8,10 +10,16 @@ namespace Rask.Hosting.Shared;
 /// </summary>
 internal static class SameOrigin
 {
+    /// <summary>The app's public origin(s), comma-separated: <c>https://app.example.com</c>.</summary>
+    public const string PublicOriginSetting = "Rask:PublicOrigin";
+
+    /// <summary>The auth battery's public origin, which <c>rask deploy --domain</c> sets; read when the general one is unset.</summary>
+    public const string AuthPublicOriginSetting = "Rask:Auth:PublicOrigin";
+
     /// <summary>
     /// True when the request carries no <c>Origin</c>/<c>Referer</c> (a non-browser client, or a
-    /// same-origin fetch that omits it) or one that is the request's own: the same host, the same port
-    /// where the request names one, and not plain http for a request that came over https.
+    /// same-origin fetch that omits it), or one that is the request's own origin — the same scheme, host
+    /// and port — or one of the app's configured public origins.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -19,11 +27,11 @@ internal static class SameOrigin
     /// <c>https://app</c>, a dev server on another port — is another origin, and was let in.
     /// </para>
     /// <para>
-    /// Still lenient where a proxy hides the truth. Behind a TLS-terminating reverse proxy the browser's
-    /// Origin is <c>https://app</c> (:443) while the request arrives as http with a <c>Host</c> of
-    /// <c>app</c> unless ForwardedHeaders is wired. So the port is compared only when the request's
-    /// <c>Host</c> names one, and the scheme only when the request itself is https — an https request is
-    /// never sent from an http page of ours, and a refused http one would be a legitimate visitor.
+    /// Behind a proxy the request is compared as the proxy says it was made when its headers are trusted
+    /// (<c>Rask:BehindProxy</c>, ForwardedHeaders). A proxy that says too little — TLS ended in front, a
+    /// <c>Host</c> rewritten — is named instead: <c>Rask:PublicOrigin</c> (or the auth battery's
+    /// <c>Rask:Auth:PublicOrigin</c>) lists the origins the app's pages are served from, and a browser on one
+    /// of them is let in whatever the request looks like behind it.
     /// </para>
     /// </remarks>
     public static bool Allows(HttpRequest request)
@@ -45,19 +53,46 @@ internal static class SameOrigin
             return false;
         }
 
+        return IsRequestsOwn(request, originUri) || IsPublic(request, originUri);
+    }
+
+    private static bool IsRequestsOwn(HttpRequest request, Uri origin)
+    {
         // request.Host.Host is the host without the port (empty if the Host header is missing/malformed).
         var selfHost = request.Host.Host;
         if (string.IsNullOrEmpty(selfHost)
-            || !string.Equals(originUri.Host, selfHost, StringComparison.OrdinalIgnoreCase))
+            || !string.Equals(origin.Host, selfHost, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(origin.Scheme, request.Scheme, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (request.IsHttps && !string.Equals(originUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        var selfPort = request.Host.Port ?? (request.IsHttps ? 443 : 80);
+        return origin.Port == selfPort;
+    }
+
+    private static bool IsPublic(HttpRequest request, Uri origin)
+    {
+        var configuration = request.HttpContext.RequestServices?.GetService<IConfiguration>();
+        var configured = configuration?[PublicOriginSetting] is { Length: > 0 } general
+            ? general
+            : configuration?[AuthPublicOriginSetting];
+        if (string.IsNullOrWhiteSpace(configured))
         {
             return false;
         }
 
-        return request.Host.Port is not { } port || originUri.Port == port;
+        foreach (var entry in configured.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Uri.TryCreate(entry, UriKind.Absolute, out var allowed)
+                && string.Equals(allowed.Scheme, origin.Scheme, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(allowed.Host, origin.Host, StringComparison.OrdinalIgnoreCase)
+                && allowed.Port == origin.Port)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -216,7 +216,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Theory]
-    [InlineData("https://localhost")]
+    [InlineData("http://localhost")] // the test server's own scheme: another one is another origin
     [InlineData("https://app.example.com")]
     public async Task The_hosts_own_pages_and_a_listed_origin_can_open_the_socket(string origin)
     {

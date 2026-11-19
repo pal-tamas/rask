@@ -509,10 +509,12 @@ them until tagged releases begin.
   on the server only `CqrsOptions.ValidateRequests` (cleared by `c.Validation.Off()`) turns request validation off;
   in the browser, where nothing is trusted, the forms' switch still decides. The browser's pre-check also disposes
   its scope asynchronously.
-- **A request from another port, or from an http page to an https endpoint, is not same-origin.** Before: the
-  CSRF/WebSocket origin check compared the host alone, so `http://app:8081` passed as `https://app`'s own page.
-  After: the port is compared when the request's `Host` names one, and an https request refuses an http origin; a
-  TLS-terminating proxy that forwards no port is still let through as before.
+- **BREAKING: same-origin compares scheme, host and port; a proxy that hides them is named by `Rask:PublicOrigin`.**
+  Before: the CSRF/WebSocket origin check compared the host alone, so `http://app:8081` passed as `https://app`'s own
+  page. After: the `Origin` must be the request's own scheme, host and port (as `Rask:BehindProxy`/ForwardedHeaders
+  report them), or one of the origins listed in the new `Rask:PublicOrigin` setting (comma-separated; unset, the auth
+  battery's `Rask:Auth:PublicOrigin`, which `rask deploy --domain` writes, is used). An app behind a TLS-terminating
+  proxy with neither configured now gets `403` on the live socket and the sign-in redeem: set one of them.
 - **A session's id is no longer written into the "renders in a row" warning.** Before: the line named the session
   by the id its browser reconnects with, a bearer for anyone reading the logs. After: by the first eight hex digits
   of its SHA-256 — still one session's lines told from another's.
