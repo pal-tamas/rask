@@ -335,6 +335,8 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`RaskSite.Log` never shows a line the `HostLog` file does not have yet.** The line was queued for `Log` before it
+  was written to the file, so a test comparing the two right after start failed now and then.
 - **The API client generator reads controllers and routes as ASP.NET serves them.** Before: a controller got a
   client only with `[ApiController]` on its own declaration, and only its own methods — one deriving from an
   `[ApiController]` base, or in an `[assembly: ApiController]` project, got none, and inherited actions were missing;

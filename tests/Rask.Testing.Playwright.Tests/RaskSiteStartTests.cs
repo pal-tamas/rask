@@ -40,8 +40,8 @@ public sealed class RaskSiteStartTests
         await using var site = new RaskSite<Program> { HostLog = log };
 
         await site.Start();
-        var written = await File.ReadAllTextAsync(log, TestContext.Current.CancellationToken);
         var said = site.Log;
+        var written = await File.ReadAllTextAsync(log, TestContext.Current.CancellationToken);
 
         Assert.NotEqual("", said);
         Assert.All(said.ReplaceLineEndings("\n").Split('\n'), line => Assert.Contains(line, written, StringComparison.Ordinal));
