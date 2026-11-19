@@ -46,6 +46,7 @@ public sealed class BrowserAuth(
     /// <inheritdoc />
     public async Task SignOut(string? returnUrl = null)
     {
+        await BrowserPush.Release(js, http).ConfigureAwait(false);
         using var request = Request(AuthApi.Logout);
         await http.SendAsync(request).ConfigureAwait(false);
 
@@ -62,6 +63,7 @@ public sealed class BrowserAuth(
     /// <inheritdoc />
     public async Task SignOutEverywhere(string? returnUrl = null)
     {
+        await BrowserPush.Release(js, http).ConfigureAwait(false);
         using var request = Request(AuthApi.LogoutEverywhere);
         await http.SendAsync(request).ConfigureAwait(false);
 

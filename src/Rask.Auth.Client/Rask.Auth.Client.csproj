@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Auth.Client.Tests"/>
+    <InternalsVisibleTo Include="Rask.Wasm"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Auth.Client;` to downstream consumers. -->

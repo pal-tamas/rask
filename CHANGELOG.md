@@ -335,6 +335,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Signing out hands the browser's push subscription back.** Before: `Push.Release` existed, but nothing called it,
+  so the next user to sign in on a shared browser could not claim its subscription and the last user kept receiving
+  that browser's notifications. After: Rask.Auth's sign-out does it first, while the cookie is still the user's — on the
+  Server host through `IPush.Release` with the endpoint read from the browser, on WebAssembly (`BrowserAuth`,
+  `WasmAuthSignIn`) as a `POST /_rask/push/release`. Only when Web Push is on and the browser holds a subscription.
 - **BREAKING (Rask.Ui, security): `Ui.Editor` cuts its value to its own schema, both ways — a stored value can no
   longer run script in the page.** Before: the first paint wrote the bound HTML with `Raw` as it was, so
   `<img src=x onerror=…>` from the database ran before the engine loaded, and a change the browser sent was written to

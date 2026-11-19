@@ -598,6 +598,10 @@ internal static class RaskBatteryWiring
             // without a key pair — the table and the subscribe endpoints work first, and sending names the missing
             // keys. When a pair IS configured, the sender was already registered above with start-time validation.
             services.AddRaskWebPush<TContext>(o => options.Push.Apply(o));
+
+            // A browser's subscription is let go as its user signs out, so the next user on it can claim it.
+            services.TryAddEnumerable(
+                ServiceDescriptor.Scoped<Rask.Auth.ISignOutStep, Rask.Server.SignOut.PushSignOutRelease>());
         }
     }
 

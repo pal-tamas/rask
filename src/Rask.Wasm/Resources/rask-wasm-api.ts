@@ -16,6 +16,24 @@ window.__raskOffline = window.__raskOffline || {
         typeof caches === "undefined" ? Promise.resolve(false) : caches.delete(RASK_CACHE).catch(() => false),
 };
 
+// The endpoint of the push subscription this browser holds, or null — read at sign-out so the server lets go of the row
+// (POST /_rask/push/release) and the next user to sign in claims it. getRegistrations, never `ready`: on a page with no
+// worker `ready` never settles, and sign-out would wait on it.
+window.__raskPush = window.__raskPush || {
+    endpoint: async (): Promise<string | null> => {
+        if (!("serviceWorker" in navigator)) return null;
+        try {
+            for (const registration of await navigator.serviceWorker.getRegistrations()) {
+                const subscription = await registration.pushManager?.getSubscription();
+                if (subscription) return subscription.endpoint;
+            }
+        } catch {
+            // No push here, or the browser refused: nothing to hand back.
+        }
+        return null;
+    },
+};
+
 // PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
 // relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
 // manifest is injected as a data: URL <link rel="manifest"> plus, when the page declares none, a

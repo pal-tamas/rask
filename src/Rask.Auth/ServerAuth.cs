@@ -25,7 +25,8 @@ internal sealed class ServerAuth<TUser, TKey>(
     IUserProvider users,
     IWebAuthn webAuthn,
     IHttpContextAccessor http,
-    AuthOptions options) : IAuth
+    AuthOptions options,
+    IEnumerable<ISignOutStep> signOutSteps) : IAuth
     where TUser : Authenticatable<TKey>, new()
     where TKey : notnull
 {
@@ -65,15 +66,28 @@ internal sealed class ServerAuth<TUser, TKey>(
         return outcome.Result;
     }
 
-    public Task SignOut(string? returnUrl = null) =>
-        signIn.SignOut(returnUrl ?? options.LoginPath);
+    public async Task SignOut(string? returnUrl = null)
+    {
+        await BeforeSignOutAsync().ConfigureAwait(false);
+        await signIn.SignOut(returnUrl ?? options.LoginPath).ConfigureAwait(false);
+    }
 
     public Task SignOutOtherDevices() => accounts.SignOutOtherDevicesAsync(users.Current);
 
     public async Task SignOutEverywhere(string? returnUrl = null)
     {
+        await BeforeSignOutAsync().ConfigureAwait(false);
         await accounts.SignOutEverywhereAsync(users.Current).ConfigureAwait(false);
         await signIn.SignOut(returnUrl ?? options.LoginPath).ConfigureAwait(false);
+    }
+
+    // While the user is still the current one: what another battery lets go of as they leave.
+    private async Task BeforeSignOutAsync()
+    {
+        foreach (var step in signOutSteps)
+        {
+            await step.BeforeSignOut().ConfigureAwait(false);
+        }
     }
 
     public Task<AuthResult> SendPasswordReset(string email) =>

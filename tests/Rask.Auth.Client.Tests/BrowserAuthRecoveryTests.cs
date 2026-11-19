@@ -202,6 +202,36 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Equal("/bye", state.Path);
     }
 
+    [Fact]
+    public async Task Signing_out_hands_the_browsers_push_subscription_back_first()
+    {
+        var js = new RecordingJs { Endpoint = "https://push.example/abc" };
+        var paths = new List<string>();
+        var auth = new BrowserAuth(
+            new HttpClient(new Recording(paths)) { BaseAddress = new Uri("https://localhost") },
+            new SpyUserProvider(),
+            new StubWebAuthn(),
+            new AuthClientOptions(),
+            js);
+
+        using (new Navigator(new RouteState()).EnterHandler())
+        {
+            await auth.SignOut("/bye");
+        }
+
+        Assert.Equal("/_rask/push/release", paths[0]);
+        Assert.EndsWith("/logout", paths[1], StringComparison.Ordinal);
+    }
+
+    private sealed class Recording(List<string> paths) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            paths.Add(request.RequestUri!.AbsolutePath);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+        }
+    }
+
     private static BrowserAuth Auth(
         StubHandler handler,
         out SpyUserProvider users,
@@ -222,8 +252,16 @@ public sealed class BrowserAuthRecoveryTests
     {
         public List<string> Calls { get; } = [];
 
+        // What the page's push helper answers; null, as a browser with no subscription does.
+        public string? Endpoint { get; init; }
+
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
         {
+            if (identifier == "__raskPush.endpoint")
+            {
+                return ValueTask.FromResult((TValue)(object?)Endpoint!);
+            }
+
             Calls.Add(identifier);
             return ValueTask.FromResult<TValue>(default!);
         }
