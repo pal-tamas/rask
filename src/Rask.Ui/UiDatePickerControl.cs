@@ -200,7 +200,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Bind, Label);
+        : UiFieldId.Derive(this, Id, Bind, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 

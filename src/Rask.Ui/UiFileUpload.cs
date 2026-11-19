@@ -76,7 +76,7 @@ public sealed partial class UiFileUpload : Component, IUiFormControl
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    string IUiFieldControl.ControlId => UiFieldId.Derive(Id, null, Label);
+    string IUiFieldControl.ControlId => UiFieldId.Derive(this, Id, null, Label);
 
     /// <inheritdoc />
     LambdaExpression? IUiFieldControl.Bound => null;

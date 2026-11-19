@@ -171,7 +171,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             ? Ui.Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce)
             : Ui.Input.Value(Value ?? string.Empty).OnChange(Told).OnInput(AtEveryKey);
         var input = opened
-            .Id(UiFieldId.Derive(Id, Bind, Label))
+            .Id(UiFieldId.Derive(this, Id, Bind, Label))
             .Type(Type)
             .Label(Label)
             .Description(Description)

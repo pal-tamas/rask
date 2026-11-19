@@ -21,7 +21,7 @@ public sealed partial class UiRadioGroup<T> : IUiFilterField
         var cell = UiFilterCell<T>.Over(Bind, "Ui.RadioGroup").In(set);
         if (cell.IsNot(Bind))
         {
-            Id ??= UiFieldId.Derive(null, Bind, Label);
+            Id ??= UiFieldId.Derive(this, null, Bind, Label);
             Bind = cell.Bind;
         }
 

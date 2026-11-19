@@ -70,7 +70,7 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
 
     string IUiFieldControl.ControlId => Id is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, null, Label);
+        : UiFieldId.Derive(this, Id, null, Label);
 
     LambdaExpression? IUiFieldControl.Bound => null;
 

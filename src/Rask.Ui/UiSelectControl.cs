@@ -134,7 +134,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     // A select nothing names — no Id, no bound member, no label — has an id of its own, not one they all share.
     string IUiFieldControl.ControlId => Id is null && Bound is null && Label is null
         ? UiFieldId.Own(_instance)
-        : UiFieldId.Derive(Id, Bound, Label);
+        : UiFieldId.Derive(this, Id, Bound, Label);
 
     /// <inheritdoc />
     LambdaExpression? IUiFieldControl.Bound => Bound;

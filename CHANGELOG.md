@@ -335,6 +335,13 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Two fields that derive the same id on one page no longer share it (#1378).** Before: `Ui.Input.Bind(() => a.Name)`
+  in one form and `Ui.Input.Bind(() => b.Name)` in another (a modal on the same page, a row of a list) both rendered
+  `id="f-name"`, so the second field's `<label for>` named the first input and the second text box had no accessible
+  name. After: the first keeps `f-name`, the next is `f-name-2` (then `-3`…), and its label, `-error`,
+  `-description` and `aria-describedby` follow it. Held by the field's instance for as long as it is on the page, so a
+  live update never re-ids a field (focus stays); the first render hands ids out in render order, so a server's first
+  HTML and the render that takes it over agree. An `Id` you give is never changed.
 - **A tall menu no longer scrolls the page as it opens.** Before: on current Chromium (Playwright 1.64's), a row's ⋯
   menu taller than the room under it took the page with it — the browser focuses an `autofocus` popover as it shows
   it and scrolls it into view where the anchor rules alone had it, so the trigger scrolled off and the menu's top

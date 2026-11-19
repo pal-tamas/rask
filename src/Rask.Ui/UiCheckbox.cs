@@ -95,7 +95,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
     public string? Class { get; set; }
 
     string IUiFieldControl.ControlId =>
-        Id ?? (_group is { } group ? UiFieldId.Choice(group.GroupId, Value) : Standalone());
+        Id ?? (_group is { } group ? UiFieldIds.Given(this, UiFieldId.Choice(group.GroupId, Value)) : Standalone());
 
     LambdaExpression? IUiFieldControl.Bound => _group is null ? Bind : null;
 
@@ -139,7 +139,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
     // On its own: named by what it binds or says, or — with neither — by an id nothing else on the page has.
     private string Standalone() => Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(null, Bind, Label);
+        : UiFieldId.Derive(this, null, Bind, Label);
 
     // Ticked, and whether the dash is drawn over it: a bound bool? that is null is neither yes nor no.
     private (bool On, bool Mixed) State()

@@ -22,7 +22,7 @@ public sealed partial class UiInput<T> : IUiFilterField
         var cell = UiFilterCell<T>.Over(Bind, "Ui.Input").In(set);
         if (cell.IsNot(Bind))
         {
-            Id ??= UiFieldId.Derive(null, Bind, Label);
+            Id ??= UiFieldId.Derive(this, null, Bind, Label);
             Bind = cell.Bind;
         }
 

@@ -104,7 +104,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
     // it, because its toolbar points at the editable area by id and two editors must not share one.
     string IUiFieldControl.ControlId => Id is null && Bound is null && Label is null
         ? "ui-editor-" + _instance.ToString(CultureInfo.InvariantCulture)
-        : UiFieldId.Derive(Id, Bound, Label);
+        : UiFieldId.Derive(this, Id, Bound, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bound;
 

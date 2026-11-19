@@ -118,7 +118,7 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
     /// <inheritdoc />
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Bind, Label);
+        : UiFieldId.Derive(this, Id, Bind, Label);
 
     /// <inheritdoc />
     LambdaExpression? IUiFieldControl.Bound => Bind;

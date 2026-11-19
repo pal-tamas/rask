@@ -907,7 +907,8 @@ and the [UI kit](ui-kit.md)'s controls) expose validation to assistive tech auto
 When a bound field has messages, the control renders `aria-invalid="true"` and an `aria-describedby` that
 points at the error message's `id` (and the description's `id` when `.Description(…)` is set), so a screen
 reader reads the error with the field rather than detached from it. Valid fields with a `Description` still get
-`aria-describedby` to it.
+`aria-describedby` to it. Two fields on one page that bind the same member name do not share an id: the
+second `Name` is `f-name-2`, with its own label, error and description ([field ids](ui-kit.md#fields-label-description-error)).
 
 **Composing the field yourself.** The kit's [`Ui.Field`](ui-kit.md#fields-label-description-error) is the
 same three parts as components — Flux UI's field — for when the label, the help text or the message needs

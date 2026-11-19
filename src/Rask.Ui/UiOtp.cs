@@ -111,7 +111,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
 
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Bind, Label);
+        : UiFieldId.Derive(this, Id, Bind, Label);
 
     string? IUiFormControl.Description => null;
 

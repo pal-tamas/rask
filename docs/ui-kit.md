@@ -1581,6 +1581,13 @@ and the message the form holds for the control, and tells each part which contro
 your own words) from a live region that is always in the page. Every control's `Label` and `Description` draw the same
 field around it. Every example, the error's rules and the reference: **[rask.sh/ui/field](https://rask.sh/ui/field/)**.
 
+A control you give no `Id` takes one from the member it binds, else its label: `Ui.Input.Bind(() => m.Name)` is
+`f-name`, its error `f-name-error`, its help text `f-name-description`. Ids are unique on the page: a second field that
+would be `f-name` — another form's `Name`, a row of a list, a dialog opened later — is `f-name-2`, then `-3`, and its
+label, error and description follow it. A field keeps its id for as long as it is on the page, so a live update never
+re-ids the one being typed in; a new one takes the first id free. An `Id` you give is never changed. A field that
+comes and goes between others of its type keeps its own id when you `Key` it, as any component keeps its state.
+
 ## Select
 
 `Ui.Select` is [Flux UI's select](https://fluxui.dev/components/select), part for part, over Rask's binding:

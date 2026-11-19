@@ -5,9 +5,18 @@ namespace Rask;
 /// <summary>The ids a field's parts share. Derived, so the markup is the same on every render.</summary>
 internal static class UiFieldId
 {
-    /// <summary>The caller's id, or one from the bound member's name, or from the label.</summary>
-    internal static string Derive(string? id, LambdaExpression? bind, string? label) =>
-        id ?? "f-" + Slug(Member(bind?.Body)?.Member.Name ?? label ?? "field");
+    /// <summary>
+    ///     The caller's id, or one from the bound member's name, or from the label — the derived one unique on
+    ///     <paramref name="owner" />'s page (<see cref="UiFieldIds" />): a second <c>f-name</c> is <c>f-name-2</c>.
+    /// </summary>
+    /// <param name="owner">The control the id names; none for an id only read, never written on the page.</param>
+    /// <param name="id">The id the call site gave, kept as it is.</param>
+    /// <param name="bind">The member the control is bound to.</param>
+    /// <param name="label">The control's label.</param>
+    internal static string Derive(Component? owner, string? id, LambdaExpression? bind, string? label) =>
+        id is not null
+            ? UiFieldIds.Given(owner, id)
+            : UiFieldIds.Derived(owner, "f-" + Slug(Member(bind?.Body)?.Member.Name ?? label ?? "field"));
 
     /// <summary>One choice of a group: the group's id and the choice's value.</summary>
     internal static string Choice(string groupId, object? value) =>

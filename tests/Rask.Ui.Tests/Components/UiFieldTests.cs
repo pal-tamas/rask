@@ -295,7 +295,7 @@ internal sealed partial class FieldProbe : Component, IUiFieldControl
 
     public Expression<Func<string>>? Bind { get; set; }
 
-    string IUiFieldControl.ControlId => UiFieldId.Derive(null, Bind, Label ?? "probe");
+    string IUiFieldControl.ControlId => UiFieldId.Derive(this, null, Bind, Label ?? "probe");
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 

@@ -102,7 +102,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
 
     string IUiFieldControl.ControlId => Id is null && Bind is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Bind, null);
+        : UiFieldId.Derive(this, Id, Bind, null);
 
     // Flux's slider takes no label of its own: its examples put it inside a flux:field.
     string? IUiFormControl.Label => null;

@@ -239,7 +239,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <inheritdoc />
     string IUiFieldControl.ControlId => Id is null && (Host?.Bound ?? Bind) is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Host?.Bound ?? Bind, Label);
+        : UiFieldId.Derive(this, Id, Host?.Bound ?? Bind, Label);
 
     string? IUiFormControl.Badge => null;
 

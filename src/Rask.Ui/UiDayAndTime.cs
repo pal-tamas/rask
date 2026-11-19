@@ -111,7 +111,7 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
 
     string IUiFieldControl.ControlId => Id is null && Bind is null && Parts is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, (LambdaExpression?)Bind ?? Parts?.Day, Label);
+        : UiFieldId.Derive(this, Id, (LambdaExpression?)Bind ?? Parts?.Day, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 

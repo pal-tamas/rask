@@ -67,7 +67,7 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
     public string? Class { get; set; }
 
     string IUiFieldControl.ControlId =>
-        Id ?? (_group is { } group ? UiFieldId.Choice(group.GroupId, Value) : Standalone());
+        Id ?? (_group is { } group ? UiFieldIds.Given(this, UiFieldId.Choice(group.GroupId, Value)) : Standalone());
 
     LambdaExpression? IUiFieldControl.Bound => null;
 
@@ -114,7 +114,7 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
     // Outside a group: named by its label, or — with none — by an id nothing else on the page has.
     private string Standalone() => Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(null, null, Label);
+        : UiFieldId.Derive(this, null, null, Label);
 
     private string Segment() =>
         UiClass.Compose(UiOptionLook.Segment, UiOptionLook.SegmentSize(_group?.Size ?? Ui.RadioGroupSize.Base));
