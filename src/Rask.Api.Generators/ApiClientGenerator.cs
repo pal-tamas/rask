@@ -87,6 +87,19 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                      + "[ProducesResponseType] declares the success case the client is generated from.",
         helpLinkUri: DiagnosticHelp.Link("RASK070"));
 
+    private static readonly DiagnosticDescriptor OneOfSeveralRoutes = new(
+        "RASK125",
+        "Action's client calls the first of its routes",
+        "Endpoint '{0}' answers several [Route]s; its client method calls the first, '{1}', and not {2}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "A verb attribute with no template of its own takes the action's [Route], and ASP.NET serves the "
+                     + "action at every [Route] it carries. A client method calls one URL, so it calls the first one "
+                     + "declared; the others still work over plain HTTP. Give the verb attribute the template you want "
+                     + "the client to call, or keep one [Route] on the action.",
+        helpLinkUri: DiagnosticHelp.Link("RASK125"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -264,6 +277,16 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 HasAttribute(member, "NonActionAttribute"))
             {
                 continue;
+            }
+
+            if (RouteTemplate.RoutesChosenAmong(member) is { Count: > 1 } routes)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    OneOfSeveralRoutes,
+                    At(member),
+                    controller.Name + "." + member.Name,
+                    routes[0],
+                    string.Join(", ", routes.Skip(1).Select(static r => "'" + r + "'"))));
             }
 
             foreach (var (verb, template) in RouteTemplate.OfAction(member))

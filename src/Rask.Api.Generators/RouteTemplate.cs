@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -84,9 +85,36 @@ internal static class RouteTemplate
         }
     }
 
-    // The action's own [Route] template, or null when it has none.
+    // The action's own [Route] template — the first one declared — or null when it has none.
     private static string? OwnRoute(IMethodSymbol action)
     {
+        var routes = OwnRoutes(action);
+        return routes.Count == 0 ? null : routes[0];
+    }
+
+    /// <summary>
+    ///     The action's own <c>[Route]</c> templates when a verb attribute without a template takes one of them and there
+    ///     are several to take: the first is the one the client calls (RASK125). Empty otherwise.
+    /// </summary>
+    public static IReadOnlyList<string> RoutesChosenAmong(IMethodSymbol action)
+    {
+        var routes = OwnRoutes(action);
+        if (routes.Count < 2)
+        {
+            return Array.Empty<string>();
+        }
+
+        var bareVerb = action.GetAttributes().Any(static attribute =>
+            attribute.AttributeClass?.Name is "HttpGetAttribute" or "HttpPostAttribute" or "HttpPutAttribute"
+                or "HttpPatchAttribute" or "HttpDeleteAttribute"
+            && string.Equals(attribute.AttributeClass.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal)
+            && !(attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is string));
+        return bareVerb ? routes : Array.Empty<string>();
+    }
+
+    private static List<string> OwnRoutes(IMethodSymbol action)
+    {
+        var routes = new List<string>();
         foreach (var attribute in action.GetAttributes())
         {
             if (string.Equals(attribute.AttributeClass?.Name, "RouteAttribute", StringComparison.Ordinal) &&
@@ -94,11 +122,11 @@ internal static class RouteTemplate
                 attribute.ConstructorArguments.Length > 0 &&
                 attribute.ConstructorArguments[0].Value is string template)
             {
-                return template;
+                routes.Add(template);
             }
         }
 
-        return null;
+        return routes;
     }
 
     /// <summary>The route tokens a caller may leave out: <c>{id?}</c>, and <c>{id=1}</c>, whose default the server fills.</summary>
