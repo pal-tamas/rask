@@ -60,6 +60,9 @@ public sealed partial class WebPushSender : IWebPush
 
         if (Problem(subscription) is { } problem)
             throw new ArgumentException(problem, nameof(subscription));
+        if (message.Topic is { Length: > 0 } topic && !IsTopic(topic))
+            throw new ArgumentException(
+                "A push topic is at most 32 characters of the base64url alphabet (A–Z, a–z, 0–9, '-', '_').", nameof(message));
 
         var endpoint = new Uri(subscription.Endpoint);
         using var request = CreateRequest(endpoint, subscription, message);
@@ -119,13 +122,20 @@ public sealed partial class WebPushSender : IWebPush
         }
 
         var ttl = message.Ttl > TimeSpan.Zero ? message.Ttl : _options.DefaultLifetime;
-        request.Headers.TryAddWithoutValidation("TTL", ((int)ttl.TotalSeconds).ToString(CultureInfo.InvariantCulture));
+        // Seconds, as a whole number the header can carry: a TimeSpan past int's range would otherwise cast to a
+        // negative TTL.
+        var seconds = (int)Math.Min(ttl.TotalSeconds, int.MaxValue);
+        request.Headers.TryAddWithoutValidation("TTL", seconds.ToString(CultureInfo.InvariantCulture));
         request.Headers.TryAddWithoutValidation("Urgency", UrgencyToken(message.Urgency));
         if (!string.IsNullOrEmpty(message.Topic))
             request.Headers.TryAddWithoutValidation("Topic", message.Topic);
         request.Headers.TryAddWithoutValidation("Authorization", VapidAuthorization(endpoint));
         return request;
     }
+
+    // RFC 8030 §5.4: a topic is at most 32 characters of the URL- and filename-safe base64 alphabet.
+    private static bool IsTopic(string topic) =>
+        topic.Length <= 32 && topic.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
     /// <summary>
     /// Why a subscription could never be sent to, or <c>null</c> when it is well-formed. Asked when one is stored, so

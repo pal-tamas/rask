@@ -44,24 +44,44 @@ public static class RaskPushEndpointExtensions
 
         group.MapPost("subscribe", SubscribeAsync);
 
-        group.MapPost("unsubscribe", static async (HttpContext context, IPush push) =>
-        {
-            var posted = await context.Request
-                .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
-                .ConfigureAwait(false);
-
-            if (string.IsNullOrWhiteSpace(posted?.Endpoint))
-            {
-                return Results.BadRequest();
-            }
-
-            await push.Unsubscribe(posted.Endpoint, context.RequestAborted).ConfigureAwait(false);
-            return Results.NoContent();
-        });
+        group.MapPost("unsubscribe", UnsubscribeAsync);
 
         group.AllowAnonymous();
         group.ExcludeFromDescription();
         return group;
+    }
+
+    // Held to the same door as subscribe: who may ask and how often. The endpoint is the browser's own secret, so
+    // knowing it is what lets a signed-out browser turn its notifications off.
+    private static async Task<IResult> UnsubscribeAsync(
+        HttpContext context, IPush push, PushOptions options, SubscribeThrottle throttle)
+    {
+        if (Refused(context, options, throttle) is { } refused)
+        {
+            return refused;
+        }
+
+        var posted = await context.Request
+            .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
+            .ConfigureAwait(false);
+
+        if (string.IsNullOrWhiteSpace(posted?.Endpoint))
+        {
+            return Results.BadRequest();
+        }
+
+        await push.Unsubscribe(posted.Endpoint, context.RequestAborted).ConfigureAwait(false);
+        return Results.NoContent();
+    }
+
+    private static IResult? Refused(HttpContext context, PushOptions options, SubscribeThrottle throttle)
+    {
+        if (options.RequireUser && context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
+        return throttle.Admits(context.Connection.RemoteIpAddress) ? null : Results.StatusCode(StatusCodes.Status429TooManyRequests);
     }
 
     // Open to anyone, and every new endpoint is a row in the app's own database: so who may ask, how often, and
@@ -69,14 +89,9 @@ public static class RaskPushEndpointExtensions
     private static async Task<IResult> SubscribeAsync(
         HttpContext context, IPush push, PushOptions options, SubscribeThrottle throttle)
     {
-        if (options.RequireUser && context.User.Identity?.IsAuthenticated != true)
+        if (Refused(context, options, throttle) is { } refused)
         {
-            return Results.Unauthorized();
-        }
-
-        if (!throttle.Admits(context.Connection.RemoteIpAddress))
-        {
-            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            return refused;
         }
 
         var posted = await context.Request

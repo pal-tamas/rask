@@ -60,9 +60,18 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
     /// <param name="scheme">Authentication scheme, when the server distinguishes several.</param>
     public async Task SignOut(string? returnUrl = null, string? scheme = null)
     {
-        await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
-        await userProvider.Refresh().ConfigureAwait(false);
-        await OfflineCache.Clear(js).ConfigureAwait(false);
+        try
+        {
+            using var _ = await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
+            await userProvider.Refresh().ConfigureAwait(false);
+        }
+        finally
+        {
+            // The offline copies are the signed-in user's pages: on a shared device they go even when the server
+            // could not be reached, so the next person does not read them.
+            await OfflineCache.Clear(js).ConfigureAwait(false);
+        }
+
         // Open-redirect guard: returnUrl is whatever the caller passed (often a login/query value
         // that can be attacker-influenced), and NavigateTo can leave the origin. Collapse anything
         // non-local to "/" at this boundary — the same LocalUrl rule the server sign-in path applies.

@@ -80,6 +80,14 @@ internal static partial class SpaDebugProxy
 
         endpoints.MapGet(root + "/ws-proxy", async context =>
         {
+            if (IsFromAPage(context.Request))
+            {
+                // The editor's debugger asks with no page behind it. A page — another site in the same browser —
+                // could otherwise start proxies on this machine just by linking here.
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+
             if (!TryParseBrowser(context.Request.Query["browser"], out var browser, out var devTools))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -89,9 +97,28 @@ internal static partial class SpaDebugProxy
                 return;
             }
 
-            var proxy = await launcher.EnsureStartedAsync(devTools, context.RequestAborted).ConfigureAwait(false);
+            if (await launcher.EnsureStartedAsync(devTools, context.RequestAborted).ConfigureAwait(false) is not { } proxy)
+            {
+                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await context.Response.WriteAsync(
+                    $"{Launcher.MaxProxies} debug proxies are running already; restart the host to start another.")
+                    .ConfigureAwait(false);
+                return;
+            }
+
             context.Response.Redirect(RedirectTarget(proxy, browser));
         });
+    }
+
+    /// <summary>
+    ///     Whether a web page sent the request: a browser marks a fetch or a navigation it makes for a page with
+    ///     <c>Sec-Fetch-Site</c> other than <c>none</c>, or with an <c>Origin</c>. A debugger's request carries neither.
+    /// </summary>
+    internal static bool IsFromAPage(HttpRequest request)
+    {
+        var site = request.Headers["Sec-Fetch-Site"].ToString();
+        return (site.Length > 0 && !string.Equals(site, "none", StringComparison.OrdinalIgnoreCase))
+               || request.Headers.Origin.Count > 0;
     }
 
     /// <summary>
@@ -158,12 +185,21 @@ internal static partial class SpaDebugProxy
     /// <summary>One proxy per DevTools endpoint, started on first use and stopped with the host.</summary>
     private sealed class Launcher(string hostDll) : IDisposable
     {
+        /// <summary>How many proxies one host starts: a debug session a restart, not a process per request.</summary>
+        internal const int MaxProxies = 8;
+
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(30);
 
         private readonly ConcurrentDictionary<string, Lazy<Task<(Process Process, Uri Address)>>> _proxies = new(StringComparer.Ordinal);
 
-        public async Task<Uri> EnsureStartedAsync(string devTools, CancellationToken cancellationToken)
+        /// <summary>The proxy for <paramref name="devTools" />, started on first use; null once <see cref="MaxProxies" /> run.</summary>
+        public async Task<Uri?> EnsureStartedAsync(string devTools, CancellationToken cancellationToken)
         {
+            if (!_proxies.ContainsKey(devTools) && _proxies.Count >= MaxProxies)
+            {
+                return null;
+            }
+
             // A browser restarted by a new debug session listens on a new port, so each endpoint gets its own proxy.
             var started = _proxies.GetOrAdd(devTools, key => new Lazy<Task<(Process, Uri)>>(() => StartAsync(key)));
             try

@@ -32,6 +32,30 @@ public sealed class SpaDebugProxyTests
         // The proxy connects wherever the request says; on a host that is not this machine it would be a relay.
         Assert.False(SpaDebugProxy.TryParseBrowser(value, out _, out _));
 
+    [Theory]
+    [InlineData(null, null, false)]
+    [InlineData("none", null, false)]
+    [InlineData("cross-site", null, true)]
+    [InlineData("same-site", null, true)]
+    [InlineData(null, "https://attacker.example", true)]
+    public void A_request_a_web_page_made_is_refused_and_the_debugger_s_own_is_not(string? site, string? origin, bool refused)
+    {
+        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        if (site is not null)
+        {
+            context.Request.Headers["Sec-Fetch-Site"] = site;
+        }
+
+        if (origin is not null)
+        {
+            context.Request.Headers.Origin = origin;
+        }
+
+        var fromAPage = SpaDebugProxy.IsFromAPage(context.Request);
+
+        Assert.Equal(refused, fromAPage);
+    }
+
     [Fact]
     public void The_debugger_is_redirected_to_the_proxy_with_the_browser_sockets_path() =>
         Assert.Equal(

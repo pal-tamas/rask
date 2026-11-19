@@ -20,10 +20,11 @@ namespace Rask;
 ///     loaded, the page shows the value as plain markup.
 ///     </para>
 ///     <para>
-///     <b>The value is the user's HTML, and is written into the page as it is.</b> The editor only produces the
-///     tags of its own schema, but a value reaches it from a database or a request too: sanitize HTML that did
-///     not come from this editor before it is bound, and before it is rendered anywhere else with
-///     <c>Raw</c>.
+///     <b>The value is the user's HTML, cut to the editor's own schema.</b> What the page paints before the
+///     engine loads, and what a change writes to the model and hands <c>OnChange</c>, keeps only the tags and
+///     attributes the bundled extensions write — no script, no event handler, no <c>javascript:</c> link — so a
+///     stored value cannot run in the page. Markup a page's own extension (<c>ui:editor</c>) adds beyond that is
+///     dropped too. Rendering the value anywhere else with <c>Raw</c> is the app's to sanitize.
 ///     </para>
 /// </remarks>
 public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, IDeferredBind
@@ -215,6 +216,8 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
             return;
         }
 
+        // The browser's word for what it holds: a page's script can send anything, so it is cut to the schema.
+        html = UiEditorHtml.Clean(html);
         _shown = html;
         ReaderEdits.Note(this);
         if (Bound is { } bind)

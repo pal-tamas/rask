@@ -9,6 +9,10 @@ internal static class Aes128GcmEncryptor
 {
     private const int RecordSize = 4096; // `rs`; one notification payload fits comfortably under this.
 
+    // RFC 8291 §4: a push service need accept no more than 4096 octets of BODY, and the body carries the 86-octet
+    // content-coding header (salt 16, rs 4, idlen 1, keyid 65) besides the 16-octet tag and the 1-octet delimiter.
+    internal const int MaxPlaintext = 3993;
+
     private static readonly byte[] KeyInfoPrefix = "WebPush: info\0"u8.ToArray();
     private static readonly byte[] CekInfo = "Content-Encoding: aes128gcm\0"u8.ToArray();
     private static readonly byte[] NonceInfo = "Content-Encoding: nonce\0"u8.ToArray();
@@ -21,8 +25,8 @@ internal static class Aes128GcmEncryptor
             throw new ArgumentException("Subscription p256dh must be a 65-byte uncompressed P-256 point.", nameof(uaPublicKey));
         if (authSecret.Length != 16) // RFC 8291 §3.1 fixes the auth secret at 16 bytes.
             throw new ArgumentException("Subscription auth secret must be 16 bytes.", nameof(authSecret));
-        if (plaintext.Length > RecordSize - 17) // 16-byte GCM tag + 1-byte record delimiter.
-            throw new ArgumentException($"Payload too large for a single record (max {RecordSize - 17} bytes).", nameof(plaintext));
+        if (plaintext.Length > MaxPlaintext)
+            throw new ArgumentException($"Payload too large for a single record (max {MaxPlaintext} bytes).", nameof(plaintext));
 
         // 1. Ephemeral server key pair; export its public point as the 65-byte `as_public`.
         using var serverEcdh = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);

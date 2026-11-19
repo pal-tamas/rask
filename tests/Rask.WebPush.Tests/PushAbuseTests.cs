@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Data;
 
 namespace Rask.WebPush.Tests;
 
@@ -27,6 +28,13 @@ public sealed class PushAbuseTests
     [InlineData("fe80::1")]
     [InlineData("fd00::1")]
     [InlineData("::ffff:10.0.0.1")]
+    [InlineData("64:ff9b::a9fe:a9fe")]   // NAT64 of 169.254.169.254
+    [InlineData("64:ff9b::7f00:1")]      // NAT64 of 127.0.0.1
+    [InlineData("64:ff9b:1::a00:1")]     // local-use NAT64
+    [InlineData("2002:a9fe:a9fe::1")]    // 6to4 of 169.254.169.254
+    [InlineData("2002:c0a8:101::1")]     // 6to4 of 192.168.1.1
+    [InlineData("2001:0:4136:e378:8000:63bf:3fff:fdd2")] // Teredo
+    [InlineData("::a00:1")]              // IPv4-compatible 10.0.0.1
     public void A_name_that_resolves_inside_the_network_is_not_a_push_service(string address)
     {
         var reachable = PushConnection.IsPublic(IPAddress.Parse(address));
@@ -41,6 +49,8 @@ public sealed class PushAbuseTests
     [InlineData("192.169.0.1")]
     [InlineData("100.128.0.1")]
     [InlineData("2a00:1450:4001:81b::200e")]
+    [InlineData("64:ff9b::8efa:4a0e")]   // NAT64 of 142.250.74.14
+    [InlineData("2002:8efa:4a0e::1")]    // 6to4 of 142.250.74.14
     public void A_public_address_is_reachable(string address)
     {
         var reachable = PushConnection.IsPublic(IPAddress.Parse(address));
@@ -172,6 +182,78 @@ public sealed class PushAbuseTests
 
         Assert.Equal(HttpStatusCode.TooManyRequests, eleventh.StatusCode);
     }
+
+    [Fact]
+    public async Task The_unsubscribe_endpoint_answers_401_to_a_visitor_when_the_app_requires_a_user()
+    {
+        await using var app = await HostAsync(o => o.RequireUser = true);
+        using var http = app.GetTestClient();
+
+        var response = await UnsubscribeAsync(http, "a");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_unsubscribe_endpoint_answers_429_to_a_client_that_keeps_posting()
+    {
+        await using var app = await HostAsync();
+        using var http = app.GetTestClient();
+        for (var i = 0; i < 10; i++)
+        {
+            await UnsubscribeAsync(http, $"device-{i}");
+        }
+
+        var eleventh = await UnsubscribeAsync(http, "one-more");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, eleventh.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_user_s_subscription_is_not_taken_over_by_another_user_or_detached_by_a_visitor()
+    {
+        await using var harness = new PushHarness();
+        var ada = Guid.NewGuid();
+        var mallory = Guid.NewGuid();
+        using (Current.UseUser(ada))
+        {
+            await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
+        }
+
+        PushSubscriber taken;
+        using (Current.UseUser(mallory))
+        {
+            taken = await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
+        }
+
+        var detached = await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(ada, taken.UserId);
+        Assert.Equal(ada, detached.UserId);
+        Assert.Equal(1, harness.Rows());
+    }
+
+    [Fact]
+    public async Task A_visitor_s_subscription_is_claimed_by_the_user_who_signs_in()
+    {
+        await using var harness = new PushHarness();
+        var ada = Guid.NewGuid();
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+
+        PushSubscriber claimed;
+        using (Current.UseUser(ada))
+        {
+            claimed = await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(ada, claimed.UserId);
+    }
+
+    private static Task<HttpResponseMessage> UnsubscribeAsync(HttpClient http, string device) =>
+        http.PostAsJsonAsync(
+            "/_rask/push/unsubscribe",
+            new { endpoint = PushHarness.Browser(device).Endpoint },
+            cancellationToken: TestContext.Current.CancellationToken);
 
     private static Task<HttpResponseMessage> PostAsync(HttpClient http, string device)
     {

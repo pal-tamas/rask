@@ -53,9 +53,15 @@ internal sealed partial class PushStore<TContext>(
                 existing = PushSubscriber.For(subscription, userId, now);
                 subscribers.Add(existing);
             }
-            else
+            else if (existing.UserId is null || existing.UserId == userId)
             {
                 existing.Renew(subscription, userId, now);
+            }
+            else
+            {
+                // A user's row is that user's: knowing its endpoint is not enough to take it over, nor — signed
+                // out — to detach it or swap its keys for ones its browser cannot read.
+                return existing;
             }
 
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
