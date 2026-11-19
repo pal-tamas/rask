@@ -141,7 +141,10 @@ public sealed class MailHarness : IAsyncDisposable
     /// <summary>Polls <paramref name="condition"/> until true; advances the fake clock each tick so backed-off retries become due.</summary>
     public async Task WaitUntilAsync(Func<Task<bool>> condition, bool advanceClock = false, TimeSpan? timeout = null)
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        // The suite's hang ceiling, not a number of this harness's own: a wait ends the moment its condition holds, and the
+        // first test of the collection pays EF Core's model build and the JIT under a gate running ~50 test hosts at once —
+        // 13 s once, against the 10 s this used to allow (WaitFor.HangCeiling's remarks).
+        var deadline = DateTime.UtcNow + (timeout ?? Rask.TestSupport.WaitFor.HangCeiling);
         while (!await condition())
         {
             if (advanceClock)
