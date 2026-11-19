@@ -164,11 +164,13 @@ internal sealed class HostProcess : IAsyncDisposable
             return;
         }
 
-        _said.Enqueue(line);
+        // The file first: a line Log shows is then already in the host log, so the two never disagree about it.
         lock (_logging)
         {
             _log?.WriteLine(line);
         }
+
+        _said.Enqueue(line);
     }
 
     private void CloseLog()
