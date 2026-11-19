@@ -663,7 +663,7 @@ somebody typing your address five times cannot keep *you* out. Registration and 
 same way. Guesses sent in parallel do not get extra tries: a sign-in counts against the limit from the moment it starts,
 so the sixth of six simultaneous wrong passwords is refused like the sixth of six in a row. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
-An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
+An unknown address costs a password check anyway, a reset request answers the same for every address — at once, the lookup and the email done in the background — and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which
 addresses have one.
 

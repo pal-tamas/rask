@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Outbox.Tests;
 
-/// <summary>A save that failed leaves nothing of its events for the context's next save to write.</summary>
+/// <summary>A save that failed writes nothing of its events later, unless the same save is tried again: then, once.</summary>
 [Collection(OutboxDbCollection.Name)]
 public sealed class OutboxSaveRetryTests : IDisposable
 {
@@ -45,6 +45,23 @@ public sealed class OutboxSaveRetryTests : IDisposable
 
         await using var read = NewContext();
         Assert.Equal(0, await read.Set<OutboxMessage>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_save_retried_after_it_failed_stores_its_events_once()
+    {
+        await using var db = NewContext();
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE TRIGGER no_orders BEFORE INSERT ON Orders BEGIN SELECT RAISE(ABORT, 'busy'); END;",
+            TestContext.Current.CancellationToken);
+        db.Orders.Add(Order.Place("ada"));
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER no_orders;", TestContext.Current.CancellationToken);
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await using var read = NewContext();
+        Assert.Equal(1, await read.Set<OutboxMessage>().CountAsync(TestContext.Current.CancellationToken));
     }
 
     public void Dispose()

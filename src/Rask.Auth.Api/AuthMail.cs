@@ -58,23 +58,28 @@ internal sealed partial class AuthMail(
 
     /// <summary>Sends the "reset your password" email. Returns false when the app cannot send.</summary>
     public Task<bool> SendPasswordResetAsync(
-        string email, string userId, string token, CancellationToken cancellationToken) =>
+        string email, string userId, string token, CancellationToken cancellationToken, string? origin = null) =>
         SendAsync(
             email,
             options.ResetPasswordSubject,
-            origin => Link(origin, options.ResetPasswordPath, userId, token),
+            at => Link(at, options.ResetPasswordPath, userId, token),
             link => bodies.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
-            cancellationToken);
+            cancellationToken,
+            origin);
+
+    /// <summary>The origin an emailed link would point at now, for a link built later, away from this request.</summary>
+    public string? LinkOrigin() => Origin();
 
     private async Task<bool> SendAsync(
         string address,
         string subject,
         Func<string, string> linkFrom,
         Func<string, string> body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? knownOrigin = null)
     {
         // The link is only built once there is mail to carry it, so an app with no mail never asks for an origin.
-        if (services.GetService<IMail>() is not { } mail || Origin() is not { } origin)
+        if (services.GetService<IMail>() is not { } mail || (knownOrigin ?? Origin()) is not { } origin)
         {
             return false;
         }

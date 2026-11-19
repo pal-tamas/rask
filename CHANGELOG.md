@@ -335,9 +335,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
-- **A password-reset request takes as long for an address with an account as for one without.** Before: an unknown
+- **A password-reset request answers at once, for an address with an account as for one without.** Before: an unknown
   address was answered at once, a known one after its link was built and queued — the time alone said which addresses
-  have an account. After: every answer takes at least 300 ms (Laravel's Timebox).
+  have an account. After: the request hands the address to a background sender and answers; the sender looks it up and
+  queues the email. With no sender running, or its queue full, the request does the work itself, held to a 300 ms
+  floor (Laravel's Timebox).
 - **"Already confirmed" is said only to the holder of the confirming link.** Before: `ConfirmEmail` with any token
   answered `EmailAlreadyConfirmed` for a confirmed account, telling whoever had an account's id whether it had confirmed.
   After: only a token that was live before the confirmation gets that answer; any other is `InvalidToken`.
@@ -351,12 +353,15 @@ them until tagged releases begin.
 - **A failed API call's exception names its path without the query.** Before: `ApiException.Path` and its message
   carried the whole URL, so an address, a search or a token sent in a query string landed in the log. After: the path
   only.
-- **A save that failed leaves no outbox rows behind.** Before: the rows its events added stayed `Added` in the context,
-  so its next save — of anything — wrote them, and a durable handler ran for a change that never committed. After:
-  they are taken back out, as the in-memory events already are.
+- **A save that failed leaves no outbox rows behind, and its events on their entities.** Before: the rows its events
+  added stayed `Added` in the context, so its next save — of anything — wrote them, and a durable handler ran for a
+  change that never committed; the in-memory events were cleared, so a retry of the same save published none. After:
+  the rows are taken back out and the events stay on their entities, so a retry stores and publishes them once, and a
+  change given up (detached) takes them with it.
 - **BREAKING (Rask.Xlsx): `Xlsx.Read` holds at most 2 million cells of a sheet.** Before: 10 million, gigabytes for one
   uploaded file and more than a browser tab has. After: 2 million (100,000 rows of twenty columns); a bigger sheet is
-  refused with `InvalidDataException`.
+  refused with `InvalidDataException`. A loader handed bigger sheets raises it on its own read:
+  `Xlsx.Read(file, new ReadLimits { MaxCells = 5_000_000 })` (new public `ReadLimits`, and `Read(file, sheet, limits)`).
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

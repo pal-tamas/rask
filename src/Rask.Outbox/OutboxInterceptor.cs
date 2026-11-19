@@ -172,8 +172,8 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     }
 
     // A save that failed takes its rows back out of the context: left Added, the context's next save — of anything — would
-    // write them, and a durable handler would run for a change that never committed. Its in-memory twin drops the same
-    // events on a failure (DomainEventInterceptor), so the two still agree.
+    // write them for a change that never committed, and a retry of the same save would write them beside the ones it adds
+    // again. The events stay on their entities (as DomainEventInterceptor leaves them), so that retry stores them once.
     private void Withdraw(DbContext? context)
     {
         if (context is not null && _wrote.TryGetValue(context, out var rows))

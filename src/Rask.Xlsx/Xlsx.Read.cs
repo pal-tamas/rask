@@ -15,7 +15,7 @@ public static partial class Xlsx
     ///     </code>
     ///     A file that is not a workbook, or is broken, throws an <see cref="InvalidDataException" /> that says why.
     /// </remarks>
-    public static Sheet Read(byte[] file) => Read(file, null, ReadLimits.Default);
+    public static Sheet Read(byte[] file) => ReadSheet(file, null, ReadLimits.Default);
 
     /// <summary>
     ///     The sheet of that name - compared as Excel compares them, without regard to case - with its headings on row 1.
@@ -24,12 +24,32 @@ public static partial class Xlsx
     public static Sheet Read(byte[] file, string sheet)
     {
         ArgumentNullException.ThrowIfNull(sheet);
-        return Read(file, sheet, ReadLimits.Default);
+        return ReadSheet(file, sheet, ReadLimits.Default);
     }
 
-    internal static Sheet Read(byte[] file, string? sheet, ReadLimits limits)
+    /// <summary>The first sheet, read within <paramref name="limits" /> instead of <see cref="ReadLimits.Default" />.</summary>
+    public static Sheet Read(byte[] file, ReadLimits limits)
+    {
+        ArgumentNullException.ThrowIfNull(limits);
+        return ReadSheet(file, null, limits);
+    }
+
+    /// <summary>The sheet of that name, read within <paramref name="limits" /> instead of <see cref="ReadLimits.Default" />.</summary>
+    public static Sheet Read(byte[] file, string sheet, ReadLimits limits)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(limits);
+        return ReadSheet(file, sheet, limits);
+    }
+
+    private static Sheet ReadSheet(byte[] file, string? sheet, ReadLimits limits)
     {
         ArgumentNullException.ThrowIfNull(file);
+        if (limits.MaxPartBytes <= 0 || limits.MaxCells <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(limits), "A read has to be allowed something: MaxPartBytes and MaxCells take positive numbers.");
+        }
         using var package = new Package(file, limits);
         var workbook = Workbook.Open(package);
         var (name, part) = workbook.Sheet(sheet);

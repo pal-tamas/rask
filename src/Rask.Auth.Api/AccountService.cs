@@ -41,6 +41,7 @@ internal sealed partial class AccountService<TUser, TKey>(
     PasskeyChallenges challenges,
     PasskeySite site,
     IAuthSessions sessions,
+    PasswordResetQueue resets,
     TimeProvider clock,
     ILogger<AccountService<TUser, TKey>> logger) : IAccountFlows
     where TUser : Authenticatable<TKey>, new()
@@ -352,12 +353,21 @@ internal sealed partial class AccountService<TUser, TKey>(
 
         var normalized = Authenticatable.NormalizeEmail(email);
 
-        // As long for an address with no account as for one whose link is built and queued: answered sooner, the time alone
-        // would say which addresses have an account (Laravel's Timebox).
+        // Looked up and mailed in the background, so every request answers at once whether the address has an account or
+        // not. The origin is read now, from this request, for the link built there. With nowhere to point a link, there is
+        // nothing to send either way.
+        if (mail.LinkOrigin() is not { } origin || resets.TryQueue(new PasswordResetRequest(normalized, origin)))
+        {
+            return AuthResult.Success;
+        }
+
+        // No sender running, or its queue full: done here, as long for an address with no account as for one whose link
+        // is built and queued — answered sooner, the time alone would say which addresses have an account (Laravel's
+        // Timebox).
         var started = Stopwatch.GetTimestamp();
         try
         {
-            await QueueResetAsync(normalized, cancellationToken).ConfigureAwait(false);
+            await QueueResetAsync(normalized, origin, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -370,7 +380,8 @@ internal sealed partial class AccountService<TUser, TKey>(
         return AuthResult.Success;
     }
 
-    private async Task QueueResetAsync(string normalized, CancellationToken cancellationToken)
+    /// <summary>Queues the reset email of the account at <paramref name="normalized" />, if there is one.</summary>
+    internal async Task QueueResetAsync(string normalized, string origin, CancellationToken cancellationToken)
     {
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -380,7 +391,8 @@ internal sealed partial class AccountService<TUser, TKey>(
             {
                 var sent = await mail
                     .SendPasswordResetAsync(
-                        user.Email, user.AccountId.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken)
+                        user.Email, user.AccountId.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken,
+                        origin)
                     .ConfigureAwait(false);
 
                 // Reported to the LOG, never to the caller (#1011): this branch is only reachable for an address that exists, so

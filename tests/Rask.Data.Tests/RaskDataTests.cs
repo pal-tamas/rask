@@ -137,6 +137,25 @@ public sealed class RaskDataTests : IDisposable
     }
 
     [Fact]
+    public async Task A_save_retried_after_it_failed_publishes_its_events_once()
+    {
+        await using var db = NewContext();
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE TRIGGER no_widgets BEFORE INSERT ON Widgets BEGIN SELECT RAISE(ABORT, 'busy'); END;",
+            TestContext.Current.CancellationToken);
+        var widget = Widget.Create("retried");
+        db.Widgets.Add(widget);
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+        var afterFailure = _recorder.Events.Count;
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER no_widgets;", TestContext.Current.CancellationToken);
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, afterFailure);
+        Assert.Single(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
+    }
+
+    [Fact]
     public async Task Domain_events_from_a_hard_delete_are_published()
     {
         Guid id;

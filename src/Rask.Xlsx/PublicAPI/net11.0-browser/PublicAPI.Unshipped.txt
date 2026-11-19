@@ -42,3 +42,12 @@ Rask.Workbooks.Xlsx.Sum.Sum() -> void
 static Rask.Workbooks.Xlsx.Write(params Rask.Workbooks.Xlsx.Sheet![]! sheets) -> byte[]!
 static Rask.Workbooks.Xlsx.Write(string! sheet, System.Collections.Generic.IReadOnlyList<string!>! headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! rows, System.Collections.Generic.IReadOnlyList<object?>? total = null) -> byte[]!
 const Rask.Workbooks.Xlsx.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> string!
+Rask.Workbooks.ReadLimits
+Rask.Workbooks.ReadLimits.MaxCells.get -> int
+Rask.Workbooks.ReadLimits.MaxCells.init -> void
+Rask.Workbooks.ReadLimits.MaxPartBytes.get -> long
+Rask.Workbooks.ReadLimits.MaxPartBytes.init -> void
+Rask.Workbooks.ReadLimits.ReadLimits() -> void
+static Rask.Workbooks.ReadLimits.Default.get -> Rask.Workbooks.ReadLimits!
+static Rask.Workbooks.Xlsx.Read(byte[]! file, Rask.Workbooks.ReadLimits! limits) -> Rask.Workbooks.Xlsx.Sheet!
+static Rask.Workbooks.Xlsx.Read(byte[]! file, string! sheet, Rask.Workbooks.ReadLimits! limits) -> Rask.Workbooks.Xlsx.Sheet!
