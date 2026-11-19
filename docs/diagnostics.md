@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK123, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK125, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -139,6 +139,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK121](#rask121) | Warning | A `[JSInvokable]` method is not `public` |
 | [RASK122](#rask122) | Warning | The signed-in user is kept without following `IUserProvider.Changed` |
 | [RASK123](#rask123) | Error | An `[OffThread]` message cannot run in a Web Worker |
+| [RASK125](#rask125) | Warning | An action with several `[Route]`s gets a client method for the first |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3031,3 +3032,21 @@ public sealed class ReadSheetHandler(IJSRuntime js)                     // ✗ R
 **Fix:** answer with a record the codec can encode (the shapes [RASK053](#rask053) lists), and give the handler what it
 needs in the message instead of a page service — do the page's part (a toast, a focus, a download) with the result,
 after the `await`. A handler that does not need to leave the page's thread does not need `[OffThread]`.
+
+## RASK125
+
+**An action with several `[Route]`s gets a client method for the first** · Warning
+
+A verb attribute with no template of its own (`[HttpGet]`) takes the action's `[Route]`, and ASP.NET serves the action
+at every `[Route]` it carries. A generated client method calls one URL, so it calls the **first** one declared, and
+says so; the others still answer over plain HTTP.
+
+```csharp
+[HttpGet]
+[Route("{id}")]                 // the client's PostsClient.Get(id) calls this one
+[Route("by-id/{id}")]           // ⚠ RASK125 — served, but not by the client
+public ActionResult<Post> Get(int id) => …;
+```
+
+**Fix:** give the verb attribute the template the client should call (`[HttpGet("{id}")]`), or keep one `[Route]` on the
+action.

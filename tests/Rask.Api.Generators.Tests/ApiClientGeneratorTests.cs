@@ -542,6 +542,35 @@ public sealed class ApiClientGeneratorTests
     }
 
     [Fact]
+    public void RASK125_says_which_of_an_action_s_routes_its_client_calls()
+    {
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet]
+                [Route("{id}")]
+                [Route("by-id/{id}")]
+                public ActionResult<string> Get(int id) => null!;
+
+                [HttpGet("one/{id}")]
+                [Route("other/{id}")]
+                [Route("third/{id}")]
+                public ActionResult<string> Own(int id) => null!;
+            }
+            """);
+
+        var warning = Assert.Single(run.Diagnostics, d => d.Id == "RASK125");
+        Assert.Equal(DiagnosticSeverity.Warning, warning.Severity);
+        var message = warning.GetMessage(System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Contains("'PostsController.Get'", message, StringComparison.Ordinal);
+        Assert.Contains("the first, '{id}', and not 'by-id/{id}'", message, StringComparison.Ordinal);
+        Assert.Contains("\"api/posts/\" + global::Rask.Api.Client.ApiUri.Segment(id)", run.GeneratedSource("__RaskApiClients"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_controller_that_inherits_ApiController_and_its_actions_gets_a_client_and_an_abstract_base_none()
     {
         var run = Run("""

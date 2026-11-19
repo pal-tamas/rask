@@ -303,7 +303,8 @@ A method silently missing from a client reads as a broken generator, so nothing 
 A controller is one ASP.NET serves as an API controller: `[ApiController]` on it, on a base controller, or on
 the assembly (`[assembly: ApiController]`); its client has the actions it inherits from base controllers too, and an
 abstract base gets none of its own. An action's route is its verb attribute's template, or the action's own
-`[Route]` when the verb attribute has none (`[HttpGet, Route("{id}")]`). A minimal API's client lands in the
+`[Route]` when the verb attribute has none (`[HttpGet, Route("{id}")]`) — the first one, when it carries several,
+which [RASK125](diagnostics.md#rask125) says. A minimal API's client lands in the
 project's root namespace.
 
 Parameters follow ASP.NET's own `[ApiController]` binding rules: a name matching a route token binds

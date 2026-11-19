@@ -349,7 +349,8 @@ them until tagged releases begin.
   `[HttpGet, Route("{id}")]` called the controller's bare prefix; `{page?}` left out threw from `Segment(null)`; a
   parameter named `@class` emitted `int class`; a record bound `[FromQuery]` was sent as its `ToString()`; a minimal
   API's client was emitted into a namespace named after the assembly (`namespace my-app`, CS1514). After: all of
-  those are served, the optional segment drops with its slash, the record is RASK068, and a minimal API's client
+  those are served (an action with several `[Route]`s gets its first, and the new warning RASK125 says which), the
+  optional segment drops with its slash, the record is RASK068, and a minimal API's client
   lands in the project's `RootNamespace` (or the assembly name made a namespace).
 - **Generator diagnostics point at their line.** RASK001/002, RASK012/013/031, RASK040 and the other diagnostics
   rebuilt from a stored span reported at line 1 of the file (their line span was 0,0); they now carry the line and
