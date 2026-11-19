@@ -68,9 +68,11 @@ public sealed partial class LitestreamRestorer
     // -wal/-shm a lost database left behind — SQLite would replay that old log onto the restored file on first open.
     private static void ClearLeftovers(string databasePath)
     {
-        foreach (var path in new[] { databasePath, databasePath + "-wal", databasePath + "-shm", databasePath + "-journal" })
+        // Only what is there: File.Delete throws, rather than doing nothing, when the directory is not there yet either.
+        foreach (var path in new[] { databasePath, databasePath + "-wal", databasePath + "-shm", databasePath + "-journal" }
+                     .Where(File.Exists))
         {
-            File.Delete(path); // no-op when absent
+            File.Delete(path);
         }
     }
 
