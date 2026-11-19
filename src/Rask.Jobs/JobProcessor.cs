@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -514,7 +515,8 @@ public sealed partial class JobProcessor<TContext>(
             TaskScheduler.Default);
     }
 
-    // One lane's jobs, one after the other. Nothing leaves here: a lane's failure is its own and the others go on.
+    // One lane's jobs, one after the other. Nothing leaves here: a lane's failure is its own and the others go on. False when
+    // a shutdown cut it short, so its claim stays for StopAsync to hand back.
     private async Task<bool> RunLaneAsync(List<Job> jobs, CancellationToken graceToken, CancellationToken cancellationToken)
     {
         try
@@ -567,16 +569,19 @@ public sealed partial class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            // Not cut short by a shutdown: its claim is let go, so the lease is no longer renewed and its rows come back
+            // when it runs out — each counted as the attempt it was. Kept, it would be renewed for as long as this
+            // instance lives and handed back by StopAsync with that attempt undone: never retried, never dead-lettered.
             CycleFailed(logger, ex);
-            return false;
+            return true;
         }
     }
 
     private async Task<Outcome> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
     {
-        if (JobSerializerRegistry.Deserialize(job.Type, job.Payload) is not { } command)
+        if (Read(job, out var unread) is not { } command)
         {
-            return Unregistered(job);
+            return unread;
         }
 
         // Its own token, tied to the host's grace: stopping this job cancels this one and no other.
@@ -626,6 +631,30 @@ public sealed partial class JobProcessor<TContext>(
         {
             Finish(job, run);
         }
+    }
+
+    // The job's command, or the failed attempt it is when its type is not registered or its payload no longer reads (hand-edited,
+    // or a type whose shape changed). That is this job's failure, not the lane's: thrown from here it would end the lane with
+    // every row still claimed.
+    private ICommand? Read(Job job, out Outcome unread)
+    {
+        unread = Outcome.Ours;
+        try
+        {
+            if (JobSerializerRegistry.Deserialize(job.Type, job.Payload) is { } command)
+            {
+                return command;
+            }
+
+            unread = Unregistered(job);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            JobFailed(logger, ex, job.Id, job.Attempts);
+            unread = Fail(job, $"The payload of job type '{job.Type}' does not read: {ex.Message}");
+        }
+
+        return null;
     }
 
     // An unregistered type is a failure like any other, and counts toward the dead letter it will become — a renamed job that
@@ -863,6 +892,14 @@ public sealed partial class JobProcessor<TContext>(
             await base.StopAsync(cancellationToken).ConfigureAwait(false);
         }
 
+        // Said again once the budget has ended: the token runs its callbacks newest first, so base.StopAsync's own wait on it
+        // can finish, and leave the block above, before the registration's turn comes — disposed unrun, the grace was never
+        // cancelled and a running job never told to stop.
+        if (cancellationToken.IsCancellationRequested)
+        {
+            CancelQuietly(_grace);
+        }
+
         if (ExecuteTask is { IsCompleted: false } stopping)
         {
             await stopping.WaitAsync(CancelledLaneWait, CancellationToken.None).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -885,8 +922,12 @@ public sealed partial class JobProcessor<TContext>(
             // increment counted would make MaxAttempts a function of DEPLOY CADENCE: at the default of 10,
             // ten unlucky redeploys dead-letter a job that never once failed, with nothing connecting the
             // two. A job that genuinely failed already released its own lease, so it is not in this set.
+            //
+            // Except a job whose handler is still in it — one that ignored its cancellation past the lanes' wait. Its claim
+            // is left to run out: handed back now, another instance would start it while it still runs here.
+            var running = _inFlight.Keys.ToList();
             await db.Set<Job>()
-                .Where(j => held.Contains(j.ClaimToken) && j.ProcessedAt == null)
+                .Where(j => held.Contains(j.ClaimToken) && j.ProcessedAt == null && !running.Contains(j.Id))
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(j => j.ClaimToken, (Guid?)null)
@@ -948,21 +989,41 @@ public sealed partial class JobProcessor<TContext>(
             // The predicate must be `<= dueBefore`, never `== theValueWeRead`: EF renders equality as
             // `LastEnqueuedAt = @p`, which is never true when the column is NULL, so the very first tick of
             // every recurring job would deadlock forever. This form is null-safe by construction.
-            var won = await db.Set<RecurringJobState>()
-                .Where(s => s.Name == definition.Name && (s.LastEnqueuedAt == null || s.LastEnqueuedAt <= dueBefore))
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastEnqueuedAt, next), cancellationToken)
-                .ConfigureAwait(false);
-
-            if (won == 0)
-            {
-                continue; // not due, or another instance took this tick
-            }
-
-            var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
-            db.Set<Job>().Add(Job.For(type, payload, now));
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await ClaimTickAsync(db, definition, dueBefore, next, now, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    // The tick's claim and the job it enqueues commit together: claimed in one commit and enqueued in the next, a crash or a
+    // failed insert between the two would spend the tick with no job for it — a nightly run silently missed. True when it
+    // was this instance's to enqueue.
+    private static Task<bool> ClaimTickAsync(
+        TContext db, RecurringJob definition, DateTime dueBefore, DateTime next, DateTime now, CancellationToken cancellationToken) =>
+        db.Database.CreateExecutionStrategy().ExecuteAsync(
+            (db, definition, dueBefore, next, now),
+            static async (_, state, token) =>
+            {
+                var (db, definition, dueBefore, next, now) = state;
+                db.ChangeTracker.Clear();
+                var transaction = await db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
+                await using var transactionScope = transaction.ConfigureAwait(false);
+                var won = await db.Set<RecurringJobState>()
+                    .Where(s => s.Name == definition.Name && (s.LastEnqueuedAt == null || s.LastEnqueuedAt <= dueBefore))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastEnqueuedAt, next), token)
+                    .ConfigureAwait(false);
+
+                if (won == 0)
+                {
+                    return false; // not due, or another instance took this tick
+                }
+
+                var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
+                db.Set<Job>().Add(Job.For(type, payload, now));
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                await transaction.CommitAsync(token).ConfigureAwait(false);
+                return true;
+            },
+            verifySucceeded: null,
+            cancellationToken);
 
     /// <summary>
     /// Creates the bookkeeping row for a recurring job, returning false when another instance won the race

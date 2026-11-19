@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -213,8 +214,6 @@ public sealed partial class OutboxProcessor<TContext>(
             return;
         }
 
-        var scope = scopeFactory.CreateAsyncScope();
-        await using var batchScope = scope.ConfigureAwait(false);
         // The in-flight message gets a bounded grace after SIGTERM instead of being cancelled mid-call.
         // The host token ARMS a deadline on this source rather than cancelling it, so user code keeps a
         // live token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream
@@ -229,41 +228,92 @@ public sealed partial class OutboxProcessor<TContext>(
         using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
         var graceToken = graceCts.Token;
 
-        foreach (var message in batch)
+        using var renewing = new CancellationTokenSource();
+        var renewal = RenewLeaseAsync(_lease, renewing.Token);
+        try
         {
-            if (cancellationToken.IsCancellationRequested)
+            foreach (var message in batch)
             {
-                break;
-            }
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
 
-            if (!await PublishAsync(scope.ServiceProvider, message, graceToken, cancellationToken).ConfigureAwait(false))
+                if (!await PublishAsync(message, graceToken, cancellationToken).ConfigureAwait(false))
+                {
+                    break; // leave this and the rest for the next run
+                }
+
+                await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            await renewing.CancelAsync().ConfigureAwait(false);
+            await renewal.ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the batch's claim from running out while its messages publish one after the other. A batch that takes longer
+    /// than <see cref="OutboxOptions.LeaseDuration"/> would otherwise be claimed again by another instance — or by this
+    /// one's next poll elsewhere — and its later messages published twice.
+    /// </summary>
+    private async Task RenewLeaseAsync(Guid lease, CancellationToken stop)
+    {
+        using var timer = new PeriodicTimer(options.LeaseDuration / 3, timeProvider);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop).ConfigureAwait(false))
             {
-                break; // leave this and the rest for the next run
+                await RenewLeaseOnceAsync(lease).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // The batch is over.
+        }
+    }
 
-            await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+    private async Task RenewLeaseOnceAsync(Guid lease)
+    {
+        try
+        {
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+            var until = timeProvider.GetUtcNow().UtcDateTime + options.LeaseDuration;
+            await db.Set<OutboxMessage>()
+                .Where(m => m.ClaimToken == lease && m.ProcessedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.ClaimedUntil, until), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // A missed renewal is retried on the next tick; the lease outlasts two of them.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LeaseRenewalFailed(logger, ex);
         }
     }
 
     /// <summary>Runs one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
-    private async Task<bool> PublishAsync(
-        IServiceProvider provider, OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
+    private async Task<bool> PublishAsync(OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
     {
-        var e = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
-        if (e is null)
+        if (Read(message) is not { } e)
         {
-            // An unregistered type is a failure like any other, and counts toward the dead letter it
-            // will become — a renamed event that nobody re-registered is the most ordinary way a
-            // production outbox starts abandoning work, so it must not be invisible to metrics.
-            Fail(message, $"No registered outbox event type '{message.Type}'.");
-            UnregisteredType(logger, message.Id, message.Type);
             return true;
         }
 
         var startedAt = timeProvider.GetTimestamp();
         try
         {
-            await RunAs(provider, message, e, graceToken).ConfigureAwait(false);
+            // A scope per message, as a request has one: what one handler left in a scoped service (a tracked entity, a
+            // failed DbContext) never reaches the next message's handler.
+            var scope = scopeFactory.CreateAsyncScope();
+            await using (scope.ConfigureAwait(false))
+            {
+                await RunAs(scope.ServiceProvider, message, e, graceToken).ConfigureAwait(false);
+            }
+
             message.Published(timeProvider.GetUtcNow().UtcDateTime);
             message.Release();
             metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -297,6 +347,33 @@ public sealed partial class OutboxProcessor<TContext>(
         }
 
         return true;
+    }
+
+    // The message's event, or null once its failed attempt is recorded: its type is not registered, or its payload no longer
+    // reads (hand-edited, or an event whose shape changed). Either is this message's failure, not the batch's — thrown from
+    // here it would end the drain with the rest of the batch claimed until the lease ran out.
+    private IEvent? Read(OutboxMessage message)
+    {
+        try
+        {
+            if (OutboxSerializerRegistry.Deserialize(message.Type, message.Payload) is { } e)
+            {
+                return e;
+            }
+
+            // An unregistered type is a failure like any other, and counts toward the dead letter it
+            // will become — a renamed event that nobody re-registered is the most ordinary way a
+            // production outbox starts abandoning work, so it must not be invisible to metrics.
+            Fail(message, $"No registered outbox event type '{message.Type}'.");
+            UnregisteredType(logger, message.Id, message.Type);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            Fail(message, $"The payload of outbox event type '{message.Type}' does not read: {ex.Message}");
+            PublishFailed(logger, ex, message.Id, message.Attempts);
+        }
+
+        return null;
     }
 
     // A row runs the ONE durable handler it was written for. A handler that has since been renamed or deleted is a
@@ -527,6 +604,9 @@ public sealed partial class OutboxProcessor<TContext>(
         Message = "Outbox message {Id} lost its lease mid-dispatch on instance {Instance}; another instance owns it now. "
             + "Increase OutboxOptions.LeaseDuration past the time this handler takes.")]
     private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not renew this instance's outbox lease; retrying on the next tick.")]
+    private static partial void LeaseRenewalFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release outbox leases on shutdown; they expire in {Lease}.")]
     private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);

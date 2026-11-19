@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace Rask.Mailing.Tests;
 
 /// <summary>
@@ -32,6 +34,34 @@ public sealed class MailShutdownGraceTests
         // 1, not 0: the claim counts attempts *started*, so mail that sends first time shows one. The
         // roll-back on the shutdown path only applies to work that did NOT finish.
         Assert.Equal(1, mail.Attempts);
+    }
+
+    [Fact]
+    public async Task A_batch_that_outlasts_its_lease_keeps_it_while_it_sends()
+    {
+        var sender = new RecordingMailSender
+        {
+            Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        await using var h = new MailHarness(o => o.LeaseDuration = TimeSpan.FromMilliseconds(300), sender);
+        await h.Queue.Send(Email.To("ada@example.com").Subject("First").Html("<p>1</p>"), TestContext.Current.CancellationToken);
+        await h.Queue.Send(Email.To("bob@example.com").Subject("Second").Html("<p>2</p>"), TestContext.Current.CancellationToken);
+        await h.Processor.StartAsync(CancellationToken.None);
+        await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
+
+        // Far past the claim's lease while the first send still talks to the server: only a renewal keeps the second ours.
+        h.Clock.Advance(TimeSpan.FromHours(1));
+        await h.WaitUntilAsync(async () =>
+        {
+            await using var db = h.NewContext();
+            var now = h.Clock.GetUtcNow().UtcDateTime;
+            return await db.Set<QueuedMail>().AnyAsync(m => m.Subject == "Second" && m.ClaimedUntil > now);
+        });
+        sender.Release!.SetResult();
+        await h.WaitUntilAsync(() => Task.FromResult(sender.Sent.Count == 2));
+        await h.Processor.StopAsync(CancellationToken.None);
+
+        Assert.Equal(["First", "Second"], sender.Sent.Select(m => m.Subject));
     }
 
     [Fact]

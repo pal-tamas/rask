@@ -189,6 +189,28 @@ public sealed class JobLeaseTests
     }
 
     [Fact]
+    public async Task A_recurring_tick_whose_job_was_not_written_is_still_owed()
+    {
+        await using var h = new JobsHarness(o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)), Start);
+        await using (var db = h.NewContext())
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE TRIGGER no_job BEFORE INSERT ON Job BEGIN SELECT RAISE(ABORT, 'disk full'); END;",
+                cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None));
+        await using (var db = h.NewContext())
+        {
+            await db.Database.ExecuteSqlRawAsync("DROP TRIGGER no_job;", cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        await h.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(1, await h.CountJobsAsync());
+    }
+
+    [Fact]
     public async Task The_first_ever_recurring_tick_is_enqueued_exactly_once()
     {
         // The first tick is the one case with no state row to compare-and-swap against: both instances try
