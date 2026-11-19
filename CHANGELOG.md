@@ -335,6 +335,21 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A bound `DateTimeOffset` keeps its own offset; a route or query one with none is UTC.** Before: a
+  `datetime-local` field showed the value's clock time and read the edit back in the SERVER's zone, so every save
+  moved the moment by the server's distance from the value's offset (and a `[QueryParam]` moment depended on where
+  the server ran). After: the edit is read in the offset the value had (UTC for a field that held none), and a moment
+  parsed from a route or query value with no offset is UTC; one that names its offset keeps it.
+- **A bound enum takes only what it defines.** Before: `Enum.TryParse` let any number (`"99"`, `"-1"`) or comma list
+  into the model. After: a member's name, its defined number, or — for `[Flags]` — a combination of members; anything
+  else leaves the model as it was and the field says it could not read it.
+- **A `TimeSpan` that is no time of day is written whole.** Before: `1.02:00` showed as `02:00` and `-01:30` as
+  `01:30`, and a save wrote that back. After: such a value is written in the constant spelling (`1.02:00:00`), which a
+  time input shows empty rather than wrong.
+- **Validating a model no longer walks a query or an unbounded graph.** Before: `ModelGraphWalker` enumerated an
+  `IQueryable` property (running it) and followed every reachable object on every validation. After: queries,
+  reflection objects, delegates, streams and tasks are not walked into, and a walk stops at 32 levels or 10,000
+  objects, said once as a `Rask.Forms` warning.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

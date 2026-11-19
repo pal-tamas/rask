@@ -16,6 +16,11 @@ namespace Rask.Core.Forms;
 // type too.
 public static class ModelGraphWalker
 {
+    // Bounds on one walk, which runs on every validation. A model is a form's worth of objects; past these it is an
+    // entity graph (an order's customer's every order…), and walking it is a request's worth of work, or a database's.
+    internal const int MaxDepth = 32;
+    internal const int MaxNodes = 10_000;
+
     // Breadth-first walk over `root` and everything reachable through its public instance
     // properties / IEnumerable items / IDictionary values. Yields each visited reference at
     // most once (cycle-safe via reference equality). Leaves — primitives, strings, enums,
@@ -36,36 +41,51 @@ public static class ModelGraphWalker
         }
 
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        var queue = new Queue<object>();
-        queue.Enqueue(root);
+        var queue = new Queue<(object Node, int Depth)>();
+        queue.Enqueue((root, 0));
         visited.Add(root);
 
-        while (queue.Count > 0)
+        while (queue.TryDequeue(out var next))
         {
-            var current = queue.Dequeue();
+            var (current, depth) = next;
             yield return current;
+
+            if (depth >= MaxDepth)
+            {
+                continue;
+            }
 
             foreach (var child in EnumerateChildren(current))
             {
-                if (child is null)
+                if (child is null || IsLeaf(child.GetType()) || IsOpaque(child) || !visited.Add(child))
                 {
                     continue;
                 }
 
-                if (IsLeaf(child.GetType()))
+                if (visited.Count > MaxNodes)
                 {
-                    continue;
+                    ReportCapped(root);
+                    yield break;
                 }
 
-                if (!visited.Add(child))
-                {
-                    continue;
-                }
-
-                queue.Enqueue(child);
+                queue.Enqueue((child, depth + 1));
             }
         }
     }
+
+    // What is never walked into: a query (enumerating it runs it — a DbSet, an IQueryable navigation), reflection's
+    // own objects (a Type's properties reach every assembly loaded), a delegate, a stream, a task.
+    private static bool IsOpaque(object value) =>
+        value is IQueryable or MemberInfo or Assembly or Delegate or Stream or Task;
+
+    private static void ReportCapped(object root) =>
+        Diagnostics.RaskDiagnostics.ReportOnce(
+            "modelgraph:capped:" + root.GetType().FullName,
+            Diagnostics.RaskLogLevel.Warning,
+            "Rask.Forms",
+            () => $"Validating a {root.GetType().Name} reached more than {MaxNodes} objects, so the objects past those "
+                  + "were not validated. A form's model is what the form edits: give it its own type rather than an "
+                  + "entity whose navigations reach the rest of the database.");
 
     // Resolves a FluentValidation-style property path (e.g. "Address.Street", "Items[0].Name",
     // "Settings[\"smtp\"].Host") against `root`. Returns (owner, terminalPropertyName) when the
@@ -125,6 +145,12 @@ public static class ModelGraphWalker
                 yield return v;
             }
 
+            yield break;
+        }
+
+        // A query is not its rows until it runs, and walking it would run it.
+        if (instance is IQueryable)
+        {
             yield break;
         }
 
