@@ -72,18 +72,24 @@ public sealed class UiChartFormat
     /// <summary>A twelve-hour clock with AM and PM, or a twenty-four-hour one. The culture's own unless this says.</summary>
     public bool? Hour12 { get; init; }
 
+    /// <summary>The number as Intl writes it; nothing for a row with no number (a null, a NaN, an infinity).</summary>
     internal string Number(double value)
     {
+        if (!double.IsFinite(value))
+        {
+            return string.Empty;
+        }
+
         var culture = CultureInfo.CurrentCulture;
         return Notation switch
         {
-            Ui.ChartFormatNotation.Compact => Affix(Compact(value, culture), culture),
+            Ui.ChartFormatNotation.Compact => Affix(value, Compact(Math.Abs(value), culture), culture),
             Ui.ChartFormatNotation.Scientific => value.ToString("0.###E0", culture),
             _ => Style switch
             {
                 Ui.ChartFormatStyle.Percent => Digits(value * 100, 0, 0, culture) + culture.NumberFormat.PercentSymbol,
-                Ui.ChartFormatStyle.Currency => Affix(Digits(value, 2, 2, culture), culture),
-                _ => Affix(Digits(value, 0, 3, culture), culture),
+                Ui.ChartFormatStyle.Currency => Affix(value, CurrencyDigits(Math.Abs(value), culture), culture),
+                _ => Affix(value, Digits(Math.Abs(value), 0, 3, culture), culture),
             },
         };
     }
@@ -95,18 +101,21 @@ public sealed class UiChartFormat
         {
             var clock = TimeStyle is Ui.ChartFormatLength.Short ? "t" : "T";
             return UiClass.Compose(
-                DateStyle is { } date ? value.ToString(DatePattern(date), culture) : null,
+                DateStyle is { } date ? value.ToString(DatePattern(date, culture), culture) : null,
                 TimeStyle is null ? null : value.ToString(clock, culture));
         }
 
         return value.ToString(Pattern(culture), culture).Trim();
     }
 
-    private static string DatePattern(Ui.ChartFormatLength length) => length switch
+    // Intl's date styles, from the culture's own patterns: full has the day of the week, long and medium do not,
+    // medium shortens the month's name.
+    private static string DatePattern(Ui.ChartFormatLength length, CultureInfo culture) => length switch
     {
         Ui.ChartFormatLength.Full => "D",
-        Ui.ChartFormatLength.Long => "MMMM d, yyyy",
-        Ui.ChartFormatLength.Medium => "MMM d, yyyy",
+        Ui.ChartFormatLength.Long => UiChartDatePattern.WithoutWeekday(culture.DateTimeFormat.LongDatePattern),
+        Ui.ChartFormatLength.Medium => UiChartDatePattern.WithoutWeekday(culture.DateTimeFormat.LongDatePattern)
+            .Replace("MMMM", "MMM", StringComparison.Ordinal),
         _ => "d",
     };
 
@@ -123,12 +132,19 @@ public sealed class UiChartFormat
         return value.ToString(pattern.ToString(), culture);
     }
 
+    // As many decimals as the currency has (ISO 4217): none for yen, two for forint, three for dinar.
+    private string CurrencyDigits(double magnitude, CultureInfo culture)
+    {
+        var decimals = UiChartCurrency.Decimals(Currency, culture);
+        return Digits(magnitude, decimals, decimals, culture);
+    }
+
     // Intl's compact notation, short display: the largest of K, M, B, T the number reaches, to two significant
-    // digits below a hundred of it unless the fraction digits say otherwise.
-    private string Compact(double value, CultureInfo culture)
+    // digits below a hundred of it unless the fraction digits say otherwise. A number that rounds up to a thousand
+    // of one unit is written in the next: 999,999 is "1M", not "1000K".
+    private string Compact(double magnitude, CultureInfo culture)
     {
         ReadOnlySpan<string> suffixes = ["", "K", "M", "B", "T"];
-        var magnitude = Math.Abs(value);
         var index = 0;
         while (magnitude >= 1000 && index < suffixes.Length - 1)
         {
@@ -136,28 +152,34 @@ public sealed class UiChartFormat
             index++;
         }
 
-        var scaled = Math.Sign(value) * magnitude;
-        var maximum = MaximumFractionDigits ?? (magnitude < 100 && index > 0 ? 1 : 0);
+        var maximum = CompactDigits(magnitude, index);
+        if (Math.Round(magnitude, maximum) >= 1000 && index < suffixes.Length - 1)
+        {
+            magnitude /= 1000;
+            index++;
+            maximum = CompactDigits(magnitude, index);
+        }
+
         var minimum = Math.Min(MinimumFractionDigits ?? 0, maximum);
-        return scaled.ToString("0." + new string('0', minimum) + new string('#', maximum - minimum), culture) + suffixes[index];
+        return magnitude.ToString("0." + new string('0', minimum) + new string('#', maximum - minimum), culture) + suffixes[index];
     }
 
-    private string Affix(string number, CultureInfo culture) => Style switch
-    {
-        Ui.ChartFormatStyle.Currency => CurrencySymbol(Currency, culture) + number,
-        Ui.ChartFormatStyle.Unit => number + UnitSuffix(Unit),
-        _ => number,
-    };
+    private int CompactDigits(double magnitude, int index) => MaximumFractionDigits ?? (magnitude < 100 && index > 0 ? 1 : 0);
 
-    private static string CurrencySymbol(string? code, CultureInfo culture) => code?.ToUpperInvariant() switch
+    // The sign and what goes around the number: the currency where the culture puts it, a unit after it.
+    private string Affix(double value, string magnitude, CultureInfo culture)
     {
-        null => culture.NumberFormat.CurrencySymbol,
-        "USD" => "$",
-        "EUR" => "€",
-        "GBP" => "£",
-        "JPY" => "¥",
-        var other => other + " ",
-    };
+        var negative = value < 0;
+        return Style switch
+        {
+            Ui.ChartFormatStyle.Currency => UiChartCurrency.Place(magnitude, negative, Currency, culture),
+            Ui.ChartFormatStyle.Unit => Signed(magnitude, negative, culture) + UnitSuffix(Unit),
+            _ => Signed(magnitude, negative, culture),
+        };
+    }
+
+    private static string Signed(string magnitude, bool negative, CultureInfo culture) =>
+        negative ? culture.NumberFormat.NegativeSign + magnitude : magnitude;
 
     // Intl's short unit display, for the units a chart is likely to carry; any other is written by name.
     private static string UnitSuffix(string? unit) => unit switch
@@ -184,12 +206,19 @@ public sealed class UiChartFormat
         _ => " " + unit,
     };
 
-    // The parts asked for, in the order English writes them; a culture's own separators and names fill them in.
+    // The parts asked for, in the order the culture writes them where one of its patterns holds them (a month with
+    // a day or a year); otherwise in the order English writes them, with the culture's separators and names.
     private string Pattern(CultureInfo culture)
     {
         var numeric = Month is Ui.ChartFormatPart.Numeric or Ui.ChartFormatPart.TwoDigit;
         var date = new StringBuilder();
         Append(date, Weekday switch { null => null, Ui.ChartFormatPart.Long => "dddd", _ => "ddd" }, ", ");
+        if (UiChartDatePattern.Of(Month, Day, Year, culture) is { } cultural)
+        {
+            Append(date, cultural, Weekday is null ? "" : ", ");
+            return WithTime(date, culture);
+        }
+
         Append(date, Month switch
         {
             null => null,
@@ -201,7 +230,11 @@ public sealed class UiChartFormat
         Append(date, Day switch { null => null, Ui.ChartFormatPart.TwoDigit => "dd", _ => "%d" }, numeric ? "/" : " ");
         var beforeYear = Day is null ? " " : ", ";
         Append(date, Year switch { null => null, Ui.ChartFormatPart.TwoDigit => "yy", _ => "yyyy" }, numeric ? "/" : beforeYear);
+        return WithTime(date, culture);
+    }
 
+    private string WithTime(StringBuilder date, CultureInfo culture)
+    {
         var twelve = Hour12 ?? culture.DateTimeFormat.ShortTimePattern.Contains('h', StringComparison.Ordinal);
         var time = new StringBuilder();
         Append(time, Hour switch
