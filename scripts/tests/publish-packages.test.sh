@@ -169,7 +169,7 @@ check "Rask.Ui before Rask.Server" before Rask.Ui Rask.Server
 check "Rask.Data before Rask.Dashboard" before Rask.Data Rask.Dashboard
 check "Rask.Server before Rask.Postgres" before Rask.Server Rask.Postgres
 same "every package is pushed, once" "$(sort "$FAKE/pushed.log" | uniq | wc -l | xargs):$(wc -l < "$FAKE/attempts.log" | xargs)" "7:7"
-if printf '%s' "$out" | grep -q "$key"; then fail "the key is never printed" "$out"; else ok "the key is never printed"; fi
+if grep -q "$key" <<< "$out"; then fail "the key is never printed" "$out"; else ok "the key is never printed"; fi
 check "the key did reach the push command" grep -q -- "--api-key \*\*\*" <<< "$out"
 
 # Trusted publishing: TRUSTED_KEY_CMD stands in for the OIDC exchange, as PUSH_CMD does for the push.

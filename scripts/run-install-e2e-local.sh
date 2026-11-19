@@ -195,8 +195,9 @@ set -eu
 apt-get update -qq >/dev/null
 apt-get install -y -qq --no-install-recommends curl ca-certificates >/dev/null 2>&1
 out=\$(sh /rask.sh 2>&1 || true)
-printf '%s\n' \"\$out\" | grep -q 'cannot run' || { echo 'no diagnosis of the unusable SDK'; printf '%s\n' \"\$out\"; exit 1; }
-printf '%s\n' \"\$out\" | grep -q 'libicu'    || { echo 'the fix does not name libicu';      printf '%s\n' \"\$out\"; exit 1; }
+# A case match, not \`printf | grep -q\`: no pipe for grep's early exit to break (and here-strings are not POSIX sh).
+case \"\$out\" in *'cannot run'*) ;; *) echo 'no diagnosis of the unusable SDK'; printf '%s\n' \"\$out\"; exit 1 ;; esac
+case \"\$out\" in *libicu*) ;; *) echo 'the fix does not name libicu'; printf '%s\n' \"\$out\"; exit 1 ;; esac
 "
 
 # --- 6. an unknown flag is a usage error, not a silent install ----------------------------------
@@ -235,8 +236,10 @@ export PATH=\"/root/.dotnet/tools:\$PATH\"
 out=\$(RASK_INSTALL_DOTNET_ROOT=/usr/share/dotnet \
       pwsh -NoProfile -File /rask.ps1 -NoSdk -NoWasmTools 2>&1)
 printf '%s\n' \"\$out\"
-printf '%s\n' \"\$out\" | grep -q 'per-user PATH cannot be set outside Windows' || {
-    echo 'Step-Path did not report the non-Windows case'; exit 1; }
+case \"\$out\" in
+    *'per-user PATH cannot be set outside Windows'*) ;;
+    *) echo 'Step-Path did not report the non-Windows case'; exit 1 ;;
+esac
 
 rask --version
 "

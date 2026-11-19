@@ -410,8 +410,9 @@ elif [ -n "$scope_projects" ]; then
   # A change that reaches the tests and not Rask.Wasm (one to Rask.Server, say) would build no bundle
   # on a fresh runner, so whenever a test project is in the set, Rask.Wasm is too.
   scope_build="$scope_projects"
+  # A here-string, not `printf | grep -q`: under pipefail grep -q's early exit kills printf with SIGPIPE.
   # shellcheck disable=SC2086  # deliberate word split: the set is one project per word
-  if printf '%s\n' $scope_projects | grep -qE '\.Tests/[^/]+\.csproj$'; then
+  if grep -qE '\.Tests/[^/]+\.csproj$' <<<"$(printf '%s\n' $scope_projects)"; then
     scope_build="$(printf '%s\n' $scope_projects src/Rask.Wasm/Rask.Wasm.csproj | LC_ALL=C sort -u)"
   fi
   {
