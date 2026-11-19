@@ -112,6 +112,16 @@ internal static class TenantColumn
                 Expression.Call(UnrestrictedReader, Expression.Convert(Expression.Constant(context), typeof(ITenantScoped)))),
             Expression.Constant(null, typeof(int?)));
 
+    /// <summary>What an insert into <paramref name="table" /> with no tenant of its own is stamped with: the tenant in flight.</summary>
+    /// <exception cref="InvalidOperationException">No tenant is in flight, or <see cref="Tenant.Across" /> is open.</exception>
+    internal static object InFlight(Type column, string table) =>
+        Tenant.IsAcrossTenants
+            ? throw new InvalidOperationException(
+                $"'{table}' is tenant-scoped and is being inserted inside " +
+                "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
+                "or open Tenant.Use(id) around the insert.")
+            : ValueFor(Tenant.RequiredKey, column, table);
+
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
     /// <exception cref="MissingTenantException"><paramref name="tenant" /> is the value that stands for no tenant.</exception>

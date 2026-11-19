@@ -142,6 +142,7 @@ public static partial class Db
         await using var transactionScope = transaction.ConfigureAwait(false);
 
         IReadOnlyList<Func<Task>> afterCommit;
+        IReadOnlyList<Func<Task>> onRollback;
         T result;
         using (var scope = AmbientTransaction.Enter(owner, transaction, isolation))
         {
@@ -152,19 +153,34 @@ public static partial class Db
             catch
             {
                 // The transaction is never committed now: what it could not take part in is taken back.
-                foreach (var undo in scope.Abandon())
-                {
-                    await undo().ConfigureAwait(false);
-                }
-
+                await UndoAsync(scope.Abandon()).ConfigureAwait(false);
                 throw;
             }
 
-            afterCommit = scope.End();
+            (afterCommit, onRollback) = scope.End();
         }
 
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // A commit that fails (a deferred constraint, a serialization failure, the connection lost) rolls back as surely as
+            // work that threw: a file it stored is taken back too, or it stays behind with no row naming it.
+            await UndoAsync(onRollback).ConfigureAwait(false);
+            throw;
+        }
+
         return (result, afterCommit);
+    }
+
+    private static async Task UndoAsync(IReadOnlyList<Func<Task>> undoes)
+    {
+        foreach (var undo in undoes)
+        {
+            await undo().ConfigureAwait(false);
+        }
     }
 
     private static void RefuseAnotherIsolation(AmbientTransaction outer, IsolationLevel? asked)

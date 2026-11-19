@@ -183,6 +183,21 @@ public sealed class DbTransactionTests : IDisposable
     }
 
     [Fact]
+    public async Task Undo_queued_inside_runs_when_the_commit_itself_fails()
+    {
+        var refuser = new CommitRefuser();
+        await using var database = await TestDatabase.Start(
+            o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(refuser), cancellationToken: TestContext.Current.CancellationToken);
+        var undone = new List<string>();
+        refuser.Armed = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(
+            () => Queue(undone, "never committed"), cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["never committed"], undone);
+    }
+
+    [Fact]
     public async Task A_nested_transaction_joins_the_outer_one_and_rolls_back_with_it()
     {
         await using var database = await StartDatabaseAsync();
@@ -365,6 +380,19 @@ public sealed class DbTransactionTests : IDisposable
         // Creating the schema began one of its own.
         _isolation.Started.Clear();
         return database;
+    }
+
+    // Stands in for a commit the database refuses: a deferred constraint, a serialization failure, a lost connection.
+    private sealed class CommitRefuser : DbTransactionInterceptor
+    {
+        public bool Armed { get; set; }
+
+        public override ValueTask<InterceptionResult> TransactionCommittingAsync(
+            DbTransaction transaction,
+            TransactionEventData eventData,
+            InterceptionResult result,
+            CancellationToken cancellationToken = default) =>
+            Armed ? throw new InvalidOperationException("the database refused the commit") : ValueTask.FromResult(result);
     }
 
     private sealed class IsolationRecorder : DbTransactionInterceptor

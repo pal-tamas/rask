@@ -298,6 +298,7 @@ internal static class BulkInsertWriter
         // the row, so an object the caller keeps reads back what was stored.
         plan.Timestamps?.SetCreatedAt(entity, write.Now);
         plan.Timestamps?.SetUpdatedAt(entity, write.Now);
+        plan.Tenant?.Stamp(entity);
 
         for (var c = 0; c < plan.Columns.Count; c++)
         {

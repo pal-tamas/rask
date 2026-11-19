@@ -30,13 +30,15 @@ internal sealed class BulkInsertPlan
         ISqlGenerationHelper sql,
         string insertPrefix,
         IReadOnlyList<BulkInsertColumn> columns,
-        BulkTimestamps? timestamps)
+        BulkTimestamps? timestamps,
+        BulkTenant? tenant)
     {
         _sql = sql;
         _insertPrefix = insertPrefix;
         CommandText = insertPrefix + "(" + string.Join(", ", columns.Select(static c => c.ParameterPlaceholder)) + ");";
         Columns = columns;
         Timestamps = timestamps;
+        Tenant = tenant;
     }
 
     /// <summary>The single-row <c>INSERT</c>, with one named parameter per column.</summary>
@@ -83,6 +85,9 @@ internal sealed class BulkInsertPlan
 
     /// <summary>Setters for the audit stamps, when the entity is <see cref="Entity{TId}"/>.</summary>
     internal BulkTimestamps? Timestamps { get; }
+
+    /// <summary>The tenant column the writer stamps and checks, when the table is per tenant.</summary>
+    internal BulkTenant? Tenant { get; }
 
     internal static BulkInsertPlan For<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context)
         where TEntity : class
@@ -208,7 +213,7 @@ internal sealed class BulkInsertPlan
             string.Join(", ", columns.Select(c => sql.DelimitIdentifier(c.ColumnName))) +
             ") VALUES ";
 
-        return new BulkInsertPlan(sql, prefix, columns, BuildTimestamps<TEntity>(entityType));
+        return new BulkInsertPlan(sql, prefix, columns, BuildTimestamps<TEntity>(entityType), BuildTenant<TEntity>(entityType));
     }
 
     private static BulkTimestamps? BuildTimestamps<TEntity>(IEntityType entityType)
@@ -227,6 +232,19 @@ internal sealed class BulkInsertPlan
             : new BulkTimestamps(BuildSetter<TEntity>(createdAt), BuildSetter<TEntity>(updatedAt));
     }
 
+    // The REGISTRY decides, as it does for the interceptor's stamp: a table that is not partitioned may keep a TenantId of
+    // its own. A shadow column was refused with the other columns, so the property is on the type.
+    private static BulkTenant? BuildTenant<TEntity>(IEntityType entityType)
+        where TEntity : class
+    {
+        if (!ConventionRegistry.IsPerTenant(typeof(TEntity)) || entityType.FindProperty(Rask.Data.Columns.TenantId) is not { } property)
+        {
+            return null;
+        }
+
+        return new BulkTenant(BuildGetter<TEntity>(property), BuildObjectSetter<TEntity>(property), property.ClrType, typeof(TEntity).Name);
+    }
+
     // The framework owns CreatedAt/UpdatedAt, so their CLR setters are deliberately not public. EF exposes the
     // backing field it maps, which is the same door AuditingInterceptor goes through when it writes the entry.
     private static Action<object, DateTime> BuildSetter<TEntity>(IProperty property)
@@ -236,13 +254,30 @@ internal sealed class BulkInsertPlan
         var value = Expression.Parameter(typeof(DateTime), "v");
         var typed = Expression.Convert(entity, typeof(TEntity));
 
-        Expression target = property.FieldInfo is { } field
-            ? Expression.Field(typed, field)
-            : Expression.Property(typed, property.PropertyInfo
-                ?? throw Unsupported($"{property.Name} has neither a backing field nor a property to write."));
+        var target = Writable(typed, property);
 
         return Expression.Lambda<Action<object, DateTime>>(Expression.Assign(target, value), entity, value).Compile();
     }
+
+    private static Action<object, object?> BuildObjectSetter<TEntity>(IProperty property)
+        where TEntity : class
+    {
+        var entity = Expression.Parameter(typeof(object), "e");
+        var value = Expression.Parameter(typeof(object), "v");
+        var typed = Expression.Convert(entity, typeof(TEntity));
+
+        var target = Writable(typed, property);
+
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Assign(target, Expression.Convert(value, property.ClrType)), entity, value).Compile();
+    }
+
+    // The member a setter writes: EF's backing field when it maps one, which reaches a setter that is not public.
+    private static MemberExpression Writable(Expression typed, IProperty property) =>
+        property.FieldInfo is { } field
+            ? Expression.Field(typed, field)
+            : Expression.Property(typed, property.PropertyInfo
+                ?? throw Unsupported($"{property.Name} has neither a backing field nor a property to write."));
 
     private static Func<object, object?> BuildGetter<TEntity>(IProperty property)
         where TEntity : class

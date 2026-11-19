@@ -335,6 +335,22 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`BulkInsert(…, o => o.SkipChangeTracking = true)` stamps a per-tenant row's tenant, and refuses one with none.**
+  Before: the fast path ran no `AuditingInterceptor`, so a `PerTenant` table that declares its `TenantId` was written
+  with whatever the object held — NULL, a row no tenant's filter ever shows — and with no tenant in flight nothing
+  refused it. After: a row with no tenant takes the one in flight (refused with none, or inside `Tenant.Across()`), a
+  row with one must have that one, as a save through the change tracker is held to.
+- **A domain event raised inside a transaction of the context's own waits for its commit.** Before: a save inside
+  `Database.BeginTransaction()` — or inside the transaction a declared rule's check opens — published its events at
+  `SavedChanges`, before the commit, so a rollback left handlers having acted on rows that never existed. After: they
+  are published once that transaction commits, and dropped when it rolls back (as `Db.Transaction` already did).
+- **A `Db.Transaction` whose commit fails runs its undo.** Before: work that threw rolled back what could not take part
+  (a stored file), but a commit refused by the database — a deferred constraint, a serialization failure, a lost
+  connection — left it behind. After: the same undo runs, then the failure is rethrown.
+- **The migrations `MigrateOnStart` applies are not held to the provider's request timeouts.** Before: Rask.Postgres'
+  `statement_timeout`/`lock_timeout` and Rask.SqlServer's `LOCK_TIMEOUT` applied to the migration too, so one that
+  rewrote a table or waited behind the old instance's queries failed partway and the app did not start, whatever
+  `OwnsSchema`'s timeout said. After: they run on one connection with the limits lifted.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

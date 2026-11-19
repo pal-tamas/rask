@@ -78,18 +78,27 @@ internal sealed class MigrateOnStart<TContext>(
             var names = string.Join(", ", pending);
             MigrateOnStartLog.Applying(_log, pending.Count, names);
 
-            try
+            await ApplyAsync(db, names, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ApplyAsync(TContext db, string names, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var session = await MigrationSession.Open(db, cancellationToken).ConfigureAwait(false);
+            await using (session.ConfigureAwait(false))
             {
                 await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                throw new InvalidOperationException(
-                    $"Applying {names} to the database failed, so the app did not start: {e.Message} Fix the cause "
-                    + "and start again. If a release step applies migrations instead, turn this off "
-                    + (owned?.TurnOff ?? RaskDatabase.MigrateOnStartOff),
-                    e);
-            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            throw new InvalidOperationException(
+                $"Applying {names} to the database failed, so the app did not start: {e.Message} Fix the cause "
+                + "and start again. If a release step applies migrations instead, turn this off "
+                + (owned?.TurnOff ?? RaskDatabase.MigrateOnStartOff),
+                e);
         }
     }
 

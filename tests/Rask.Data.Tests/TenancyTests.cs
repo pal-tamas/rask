@@ -366,6 +366,40 @@ public sealed class TenancyTests : IDisposable
     }
 
     [Fact]
+    public async Task A_bulk_insert_that_skips_change_tracking_stamps_the_tenant_in_flight()
+    {
+        await using var database = await StartDatabaseAsync();
+        var vaults = new[] { Vault.For("V-1"), Vault.For("V-2") };
+
+        using (Tenant.Use(_acme))
+        {
+            await database.Context.BulkInsert(vaults, o => o.SkipChangeTracking = true, TestContext.Current.CancellationToken);
+        }
+
+        using (Tenant.Use(_acme))
+        {
+            Assert.Equal(["V-1", "V-2"], (await Vault.Select(v => v.Code)).Order(StringComparer.Ordinal));
+        }
+
+        Assert.All(vaults, v => Assert.Equal(_acme, v.TenantId));
+    }
+
+    [Fact]
+    public async Task A_bulk_insert_that_skips_change_tracking_refuses_a_tenant_scoped_row_with_no_tenant()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var refused = await Assert.ThrowsAnyAsync<Exception>(() =>
+            database.Context.BulkInsert([Vault.For("V-1")], o => o.SkipChangeTracking = true, TestContext.Current.CancellationToken));
+
+        Assert.IsNotType<DbUpdateException>(refused);
+        using (Tenant.Across())
+        {
+            Assert.Empty(await Vault.Select(v => v.Code));
+        }
+    }
+
+    [Fact]
     public async Task A_table_that_declares_its_tenant_is_filtered_like_any_other()
     {
         await using var database = await StartDatabaseAsync();
