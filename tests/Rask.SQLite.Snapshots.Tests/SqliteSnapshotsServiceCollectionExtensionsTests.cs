@@ -24,6 +24,43 @@ public sealed class SqliteSnapshotsServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public async Task A_databases_store_prunes_only_its_own_snapshots_in_a_shared_directory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"rask-snap-shared-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string[] app = ["app-20260101-000000000.db", "app-20260102-000000000.db"];
+        string[] audit = ["app-audit-20260101-000000000.db", "app-audit-20260102-000000000.db"];
+        foreach (var name in app.Concat(audit))
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory, name), "x", TestContext.Current.CancellationToken);
+        }
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddRaskSqliteSnapshots(o =>
+        {
+            o.DatabasePath = "/data/app.db";
+            o.DestinationDirectory = directory;
+        });
+        using var provider = services.BuildServiceProvider();
+        var store = provider.GetRequiredService<ISqliteSnapshotStore>();
+
+        try
+        {
+            await store.Prune(retain: 1, TestContext.Current.CancellationToken);
+            var listed = await store.List(TestContext.Current.CancellationToken);
+
+            Assert.All(audit, name => Assert.True(File.Exists(Path.Combine(directory, name)), name));
+            Assert.Single(listed);
+            Assert.StartsWith("app-2026", listed[0].Name, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void AddRaskSqliteSnapshots_is_idempotent()
     {
         var services = new ServiceCollection();

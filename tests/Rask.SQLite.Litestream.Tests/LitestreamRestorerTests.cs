@@ -73,6 +73,23 @@ public sealed class LitestreamRestorerTests : IDisposable
     }
 
     [Fact]
+    public async Task A_restore_starts_from_no_file_and_no_log_a_lost_database_left()
+    {
+        await File.WriteAllBytesAsync(_dbPath, [], TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(_dbPath + "-wal", "stale log", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(_dbPath + "-shm", "stale index", TestContext.Current.CancellationToken);
+        var options = new LitestreamOptions { DatabasePath = _dbPath, ReplicaUrl = "s3://bucket/app" };
+        var executor = new FakeExecutor(exitCode: 0);
+        var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
+
+        await restorer.Restore(TestContext.Current.CancellationToken);
+
+        Assert.False(File.Exists(_dbPath));
+        Assert.False(File.Exists(_dbPath + "-wal"));
+        Assert.False(File.Exists(_dbPath + "-shm"));
+    }
+
+    [Fact]
     public async Task RestoreAsync_throws_on_nonzero_exit()
     {
         var options = new LitestreamOptions { DatabasePath = _dbPath, ReplicaUrl = "s3://bucket/app" };

@@ -53,6 +53,7 @@ public sealed partial class LitestreamRestorer
             return false;
         }
 
+        ClearLeftovers(databasePath);
         LogRestoring(_logger);
         var exitCode = await _executor.Run(LitestreamCommand.Restore(_options), cancellationToken).ConfigureAwait(false);
         if (exitCode != 0)
@@ -61,6 +62,16 @@ public sealed partial class LitestreamRestorer
         }
 
         return true;
+    }
+
+    // What the restore must not meet: the empty file itself (litestream will not write over an existing output), and a
+    // -wal/-shm a lost database left behind — SQLite would replay that old log onto the restored file on first open.
+    private static void ClearLeftovers(string databasePath)
+    {
+        foreach (var path in new[] { databasePath, databasePath + "-wal", databasePath + "-shm", databasePath + "-journal" })
+        {
+            File.Delete(path); // no-op when absent
+        }
     }
 
     [LoggerMessage(
