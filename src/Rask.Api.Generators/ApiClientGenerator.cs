@@ -332,12 +332,12 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             if (RouteTemplate.RoutesChosenAmong(member) is { Count: > 1 } routes)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(
+                spc.Add(
                     OneOfSeveralRoutes,
                     At(member),
                     controller.Name + "." + member.Name,
                     routes[0],
-                    string.Join(", ", routes.Skip(1).Select(static r => "'" + r + "'"))));
+                    string.Join(", ", routes.Skip(1).Select(static r => "'" + r + "'")));
             }
 
             foreach (var (verb, template) in RouteTemplate.OfAction(member))
