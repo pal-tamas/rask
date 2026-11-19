@@ -252,7 +252,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
         else
         {
-            valueString = Shown(acc.Getter());
+            valueString = Spelling(resolvedType) is { } numbers ? numbers.Show(acc.Getter()) : Shown(acc.Getter());
         }
 
         // A secret's value is the browser's: the server writes a clear and never the text (SecretField).
@@ -299,6 +299,14 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
     private string Shown(object? value) => Money?.Show(value) ?? BindingHelpers.FormatValue(value);
 
+    // How a bound field spells its number: an amount with its marks; a number in a field typed into as TEXT (any
+    // type but number and range — a browser sends those in the parsers' spelling) in the reader's culture, shown and
+    // read alike (ReaderNumbers); anything else as it is.
+    private IFieldNumbers? Spelling(string? resolvedType) =>
+        (IFieldNumbers?)Money ?? (UnreadValue.IsNumeric(typeof(T)) && resolvedType is not ("number" or "range") && BindingHelpers.IsTypedInto(resolvedType)
+            ? ReaderNumbers.Instance
+            : null);
+
     // Bound: a checkbox writes the model as it is ticked, a typed field when its timing says, the rest as chosen.
     private void WireBound(
         StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
@@ -328,9 +336,10 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
         if (typedInto)
         {
+            var resolvedType = ResolveType(acc);
             WriteTypedBind(
-                sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)), Money,
-                SecretField.Is(ResolveType(acc), Autocomplete, Data));
+                sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)), Spelling(resolvedType),
+                SecretField.Is(resolvedType, Autocomplete, Data));
             return;
         }
 

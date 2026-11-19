@@ -7,7 +7,7 @@ namespace Rask.Core.Forms;
 // so many decimals — Alpine's $money, which the runtime's data-rask-mask-money shapes as the reader types
 // (rask-field.ts, maskMoney). This is the same shape for the value the server writes into the field, and the
 // way back: the text read with these marks, whatever the reader's culture says a comma is.
-internal sealed class MoneyMarks
+internal sealed class MoneyMarks : IFieldNumbers
 {
     private readonly NumberFormatInfo _format;
 
@@ -31,7 +31,7 @@ internal sealed class MoneyMarks
     internal string Attribute => string.Concat(Decimals.ToString(), Thousands.ToString(), Precision.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>The value as the field shows it: <c>1234.56m</c> is <c>"1,234.56"</c>.</summary>
-    internal string Show(object? value) => value switch
+    public string Show(object? value) => value switch
     {
         null => string.Empty,
         string text => Shape(text),
@@ -39,7 +39,7 @@ internal sealed class MoneyMarks
     };
 
     /// <summary>The text in the parsers' spelling — <c>"1 234,56"</c> is <c>"1234.56"</c> — or null when it is no amount.</summary>
-    internal string? Read(string raw) => NumberText.Invariant(raw, _format);
+    public string? Read(string raw) => NumberText.Invariant(raw, _format);
 
     // A double the invariant culture writes with an exponent, written out.
     private static string Plain(string text) => NumberText.WrittenOut(text) ?? text;

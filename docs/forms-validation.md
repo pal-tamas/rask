@@ -429,10 +429,18 @@ the whole form when its handler is `OnAnySubmit`, which takes what was posted wh
 
 **How a number is spelled.** A number input always sends digits and a dot, whatever the reader typed:
 `12,5` in a Hungarian browser arrives as `12.5`. Such text is read the same in every culture, and `1e3`
-is read as 1000. A number that arrives spelled another way — typed into a text field over a numeric
-member, written by a test — is read in the session's culture: `12,5` and `1 234,5` under `hu`, `1,234.5`
-under `en`, with separators accepted only around groups of three. Anything else is not a number, and the
-field says so; a comma is never quietly read as a separator of thousands.
+is read as 1000. A number that arrives spelled another way — written by a test, or by hand into a frame —
+is read in the session's culture: `12,5` and `1 234,5` under `hu`, `1,234.5` under `en`, with separators
+accepted only around groups of three. Anything else is not a number, and the field says so; a comma is
+never quietly read as a separator of thousands.
+
+**A number in a text field speaks the reader's language both ways.** A numeric member bound to a field
+typed into as text (`.Type(InputType.Text)`, often with `.InputMode(InputMode.Decimal)`) is *shown* with
+the reader's decimal mark — `1234,5` under `de` and `hu`, `1234.5` under `en` — and *read* in the same
+culture, every time: under `de`, `1.234` is one thousand two hundred and thirty-four and `1,234` is a
+fraction. What the field shows reads back as the same number. A number input (`type="number"`) is not
+this: the browser sends it in digits and a dot, and it is read so. An amount (`Ui.Input.Money()`) keeps
+its own marks.
 
 **The kit's typed pickers follow the same rule.** `Ui.DatePicker` and `Ui.TimePicker` with
 `Type(…Input)` are typed a part at a time. Left with parts that make no value — a day and no month, an

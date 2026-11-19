@@ -225,10 +225,11 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         StringSetHandler(acc, ctx, fid, validateOnSet, afterBind, money: null);
 
-    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    // As above, for a field that spells its number itself: an amount with its marks (MoneyMarks), a number in a text
+    // field in the reader's culture (ReaderNumbers).
     internal static Func<string, Task> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
-        Func<Task>? afterBind, MoneyMarks? money) =>
+        Func<Task>? afterBind, IFieldNumbers? money) =>
         async raw =>
         {
             if (!TryBind(acc, ctx, fid, raw, money))
@@ -266,10 +267,11 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         TouchAndValidateHandler(acc, ctx, fid, setOnChange, afterBind, money: null);
 
-    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    // As above, for a field that spells its number itself: an amount with its marks (MoneyMarks), a number in a text
+    // field in the reader's culture (ReaderNumbers).
     internal static Func<string, Task> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
-        Func<Task>? afterBind, MoneyMarks? money) =>
+        Func<Task>? afterBind, IFieldNumbers? money) =>
         async raw =>
         {
             var didBind = setOnChange && TryBind(acc, ctx, fid, raw, money);
@@ -449,7 +451,7 @@ public static class BindingHelpers
     // must not pass for it: the form says under the field what it could not read (UnreadValue), and until a
     // value arrives that it can, no rule is asked about the old one and no save goes through. The same for
     // text the browser held back and reported as an empty field (UnreadInput): it is not an empty field.
-    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw, MoneyMarks? money)
+    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw, IFieldNumbers? money)
     {
         if (money is not null && !TrySpellAmount(acc, ctx, fid, money, ref raw))
         {
@@ -474,7 +476,7 @@ public static class BindingHelpers
     // An amount is read with the field's own marks, and handed on in the one spelling every culture leaves alone.
     // Text that is no amount is unread, as a number the reader's culture cannot read is.
     private static bool TrySpellAmount(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, MoneyMarks money, ref string raw)
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, IFieldNumbers money, ref string raw)
     {
         if (raw.Length == 0 || !UnreadValue.IsNumeric(acc.PropertyType))
         {

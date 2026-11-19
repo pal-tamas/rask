@@ -335,6 +335,13 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **BREAKING: a number bound to a text field is shown and read in the reader's culture.** Before: it was shown in
+  the parsers' spelling (`1234.5`) and read by guessing — text of digits and a dot was taken as the parsers'
+  spelling in every culture — so a German reader's `1.234` (one thousand two hundred and thirty-four) became 1.234,
+  and a Hungarian field showed `1234.5`. After: an `Input.Bind(...)` over a numeric member whose type is typed into
+  as text (anything but `number`/`range`; `inputmode=decimal` included) shows `1234,5` under `de`/`hu` and reads
+  what is typed in that culture only; what it shows reads back as the same number. `type="number"` inputs (the
+  default for a numeric member) and `Ui.Input.Money()` amounts are unchanged.
 - **A bound `DateTimeOffset` keeps its own offset; a route or query one with none is UTC.** Before: a
   `datetime-local` field showed the value's clock time and read the edit back in the SERVER's zone, so every save
   moved the moment by the server's distance from the value's offset (and a `[QueryParam]` moment depended on where
