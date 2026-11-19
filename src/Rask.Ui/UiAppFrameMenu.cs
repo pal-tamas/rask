@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rask.Core.Routing;
 
 namespace Rask;
@@ -67,7 +68,7 @@ internal sealed class UiAppFrameMenu
     ///     whatever the group said: the reader sees where they are. <paramref name="said" /> keeps what the call site said
     ///     of each row and group before the frame first changed it, so a later render starts from that again.
     /// </summary>
-    internal void Light(Dictionary<Component, bool?> said)
+    internal void Light(ConditionalWeakTable<Component, StrongBox<bool?>> said)
     {
         foreach (var link in _links)
         {
@@ -84,16 +85,8 @@ internal sealed class UiAppFrameMenu
         }
     }
 
-    private static bool? Said(Dictionary<Component, bool?> said, Component part, bool? now)
-    {
-        if (said.TryGetValue(part, out var stated))
-        {
-            return stated;
-        }
-
-        said[part] = now;
-        return now;
-    }
+    private static bool? Said(ConditionalWeakTable<Component, StrongBox<bool?>> said, Component part, bool? now) =>
+        said.GetValue(part, _ => new StrongBox<bool?>(now)).Value;
 
     // A collection written among the children is a tagless fragment: its rows are the menu's as much as the rest.
     private static void Collect(IEnumerable<Component?>? children, UiSidebarGroup? group, List<UiAppFrameLink> links)

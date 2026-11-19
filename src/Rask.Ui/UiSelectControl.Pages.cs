@@ -51,7 +51,7 @@ public abstract partial class UiSelectControl<T>
         _paging = true;
         try
         {
-            var answer = pager(_answeredFor.Trim(), skip) is { } pending ? await pending.ConfigureAwait(false) : null;
+            var answer = pager(_answeredFor.Trim(), skip) is { } pending ? await pending : null;
             if (asked != _asked || _found is not { } now || now.Length != skip)
             {
                 return;

@@ -17,6 +17,11 @@ export interface Kit {
     announce(root: Element, value: string): void;
     /** Holds attribute `name` of `el` against the render (rask-owned.ts). */
     own(el: Element, name: string): void;
+    /**
+     * Runs `act` as the runtime's own doing rather than the reader's (rask-owned.ts): what it raises is no edit of a
+     * guarded form. Optional, so an engine newer than its hook still runs.
+     */
+    unasked?(act: () => void): void;
 }
 
 type Iti = ReturnType<typeof intlTelInput>;
@@ -45,6 +50,20 @@ interface Field {
 declare const UTILS: string;
 
 const fields = new WeakMap<Element, Field>();
+// The fields running, to be walked: intl-tel-input keeps every instance in a registry of its own, so a field the
+// page took away is held until it is destroyed.
+const running = new Set<Field>();
+
+/** Destroys the fields whose root has left the page. Run as a field mounts, so the set is as long as the page's fields. */
+function sweep(): void {
+    for (const field of running) {
+        if (!field.root.isConnected) {
+            field.iti.destroy();
+            fields.delete(field.root);
+            running.delete(field);
+        }
+    }
+}
 const countryOf = new WeakMap<Element, Country>();
 
 /** The page's language, which names the countries (Intl.DisplayNames, as intl-tel-input does). */
@@ -62,6 +81,7 @@ export function mount(root: HTMLElement, kit: Kit): void {
     if (fields.has(root)) {
         return;
     }
+    sweep();
     const tel = root.querySelector<HTMLInputElement>("input[type=tel]");
     const button = root.querySelector<HTMLButtonElement>("button[role=combobox]");
     const panel = root.querySelector<HTMLElement>("[popover]");
@@ -94,6 +114,7 @@ export function mount(root: HTMLElement, kit: Kit): void {
     kit.own(tel, "data-intl-tel-input-id");
     const field: Field = {root, tel, iti, kit, button, panel, list, search, rows: null, active: null, ready: false};
     fields.set(root, field);
+    running.add(field);
 
     tel.addEventListener("input", e => {
         const detail = (e as CustomEvent).detail;
@@ -110,7 +131,7 @@ export function mount(root: HTMLElement, kit: Kit): void {
         field.ready = true;
         const bound = root.querySelector<HTMLInputElement>("input[type=hidden]");
         if (bound && bound.value) {
-            iti.setNumber(bound.value);
+            show(field, bound.value);
         } else if (tel.value) {
             iti.setNumber(tel.value);
             tell(field);
@@ -143,8 +164,19 @@ export function adopt(root: Element, value: string): void {
     if (!field) {
         return;
     }
-    field.iti.setNumber(value);
+    show(field, value);
     paint(field);
+}
+
+// The number the page holds, shown: intl-tel-input raises an `input` for it, which is nobody's edit, so a guarded
+// form must not count it as the reader's (rask-leave.ts).
+function show(field: Field, value: string): void {
+    const set = (): void => { field.iti.setNumber(value); };
+    if (field.kit.unasked) {
+        field.kit.unasked(set);
+    } else {
+        set();
+    }
 }
 
 function tell(field: Field): void {

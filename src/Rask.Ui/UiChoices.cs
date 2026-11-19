@@ -85,7 +85,7 @@ internal static class UiChoices
         var asking = !changed && before!.Find is { } same
             ? same
             : new Fn<string, Task<IEnumerable<Component?>>>(async typed =>
-                [.. Pinned(lead, pills), .. Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills)]);
+                [.. Pinned(lead, pills), .. Options(Sorted(await find(typed) ?? [], order), pills)]);
 
         return new UiChosen(new Search<T>(find, shown, lead), [.. Pinned(lead, pills), .. Options(shown, pills)], asking, mayBeEmpty);
     }
@@ -125,10 +125,10 @@ internal static class UiChoices
 
         var pinned = lead.Length;
         Func<string, int, Task<IEnumerable<Component?>>> page = async (typed, skip) =>
-            Options([.. await find(typed, new Ui.ChoicePage(skip - pinned, UiListWindow.Page)).ConfigureAwait(false) ?? []], pills);
+            Options([.. await find(typed, new Ui.ChoicePage(skip - pinned, UiListWindow.Page)) ?? []], pills);
         var first = new Ui.ChoicePage(0, Math.Max(1, UiListWindow.Page - pinned));
         Fn<string, Task<IEnumerable<Component?>>> firstPage = new(async typed =>
-            [.. Pinned(lead, pills), .. Options([.. await find(typed, first).ConfigureAwait(false) ?? []], pills)]);
+            [.. Pinned(lead, pills), .. Options([.. await find(typed, first) ?? []], pills)]);
 
         return new UiChosen(new Pages<T>(find, shown, lead), rows, firstPage, mayBeEmpty, page);
     }

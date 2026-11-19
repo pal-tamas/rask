@@ -50,7 +50,8 @@ internal static class UiListSearch
             return -1;
         }
 
-        var start = needle.Length == 1 ? cursor + 1 : cursor;
+        // A prefix with no cursor yet is looked for from the first row, not from the last (-1 wraps to it).
+        var start = needle.Length == 1 ? cursor + 1 : Math.Max(cursor, 0);
         for (var i = 0; i < texts.Count; i++)
         {
             var at = (((start + i) % texts.Count) + texts.Count) % texts.Count;

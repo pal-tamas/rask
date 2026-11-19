@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
@@ -52,8 +53,10 @@ public sealed partial class UiAppFrame : Component
     // The tenant line's id, one per page as the frame is: what a test or an app's stylesheet finds it by.
     private const string TenantId = "ui-app-frame-tenant";
 
-    // What the call site said of each row's current and each group's fold, before the frame lit or opened them.
-    private readonly Dictionary<Component, bool?> _said = new(ReferenceEqualityComparer.Instance);
+    // What the call site said of each row's current and each group's fold, before the frame lit or opened them. Held
+    // only as long as the row is: a layout that draws its menu anew on every render would otherwise keep every row
+    // it ever drew.
+    private readonly ConditionalWeakTable<Component, StrongBox<bool?>> _said = [];
 
     /// <summary>The app's name, at the top of the sidebar, leading home. Required, and taken first.</summary>
     public required string Brand { get; set; }

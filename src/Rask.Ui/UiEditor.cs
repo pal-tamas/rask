@@ -48,6 +48,9 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
 
     private bool _mounted;
 
+    // Taken off the page: a mount still on its way (the engine is fetched on first use) is undone when it lands.
+    private bool _gone;
+
     /// <summary>The property the editor's HTML is bound to: read to start with, written on every change.</summary>
     public Expression<Func<string?>>? Bind { get; set; }
 
@@ -159,6 +162,12 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
         try
         {
             await Mount(_root, UiEditorEngine.Href(LiveOptions.PathBase), Changed);
+            if (_gone)
+            {
+                await Unmount(_root);
+                return;
+            }
+
             _mounted = true;
         }
         catch (InvalidOperationException)
@@ -198,6 +207,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
     /// <inheritdoc />
     protected override async Task OnUnmount()
     {
+        _gone = true;
         if (_mounted)
         {
             _mounted = false;

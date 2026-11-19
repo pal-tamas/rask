@@ -335,6 +335,18 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Rask.Ui: a value the page sets no longer makes a guarded form unsaved, and a few controls keep their state
+  straight.** Before: `Ui.Editor` raised `input`/`change` when the page set its value, and `Ui.Phone` an `input` when it
+  showed the page's number, so a `ConfirmLeave` form asked about edits nobody made; a select's search typed fast could
+  keep the answer to an earlier key when the page's `OnInput` handler finished out of order, and its searches resumed
+  off the component's context (`ConfigureAwait(false)`); an editor taken off the page while its engine was loading was
+  mounted anyway; a phone field the page removed stayed in intl-tel-input's registry; `Ui.AppFrame` kept every menu row
+  it was ever drawn with; a UTC `DateTime` picked again in `Ui.DatetimePicker` came back with no `Kind`; a type-ahead
+  prefix with no cursor yet started from the last row. After: none of that — the editor's set value is silent, the
+  phone engine runs the page's number as the runtime's own doing where the hook offers it (`kit.unasked`), the select
+  takes each question's place in line before the handler runs, the editor undoes a mount that lands late, detached
+  phone fields are destroyed, the frame's memory is weak, the picker keeps the model's `Kind`, and type-ahead starts at
+  the first row. Rask.Web: `KeepEach`/`KeepEachOrNull` lets go of the items it kept when a later one fails.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

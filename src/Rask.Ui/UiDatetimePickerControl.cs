@@ -301,12 +301,13 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
     // What the calendar announced: only a choice it could have drawn, of days the reader can press (#1272).
     private Task ChangedAsync(string text)
     {
-        if (!TryRead(text, out var value))
+        if (!TryRead(text, out var read))
         {
             return Task.CompletedTask;
         }
 
         var drawn = Latest;
+        var value = Kinded(read, drawn.Committed);
         var picks = Picks(value);
         if (!picks.DrawnBy(drawn.Options))
         {
@@ -519,6 +520,12 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
 
     /// <summary>Reads what the browser announced; false for text that is no value of this picker.</summary>
     private protected abstract bool TryRead(string text, out T value);
+
+    /// <summary>
+    ///     <paramref name="read" /> (a wall-clock time, of no <see cref="DateTimeKind" />) with the kind of what the model
+    ///     held: a UTC moment picked again stays a UTC moment.
+    /// </summary>
+    private protected abstract T Kinded(T read, T? held);
 
     /// <summary>What the button shows for <paramref name="current" />; nothing while it is unset.</summary>
     private protected abstract (string Before, string Between, string After)? Text(T? current, UiDatetimeTimes times, DateOnly today);
