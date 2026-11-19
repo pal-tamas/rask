@@ -156,6 +156,7 @@ public static class RaskAuthServiceCollectionExtensions
             Limit = sp.GetRequiredService<AuthOptions>().SignInAttemptsPerMinute,
         });
         services.TryAddSingleton<AuthTokens>();
+        services.TryAddSingleton(static sp => new AccountSlowdown(sp.GetRequiredService<TimeProvider>()));
 
         // Passkey ceremonies: the sealed challenges, and what a ceremony is verified against.
         services.TryAddSingleton<PasskeyChallenges>();

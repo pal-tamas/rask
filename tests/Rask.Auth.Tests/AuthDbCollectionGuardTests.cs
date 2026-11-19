@@ -24,5 +24,7 @@ public sealed class AuthDbCollectionGuardTests
             // collection for the same reason: it is pure CPU work that can run beside everything else.
             nameof(PasskeyVerifierTests),
             // Reads an address into the client it is counted as; no database.
-            nameof(AuthThrottleClientTests));
+            nameof(AuthThrottleClientTests),
+            // Counts failures in memory; no database.
+            nameof(AccountSlowdownTests));
 }

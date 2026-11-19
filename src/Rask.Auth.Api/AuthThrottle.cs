@@ -28,6 +28,18 @@ internal sealed class AuthThrottle(TimeProvider clock)
     /// <summary>The window failures are counted over.</summary>
     internal TimeSpan Window { get; init; } = TimeSpan.FromMinutes(1);
 
+    /// <summary>
+    ///     How many failed sign-ins one client may have in <see cref="Window" />, at any accounts: generous, so an office behind
+    ///     one address is never held up, and a list of accounts tried from one place is.
+    /// </summary>
+    internal int ClientLimit { get; init; } = 30;
+
+    private AuthThrottle? _clients;
+
+    /// <summary>The per-client bucket: <see cref="ClientLimit" /> failures, over every account.</summary>
+    internal AuthThrottle Clients =>
+        LazyInitializer.EnsureInitialized(ref _clients, () => new AuthThrottle(clock) { Limit = ClientLimit, Window = Window });
+
     /// <summary>The client an attempt is counted against: the address, or for IPv6 the /64 it is one of.</summary>
     /// <remarks>
     ///     One IPv6 subscriber holds a whole /64 (RFC 6177), so counting each address on its own gives a guesser 2^64 fresh

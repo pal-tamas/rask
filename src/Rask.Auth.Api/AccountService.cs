@@ -40,6 +40,7 @@ internal sealed partial class AccountService<TUser, TKey>(
     PasskeyChallenges challenges,
     PasskeySite site,
     IAuthSessions sessions,
+    AccountSlowdown slowdown,
     TimeProvider clock,
     ILogger<AccountService<TUser, TKey>> logger) : IAccountFlows
     where TUser : Authenticatable<TKey>, new()
@@ -239,6 +240,37 @@ internal sealed partial class AccountService<TUser, TKey>(
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(password);
 
+        // A client trying many accounts is held at ClientLimit failures a minute; an unknown client shares no bucket.
+        using var fromClient = client is null ? null : throttle.Clients.Begin(AuthThrottle.Key(SignInPurpose, "", client));
+        if (fromClient is { IsThrottled: true })
+        {
+            return Fail(AuthError.TooManyAttempts);
+        }
+
+        var account = AuthThrottle.Key(SignInPurpose, email, null);
+        if (slowdown.DelayFor(account) is { Ticks: > 0 } wait)
+        {
+            await Task.Delay(wait, clock, cancellationToken).ConfigureAwait(false);
+        }
+
+        var outcome = await CheckSignInAsync(email, password, client, cancellationToken).ConfigureAwait(false);
+        if (outcome.Result.Error == AuthError.InvalidCredentials)
+        {
+            fromClient?.Fail();
+            slowdown.Failed(account);
+        }
+        else if (outcome.Principal is not null || outcome.Result.Error == AuthError.EmailNotConfirmed)
+        {
+            // The password was right: whoever else is guessing, the owner is not held up next time.
+            slowdown.Succeeded(account);
+        }
+
+        return outcome;
+    }
+
+    private async Task<AccountOutcome> CheckSignInAsync(
+        string email, string password, string? client, CancellationToken cancellationToken)
+    {
         var throttleKey = AuthThrottle.Key(SignInPurpose, email, client);
         using var attempt = throttle.Begin(throttleKey);
         if (attempt.IsThrottled)

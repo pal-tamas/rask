@@ -661,7 +661,12 @@ only the first 72 bytes of a password, so with bcrypt on a longer one is refused
 one client, that client is told to wait a minute (`AuthError.TooManyAttempts`, HTTP 429). The account is not locked:
 somebody typing your address five times cannot keep *you* out. Registration and reset requests are throttled the
 same way. Guesses sent in parallel do not get extra tries: a sign-in counts against the limit from the moment it starts,
-so the sixth of six simultaneous wrong passwords is refused like the sixth of six in a row. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+so the sixth of six simultaneous wrong passwords is refused like the sixth of six in a row. Two more counts sit beside
+it. One client — an address, or an IPv6 /64 — gets 30 failed sign-ins a minute over **every** account, so a list of
+accounts tried from one place is held while an office behind one address is not. And one account, from anywhere, slows
+down after 5 failures in 15 minutes: each next attempt waits 1 s, 2 s, 4 s… up to 30 s before its password is checked.
+It only waits — the right password still gets in, and clears the count — so guessing spread over many clients is slowed
+without anybody being able to lock the owner out. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which
