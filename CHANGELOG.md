@@ -344,6 +344,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Rask.Ui: a calendar's "today" is the reader's day, not the server's.** Before: `Ui.Calendar`, `Ui.DatePicker` and
+  `Ui.DatetimePicker` read today (the highlighted day, the Today button, every date preset — Yesterday, This week, Last
+  30 days…) and the time a datetime picker starts from off the server's local zone, so a reader in Budapest at 00:30
+  on a UTC server saw yesterday as today. After: they read `Reader.Today` / `Reader.Now` — the zone the reader's
+  browser named, on the app's `TimeProvider` (the app's zone until the browser has said its own).
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of
