@@ -11,7 +11,9 @@ public static partial class Ui
     /// <remarks>
     ///     Asked for the first page whenever what is typed changes, and for the next one as the reader scrolls near the end
     ///     of the rows already in the list. An answer of fewer rows than <paramref name="Take" /> is the end of the list:
-    ///     nothing past it is asked for until something else is typed.
+    ///     nothing past it is asked for until something else is typed. An answer that says how many rows there are
+    ///     (<see cref="ChoiceRows{T}" />) is asked for every row up to where the reader scrolled: <paramref name="Take" /> is
+    ///     then that many, in whole pages.
     /// </remarks>
     /// <param name="Skip">How many rows the list holds already: the ones to skip.</param>
     /// <param name="Take">The most rows to answer with.</param>

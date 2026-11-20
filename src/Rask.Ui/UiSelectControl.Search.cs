@@ -67,7 +67,7 @@ public abstract partial class UiSelectControl<T>
 
         _found = [.. (answer ?? []).Select(AsRow)];
         _answers++;
-        FirstPage(asked, typed, _found.Length);
+        FirstPage(asked, typed, _found.Length, answer);
     }
 
     // A pillbox's options are its own parts: the select reads them as its options.

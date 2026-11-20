@@ -80,9 +80,10 @@ public abstract partial class UiSelectControl<T>
             ? string.Empty
             : search;
 
-    // The rows of a windowed list as the scroll box shows them; null for a list drawn whole.
+    // The rows of a windowed list as the scroll box shows them — those on offer and those not found yet (Unfound); null
+    // for a list drawn whole.
     private VirtualWindow? WindowOf(List<Row> shown, int rowHeight) =>
-        _windowed ? _scroll.Window(rowHeight, UiListWindow.Overscan, shown.Count, UiListWindow.Height) : null;
+        _windowed ? _scroll.Window(rowHeight, UiListWindow.Overscan, shown.Count + Unfound, UiListWindow.Height) : null;
 
     // Every row of a windowed list is as tall as the next: the taller one when any of them has a line under its words.
     private static int RowHeightOf(Parts parts) =>
@@ -106,7 +107,7 @@ public abstract partial class UiSelectControl<T>
                 ' ',
                 view.RowHeight.ToString(CultureInfo.InvariantCulture),
                 _generation.ToString(CultureInfo.InvariantCulture),
-                view.Shown.Count.ToString(CultureInfo.InvariantCulture)),
+                Walked(view).ToString(CultureInfo.InvariantCulture)),
         };
         if (view.PickedAt >= 0)
         {
@@ -121,20 +122,27 @@ public abstract partial class UiSelectControl<T>
         return marks;
     }
 
-    // The rows the window holds, between the room the rows above and below it would take.
+    // The rows the window holds, between the room the rows above and below it would take. The rows of the window not
+    // found yet are the spacer after it: one skeleton of every row that is not here, however far the reader went.
     private IEnumerable<Component?> WindowRows(View view, VirtualWindow window)
     {
-        yield return Spacer("ui:before", window.OffsetBefore);
-        for (var at = window.Start; at < window.End; at++)
+        var drawn = Math.Max(window.Start, Math.Min(window.End, view.Shown.Count));
+        yield return Spacer("ui:before", window.OffsetBefore, view.RowHeight);
+        for (var at = window.Start; at < drawn; at++)
         {
             yield return OptionRow(view, view.Shown[at], at);
         }
 
-        yield return Spacer("ui:after", window.OffsetAfter);
+        yield return Spacer("ui:after", window.OffsetAfter + ((window.End - drawn) * view.RowHeight), view.RowHeight);
     }
 
-    private static HTMLDivElement Spacer(string key, int height) =>
-        Div.Key(key).Style("height:" + height.ToString(CultureInfo.InvariantCulture) + "px").Aria("hidden", "true");
+    // The room of rows not drawn, which shows skeleton rows of the rows' own height (ui.css, `data-ui-list-unseen`): a
+    // scroll faster than the page draws the rows it lands on, and rows not found yet, show rows on their way, not a gap.
+    private static HTMLDivElement Spacer(string key, int height, int rowHeight) =>
+        Div.Key(key)
+            .Style("height:" + height.ToString(CultureInfo.InvariantCulture) + "px")
+            .Attributes(("data-ui-list-unseen", rowHeight == UiListWindow.Row ? null : "tall"))
+            .Aria("hidden", "true");
 
     // What type-ahead tells the page: a field the browser writes the letters into (rask-list.ts `seek`), once the list is
     // windowed and the row they land on may not be drawn.

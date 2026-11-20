@@ -32,6 +32,21 @@ internal static class UiListWindow
     /// </summary>
     internal const int Page = 50;
 
+    /// <summary>
+    ///     The most rows one question of a paging <c>.Choices(…)</c> asks for: a reader who drags the scrollbar of a source
+    ///     that says how many rows it has (<see cref="Ui.ChoiceRows{T}" />) far past the rows found is answered with every
+    ///     row up to there, so many at a time.
+    /// </summary>
+    internal const int MostAsked = 1000;
+
+    /// <summary>
+    ///     The most rows past those found a source's count (<see cref="Ui.ChoiceRows{T}" />) makes the list long: so many
+    ///     rows of <see cref="TallRow" /> are 15 million pixels, under the tallest box a browser draws (about 17.9 million in
+    ///     Firefox), and the spacers' sum stays far inside an <see cref="int" />. A count past it is scrolled on through as
+    ///     a source's that does not say.
+    /// </summary>
+    internal const int MostCounted = 250_000;
+
     /// <summary>The most letters type-ahead looks for: more is no reader typing.</summary>
     internal const int MaxTyped = 64;
 

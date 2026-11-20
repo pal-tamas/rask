@@ -28,6 +28,9 @@ public abstract partial class UiSelectControl<T>
         /// <summary>The rows of a windowed list the scroll box shows; null for a list drawn whole.</summary>
         internal Core.Virtualization.VirtualWindow? Window { get; init; }
 
+        /// <summary>How many rows the last answer and the pages after it had brought when this was read: what <see cref="Shown" /> holds of them.</summary>
+        internal int FoundCount { get; init; }
+
         /// <summary>How tall each row of a windowed list is, in pixels.</summary>
         internal int RowHeight { get; init; }
 
@@ -77,6 +80,7 @@ public abstract partial class UiSelectControl<T>
             Found = FiltersItself ? shown.Count : Found(parts),
             Shown = shown,
             Window = WindowOf(shown, rowHeight),
+            FoundCount = _found?.Length ?? 0,
             RowHeight = rowHeight,
         };
         Remember(view);

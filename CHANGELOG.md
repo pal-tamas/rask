@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
+  (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
+  scrollbar thumb that shrank and jumped with every page, a drag to the bottom stopping at row fifty. After:
+  `return new Ui.ChoiceRows<int>(rows, await query.CountAsync());` (still the `IReadOnlyList` the finder returns) makes
+  the `Ui.Select`/`Ui.Pillbox` list that long from the first page, as a native list is; a drag anywhere asks once for
+  every row up to there (at most a thousand), and the rows not here yet — and those a scroll faster than the round trip
+  lands on in any windowed list — are skeleton rows of the rows' own height, so nothing moves when they arrive.
+  `aria-setsize` says the real count. A plain list keeps paging as before, with a box of skeleton rows past the last row
+  found while more may follow.
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the

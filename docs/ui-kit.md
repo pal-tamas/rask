@@ -1640,7 +1640,12 @@ a `Ui.ChoicePage` as well (`.Choices((typed, page) => …)`, on `Ui.Select` and 
 opens on the first page for what is typed; as the reader scrolls — the wheel, the scrollbar, End — to within ten rows of
 the last one here, it asks for the next page and puts it after them, so the box stays where it is and grows as pages
 arrive. An answer of fewer rows than `page.Take` is the end. Typing starts again from the first page, and a page asked
-for older words is dropped when it lands. The rows are drawn in the order the store gives them, page after page, so
+for older words is dropped when it lands. **A source that says how many rows it has** — the page answered as
+`new Ui.ChoiceRows<T>(rows, total)`, which is still the `IReadOnlyList` the finder returns — makes the list that long
+from its first page on (the owner's, 2026-11-20): the scrollbar is the whole list's, as a native list's is, and stays
+still as pages arrive; the rows not here yet are skeleton rows, and a drag of the scrollbar far down is answered with one
+question for every row up to there (at most a thousand at a time), not a page at a time behind the reader. A plain list
+says nothing of the rest, and a box of skeleton rows past the last row found shows the next page on its way. The rows are drawn in the order the store gives them, page after page, so
 order the query; the picked rows stay in the list as they do above. A page is fifty rows: five boxes of the ten a box
 shows, asked for a box's worth of scrolling before the reader gets there. Flux draws no "loading more" row, and nor does
 this. The one-list `.Choices(find, held:)` above is unchanged.
@@ -1659,6 +1664,14 @@ Ui.Pillbox.Bind(() => draft.ProductIds).Choices((typed, page) => Products(typed,
 static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.ChoicePage page) =>
     [.. (await Product.Where(p => p.Name.Contains(typed)).OrderBy(p => p.Name).Skip(page.Skip).Take(page.Take).ToList())
         .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
+
+// Best: the scrollbar the whole list's from the first page — the page, and how many rows there are.
+static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.ChoicePage page)
+{
+    var found = Product.Where(p => p.Name.Contains(typed));
+    var rows = await found.OrderBy(p => p.Name).Skip(page.Skip).Take(page.Take).Select(p => new Ui.Choice<int>(p.Id, p.Name)).ToListAsync();
+    return new Ui.ChoiceRows<int>(rows, await found.CountAsync());
+}
 ```
 
 **Rows pinned first** — "No company" above the companies — are `.Leading(…)` after `.Choices(…)`, on `Ui.Select` (a

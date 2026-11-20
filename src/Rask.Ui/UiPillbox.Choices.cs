@@ -64,7 +64,9 @@ public sealed partial class UiPillbox<T>
     /// <remarks>
     ///     As <see cref="Choices(Func{string, Task{IReadOnlyList{Ui.Choice{T}}}}, IEnumerable{Ui.Choice{T}}?)" />, but
     ///     asked for <see cref="Ui.ChoicePage" />s: an answer of fewer rows than <see cref="Ui.ChoicePage.Take" /> is the
-    ///     end of the list. The rows are drawn in the order <paramref name="find" /> gives them, page after page — order
+    ///     end of the list. A page answered as <see cref="Ui.ChoiceRows{T}" /> says how many rows there are in all: the list
+    ///     is that long from its first page, its scrollbar the whole list's, and the rows a scroll reaches are asked for at
+    ///     once. The rows are drawn in the order <paramref name="find" /> gives them, page after page — order
     ///     the query (<c>OrderBy</c>) so the pages follow on. Typing starts again from the first page, a page asked for
     ///     older words is dropped, and every picked row stays in the list.
     ///     <code>

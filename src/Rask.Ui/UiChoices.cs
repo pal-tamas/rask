@@ -92,7 +92,8 @@ internal static class UiChoices
 
     /// <summary>
     ///     A search that pages: what is typed goes to <paramref name="find" /> with the first page, and the next page is
-    ///     asked for as the reader scrolls near the end of the rows found so far. Each page is in the order
+    ///     asked for as the reader scrolls near the end of the rows found so far — or, for a source that says how many rows it
+    ///     has (<see cref="Ui.ChoiceRows{T}" />), every row up to where the reader scrolled, in one question. Each page is in the order
     ///     <paramref name="find" /> answers it — a page after the last continues its order, so no page is sorted on its own —
     ///     and the rows the value holds are drawn before the first answer, in the reader's alphabet.
     /// </summary>
@@ -124,11 +125,18 @@ internal static class UiChoices
         }
 
         var pinned = lead.Length;
-        Func<string, int, Task<IEnumerable<Component?>>> page = async (typed, skip) =>
-            Options([.. await find(typed, new Ui.ChoicePage(skip - pinned, UiListWindow.Page)).ConfigureAwait(false) ?? []], pills);
+        Func<string, int, int, Task<IEnumerable<Component?>>> page = async (typed, skip, take) =>
+        {
+            var asked = new Ui.ChoicePage(skip - pinned, take);
+            var answered = await find(typed, asked).ConfigureAwait(false) ?? [];
+            return UiPageAnswer.Of(Options([.. answered], pills), answered, asked.Skip);
+        };
         var first = new Ui.ChoicePage(0, Math.Max(1, UiListWindow.Page - pinned));
         Fn<string, Task<IEnumerable<Component?>>> firstPage = new(async typed =>
-            [.. Pinned(lead, pills), .. Options([.. await find(typed, first).ConfigureAwait(false) ?? []], pills)]);
+        {
+            var answered = await find(typed, first).ConfigureAwait(false) ?? [];
+            return UiPageAnswer.Of([.. Pinned(lead, pills), .. Options([.. answered], pills)], answered, 0);
+        });
 
         return new UiChosen(new Pages<T>(find, shown, lead), rows, firstPage, mayBeEmpty, page);
     }

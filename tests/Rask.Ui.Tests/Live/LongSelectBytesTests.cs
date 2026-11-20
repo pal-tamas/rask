@@ -23,7 +23,8 @@ public partial class LongSelectBytesTests(ITestOutputHelper output) : global::Ra
     // The budgets, in bytes (#1316): exact, so a byte more is a red.
     private const int RowBudget = 612;
     private const int WholeBudget = 526_821;
-    private const int WindowedBudget = 17_933;
+    // +40 on purpose (2026-11-20): each spacer says it shows skeleton rows (`data-ui-list-unseen`, ui.css).
+    private const int WindowedBudget = 17_973;
     private const int HundredBudget = 56_826;
     private const int ScrollBudget = 6_174;
     private const int MiddleBudget = 18_592;

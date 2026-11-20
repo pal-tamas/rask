@@ -20,5 +20,5 @@ internal sealed class UiPillboxFace
     ///     The next page of the search the pillbox hands the list, when its <c>.Choices((typed, page) =&gt; …)</c> pages;
     ///     null for any other search.
     /// </summary>
-    internal Func<string, int, Task<IEnumerable<Component?>>>? Next { get; init; }
+    internal Func<string, int, int, Task<IEnumerable<Component?>>>? Next { get; init; }
 }

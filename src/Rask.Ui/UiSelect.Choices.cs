@@ -56,7 +56,9 @@ public sealed partial class UiSelect<T>
     ///     <para>
     ///         As <see cref="Choices{TValue}(Func{string, Task{IReadOnlyList{Ui.Choice{TValue}}}}, Ui.Choice{TValue}?)" />,
     ///         but asked for <see cref="Ui.ChoicePage" />s: an answer of fewer rows than <see cref="Ui.ChoicePage.Take" />
-    ///         is the end of the list. The rows are drawn in the order <paramref name="find" /> gives them, page after
+    ///         is the end of the list. A page answered as <see cref="Ui.ChoiceRows{T}" /> says how many rows there are in all: the
+    ///         list is that long from its first page, its scrollbar the whole list's, and the rows a scroll reaches are asked for
+    ///         at once. The rows are drawn in the order <paramref name="find" /> gives them, page after
     ///         page — order the query (<c>OrderBy</c>) so the pages follow on. Typing starts again from the first page, and
     ///         a page asked for older words is dropped.
     ///     </para>

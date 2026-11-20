@@ -8,10 +8,10 @@ namespace Rask;
 /// <param name="Rows">The options drawn before the first answer.</param>
 /// <param name="Find">The search; for one that pages, its first page.</param>
 /// <param name="MayBeEmpty">Whether choosing nothing is an answer.</param>
-/// <param name="Next">For a search that pages: the <see cref="UiListWindow.Page" /> rows after the first so many, for what was typed.</param>
+/// <param name="Next">For a search that pages: so many rows (the third) after the first so many (the second), for what was typed.</param>
 internal sealed record UiChosen(
     object Said,
     Component?[] Rows,
     Fn<string, Task<IEnumerable<Component?>>>? Find,
     bool MayBeEmpty,
-    Func<string, int, Task<IEnumerable<Component?>>>? Next = null);
+    Func<string, int, int, Task<IEnumerable<Component?>>>? Next = null);

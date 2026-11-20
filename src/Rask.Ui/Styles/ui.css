@@ -515,6 +515,35 @@
 }
 
 /*
+  THE ROWS OF A WINDOWED LIST THAT ARE NOT DRAWN ARE SKELETON ROWS (owner, 2026-11-20: "the scrollbar's real size,
+  super smooth, native-feeling").
+
+  Not Flux's: Flux draws every option. The spacers either side of a windowed list's rows (UiSelectControl.Window,
+  `data-ui-list-unseen`) are as tall as the rows they stand for — the rows a scroll faster than the round trip lands
+  on before the page has drawn them, and the rows a paging source says it has and has not sent yet — and show them as
+  the kit's skeleton line (`Ui.SkeletonLine`: 14px, bg-zinc-400/20), one a row, where a row's words would start: a
+  scroll never shows a gap, and the rows that arrive take the place their skeleton held, so nothing moves. One tile a
+  row, of the row's own height (32px, a row with a line under its words 60px), from the spacer's top, which is always
+  at a row's edge.
+*/
+@layer rask {
+  :where([data-ui-list-unseen]) {
+    --ui-list-row: 32px;
+    background-image: linear-gradient(
+      transparent calc(50% - 0.4375rem),
+      color-mix(in oklab, var(--color-zinc-400) 20%, transparent) calc(50% - 0.4375rem) calc(50% + 0.4375rem),
+      transparent calc(50% + 0.4375rem));
+    background-position: 0.5rem 0;
+    background-size: calc(60% - 0.5rem) var(--ui-list-row);
+    background-repeat: repeat-y;
+  }
+
+  :where([data-ui-list-unseen="tall"]) {
+    --ui-list-row: 60px;
+  }
+}
+
+/*
   WHAT A SELECT'S ROW HOLDS, BY ITS PLACE (#1316) — in the row, and in the button's copy of the picked one (drawn by
   the page, or copied there by rask-list-held.ts). UiListboxRow writes the same five boxes every time, none marked
   (Flux marks none): the body; in it the lead (the tick's place, then an icon or an avatar) and the text (the words,

@@ -9294,3 +9294,9 @@ Rask.UiFacts
 Rask.UiFacts.UiFacts() -> void
 static Rask.Ui.Fact(string! label, Rask.Core.Component? value) -> Rask.Core.HTMLDivElement!
 static Rask.Ui.Facts.get -> Rask.UiFacts!
+Rask.Ui.ChoiceRows<T>
+Rask.Ui.ChoiceRows<T>.ChoiceRows(System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>! rows, int total) -> void
+Rask.Ui.ChoiceRows<T>.Count.get -> int
+Rask.Ui.ChoiceRows<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<Rask.Ui.Choice<T>>!
+Rask.Ui.ChoiceRows<T>.this[int index].get -> Rask.Ui.Choice<T>
+Rask.Ui.ChoiceRows<T>.Total.get -> int
