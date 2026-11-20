@@ -226,10 +226,11 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task A_redeem_across_schemes_on_the_same_host_succeeds()
+    public async Task A_redeem_across_schemes_on_the_same_host_is_refused_unless_the_proxy_is_configured()
     {
-        // TLS-terminating proxy: browser Origin is https (:443) while the request reaches the app as
-        // http (:80). Host matches, so redeem must still succeed (host-only comparison).
+        // TLS-terminating proxy nobody configured: browser Origin is https (:443) while the request reaches the
+        // app as http (:80). Another scheme is another origin; Rask:BehindProxy or Rask:PublicOrigin lets it in
+        // (SameOriginTests in Rask.Core.Tests).
         using var host = CreateHost();
         var ticketId = IssueTicket(host);
 
@@ -241,7 +242,7 @@ public class AuthRedeemEndpointTests
 
         var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
 
     private static string IssueTicket(RaskTestHost host)

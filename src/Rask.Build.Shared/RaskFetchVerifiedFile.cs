@@ -73,7 +73,16 @@ public sealed class RaskFetchVerifiedFile : Task
     /// <inheritdoc />
     public override bool Execute()
     {
-        if (File.Exists(DestinationFile))
+        if (Sha256.Length == 0 && Required)
+        {
+            // An unpinned file this build cannot do without would be run unverified on every machine that builds it.
+            Log.LogError($"{Product}: no SHA-256 is pinned for {Url}, and the build runs what it downloads, so it is not "
+                         + "fetched unverified. Pin the digest of the release you chose"
+                         + (Remedy.Length == 0 ? "." : ". " + Remedy));
+            return false;
+        }
+
+        if (File.Exists(DestinationFile) && Kept())
         {
             Fetched = true;
             return true;
@@ -112,6 +121,27 @@ public sealed class RaskFetchVerifiedFile : Task
             Log.LogWarning(message);
             return true;
         }
+    }
+
+    // A file already in place is the pinned one, or it is not kept: a cache another process (or a truncated copy)
+    // wrote is checked like a download is, and fetched again when it is not those bytes.
+    private bool Kept()
+    {
+        if (Sha256.Length == 0)
+        {
+            return true;
+        }
+
+        var actual = HttpFetch.Sha256Hex(DestinationFile);
+        if (string.Equals(actual, Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        Log.LogWarning($"{Product}: '{DestinationFile}' has SHA-256 {actual}, not the pinned {Sha256.Trim().ToLowerInvariant()}; "
+                       + "fetching it again.");
+        File.Delete(DestinationFile);
+        return false;
     }
 
     private string Where() => CacheDirectory.Length == 0 ? Path.GetDirectoryName(DestinationFile) ?? DestinationFile : CacheDirectory;

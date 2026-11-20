@@ -27,7 +27,7 @@ internal sealed class FluentValidationRequestValidator<TRequest> : IRequestValid
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
-        if (request is null || !RaskValidation.AutoValidate
+        if (request is null || !RequestValidationSwitch.Validates
             || RaskValidators.Find(typeof(TRequest)) is not { } factory)
         {
             return [];

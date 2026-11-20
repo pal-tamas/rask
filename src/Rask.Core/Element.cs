@@ -625,7 +625,8 @@ public abstract partial class Element : Component
     // IReadOnlyDictionary interface instead boxes an enumerator on every render of an element that
     // carries a Data or Aria bag — the common literal (`new() { ... }`) is a Dictionary, so it
     // takes the fast path. `skipKey`, when set, drops one entry (Data["rask-key"] superseded by Key), and
-    // `shadow`, when set, drops every aria-* entry a typed Aria* property already wrote.
+    // `shadow`, when set, drops every aria-* entry a typed Aria* property already wrote. A key that is no attribute
+    // name (AttributeName) is never written: a name has no escape, so it would end the tag's name and write markup.
     private static void AppendPrefixedAttrs(StringBuilder sb, string prefix,
         IReadOnlyDictionary<string, string?> map, string? skipKey, AriaAttrs? shadow = null)
     {
@@ -634,7 +635,7 @@ public abstract partial class Element : Component
         // Dictionary's three allocations for a boxed enumerator on every render.
         if (map is AttrBag bag)
         {
-            if (Keeps(bag.Name0, skipKey, shadow))
+            if (Keeps(prefix, bag.Name0, skipKey, shadow))
             {
                 AppendAttr(sb, prefix, bag.Name0, bag.Value0);
             }
@@ -645,7 +646,7 @@ public abstract partial class Element : Component
                 foreach (var kv in rest)
 #pragma warning restore S3267
                 {
-                    if (Keeps(kv.Key, skipKey, shadow))
+                    if (Keeps(prefix, kv.Key, skipKey, shadow))
                     {
                         AppendAttr(sb, prefix, kv.Key, kv.Value);
                     }
@@ -661,7 +662,7 @@ public abstract partial class Element : Component
             foreach (var kv in dict)
 #pragma warning restore S3267
             {
-                if (Keeps(kv.Key, skipKey, shadow))
+                if (Keeps(prefix, kv.Key, skipKey, shadow))
                 {
                     AppendAttr(sb, prefix, kv.Key, kv.Value);
                 }
@@ -673,7 +674,7 @@ public abstract partial class Element : Component
             foreach (var kv in map)
 #pragma warning restore S3267
             {
-                if (Keeps(kv.Key, skipKey, shadow))
+                if (Keeps(prefix, kv.Key, skipKey, shadow))
                 {
                     AppendAttr(sb, prefix, kv.Key, kv.Value);
                 }
@@ -681,7 +682,8 @@ public abstract partial class Element : Component
         }
     }
 
-    private static bool Keeps(string key, string? skipKey, AriaAttrs? shadow) =>
+    private static bool Keeps(string prefix, string key, string? skipKey, AriaAttrs? shadow) =>
         (skipKey is null || !string.Equals(key, skipKey, StringComparison.Ordinal))
-        && (shadow is null || !shadow.Shadows(key));
+        && (shadow is null || !shadow.Shadows(key))
+        && AttributeName.Writes(prefix, key);
 }

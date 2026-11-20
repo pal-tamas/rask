@@ -12,7 +12,7 @@ a reverse proxy, Content-Security-Policy, and the pre-ship checklist. For the au
 | **Redeem-ticket TTL** | 30s, fixed. The ticket is single-use, session-bound, 128-bit. |
 | **CSRF on `/_rask/auth/redeem`** | The secret session-bound ticket defeats classic CSRF; the endpoint additionally **rejects cross-origin `Origin`/`Referer`** (HTTP 403). |
 | **Session identity trust model** | A live session is keyed by an unguessable 128-bit id embedded in the page (same model as a Blazor circuit). The WS `hello` handler attaches a socket to an existing session only when the socket's principal is the session's owner (or, during a sign-in/sign-out handoff, the one principal that handoff is waiting for); anyone else gets the same `session/unknown` answer as for an id that does not exist. A session that nobody has signed into has no owner to compare, so for anonymous pages security still rests on the **secrecy of the session id** — serve over HTTPS, don't log it or leak it via `Referer`. The owner is identified by its `ClaimTypes.NameIdentifier` claim, or `ClaimTypes.Name` without one, so **a signed-in principal must carry one of them**: one that carries neither matches no one, so its own tab reloads on every reconnect and its uploads and downloads are refused, and Rask logs a warning saying so. Cross-origin pages can't read it (same-origin policy). |
-| **Cross-Site WebSocket Hijacking** | CORS doesn't apply to WS handshakes and the upgrade carries the auth cookie, so the `/rask/ws` endpoint **rejects a cross-origin handshake** (HTTP 403) using the same host-only same-origin check as redeem. Clients sending no `Origin` (non-browser) are allowed. |
+| **Cross-Site WebSocket Hijacking** | CORS doesn't apply to WS handshakes and the upgrade carries the auth cookie, so the `/rask/ws` endpoint **rejects a cross-origin handshake** (HTTP 403) using the same same-origin check (scheme, host and port) as redeem. Clients sending no `Origin` (non-browser) are allowed. |
 | **Session-store growth (DoS)** | Each session pins a component tree + DI scope. Sessions are reclaimed shortly after their socket disconnects; set `RaskLiveOptions.MaxSessions` for a hard ceiling (a GET over the cap gets `503` + `Retry-After`). `0` = unlimited (default). Pair with a reverse-proxy rate limit. |
 | **Inbound WS frame abuse (DoS)** | Three built-in per-connection bounds the receive loop enforces with sane fixed defaults: a reassembled frame past **8 MB** aborts the socket (bounds a fragmented-frame memory DoS); more than **1000 frames/second** closes it (bounds a small-frame parse-CPU DoS the size cap misses); and more than **512 queued handler dispatches** closes it (backpressure when a client outpaces handler draining or a handler hangs). On a close the client reconnects against the intact session and resumes. These guard a single misbehaving connection — still front the app with a **reverse-proxy / WAF rate limit** to bound connection-count and cross-connection floods. |
 | **Sign-out invalidation** | Redeem clears the cookie; the WS reconnect re-seeds `SessionUserProvider` to anonymous. `SessionUserProvider.Clear()` is available for explicit invalidation. |
@@ -25,9 +25,9 @@ a reverse proxy, Content-Security-Policy, and the pre-ship checklist. For the au
 
 ## Behind a reverse proxy (ForwardedHeaders)
 
-Rask's anti-CSWSH and redeem-CSRF defenses are a **host-only same-origin check**: the `/rask/ws`
-handshake and `/_rask/auth/redeem` compare the request's host to the `Origin` header's host and reject a
-mismatch with `403`. Behind a TLS-terminating proxy (nginx, Caddy, a cloud load balancer, Azure App
+Rask's anti-CSWSH and redeem-CSRF defenses are a **same-origin check**: the `/rask/ws` handshake and
+`/_rask/auth/redeem` compare the request's scheme, host and port to the `Origin` header's and reject a
+mismatch with `403` (another port on the same host is another site). Behind a TLS-terminating proxy (nginx, Caddy, a cloud load balancer, Azure App
 Service, …) the app receives the request on an internal address, so `HttpContext.Request.Host` is the
 **internal** host (e.g. `localhost:8080`) while the browser's `Origin` carries the **public** host
 (`app.example.com`). Those don't match, and **every legitimate same-origin WebSocket handshake and
@@ -61,6 +61,13 @@ app.MapRask<App>();
 > forward `For`/`Proto` but not `Host` by default. Only trust these headers from a proxy you control —
 > an attacker who can reach the app directly could otherwise spoof the host. If you can't use
 > `ForwardedHeaders`, host Rask on the same origin the browser sees so the internal host already matches.
+
+**Or name the public origin.** A proxy that cannot say enough (TLS ended in front with no
+`X-Forwarded-Proto`, a `Host` rewritten to the container's) is configured by naming where the app's
+pages are served from: `Rask:PublicOrigin` (`Rask__PublicOrigin=https://app.example.com`, several
+comma-separated). A browser on one of those origins is let in whatever the request looks like behind
+the proxy; every other origin still has to match the request's own scheme, host and port. Unset, the
+auth battery's `Rask:Auth:PublicOrigin` (which `rask deploy --domain` writes) is used.
 
 ---
 
@@ -118,7 +125,7 @@ origins you actually use, and consider `report-uri`/`report-to` to catch violati
 - ☑ Set a **[Content-Security-Policy](#content-security-policy)** — Rask runs under a strict policy (`script-src 'self'`, plus `'wasm-unsafe-eval'` on WASM); only `style-src` needs `'unsafe-inline'` for `Style:` attributes.
 - ☑ Where **who has an account** is sensitive, turn on `Rask:Auth:RequireConfirmedEmail` — without it, registering a taken address answers "already exists" ([why](authentication.md#passwords-and-throttling)).
 - ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.
-- ☑ Behind a reverse proxy, wire **ForwardedHeaders** so the host-only same-origin checks (redeem + WS) see the public host.
+- ☑ Behind a reverse proxy, wire **ForwardedHeaders** (`Rask:BehindProxy`) so the same-origin checks (redeem + WS) see the public scheme and host — or name the public origin(s) with `Rask:PublicOrigin`.
 - ☑ For untrusted-traffic hosts, set `RaskLiveOptions.MaxSessions` and a reverse-proxy rate limit to bound session creation. The receive loop also bounds per-connection inbound-frame size, rate, and handler backlog automatically (see [Hardening reference](#hardening-reference)).
 - ☑ Rotate signing keys; manage the Data Protection key ring (persisted, encrypted at rest). `AddRask`
   wires the persistence half: the ring is written to `/data/keys`, the volume `rask deploy` mounts,

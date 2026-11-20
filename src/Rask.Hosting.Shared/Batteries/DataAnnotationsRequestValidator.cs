@@ -39,11 +39,7 @@ internal sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValida
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
-        // One switch means one switch. On the server c.Validation.Off() also clears
-        // CqrsOptions.ValidateRequests, so this is redundant there; on WebAssembly there is no options
-        // object to configure, and without this line turning validation off would stop forms validating
-        // and quietly leave requests being validated.
-        if (request is null || !RaskValidation.AutoValidate)
+        if (request is null || !RequestValidationSwitch.Validates)
         {
             return [];
         }

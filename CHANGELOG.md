@@ -586,6 +586,39 @@ them until tagged releases begin.
   Dockerfiles unchanged; anything missing falls back to the plain build in one line. Run
   `rask deploy --github-actions` again to add the step to an existing `deploy.yml`.
 
+### Security
+- **A `Data`/`Aria`/`Attributes` key that is no attribute name is not written.** Before: a key went into the markup as
+  it was — HTML has no escape for a name — so `.Data(keyFromInput, v)` with `x onmouseover=alert(1)` in it wrote an
+  attribute of the sender's own. After: a key outside HTML's grammar for an attribute's name (a space, a quote, `<`,
+  `>`, `/`, `=`, a control character) is left out of the markup and the live frame, and said once as a `Rask.Render`
+  warning. `data-rask-*` and names outside ASCII pass as before.
+- **The server validates every dispatched request whatever the forms' switch says.** Before: the DataAnnotations and
+  FluentValidation request validators read `RaskValidation.AutoValidate`, the switch a `Form` reads, so an app that
+  set it to `false` to stop its forms validating on their own let every command reach its handler unchecked. After:
+  on the server only `CqrsOptions.ValidateRequests` (cleared by `c.Validation.Off()`) turns request validation off;
+  in the browser, where nothing is trusted, the forms' switch still decides. The browser's pre-check also disposes
+  its scope asynchronously.
+- **BREAKING: same-origin compares scheme, host and port; a proxy that hides them is named by `Rask:PublicOrigin`.**
+  Before: the CSRF/WebSocket origin check compared the host alone, so `http://app:8081` passed as `https://app`'s own
+  page. After: the `Origin` must be the request's own scheme, host and port (as `Rask:BehindProxy`/ForwardedHeaders
+  report them), or one of the origins listed in the new `Rask:PublicOrigin` setting (comma-separated; unset, the auth
+  battery's `Rask:Auth:PublicOrigin`, which `rask deploy --domain` writes, is used). An app behind a TLS-terminating
+  proxy with neither configured now gets `403` on the live socket and the sign-in redeem: set one of them.
+- **A session's id is no longer written into the "renders in a row" warning.** Before: the line named the session
+  by the id its browser reconnects with, a bearer for anyone reading the logs. After: by the first eight hex digits
+  of its SHA-256 — still one session's lines told from another's.
+- **`Cached.VaryBy(value)` refuses a value whose text is only its type's name.** Before: a class without a
+  `ToString` of its own keyed every instance alike, so one customer's fragment was served to another. After: it
+  throws, naming the type and what to vary by instead (an id, a string, a number, a record or tuple of those).
+- **The build's fetch checks a file already in its cache, and refuses an unpinned one it cannot do without.**
+  Before: `RaskFetchVerifiedFile` trusted any file at its destination unread, and a required download with no
+  SHA-256 pinned was only a warning. After: a cached file is rehashed when a digest is pinned and fetched again when
+  it is not those bytes; a required file with no pin is an error naming the remedy (a Litestream version of your own
+  needs `RaskLitestreamSha256`; a publish fails without it).
+- **`rask dev` never claims the rest of `/etc/hosts` for a block whose end marker is gone.** Before: the block ran
+  to the end of the file, so the next run — as root — rewrote, and the undo deleted, every entry below it. After:
+  it ends at the first line `rask dev` never writes.
+
 ## [0.24.0] - 2026-11-16
 
 **.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app

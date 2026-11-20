@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Rask.Core.Diagnostics;
 
 namespace Rask.Core.Live;
@@ -153,10 +155,22 @@ internal sealed class RenderPace(TimeProvider clock)
         var who = _askers.Count == 0
             ? "no component's StateHasChanged"
             : string.Join(", ", _askers.Select(static type => type.Name).Order(StringComparer.Ordinal));
-        return $"[Rask.LiveSession] {(sessionId is null ? "The session" : "Session " + sessionId)} has made {_inARow} renders in a row "
+        return $"[Rask.LiveSession] {(sessionId is null ? "The session" : "Session " + Named(sessionId))} has made {_inARow} renders in a row "
             + $"that were each asked for while the one before was being made. Asked by: {who}. From here each one waits "
             + $"{Pause.TotalMilliseconds:0} ms, so the page stays current and the reader's events are still answered. A "
             + "component that calls StateHasChanged from every Render does this; so does a source that raises its event "
             + "faster than the page renders.";
+    }
+
+    /// <summary>
+    ///     The session as a log line may name it: the first eight hex digits of its id's SHA-256. The id itself is
+    ///     what a browser reconnects with, so written into a log it would be a bearer for anyone who reads the log;
+    ///     the digest still tells one session's lines from another's and cannot be turned back into the id.
+    /// </summary>
+    internal static string Named(string sessionId)
+    {
+        Span<byte> digest = stackalloc byte[SHA256.HashSizeInBytes];
+        SHA256.HashData(Encoding.UTF8.GetBytes(sessionId), digest);
+        return Convert.ToHexStringLower(digest[..4]);
     }
 }
