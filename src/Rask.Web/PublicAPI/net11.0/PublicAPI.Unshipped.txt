@@ -5342,6 +5342,30 @@ Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!
 Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).BeforeHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).PrependHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReplaceWithHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAfterHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAfterHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAfterHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAfterHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAppendHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAppendHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAppendHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamAppendHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamBeforeHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamBeforeHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamBeforeHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamBeforeHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamPrependHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamPrependHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamPrependHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamPrependHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamReplaceWithHTML() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamReplaceWithHTMLUnsafe() -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamReplaceWithHTMLUnsafe(Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).StreamReplaceWithHTMLUnsafe(Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
 Rask.Web.Window
 override Rask.Web.Types.AacEncoderConfig.Equals(object? obj) -> bool
 override Rask.Web.Types.AacEncoderConfig.GetHashCode() -> int
@@ -6791,6 +6815,30 @@ static Rask.Web.WebElementRefMembers.AppendHTMLUnsafe(this Rask.Core.IElementRef
 static Rask.Web.WebElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Web.WebElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Web.WebElementRefMembers.ReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.StreamAfterHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAppendHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamAppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamBeforeHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamBeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamBeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamBeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamPrependHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamPrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamPrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamPrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamReplaceWithHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.SetHTMLUnsafeOptions! options) -> Rask.Web.Types.WritableStream!
+static Rask.Web.WebElementRefMembers.StreamReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.WritableStream!
 static Rask.Web.Window.Alert() -> System.Threading.Tasks.ValueTask
 static Rask.Web.Window.Alert(string! message) -> System.Threading.Tasks.ValueTask
 static Rask.Web.Window.CancelAnimationFrame(int handle) -> System.Threading.Tasks.ValueTask
@@ -13361,7 +13409,6 @@ Rask.Web.Types.IDBObjectStoreParameters.KeyPath.init -> void
 Rask.Web.Types.IntersectionObserverInit.Threshold.get -> double[]?
 Rask.Web.Types.IntersectionObserverInit.Threshold.init -> void
 Rask.Web.Types.MediaMetadata.ChapterInfo.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChapterInformation![]!>
-Rask.Web.Types.Navigator.DeprecatedReplaceInURN(string! urnOrConfig, System.Collections.Generic.Dictionary<string!, string!>! replacements) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.OptionalEffectTiming.Duration.get -> string?
 Rask.Web.Types.OptionalEffectTiming.Duration.init -> void
 Rask.Web.Types.PerformanceMeasureOptions.End.get -> string?
@@ -13563,7 +13610,6 @@ static Rask.Web.MutationObserver.IsSupported.get -> System.Threading.Tasks.Value
 static Rask.Web.NDEFMessage.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.NDEFReader.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.NDEFRecord.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
-static Rask.Web.Navigator.DeprecatedReplaceInURN(string! urnOrConfig, System.Collections.Generic.Dictionary<string!, string!>! replacements) -> System.Threading.Tasks.ValueTask
 static Rask.Web.Notification.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.Observable.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.OfflineAudioContext.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>

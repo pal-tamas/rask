@@ -1,12 +1,12 @@
 {
  "schema": 1,
  "sources": {
-  "@mdn/browser-compat-data": "8.1.9",
+  "@mdn/browser-compat-data": "8.1.10",
   "@webref/css": "8.7.9",
   "@webref/elements": "2.9.2",
   "@webref/events": "1.28.0",
   "@webref/idl": "3.87.0",
-  "webref/dfns": "5c3ce492baebb1d322eb06a4150f3b1bab61e774",
+  "webref/dfns": "5974de543af444e0911fc13ecbf6412ba8055d9a",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
   "w3c/aria": "90cf7d99e51db94c0ac96fde17c4269d3ccbff44"
@@ -4805,10 +4805,13 @@
   "EXT_clip_control",
   "EXT_color_buffer_float",
   "EXT_color_buffer_half_float",
+  "EXT_conservative_depth",
+  "EXT_depth_clamp",
   "EXT_disjoint_timer_query_webgl2",
   "EXT_float_blend",
   "EXT_frag_depth",
   "EXT_polygon_offset_clamp",
+  "EXT_render_snorm",
   "EXT_sRGB",
   "EXT_shader_texture_lod",
   "EXT_texture_compression_bptc",
@@ -5074,6 +5077,7 @@
   "NDEFReader",
   "NDEFReadingEvent",
   "NDEFRecord",
+  "NV_shader_noperspective_interpolation",
   "NamedNodeMap",
   "NavigateEvent",
   "Navigation",
@@ -5098,6 +5102,8 @@
   "OES_draw_buffers_indexed",
   "OES_element_index_uint",
   "OES_fbo_render_mipmap",
+  "OES_sample_variables",
+  "OES_shader_multisample_interpolation",
   "OES_standard_derivatives",
   "OES_texture_float",
   "OES_texture_float_linear",
@@ -5438,6 +5444,9 @@
   "WEBGL_draw_buffers",
   "WEBGL_lose_context",
   "WEBGL_multi_draw",
+  "WEBGL_polygon_mode",
+  "WEBGL_render_shared_exponent",
+  "WEBGL_stencil_texturing",
   "WGSLLanguageFeatures",
   "WakeLock",
   "WakeLockSentinel",
@@ -9500,6 +9509,7 @@
      "support": {
       "chrome": "153"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/BaseAudioContext/renderQuantumSize",
      "spec": "https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-renderquantumsize"
     },
     {
@@ -14067,6 +14077,60 @@
     },
     {
      "kind": "operation",
+     "name": "streamBeforeHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streambeforehtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAfterHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamafterhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamReplaceWithHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamreplacewithhtml"
+    },
+    {
+     "kind": "operation",
      "name": "beforeHTMLUnsafe",
      "returns": "undefined",
      "args": [
@@ -14130,6 +14194,60 @@
       "chrome": "157"
      },
      "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-replacewithhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamBeforeHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streambeforehtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAfterHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamafterhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamReplaceWithHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamreplacewithhtmlunsafe"
     },
     {
      "kind": "operation",
@@ -27982,6 +28100,57 @@
     },
     {
      "kind": "operation",
+     "name": "streamHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAppendHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamappendhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamPrependHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamprependhtml"
+    },
+    {
+     "kind": "operation",
      "name": "setHTMLUnsafe",
      "returns": "undefined",
      "args": [
@@ -28044,6 +28213,57 @@
       "chrome": "157"
      },
      "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-prependhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAppendHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamappendhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamPrependHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-streamprependhtmlunsafe"
     },
     {
      "kind": "operation",
@@ -28455,6 +28675,60 @@
     },
     {
      "kind": "operation",
+     "name": "streamBeforeHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streambeforehtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAfterHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamafterhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamReplaceWithHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamreplacewithhtml"
+    },
+    {
+     "kind": "operation",
      "name": "beforeHTMLUnsafe",
      "returns": "undefined",
      "args": [
@@ -28518,6 +28792,60 @@
       "chrome": "157"
      },
      "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-replacewithhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamBeforeHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streambeforehtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAfterHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamafterhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamReplaceWithHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "mixin": "NonDocumentTypeChildNode",
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-nondocumenttypechildnode-streamreplacewithhtmlunsafe"
     },
     {
      "kind": "operation",
@@ -31122,6 +31450,29 @@
    "spec": "https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/",
    "members": []
   },
+  "EXT_conservative_depth": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "122",
+    "safari": "17.5"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/EXT_conservative_depth/",
+   "members": []
+  },
+  "EXT_depth_clamp": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "121",
+    "firefox": "130",
+    "safari": "17.4"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/EXT_depth_clamp/",
+   "members": []
+  },
   "EXT_disjoint_timer_query_webgl2": {
    "parent": null,
    "abstract": true,
@@ -31217,6 +31568,17 @@
      "spec": "https://registry.khronos.org/webgl/extensions/EXT_polygon_offset_clamp/"
     }
    ]
+  },
+  "EXT_render_snorm": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "126",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/EXT_render_snorm/",
+   "members": []
   },
   "EXT_shader_texture_lod": {
    "parent": null,
@@ -60968,27 +61330,6 @@
     },
     {
      "kind": "operation",
-     "name": "deprecatedReplaceInURN",
-     "returns": "Promise<undefined>",
-     "args": [
-      {
-       "name": "urnOrConfig",
-       "type": "(USVString or FencedFrameConfig)"
-      },
-      {
-       "name": "replacements",
-       "type": "record<USVString, USVString>"
-      }
-     ],
-     "experimental": true,
-     "support": {
-      "chrome": "128"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/Navigator/deprecatedReplaceInURN",
-     "spec": "https://wicg.github.io/fenced-frame/#dom-navigator-deprecatedreplaceinurn"
-    },
-    {
-     "kind": "operation",
      "name": "adAuctionComponents",
      "returns": "sequence<USVString>",
      "args": [
@@ -63452,6 +63793,17 @@
     }
    ]
   },
+  "NV_shader_noperspective_interpolation": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "122",
+    "safari": "17.5"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/NV_shader_noperspective_interpolation/",
+   "members": []
+  },
   "Observable": {
    "parent": null,
    "abstract": true,
@@ -64087,6 +64439,28 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/OES_fbo_render_mipmap",
    "spec": "https://registry.khronos.org/webgl/extensions/OES_fbo_render_mipmap/",
+   "members": []
+  },
+  "OES_sample_variables": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "126",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/OES_sample_variables/",
+   "members": []
+  },
+  "OES_shader_multisample_interpolation": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "126",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/OES_shader_multisample_interpolation/",
    "members": []
   },
   "OES_standard_derivatives": {
@@ -79295,6 +79669,57 @@
     },
     {
      "kind": "operation",
+     "name": "streamHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAppendHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamappendhtml"
+    },
+    {
+     "kind": "operation",
+     "name": "streamPrependHTML",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "SetHTMLOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamprependhtml"
+    },
+    {
+     "kind": "operation",
      "name": "setHTMLUnsafe",
      "returns": "undefined",
      "args": [
@@ -79357,6 +79782,57 @@
       "chrome": "157"
      },
      "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-appendhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamAppendHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamappendhtmlunsafe"
+    },
+    {
+     "kind": "operation",
+     "name": "streamPrependHTMLUnsafe",
+     "returns": "WritableStream",
+     "args": [
+      {
+       "name": "options",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "157"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-streamprependhtmlunsafe"
     },
     {
      "kind": "operation",
@@ -102565,6 +103041,60 @@
     }
    ]
   },
+  "WEBGL_polygon_mode": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "121",
+    "safari": "17.4"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/WEBGL_polygon_mode/",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "polygonModeWEBGL",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "face",
+       "type": "unsigned long"
+      },
+      {
+       "name": "mode",
+       "type": "unsigned long"
+      }
+     ],
+     "support": {
+      "chrome": "121",
+      "safari": "17.4"
+     },
+     "spec": "https://registry.khronos.org/webgl/extensions/WEBGL_polygon_mode/#:~:text=polygonModeWEBGL"
+    }
+   ]
+  },
+  "WEBGL_render_shared_exponent": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "124",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/WEBGL_render_shared_exponent/",
+   "members": []
+  },
+  "WEBGL_stencil_texturing": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "124",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/WEBGL_stencil_texturing/",
+   "members": []
+  },
   "WebGL2RenderingContext": {
    "parent": null,
    "abstract": true,
@@ -113508,6 +114038,7 @@
       "firefox": "161",
       "safari": "26.4"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransport/anticipatedConcurrentIncomingUnidirectionalStreams",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingunidirectionalstreams"
     },
     {
@@ -113520,6 +114051,7 @@
       "firefox": "161",
       "safari": "26.4"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransport/anticipatedConcurrentIncomingBidirectionalStreams",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingbidirectionalstreams"
     },
     {
@@ -113533,6 +114065,7 @@
       "firefox": "160",
       "safari": "27.3"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransport/responseHeaders",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-responseheaders"
     },
     {
@@ -113872,6 +114405,7 @@
       "firefox": "160",
       "safari": "27.3"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/incomingMaxBufferedDatagrams",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-incomingmaxbuffereddatagrams"
     },
     {
@@ -113884,6 +114418,7 @@
       "firefox": "160",
       "safari": "27.3"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/outgoingMaxBufferedDatagrams",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-outgoingmaxbuffereddatagrams"
     }
    ]
@@ -139396,8 +139931,6 @@
      "center",
      "start",
      "end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end"
     ],
@@ -144174,8 +144707,6 @@
      "center",
      "start",
      "end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end",
      "left",
@@ -146005,8 +146536,6 @@
      "center",
      "start",
      "end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end"
     ],

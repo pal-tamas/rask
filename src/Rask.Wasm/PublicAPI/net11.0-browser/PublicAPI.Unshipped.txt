@@ -47,9 +47,19 @@ Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> 
 Rask.Wasm.WasmPrerender
 Rask.Web.Types.EXT_clip_control
 Rask.Web.Types.EXT_clip_control.ClipControlEXT(int origin, int depth) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.EXT_conservative_depth
+Rask.Web.Types.EXT_depth_clamp
 Rask.Web.Types.EXT_polygon_offset_clamp
 Rask.Web.Types.EXT_polygon_offset_clamp.PolygonOffsetClampEXT(double factor, double units, double clamp) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.EXT_render_snorm
 Rask.Web.Types.EXT_texture_mirror_clamp_to_edge
+Rask.Web.Types.NV_shader_noperspective_interpolation
+Rask.Web.Types.OES_sample_variables
+Rask.Web.Types.OES_shader_multisample_interpolation
+Rask.Web.Types.WEBGL_polygon_mode
+Rask.Web.Types.WEBGL_polygon_mode.PolygonModeWEBGL(int face, int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_render_shared_exponent
+Rask.Web.Types.WEBGL_stencil_texturing
 RaskBuilderSettersRask_Wasm
 const Rask.Wasm.WasmPrerender.OutputVariable = "RASK_PRERENDER_OUT" -> string!
 const Rask.Wasm.WasmPrerender.PathBaseVariable = "RASK_PRERENDER_PATH_BASE" -> string!
