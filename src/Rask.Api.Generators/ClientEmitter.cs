@@ -92,12 +92,12 @@ internal static class ClientEmitter
         // Optional parameters must come last in C# whatever order the action declared them in.
         foreach (var parameter in endpoint.Parameters.Where(p => !p.Optional))
         {
-            signature.Add($"{parameter.Fqn} {parameter.Name}");
+            signature.Add($"{parameter.Fqn} {CSharpNames.Escape(parameter.Name)}");
         }
 
         foreach (var parameter in endpoint.Parameters.Where(p => p.Optional))
         {
-            signature.Add($"{parameter.Fqn} {parameter.Name} = {parameter.Default}");
+            signature.Add($"{parameter.Fqn} {CSharpNames.Escape(parameter.Name)} = {parameter.Default}");
         }
 
         signature.Add("global::System.Threading.CancellationToken cancellationToken = default");
@@ -163,7 +163,7 @@ internal static class ClientEmitter
 
         if (query.Count > 0)
         {
-            var pairs = query.Select(p => $"({Quote(p.WireName)}, (object){p.Name})");
+            var pairs = query.Select(p => $"({Quote(p.WireName)}, (object){CSharpNames.Escape(p.Name)})");
             path.Append(" + global::Rask.Api.Client.ApiUri.Query(")
                 .Append(string.Join(", ", pairs))
                 .Append(')');
@@ -172,11 +172,13 @@ internal static class ClientEmitter
         builder.AppendLine($"            var __path = {path};");
     }
 
-    // The route as C# operands to concatenate: quoted literals, and each token as its escaped parameter.
+    // The route as C# operands to concatenate: quoted literals, and each token as its escaped parameter. A token the
+    // caller may leave out ({id?}, {id=1}) takes its slash with it when it is null, as ASP.NET's own link does.
     private static List<string> RouteParts(string route, ApiEndpoint endpoint)
     {
         var literal = new StringBuilder();
         var parts = new List<string>();
+        var optional = RouteTemplate.OptionalTokens(endpoint.Route);
 
         var i = 0;
         while (i < route.Length)
@@ -196,13 +198,28 @@ internal static class ClientEmitter
                 p.Binding == ApiBinding.Route &&
                 string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase));
 
+            var name = CSharpNames.Escape(parameter.Name);
+            var leavable = optional.Contains(token);
+            var slash = leavable && literal.Length > 0 && literal[literal.Length - 1] == '/';
+            if (slash)
+            {
+                literal.Length--;
+            }
+
             if (literal.Length > 0)
             {
                 parts.Add(Quote(literal.ToString()));
                 literal.Clear();
             }
 
-            parts.Add($"global::Rask.Api.Client.ApiUri.Segment({parameter.Name})");
+            var segment = $"global::Rask.Api.Client.ApiUri.Segment({name})";
+            if (leavable)
+            {
+                var withSlash = slash ? "\"/\" + " + segment : segment;
+                segment = $"((object){name} == null ? \"\" : {withSlash})";
+            }
+
+            parts.Add(segment);
         }
 
         if (literal.Length > 0)
@@ -239,7 +256,7 @@ internal static class ClientEmitter
             "                using (var __writer = new global::System.Text.Json.Utf8JsonWriter(__buffer))");
         builder.AppendLine("                {");
         builder.AppendLine(
-            $"                    W{writer}(__writer, {body.Name}, __NoFiles);");
+            $"                    W{writer}(__writer, {CSharpNames.Escape(body.Name)}, __NoFiles);");
         builder.AppendLine("                }");
         builder.AppendLine();
         builder.AppendLine("                __body = __buffer.WrittenSpan.ToArray();");

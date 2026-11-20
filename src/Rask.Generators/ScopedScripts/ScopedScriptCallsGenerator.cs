@@ -181,20 +181,7 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
             return;
         }
 
-        var byKey = new Dictionary<string, List<ComponentInfo>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var c in components)
-        {
-            var key = AssetPairing.MakeKey(AssetPairing.NormalizeDirectory(c.FilePath), c.TypeName);
-            if (!byKey.TryGetValue(key, out var list))
-            {
-                byKey[key] = list = new List<ComponentInfo>(1);
-            }
-
-            if (!list.Exists(x => string.Equals(x.FullyQualifiedName, c.FullyQualifiedName, StringComparison.Ordinal)))
-            {
-                list.Add(c);
-            }
-        }
+        var byKey = AssetPairing.Index(components, static c => c.FilePath, static c => c.TypeName, static c => c.FullyQualifiedName);
 
         var reserved = new HashSet<string>(frameworkNames.Split('\n'), StringComparer.Ordinal);
         var emitted = new HashSet<string>(StringComparer.Ordinal);

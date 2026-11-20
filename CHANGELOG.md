@@ -547,6 +547,26 @@ them until tagged releases begin.
   takes each question's place in line before the handler runs, the editor undoes a mount that lands late, detached
   phone fields are destroyed, the frame's memory is weak, the picker keeps the model's `Kind`, and type-ahead starts at
   the first row. Rask.Web: `KeepEach`/`KeepEachOrNull` lets go of the items it kept when a later one fails.
+- **`RaskSite.Log` never shows a line the `HostLog` file does not have yet.** The line was queued for `Log` before it
+  was written to the file, so a test comparing the two right after start failed now and then.
+- **The API client generator reads controllers and routes as ASP.NET serves them.** Before: a controller got a
+  client only with `[ApiController]` on its own declaration, and only its own methods — one deriving from an
+  `[ApiController]` base, or in an `[assembly: ApiController]` project, got none, and inherited actions were missing;
+  `[HttpGet, Route("{id}")]` called the controller's bare prefix; `{page?}` left out threw from `Segment(null)`; a
+  parameter named `@class` emitted `int class`; a record bound `[FromQuery]` was sent as its `ToString()`; a minimal
+  API's client was emitted into a namespace named after the assembly (`namespace my-app`, CS1514). After: all of
+  those are served (an action with several `[Route]`s gets its first, and the new warning RASK125 says which), the
+  optional segment drops with its slash, the record is RASK068, and a minimal API's client
+  lands in the project's `RootNamespace` (or the assembly name made a namespace).
+- **Generator diagnostics point at their line.** RASK001/002, RASK012/013/031, RASK040 and the other diagnostics
+  rebuilt from a stored span reported at line 1 of the file (their line span was 0,0); they now carry the line and
+  column of the declaration.
+- **A generic component's emitted constraints are the ones it declared.** `class?`, a nullable type constraint
+  (`IComparable?`) and `allows ref struct` were written as `class`, `IComparable` and nothing; the component factory
+  and the form model generator now share one writer (`TypeConstraints`).
+- **A partial component declared with its base list in two files of one folder pairs with its scoped CSS/TypeScript
+  once.** Before: each declaration counted, so the class was ambiguous with itself (RASK016/RASK018).
+- **A page property named with a keyword (`@event`) gets compilable `Url()`/`Go()` helpers.**
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

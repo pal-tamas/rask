@@ -109,6 +109,28 @@ public class BuilderConstrainedPinTests
         Assert.Contains("Rows<T>(", output, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_nullable_class_constraint_and_a_nullable_type_constraint_are_written_as_declared()
+    {
+        // The emitted constraints dropped `?`: class? became class and IComparable? became IComparable, so a
+        // generic component's chain held its T to a stricter constraint than the component declared.
+        var run = BuilderGeneratorHarness.Run("""
+                                              using System;
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Loose<T> : Component
+                                                  where T : class?, IComparable?
+                                              {
+                                                  public T? Value { get; set; }
+                                              }
+                                              """);
+
+        var output = string.Join("\n", run.Sources.Select(static s => s.SourceText.ToString()));
+
+        Assert.Contains("where T : class?, global::System.IComparable?", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("where T : class, ", output, StringComparison.Ordinal);
+    }
+
     private static string Entries(string source) =>
         BuilderGeneratorHarness.Run(source).Source("RaskBuilderEntryHost.g.cs");
 }

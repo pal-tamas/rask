@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -191,11 +192,11 @@ public sealed partial class ComponentFactoryGenerator
                 var stageParams = TypeParametersFor(c, opening[0]);
                 sb.Append(pad).Append("public ")
                     .Append(StageFqn(c, opening[0], stageParams)).Append(' ')
-                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(AnnotateDecl(c, stageParams)).Append('(')
+                    .Append(CSharpNames.Escape(opening[0].ParamName)).Append(AnnotateDecl(c, stageParams)).Append('(')
                     .Append(StepParamType(opening[0])).Append(' ')
-                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(')')
+                    .Append(CSharpNames.Escape(opening[0].ParamName)).Append(')')
                     .AppendLine(ConstraintsDeclaredBy(c, stageParams));
-                sb.Append(pad).Append("    => new(").Append(EscapeIdentifier(opening[0].ParamName))
+                sb.Append(pad).Append("    => new(").Append(CSharpNames.Escape(opening[0].ParamName))
                     .AppendLine(seedCarriesKey ? ", _key);" : ", null);");
                 continue;
             }
@@ -258,7 +259,7 @@ public sealed partial class ComponentFactoryGenerator
 
         EmitBuildingStep(
             sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
-            [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
+            [(opening[0], "this." + CSharpNames.Escape(opening[0].ParamName))],
             SatisfiedBy(c, opening), carriesKey: true);
 
         EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
@@ -320,12 +321,12 @@ public sealed partial class ComponentFactoryGenerator
                 .Append(done
                     ? c.FullyQualifiedName
                     : StateFqn(c, next) + c.TypeParameters)
-                .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
-                .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
+                .Append(' ').Append(CSharpNames.Escape(step.ParamName)).Append('(')
+                .Append(StepParamType(step)).Append(' ').Append(CSharpNames.Escape(step.ParamName))
                 .AppendLine(")");
             sb.Append(pad).AppendLine("    {");
             sb.Append(pad).AppendLine("        var __c = Component;");
-            EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad + "    ");
+            EmitPinAssignment(sb, step, CSharpNames.Escape(step.ParamName), pad + "    ");
             // The last step hands back the COMPONENT, which is what the chain is now — so it returns
             // the receiver rather than wrapping it. An earlier one still hands on the state struct
             // that is waiting for the rest, and that is a target-typed `new` as it always was.
@@ -437,9 +438,9 @@ public sealed partial class ComponentFactoryGenerator
 
         var unified = RenameTypeParameter(c.FullyQualifiedName, item, value);
         sb.Append(pad).Append("public ").Append(unified).Append(' ')
-            .Append(EscapeIdentifier(opening[1].ParamName)).Append('(')
+            .Append(CSharpNames.Escape(opening[1].ParamName)).Append('(')
             .Append(RenameTypeParameter(StepParamType(opening[1]), item, value)).Append(' ')
-            .Append(EscapeIdentifier(opening[1].ParamName)).AppendLine(")");
+            .Append(CSharpNames.Escape(opening[1].ParamName)).AppendLine(")");
         sb.Append(pad).AppendLine("{");
         sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
             .Append(unified).Append(">(");
@@ -454,8 +455,8 @@ public sealed partial class ComponentFactoryGenerator
         // reset blanks it again at the end of the parent's Render(). Assigning these directly is what
         // made every identity-form select render with a null `Options` — caught by the golden markup,
         // which is the only thing that would have caught it.
-        EmitPinAssignment(sb, opening[0], "this." + EscapeIdentifier(opening[0].ParamName), pad);
-        EmitPinAssignment(sb, opening[1], EscapeIdentifier(opening[1].ParamName), pad);
+        EmitPinAssignment(sb, opening[0], "this." + CSharpNames.Escape(opening[0].ParamName), pad);
+        EmitPinAssignment(sb, opening[1], CSharpNames.Escape(opening[1].ParamName), pad);
         // The projection's own type still names TItem, which this overload does not declare — it is the
         // one being unified away.
         EmitPinAssignment(
@@ -541,8 +542,8 @@ public sealed partial class ComponentFactoryGenerator
 
         EmitDocComment(sb, step.Summary, pad);
         sb.Append(pad).Append("public ").Append(result).Append(' ')
-            .Append(EscapeIdentifier(step.ParamName)).Append(AnnotateDecl(c, methodParams)).Append('(')
-            .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName)).Append(')')
+            .Append(CSharpNames.Escape(step.ParamName)).Append(AnnotateDecl(c, methodParams)).Append('(')
+            .Append(StepParamType(step)).Append(' ').Append(CSharpNames.Escape(step.ParamName)).Append(')')
             .AppendLine(ConstraintsDeclaredBy(c, methodParams));
         sb.Append(pad).AppendLine("{");
         sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
@@ -564,7 +565,7 @@ public sealed partial class ComponentFactoryGenerator
             EmitPinAssignment(sb, pin, value, pad);
         }
 
-        EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad);
+        EmitPinAssignment(sb, step, CSharpNames.Escape(step.ParamName), pad);
         // The component itself when this step completed it — the chain is the component now — otherwise
         // a target-typed `new` for the state that still wants something.
         sb.Append(pad).AppendLine(done ? "    return __c;" : "    return new(__c);");
@@ -819,7 +820,7 @@ public sealed partial class ComponentFactoryGenerator
         if (pin.Track)
         {
             sb.Append(pad).Append("        global::Rask.Core.BuilderRuntime.Track(__c, __c.")
-                .Append(EscapeIdentifier(pin.PropertyName)).Append(", ").Append(assigned).AppendLine(");");
+                .Append(CSharpNames.Escape(pin.PropertyName)).Append(", ").Append(assigned).AppendLine(");");
         }
 
         if (pin.PendingBit >= 0)
@@ -828,7 +829,7 @@ public sealed partial class ComponentFactoryGenerator
                 .Append(MaskLiteral(new[] { pin.PendingBit })).AppendLine(");");
         }
 
-        sb.Append(pad).Append("        __c.").Append(EscapeIdentifier(pin.PropertyName)).Append(" = ")
+        sb.Append(pad).Append("        __c.").Append(CSharpNames.Escape(pin.PropertyName)).Append(" = ")
             .Append(assigned).AppendLine(";");
     }
 

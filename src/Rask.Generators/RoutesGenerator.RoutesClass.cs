@@ -181,24 +181,6 @@ public sealed partial class RoutesGenerator
         }
     }
 
-    // A project's assembly name can carry characters a namespace cannot (My-App); MSBuild's own default
-    // RootNamespace maps them to '_', and the fallback does the same.
-    private static string SanitizeNamespace(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return string.Empty;
-        }
-
-        var segments = name.Split('.').Select(segment =>
-        {
-            var chars = segment.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray();
-            var id = new string(chars);
-            return id.Length == 0 || char.IsDigit(id[0]) ? "_" + id : id;
-        });
-        return string.Join(".", segments);
-    }
-
     private sealed class RoutesNode(string name)
     {
         public string Name { get; } =

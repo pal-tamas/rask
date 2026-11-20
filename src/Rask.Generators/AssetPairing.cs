@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -51,6 +52,33 @@ internal static class AssetPairing
     /// <summary>The pairing key for a file or class named <paramref name="name" /> in <paramref name="dir" />.</summary>
     public static string MakeKey(string dir, string name) =>
         dir.Length == 0 ? name : dir + "/" + name;
+
+    /// <summary>
+    ///     The components a sibling file can pair with, by <see cref="MakeKey" /> of their folder and simple name, each
+    ///     class once. A partial component whose declarations in two files of one folder both carry the base list is
+    ///     reached once per declaration; counted twice, it was "ambiguous" with itself (RASK016/RASK018).
+    /// </summary>
+    public static Dictionary<string, List<T>> Index<T>(
+        IEnumerable<T> components, Func<T, string> filePath, Func<T, string> typeName, Func<T, string> fullyQualifiedName)
+    {
+        var byKey = new Dictionary<string, List<T>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var component in components)
+        {
+            var key = MakeKey(NormalizeDirectory(filePath(component)), typeName(component));
+            if (!byKey.TryGetValue(key, out var list))
+            {
+                byKey[key] = list = new List<T>(1);
+            }
+
+            var fqn = fullyQualifiedName(component);
+            if (!list.Exists(other => string.Equals(fullyQualifiedName(other), fqn, StringComparison.Ordinal)))
+            {
+                list.Add(component);
+            }
+        }
+
+        return byKey;
+    }
 
     /// <summary>
     ///     A location in a sibling file that is not part of the compilation.

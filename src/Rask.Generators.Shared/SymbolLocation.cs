@@ -19,9 +19,11 @@ internal sealed record SymbolLocation(
             new LinePosition(StartLine, StartChar),
             new LinePosition(EndLine, EndChar)));
 
-    public static SymbolLocation? From(ISymbol symbol)
+    public static SymbolLocation? From(ISymbol symbol) => From(symbol.Locations.FirstOrDefault(l => l.IsInSource));
+
+    /// <summary>The coordinates of <paramref name="location"/>, its line and column with them, or null outside source.</summary>
+    public static SymbolLocation? From(Location? location)
     {
-        var location = symbol.Locations.FirstOrDefault(l => l.IsInSource);
         if (location?.SourceTree is null)
         {
             return null;

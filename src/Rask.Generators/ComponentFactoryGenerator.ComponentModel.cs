@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 using static Rask.Generators.CodeText;
 using static Rask.Generators.ComponentSymbols;
 
@@ -81,7 +82,7 @@ public sealed partial class ComponentFactoryGenerator
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
         var typeParamAnnotations = ReadTypeParameterAnnotations(symbol.TypeParameters);
-        var constraints = BuildConstraintsClause(symbol.TypeParameters);
+        var constraints = TypeConstraints.Clauses(symbol.TypeParameters);
         var (genericFactory, chainEntry, tags) = ReadFactoryAttributes(symbol);
 
         return new Candidate(
@@ -102,9 +103,7 @@ public sealed partial class ComponentFactoryGenerator
             symbol.ContainingType is not null,
             InheritsFromElement(symbol),
             OverridesLifecycleHook(symbol),
-            classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
-            classDecl.Identifier.Span.Start,
-            classDecl.Identifier.Span.Length,
+            SymbolLocation.From(classDecl.Identifier.GetLocation()),
             SummaryOf(symbol),
             ReachableMemberNames(symbol),
             EnclosingTypeHeaders(symbol),
@@ -288,58 +287,6 @@ public sealed partial class ComponentFactoryGenerator
             modelProperty,
             new EquatableArray<string>(typedDelegates),
             constraint);
-    }
-
-    private static string BuildConstraintsClause(ImmutableArray<ITypeParameterSymbol> typeParameters)
-    {
-        if (typeParameters.IsDefaultOrEmpty)
-        {
-            return string.Empty;
-        }
-
-        var sb = new StringBuilder();
-        foreach (var tp in typeParameters)
-        {
-            var clauses = new List<string>();
-            if (tp.HasReferenceTypeConstraint)
-            {
-                clauses.Add("class");
-            }
-
-            if (tp.HasValueTypeConstraint && !tp.HasUnmanagedTypeConstraint)
-            {
-                clauses.Add("struct");
-            }
-
-            if (tp.HasUnmanagedTypeConstraint)
-            {
-                clauses.Add("unmanaged");
-            }
-
-            if (tp.HasNotNullConstraint)
-            {
-                clauses.Add("notnull");
-            }
-
-            foreach (var ct in tp.ConstraintTypes)
-            {
-                clauses.Add(ct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-            }
-
-            if (tp.HasConstructorConstraint)
-            {
-                clauses.Add("new()");
-            }
-
-            if (clauses.Count == 0)
-            {
-                continue;
-            }
-
-            sb.Append(" where ").Append(tp.Name).Append(" : ").Append(string.Join(", ", clauses));
-        }
-
-        return sb.ToString();
     }
 
     // Rask.Core.RaskMarkup is the builder surface and nothing else — Component's own base. A type that
@@ -634,7 +581,7 @@ public sealed partial class ComponentFactoryGenerator
         IPropertySymbol prop, INamedTypeSymbol declaring, int depth, bool isElement, bool isFormControl,
         Compilation compilation)
     {
-        var (filePath, spanStart, spanLength, hasInitializer, initializerDefault) = ReadDeclaration(prop, compilation);
+        var (declaredAt, hasInitializer, initializerDefault) = ReadDeclaration(prop, compilation);
 
         // A non-nullable `Callback` counts: its default is an unset slot, so it is optional rather
         // than a required step (see CallbackCarrier).
@@ -665,9 +612,7 @@ public sealed partial class ComponentFactoryGenerator
             hasInitializer,
             prop.IsRequired,
             depth,
-            filePath,
-            spanStart,
-            spanLength,
+            declaredAt,
             IsAutoRerenderDelegateProp(prop, isElement, isBoundInterfaceProp),
             isTypeParameter,
             isBoundInterfaceProp,
@@ -689,19 +634,19 @@ public sealed partial class ComponentFactoryGenerator
     // post-construction, and the factory reassigns every param on the reused persisted-component path
     // (`__c.Prop = prop;`), so promoting an init-only initializer to a param would emit code that fails
     // CS8852. Init-only-with-initializer stays excluded (as before).
-    private static (string FilePath, int SpanStart, int SpanLength, bool HasInitializer, string? InitializerDefault)
+    private static (SymbolLocation? Declaring, bool HasInitializer, string? InitializerDefault)
         ReadDeclaration(IPropertySymbol prop, Compilation compilation)
     {
         if (prop.DeclaringSyntaxReferences.Length == 0)
         {
-            return (string.Empty, 0, 0, false, null);
+            return (null, false, null);
         }
 
         var syntaxRef = prop.DeclaringSyntaxReferences[0];
-        var filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
+        var declaring = SymbolLocation.From(Location.Create(syntaxRef.SyntaxTree, syntaxRef.Span));
         if (syntaxRef.GetSyntax() is not PropertyDeclarationSyntax pds)
         {
-            return (filePath, syntaxRef.Span.Start, syntaxRef.Span.Length, false, null);
+            return (declaring, false, null);
         }
 
         string? initializerDefault = null;
@@ -714,7 +659,7 @@ public sealed partial class ComponentFactoryGenerator
             }
         }
 
-        return (filePath, syntaxRef.Span.Start, syntaxRef.Span.Length, pds.Initializer is not null, initializerDefault);
+        return (declaring, pds.Initializer is not null, initializerDefault);
     }
 
     // AfterBind/AfterBindAsync are Action<T>/Func<T,Task>-shaped, so they would qualify for
@@ -763,8 +708,8 @@ public sealed partial class ComponentFactoryGenerator
                 return d;
             }
 
-            var c = string.CompareOrdinal(a.DeclaringFilePath, b.DeclaringFilePath);
-            return c != 0 ? c : a.DeclaringSpanStart.CompareTo(b.DeclaringSpanStart);
+            var c = string.CompareOrdinal(a.Declaring?.FilePath, b.Declaring?.FilePath);
+            return c != 0 ? c : (a.Declaring?.Start ?? 0).CompareTo(b.Declaring?.Start ?? 0);
         });
 
     private static bool IsOverrideOfRaskCoreMember(IPropertySymbol prop)
@@ -907,25 +852,5 @@ public sealed partial class ComponentFactoryGenerator
         // a non-constant initializer, one with no InitializerDefault, is still excluded entirely.
         !p.HasInitializer || p.InitializerDefault is not null;
 
-    private static Location MakeLocation(PropInfo p)
-    {
-        if (string.IsNullOrEmpty(p.DeclaringFilePath))
-        {
-            return Location.None;
-        }
-
-        return Location.Create(
-            p.DeclaringFilePath,
-            new TextSpan(p.DeclaringSpanStart, p.DeclaringSpanLength),
-            new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
-    }
-
-    // A property/parameter name as a valid C# identifier in emitted code. ISymbol.Name strips the
-    // leading '@' from a verbatim identifier (a property declared `@event` has Name "event"), so a
-    // reserved keyword must be re-escaped with '@' wherever it is emitted as an identifier —
-    // otherwise the generated factory (`string? event = null`, `__c.event = event`) fails to
-    // compile in the consumer's build. Use this only for emitted identifiers; comparisons against
-    // metadata names (modelProperty, "Children", typed-delegate sets) keep the raw Name.
-    internal static string EscapeIdentifier(string name) =>
-        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
+    private static Location MakeLocation(PropInfo p) => p.Declaring?.ToLocation() ?? Location.None;
 }

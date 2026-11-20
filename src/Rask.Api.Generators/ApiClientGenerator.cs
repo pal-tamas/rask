@@ -87,6 +87,19 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                      + "[ProducesResponseType] declares the success case the client is generated from.",
         helpLinkUri: DiagnosticHelp.Link("RASK070"));
 
+    private static readonly DiagnosticDescriptor OneOfSeveralRoutes = new(
+        "RASK125",
+        "Action's client calls the first of its routes",
+        "Endpoint '{0}' answers several [Route]s; its client method calls the first, '{1}', and not {2}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "A verb attribute with no template of its own takes the action's [Route], and ASP.NET serves the "
+                     + "action at every [Route] it carries. A client method calls one URL, so it calls the first one "
+                     + "declared; the others still work over plain HTTP. Give the verb attribute the template you want "
+                     + "the client to call, or keep one [Route] on the action.",
+        helpLinkUri: DiagnosticHelp.Link("RASK125"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -96,11 +109,22 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             options.GlobalOptions.TryGetValue(BakedProperty, out var value)
             && value.Equals("true", StringComparison.OrdinalIgnoreCase));
 
+        // Where a minimal API's client lands: the project's root namespace, as RoutesGenerator's Routes class does —
+        // the assembly name only stands in, made a namespace (`my-app` is not one).
+        var rootNamespace = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+            options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var root) && !string.IsNullOrWhiteSpace(root)
+                ? root.Trim()
+                : null);
+
+        // Every class with a base list, not only the ones carrying [ApiController] themselves: the attribute is
+        // inherited, so a controller deriving from an [ApiController] base — or in an assembly marked
+        // [assembly: ApiController] — is one too, and ASP.NET serves it (IsApiController below decides).
         var controllers = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                MvcNamespace + ".ApiControllerAttribute",
-                static (node, _) => node is ClassDeclarationSyntax,
-                static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol)
+            .CreateSyntaxProvider(
+                static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 },
+                static (ctx, ct) => ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) as INamedTypeSymbol)
+            .Where(static type => type is not null && IsApiController(type))
+            .Select(static (type, _) => type!)
             .Collect();
 
         var minimal = context.SyntaxProvider
@@ -114,10 +138,10 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         // this generator, and only the compilation can say what it looks like (GeneratedModelShape). Nothing
         // is lost to caching — the controllers above are symbols, which already differ per compilation.
         context.RegisterSourceOutput(
-            controllers.Combine(minimal).Combine(context.CompilationProvider).Combine(baked),
+            controllers.Combine(minimal).Combine(context.CompilationProvider).Combine(baked).Combine(rootNamespace),
             static (spc, input) =>
             {
-                var (((types, registrations), compilation), isBaked) = input;
+                var ((((types, registrations), compilation), isBaked), root) = input;
 
                 // The browser companion compiles the client that was baked out of the server assembly.
                 // If this generator also emitted one there, every client type would be declared twice
@@ -127,7 +151,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     return;
                 }
 
-                Emit(spc, types, registrations, compilation);
+                Emit(spc, types, registrations, compilation, root);
             });
     }
 
@@ -135,20 +159,19 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         ImmutableArray<INamedTypeSymbol> controllers,
         ImmutableArray<MinimalApiRegistration?> registrations,
-        Compilation compilation)
+        Compilation compilation,
+        string? rootNamespace)
     {
-        var assemblyName = compilation.AssemblyName ?? "RaskGeneratedClients";
+        var assemblyName = rootNamespace
+                           ?? (CSharpNames.Namespace(compilation.AssemblyName ?? string.Empty) is { Length: > 0 } fromAssembly
+                               ? fromAssembly
+                               : "RaskGeneratedClients");
         var endpoints = new List<ApiEndpoint>();
 
         if (!controllers.IsDefaultOrEmpty)
         {
             foreach (var controller in controllers.Distinct(SymbolEqualityComparer.Default).Cast<INamedTypeSymbol>())
             {
-                if (!DerivesFromControllerBase(controller))
-                {
-                    continue;
-                }
-
                 foreach (var endpoint in Describe(spc, controller, compilation))
                 {
                     endpoints.Add(endpoint);
@@ -197,6 +220,30 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         spc.AddSource("__RaskApiClients.g.cs", Build(emitted));
     }
 
+    // A concrete ControllerBase that is an API controller: [ApiController] on it, on a base class (the attribute is
+    // inherited), or on its assembly. An abstract base is never served, so it gets no client of its own.
+    private static bool IsApiController(INamedTypeSymbol type)
+    {
+        if (type.IsAbstract || type.IsStatic || !DerivesFromControllerBase(type))
+        {
+            return false;
+        }
+
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (current.GetAttributes().Any(IsApiControllerAttribute))
+            {
+                return true;
+            }
+        }
+
+        return type.ContainingAssembly.GetAttributes().Any(IsApiControllerAttribute);
+    }
+
+    private static bool IsApiControllerAttribute(AttributeData attribute) =>
+        string.Equals(attribute.AttributeClass?.Name, "ApiControllerAttribute", StringComparison.Ordinal)
+        && string.Equals(attribute.AttributeClass?.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal);
+
     private static bool DerivesFromControllerBase(INamedTypeSymbol type)
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
@@ -222,7 +269,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             ? "RaskGeneratedClients"
             : controller.ContainingNamespace.ToDisplayString();
 
-        foreach (var member in controller.GetMembers().OfType<IMethodSymbol>())
+        foreach (var member in Actions(controller))
         {
             if (member.MethodKind != MethodKind.Ordinary ||
                 member.DeclaredAccessibility != Accessibility.Public ||
@@ -230,6 +277,16 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 HasAttribute(member, "NonActionAttribute"))
             {
                 continue;
+            }
+
+            if (RouteTemplate.RoutesChosenAmong(member) is { Count: > 1 } routes)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    OneOfSeveralRoutes,
+                    At(member),
+                    controller.Name + "." + member.Name,
+                    routes[0],
+                    string.Join(", ", routes.Skip(1).Select(static r => "'" + r + "'"))));
             }
 
             foreach (var (verb, template) in RouteTemplate.OfAction(member))
@@ -299,6 +356,28 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             registration.Site,
             compilation);
     }
+
+    // The controller's own public methods and the ones it inherits from base controllers, as ASP.NET serves them:
+    // an override or a `new` method stands for the base's, and ControllerBase's own members are no actions.
+    private static IEnumerable<IMethodSymbol> Actions(INamedTypeSymbol controller)
+    {
+        var hidden = new HashSet<string>(StringComparer.Ordinal);
+        for (var current = controller; current is not null && !IsFrameworkController(current); current = current.BaseType)
+        {
+            foreach (var method in current.GetMembers().OfType<IMethodSymbol>())
+            {
+                var signature = method.Name + "(" + string.Join(",", method.Parameters.Select(static p => p.Type.ToDisplayString())) + ")";
+                if (hidden.Add(signature))
+                {
+                    yield return method;
+                }
+            }
+        }
+    }
+
+    private static bool IsFrameworkController(INamedTypeSymbol type) =>
+        type.Name is "ControllerBase" or "Controller"
+        && string.Equals(type.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal);
 
     private static ApiEndpoint? Build(
         SourceProductionContext spc,
@@ -429,17 +508,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 return false;
             }
 
-            // Refused HERE, where it can be reported. The emitter has no way to attach a header to the
-            // request, and a comment further down once claimed this case never reached it — it did, and
-            // the emitter threw, which fails the whole generator with CS8785 and leaves the compilation
-            // with no clients at all. One unsupported parameter must cost one endpoint, not all of them.
-            if (binding == ApiBinding.Header)
+            if (Unsendable(parameter, binding.Value, shape) is { } reason)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    EndpointSkipped, site, declaredBy,
-                    $"parameter '{parameter.Name}' binds from a request header, which a generated client "
-                    + "cannot send. Pass it as a route or query value, or set it for every call with "
-                    + "ApiClientOptions.ConfigureRequest"));
+                spc.ReportDiagnostic(Diagnostic.Create(EndpointSkipped, site, declaredBy, reason));
                 return false;
             }
 
@@ -454,6 +525,30 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         }
 
         return true;
+    }
+
+    // Why a client cannot send this parameter where it binds, or null when it can. Refused HERE, where it can be
+    // reported: the emitter throwing fails the whole generator with CS8785 and leaves the compilation with no clients
+    // at all. One unsupported parameter must cost one endpoint, not all of them.
+    private static string? Unsendable(IParameterSymbol parameter, ApiBinding binding, WireType shape)
+    {
+        // The emitter has no way to attach a header to the request.
+        if (binding == ApiBinding.Header)
+        {
+            return $"parameter '{parameter.Name}' binds from a request header, which a generated client "
+                   + "cannot send. Pass it as a route or query value, or set it for every call with "
+                   + "ApiClientOptions.ConfigureRequest";
+        }
+
+        // [FromQuery] on a record binds its PROPERTIES from the query in ASP.NET; the client has one value per key
+        // and would send the record's ToString() under the parameter's name, which binds nothing.
+        if (binding == ApiBinding.Query && !IsSimple(shape))
+        {
+            return $"parameter '{parameter.Name}' binds a complex type from the query string, which a generated "
+                   + "client cannot spell out. Take its members as separate [FromQuery] parameters, or send it as the body";
+        }
+
+        return null;
     }
 
     private static bool TryResult(
