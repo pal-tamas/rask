@@ -56,7 +56,7 @@ docker run -d --rm --name "$pg_container" \
   -e POSTGRES_PASSWORD="$pg_password" \
   -e POSTGRES_DB=rask \
   -p "127.0.0.1:$pg_port:5432" \
-  postgres:18-alpine >/dev/null
+  postgres:19-alpine >/dev/null
 
 pg_port="$(docker port "$pg_container" 5432/tcp | head -n 1 | sed 's/.*://')"
 echo "    listening on 127.0.0.1:$pg_port"

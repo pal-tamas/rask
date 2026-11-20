@@ -31,7 +31,7 @@ trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
 echo "==> Starting PostgreSQL ($container) with ${delay} of egress delay"
 docker run -d --rm --name "$container" --cap-add NET_ADMIN \
   -e POSTGRES_PASSWORD="$password" -e POSTGRES_DB=rask \
-  -p "127.0.0.1::5432" postgres:18-alpine >/dev/null
+  -p "127.0.0.1::5432" postgres:19-alpine >/dev/null
 port="$(docker port "$container" 5432/tcp | head -n 1 | sed 's/.*://')"
 
 ready=0
