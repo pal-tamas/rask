@@ -436,6 +436,50 @@ public sealed class AccountRecoveryTests
         Assert.True(await IsConfirmedAsync(harness, Owner));
     }
 
+    [Fact]
+    public async Task A_confirmed_address_is_not_told_to_somebody_without_its_link()
+    {
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        var (userId, token) = Parse(harness.Mail!.LastTo(Owner)!.Link!);
+        await ConfirmAsync(harness, userId, token);
+
+        var guess = await ConfirmAsync(harness, userId, "not-the-link");
+
+        Assert.Equal(AuthError.InvalidToken, guess.Error);
+    }
+
+    [Theory]
+    [InlineData(Owner)]
+    [InlineData("nobody@example.com")]
+    public async Task With_no_sender_running_a_reset_request_takes_the_same_least_time_for_any_address(string email)
+    {
+        await using var harness = await ClaimedAsync(o => o.ResetAnswerFloor = TimeSpan.FromMilliseconds(200));
+        harness.Services.GetRequiredService<PasswordResetQueue>().IsRunning = false;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        var result = await AskForResetAsync(harness, email);
+
+        Assert.True(result.Succeeded);
+        Assert.True(System.Diagnostics.Stopwatch.GetElapsedTime(started) >= TimeSpan.FromMilliseconds(200));
+    }
+
+    [Theory]
+    [InlineData(Owner)]
+    [InlineData("nobody@example.com")]
+    public async Task A_reset_request_answers_at_once_and_mails_in_the_background(string email)
+    {
+        await using var harness = await ClaimedAsync(o => o.ResetAnswerFloor = TimeSpan.FromSeconds(5));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        var result = await AskForResetAsync(harness, email);
+        var answeredIn = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        await harness.Services.GetRequiredService<PasswordResetQueue>().WhenIdle();
+
+        Assert.True(result.Succeeded);
+        Assert.True(answeredIn < TimeSpan.FromSeconds(5), $"answered in {answeredIn}");
+        Assert.Equal(email == Owner, harness.Mail!.LastTo(email) is not null);
+    }
+
     private static async Task<AuthResult> RegisterAsync(
         AuthHarness harness, string email, string? firstRunToken = null)
     {
@@ -451,7 +495,15 @@ public sealed class AccountRecoveryTests
         return (await accounts.ValidateAsync(email, password, client: null)).Result;
     }
 
+    // Asks, and waits for the background sender to have worked it through, so the outbox can be read after.
     private static async Task<AuthResult> SendResetAsync(AuthHarness harness, string email)
+    {
+        var result = await AskForResetAsync(harness, email);
+        await harness.Services.GetRequiredService<PasswordResetQueue>().WhenIdle();
+        return result;
+    }
+
+    private static async Task<AuthResult> AskForResetAsync(AuthHarness harness, string email)
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();

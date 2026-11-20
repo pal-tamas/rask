@@ -25,8 +25,8 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     private readonly OutboxSignal _signal;
     private readonly IServiceScopeFactory _scopes;
 
-    // The contexts whose save wrote rows, until those rows are committed and the processor woken.
-    private readonly ConditionalWeakTable<DbContext, object> _wrote = new();
+    // The contexts whose save wrote rows, and the rows, until they are committed and the processor woken.
+    private readonly ConditionalWeakTable<DbContext, List<OutboxMessage>> _wrote = new();
 
     internal OutboxInterceptor(TimeProvider timeProvider, OutboxSignal signal, IServiceScopeFactory scopes)
     {
@@ -66,12 +66,12 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     }
 
     /// <inheritdoc/>
-    public override void SaveChangesFailed(DbContextErrorEventData eventData) => Forget(eventData.Context);
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) => Withdraw(eventData.Context);
 
     /// <inheritdoc/>
     public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
     {
-        Forget(eventData.Context);
+        Withdraw(eventData.Context);
         return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
@@ -133,7 +133,7 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
         if (rows.Count > 0)
         {
             context.AddRange(rows);
-            _wrote.AddOrUpdate(context, _wrote);
+            _wrote.AddOrUpdate(context, rows);
         }
     }
 
@@ -168,6 +168,21 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
         if (context is not null && _wrote.Remove(context))
         {
             _signal.Wake();
+        }
+    }
+
+    // A save that failed takes its rows back out of the context: left Added, the context's next save — of anything — would
+    // write them for a change that never committed, and a retry of the same save would write them beside the ones it adds
+    // again. The events stay on their entities (as DomainEventInterceptor leaves them), so that retry stores them once.
+    private void Withdraw(DbContext? context)
+    {
+        if (context is not null && _wrote.TryGetValue(context, out var rows))
+        {
+            _wrote.Remove(context);
+            foreach (var row in rows)
+            {
+                context.Entry(row).State = EntityState.Detached;
+            }
         }
     }
 

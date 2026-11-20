@@ -173,6 +173,7 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddSingleton<IAccountPrincipals, AccountPrincipals<TUser, TKey>>();
 
         services.AddScoped<AccountService<TUser, TKey>>();
+        services.TryAddSingleton<PasswordResetQueue>();
 
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
         // parameterless extension method, so it has no way to know which one this app configured.
@@ -207,6 +208,7 @@ public static class RaskAuthServiceCollectionExtensions
         services.AddHostedService<AuthModelCheck<TContext, TUser>>();
 
         services.AddHostedService<FirstRunTokenInitializer>();
+        services.AddHostedService<PasswordResetSender<TUser, TKey>>();
         // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
         // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
         // AddHostedService does.

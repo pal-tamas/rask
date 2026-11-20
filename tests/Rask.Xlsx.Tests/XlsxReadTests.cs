@@ -236,7 +236,7 @@ public sealed class XlsxReadTests
     {
         var file = Xlsx.Write("S", ["A"], Enumerable.Range(0, 2000).Select(n => Row($"row {n}")));
 
-        var error = Assert.Throws<InvalidDataException>(() => Xlsx.Read(file, null, new ReadLimits(16 * 1024, 1000)));
+        var error = Assert.Throws<InvalidDataException>(() => Xlsx.Read(file, new ReadLimits(16 * 1024, 1000)));
 
         Assert.Contains("xl/worksheets/sheet1.xml", error.Message, StringComparison.Ordinal);
         Assert.Contains("unpacks to more than", error.Message, StringComparison.Ordinal);
@@ -257,7 +257,7 @@ public sealed class XlsxReadTests
     {
         var file = Xlsx.Write("S", ["A", "B"], Enumerable.Range(0, 600).Select(n => Row(n, n)));
 
-        var error = Assert.Throws<InvalidDataException>(() => Xlsx.Read(file, null, new ReadLimits(1024 * 1024, 1000)));
+        var error = Assert.Throws<InvalidDataException>(() => Xlsx.Read(file, new ReadLimits(1024 * 1024, 1000)));
 
         Assert.Contains("more than 1,000 cells", error.Message, StringComparison.Ordinal);
     }
@@ -267,7 +267,7 @@ public sealed class XlsxReadTests
     {
         var file = ExcelSaved.Workbook("S", "<row r=\"1\"><c r=\"XFD1\"><v>1</v></c></row><row r=\"1048576\"><c r=\"XFD1048576\"><v>1</v></c></row>", []);
 
-        var error = Record.Exception(() => Xlsx.Read(file, null, new ReadLimits(1024 * 1024, 100_000)));
+        var error = Record.Exception(() => Xlsx.Read(file, new ReadLimits(1024 * 1024, 100_000)));
 
         Assert.IsType<InvalidDataException>(error);
     }
@@ -337,5 +337,33 @@ public sealed class XlsxReadTests
             using var reader = new StreamReader(entry.Open());
             return reader.ReadToEnd();
         }, StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public void A_read_holds_at_most_two_million_cells_unless_told_otherwise()
+    {
+        var limits = ReadLimits.Default;
+
+        Assert.Equal(2_000_000, limits.MaxCells);
+    }
+
+    [Fact]
+    public void A_loader_handed_bigger_sheets_raises_the_cell_limit_on_its_own_read()
+    {
+        var file = Xlsx.Write("Big", ["A", "B"], Enumerable.Range(0, 600).Select(i => (IReadOnlyList<object?>)[i, i]));
+
+        var refused = Record.Exception(() => Xlsx.Read(file, new ReadLimits { MaxCells = 1_000 }));
+        var raised = Xlsx.Read(file, "Big", new ReadLimits { MaxCells = 10_000 });
+
+        Assert.IsType<InvalidDataException>(refused);
+        Assert.Equal(600, raised.Rows.Count());
+    }
+
+    [Fact]
+    public void A_limit_of_nothing_is_refused()
+    {
+        var file = Xlsx.Write("S", ["A"], [[1]]);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Xlsx.Read(file, new ReadLimits { MaxCells = 0 }));
     }
 }

@@ -25,6 +25,14 @@ internal sealed class AuthCookieEvents(IAuthSessions sessions) : CookieAuthentic
         }
 
         var http = context.HttpContext;
+
+        // A sign-in over a cookie that still names a session — signing in again, or as somebody else — ends that one: left,
+        // its row stayed live until it expired, for whoever else holds that older cookie.
+        if (AuthPrincipal.SessionId(http.User) is { } previous)
+        {
+            await sessions.EndAsync(previous, http.RequestAborted).ConfigureAwait(false);
+        }
+
         var userAgent = http.Request.Headers.UserAgent.ToString();
         var sessionId = await sessions
             .StartAsync(

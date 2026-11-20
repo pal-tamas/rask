@@ -44,13 +44,7 @@ public sealed class BrowserAuth(
             returnUrl);
 
     /// <inheritdoc />
-    public async Task SignOut(string? returnUrl = null)
-    {
-        using var request = Request(AuthApi.Logout);
-        await http.SendAsync(request).ConfigureAwait(false);
-
-        await SignedOut(returnUrl).ConfigureAwait(false);
-    }
+    public Task SignOut(string? returnUrl = null) => SignOutVia(AuthApi.Logout, returnUrl);
 
     /// <inheritdoc />
     public async Task SignOutOtherDevices()
@@ -60,19 +54,23 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
-    public async Task SignOutEverywhere(string? returnUrl = null)
-    {
-        using var request = Request(AuthApi.LogoutEverywhere);
-        await http.SendAsync(request).ConfigureAwait(false);
+    public Task SignOutEverywhere(string? returnUrl = null) => SignOutVia(AuthApi.LogoutEverywhere, returnUrl);
 
-        await SignedOut(returnUrl).ConfigureAwait(false);
-    }
-
-    // What the service worker kept offline, it kept for whoever was signed in: emptied before moving on.
-    private async Task SignedOut(string? returnUrl)
+    // What the service worker kept offline, it kept for whoever was signed in: emptied whatever the request did — a sign-out
+    // that never reached the server (offline, a 500) must not leave the next person at this device the last one's pages.
+    private async Task SignOutVia(string path, string? returnUrl)
     {
+        try
+        {
+            using var request = Request(path);
+            await http.SendAsync(request).ConfigureAwait(false);
+        }
+        finally
+        {
+            await OfflineCache.Clear(js).ConfigureAwait(false);
+        }
+
         await users.Refresh().ConfigureAwait(false);
-        await OfflineCache.Clear(js).ConfigureAwait(false);
         Go.To(LocalUrl.Sanitize(returnUrl));
     }
 

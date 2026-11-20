@@ -668,7 +668,7 @@ down after 5 failures in 15 minutes: each next attempt waits 1 s, 2 s, 4 s… up
 It only waits — the right password still gets in, and clears the count — so guessing spread over many clients is slowed
 without anybody being able to lock the owner out. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
-An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
+An unknown address costs a password check anyway, a reset request answers the same for every address — at once, the lookup and the email done in the background — and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which
 addresses have one.
 

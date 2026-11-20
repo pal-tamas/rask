@@ -18,7 +18,8 @@ namespace Rask.Data;
 /// Events are read off the tracked entities in <c>SavingChanges</c> (before a delete detaches its entity) and
 /// published in <c>SavedChanges</c> (after the change commits). They are cleared only then, so the outbox's
 /// interceptor, reading the same events in the same <c>SavingChanges</c>, sees them whichever of the two runs
-/// first. A failed save discards them, so a rolled-back change never fires its events. A save inside
+/// first. A failed save publishes none of them and leaves them on their entities, so a rolled-back change never fires
+/// its events and a retry of that save fires them once. A save inside
 /// <c>Db.Transaction</c> publishes when that transaction commits, and not at all when it rolls back — and so does a
 /// save inside any other transaction open on its context (<c>Database.BeginTransaction</c>, or the one a declared
 /// rule's check opens): its events wait for that transaction's commit.
@@ -178,12 +179,14 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         return PublishAsync(events, cancellationToken);
     }
 
+    // A failed save publishes nothing, and leaves the events on their entities: the change has not happened, and a retry of
+    // the same save on the same context raises them again, once. An entity the caller gives up on (detached, or the context
+    // disposed) takes them with it.
     private void Discard(DbContext? context)
     {
-        if (context is not null && _pending.TryGetValue(context, out var pending))
+        if (context is not null)
         {
             _pending.Remove(context);
-            pending.Clear();
         }
     }
 

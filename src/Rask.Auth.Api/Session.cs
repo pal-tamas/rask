@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
 namespace Rask.Auth;
@@ -92,6 +93,23 @@ public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, Soft
     {
         ExpiresAt = now;
         Raise(new SignedOut(UserId, Id));
+    }
+
+    /// <summary>Ends every session of <paramref name="userId" /> but <paramref name="except" /> on <paramref name="db" />, for its next save.</summary>
+    internal static async Task<int> EndAll(DbContext db, Guid userId, Guid? except, DateTime now, CancellationToken cancellationToken)
+    {
+        var sessions = await db.Set<Session>()
+            .Where(s => s.UserId == userId && s.Id != except)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var session in sessions)
+        {
+            session.End(now);
+            db.Remove(session);
+        }
+
+        return sessions.Count;
     }
 
     private static string? Truncate(string? value, int length) =>

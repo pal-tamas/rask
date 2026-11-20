@@ -47,6 +47,15 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
         where TKey : notnull =>
         IsValid(token, TokenPurpose.Confirm, user.AccountId, ConfirmFingerprint(user));
 
+    /// <summary>
+    ///     Whether <paramref name="token" /> is a confirmation token <paramref name="user" />'s address was confirmed with — one
+    ///     that was live while it was still unconfirmed. What lets a second arrival at the page say "already confirmed" to the
+    ///     holder of the link, and to nobody else.
+    /// </summary>
+    public bool ConfirmedWith<TKey>(Authenticatable<TKey> user, string token)
+        where TKey : notnull =>
+        IsValid(token, TokenPurpose.Confirm, user.AccountId, UnconfirmedFingerprint(user.Email));
+
     private string Issue(TokenPurpose purpose, Guid userId, string fingerprint, TimeSpan lifetime)
     {
         var expires = (clock.GetUtcNow() + lifetime).ToUnixTimeSeconds();
@@ -93,7 +102,11 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
 
     private static string ConfirmFingerprint<TKey>(Authenticatable<TKey> user)
         where TKey : notnull =>
-        Fingerprint(user.Email + "|" + (user.EmailConfirmedAt?.Ticks.ToString(CultureInfo.InvariantCulture) ?? "-"));
+        user.EmailConfirmedAt is { } confirmed
+            ? Fingerprint(user.Email + "|" + confirmed.Ticks.ToString(CultureInfo.InvariantCulture))
+            : UnconfirmedFingerprint(user.Email);
+
+    private static string UnconfirmedFingerprint(string email) => Fingerprint(email + "|-");
 
     // A hash of the state rather than the state: a token never carries the password hash, even sealed.
     private static string Fingerprint(string state) =>
