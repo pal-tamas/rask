@@ -9,14 +9,23 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
 {
     private readonly string _directory;
     private readonly string _searchPattern;
+    private readonly Func<string, bool> _owns;
 
     /// <summary>Creates a store over <paramref name="directory"/> managing files matching <paramref name="searchPattern"/>.</summary>
     public DirectorySnapshotStore(string directory, string searchPattern = "*.db")
+        : this(directory, searchPattern, static _ => true)
+    {
+    }
+
+    // A glob cannot tell `app-20260101-….db` from `app-audit-….db`: the name test can, so a database's store prunes only
+    // its own snapshots in a directory several share.
+    internal DirectorySnapshotStore(string directory, string searchPattern, Func<string, bool> owns)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentException.ThrowIfNullOrWhiteSpace(searchPattern);
         _directory = directory;
         _searchPattern = searchPattern;
+        _owns = owns;
     }
 
     /// <inheritdoc/>
@@ -41,8 +50,7 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
 
         // Ordered by the same key Prune deletes by, so "the ones you can see" and "the ones that survive
         // retention" are the same list in the same order.
-        var snapshots = new DirectoryInfo(_directory)
-            .EnumerateFiles(_searchPattern)
+        var snapshots = Owned()
             .OrderByDescending(f => f.LastWriteTimeUtc)
             .Select(f => new SqliteSnapshotInfo(f.Name, f.Length, f.LastWriteTimeUtc))
             .ToArray();
@@ -58,8 +66,7 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
             return Task.CompletedTask;
         }
 
-        var stale = new DirectoryInfo(_directory)
-            .EnumerateFiles(_searchPattern)
+        var stale = Owned()
             .OrderByDescending(f => f.LastWriteTimeUtc)
             .Skip(retain);
 
@@ -78,4 +85,7 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
 
         return Task.CompletedTask;
     }
+
+    private IEnumerable<FileInfo> Owned() =>
+        new DirectoryInfo(_directory).EnumerateFiles(_searchPattern).Where(file => _owns(file.Name));
 }

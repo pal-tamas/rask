@@ -31,8 +31,7 @@ internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
             ?? throw new InvalidOperationException($"{nameof(SqliteSnapshotOptions.DatabasePath)} is not set.");
 
         var stem = Path.GetFileNameWithoutExtension(databasePath);
-        var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmssfff", CultureInfo.InvariantCulture);
-        var snapshotName = $"{stem}-{timestamp}.db";
+        var snapshotName = SnapshotNames.For(stem, DateTimeOffset.UtcNow);
         var tempPath = Path.Combine(Path.GetTempPath(), $"rask-snapshot-{Guid.NewGuid():N}.db");
 
         try

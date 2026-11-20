@@ -567,6 +567,13 @@ them until tagged releases begin.
 - **A partial component declared with its base list in two files of one folder pairs with its scoped CSS/TypeScript
   once.** Before: each declaration counted, so the class was ambiguous with itself (RASK016/RASK018).
 - **A page property named with a keyword (`@event`) gets compilable `Url()`/`Go()` helpers.**
+- **A Litestream restore at start no longer meets a lost database's leftovers.** Before: the zero-byte file the guard
+  lets through was left in place, and a `-wal`/`-shm` the lost database left beside it was replayed by SQLite onto the
+  restored file on its first open. After: the empty file and its `-wal`, `-shm` and `-journal` are removed before
+  `litestream restore` runs; a populated database is still never touched.
+- **Snapshot retention prunes only this database's snapshots.** Before: the store matched `{stem}-*.db`, so `app.db`'s
+  retention deleted `app-audit.db`'s snapshots in a shared directory (and listed them as its own). After: only
+  `{stem}-{yyyyMMdd-HHmmssfff}.db` is this database's.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

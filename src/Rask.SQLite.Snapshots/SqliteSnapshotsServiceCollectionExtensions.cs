@@ -50,7 +50,7 @@ public static class SqliteSnapshotsServiceCollectionExtensions
 
                 // Scope pruning to this database's own snapshots so a shared directory stays safe.
                 var stem = Path.GetFileNameWithoutExtension(options.DatabasePath!);
-                return new DirectorySnapshotStore(options.DestinationDirectory!, $"{stem}-*.db");
+                return new DirectorySnapshotStore(options.DestinationDirectory!, $"{stem}-*.db", name => SnapshotNames.IsOf(stem, name));
             });
         }
 
