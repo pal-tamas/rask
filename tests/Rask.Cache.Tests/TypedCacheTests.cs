@@ -41,6 +41,61 @@ public sealed class TypedCacheTests
     }
 
     [Fact]
+    public async Task Callers_that_miss_the_same_key_together_share_one_load()
+    {
+        await using var harness = new CacheHarness();
+        var loads = 0;
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<Widget> Load()
+        {
+            Interlocked.Increment(ref loads);
+            await gate.Task;
+            return new Widget(1, "made");
+        }
+
+        var callers = Enumerable.Range(0, 8)
+            .Select(async _ => await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken).For(5.Minutes))
+            .ToArray();
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        gate.SetResult();
+        var answers = await Task.WhenAll(callers);
+
+        Assert.Equal(1, loads);
+        Assert.All(answers, a => Assert.Equal(new Widget(1, "made"), a));
+    }
+
+    [Fact]
+    public async Task Remember_with_no_lifetime_keeps_the_value_a_day()
+    {
+        await using var harness = new CacheHarness();
+        var loads = 0;
+        Widget Load() => new(Interlocked.Increment(ref loads), "v");
+        await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+
+        harness.Clock.Advance(23.Hours);
+        var withinTheDay = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+        harness.Clock.Advance(2.Hours);
+        var nextDay = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, withinTheDay.Id);
+        Assert.Equal(2, nextDay.Id);
+    }
+
+    [Fact]
+    public async Task Remember_Forever_keeps_the_value_until_it_is_forgotten()
+    {
+        await using var harness = new CacheHarness();
+        var loads = 0;
+        Widget Load() => new(Interlocked.Increment(ref loads), "v");
+        await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken).Forever();
+
+        harness.Clock.Advance(TimeSpan.FromDays(400));
+        var later = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken).Forever();
+
+        Assert.Equal(1, later.Id);
+    }
+
+    [Fact]
     public async Task Remember_For_loads_again_once_the_time_is_up()
     {
         await using var harness = new CacheHarness();

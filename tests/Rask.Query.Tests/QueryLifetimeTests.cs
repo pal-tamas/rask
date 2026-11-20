@@ -64,6 +64,30 @@ public class QueryLifetimeTests
     }
 
     [Fact]
+    public async Task A_reader_that_joins_a_fetch_still_stopping_gets_the_data_from_a_new_one()
+    {
+        var (client, dispatcher, _) = NewClient();
+        dispatcher.Block();
+        dispatcher.SlowToStop = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = client.Query(new GetOrders(1));
+        _ = first.Data;
+        var stopping = first.Entry.InFlight!;
+        first.Dispose();
+        using var second = client.Query(new GetOrders(1));
+        _ = second.Data;
+
+        dispatcher.Release();
+        dispatcher.SlowToStop.SetResult();
+        await stopping;
+        if (second.Entry.InFlight is { } refetch)
+        {
+            await refetch;
+        }
+
+        Assert.Equal("first", second.Data);
+    }
+
+    [Fact]
     public async Task A_custom_GcTime_outlives_the_default()
     {
         var (client, dispatcher, time) = NewClient();

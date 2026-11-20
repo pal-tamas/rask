@@ -40,7 +40,16 @@ internal sealed class UploadSessionStore : IDisposable
 
         _time = time ?? TimeProvider.System;
         _root = Path.Combine(Path.GetTempPath(), "rask-cqrs-uploads", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_root);
+
+        // This user's alone: the umask would leave the parts readable by every local account in a shared /tmp.
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(_root);
+        }
+        else
+        {
+            Directory.CreateDirectory(_root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
     }
 
     /// <summary>Appends <paramref name="body" /> to one file of a session, creating the session if new.</summary>
@@ -210,16 +219,23 @@ internal sealed class UploadSessionStore : IDisposable
     /// <remarks>
     ///     Single-use deliberately: an id that stayed valid could replay somebody's upload into a second
     ///     message. The files outlive the entry — the returned <see cref="RemoteFile" />s own them, and
-    ///     they are deleted when the request that spends them is done.
+    ///     they are deleted when the request that spends them is done: by the stream a handler opens, and by
+    ///     <paramref name="holdUntilDone" />'s dispose for a part no handler opened. The session's quota is
+    ///     given back now, so a part left on disk would be counted by nothing.
     /// </remarks>
-    public IReadOnlyList<RemoteFile>? Take(string owner, string uploadId)
+    /// <param name="owner">The caller the upload belongs to.</param>
+    /// <param name="uploadId">The upload the message names.</param>
+    /// <param name="holdUntilDone">Keeps the parts' cleanup until the request ends (<c>Response.RegisterForDispose</c>).</param>
+    public IReadOnlyList<RemoteFile>? Take(string owner, string uploadId, Action<IDisposable> holdUntilDone)
     {
+        ArgumentNullException.ThrowIfNull(holdUntilDone);
         if (!_sessions.TryRemove(Key(owner, uploadId), out var session))
         {
             return null;
         }
 
         Close(session);
+        holdUntilDone(new Leftovers(session));
 
         // Contiguous from zero, or the message's indices do not line up with what arrived. A gap would
         // hand a handler the wrong file, which is the failure this pairing exists to prevent.
@@ -326,6 +342,12 @@ internal sealed class UploadSessionStore : IDisposable
 
             Parts.Clear();
         }
+    }
+
+    // The parts of a spent session that no handler opened, deleted once its request is over.
+    private sealed class Leftovers(UploadSession session) : IDisposable
+    {
+        public void Dispose() => session.Delete();
     }
 
     private sealed class UploadPart(string path)

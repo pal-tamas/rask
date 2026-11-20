@@ -41,14 +41,29 @@ internal sealed class SessionDownloadStore : IDisposable
         // (often a `using` MemoryStream/FileStream) may be disposed the moment the handler
         // returns. Copying now is the price of that contract; keep it sync to avoid
         // turning the whole public Download path async.
-        using (var f = File.Create(path))
+        try
         {
-            stream.CopyTo(f);
+            using var file = PrivateTempFile.Create(path, asynchronous: false);
+            stream.CopyTo(file);
+        }
+        catch
+        {
+            TryDelete(path); // a source that failed partway leaves nothing half-written behind
+            throw;
         }
 
         var entry = new Entry(sessionId, token, filename, contentType ?? "application/octet-stream", null, path);
         _entries[token] = entry;
         return entry;
+    }
+
+    /// <summary>Drops an entry nobody will ask for: its handler staged another before the first reached the browser.</summary>
+    public void Discard(Entry entry)
+    {
+        if (_entries.TryRemove(new KeyValuePair<string, Entry>(entry.Token, entry)))
+        {
+            Release(entry);
+        }
     }
 
     /// <summary>The session <paramref name="token" /> was staged for, without taking it.</summary>

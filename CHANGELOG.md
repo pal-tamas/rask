@@ -574,6 +574,32 @@ them until tagged releases begin.
 - **Snapshot retention prunes only this database's snapshots.** Before: the store matched `{stem}-*.db`, so `app.db`'s
   retention deleted `app-audit.db`'s snapshots in a shared directory (and listed them as its own). After: only
   `{stem}-{yyyyMMdd-HHmmssfff}.db` is this database's.
+- **BREAKING (Rask.Cache): `Remember` and `Set` with no lifetime keep the value 24 hours.** Before: an entry with no
+  `.For`/`.Sliding`/`.Until` (and no `DefaultSlidingExpiration`) lived for as long as the table did — a key built from a
+  date or an id piled up forever. After: it lives `CacheOptions.DefaultLifetime` (24 hours, `Rask:Cache:DefaultLifetime`);
+  **`.Forever()`** keeps one until `Cache.Forget`. `CacheFake` keeps the same day. Raw `IDistributedCache` writes are
+  unchanged.
+- **A download saves under its own name.** Before: `Navigator.Download` sent `filename="Jelent%C3%A9s.xlsx"`, so the
+  browser saved the percent-escaped name. After: `filename=` plus RFC 6266's `filename*=UTF-8''…`, as stored files
+  already did.
+- **Staged uploads and downloads stay this user's, and leave nothing behind.** Before: their temp files took the
+  umask (`0644` in a shared `/tmp`), a source that failed partway left its half-written file, a second download staged
+  in one event kept the first one's bytes or file until the session ended, and an upload over the session's quota was
+  written in full before it was refused. After: `0600` files (and a `0700` directory for CQRS chunked uploads), cleaned
+  up on failure, the replaced download dropped at once, and an upload whose declared size is over the quota refused
+  before a byte is written.
+- **A chunked CQRS upload no handler read is deleted when its request ends.** Before: spending the upload gave its
+  quota back, but its parts were deleted only when a handler opened them, so a message that failed to decode (or a
+  handler that ignored a file) left them on disk until the process stopped, counted by nothing. After: they go with
+  the request.
+- **`Cache.Remember` loads a key once for callers that miss it together.** Before: every concurrent miss ran the loader
+  — a stampede against the database the cache stands in front of. After: the callers in one process wait for one load
+  (a failed load lets each try its own).
+- **A query reader that joins a fetch still stopping gets its data.** Before: the last reader leaving cancelled the
+  fetch, and a reader arriving before it had stopped waited on it and then stayed pending, since nothing asked again.
+  After: once a cancelled fetch stops, a watched entry is fetched anew.
+- **Retrying an outbox dead letter in the dashboard keeps when its event happened.** Before: Retry wrote now into
+  `OccurredAt`, which the outbox uses as its run-at stand-in. After: the row is eligible again with its own time.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

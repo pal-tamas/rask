@@ -29,6 +29,11 @@ internal sealed class CacheOptionsValidator : IValidateOptions<CacheOptions>
             failures.Add("Rask:Cache:DefaultSlidingExpiration must be positive when set.");
         }
 
+        if (options.DefaultLifetime <= TimeSpan.Zero)
+        {
+            failures.Add("Rask:Cache:DefaultLifetime must be positive; keep an entry for good with .Forever().");
+        }
+
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

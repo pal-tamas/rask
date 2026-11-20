@@ -16,10 +16,22 @@ internal sealed class ServerDownloadSink : IDownloadSink
     }
 
     public void Stage(string filename, byte[] bytes, string? contentType)
-        => _pending = _store.StageBytes(_session.Id, filename, bytes, contentType);
+        => Pending(_store.StageBytes(_session.Id, filename, bytes, contentType));
 
     public void Stage(string filename, Stream stream, string? contentType)
-        => _pending = _store.StageStream(_session.Id, filename, stream, contentType);
+        => Pending(_store.StageStream(_session.Id, filename, stream, contentType));
+
+    // One download per event reaches the browser, the last staged: one staged before it is dropped now, not held — its
+    // bytes or its temp file — until the session ends.
+    private void Pending(SessionDownloadStore.Entry entry)
+    {
+        if (_pending is { } replaced)
+        {
+            _store.Discard(replaced);
+        }
+
+        _pending = entry;
+    }
 
     public bool TryConsume(out PendingDownload? download)
     {

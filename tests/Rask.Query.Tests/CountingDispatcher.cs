@@ -83,6 +83,9 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public void Release() => _gate?.TrySetResult();
 
+    /// <summary>When set, a cancelled dispatch stops only once this completes: a fetch slow to notice it was cancelled.</summary>
+    public TaskCompletionSource? SlowToStop { get; set; }
+
     public async Task<TResult> Query<TResult>(
         IQuery<TResult> query,
         CancellationToken cancellationToken = default)
@@ -104,6 +107,11 @@ internal sealed class CountingDispatcher : IDispatcher
             catch (OperationCanceledException)
             {
                 Interlocked.Increment(ref _cancelled);
+                if (SlowToStop is { } slow)
+                {
+                    await slow.Task.ConfigureAwait(false);
+                }
+
                 throw;
             }
         }

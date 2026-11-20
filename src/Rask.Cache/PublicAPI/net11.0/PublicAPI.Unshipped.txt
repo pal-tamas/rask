@@ -197,3 +197,9 @@ static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Sin
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
 static Rask.Caching.CacheEntryReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+Rask.Caching.CacheLifetime.Forever.get -> bool
+Rask.Caching.CacheLifetime.Forever.init -> void
+Rask.Caching.CacheOptions.DefaultLifetime.get -> System.TimeSpan
+Rask.Caching.CacheOptions.DefaultLifetime.set -> void
+Rask.Caching.Remembering<T>.Forever() -> Rask.Caching.Remembering<T>
+Rask.Caching.Setting<T>.Forever() -> Rask.Caching.Setting<T>

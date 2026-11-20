@@ -39,9 +39,25 @@ internal sealed class SessionUploadStore : IDisposable
     public async Task<Entry?> StageAsync(string sessionId, string name, string contentType, long size,
         DateTimeOffset lastModified, Func<string, Task> writeToPath, long maxBytesPerSession = 0)
     {
+        // Refused before a byte is written when the size it declares is already over: checked only after, a session at its
+        // quota could still have every upload copied to disk in full, then deleted.
+        if (maxBytesPerSession > 0 && StagedBytes(sessionId) + size > maxBytesPerSession)
+        {
+            return null;
+        }
+
         var token = Guid.NewGuid().ToString("N");
         var path = Path.Combine(Path.GetTempPath(), $"rask-upload-{token}.bin");
-        await writeToPath(path).ConfigureAwait(false);
+        try
+        {
+            await writeToPath(path).ConfigureAwait(false);
+        }
+        catch
+        {
+            TryDelete(path); // a cut-off upload leaves nothing half-written behind
+            throw;
+        }
+
         var info = new FileInfo(path);
         var actualSize = info.Exists ? info.Length : size;
 
@@ -64,6 +80,14 @@ internal sealed class SessionUploadStore : IDisposable
         var entry = new Entry(sessionId, token, path, name, actualSize, contentType, lastModified);
         _entries[Key(sessionId, token)] = entry;
         return entry;
+    }
+
+    private long StagedBytes(string sessionId)
+    {
+        lock (_quotaLock)
+        {
+            return _sessionBytes.GetValueOrDefault(sessionId);
+        }
     }
 
     public Entry? Get(string sessionId, string token) =>

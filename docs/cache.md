@@ -61,9 +61,10 @@ await Cache.Forget("greeting");
 ```
 
 How long an entry lives is a step at the end: **`.For(10.Minutes)`** from now, **`.Sliding(20.Minutes)`**
-while it keeps being read, **`.Until(midnight)`** at a fixed moment. With no step it follows
-`CacheOptions.DefaultSlidingExpiration`, and never expires when that is unset. Nothing runs until the line
-is awaited.
+while it keeps being read, **`.Until(midnight)`** at a fixed moment, **`.Forever()`** until it is forgotten. With
+no step it follows `CacheOptions.DefaultSlidingExpiration` when that is set, and otherwise lives
+`CacheOptions.DefaultLifetime` — **24 hours** — so a key nobody thought about cannot sit in the table for good.
+Nothing runs until the line is awaited.
 
 No call takes a cancellation token: each is cancelled with the work it runs in. Where there is no such work
 — a hosted service, a timer started at boot — inject `ICache`, which reads the same:

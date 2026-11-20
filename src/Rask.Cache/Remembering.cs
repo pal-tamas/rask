@@ -38,6 +38,12 @@ public readonly struct Remembering<T>
     /// <summary>Keeps the value until <paramref name="moment" />: <c>.Until(midnight)</c>.</summary>
     public Remembering<T> Until(DateTimeOffset moment) => With(_lifetime with { Until = moment });
 
+    /// <summary>
+    ///     Keeps the value until it is forgotten (<c>Cache.Forget</c>): <c>.Forever()</c>. Without a step it lives
+    ///     <see cref="CacheOptions.DefaultLifetime" />.
+    /// </summary>
+    public Remembering<T> Forever() => With(_lifetime with { Forever = true });
+
     /// <summary>Runs it.</summary>
     public TaskAwaiter<T> GetAwaiter() => AsTask().GetAwaiter();
 

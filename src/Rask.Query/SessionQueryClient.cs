@@ -680,6 +680,27 @@ internal sealed class SessionQueryClient : IQueryClient
         completion.TrySetResult();
     }
 
+    // A fetch cancelled because its last reader left can be joined by the next one before it has stopped: that reader waited
+    // on a fetch that brings nothing, and nothing else would ask again. So once it has stopped, a watched entry is fetched
+    // anew — for as long as the session lives, not for the caller that has gone.
+    private void RefetchIfWatched(QueryEntry entry, Func<CancellationToken, Task<object?>> fetch, QueryOptions options)
+    {
+        if (_lifetimeToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            if (entry.Observers == 0 || entry.InFlight is not null)
+            {
+                return;
+            }
+        }
+
+        _ = RunAsync(entry, fetch, options, CancellationToken.None);
+    }
+
     /// <summary>One attempt: true once the entry is settled, false when it is worth another go.</summary>
     [SuppressMessage(
         "Design",
@@ -712,6 +733,7 @@ internal sealed class SessionQueryClient : IQueryClient
             // asked. Neither is a failure to show: recording it would leave an error on an
             // entry whose next observer would then render it, having done nothing wrong.
             entry.Abandoned(generation);
+            RefetchIfWatched(entry, fetch, options);
             return true;
         }
         catch (Exception ex)
