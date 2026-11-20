@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask;
 
@@ -57,8 +58,14 @@ internal sealed record UiCalendarOptions(
     internal bool Offers(DateOnly day) =>
         (Min is not { } min || day >= min) && (Max is not { } max || day <= max) && Unavailable?.Contains(day) != true;
 
-    /// <summary>The clock a calendar reads today from. A test that snapshots markup pins it.</summary>
-    internal static TimeProvider Clock { get; set; } = TimeProvider.System;
+    /// <summary>
+    ///     Today on the reader's calendar (<see cref="Reader.Today" />): the zone their browser named, on the app's
+    ///     clock — not the server's. Outside a page (a markup render with no services) the app's zone.
+    /// </summary>
+    internal static DateOnly Now() => ReaderOfPage().Today;
 
-    internal static DateOnly Now() => DateOnly.FromDateTime(Clock.GetLocalNow().Date);
+    /// <summary>Now on the reader's wall (<see cref="Reader.Now" />), to the minute a time picker starts from.</summary>
+    internal static TimeOnly TimeNow() => TimeOnly.FromDateTime(ReaderOfPage().Now.DateTime);
+
+    private static Reader ReaderOfPage() => Ambient.Services?.GetService<Reader>() ?? new Reader();
 }

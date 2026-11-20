@@ -487,7 +487,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
         Max,
         Unavailable ?? [],
         OpenTo?.From,
-        Now ?? TimeOnly.FromDateTime(UiCalendarOptions.Clock.GetLocalNow().DateTime));
+        Now ?? UiCalendarOptions.TimeNow());
 
     private UiCalendarOptions Options(CultureInfo culture) =>
         new(
