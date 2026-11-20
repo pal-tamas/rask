@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK123, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK124, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -139,6 +139,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK121](#rask121) | Warning | A `[JSInvokable]` method is not `public` |
 | [RASK122](#rask122) | Warning | The signed-in user is kept without following `IUserProvider.Changed` |
 | [RASK123](#rask123) | Error | An `[OffThread]` message cannot run in a Web Worker |
+| [RASK124](#rask124) | Warning | An event's handlers disagree on who may publish it remotely |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3031,3 +3032,24 @@ public sealed class ReadSheetHandler(IJSRuntime js)                     // ✗ R
 **Fix:** answer with a record the codec can encode (the shapes [RASK053](#rask053) lists), and give the handler what it
 needs in the message instead of a page service — do the page's part (a toast, a focus, a download) with the result,
 after the `await`. A handler that does not need to leave the page's thread does not need `[OffThread]`.
+
+## RASK124
+
+**An event's handlers disagree on who may publish it** · Warning
+
+Who may publish an event over the wire (`IRemoteDispatch`, a browser's `Publish`) is read off its handlers, and a
+publish runs every handler the event has. So the endpoint asks for what each of them asks — every policy, every roles
+set — and lets an anonymous caller in only when **all** of them are `[AllowAnonymous]`. Handlers that ask different
+things are reported, because one of them was usually written for a different caller than the others:
+
+```csharp
+public sealed record OrderPlaced(Guid OrderId) : IEvent;                // ⚠ RASK124
+
+[AllowAnonymous]
+public sealed class ThankYouMail : IEventHandler<OrderPlaced> { … }
+
+[Authorize(Roles = "admin")]
+public sealed class ReserveStock : IEventHandler<OrderPlaced> { … }     // a remote publish needs "admin"
+```
+
+**Fix:** give the handlers the same attributes, or split the event so each publisher raises the one meant for it.

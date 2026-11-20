@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **BREAKING: a remote publish of an event is held to every handler the event has.** Before: the wire contract kept
+  the attributes of ONE handler — whichever the generator found last — so an event with an `[AllowAnonymous]`
+  handler and an `[Authorize(Roles = "admin")]` one could be published by anyone, running the admin's handler too.
+  After: a publish runs every handler, so the caller must pass all of their `[Authorize]` (every policy, every roles
+  set), and may publish anonymously only when every handler is `[AllowAnonymous]`. Handlers that disagree are the new
+  warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
+  `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
+
 ### Added
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
   (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
