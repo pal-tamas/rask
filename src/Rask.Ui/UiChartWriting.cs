@@ -42,6 +42,14 @@ internal static class UiChartWriting
     private static string Moment(DateTime moment) =>
         moment.ToString(moment.TimeOfDay == TimeSpan.Zero ? "d" : "g", CultureInfo.CurrentCulture);
 
-    private static string Number(double value, UiChartFormat? format) =>
-        format is null ? value.ToString("#,##0.###", CultureInfo.CurrentCulture) : format.Number(value);
+    // A row with no number (a null, a NaN) reads as nothing rather than as "NaN".
+    private static string Number(double value, UiChartFormat? format)
+    {
+        if (format is not null)
+        {
+            return format.Number(value);
+        }
+
+        return double.IsFinite(value) ? value.ToString("#,##0.###", CultureInfo.CurrentCulture) : string.Empty;
+    }
 }

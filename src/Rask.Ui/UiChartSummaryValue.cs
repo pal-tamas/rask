@@ -29,6 +29,10 @@ public sealed partial class UiChartSummaryValue : Component, IUiChartField
         // At rest it reads the latest row; under the pointer the plot hook shows the hovered row's line instead.
         return Span[
             Slot.Data(_lines.Of(data, Field, Format))[
-                data is null || data.Count == 0 ? Fallback : UiChartWriting.Value(Field, Format, data, data.Count - 1)]];
+                Latest(data) is { Length: > 0 } latest ? latest : Fallback]];
     }
+
+    // The latest row's value; nothing when there are no rows, or the latest has no number.
+    private string? Latest(UiChartData? data) =>
+        data is null || data.Count == 0 ? null : UiChartWriting.Value(Field, Format, data, data.Count - 1);
 }

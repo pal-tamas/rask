@@ -440,6 +440,95 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         Assert.Equal("March 15 | Mar 15 | 2:30 PM | 14:30 | Friday | 2024 | 3/15/2024 | Friday, March 15, 2024", written);
     }
 
+    private sealed record Reading(int Day, double? Value);
+
+    [Fact]
+    public void A_row_with_no_number_reads_as_nothing_in_every_format_and_the_summary_falls_back()
+    {
+        UiChartFormat[] formats =
+        [
+            new(), new() { Notation = Ui.ChartFormatNotation.Compact }, new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" },
+            new() { Style = Ui.ChartFormatStyle.Percent }, new() { Style = Ui.ChartFormatStyle.Unit, Unit = "megabyte" },
+        ];
+        Reading[] rows = [new(1, 4), new(2, null)];
+
+        var written = InEnglish(() => string.Join('|', formats.SelectMany(format => new[] { format.Number(double.NaN), format.Number(double.PositiveInfinity) })));
+        var summary = InEnglish(() => Ui.Chart.Value(rows)[Ui.ChartSummary[Ui.ChartSummaryValue.Field((Reading r) => r.Value).Fallback("n/a")]].ToHtml());
+
+        Assert.Equal(new string('|', 9), written);
+        Assert.Contains(">n/a</slot>", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("NaN", summary, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("en-US", 1234.56, "JPY", "¥1,235")]
+    [InlineData("en-US", -1234.5, "USD", "-$1,234.50")]
+    [InlineData("en-US", 1234.5, "HUF", "HUF 1,234.50")]
+    [InlineData("hu-HU", 12345, "HUF", "12 345,00 Ft")]
+    [InlineData("hu-HU", 12345, "EUR", "12 345,00 €")]
+    [InlineData("de-DE", 1234.5, "EUR", "1.234,50 €")]
+    [InlineData("en-US", 12.3456, "KWD", "KWD 12.346")]
+    public void A_currency_stands_where_the_reader_s_culture_puts_it_with_its_own_decimals(string culture, double value, string currency, string written)
+    {
+        var format = new UiChartFormat { Style = Ui.ChartFormatStyle.Currency, Currency = currency };
+
+        var text = In(culture, () => format.Number(value));
+
+        Assert.Equal(written, Spaced(text));
+    }
+
+    [Fact]
+    public void A_compact_number_that_rounds_to_a_thousand_is_written_in_the_next_unit()
+    {
+        var compact = new UiChartFormat { Notation = Ui.ChartFormatNotation.Compact };
+
+        var written = InEnglish(() => string.Join(' ', compact.Number(999_999), compact.Number(999_400), compact.Number(-999_999_999)));
+
+        Assert.Equal("1M 999K -1B", written);
+    }
+
+    [Theory]
+    [InlineData("de-DE", "15. März")]
+    [InlineData("hu-HU", "március 15.")]
+    [InlineData("en-GB", "15 March")]
+    public void A_month_and_day_stand_in_the_reader_s_order(string culture, string written)
+    {
+        var format = new UiChartFormat { Month = Ui.ChartFormatPart.Long, Day = Ui.ChartFormatPart.Numeric };
+
+        var text = In(culture, () => format.Date(new DateTime(2024, 3, 15, 0, 0, 0, DateTimeKind.Unspecified)));
+
+        Assert.Equal(written, text);
+    }
+
+    [Theory]
+    [InlineData("en-US", "March 15, 2024")]
+    [InlineData("de-DE", "15. März 2024")]
+    [InlineData("hu-HU", "2024. március 15.")]
+    public void A_long_date_style_is_the_reader_s_long_date_without_the_day_of_the_week(string culture, string written)
+    {
+        var format = new UiChartFormat { DateStyle = Ui.ChartFormatLength.Long };
+
+        var text = In(culture, () => format.Date(new DateTime(2024, 3, 15, 0, 0, 0, DateTimeKind.Unspecified)));
+
+        Assert.Equal(written, text);
+    }
+
+    private static string Spaced(string text) => text.Replace('\u00A0', ' ').Replace('\u202F', ' ');
+
+    private static string In(string culture, Func<string> render)
+    {
+        var before = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+        try
+        {
+            return render();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = before;
+        }
+    }
+
     [Fact]
     public void A_part_whose_lambda_reads_another_row_type_says_so()
     {

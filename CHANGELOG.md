@@ -424,6 +424,14 @@ them until tagged releases begin.
   exit 1. A rollback whose tag swap fails says so and exits 1, naming the tags to fix, instead of "Rolled back."
 - **`rask db --json` is refused on every verb but `list`.** Before: `rask db update --json` applied the migrations and
   then failed to find a listing in what EF printed.
+- **Rask.Ui charts: a row with no number reads as nothing, and a number is written as the reader's culture writes it.**
+  Before: a null in a `double?`/`int?`/`decimal?` field (a NaN) made a compact format throw (`Math.Sign(NaN)`) and every
+  other one print "NaN" in the tooltip, the legend, the summary and the screen-reader table; a currency was always a
+  prefix with two decimals ("Ft12 345,00", "¥1,234.56"); `DateStyle.Long`/`Medium` and a month-with-day format were in
+  English order ("März 15"); and compact notation wrote 999,999 as "1000K". After: a missing number is empty (a summary
+  shows its `Fallback`); the currency stands where the culture puts it with ISO 4217's decimals ("12 345,00 Ft",
+  "¥1,235", "1.234,50 €"); the long, medium and month-day/year-month patterns are the culture's own ("15. März",
+  "2024. március 15."); and a compact number that rounds to a thousand moves to the next unit ("1M").
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of
