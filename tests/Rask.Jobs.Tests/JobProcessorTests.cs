@@ -122,10 +122,41 @@ public sealed class JobProcessorTests
     }
 
     [Fact]
+    public async Task A_payload_that_no_longer_reads_fails_its_attempt_and_its_lane_goes_on()
+    {
+        await using var h = new JobsHarness(o => o.MaxAttempts = 1);
+        await h.Queue.Enqueue(new RecordJob("broken"), TestContext.Current.CancellationToken);
+        await h.Queue.Enqueue(new RecordJob("after"), TestContext.Current.CancellationToken);
+        await using (var db = h.NewContext())
+        {
+            await db.Set<Job>()
+                .Where(j => j.Payload.Contains("broken"))
+                .ExecuteUpdateAsync(s => s.SetProperty(j => j.Payload, "{not json"), TestContext.Current.CancellationToken);
+        }
+
+        await h.Processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await h.WaitUntilAsync(() => Task.FromResult(h.Recorder.Values.Contains("after")));
+        }
+        finally
+        {
+            await h.Processor.StopAsync(CancellationToken.None);
+        }
+
+        await using var check = h.NewContext();
+        var broken = await check.Set<Job>().AsNoTracking().SingleAsync(j => j.Payload == "{not json", TestContext.Current.CancellationToken);
+        Assert.Null(broken.ProcessedAt);
+        Assert.Null(broken.ClaimToken); // let go, not renewed until a shutdown hands it back
+        Assert.Equal(1, broken.Attempts); // its failed attempt stays counted: dead-lettered at MaxAttempts
+        Assert.Contains("does not read", broken.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_recurring_job_enqueues_once_per_interval()
     {
         await using var h = new JobsHarness(o =>
-            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart());
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -147,7 +178,7 @@ public sealed class JobProcessorTests
     public async Task A_restart_within_the_interval_does_not_re_enqueue_a_recurring_job()
     {
         await using var first = new JobsHarness(o =>
-            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart());
 
         await first.Processor.StartAsync(CancellationToken.None);
         await first.WaitUntilAsync(() => Task.FromResult(first.Recorder.Ticks >= 1));
@@ -155,7 +186,7 @@ public sealed class JobProcessorTests
 
         // "Restart": a fresh processor over the SAME database at the same (still-within-interval) time.
         await using var restarted = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)),
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(),
             start: first.Clock.GetUtcNow(),
             dbPath: first.DbPath);
 

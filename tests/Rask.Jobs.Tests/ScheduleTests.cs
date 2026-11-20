@@ -29,8 +29,9 @@ public sealed class ScheduleTests
     }
 
     [Fact]
-    public void A_daily_job_asked_before_its_hour_is_still_owed_yesterdays_run()
+    public void A_daily_job_asked_before_its_hour_falls_on_yesterdays_occurrence()
     {
+        // The occurrence a new schedule is seeded with (so it waits for today's), or catches up on with RunOnFirstStart.
         var schedule = Of(j => j.Daily.At(3, 00));
 
         var (_, next) = schedule.Tick(last: null, now: new DateTime(2026, 6, 10, 1, 00, 0, DateTimeKind.Utc), TimeZoneInfo.Utc);

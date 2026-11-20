@@ -153,7 +153,8 @@ Claiming a batch is one `UPDATE` whose predicate re-tests claimability, re-evalu
 version the winner committed, so the row goes to exactly one instance — no `SKIP LOCKED`, no
 provider-specific SQL. A claim marks the rows with a token and an expiry (`LeaseDuration`, default 5
 minutes); finishing hands them back, and so does a graceful shutdown, so a rolling deploy doesn't park a
-batch.
+batch. While a batch is at work its processor renews the lease every third of `LeaseDuration` — jobs, outbox
+messages and mail alike — so a long handler or a slow batch keeps what it claimed.
 
 This is what makes the *claim* safe when several processors race. It is a separate question from where the
 database lives: on SQLite there is one writer to begin with, so the race the lease settles is one you only
@@ -169,7 +170,8 @@ why the claim tests the expiry rather than "is this row unclaimed".
 
 > Leases prevent one instance **overwriting another's outcome**. They do not make a side effect happen once.
 
-If an instance overruns its `LeaseDuration`, a second instance may take the row and run the work again
+If an instance stops renewing — its process hangs, or it cannot reach the database for longer than
+`LeaseDuration` — a second instance may take the row and run the work again
 while the first is still going. The first then finds its lease gone and discards its own result — the
 database stays consistent — but if the work already sent an email, that email is out. At-least-once was
 always the contract; the lease narrows the window from *always, on every instance* to *only when an

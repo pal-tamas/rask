@@ -353,6 +353,32 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **BREAKING (Rask.Jobs): a new recurring schedule waits for its next occurrence.** Before: a schedule never run before
+  fired on the first poll — a `.Monthly.On(1).At(6, 0)` close-the-books deployed on the 15th ran on the 15th, an
+  `.Every(1.Hour)` job at every first boot. After: its `RecurringJobState` row starts at the occurrence just gone by, so
+  it runs at the next one; `.RunOnFirstStart()` keeps the old catch-up for a schedule that wants it. Existing rows are
+  unchanged.
+- **A queued job, outbox message or email whose payload no longer reads fails its own attempt; the rest of its batch
+  goes on.** Before: a hand-edited or reshaped payload threw out of the drain — a job's lane stopped with every row
+  still claimed and renewed until the host stopped, which then gave the attempt back, so the job was never retried
+  and never dead-lettered; an outbox batch stalled until its lease ran out. After: the row records "The payload of
+  … does not read", counts the attempt, and the next row runs. A job lane that fails for any other reason lets its
+  claim go, so its rows come back when the lease runs out instead of being held for the life of the process.
+- **An outbox or mail batch keeps its lease while it works.** Before: only Jobs renewed its lease, so a batch of
+  outbox messages or mail that took longer than `LeaseDuration` (a slow SMTP server, a slow handler) could be claimed
+  again by another instance and its later messages published or sent twice. After: both renew every third of
+  `LeaseDuration` while the batch runs, as Jobs does.
+- **Each outbox message is handled in a DI scope of its own.** Before: one scope served the whole batch, so a scoped
+  service (a `DbContext` a handler left tracking, or failed) reached the next message's handler. After: a scope per
+  message, as Jobs and Mail already had.
+- **A recurring job's tick and the job it enqueues commit together.** Before: the tick was claimed in one commit and
+  the job inserted in the next, so a failure between them spent the tick with no job — a nightly run silently
+  missed. After: one transaction (inside the provider's execution strategy); a failed insert leaves the tick owed.
+- **The end of the host's shutdown budget cancels a running job again, and a job still running is not handed
+  back.** Before: the budget's cancellation could run `base.StopAsync`'s own wait first and dispose Rask's
+  registration unrun, so the job was never told to stop; its row was then released (attempt undone) while its
+  handler still ran, for another instance to start a second time. After: the grace is cancelled once the budget has
+  ended, and a job whose handler is still in it keeps its claim until the lease runs out.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

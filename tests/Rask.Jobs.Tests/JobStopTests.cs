@@ -338,6 +338,26 @@ public sealed class JobStopTests
     }
 
     [Fact]
+    public async Task A_handler_still_running_when_the_host_stops_keeps_its_claim()
+    {
+        await using var h = new JobsHarness();
+        await h.Queue.Enqueue(new StubbornJob("a"), Ct).InLane("pump-1");
+        await h.Processor.StartAsync(CancellationToken.None);
+        await h.Entered("a");
+        var id = await h.IdOf("a");
+        using var budgetOver = new CancellationTokenSource();
+        await budgetOver.CancelAsync();
+
+        await h.Processor.StopAsync(budgetOver.Token);
+        var row = await h.Row(id);
+        h.Lanes.Release("a");
+
+        // Handed back, another instance would start it while its handler still runs here.
+        Assert.NotNull(row!.ClaimToken);
+        Assert.Equal(1, row.Attempts);
+    }
+
+    [Fact]
     public async Task A_handler_that_ignores_its_stop_holds_its_lane_and_is_named_once_a_minute()
     {
         await using var h = new JobsHarness();

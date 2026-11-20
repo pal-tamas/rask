@@ -521,3 +521,5 @@ Rask.Background.JobRead.Detail.get -> string?
 Rask.Background.JobRead.Detail.init -> void
 Rask.Background.Running<TResult>.ByTenant() -> Rask.Background.Running<TResult>
 Rask.Background.Running.ByTenant() -> Rask.Background.Running
+Rask.Background.RecurringJob.RunOnFirstStart() -> Rask.Background.RecurringJob!
+Rask.Background.RecurringJob.RunsOnFirstStart.get -> bool

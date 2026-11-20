@@ -214,19 +214,75 @@ public sealed partial class MailProcessor<TContext>(
         using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
         var graceToken = graceCts.Token;
 
-        foreach (var message in batch)
+        if (batch.Count == 0)
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
+            return;
+        }
 
-            if (!await SendAsync(message, graceToken, cancellationToken).ConfigureAwait(false))
+        using var renewing = new CancellationTokenSource();
+        var renewal = RenewLeaseAsync(_lease, renewing.Token);
+        try
+        {
+            foreach (var message in batch)
             {
-                break; // leave this and the rest for the next run
-            }
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
 
-            await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+                if (!await SendAsync(message, graceToken, cancellationToken).ConfigureAwait(false))
+                {
+                    break; // leave this and the rest for the next run
+                }
+
+                await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            await renewing.CancelAsync().ConfigureAwait(false);
+            await renewal.ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the batch's claim from running out while its mail goes out one message after the other. A batch that takes
+    /// longer than <see cref="MailOptions.LeaseDuration"/> (a slow SMTP server, a large batch) would otherwise be claimed
+    /// again by another instance and its later messages sent twice.
+    /// </summary>
+    private async Task RenewLeaseAsync(Guid lease, CancellationToken stop)
+    {
+        using var timer = new PeriodicTimer(options.LeaseDuration / 3, timeProvider);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop).ConfigureAwait(false))
+            {
+                await RenewLeaseOnceAsync(lease).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // The batch is over.
+        }
+    }
+
+    private async Task RenewLeaseOnceAsync(Guid lease)
+    {
+        try
+        {
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+            var until = timeProvider.GetUtcNow().UtcDateTime + options.LeaseDuration;
+            await db.Set<QueuedMail>()
+                .Where(m => m.ClaimToken == lease && m.ProcessedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.ClaimedUntil, until), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // A missed renewal is retried on the next tick; the lease outlasts two of them.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LeaseRenewalFailed(logger, ex);
         }
     }
 
@@ -479,6 +535,9 @@ public sealed partial class MailProcessor<TContext>(
         Message = "Email {Id} lost its lease mid-send on instance {Instance}; another instance owns it now. "
             + "Increase MailOptions.LeaseDuration past the time a send takes.")]
     private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not renew this instance's mail lease; retrying on the next tick.")]
+    private static partial void LeaseRenewalFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release mail leases on shutdown; they expire in {Lease}.")]
     private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);

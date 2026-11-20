@@ -402,7 +402,9 @@ write a job for work that may roll back.
 - **Recurring** — `o.Run<T>()` plus a cadence (`.Every(1.Hour)`, `.Daily.At(3, 0)`,
   `.Weekly.On(DayOfWeek.Monday).At(9, 0)`, `.Monthly.On(1).At(6, 0)`) enqueues a fresh job on each tick,
   tracked durably in `RecurringJobState` under the job's type name — `.Named("purge-carts")` overrides that,
-  and two schedules for one job need it. A restart never double-runs a tick, and an interval job that fell
+  and two schedules for one job need it. A new schedule waits for its next occurrence — a nightly backup deployed at
+  noon first runs that night, an `.Every(1.Hour)` one an hour after it starts — and `.RunOnFirstStart()` makes it
+  catch up at once instead, on the occurrence just gone by. A restart never double-runs a tick, and an interval job that fell
   more than one interval behind restarts from now rather than bursting catch-up runs. A calendar time is read
   in `o.TimeZone` (UTC by default, so a deploy cannot move it), follows daylight saving, and
   `.Monthly.On(31)` runs on a short month's last day. Read the registered schedule back from
