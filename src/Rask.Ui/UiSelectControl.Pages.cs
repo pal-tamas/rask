@@ -75,7 +75,7 @@ public abstract partial class UiSelectControl<T>
             var going = true;
             while (going && NextTake() is { } take)
             {
-                going = await PageAsync(take).ConfigureAwait(false);
+                going = await PageAsync(take);
             }
         }
         finally
@@ -114,7 +114,7 @@ public abstract partial class UiSelectControl<T>
 
         var asked = _asked;
         var skip = found.Length;
-        var answer = pager(_answeredFor.Trim(), skip, take) is { } pending ? await pending.ConfigureAwait(false) : null;
+        var answer = pager(_answeredFor.Trim(), skip, take) is { } pending ? await pending : null;
         if (asked != _asked || _found is not { } now || now.Length != skip)
         {
             return false;

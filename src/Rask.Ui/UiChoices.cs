@@ -85,7 +85,7 @@ internal static class UiChoices
         var asking = !changed && before!.Find is { } same
             ? same
             : new Fn<string, Task<IEnumerable<Component?>>>(async typed =>
-                [.. Pinned(lead, pills), .. Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills)]);
+                [.. Pinned(lead, pills), .. Options(Sorted(await find(typed) ?? [], order), pills)]);
 
         return new UiChosen(new Search<T>(find, shown, lead), [.. Pinned(lead, pills), .. Options(shown, pills)], asking, mayBeEmpty);
     }
@@ -128,13 +128,13 @@ internal static class UiChoices
         Func<string, int, int, Task<IEnumerable<Component?>>> page = async (typed, skip, take) =>
         {
             var asked = new Ui.ChoicePage(skip - pinned, take);
-            var answered = await find(typed, asked).ConfigureAwait(false) ?? [];
+            var answered = await find(typed, asked) ?? [];
             return UiPageAnswer.Of(Options([.. answered], pills), answered, asked.Skip);
         };
         var first = new Ui.ChoicePage(0, Math.Max(1, UiListWindow.Page - pinned));
         Fn<string, Task<IEnumerable<Component?>>> firstPage = new(async typed =>
         {
-            var answered = await find(typed, first).ConfigureAwait(false) ?? [];
+            var answered = await find(typed, first) ?? [];
             return UiPageAnswer.Of([.. Pinned(lead, pills), .. Options([.. answered], pills)], answered, 0);
         });
 

@@ -162,6 +162,19 @@ public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_utc_moment_picked_again_is_still_a_utc_moment()
+    {
+        var model = new Booking { EndsAt = DateTime.SpecifyKind(Jan(20, 9, 0), DateTimeKind.Utc) };
+        var page = Acting.Render(() => Ui.DatetimePicker.Bind(() => model.EndsAt).Live().Locale("en-US").On(Today));
+
+        await page.On(Field).Input("2026-01-21T17:00");
+        await Acting.Act(page);
+
+        Assert.Equal(Jan(21, 17, 0), model.EndsAt);
+        Assert.Equal(DateTimeKind.Utc, model.EndsAt!.Value.Kind);
+    }
+
+    [Fact]
     public void A_moment_is_carried_as_a_datetime_local_field_holds_it()
     {
         var html = One(new DateTime(2026, 1, 20, 9, 45, 59)).ToHtml();

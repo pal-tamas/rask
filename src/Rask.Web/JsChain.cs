@@ -161,6 +161,7 @@ internal sealed class JsChain
         }
 
         var array = await Keep().ConfigureAwait(false);
+        var kept = new List<JsChain>();
         try
         {
             var slots = await array.Send<JsonElement>("__raskWeb.slots").ConfigureAwait(false);
@@ -169,11 +170,26 @@ internal sealed class JsChain
             {
                 if (slots[i].ValueKind == JsonValueKind.True)
                 {
-                    items[i] = wrap(await array.Get(i.ToString(CultureInfo.InvariantCulture)).Keep().ConfigureAwait(false));
+                    var item = await array.Get(i.ToString(CultureInfo.InvariantCulture)).Keep().ConfigureAwait(false);
+                    kept.Add(item);
+                    items[i] = wrap(item);
                 }
             }
 
             return items;
+        }
+        catch
+        {
+            // The caller never sees the items kept before the failure, so nothing else would let their handles go.
+            foreach (var item in kept)
+            {
+                if (item._handle is { } handle)
+                {
+                    await handle.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+
+            throw;
         }
         finally
         {

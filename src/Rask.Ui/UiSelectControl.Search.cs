@@ -49,17 +49,17 @@ public abstract partial class UiSelectControl<T>
 
     // Asks the page, and keeps the answer if no later question has been asked meanwhile. What is typed is trimmed: a
     // space typed after a word asks nothing new.
-    private async Task AnswerAsync(string typed)
+    private Task AnswerAsync(string typed) => Asks ? AnswerAsync(typed, Ask(typed)) : Task.CompletedTask;
+
+    private async Task AnswerAsync(string typed, int asked)
     {
         if (Asked is not { } search)
         {
             return;
         }
 
-        _question = typed;
-        _askedOf = search;
-        var asked = ++_asked;
-        var answer = search.Invoke(typed.Trim()) is { } pending ? await pending.ConfigureAwait(false) : null;
+        // Resumed on the component's own context (docs/code-analysis.md): what follows writes the select's rows.
+        var answer = search.Invoke(typed.Trim()) is { } pending ? await pending : null;
         if (asked != _asked)
         {
             return;
@@ -68,6 +68,15 @@ public abstract partial class UiSelectControl<T>
         _found = [.. (answer ?? []).Select(AsRow)];
         _answers++;
         FirstPage(asked, typed, _found.Length, answer);
+    }
+
+    // Takes the question's place in line, at once: whatever is awaited before the answer is asked for, a later
+    // question is later, and its answer is the one kept.
+    private int Ask(string typed)
+    {
+        _question = typed;
+        _askedOf = Asked;
+        return ++_asked;
     }
 
     // A pillbox's options are its own parts: the select reads them as its options.

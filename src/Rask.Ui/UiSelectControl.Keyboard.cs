@@ -62,11 +62,14 @@ public abstract partial class UiSelectControl<T>
         }
 
         _heard = text;
+        // In line before the page's own handler runs: two keys whose handlers finish out of order still keep the
+        // answer to the last.
+        var asked = Asks ? Ask(text) : 0;
         Interlocked.Increment(ref _out);
         try
         {
-            await _hears.Invoke(text).ConfigureAwait(false);
-            await AnswerAsync(text).ConfigureAwait(false);
+            await _hears.Invoke(text);
+            await AnswerAsync(text, asked);
         }
         finally
         {

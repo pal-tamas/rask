@@ -28,6 +28,9 @@ public sealed partial class UiDatetimePickerRange : UiDatetimePickerControl<UiDa
 
     private protected override bool TryRead(string text, out UiDateTimeRange value) => UiDatetimePickerValue.TryRange(text, out value);
 
+    private protected override UiDateTimeRange Kinded(UiDateTimeRange read, UiDateTimeRange held) =>
+        read == default ? read : new UiDateTimeRange(DateTime.SpecifyKind(read.Start, held.Start.Kind), DateTime.SpecifyKind(read.End, held.End.Kind));
+
     private protected override (string Before, string Between, string After)? Text(UiDateTimeRange current, UiDatetimeTimes times, DateOnly today)
     {
         if (current == default)

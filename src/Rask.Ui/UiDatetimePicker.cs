@@ -31,6 +31,8 @@ public sealed partial class UiDatetimePicker : UiDatetimePickerControl<DateTime>
 
     private protected override bool TryRead(string text, out DateTime value) => UiDatetimePickerValue.TryMoment(text, out value);
 
+    private protected override DateTime Kinded(DateTime read, DateTime held) => read == default ? read : DateTime.SpecifyKind(read, held.Kind);
+
     private protected override (string Before, string Between, string After)? Text(DateTime current, UiDatetimeTimes times, DateOnly today) =>
         current == default ? null : UiDatetimePickerText.Moment(current, times.Pattern, times.Culture);
 }

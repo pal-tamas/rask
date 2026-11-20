@@ -187,10 +187,13 @@ class Mounted {
     for (const name of off) extensions.delete(name);
   }
 
+  // A value the page set (setValue) is nobody's edit: it raises no `input` or `change`, which a guarded form would
+  // count as the reader's (rask-leave.ts), and is not reported back.
   private changed(): void {
+    if (this.silent) return;
     this.root.dispatchEvent(new Event('input', { bubbles: true }));
     this.root.dispatchEvent(new Event('change', { bubbles: true }));
-    if (!this.silent) this.onChange?.(this.value);
+    this.onChange?.(this.value);
   }
 
   // ── toolbar ────────────────────────────────────────────────────────────────────────────────────────
