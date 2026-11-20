@@ -331,10 +331,12 @@ A subscription the push service says is gone is dropped as the send finds it. A 
 from `GET /_rask/push/key`.
 
 **A browser's row is its user's.** Subscribing again renews it for that user; another user signing in on the same
-browser cannot take it over while it is still the first user's. At sign-out, before the cookie goes, hand it back:
-`await Push.Release(endpoint)` (a WebAssembly client: `POST /_rask/push/release` with `{ endpoint }`). The row stays,
+browser cannot take it over while it is still the first user's. Rask.Auth's sign-out hands it back by itself, before
+the cookie goes: on the Server host `IAuth.SignOut` reads the browser's subscription and calls `Push.Release(endpoint)`,
+and a WebAssembly client's sign-out (`IAuth`/`IAuthSignIn`) posts it to `POST /_rask/push/release` first. The row stays,
 as a visitor's, and the next user to sign in on that browser claims it by subscribing. Only the signed-in owner can
-release a row.
+release a row; a sign-out of your own calls `await Push.Release(endpoint)` the same way. An app without Web Push, or a
+browser that never subscribed, signs out as before.
 
 The keys come from `Rask:Push`: `rask new` wrote a development pair to the gitignored
 `appsettings.Development.json`, and deployed they come from the environment

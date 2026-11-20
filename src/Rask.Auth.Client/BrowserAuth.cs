@@ -62,6 +62,8 @@ public sealed class BrowserAuth(
     {
         try
         {
+            // the push subscription is handed back first, while the session it belongs to is still signed in
+            await BrowserPush.Release(js, http).ConfigureAwait(false);
             using var request = Request(path);
             await http.SendAsync(request).ConfigureAwait(false);
         }

@@ -62,6 +62,8 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
     {
         try
         {
+            // The browser's push subscription first, while the cookie is still this user's (BrowserPush).
+            await Rask.Auth.Client.BrowserPush.Release(js, http).ConfigureAwait(false);
             using var _ = await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
             await userProvider.Refresh().ConfigureAwait(false);
         }
