@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK125, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK126, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -141,6 +141,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK123](#rask123) | Error | An `[OffThread]` message cannot run in a Web Worker |
 | [RASK124](#rask124) | Warning | An event's handlers disagree on who may publish it remotely |
 | [RASK125](#rask125) | Warning | An action with several `[Route]`s gets a client method for the first |
+| [RASK126](#rask126) | Warning | Lazy-loading proxies on a context that does not allow lazy loading |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3072,3 +3073,29 @@ public ActionResult<Post> Get(int id) => …;
 
 **Fix:** give the verb attribute the template the client should call (`[HttpGet("{id}")]`), or keep one `[Route]` on the
 action.
+
+## RASK126
+
+**Lazy-loading proxies on a context that does not allow lazy loading** · Warning
+
+Rask.Data switches lazy loading off (`ChangeTracker.LazyLoadingEnabled = false`) on every context its interceptors
+reach: a navigation read in a loop, in a component's render or in a form's validation is a query nobody wrote — N+1,
+and invisible in the code. `UseLazyLoadingProxies()` on such a context still builds the proxies, which then load
+nothing: the navigation reads null or empty, which looks like missing data.
+
+```csharp
+services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskSqlite(sp)
+    .UseLazyLoadingProxies()                                   // ✗ RASK126
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+**Fix:** say what a read needs — `Include`, a projection, a read face — and drop the proxies. If the app really wants
+lazy loading (discouraged), opt in on the same options, and the warning goes:
+
+```csharp
+    .UseLazyLoadingProxies()
+    .AllowLazyLoading()                                        // the explicit opt-in, Rask.Data
+```
+
+See [data access](data-access.md#lazy-loading-is-off).

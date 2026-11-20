@@ -647,6 +647,12 @@ them until tagged releases begin.
   uploaded file and more than a browser tab has. After: 2 million (100,000 rows of twenty columns); a bigger sheet is
   refused with `InvalidDataException`. A loader handed bigger sheets raises it on its own read:
   `Xlsx.Read(file, new ReadLimits { MaxCells = 5_000_000 })` (new public `ReadLimits`, and `Read(file, sheet, limits)`).
+- **BREAKING (Rask.Data): lazy loading is off on every context Rask configures; `.AllowLazyLoading()` opts back in.**
+  Before: EF Core's lazy loading (proxies, or an injected `ILazyLoader`) loaded a navigation the moment it was read — a
+  query per row in a loop, and loads in a render or a validation nobody wrote. After: `ChangeTracker.LazyLoadingEnabled`
+  is false on any context the Rask interceptors reach, so an unloaded navigation stays unloaded and runs no query; load
+  it with `Include` or a projection, or say `.AllowLazyLoading()` on that context's options (discouraged). New warning
+  [RASK126](docs/diagnostics.md#rask126): `UseLazyLoadingProxies` on a context that does not allow lazy loading.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

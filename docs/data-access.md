@@ -87,6 +87,28 @@ window — a timer tick, a fire-and-forget continuation, or an external event/ob
 subscription (e.g. `OnMount() => store.Changed += StateHasChanged`). See
 [lifecycle.md](lifecycle.md) for the auto-re-render rule.
 
+## Lazy loading is off
+
+Every context Rask configures has EF Core's lazy loading switched off (`ChangeTracker.LazyLoadingEnabled = false`), the
+proxies (`UseLazyLoadingProxies`) and the injected `ILazyLoader` alike. A navigation nobody loaded reads as EF Core
+leaves it — null, or an empty collection — and runs no query. Lazy loading hides its cost: a navigation read in a loop
+is a query per row (N+1), and a component's render, a form's validation or a JSON serializer reads navigations without
+anybody meaning to load them. Load what a read needs instead: `Include`, a projection, a read face.
+
+The way back is explicit, and discouraged: `.AllowLazyLoading()` on that context's options.
+
+```csharp
+services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskSqlite(sp)
+    .UseLazyLoadingProxies()
+    .AllowLazyLoading()                                  // without it: RASK126, and nothing loads
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+`UseLazyLoadingProxies` without it is [RASK126](diagnostics.md#rask126). A context that does allow it still has a second
+line of defence in forms: validation never reads a navigation EF Core has not loaded, so a validation pass cannot set
+lazy loads off either ([forms-validation.md](forms-validation.md)).
+
 ## How to organise it
 
 Use **vertical slices**: code is grouped by use case (`ProductsPage`, `NewProductPage`,

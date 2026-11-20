@@ -16,7 +16,10 @@ public class SignalingRelayTests : IDisposable
     // timer fires, and then the token never cancels — a socket wait that should time out hangs the run
     // instead. That is not hypothetical: it is what this suite did when a deliberately broken relay stopped
     // answering.
-    private readonly CancellationTokenSource _cts = new(TimeSpan.FromSeconds(10));
+    //
+    // The suite's hang ceiling, not 10 s of its own: the whole test's sockets share this one token, and on a gate running
+    // ~50 test hosts at once a join and a leave took 12 s (A_leaving_peer_is_announced_to_the_rest, cancelled mid-connect).
+    private readonly CancellationTokenSource _cts = new(Rask.TestSupport.WaitFor.HangCeiling);
 
     public void Dispose() => _cts.Dispose();
 

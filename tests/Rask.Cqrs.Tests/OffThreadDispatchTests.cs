@@ -85,7 +85,9 @@ public sealed class OffThreadDispatchTests
     [Fact]
     public async Task Cancelling_cancels_the_handlers_token_in_the_worker_and_restarts_nothing()
     {
-        using var app = new BrowserApp();
+        // A grace no loaded runner outlasts: what is asserted is that a worker that answers is not restarted, so the test
+        // waits for that answer rather than for a fixed time — 100 ms was shorter than a busy gate's thread-pool hop.
+        using var app = new BrowserApp(grace: TimeSpan.FromSeconds(30));
         using var cancellation = new CancellationTokenSource();
         var call = app.Page.Query(new WaitPolitely(7), cancellation.Token);
         await app.Gate.Entered.Task.WaitAsync(TestContext.Current.CancellationToken);
@@ -94,8 +96,8 @@ public sealed class OffThreadDispatchTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call);
         Assert.True(await app.Gate.Cancelled.Task.WaitAsync(TestContext.Current.CancellationToken));
+        await app.Channel.Answered.Task.WaitAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, app.Channel.Cancels);
-        await Task.Delay(BrowserApp.Grace * 3, TestContext.Current.CancellationToken);
         Assert.Equal(0, app.Channel.Restarts);
     }
 
@@ -165,12 +167,12 @@ public sealed class OffThreadDispatchTests
 
     private sealed class BrowserApp : IDisposable
     {
-        public static readonly TimeSpan Grace = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan ShortGrace = TimeSpan.FromMilliseconds(100);
 
         private readonly ServiceProvider _page;
         private readonly ServiceProvider _worker;
 
-        public BrowserApp()
+        public BrowserApp(TimeSpan? grace = null)
         {
             OffThreadInvokers.Install();
             _worker = new ServiceCollection().AddSingleton(Gate).AddSingleton<WorkerSide>().AddRaskCqrs().BuildServiceProvider();
@@ -178,7 +180,7 @@ public sealed class OffThreadDispatchTests
             _page = new ServiceCollection()
                 .AddSingleton(Gate)
                 .AddRaskCqrs()
-                .AddSingleton(sp => new OffThreadDispatch(sp, Channel, Grace))
+                .AddSingleton(sp => new OffThreadDispatch(sp, Channel, grace ?? ShortGrace))
                 .BuildServiceProvider();
         }
 
@@ -213,6 +215,9 @@ public sealed class OffThreadDispatchTests
 
         public TaskCompletionSource Restarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        // The worker answered a call: what the page's grace waits for before it would restart the worker.
+        public TaskCompletionSource Answered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public Task<byte[]> Call(int id, byte[] frame)
         {
             Interlocked.Increment(ref _calls);
@@ -226,6 +231,8 @@ public sealed class OffThreadDispatchTests
                 {
                     waiting.TrySetResult(reply);
                 }
+
+                Answered.TrySetResult();
             });
             return answer.Task;
         }
