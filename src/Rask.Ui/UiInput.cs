@@ -282,7 +282,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         // Bind and Value are the two openings of Core's input, and both hand back the same element.
         var input = Bind is { } bind
             ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce)
-            : Input.Value(Masked(Value)).OnChange(Changed);
+            : Input.Value(Masked(Value)).OnChange(Writable(Changed));
 
         if (Host is not null)
         {
@@ -304,7 +304,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .Id(field.ControlId)
             .Name(Name)
             .Ref(Ref)
-            .OnInput(OnInput)
+            .OnInput(Writable(OnInput))
             .Type(Type ?? (_money is null ? null : InputType.Text))
             .Placeholder(Placeholder ?? (ShowsClear ? " " : null))
             .Min(Min)
@@ -336,6 +336,10 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
 
     // The parent's callbacks as they are, unless a mask has to see the value first.
     private Callback<T> Committed => Mask is null ? AfterBind : new Callback<T>(MaskedAfterBind);
+
+    // Read-only, the browser lets nobody change the field, so its change and input handlers are not wired: a frame
+    // that sends one was written by hand. Core does the same for a bound field (DrawnReadOnly); this is the unbound one.
+    private Callback<TValue> Writable<TValue>(Callback<TValue> handler) => ReadOnly == true ? default : handler;
 
     private Callback<T> Changed => Mask is null ? OnChange : new Callback<T>(MaskedOnChange);
 

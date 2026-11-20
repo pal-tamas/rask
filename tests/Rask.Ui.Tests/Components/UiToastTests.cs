@@ -128,6 +128,16 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_close_button_is_named_for_a_screen_reader_in_the_reader_s_language()
+    {
+        var english = One(Say("Saved"));
+        var hungarian = KitCulture.In("hu", () => One(Say("Saved")));
+
+        Assert.Matches("<button (?=[^>]*data-rask-dismiss)(?=[^>]*aria-label=\"Close notification\")", english);
+        Assert.Contains("aria-label=\"Értesítés bezárása\"", System.Net.WebUtility.HtmlDecode(hungarian), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_close_button_is_what_the_runtime_and_Escape_press()
     {
         var html = One(Say("Saved"));
