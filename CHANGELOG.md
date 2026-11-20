@@ -384,6 +384,14 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `Db.Transaction` attempt that rolls back takes back what it did to the aggregates it saved.** Before: a save
+  inside the block cleared the aggregate's domain events, bumped its `Version` in memory, remembered it as saved and
+  marked it as having a row — before the commit — and none of that was undone when the attempt rolled back. An
+  aggregate loaded or made before the block was then saved wrongly by the retry (or by a second try in code): its
+  events never reached the outbox, the change was not written (the diff was empty), a later save failed with a
+  concurrency error, and a new one was "updated" instead of inserted, so its row was lost. After: the state is
+  captured as each save begins and put back on rollback — remembered read, `Version`, "has a row" mark, domain
+  events, and a database-generated key — so the retry saves it as if the failed attempt had never run.
 - **BREAKING (Rask.Jobs): a new recurring schedule waits for its next occurrence.** Before: a schedule never run before
   fired on the first poll — a `.Monthly.On(1).At(6, 0)` close-the-books deployed on the 15th ran on the 15th, an
   `.Every(1.Hour)` job at every first boot. After: its `RecurringJobState` row starts at the occurrence just gone by, so

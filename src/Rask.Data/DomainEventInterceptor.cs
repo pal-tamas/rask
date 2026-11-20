@@ -93,6 +93,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             }
 
             pending.Entities.Add(entity);
+            pending.Raised.Add([.. entity.DomainEvents]);
             pending.Events.AddRange(entity.DomainEvents);
         }
 
@@ -116,6 +117,13 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         if (AmbientTransaction.Of(context) is { } ambient)
         {
             ambient.AfterCommit(() => PublishAsync(pending.Events, CancellationToken.None));
+
+            // A rolled-back attempt gives the events back to their aggregates, so a retry saves (and stores) them again.
+            ambient.OnRollback(() =>
+            {
+                pending.PutBack();
+                return Task.CompletedTask;
+            });
             return;
         }
 
@@ -196,11 +204,25 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
 
         public List<IEvent> Events { get; } = [];
 
+        // What each of Entities held, in the same order, so a rolled-back attempt can give each its own back.
+        public List<IEvent[]> Raised { get; } = [];
+
         public void Clear()
         {
             foreach (var entity in Entities)
             {
                 entity.ClearDomainEvents();
+            }
+        }
+
+        public void PutBack()
+        {
+            for (var i = 0; i < Entities.Count; i++)
+            {
+                if (Entities[i] is IAttemptState state)
+                {
+                    state.PutBack(Raised[i]);
+                }
             }
         }
     }

@@ -1089,8 +1089,11 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   PostgreSQL refuses one with a serialization failure (40001). Both are transient, so with retrying on (the
   default for both providers) the loser runs again from the top and sees the winner's row; with retrying off
   it throws.
-- **On a retrying context the whole work may run again**, so keep side effects outside the database (a mail,
-  an HTTP call) out of it — or put them in a [durable handler](outbox.md).
+- **On a retrying context the whole work may run again**, so keep side effects outside the database (an HTTP
+  call, a cache write) out of it — or put them in a [durable handler](outbox.md). `Mail.Send` and `Jobs.Enqueue`
+  are rows, so they are written once. What an attempt that rolled back did to the aggregates it saved is taken
+  back — their remembered read, `Version`, domain events, and a key the database generated for a row that is gone —
+  so an aggregate loaded or made before the block is saved by the retry as if the failed attempt had never run.
 - **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
 - **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
