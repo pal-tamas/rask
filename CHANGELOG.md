@@ -503,6 +503,20 @@ them until tagged releases begin.
   `statement_timeout`/`lock_timeout` and Rask.SqlServer's `LOCK_TIMEOUT` applied to the migration too, so one that
   rewrote a table or waited behind the old instance's queries failed partway and the app did not start, whatever
   `OwnsSchema`'s timeout said. After: they run on one connection with the limits lifted.
+- **A keyed scoped service is the event's, not the session's.** Before: `[FromKeyedServices]`/`GetKeyedService` in a
+  live event resolved from the session's long-lived scope, so one keyed `DbContext` served every event the session
+  handled, concurrently. After: a keyed scoped or transient registration is made in the event's scope, as an unkeyed
+  one is (`KeyedService.AnyKey` included); keyed singletons are unchanged.
+- **The session id goes on the `<body>` the browser opens.** Before: the first `<body` anywhere was taken, so a head
+  script, comment, `<title>` or `<template>` holding the text received `data-rask-root` (and the dev flag and resume
+  token) inside it. After: comments and raw-text elements are stepped over, as the HTML tokenizer does.
+- **An event payload that is not a JSON object no longer throws.** Before: `ReadLong`/`ReadList`/`ReadStrings`/
+  `ReadMap` called `TryGetProperty` on whatever arrived, so a frame with `[]` faulted the handler. After: every reader
+  answers its default.
+- **`ReportOnce` keeps reporting past 1,024 distinct keys.** Before: once the dedup set was full every `ReportOnce` in
+  the process was dropped for good. After: the oldest key is forgotten to make room.
+- **The compressed scoped-asset cache follows the registry.** Before: every hash a hot reload left behind kept its
+  brotli and gzip bytes for the app's lifetime. After: the cache empties when the registry's version moves.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

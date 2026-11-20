@@ -120,11 +120,27 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
             ? Open(life).GetService(serviceType)
             : session.Services.GetService(serviceType);
 
+    // A keyed scoped service is the event's as an unkeyed one is (EventScopeCatalog): taken from the session it was one
+    // DbContext shared by every event the session ever handled, concurrently.
     public object? GetKeyedService(Type serviceType, object? serviceKey) =>
-        (session.Services as IKeyedServiceProvider)?.GetKeyedService(serviceType, serviceKey);
+        (KeyedFrom(serviceType, serviceKey) as IKeyedServiceProvider)?.GetKeyedService(serviceType, serviceKey);
 
     public object GetRequiredKeyedService(Type serviceType, object? serviceKey) =>
-        session.Services.GetRequiredKeyedService(serviceType, serviceKey);
+        KeyedFrom(serviceType, serviceKey).GetRequiredKeyedService(serviceType, serviceKey);
+
+    /// <summary>A keyed service of <paramref name="life" />'s part of its event.</summary>
+    internal object? GetKeyedService(EventLife life, Type serviceType, object? serviceKey) =>
+        (KeyedFrom(life, serviceType, serviceKey) as IKeyedServiceProvider)?.GetKeyedService(serviceType, serviceKey);
+
+    /// <inheritdoc cref="GetKeyedService(EventLife, Type, object?)" />
+    internal object GetRequiredKeyedService(EventLife life, Type serviceType, object? serviceKey) =>
+        KeyedFrom(life, serviceType, serviceKey).GetRequiredKeyedService(serviceType, serviceKey);
+
+    private IServiceProvider KeyedFrom(EventLife life, Type serviceType, object? serviceKey) =>
+        catalog.OwnsPerEvent(serviceType, serviceKey) ? Open(life) : session.Services;
+
+    private IServiceProvider KeyedFrom(Type serviceType, object? serviceKey) =>
+        catalog.OwnsPerEvent(serviceType, serviceKey) ? Open() : session.Services;
 
     /// <summary>
     ///     Marks <paramref name="owner" />'s handler as running until the returned scope is disposed: what it resolves

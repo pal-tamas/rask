@@ -15,6 +15,7 @@ namespace Rask.Core.Live;
 internal sealed class EventScopeCatalog(IServiceCollection services)
 {
     private HashSet<Type>? _owned;
+    private HashSet<(Type Type, object? Key)>? _ownedKeyed;
 
     /// <summary>Registers the catalog of <paramref name="services" />, once.</summary>
     internal static void Add(IServiceCollection services)
@@ -53,19 +54,58 @@ internal sealed class EventScopeCatalog(IServiceCollection services)
             : owned.Contains(definition);
     }
 
+    /// <summary>
+    ///     Whether the keyed <paramref name="type" /> under <paramref name="key" /> is made in the event's scope: a keyed
+    ///     <c>DbContext</c> or repository is the event's exactly as an unkeyed one is, not one instance for the session.
+    /// </summary>
+    internal bool OwnsPerEvent(Type type, object? key)
+    {
+        if (_ownedKeyed is null)
+        {
+            Build();
+        }
+
+        var owned = _ownedKeyed!;
+        if (owned.Contains((type, key)) || owned.Contains((type, KeyedService.AnyKey)))
+        {
+            return true;
+        }
+
+        if (!type.IsConstructedGenericType)
+        {
+            return false;
+        }
+
+        var definition = type.GetGenericTypeDefinition();
+        return definition == typeof(IEnumerable<>)
+            ? OwnsPerEvent(type.GenericTypeArguments[0], key)
+            : owned.Contains((definition, key)) || owned.Contains((definition, KeyedService.AnyKey));
+    }
+
     // Read on first use, after the container is built: what the app registered after the host is in it too.
     private HashSet<Type> Build()
     {
         var kept = services.Select(static d => d.ImplementationInstance).OfType<SessionKept>().Select(static k => k.Type).ToHashSet();
         var owned = new HashSet<Type>();
+        var ownedKeyed = new HashSet<(Type, object?)>();
         foreach (var descriptor in services)
         {
-            if (!kept.Contains(descriptor.ServiceType) && !descriptor.IsKeyedService && descriptor.Lifetime != ServiceLifetime.Singleton && !SessionScoped.Is(descriptor))
+            if (kept.Contains(descriptor.ServiceType) || descriptor.Lifetime == ServiceLifetime.Singleton || SessionScoped.Is(descriptor))
+            {
+                continue;
+            }
+
+            if (descriptor.IsKeyedService)
+            {
+                ownedKeyed.Add((descriptor.ServiceType, descriptor.ServiceKey));
+            }
+            else
             {
                 owned.Add(descriptor.ServiceType);
             }
         }
 
+        _ownedKeyed = ownedKeyed;
         _owned = owned;
         return owned;
     }

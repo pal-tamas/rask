@@ -1017,34 +1017,8 @@ public static class LivePayload
             html.AsSpan(insertAt));
     }
 
-    private static int IndexOfBodyOpen(ReadOnlySpan<char> html)
-    {
-        // Case-insensitive scan for "<body" followed by a tag boundary character (space, >, /,
-        // or end-of-string). Matches the regex `<body\b` shape without an engine allocation.
-        const string token = "<body";
-        var end = html.Length - token.Length;
-        for (var i = 0; i <= end; i++)
-        {
-            if (!MatchesIgnoreCase(html, i, token))
-            {
-                continue;
-            }
-
-            var after = i + token.Length;
-            if (after == html.Length)
-            {
-                return i;
-            }
-
-            var c = html[after];
-            if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '>' || c == '/')
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
+    // The <body the browser would open — not one inside a head script, a comment or a <template> (BodyOpenTag).
+    private static int IndexOfBodyOpen(ReadOnlySpan<char> html) => BodyOpenTag.IndexIn(html);
 
     private static int IndexOfIgnoreCase(ReadOnlySpan<char> source, string value, int startIndex)
     {
@@ -1090,50 +1064,7 @@ public static class LivePayload
         return true;
     }
 
-    internal static int IndexOfBodyOpenUtf8(ReadOnlySpan<byte> html)
-    {
-        // Scan UTF-8 bytes for "<body" followed by a tag boundary. Uses MemoryExtensions.IndexOf
-        // for the initial '<' search (vectorized via Vector128/Vector256 on supported hardware).
-        var bodyName = "body"u8;
-        var offset = 0;
-        while (true)
-        {
-            var rel = html[offset..].IndexOf((byte)'<');
-            if (rel < 0)
-            {
-                return -1;
-            }
-
-            offset += rel;
-            var after = offset + 1;
-            if (after + bodyName.Length > html.Length)
-            {
-                return -1;
-            }
-
-            if (AsciiEqualsIgnoreCaseUtf8(html.Slice(after, bodyName.Length), bodyName))
-            {
-                var boundary = after + bodyName.Length;
-                if (boundary == html.Length)
-                {
-                    return offset;
-                }
-
-                var c = html[boundary];
-                if (c == (byte)' ' || c == (byte)'\t' || c == (byte)'\r' || c == (byte)'\n'
-                    || c == (byte)'>' || c == (byte)'/')
-                {
-                    return offset;
-                }
-            }
-
-            offset++;
-            if (offset >= html.Length)
-            {
-                return -1;
-            }
-        }
-    }
+    internal static int IndexOfBodyOpenUtf8(ReadOnlySpan<byte> html) => BodyOpenTag.IndexIn(html);
 
     internal static int IndexOfIgnoreCaseUtf8(ReadOnlySpan<byte> source, ReadOnlySpan<byte> value, int startIndex)
     {

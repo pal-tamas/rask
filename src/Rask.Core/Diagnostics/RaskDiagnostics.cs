@@ -18,12 +18,12 @@ namespace Rask.Core.Diagnostics;
 /// </summary>
 internal static class RaskDiagnostics
 {
-    // Bounds ReportOnce's memory: a correct app never populates this, and a buggy one that churns
-    // unbounded distinct dedup keys stops being reported past the cap rather than growing without
-    // limit. The budget is shared across all ReportOnce call sites; today only the live diff's
-    // duplicate-key warning uses it, so the historical per-key 1024 cap is preserved exactly.
+    // Bounds ReportOnce's memory: past the cap the OLDEST key is forgotten to make room, so a buggy app churning
+    // distinct keys costs at most this many and may hear an old one again — where a set that stopped taking keys at
+    // the cap silenced every ReportOnce in the process for good, the constant-key warnings among them.
     private const int ReportOnceCap = 1024;
     private static readonly HashSet<string> ReportedOnce = new(StringComparer.Ordinal);
+    private static readonly Queue<string> ReportedOrder = new();
 
     /// <summary>
     ///     Where framework diagnostics go. Defaults to a <see cref="Console.Error" /> writer (matching the
@@ -49,7 +49,7 @@ internal static class RaskDiagnostics
 
     /// <summary>
     ///     Surface a diagnostic at most once per distinct <paramref name="dedupKey" />, bounded to
-    ///     <see cref="ReportOnceCap" /> distinct keys. <paramref name="messageFactory" /> is invoked only
+    ///     the last <see cref="ReportOnceCap" /> distinct keys. <paramref name="messageFactory" /> is invoked only
     ///     when the event is actually delivered, so a condition that recurs every render on an
     ///     already-broken path (e.g. a duplicate key reappearing on each reconcile) pays nothing to build
     ///     its message after the first report. The dedup key is recorded only once the event is delivered,
@@ -73,9 +73,15 @@ internal static class RaskDiagnostics
 
         lock (ReportedOnce)
         {
-            if (ReportedOnce.Count >= ReportOnceCap || !ReportedOnce.Add(dedupKey))
+            if (!ReportedOnce.Add(dedupKey))
             {
                 return;
+            }
+
+            ReportedOrder.Enqueue(dedupKey);
+            if (ReportedOrder.Count > ReportOnceCap)
+            {
+                ReportedOnce.Remove(ReportedOrder.Dequeue());
             }
         }
 
@@ -115,6 +121,7 @@ internal static class RaskDiagnostics
         lock (ReportedOnce)
         {
             ReportedOnce.Clear();
+            ReportedOrder.Clear();
         }
     }
 }
