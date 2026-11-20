@@ -588,7 +588,11 @@ database copy — `shop-20260805-081500.db` comes with `shop-20260805-081500.fil
 puts both back when it finds the archive beside the file you name
 ([Backup and restore](cli.md#backup-and-restore)). The files are archived *after* the database is copied: a save
 writes its bytes before its row, so every row in the copy has its bytes in the archive, and bytes saved in between
-are orphans the sweep removes.
+are orphans the sweep removes. The archive is the same wherever it was taken — its entries sit under `files/` — so a
+backup taken on a laptop restores on the host and the other way round, and what a remote restore puts back belongs to
+the app's user, not to root. (A backup an older CLI took on a laptop holds the files at the top of the archive and still restores; one whose
+storage root held nothing but a top-level `files/` folder — a custom key prefix of `files/` — restores one level too
+deep, so take it again with this CLI.)
 
 Litestream and SQLite snapshots copy `app.db` alone. An app that relies on them for disaster recovery, or
 that uploads files it can't afford to lose between backups, should use S3 or Azure, where the bytes' durability

@@ -277,7 +277,7 @@ internal sealed partial class DeployCommand
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
-    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
+    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true, bool fallBack = true)
     {
         // Retire the old container gracefully — SIGTERM, WAL checkpoint, Litestream flush — before removing it. There
         // is no proxy to switch in this mode: the old container holds the port until it exits, so it gets the short
@@ -316,7 +316,7 @@ internal sealed partial class DeployCommand
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
             return await RestorePreviousAsync(
-                host, slug, port, containerPort, env, healthEnabled, healthPath, tag,
+                host, slug, port, containerPort, env, healthEnabled, healthPath, tag, fallBack,
                 "The new container did not stay running.", cancellationToken).ConfigureAwait(false);
         }
 
@@ -328,7 +328,7 @@ internal sealed partial class DeployCommand
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
             return await RestorePreviousAsync(
-                host, slug, port, containerPort, env, healthEnabled, healthPath, tag,
+                host, slug, port, containerPort, env, healthEnabled, healthPath, tag, fallBack,
                 HealthFailureMessage(healthPath, rolledBack: false), cancellationToken).ConfigureAwait(false);
         }
 
@@ -341,15 +341,15 @@ internal sealed partial class DeployCommand
     }
 
     /// <summary>
-    ///     Port mode's automatic rollback: bring <c>:previous</c> back after a deploy that started but did
-    ///     not come up healthy. Always returns a non-zero exit code — the deploy failed either way; the
-    ///     only question is whether the box is left serving something.
+    ///     Port mode's automatic rollback: bring back what served before a start that did not come up healthy —
+    ///     <c>:previous</c> after a deploy of <c>:current</c>, and <c>:current</c> after <c>rask deploy rollback</c>'s
+    ///     start of <c>:previous</c>, which had stopped it. Always returns a non-zero exit code — the deploy (or the
+    ///     rollback) failed either way; the only question is whether the box is left serving something.
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Guarded by <paramref name="tag" />: this only fires for a deploy of <c>:current</c>, so the
-    ///         re-entry (which passes <see cref="PreviousTag" />) cannot recurse. That condition is the
-    ///         whole recursion guard — there is no depth counter to get wrong.
+    ///         Guarded by <paramref name="fallBack" />: the re-entry passes <c>false</c>, so it cannot recurse.
+    ///         That flag is the whole recursion guard — there is no depth counter to get wrong.
     ///     </para>
     ///     <para>
     ///         Tags are deliberately left alone, unlike <c>rask deploy rollback</c>, which swaps them.
@@ -360,17 +360,42 @@ internal sealed partial class DeployCommand
     /// </remarks>
     private async Task<int> RestorePreviousAsync(
         string host, string slug, int port, int containerPort, IReadOnlyList<string> env,
-        bool healthEnabled, string healthPath, string tag, string reason,
+        bool healthEnabled, string healthPath, string tag, bool fallBack, string reason,
         CancellationToken cancellationToken)
     {
-        if (!string.Equals(tag, CurrentTag, StringComparison.Ordinal))
+        if (!fallBack)
         {
             // Already the restore attempt. Report plainly rather than trying again.
-            Console.WriteErrorLine($"{reason} The previous version did not come up either.", ConsoleStyle.Error);
+            Console.WriteErrorLine($"{reason} The version that served before did not come up either.", ConsoleStyle.Error);
             return 1;
         }
 
-        if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
+        // A rollback stopped :current to start :previous; :current is what served, and is what comes back.
+        if (!string.Equals(tag, CurrentTag, StringComparison.Ordinal))
+        {
+            Console.WriteErrorLine(reason, ConsoleStyle.Error);
+            WriteHeading($"Restoring {slug}:{CurrentTag}…");
+            var back = await DeployPortAsync(
+                host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath,
+                cancellationToken, tag: CurrentTag, persist: false, fallBack: false).ConfigureAwait(false);
+            if (back == 0)
+            {
+                Console.WriteLine(
+                    $"The version that was serving is back on port {port}. The rollback itself failed — {slug}:{PreviousTag} did not come up.",
+                    ConsoleStyle.Warning);
+            }
+
+            return 1;
+        }
+
+        var lookup = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        if (lookup.Failure is { } failure)
+        {
+            Console.WriteErrorLine(reason, ConsoleStyle.Error);
+            return Unread(host, $"{slug}:{PreviousTag}, so nothing was restored,", failure);
+        }
+
+        if (lookup.Image is null)
         {
             Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
             await Console.Error.WriteLineAsync("This is the app's first deploy, so there is no earlier version to go back to. Fix the problem above and deploy again.", cancellationToken).ConfigureAwait(false);
@@ -382,7 +407,7 @@ internal sealed partial class DeployCommand
 
         var restored = await DeployPortAsync(
             host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath,
-            cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
+            cancellationToken, tag: PreviousTag, persist: false, fallBack: false).ConfigureAwait(false);
 
         if (restored == 0)
         {

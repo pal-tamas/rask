@@ -142,6 +142,13 @@ internal sealed partial class DbCommand(
             return "--output only applies to 'rask db add' and 'rask db backup'.";
         }
 
+        // The only verb with a JSON shape. Taken by the others, it ran them — `update`, `drop` — and then failed to
+        // find a listing in what they printed.
+        if (parsed.HasFlag("json") && subcommand is not "list")
+        {
+            return "--json only applies to 'rask db list'.";
+        }
+
         if (parsed.HasFlag("yes") && subcommand is not ("drop" or "restore"))
         {
             return "--yes only applies to 'rask db drop' and 'rask db restore'.";
