@@ -296,12 +296,15 @@ internal sealed class AmbientTransaction
             Open.Value = entered;
         }
 
-        /// <summary>Ends the transaction for this flow and hands back what waits for its commit.</summary>
-        internal IReadOnlyList<Func<Task>> End()
+        /// <summary>
+        ///     Ends the transaction for this flow and hands back what waits for its commit, and what undoes it should the
+        ///     commit itself fail.
+        /// </summary>
+        internal (IReadOnlyList<Func<Task>> AfterCommit, IReadOnlyList<Func<Task>> OnRollback) End()
         {
             _entered._ended = true;
             Open.Value = _previous;
-            return _entered._afterCommit;
+            return (_entered._afterCommit, _entered._onRollback);
         }
 
         /// <summary>Ends the transaction for this flow, the work having thrown, and hands back what undoes it.</summary>

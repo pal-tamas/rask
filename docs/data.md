@@ -3090,6 +3090,11 @@ the section, the generated read faces among them; a single query still picks wit
 `Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
 `UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
 
+Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
+on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on
+SQL Server), so a migration that rewrites a table, or waits behind the old instance's queries, is not killed
+partway. The pool puts the session back as it came once the migrations are done.
+
 Everything in this guide works unchanged except full-text search, `HasJsonIndex` and non-overlapping ranges,
 which a context on SQL Server cannot declare — it is refused at boot, naming the declaration. Three things to
 know, as on PostgreSQL:

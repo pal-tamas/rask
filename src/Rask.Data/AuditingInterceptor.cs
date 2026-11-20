@@ -248,12 +248,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         }
 
         // In the column's own type: a table whose tenants are numbered is stamped with the number.
-        property.CurrentValue = Tenant.IsAcrossTenants
-            ? throw new InvalidOperationException(
-                $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
-                "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
-                "or open Tenant.Use(id) around the insert.")
-            : TenantColumn.ValueFor(Tenant.RequiredKey, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
+        property.CurrentValue = TenantColumn.InFlight(property.Metadata.ClrType, entry.Metadata.ClrType.Name);
     }
 
     // A child that keeps a column of its own agrees with its root: a part of one tenant's aggregate is that

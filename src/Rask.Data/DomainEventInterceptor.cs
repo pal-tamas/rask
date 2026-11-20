@@ -1,6 +1,8 @@
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 
@@ -17,9 +19,11 @@ namespace Rask.Data;
 /// published in <c>SavedChanges</c> (after the change commits). They are cleared only then, so the outbox's
 /// interceptor, reading the same events in the same <c>SavingChanges</c>, sees them whichever of the two runs
 /// first. A failed save discards them, so a rolled-back change never fires its events. A save inside
-/// <c>Db.Transaction</c> publishes when that transaction commits, and not at all when it rolls back.
+/// <c>Db.Transaction</c> publishes when that transaction commits, and not at all when it rolls back — and so does a
+/// save inside any other transaction open on its context (<c>Database.BeginTransaction</c>, or the one a declared
+/// rule's check opens): its events wait for that transaction's commit.
 /// </remarks>
-public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor
+public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor, IDbTransactionInterceptor
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
@@ -27,6 +31,10 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
     // is safe; the weak table never keeps a context alive). The entities are kept too, because a deleted one is
     // detached by the time SavedChanges runs and could no longer be found to clear.
     private readonly ConditionalWeakTable<DbContext, Pending> _pending = new();
+
+    // What saves inside a transaction of the context's own raised, waiting for its commit. Dropped with it on a rollback,
+    // or when it is disposed uncommitted and collected.
+    private readonly ConditionalWeakTable<DbTransaction, List<IEvent>> _awaitingCommit = new();
 
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -110,6 +118,13 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             return;
         }
 
+        // Inside a transaction of the context's own: written, not committed — published from TransactionCommitted.
+        if (context.Database.CurrentTransaction?.GetDbTransaction() is { } transaction)
+        {
+            _awaitingCommit.GetValue(transaction, static _ => []).AddRange(pending.Events);
+            return;
+        }
+
         await PublishAsync(pending.Events, cancellationToken).ConfigureAwait(false);
     }
 
@@ -129,6 +144,38 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             // Publish resolves handlers by the event's concrete runtime type, so the IEvent static type is fine.
             await dispatcher.Publish(e, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <inheritdoc/>
+    void IDbTransactionInterceptor.TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData) =>
+        PublishCommittedAsync(transaction, CancellationToken.None).GetAwaiter().GetResult();
+
+    /// <inheritdoc/>
+    Task IDbTransactionInterceptor.TransactionCommittedAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken) =>
+        PublishCommittedAsync(transaction, cancellationToken);
+
+    /// <inheritdoc/>
+    void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
+        _awaitingCommit.Remove(transaction);
+
+    /// <inheritdoc/>
+    Task IDbTransactionInterceptor.TransactionRolledBackAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
+    {
+        _awaitingCommit.Remove(transaction);
+        return Task.CompletedTask;
+    }
+
+    private Task PublishCommittedAsync(DbTransaction transaction, CancellationToken cancellationToken)
+    {
+        if (!_awaitingCommit.TryGetValue(transaction, out var events))
+        {
+            return Task.CompletedTask;
+        }
+
+        _awaitingCommit.Remove(transaction);
+        return PublishAsync(events, cancellationToken);
     }
 
     private void Discard(DbContext? context)

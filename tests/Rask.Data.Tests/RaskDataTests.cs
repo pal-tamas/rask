@@ -137,6 +137,35 @@ public sealed class RaskDataTests : IDisposable
     }
 
     [Fact]
+    public async Task A_save_inside_a_transaction_of_its_own_publishes_its_events_once_that_commits()
+    {
+        await using var db = NewContext();
+        await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+        var widget = Widget.Create("held");
+        db.Widgets.Add(widget);
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var beforeCommit = _recorder.Events.Count;
+        await transaction.CommitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, beforeCommit);
+        Assert.Contains(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
+    }
+
+    [Fact]
+    public async Task A_save_inside_a_transaction_that_rolls_back_publishes_nothing()
+    {
+        await using var db = NewContext();
+        await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+        db.Widgets.Add(Widget.Create("undone"));
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await transaction.RollbackAsync(TestContext.Current.CancellationToken);
+
+        Assert.Empty(_recorder.Events);
+    }
+
+    [Fact]
     public async Task Domain_events_from_a_hard_delete_are_published()
     {
         Guid id;
