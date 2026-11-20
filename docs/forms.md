@@ -50,9 +50,10 @@ derives everything from the bound property:
   `→ text`. Override with `.Type(…)` — an `InputType` enum value. The full set is
   `Text`, `Search`, `Tel`, `Url`, `Email`, `Password`, `Number`, `Checkbox`, `Radio`, `File`, `Range`,
   `Color`, `Date`, `DatetimeLocal` (renders `datetime-local`), `Time`, `Week`, `Month`, `Hidden`,
-  `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
-  `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
-  [RASK025](diagnostics.md#rask025).
+  `Button`, `Submit`, `Reset`, `Image`. A text-family type (`Text`/`Search`/`Tel`/`Url`/`Email`/
+  `Password`) on a non-string bound input is a plain text field over that value: a number is shown and read in the
+  reader's culture, anything else in the spelling its parser reads (`2026-11-19`, a `Guid`, an enum's name), so what
+  the field shows reads back as the same value.
 - **Passwords are the browser's.** An input of `type=password` (or `autocomplete` `current-password`,
   `new-password` or `one-time-code`) sends what was typed to the model and never gets it back: the server writes
   `""` to clear it and nothing else, so a model value set from the server does not reach the field, and a page

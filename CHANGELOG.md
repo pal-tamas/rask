@@ -813,6 +813,12 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **RASK025 is retired.** It warned that a text-family `InputType` (`Text`, `Search`, `Tel`, `Url`, `Email`,
+  `Password`) on a non-string `Input<T>` "could never round-trip". Since numbers in a text field are shown and read in
+  the reader's culture (above), every value a field can hold reads back as itself from a text field — a number in the
+  reader's spelling, a date, `Guid`, enum or `bool` in the one its parser reads (tested under de-DE, hu-HU and en-US).
+  `Input.Bind(() => m.Price).Type(InputType.Text)` is no longer reported; a `#pragma warning disable RASK025` is dead
+  and can be deleted. The id is never recycled.
 - **A sortable `Ui.Table`'s columns are as wide as Flux's again (#1260).** Before: the keyboard ring's room in the
   first and last headings made each sort button 4px wider or narrower than Flux's, and the table shared its width out
   differently — in Flux's sortable example the columns sat up to 3px off, and on a phone the table was 4px narrower.

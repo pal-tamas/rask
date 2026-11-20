@@ -2,7 +2,7 @@ namespace Rask.Core;
 
 /// <summary>
 ///     The HTML <c>input</c> type as a closed set rather than a free string — so a typo is a compile
-///     error, and RASK025 can check the type against a bound <c>Input&lt;T&gt;</c>'s value type. A bound
+///     error. A bound
 ///     input given no explicit type derives one from <c>T</c> (<c>bool</c>→<c>Checkbox</c>,
 ///     numeric→<c>Number</c>, <c>DateOnly</c>→<c>Date</c>, …); an explicit type overrides that.
 ///     <para>

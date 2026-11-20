@@ -2,7 +2,6 @@ using System.Globalization;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-helper subclasses have no generated factory
-#pragma warning disable RASK025 // the point: a number bound to a TEXT field, which the analyzer warns about
 
 namespace Rask.Core.Tests.Forms;
 

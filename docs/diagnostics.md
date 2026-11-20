@@ -70,7 +70,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK022](#rask022) | Error | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `MapRask()` |
-| [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `HTMLInputElement<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
@@ -145,7 +144,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
-**Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
+**Retired, never recycled:** RASK025, RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
 RASK049, RASK050, RASK054, RASK056, RASK057, RASK058, RASK059, RASK061, RASK062, RASK063, RASK064, RASK065, RASK066,
 RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091 and RASK100, the islands build's
 RASKISLAND001–019, and the npm front-end build's RASKSPA001–005 and RASKSPA007. Each guarded a mistake that can no
@@ -450,26 +449,6 @@ challenges.
 **Fix:** call `app.UseAuthentication()` (and `app.UseAuthorization()`) before `app.MapRask()`. The
 warning fires only when both calls are present and `UseAuthentication` is positioned after `MapRask`;
 an app with no authentication middleware is left alone. See [authentication](authentication.md).
-
-## RASK025
-**`InputType` conflicts with the bound `HTMLInputElement<T>` value type** · Warning
-
-A generic `HTMLInputElement<T>` derives its HTML input `type` from `T` (`bool`→checkbox, `int`/`decimal`→number,
-`DateOnly`→date, …). The *string-only* `InputType`s — `Text`, `Search`, `Tel`, `Url`, `Email`,
-`Password` — only apply to `HTMLInputElement<string>`; pairing one with `HTMLInputElement<int>`/`HTMLInputElement<bool>`/… is a mistake
-(the entered value could never round-trip to `T`).
-
-```csharp
-// ✗ Age is int — a number input can't be an email field:
-Input.Bind(() => model.Age).Type(InputType.Email)
-// ✓ let the type derive from T (int → number):
-Input.Bind(() => model.Age)
-// ✓ or use a string-only type on a string field:
-Input.Bind(() => model.Email).Type(InputType.Email)
-```
-
-**Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
-for a statically-known string-family `InputType` on a non-`string` `HTMLInputElement<T>`; `HTMLInputElement<int>` with `Type(InputType.Number)` and any `HTMLInputElement<string>` are left alone. Suppressible like any analyzer.
 
 ## RASK026
 **Redundant `StateHasChanged` in a Rask callback** · Warning
