@@ -39,3 +39,5 @@ static Rask.Signaling.SignalingJoinContext.operator !=(Rask.Signaling.SignalingJ
 static Rask.Signaling.SignalingJoinContext.operator ==(Rask.Signaling.SignalingJoinContext left, Rask.Signaling.SignalingJoinContext right) -> bool
 ~override Rask.Signaling.SignalingJoinContext.Equals(object obj) -> bool
 ~override Rask.Signaling.SignalingJoinContext.ToString() -> string
+Rask.Signaling.SignalingOptions.MaxPeersPerClient.get -> int
+Rask.Signaling.SignalingOptions.MaxPeersPerClient.set -> void

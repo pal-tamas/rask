@@ -1,9 +1,7 @@
-using System.Net.WebSockets;
-
 namespace Rask.Signaling;
 
-/// <summary>One connected peer. <see cref="SendGate" /> serialises writes — a WebSocket allows only one.</summary>
-internal sealed record Peer(string Id, WebSocket Socket, string Room)
-{
-    public SemaphoreSlim SendGate { get; } = new(1, 1);
-}
+/// <summary>
+///     One connected peer: its server-minted id, its room, who it counts against (<see cref="Client" />), and the
+///     queue every frame for it goes through (<see cref="Outbox" />).
+/// </summary>
+internal sealed record Peer(string Id, PeerOutbox Outbox, string Room, string Client);
