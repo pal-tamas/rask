@@ -15,7 +15,7 @@ internal sealed partial class DeployCommand
     {
         var path = Path.Combine(_workingDirectory, GitHubActionsWorkflow.RelativePath);
         var ci = CiWorkflow.Find(_fileSystem, _workingDirectory);
-        var content = GitHubActionsWorkflow.Render(ci);
+        var content = GitHubActionsWorkflow.Render(ci, CliVersion);
 
         if (dryRun)
         {
@@ -25,7 +25,18 @@ internal sealed partial class DeployCommand
             return 0;
         }
 
-        // A workflow is a thing people edit. Overwriting one silently would throw away their changes.
+        // A workflow is a thing people edit. Overwriting one silently would throw away their changes, so one this CLI
+        // wrote only has its pinned CLI moved up, and one a person wrote is left alone.
+        if (_fileSystem.FileExists(path) && GitHubActionsWorkflow.IsGenerated(_fileSystem.ReadAllText(path)))
+        {
+            if (!RefreshWorkflowPin(dryRun))
+            {
+                Console.WriteLine($"{GitHubActionsWorkflow.RelativePath} is already there and pins this CLI ({CliVersion}) or a newer one.", ConsoleStyle.Dim);
+            }
+
+            return 0;
+        }
+
         if (_fileSystem.FileExists(path))
         {
             Console.WriteErrorLine($"{GitHubActionsWorkflow.RelativePath} already exists — leaving it alone.", ConsoleStyle.Error);
@@ -45,6 +56,37 @@ internal sealed partial class DeployCommand
         WriteDeployKeySteps(target, slug);
         return 0;
     }
+
+    /// <summary>
+    /// Move the generated workflow's pinned CLI up to this one, when it is older: the deploy from CI then runs the CLI
+    /// the developer now deploys with, without anyone remembering to edit the pin. Every `rask deploy` from a machine
+    /// runs it; in CI the installed CLI IS the pin, so it changes nothing there. Says what it changed — the file is
+    /// committed, and the change is the developer's to commit.
+    /// </summary>
+    private bool RefreshWorkflowPin(bool dryRun)
+    {
+        var path = Path.Combine(_workingDirectory, GitHubActionsWorkflow.RelativePath);
+        if (!_fileSystem.FileExists(path)
+            || GitHubActionsWorkflow.Repin(_fileSystem.ReadAllText(path), CliVersion) is not { } repinned)
+        {
+            return false;
+        }
+
+        if (dryRun)
+        {
+            Console.WriteLine($"Would move {GitHubActionsWorkflow.RelativePath}'s Rask CLI from {repinned.Pinned} to {CliVersion}.", ConsoleStyle.Dim);
+            return true;
+        }
+
+        _fileSystem.WriteAllText(path, repinned.Updated);
+        Console.WriteLine(
+            $"Moved {GitHubActionsWorkflow.RelativePath}'s Rask CLI from {repinned.Pinned} to {CliVersion} — commit it, so CI deploys with this one too.",
+            ConsoleStyle.Dim);
+        return true;
+    }
+
+    /// <summary>The version of this CLI, as the workflow pins it. A test sets it; a development build is 0.0.0.</summary>
+    internal string CliVersion { get; set; } = CliMetadata.Version;
 
     /// <summary>
     /// A key of its own for this repository, which can do what a deploy does and nothing more: <c>restrict</c> takes

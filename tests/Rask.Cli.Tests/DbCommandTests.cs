@@ -202,6 +202,18 @@ public sealed class DbCommandTests
     }
 
     [Fact]
+    public async Task A_drop_confirmed_at_the_prompt_is_not_asked_again_by_ef()
+    {
+        var (command, runner, console) = CreateWithProject();
+        console.InputLines = ["y"];
+
+        var exit = await command.ExecuteAsync(["drop"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["ef", "database", "drop", "--force"], runner.LastRun!.Arguments.Take(4));
+    }
+
+    [Fact]
     public void Migrate_resolves_to_the_update_verb_on_the_schema()
     {
         var schema = new DbCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), ProjectDir).OptionSchema!;

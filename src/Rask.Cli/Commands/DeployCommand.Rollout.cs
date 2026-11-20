@@ -23,6 +23,12 @@ internal sealed partial class DeployCommand
             return WriteGitHubActionsWorkflow(plan.SshTarget, plan.Slug, plan.DryRun);
         }
 
+        // A deploy from a machine whose CLI was upgraded moves the CI workflow's pinned CLI with it.
+        if (plan.Action is null)
+        {
+            RefreshWorkflowPin(plan.DryRun);
+        }
+
         if (plan.DryRun)
         {
             PrintPlan(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Dockerfile, plan.ContextDir, plan.Env, plan.HealthEnabled, plan.HealthPath, plan.Redirects, plan.Dns, plan.Prunes);

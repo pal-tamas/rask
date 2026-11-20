@@ -1221,6 +1221,11 @@ public sealed partial class DeployCommandTests
         Assert.Contains("rask deploy --no-setup-host", workflow, StringComparison.Ordinal);
         Assert.Contains("cancel-in-progress: false", workflow, StringComparison.Ordinal);
         Assert.Contains("gh secret set RASK_SSH_PRIVATE_KEY", console.OutText, StringComparison.Ordinal);
+
+        // A named runner image and the CLI that wrote the file: neither moves under the job unreviewed.
+        Assert.DoesNotContain("runs-on: ubuntu-latest", workflow, StringComparison.Ordinal);
+        Assert.Contains("runs-on: ubuntu-26.04", workflow, StringComparison.Ordinal);
+        Assert.Contains($"dotnet tool install --global Rask.Cli --version {CliMetadata.Version}", workflow, StringComparison.Ordinal);
         Assert.Contains("ssh-keyscan box.example.com", console.OutText, StringComparison.Ordinal);
     }
 
@@ -1367,6 +1372,80 @@ public sealed partial class DeployCommandTests
         Assert.Contains("ssh -p 2222 deploy@box.example.com \"echo 'restrict,port-forwarding $(cat ~/.ssh/rask-deploy-shop.pub)' >> ~/.ssh/authorized_keys\"", console.OutText, StringComparison.Ordinal);
         Assert.Contains("gh secret set RASK_SSH_PRIVATE_KEY < ~/.ssh/rask-deploy-shop", console.OutText, StringComparison.Ordinal);
         Assert.DoesNotContain("id_ed25519", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("0.24.0", "0.25.1", "0.25.1")]   // an upgraded CLI moves the pin up
+    [InlineData("0.25.1", "0.25.1", null)]       // already there
+    [InlineData("0.26.0", "0.25.1", null)]       // a teammate on an older CLI never moves it down
+    [InlineData("0.24.0", "0.0.0", null)]        // a development build moves nothing
+    public void A_generated_workflow_s_pin_moves_up_to_the_cli_and_nowhere_else(string pinned, string cli, string? expected)
+    {
+        var workflow = GitHubActionsWorkflow.Render(ciWorkflow: null, pinned) + "# my own line\n";
+
+        var repinned = GitHubActionsWorkflow.Repin(workflow, cli);
+
+        if (expected is null)
+        {
+            Assert.Null(repinned);
+            return;
+        }
+
+        Assert.NotNull(repinned);
+        Assert.Equal(pinned, repinned.Value.Pinned);
+        Assert.Equal(workflow.Replace($"Rask.Cli --version {pinned}", $"Rask.Cli --version {expected}", StringComparison.Ordinal), repinned.Value.Updated);
+    }
+
+    [Fact]
+    public void A_workflow_a_person_wrote_is_never_repinned() =>
+        Assert.Null(GitHubActionsWorkflow.Repin("# mine\n  run: dotnet tool install --global Rask.Cli --version 0.1.0\n", "9.9.9"));
+
+    [Fact]
+    public async Task A_deploy_after_a_cli_upgrade_moves_the_workflow_s_pin_and_says_so()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.github/workflows/deploy.yml", GitHubActionsWorkflow.Render(ciWorkflow: null, "0.24.0"));
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner { CaptureHandler = Captures() }, console);
+        command.CliVersion = "0.25.1";
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
+
+        var workflow = fs.ReadAllText("/proj/.github/workflows/deploy.yml");
+        Assert.Contains("dotnet tool install --global Rask.Cli --version 0.25.1", workflow, StringComparison.Ordinal);
+        Assert.Contains("from 0.24.0 to 0.25.1", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_dry_run_says_it_would_move_the_pin_and_leaves_the_file_alone()
+    {
+        var fs = new FakeFileSystem();
+        var before = GitHubActionsWorkflow.Render(ciWorkflow: null, "0.24.0");
+        fs.Seed("/proj/.github/workflows/deploy.yml", before);
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+        command.CliVersion = "0.25.1";
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(before, fs.ReadAllText("/proj/.github/workflows/deploy.yml"));
+        Assert.Contains("Would move", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_on_its_own_workflow_moves_the_pin_instead_of_refusing()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.github/workflows/deploy.yml", GitHubActionsWorkflow.Render(ciWorkflow: null, "0.24.0"));
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+        command.CliVersion = "0.25.1";
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("--version 0.25.1", fs.ReadAllText("/proj/.github/workflows/deploy.yml"), StringComparison.Ordinal);
     }
 
     [Fact]
