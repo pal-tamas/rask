@@ -1031,7 +1031,15 @@ is HTML, on [Tiptap](https://tiptap.dev) as Flux's is. `Bind` writes the documen
 at every change), `Toolbar("heading | bold italic ~ undo redo")` names the items, and its parts compose a toolbar of
 your own with `Ui.EditorButton`s that run C#. The engine is a static file every app's build writes and the browser
 fetches the first time an editor mounts (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps it out). The value
-is the reader's HTML: sanitize it before it is rendered as markup anywhere. Every example, the items and their keys,
+is the reader's HTML, cut to the editor's own schema both ways: the first paint of a stored value and every change the
+browser sends keep only the tags and attributes the bundled extensions write (no script, event handler or
+`javascript:` link). An extension of the app's own registers its markup once, at startup —
+`UiEditorSchema.Allow("img", "src", "alt")`, or with a rule for a value:
+`UiEditorSchema.Allow("span", "data-mention", id => Guid.TryParse(id, out _))` — and it is kept too. A registration
+cannot let script back in: a tag that runs, embeds or submits something, an `on…` handler, `style`, `srcdoc` and
+`srcset` are refused, a URL attribute is still held to http, https, mailto, tel or a path (`src` also to an inline
+PNG, GIF, JPEG or WebP), and an attribute the kit already rules keeps the kit's rule. Sanitize the value before you
+render it as markup anywhere else. Every example, the items and their keys,
 the extensions and the reference: **[rask.sh/ui/editor](https://rask.sh/ui/editor/)**.
 
 ### Toolbar

@@ -65,6 +65,8 @@ public class SpaCacheClassificationTests
     // The SDK's default, unfingerprinted names — including ones the bundler heuristic would freeze.
     [InlineData("/_framework/dotnet.js", "dotnet.js", false)]
     [InlineData("/_framework/System.IO.Pipelines.wasm", "System.IO.Pipelines.wasm", false)]
+    [InlineData("/_framework/Microsoft.Extensions.wasm", "Microsoft.Extensions.wasm", false)]
+    [InlineData("/_framework/Rask.Components.abcdefghijkl.wasm", "Rask.Components.abcdefghijkl.wasm", false)]
     [InlineData("/_framework/Rask.Components-12345678.wasm", "Rask.Components-12345678.wasm", false)]
     // Hand-written files in wwwroot, whatever they are called.
     [InlineData("/assets/logo.svg", "logo.svg", false)]

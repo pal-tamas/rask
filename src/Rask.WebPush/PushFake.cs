@@ -75,6 +75,15 @@ public sealed class PushFake : IPush, IDisposable
         }
     }
 
+    Task<bool> IPush.Release(string endpoint, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(Rask.Data.CurrentUser.Id is not null
+                                   && _subscribed.Exists(s => string.Equals(s.Endpoint, endpoint, StringComparison.Ordinal)));
+        }
+    }
+
     Task<WebPushResult> IPush.Send(PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken)
     {
         Record(message, null);

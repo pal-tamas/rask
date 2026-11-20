@@ -330,6 +330,12 @@ A subscription the push service says is gone is dropped as the send finds it. A 
 `subscription.ToJSON()` to `POST /_rask/push/subscribe` instead of calling `Push.Subscribe`, and reads the public key
 from `GET /_rask/push/key`.
 
+**A browser's row is its user's.** Subscribing again renews it for that user; another user signing in on the same
+browser cannot take it over while it is still the first user's. At sign-out, before the cookie goes, hand it back:
+`await Push.Release(endpoint)` (a WebAssembly client: `POST /_rask/push/release` with `{ endpoint }`). The row stays,
+as a visitor's, and the next user to sign in on that browser claims it by subscribing. Only the signed-in owner can
+release a row.
+
 The keys come from `Rask:Push`: `rask new` wrote a development pair to the gitignored
 `appsettings.Development.json`, and deployed they come from the environment
 (`Rask__Push__VapidKeys__PublicKey` / `__PrivateKey`). The contact is `Rask:Push:Subject`, a `mailto:` or

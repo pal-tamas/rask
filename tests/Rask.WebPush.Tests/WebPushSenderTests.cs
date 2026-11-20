@@ -166,6 +166,48 @@ public sealed class WebPushSenderTests
     }
 
     [Fact]
+    public void A_payload_is_held_to_the_3993_bytes_every_push_service_must_accept()
+    {
+        using var client = TestCrypto.GenerateClient();
+        var key = client.P256dh;
+        var auth = client.Auth;
+
+        var fits = Aes128GcmEncryptor.Encrypt(key, auth, new byte[3993]);
+        var refused = Record.Exception(() => Aes128GcmEncryptor.Encrypt(key, auth, new byte[3994]));
+
+        Assert.Equal(4096, fits.Length);
+        Assert.IsType<ArgumentException>(refused);
+    }
+
+    [Theory]
+    [InlineData("has space")]
+    [InlineData("line\r\nX-Injected: 1")]
+    [InlineData("abcdefghijklmnopqrstuvwxyz0123456")] // 33 characters
+    public async Task A_topic_outside_the_base64url_alphabet_or_32_characters_is_refused(string topic)
+    {
+        using var client = TestCrypto.GenerateClient();
+        var handler = new RecordingHandler();
+        var sub = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            TestSender.Create(handler).Send(sub, new WebPushMessage { Title = "T", Topic = topic }, TestContext.Current.CancellationToken));
+
+        Assert.Null(handler.Request);
+    }
+
+    [Fact]
+    public async Task A_lifetime_past_what_the_header_holds_is_sent_as_the_largest_it_can_say()
+    {
+        using var client = TestCrypto.GenerateClient();
+        var handler = new RecordingHandler();
+        var sub = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64);
+
+        await TestSender.Create(handler).Send(sub, new WebPushMessage { Title = "T", Ttl = TimeSpan.MaxValue }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(int.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture), handler.Request!.Headers.GetValues("TTL").Single());
+    }
+
+    [Fact]
     public async Task Rejects_auth_secret_of_wrong_length()
     {
         using var client = TestCrypto.GenerateClient();

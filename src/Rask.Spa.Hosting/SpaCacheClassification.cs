@@ -41,10 +41,12 @@ internal static partial class SpaCacheClassification
     private static partial Regex Fingerprint();
 
     /// <summary>
-    ///     The .NET SDK's fingerprint: <c>&lt;stem&gt;.&lt;10+ lowercase alphanumerics&gt;.&lt;ext&gt;</c>.
-    ///     Ten characters and lowercase, so <c>System.IO.Pipelines.wasm</c> is not mistaken for one.
+    ///     The .NET SDK's fingerprint: <c>&lt;stem&gt;.&lt;10+ lowercase alphanumerics, one a digit&gt;.&lt;ext&gt;</c>.
+    ///     Lowercase and with a digit, as the service worker reads it (<c>Rask.Wasm/Resources/rask-sw.ts</c>), so
+    ///     neither <c>System.IO.Pipelines.wasm</c> nor <c>Microsoft.Extensions.wasm</c> — ten letters — is frozen for
+    ///     a year.
     /// </summary>
-    [GeneratedRegex(@"\.[0-9a-z]{10,}\.[^.]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\.(?=[a-z]*[0-9])[a-z0-9]{10,}\.[^.]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex SdkFingerprint();
 
     /// <summary>

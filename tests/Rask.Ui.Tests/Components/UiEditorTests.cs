@@ -314,6 +314,31 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
         Assert.Contains("wwwroot/js/" + named, targets);
     }
 
+    [Fact]
+    public void A_stored_value_paints_only_what_the_editor_s_schema_writes()
+    {
+        var post = new Post { Body = "<p>Hi</p><img src=x onerror=alert(1)><script>alert(2)</script><a href=\"javascript:alert(3)\">x</a>" };
+
+        var html = Ui.Editor.Bind(() => post.Body).ToHtml();
+
+        Assert.Contains("role=\"textbox\"><p>Hi</p><a>x</a></div>", html);
+        Assert.DoesNotContain("onerror", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script>alert", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_change_the_browser_sends_reaches_the_model_and_the_callback_cut_to_the_schema()
+    {
+        var post = new Post();
+        var heard = new List<string>();
+        var editor = Ui.Editor.Bind(() => post.Body).OnChange(heard.Add);
+
+        await editor.Changed("<p onclick=\"alert(1)\">typed</p><script>alert(2)</script>");
+
+        Assert.Equal("<p>typed</p>", post.Body);
+        Assert.Equal(["<p>typed</p>"], heard);
+    }
+
     // The toolbar's controls, in order, by the name the engine finds each one by.
     private static List<string> Items(string html) =>
         Regex.Matches(Regex.Match(html, "role=\"toolbar\".*?<div data-rask-opaque>", RegexOptions.Singleline).Value, "data-editor=\"([a-z]+)\"")

@@ -379,6 +379,34 @@ them until tagged releases begin.
   registration unrun, so the job was never told to stop; its row was then released (attempt undone) while its
   handler still ran, for another instance to start a second time. After: the grace is cancelled once the budget has
   ended, and a job whose handler is still in it keeps its claim until the lease runs out.
+- **BREAKING (Rask.Ui, security): `Ui.Editor` cuts its value to its own schema, both ways — a stored value can no
+  longer run script in the page.** Before: the first paint wrote the bound HTML with `Raw` as it was, so
+  `<img src=x onerror=…>` from the database ran before the engine loaded, and a change the browser sent was written to
+  the model and handed `OnChange` unchecked. After: both keep only the tags and attributes the bundled Tiptap extensions
+  write (paragraphs, headings, marks, lists, blockquote, code, tables, links to http/https/mailto/tel or a path,
+  `text-align`); a script, an event handler, a `javascript:`/`data:` link, a comment are dropped. An app's own
+  `ui:editor` extension registers the markup it writes with `UiEditorSchema.Allow(tag, attributes…)` (or with a value
+  rule, `Allow(tag, attribute, accepts)`), and that is kept; unregistered markup is dropped. A registration cannot allow
+  a script-running or embedding tag, an `on…` handler, `style`, `srcdoc` or `srcset`, and a registered URL attribute is
+  still held to a safe link.
+- **BREAKING (Rask.WebPush, security): a user's push subscription can no longer be taken over by its endpoint.** Before:
+  posting another browser's endpoint re-bound its row to whoever posted it, or — signed out — detached it from its
+  user; and `POST /_rask/push/unsubscribe` took any number of anonymous requests. After: a row owned by a user is
+  renewed only by that user (a visitor's row is still claimed by the user who signs in on it), and unsubscribe answers
+  401 without a user when `RequireUser` is on and 429 past ten a minute, as subscribe does. New `Push.Release(endpoint)`
+  / `IPush.Release` / `POST /_rask/push/release`: at sign-out the owner hands the row back as a visitor's, so the next
+  user signing in on that browser claims it; only the owner can release it.
+- **Rask.WebPush: the SSRF guard judges the IPv4 address inside a NAT64, 6to4 or IPv4-compatible IPv6 address, and
+  refuses Teredo and local-use NAT64.** Before: `64:ff9b::a9fe:a9fe` (the metadata service through a NAT64 gateway)
+  passed as public. Also: a payload is held to RFC 8291's 3993 bytes (was 4079, which a push service may refuse), a
+  `Ttl` past `int`'s seconds is sent as `int.MaxValue` instead of a negative TTL, and a `Topic` that is not ≤ 32
+  base64url characters is refused before the request is built.
+- **Rask.Spa.Hosting: a ten-letter SDK file name is no longer cached as immutable.** Before:
+  `_framework/Microsoft.Extensions.wasm` matched the fingerprint pattern and was frozen for a year. After: the
+  fingerprint needs a digit, as the service worker already required. The WebAssembly debug proxy (Development only)
+  refuses a request a web page made (`Sec-Fetch-Site`/`Origin`) and starts at most eight proxies.
+- **Rask.Wasm: `SignOut()` empties the offline cache even when the logout request fails**, so the next person on a
+  shared device does not read the signed-in user's pages.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

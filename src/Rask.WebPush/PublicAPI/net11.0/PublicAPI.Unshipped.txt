@@ -274,3 +274,5 @@ static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscrib
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriberRead!>!
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriberRead?>!
 static Rask.WebPush.PushSubscriberReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
+Rask.WebPush.IPush.Release(string! endpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.WebPush.Push.Release(string! endpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!

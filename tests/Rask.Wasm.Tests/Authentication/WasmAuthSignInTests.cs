@@ -68,6 +68,20 @@ public class WasmAuthSignInTests
         Assert.Equal("/bye", state.Path);
     }
 
+    [Fact]
+    public async Task Signing_out_empties_the_offline_cache_even_when_the_server_cannot_be_reached()
+    {
+        var js = new FakeJsRuntime();
+        var auth = new WasmAuthSignIn(new HttpClient(new UnreachableHandler()) { BaseAddress = new Uri("http://localhost/") }, new StubUserProvider(), js);
+
+        using (new Navigator(new RouteState()).EnterHandler())
+        {
+            await Assert.ThrowsAsync<HttpRequestException>(() => auth.SignOut());
+        }
+
+        Assert.Equal(1, js.CallCount("__raskOffline.clear"));
+    }
+
     private static HttpClient StubHttp() =>
         new(new OkHandler()) { BaseAddress = new Uri("http://localhost/") };
 
@@ -75,6 +89,12 @@ public class WasmAuthSignInTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
             => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+    }
+
+    private sealed class UnreachableHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+            => throw new HttpRequestException("No route to host.");
     }
 
     private sealed class StubUserProvider : IUserProvider

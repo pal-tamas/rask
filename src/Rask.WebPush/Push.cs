@@ -29,6 +29,13 @@ public static class Push
     public static Task<bool> Unsubscribe(string endpoint, CancellationToken cancellationToken = default) =>
         Resolve().Unsubscribe(endpoint, Ambient.Or(cancellationToken));
 
+    /// <summary>
+    ///     Lets go of a browser's subscription as its user signs out: call it before the sign-out, while that user is
+    ///     still current. The row becomes a visitor's, and the next user to sign in on the browser claims it.
+    /// </summary>
+    public static Task<bool> Release(string endpoint, CancellationToken cancellationToken = default) =>
+        Resolve().Release(endpoint, Ambient.Or(cancellationToken));
+
     /// <summary>The VAPID public key a browser subscribes with, or <see langword="null" /> until a key pair is configured.</summary>
     public static string? PublicKey => Resolve().PublicKey;
 

@@ -34,13 +34,7 @@ internal static class PushConnection
 
         if (address.AddressFamily == AddressFamily.InterNetworkV6)
         {
-            return !(IPAddress.IsLoopback(address)
-                     || address.Equals(IPAddress.IPv6None)
-                     || address.Equals(IPAddress.IPv6Any)
-                     || address.IsIPv6LinkLocal
-                     || address.IsIPv6SiteLocal
-                     || address.IsIPv6UniqueLocal
-                     || address.IsIPv6Multicast);
+            return IsPublicV6(address);
         }
 
         Span<byte> b = stackalloc byte[4];
@@ -57,6 +51,49 @@ internal static class PushConnection
             >= 224 => false,                        // multicast and reserved
             _ => true,
         };
+    }
+
+    // An IPv6 address that carries an IPv4 one — NAT64 (64:ff9b::/96), 6to4 (2002::/16), the deprecated
+    // IPv4-compatible ::/96 — is judged by the address it carries: a gateway turns it into exactly that. Teredo
+    // (2001::/32) hides its client's address and local-use NAT64 (64:ff9b:1::/48) is an operator's own network:
+    // neither is ever a push service.
+    private static bool IsPublicV6(IPAddress address)
+    {
+        Span<byte> b = stackalloc byte[16];
+        address.TryWriteBytes(b, out _);
+        var teredo = b[0] == 0x20 && b[1] == 0x01 && b[2] == 0 && b[3] == 0;
+        var localNat64 = b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b && b[4] == 0x00 && b[5] == 0x01;
+        if (teredo || localNat64)
+        {
+            return false;
+        }
+
+        if (Embedded(b) is { } carried)
+        {
+            return IsPublic(carried);
+        }
+
+        return !(IPAddress.IsLoopback(address)
+                 || address.Equals(IPAddress.IPv6None)
+                 || address.Equals(IPAddress.IPv6Any)
+                 || address.IsIPv6LinkLocal
+                 || address.IsIPv6SiteLocal
+                 || address.IsIPv6UniqueLocal
+                 || address.IsIPv6Multicast);
+    }
+
+    private static IPAddress? Embedded(ReadOnlySpan<byte> b)
+    {
+        // 64:ff9b::/96 (well-known NAT64) and ::/96 (IPv4-compatible): the last four bytes.
+        var nat64 = b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b && b[4..12].IndexOfAnyExcept((byte)0) < 0;
+        var compatible = b[..12].IndexOfAnyExcept((byte)0) < 0 && !(b[12] == 0 && b[13] == 0 && b[14] == 0 && b[15] <= 1);
+        if (nat64 || compatible)
+        {
+            return new IPAddress(b[12..16]);
+        }
+
+        // 2002:AABB:CCDD::/48 (6to4): bytes two to five.
+        return b[0] == 0x20 && b[1] == 0x02 ? new IPAddress(b[2..6]) : null;
     }
 
     private static async ValueTask<Stream> ConnectAsync(

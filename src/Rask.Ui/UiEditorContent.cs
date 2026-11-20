@@ -39,13 +39,14 @@ public sealed partial class UiEditorContent : Component
         return HostedElement.Tag("div").Opaque(true)[surface[composed.Count != 0 ? composed : [Initial(editor)]]];
     }
 
-    // What the engine parses when it takes over: the app's HTML, or the empty paragraph ProseMirror itself
-    // draws for an empty document, so the first paint already shows the placeholder.
+    // What the engine parses when it takes over: the app's HTML cut to the editor's schema (a stored value is not
+    // trusted to be the editor's own), or the empty paragraph ProseMirror itself draws for an empty document, so
+    // the first paint already shows the placeholder.
     private static Component Initial(UiEditorScope? editor)
     {
         if (!string.IsNullOrEmpty(editor?.Value))
         {
-            return Raw.Value(editor.Value);
+            return Raw.Value(UiEditorHtml.Clean(editor.Value));
         }
 
         var empty = P.Class("is-empty is-editor-empty");

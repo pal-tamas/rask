@@ -53,9 +53,15 @@ internal sealed partial class PushStore<TContext>(
                 existing = PushSubscriber.For(subscription, userId, now);
                 subscribers.Add(existing);
             }
-            else
+            else if (existing.UserId is null || existing.UserId == userId)
             {
                 existing.Renew(subscription, userId, now);
+            }
+            else
+            {
+                // A user's row is that user's: knowing its endpoint is not enough to take it over, nor — signed
+                // out — to detach it or swap its keys for ones its browser cannot read.
+                return existing;
             }
 
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -93,6 +99,27 @@ internal sealed partial class PushStore<TContext>(
                 .ConfigureAwait(false);
 
             return removed > 0;
+        }
+    }
+
+    public async Task<bool> Release(string endpoint, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
+        if (Rask.Data.CurrentUser.Id is not { } userId)
+        {
+            return false;
+        }
+
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // Only the owner's own row: knowing an endpoint is not enough to detach another user's.
+            var released = await db.Set<PushSubscriber>()
+                .Where(s => s.Endpoint == endpoint && s.UserId == userId)
+                .ExecuteUpdateAsync(set => set.SetProperty(s => s.UserId, (Guid?)null), cancellationToken)
+                .ConfigureAwait(false);
+
+            return released > 0;
         }
     }
 
