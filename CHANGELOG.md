@@ -384,6 +384,13 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
+  load inside any transaction refused them, because events were once published before the commit. They are not —
+  `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are
+  published once the load commits and never on a rollback, and a rollback gives them (and a generated key) back, so a
+  retried `SingleTransaction` load inserts and announces each row once; `SingleTransaction` now rolls back explicitly
+  instead of disposing its transaction uncommitted. Only `SkipChangeTracking`, which runs no interceptor, still
+  refuses them.
 - **A `Db.Transaction` attempt that rolls back takes back what it did to the aggregates it saved.** Before: a save
   inside the block cleared the aggregate's domain events, bumped its `Version` in memory, remembered it as saved and
   marked it as having a row — before the commit — and none of that was undone when the attempt rolled back. An
