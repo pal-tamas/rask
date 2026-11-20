@@ -16,6 +16,13 @@ them until tagged releases begin.
   warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
   `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
 ### Performance
+- **Saving an aggregate of thousands of changed children is linear, not quadratic.** Before: the save's checks
+  (`AuditingInterceptor`'s root walk — touching the root, a child's tenant against its root's — and `ParentTenantCheck`)
+  found each child's parent by scanning every tracked row, so a save cost changed children × rows tracked: 3,000 new
+  children took 8.8 s, 3,000 changed ones 5.6 s, and Eszaf's supply of tens of thousands of fuelings ran past ten
+  minutes until the page's scope closed under it. After: while a save runs the tracked rows are indexed by their keys
+  once (`TrackedPrincipals`), each parent is a lookup, and the same saves take 0.38 s and 0.19 s. The answers are the
+  scan's: a row found is checked against its key as it is now, and a row whose tenant the save stamps is indexed again.
 - **The API client and validator registry generators are incremental.** Before: both ran over the whole compilation on
   every edit — `ApiClientGenerator` kept controller symbols in its pipeline and `ValidatorRegistryGenerator` walked
   every type — so each keystroke in an app re-described every controller and validator. After: each controller,

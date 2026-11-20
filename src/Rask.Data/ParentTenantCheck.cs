@@ -52,7 +52,7 @@ internal static class ParentTenantCheck
                      e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
                      TenantParents.IsThroughParent(e.Metadata)))
         {
-            Check(tracked, entry, entry, untracked, depth: 0);
+            Check(context, entry, entry, untracked, depth: 0);
         }
 
         var asked = new HashSet<string>(StringComparer.Ordinal);
@@ -69,7 +69,7 @@ internal static class ParentTenantCheck
 
     // Every parent the row names, now and as it was loaded; a tracked one answers here, the rest are collected.
     private static void Check(
-        List<EntityEntry> tracked,
+        DbContext context,
         EntityEntry child,
         EntityEntry entry,
         List<(EntityEntry Child, IForeignKey Key, object?[] Values)> untracked,
@@ -79,7 +79,7 @@ internal static class ParentTenantCheck
         {
             foreach (var values in ParentsNamed(entry, key))
             {
-                if (Tracked(tracked, key, values) is not { } parent)
+                if (TrackedPrincipals.Find(context, key, values) is not { } parent)
                 {
                     untracked.Add((child, key, values));
                 }
@@ -87,7 +87,7 @@ internal static class ParentTenantCheck
                 {
                     if (depth < Deepest)
                     {
-                        Check(tracked, child, parent, untracked, depth + 1);
+                        Check(context, child, parent, untracked, depth + 1);
                     }
                 }
                 else
@@ -136,11 +136,6 @@ internal static class ParentTenantCheck
 
         return values;
     }
-
-    private static EntityEntry? Tracked(List<EntityEntry> tracked, IForeignKey key, object?[] values) =>
-        tracked.Find(candidate =>
-            key.PrincipalEntityType.ClrType.IsInstanceOfType(candidate.Entity) &&
-            key.PrincipalKey.Properties.Select((p, i) => Equals(candidate.Property(p.Name).CurrentValue, values[i])).All(static same => same));
 
     // A tracked parent's tenant is its own column — as it was loaded, or as it is being inserted. A parent being
     // inserted with none yet is stamped with the tenant in flight, so there is nothing to compare.

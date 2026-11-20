@@ -22,15 +22,20 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         // The same work as the async path. A synchronous save has no other way to ask about a parent it does not hold.
-        if (eventData.Context is { } context)
+        if (eventData.Context is not { } context)
         {
-            ReplacedChildren.Match(context);
-            SeveredChildren.Delete(context);
-            ChildWrites.RefuseOutsideTheirAggregate(context);
-            ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+            return base.SavingChanges(eventData, result);
         }
 
-        Apply(eventData.Context);
+        ReplacedChildren.Match(context);
+        SeveredChildren.Delete(context);
+        using (TrackedPrincipals.During(context))
+        {
+            ChildWrites.RefuseOutsideTheirAggregate(context);
+            ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+            Apply(context);
+        }
+
         return base.SavingChanges(eventData, result);
     }
 
@@ -38,25 +43,25 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is { } context)
+        if (eventData.Context is not { } context)
         {
-            ReplacedChildren.Match(context);
-            SeveredChildren.Delete(context);
-            ChildWrites.RefuseOutsideTheirAggregate(context);
-            await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+            return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
         }
 
-        Apply(eventData.Context);
+        ReplacedChildren.Match(context);
+        SeveredChildren.Delete(context);
+        using (TrackedPrincipals.During(context))
+        {
+            ChildWrites.RefuseOutsideTheirAggregate(context);
+            await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+            Apply(context);
+        }
+
         return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
     }
 
-    private void Apply(DbContext? context)
+    private void Apply(DbContext context)
     {
-        if (context is null)
-        {
-            return;
-        }
-
         RefuseTenantWritesForNobody(context);
         RefuseUnassignedKeys(context);
         TouchRootsOfChangedChildren(context);
@@ -75,8 +80,10 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 Stamp(entry, Columns.CreatedAt, now, onlyWhenUnset: true);
                 Stamp(entry, Columns.UpdatedAt, now, onlyWhenUnset: true);
                 StampTenant(context, entry);
+                TrackedPrincipals.Moved(context, entry);
                 RefuseChildApartFromItsRoot(context, entry);
                 SyncTenantKey(entry);
+                TrackedPrincipals.Moved(context, entry);
             }
             else if (entry.State == EntityState.Modified)
             {
@@ -84,6 +91,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 RefuseTenantChange(entry);
                 RefuseChildApartFromItsRoot(context, entry);
                 SyncTenantKey(entry);
+                TrackedPrincipals.Moved(context, entry);
             }
         }
 
@@ -432,27 +440,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             }
         }
 
-        foreach (var candidate in context.ChangeTracker.Entries())
-        {
-            if (!foreignKey.PrincipalEntityType.ClrType.IsInstanceOfType(candidate.Entity))
-            {
-                continue;
-            }
-
-            var matches = true;
-
-            for (var i = 0; i < values.Length && matches; i++)
-            {
-                matches = Equals(candidate.Property(foreignKey.PrincipalKey.Properties[i].Name).CurrentValue, values[i]);
-            }
-
-            if (matches)
-            {
-                return candidate;
-            }
-        }
-
-        return null;
+        return TrackedPrincipals.Find(context, foreignKey, values);
     }
 
     // An Entity<TId> key that is never generated is the entity's to assign — every key that is not an integer
