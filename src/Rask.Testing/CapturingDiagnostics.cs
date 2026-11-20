@@ -57,6 +57,11 @@ public sealed class CapturingDiagnostics : IDisposable
     private CapturedDiagnostic[] _errors = [];
     private bool _disposed;
 
+    // The flow's own ReportOnce record while this capture is installed: a once-only diagnostic the test provokes is
+    // reported to it whatever a test beside it reported. Installing used to clear the PROCESS's record instead, so a
+    // test running in parallel heard its once-only diagnostics again.
+    private RaskDiagnostics.ReportOnceScope _reportOnce;
+
     private CapturingDiagnostics()
     {
     }
@@ -78,9 +83,9 @@ public sealed class CapturingDiagnostics : IDisposable
             }
 
             Installed.Add(capture);
-            RaskDiagnostics.ResetReportOnceForTests();
         }
 
+        capture._reportOnce = RaskDiagnostics.BeginReportOnceScope();
         return capture;
     }
 
@@ -135,6 +140,8 @@ public sealed class CapturingDiagnostics : IDisposable
             _disposed = true;
             Uninstall(this);
         }
+
+        _reportOnce.Dispose();
     }
 
     // Callers hold InstallGate.
@@ -147,8 +154,6 @@ public sealed class CapturingDiagnostics : IDisposable
             RaskDiagnostics.Sink = _outerSink;
             _outerSink = null;
         }
-
-        RaskDiagnostics.ResetReportOnceForTests();
     }
 
     private void Capture(RaskDiagnosticEvent e)

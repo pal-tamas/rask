@@ -41,6 +41,8 @@ them until tagged releases begin.
   per live session from its current connection; `Network` (and `Reader.NetworkOf(ip)`) is what to count it by — IPv4 as
   it is, IPv6 by its `/64`. One per live session, one per plain request; in a browser app, the browser's zone and no
   address.
+- **`RaskString.ToastClose` — the accessible name of a toast's close control.** A key for the cross on `Ui.Toast`,
+  which had no name a screen reader could say; English `Close notification`. `Rask.Ui` reads it at its close button.
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the
@@ -512,6 +514,17 @@ them until tagged releases begin.
   `statement_timeout`/`lock_timeout` and Rask.SqlServer's `LOCK_TIMEOUT` applied to the migration too, so one that
   rewrote a table or waited behind the old instance's queries failed partway and the app did not start, whatever
   `OwnsSchema`'s timeout said. After: they run on one connection with the limits lifted.
+- **A read-only bound field takes no write.** Before: only a disabled control refused its bound write, so a frame
+  written by hand changed the model behind an `Input`/`Textarea` the page had drawn `readonly`. After: a typed-into
+  field drawn read-only (its `ReadOnly`, or `readonly` in its attributes) wires no write; its other events still
+  arrive, and a checkbox, radio, range, colour or file input — which `readonly` means nothing to — is unchanged.
+- **A menu's type-ahead with no cursor yet looks from the first row.** Before: a typed prefix with no row lit started
+  from the last row (`-1` wrapped to it). After: from the first, as its C# twin `UiListSearch` does.
+- **The phone hook lends its engine `unasked`.** The number a page writes into `Ui.Phone` is then not taken for the
+  reader's typing.
+- **A test's diagnostics capture no longer resets every other test's once-only reports.** Before:
+  `CapturingDiagnostics.Install` cleared the process's `ReportOnce` record on every install and dispose, so a test
+  running beside it heard its once-only diagnostics again. After: each capture gives its own flow a record of its own.
 - **A keyed scoped service is the event's, not the session's.** Before: `[FromKeyedServices]`/`GetKeyedService` in a
   live event resolved from the session's long-lived scope, so one keyed `DbContext` served every event the session
   handled, concurrently. After: a keyed scoped or transient registration is made in the event's scope, as an unkeyed

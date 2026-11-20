@@ -163,6 +163,12 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
                 return;
             }
 
+            // Drawn read-only, nobody can change it in the browser: it wires no write, so a forged frame has none to run.
+            if (DrawnReadOnly.Is(ReadOnly, this))
+            {
+                return;
+            }
+
             WriteTypedBind(
                 sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
                 secret: SecretField.Is(null, Autocomplete, Data));

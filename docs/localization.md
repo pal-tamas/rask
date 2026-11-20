@@ -881,6 +881,7 @@ they say when you set nothing.
 | `FilterRangeAtLeast` | Filters: a range's badge, its least alone | `at least {0}` |
 | `FilterRangeAtMost` | Filters: a range's badge, its most alone | `at most {0}` |
 | `FilterRangeBetween` | Filters: a range's badge, both ends | `{0} – {1}` |
+| `ToastClose` | Toast: its close control (a cross) | `Close notification` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

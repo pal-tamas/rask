@@ -15,18 +15,29 @@
 // what is typed into it then is formatted once the engine mounts.
 
 import {announce, bind, boundOf} from "./rask-bound.js";
-import {listen, own, page} from "./rask-owned.js";
+import {listen, own, page, unasked} from "./rask-owned.js";
 
 /** What the engine module exports (Rask.Ui's Resources/phone/ui-phone.ts). */
 interface Engine {
-    mount(root: Element, kit: {announce: typeof announce; own: typeof own}): void;
+    mount(root: Element, kit: Kit): void;
     current(root: Element): string | null;
     adopt(root: Element, value: string): void;
     handle(e: Event): void;
 }
 
+/**
+ * What the engine is lent of the runtime. `unasked` runs what the engine does of its own accord — writing the number
+ * the page sent into the library — as nobody's action, so the field's input events it raises are not taken for the
+ * reader's typing (a ConfirmLeave that fires on a page nobody edited).
+ */
+interface Kit {
+    announce: typeof announce;
+    own: typeof own;
+    unasked: typeof unasked;
+}
+
 const ROOT = "[data-rask-phone]";
-const kit = {announce, own};
+const kit: Kit = {announce, own, unasked};
 let engine: Engine | null = null;
 let loading: Promise<Engine> | null = null;
 
