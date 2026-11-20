@@ -19888,3 +19888,11 @@ Rask.Core.Globalization.RaskString.WorkBatchStopped = 275 -> Rask.Core.Globaliza
 Rask.Core.Globalization.RaskString.WorkEndedWarned = 270 -> Rask.Core.Globalization.RaskString
 Rask.Core.Forms.SkipValidationAttribute
 Rask.Core.Forms.SkipValidationAttribute.SkipValidationAttribute() -> void
+Rask.Core.Reader
+Rask.Core.Reader.Address.get -> System.Net.IPAddress?
+Rask.Core.Reader.KnowsTimeZone.get -> bool
+Rask.Core.Reader.Network.get -> string!
+Rask.Core.Reader.Now.get -> System.DateTimeOffset
+Rask.Core.Reader.TimeZone.get -> System.TimeZoneInfo!
+Rask.Core.Reader.Today.get -> System.DateOnly
+static Rask.Core.Reader.NetworkOf(System.Net.IPAddress? address) -> string!

@@ -37,6 +37,8 @@ public sealed class WasmHostBuilder
         // Each event gets the app's scoped services fresh, as a server session's does.
         EventScopeCatalog.Add(Services);
         Services.AddSingleton<RouteState>();
+        // Who reads the page: in the browser, the browser's own zone (the clock's local one) and no address.
+        Services.AddSingleton(static sp => new Reader(sp.GetService<TimeProvider>()));
         // The declared state bag. Singleton here for the same reason RouteState is: the whole WASM app is a
         // single session. It works exactly as it does on the server — what differs is that nothing carries
         // it anywhere, because a WASM app has no server-side session to rebuild. Registered so a component

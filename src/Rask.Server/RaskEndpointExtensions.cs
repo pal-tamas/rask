@@ -407,6 +407,8 @@ public static partial class RaskEndpointExtensions
         // Transient user messages / toasts (a flash-message pattern). Scoped = one queue per session, so a
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
+        // Who reads the page: their zone and address, one per session like RouteState (Reader).
+        Http.ReaderSeen.Register(services);
 
         AddVisitorServices(services, configureCulture);
     }
@@ -1198,7 +1200,7 @@ public static partial class RaskEndpointExtensions
         ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
 
         await RunSocketLoop(ws, store, limits, wsUser, resume, selector, linked.Token,
-            drain.HardStopping, wsCulture).ConfigureAwait(false);
+            drain.HardStopping, wsCulture, Http.ReaderSeen.Of(ctx)).ConfigureAwait(false);
     }
 
     private static void MapPwa(IEndpointRouteBuilder endpoints, string pathBase)
@@ -1437,7 +1439,7 @@ public static partial class RaskEndpointExtensions
         var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
         var attach = await AttachAsync(
             sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, SentBefore(ctx.Request), transport, store,
-            limits, UserOf(ctx), resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
+            limits, UserOf(ctx), resume, selector, store.Metrics, culture, ct, Http.ReaderSeen.Of(ctx)).ConfigureAwait(false);
 
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
@@ -1890,7 +1892,7 @@ public static partial class RaskEndpointExtensions
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
         ClaimsPrincipal wsUser, SessionResumeSupport resume, RaskRootSelector selector,
-        CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
+        CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default, Http.ReaderSeen seen = default)
     {
         using var abortReg = AbortWhen(ws, stopping);
         var metrics = store.Metrics;
@@ -1920,7 +1922,7 @@ public static partial class RaskEndpointExtensions
                 if (hasType && t.ValueEquals("hello"u8))
                 {
                     (var stop, session) = await HelloAsync(
-                        ws, root, session, transport, store, limits, wsUser, resume, selector, resumeCulture, ct)
+                        ws, root, session, transport, store, limits, wsUser, resume, selector, resumeCulture, seen, ct)
                         .ConfigureAwait(false);
                     if (stop)
                     {
@@ -2235,6 +2237,7 @@ public static partial class RaskEndpointExtensions
         SessionResumeSupport resume,
         RaskRootSelector selector,
         CultureNegotiation resumeCulture,
+        Http.ReaderSeen seen,
         CancellationToken ct)
     {
         // One session per socket. The client sends exactly one hello per connection, so a
@@ -2250,7 +2253,7 @@ public static partial class RaskEndpointExtensions
 
         var attach = await AttachAsync(
             StringProperty(root, "session"), StringProperty(root, "resume"), SentBefore(root), transport, store, limits,
-            wsUser, resume, selector, store.Metrics, resumeCulture, ct).ConfigureAwait(false);
+            wsUser, resume, selector, store.Metrics, resumeCulture, ct, seen).ConfigureAwait(false);
 
         if (attach.Status == AttachStatus.Unknown)
         {
@@ -2666,7 +2669,8 @@ public static partial class RaskEndpointExtensions
         RaskRootSelector selector,
         RaskMetrics? metrics,
         CultureNegotiation resumeCulture,
-        CancellationToken ct)
+        CancellationToken ct,
+        Http.ReaderSeen seen = default)
     {
         if (string.IsNullOrEmpty(sessionId))
         {
@@ -2688,7 +2692,7 @@ public static partial class RaskEndpointExtensions
 
             // The events the tab sends again may have run on the host that lost it: none of them runs here.
             rebuilt.Session?.SeenUpTo(sentBefore);
-            return rebuilt;
+            return seen.Told(rebuilt);
         }
 
         var (kind, waitedSince) = HowItAttaches(session, transport);
@@ -2726,7 +2730,7 @@ public static partial class RaskEndpointExtensions
         }
 
         store.Lifecycle.Attached(transport.Record, session, kind, waitedSince, bytesBefore);
-        return new AttachOutcome(AttachStatus.Attached, session);
+        return seen.Told(new AttachOutcome(AttachStatus.Attached, session));
     }
 
     // What the attach line says of a connection about to attach, and the moment it counts the wait from: the page being

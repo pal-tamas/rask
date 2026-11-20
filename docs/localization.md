@@ -290,6 +290,30 @@ host.UseTimeZone("Europe/Budapest");                                    // a bro
 zone named, the wall clock is the machine's (in a browser app, the browser's). A zone the machine does not know fails
 the line that named it; a container image needs its `tzdata` package (the template images have it).
 
+**The reader's own clock, and where they connect from.** One app zone is right when everyone is in one country. When
+they are not, inject `Reader` (or ask `Current.Service<Reader>()`): its `TimeZone` is the zone the reader's browser
+names — the server runtime keeps the IANA id (`Intl…resolvedOptions().timeZone`) in a `rask-tz` cookie before it
+connects, and every request and live connection after carries it — and until the browser has said it (the very first
+page a visitor opens, a request from no browser) it is `Clock.Zone`. `KnowsTimeZone` says which. In a browser app it is
+the browser's from the start.
+
+```csharp
+public sealed partial class DayPicker(Reader reader) : Component
+{
+    protected override Component Render() => Span[reader.Today.ToString("d", Culture)];   // today on the reader's calendar
+}
+```
+
+| Member | What it is |
+| --- | --- |
+| `TimeZone`, `KnowsTimeZone` | the reader's zone, or `Clock.Zone` until their browser says it |
+| `Now`, `Today` | the app's clock (its `TimeProvider`; `Clock.Fake` freezes it) on the reader's wall |
+| `Address` | the address they connect from — the visitor's behind a proxy only when its headers are trusted (`Rask:BehindProxy`); in a live session the address of its current connection; null in a browser app |
+| `Network`, `Reader.NetworkOf(address)` | what to count them by in a throttle or a quota: the IPv4 address, or the `/64` of an IPv6 one |
+
+A live session has one `Reader`, which every event of the session shares; it takes the zone and address of each
+connection that attaches to it. A plain request (an endpoint, a form post) has its own.
+
 **Values for a person to read.** `Format` writes in the visitor's culture, and marks the component as depending on it
 as `Culture` does:
 

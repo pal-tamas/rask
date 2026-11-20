@@ -118,6 +118,7 @@
        remote dispatch endpoint, which carries no Rask.Core: one source file, compiled into both. -->
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\ErrorReferenceId.cs" Link="Shared\ErrorReferenceId.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\ClientNetwork.cs" Link="Shared\ClientNetwork.cs"/>
   </ItemGroup>
 
   <ItemGroup>
