@@ -2672,11 +2672,11 @@ When the load really must be all-or-nothing, ask for it:
 await db.BulkInsert(products, o => o.SingleTransaction = true);
 ```
 
-**Entities carrying domain events are rejected in that mode** — and inside an ambient transaction, for the
-same reason. `DomainEventInterceptor` publishes in `SavedChanges`, which inside a transaction runs *before*
-the commit, so a load that failed later would already have announced rows that no longer exist. Clear the
-events, drop the transaction, or use [`Rask.Outbox`](outbox.md): its messages are written in the same
-transaction and drained after it commits, which is exactly the durable-delivery shape this needs.
+**Domain events wait for the commit** — in that mode and inside any transaction around the load (yours, or a
+`Db.Transaction`): every batch's events are published once the whole load commits, and none when it rolls
+back. A rollback gives each entity its events back (and clears a key the database generated for a row that is
+gone), so a retrying strategy that runs the load again inserts and announces each row once. Durable handlers'
+[outbox](outbox.md) rows are written in the same transaction as the batches.
 
 ### The fast path
 

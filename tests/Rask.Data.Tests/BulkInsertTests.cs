@@ -6,8 +6,8 @@ namespace Rask.Data.Tests;
 
 // BulkInsert against a real SQLite file. The load is batched and the change tracker is cleared between
 // batches, so the questions worth pinning are: does everything land, do the interceptors still run over
-// entities that only exist in the tracker for one batch, where does the transaction boundary sit, and does
-// the domain-event guard hold — inside a transaction the interceptor would publish before the commit.
+// entities that only exist in the tracker for one batch, where does the transaction boundary sit, and do the
+// domain events wait for the commit — once each, even when a retrying strategy runs the load again.
 [Collection(DataDbCollection.Name)]
 public sealed class BulkInsertTests : IDisposable
 {
@@ -38,8 +38,7 @@ public sealed class BulkInsertTests : IDisposable
     private static Widget[] Widgets(int count) =>
         [.. Enumerable.Range(0, count).Select(i => Widget.Create($"widget-{i}"))];
 
-    // Inside a transaction the load rejects entities carrying domain events, so a transactional test uses
-    // rows whose creation event has already been dealt with.
+    // Rows whose creation event has already been dealt with, for a test about rows rather than events.
     private static Widget[] QuietWidgets(int count)
     {
         var widgets = Widgets(count);
@@ -169,24 +168,94 @@ public sealed class BulkInsertTests : IDisposable
     }
 
     [Fact]
-    public async Task Refuses_entities_carrying_domain_events_inside_a_single_transaction()
+    public async Task Publishes_each_event_once_after_a_single_transaction_commits()
     {
         await using var db = NewContext();
+        var widgets = Widgets(6);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => db.BulkInsert(Widgets(2), o => o.SingleTransaction = true, cancellationToken: TestContext.Current.CancellationToken));
+        await db.BulkInsert(widgets, o => { o.BatchSize = 2; o.SingleTransaction = true; }, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Contains("domain events", error.Message, StringComparison.Ordinal);
-        Assert.Empty(_recorder.Events);
+        Assert.Equal(widgets.Select(w => (IEvent)new WidgetCreated(w.Id)).ToHashSet(), _recorder.Events.ToHashSet());
+        Assert.Equal(6, _recorder.Events.Count);
     }
 
     [Fact]
-    public async Task Refuses_entities_carrying_domain_events_inside_an_ambient_transaction()
+    public async Task Inside_a_transaction_of_the_callers_the_events_wait_for_its_commit()
     {
         await using var db = NewContext();
         await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => db.BulkInsert(Widgets(2), cancellationToken: TestContext.Current.CancellationToken));
+        await db.BulkInsert(Widgets(2), cancellationToken: TestContext.Current.CancellationToken);
+        var beforeCommit = _recorder.Events.Count;
+        await transaction.CommitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, beforeCommit);
+        Assert.Equal(2, _recorder.Events.Count);
+    }
+
+    [Fact]
+    public async Task A_rolled_back_transaction_announces_nothing_and_gives_the_events_back()
+    {
+        await using var db = NewContext();
+        var widgets = Widgets(2);
+        await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+
+        await db.BulkInsert(widgets, cancellationToken: TestContext.Current.CancellationToken);
+        await transaction.RollbackAsync(TestContext.Current.CancellationToken);
+
+        Assert.Empty(_recorder.Events);
+        Assert.All(widgets, w => Assert.IsType<WidgetCreated>(Assert.Single(w.DomainEvents)));
+    }
+
+    [Fact]
+    public async Task A_retried_single_transaction_inserts_and_announces_each_row_once()
+    {
+        var failOnce = new FailTheSecondBatchOnce();
+        var services = new ServiceCollection();
+        services.AddSingleton(_recorder);
+        services.AddRaskCqrs();
+        services.AddRaskData();
+        services.AddDbContextFactory<TestDbContext>((sp, o) => o
+            .UseSqlite($"Data Source={_dbPath}", s => s.ExecutionStrategy(d => new RetryOnTimeout(d)))
+            .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())
+            .AddInterceptors(failOnce));
+        await using var provider = services.BuildServiceProvider();
+        await using var db = await provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var widgets = Widgets(6);
+
+        await db.BulkInsert(widgets, o => { o.BatchSize = 2; o.SingleTransaction = true; }, cancellationToken: TestContext.Current.CancellationToken);
+
+        await using var verify = NewContext();
+        Assert.True(failOnce.Failed);
+        Assert.Equal(6, await verify.Widgets.CountAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(6, _recorder.Events.Count);
+        Assert.Equal(widgets.Select(w => (IEvent)new WidgetCreated(w.Id)).ToHashSet(), _recorder.Events.ToHashSet());
+    }
+
+    // A transient failure after the second batch of the first attempt: the strategy runs the whole load again.
+    private sealed class FailTheSecondBatchOnce : SaveChangesInterceptor
+    {
+        private int _saves;
+
+        public bool Failed { get; private set; }
+
+        public override ValueTask<int> SavedChangesAsync(
+            SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+        {
+            if (!Failed && ++_saves == 2)
+            {
+                Failed = true;
+                throw new TimeoutException("transient");
+            }
+
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class RetryOnTimeout(Microsoft.EntityFrameworkCore.Storage.ExecutionStrategyDependencies dependencies)
+        : Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy(dependencies, maxRetryCount: 2, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is TimeoutException;
     }
 
     [Fact]

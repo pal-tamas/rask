@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -13,7 +14,7 @@ namespace Rask.Data;
 ///     so a refill the other interceptors match is already writable, and added by <see cref="RaskDbContext" /> to a
 ///     context configured without it.
 /// </remarks>
-internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMaterializationInterceptor
+internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMaterializationInterceptor, IDbTransactionInterceptor
 {
     /// <summary>The one instance: a materialization interceptor is part of EF Core's service-provider cache key.</summary>
     internal static readonly WritableChildrenInterceptor Instance = new();
@@ -58,6 +59,30 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
     {
         Remember(eventData.Context);
         return ValueTask.FromResult(result);
+    }
+
+    /// <inheritdoc />
+    void IDbTransactionInterceptor.TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData) =>
+        AttemptUndo.Committed(transaction);
+
+    /// <inheritdoc />
+    Task IDbTransactionInterceptor.TransactionCommittedAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
+    {
+        AttemptUndo.Committed(transaction);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
+        AttemptUndo.RolledBack(transaction);
+
+    /// <inheritdoc />
+    Task IDbTransactionInterceptor.TransactionRolledBackAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
+    {
+        AttemptUndo.RolledBack(transaction);
+        return Task.CompletedTask;
     }
 
     // What the save wrote, for each aggregate staged with Save(): its next save then reads nothing.

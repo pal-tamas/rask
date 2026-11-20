@@ -37,6 +37,9 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
     // or when it is disposed uncommitted and collected.
     private readonly ConditionalWeakTable<DbTransaction, List<IEvent>> _awaitingCommit = new();
 
+    // The same saves, so a rollback gives each aggregate its events back and a retry saves (and stores) them again.
+    private readonly ConditionalWeakTable<DbTransaction, List<Pending>> _givenBackOnRollback = new();
+
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -131,6 +134,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         if (context.Database.CurrentTransaction?.GetDbTransaction() is { } transaction)
         {
             _awaitingCommit.GetValue(transaction, static _ => []).AddRange(pending.Events);
+            _givenBackOnRollback.GetValue(transaction, static _ => []).Add(pending);
             return;
         }
 
@@ -166,18 +170,32 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
 
     /// <inheritdoc/>
     void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
-        _awaitingCommit.Remove(transaction);
+        RolledBack(transaction);
 
     /// <inheritdoc/>
     Task IDbTransactionInterceptor.TransactionRolledBackAsync(
         DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
     {
-        _awaitingCommit.Remove(transaction);
+        RolledBack(transaction);
         return Task.CompletedTask;
+    }
+
+    private void RolledBack(DbTransaction transaction)
+    {
+        _awaitingCommit.Remove(transaction);
+        if (_givenBackOnRollback.TryGetValue(transaction, out var saves))
+        {
+            _givenBackOnRollback.Remove(transaction);
+            foreach (var pending in saves)
+            {
+                pending.PutBack();
+            }
+        }
     }
 
     private Task PublishCommittedAsync(DbTransaction transaction, CancellationToken cancellationToken)
     {
+        _givenBackOnRollback.Remove(transaction);
         if (!_awaitingCommit.TryGetValue(transaction, out var events))
         {
             return Task.CompletedTask;
