@@ -1,11 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Shared;
 
 /// <summary>The wire shape of one type, as a tree the emitter walks.</summary>
-internal sealed class WireType
+/// <remarks>
+///     A value: it holds no symbol, and two shapes are equal when everything the emitter reads off them is. That is
+///     what lets a generator carry it across an incremental-pipeline boundary — a shape classified again from an
+///     unchanged declaration compares equal, and the output step is served from the cache.
+/// </remarks>
+internal sealed class WireType : IEquatable<WireType>
 {
     /// <summary>What kind of encoding this type gets.</summary>
     public WireKind Kind { get; set; }
@@ -25,27 +30,17 @@ internal sealed class WireType
     /// <summary>For <see cref="WireKind.Sequence" />: how to rebuild the collection.</summary>
     public SequenceShape Sequence { get; set; }
 
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: the symbol, used to key generated codec methods. Null for a
-    ///     shape with no symbol to hold — a generated model another generator emits, which this
-    ///     compilation cannot see (see <see cref="GeneratedModelShape" />).
-    /// </summary>
-    public INamedTypeSymbol? Symbol { get; set; }
-
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: whether the type is a reference type, stated outright for a
-    ///     shape that has no <see cref="Symbol" /> to ask. Null means "ask the symbol".
-    /// </summary>
+    /// <summary>For <see cref="WireKind.Object" />: whether the type is a reference type. Null means it is not.</summary>
     public bool? IsReference { get; set; }
 
     /// <summary>
-    ///     For <see cref="WireKind.Object" />: the simple name a declaration of this shape takes, for a
-    ///     shape that has no <see cref="Symbol" /> to take it from.
+    ///     For <see cref="WireKind.Object" />: the simple name a declaration of this shape takes, for a generated
+    ///     model another generator emits, which this compilation cannot see (see <see cref="GeneratedModelShape" />).
     /// </summary>
     public string? Name { get; set; }
 
     /// <summary>Whether a value of this shape can be null, and so needs null handling on both sides.</summary>
-    public bool IsReferenceType => IsReference ?? Symbol?.IsReferenceType == true;
+    public bool IsReferenceType => IsReference == true;
 
     /// <summary>For <see cref="WireKind.Object" />: the properties, in declaration order.</summary>
     public List<WireMember> Members { get; } = new();
@@ -64,4 +59,30 @@ internal sealed class WireType
         Kind == WireKind.File
         || (Inner?.ContainsFile ?? false)
         || Members.Any(m => m.Type.ContainsFile);
+
+    /// <inheritdoc />
+    public bool Equals(WireType? other) =>
+        other is not null
+        && (ReferenceEquals(this, other)
+            || (Kind == other.Kind
+                && string.Equals(Fqn, other.Fqn, StringComparison.Ordinal)
+                && string.Equals(ReadExpression, other.ReadExpression, StringComparison.Ordinal)
+                && string.Equals(WriteExpression, other.WriteExpression, StringComparison.Ordinal)
+                && Equals(Inner, other.Inner)
+                && Sequence == other.Sequence
+                && IsReference == other.IsReference
+                && string.Equals(Name, other.Name, StringComparison.Ordinal)
+                && string.Equals(Reason, other.Reason, StringComparison.Ordinal)
+                && Members.SequenceEqual(other.Members)
+                && (ConstructorParameters is null
+                    ? other.ConstructorParameters is null
+                    : other.ConstructorParameters is not null
+                      && ConstructorParameters.SequenceEqual(other.ConstructorParameters, StringComparer.Ordinal))));
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => Equals(obj as WireType);
+
+    /// <inheritdoc />
+    public override int GetHashCode() =>
+        unchecked(((int)Kind * 397) ^ StringComparer.Ordinal.GetHashCode(Fqn) ^ (Members.Count * 31));
 }

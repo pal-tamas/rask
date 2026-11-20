@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Rask.Generators.Json;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators.Dom;
 

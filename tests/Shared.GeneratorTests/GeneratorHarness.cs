@@ -115,6 +115,33 @@ internal static class GeneratorHarness
         return new GeneratorRun(driver.RunGenerators(compilation).GetRunResult(), compilation);
     }
 
+    /// <summary>
+    ///     Runs <paramref name="generator"/> over <paramref name="source"/> and a second file, then again with that
+    ///     second file changed from <paramref name="unrelated"/> to <paramref name="edited"/>, with the driver tracking
+    ///     its incremental steps, and returns the SECOND run: what an edit elsewhere made the generator redo.
+    /// </summary>
+    public static GeneratorDriverRunResult RunAfterUnrelatedEdit(
+        IIncrementalGenerator generator, string source, string unrelated, string edited)
+    {
+        var parse = new CSharpParseOptions(LanguageVersion.Latest);
+        var first = CSharpSyntaxTree.ParseText(source, parse, path: "Source.cs");
+        var other = CSharpSyntaxTree.ParseText(unrelated, parse, path: "Other.cs");
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            new[] { first, other },
+            BuildReferences([], []),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            [generator.AsSourceGenerator()],
+            parseOptions: parse,
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+        driver = driver.RunGenerators(compilation);
+
+        var changed = compilation.ReplaceSyntaxTree(other, CSharpSyntaxTree.ParseText(edited, parse, path: "Other.cs"));
+        return driver.RunGenerators(changed).GetRunResult();
+    }
+
     /// <summary>The smallest provider that answers <c>GlobalOptions</c> and nothing else.</summary>
     private sealed class FixedAnalyzerConfigOptionsProvider(IReadOnlyDictionary<string, string> options)
         : AnalyzerConfigOptionsProvider

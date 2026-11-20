@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Rask.Generators.Shared;
 
 namespace Rask.Api.Generators;
@@ -22,7 +21,7 @@ internal sealed record ApiEndpoint(
     string ClientName,
     string ClientNamespace,
     string MethodName,
-    IReadOnlyList<ApiParameter> Parameters,
+    EquatableArray<ApiParameter> Parameters,
     WireType? ResultType,
     string? ResultFqn,
     string DeclaredBy);

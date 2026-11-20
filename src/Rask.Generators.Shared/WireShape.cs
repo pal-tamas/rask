@@ -118,10 +118,6 @@ internal static class WireShape
                 Fqn = Fqn(type, compilation),
                 ReadExpression = "global::Rask.Wire.WireJson.ReadInt64",
                 WriteExpression = "writer.WriteNumberValue((long){0})",
-
-                // Carried for the TypeScript emitter, which needs the member names to emit a real
-                // enum. The codec ignores it: on the wire this is a number either way.
-                Symbol = type as INamedTypeSymbol,
             };
         }
 
@@ -320,7 +316,7 @@ internal static class WireShape
         {
             Kind = WireKind.Object,
             Fqn = Fqn(type, compilation),
-            Symbol = type,
+            IsReference = type.IsReferenceType,
         };
 
         var properties = type.GetMembers()

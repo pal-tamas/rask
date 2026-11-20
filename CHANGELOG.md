@@ -15,6 +15,13 @@ them until tagged releases begin.
   set), and may publish anonymously only when every handler is `[AllowAnonymous]`. Handlers that disagree are the new
   warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
   `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
+### Performance
+- **The API client and validator registry generators are incremental.** Before: both ran over the whole compilation on
+  every edit — `ApiClientGenerator` kept controller symbols in its pipeline and `ValidatorRegistryGenerator` walked
+  every type — so each keystroke in an app re-described every controller and validator. After: each controller,
+  minimal API registration and validator is read inside its own transform into a value (no symbol, location or
+  compilation crosses the pipeline), and an edit elsewhere is served from the cache (pinned by tests on the driver's
+  tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar

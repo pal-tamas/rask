@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
 
@@ -54,31 +56,101 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         + "run, and a validator that silently does nothing is the failure worth naming.",
         DiagnosticHelp.Link("RASKVAL002"));
 
+    internal const string ValidatorsStep = "RaskValidators";
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // Straight off the compilation, matching CqrsCodecGenerator: symbols must
-        // not be held across an incremental boundary.
-        context.RegisterSourceOutput(context.CompilationProvider, static (spc, compilation) => Emit(spc, compilation));
-    }
-
-    private static void Emit(SourceProductionContext spc, Compilation compilation)
     {
         // Anchored on Rask's own type rather than FluentValidation's: referencing FluentValidation
         // without the Rask integration is a thing an app may legitimately do (a server-side validator
         // it drives itself), and generating registration code against a package that is not there
-        // would break that app's build for a feature it never asked for.
-        if (compilation.GetTypeByMetadataName("Rask.RaskValidators") is null)
+        // would break that app's build for a feature it never asked for. A bool, so a new compilation
+        // that still has both re-runs nothing downstream.
+        var enabled = context.CompilationProvider.Select(static (compilation, _) =>
+            compilation.GetTypeByMetadataName("Rask.RaskValidators") is not null
+            && compilation.GetTypeByMetadataName(AbstractValidatorName) is not null);
+
+        // Each validator is read INSIDE its transform, into a value: no symbol, location or compilation crosses
+        // into the pipeline, so an edit to anything that is not a validator re-reads nothing.
+        var validators = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 },
+                static (ctx, ct) => Read(ctx, ct))
+            .Where(static model => model is not null)
+            .Select(static (model, _) => model!)
+            .WithTrackingName(ValidatorsStep)
+            .Collect();
+
+        context.RegisterSourceOutput(validators.Combine(enabled), static (spc, pair) =>
         {
-            return;
+            if (pair.Right)
+            {
+                Emit(spc, pair.Left);
+            }
+        });
+    }
+
+    private const string AbstractValidatorName = "FluentValidation.AbstractValidator`1";
+
+    /// <summary>One validator, as the registry needs it.</summary>
+    /// <param name="TypeFqn">The validator's fully qualified name.</param>
+    /// <param name="Name">Its simple name, for diagnostics.</param>
+    /// <param name="ModelKey">The model it validates, fully qualified — the registry's key.</param>
+    /// <param name="ModelName">The model's simple name, for diagnostics.</param>
+    /// <param name="Parameters">The chosen constructor's parameter types, or null when there is no constructor to choose.</param>
+    /// <param name="At">Where it is declared.</param>
+    private sealed record ValidatorModel(
+        string TypeFqn,
+        string Name,
+        string ModelKey,
+        string ModelName,
+        EquatableArray<string>? Parameters,
+        SymbolLocation? At);
+
+    private static ValidatorModel? Read(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
+    {
+        if (ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) is not INamedTypeSymbol type
+            || type.IsAbstract || type.TypeKind != TypeKind.Class || type.IsGenericType)
+        {
+            return null;
         }
 
-        if (compilation.GetTypeByMetadataName("FluentValidation.AbstractValidator`1") is not { } abstractValidator)
+        if (ModelOf(type) is not { } model)
         {
-            return;
+            return null;
         }
 
-        var found = FindValidators(spc, compilation, abstractValidator);
+        // A private or protected validator cannot be named by the generated registry, which is a
+        // top-level internal class. Skipping it silently is right rather than lax: declaring a
+        // validator private is itself the statement that nothing outside is to construct it, and
+        // the alternative — emitting `new Outer.PrivateValidator()` — is a CS0122 in generated code
+        // the author never wrote. Test fixtures and hand-registered validators live here; they use
+        // RaskValidators.Register.
+        if (!IsReachable(type))
+        {
+            return null;
+        }
+
+        // Through GeneratedModelShape, because a Rask.Data entity's generated model is an error type here:
+        // it is generated in this same compilation, by a generator this one cannot see, and an error
+        // type displays as the bare name its author wrote. That name neither binds from the registry's
+        // global namespace nor keys `ProductModel` and `Shop.ProductModel` as the one model they are.
+        var key = GeneratedModelShape.DisplayName(model, SymbolDisplayFormat.FullyQualifiedFormat, ctx.SemanticModel.Compilation);
+        var ctor = ChooseConstructor(type);
+        return new ValidatorModel(
+            Fqn(type),
+            type.Name,
+            key,
+            model.Name,
+            ctor is null
+                ? null
+                : new EquatableArray<string>(ctor.Parameters.Select(static p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))),
+            SymbolLocation.From(type.Locations.FirstOrDefault()));
+    }
+
+    private static void Emit(SourceProductionContext spc, ImmutableArray<ValidatorModel> validators)
+    {
+        var found = FindValidators(spc, validators);
 
         if (found.Count == 0)
         {
@@ -88,82 +160,56 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         spc.AddSource("__RaskValidatorRegistry.g.cs", SourceText.From(Build(found), Encoding.UTF8));
     }
 
-    private static List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)> FindValidators(
-        SourceProductionContext spc, Compilation compilation, INamedTypeSymbol abstractValidator)
+    private static List<ValidatorModel> FindValidators(SourceProductionContext spc, ImmutableArray<ValidatorModel> validators)
     {
-        var found = new List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)>();
-        var byModel = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
+        var found = new List<ValidatorModel>();
+        var byModel = new Dictionary<string, ValidatorModel>(System.StringComparer.Ordinal);
 
-        foreach (var type in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
+        // A partial validator is reached once per declaration with a base list.
+        var seen = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (var validator in validators)
         {
-            if (type.IsAbstract || type.TypeKind != TypeKind.Class || type.IsGenericType)
+            if (!seen.Add(validator.TypeFqn))
             {
                 continue;
             }
 
-            if (ModelOf(type, abstractValidator) is not { } model)
-            {
-                continue;
-            }
-
-            // A private or protected validator cannot be named by the generated registry, which is a
-            // top-level internal class. Skipping it silently is right rather than lax: declaring a
-            // validator private is itself the statement that nothing outside is to construct it, and
-            // the alternative — emitting `new Outer.PrivateValidator()` — is a CS0122 in generated code
-            // the author never wrote. Test fixtures and hand-registered validators live here; they use
-            // RaskValidators.Register.
-            if (!IsReachable(type))
-            {
-                continue;
-            }
-
-            // Through GeneratedModelShape, because a Rask.Data entity's generated model is an error type here:
-            // it is generated in this same compilation, by a generator this one cannot see, and an error
-            // type displays as the bare name its author wrote. That name neither binds from the registry's
-            // global namespace nor keys `ProductModel` and `Shop.ProductModel` as the one model they are.
-            var key = GeneratedModelShape.DisplayName(model, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
-            if (byModel.TryGetValue(key, out var existing))
+            if (byModel.TryGetValue(validator.ModelKey, out var existing))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
                     RaskVal001,
-                    type.Locations.FirstOrDefault(),
+                    validator.At?.ToLocation() ?? Location.None,
                     existing.Name,
-                    type.Name,
-                    model.Name));
+                    validator.Name,
+                    validator.ModelName));
                 continue;
             }
 
-            if (ChooseConstructor(spc, type) is not { } ctor)
+            if (validator.Parameters is null)
             {
+                spc.ReportDiagnostic(Diagnostic.Create(RaskVal002, validator.At?.ToLocation() ?? Location.None, validator.Name));
                 continue;
             }
 
-            byModel[key] = type;
-            found.Add((type, key, ctor));
+            byModel[validator.ModelKey] = validator;
+            found.Add(validator);
         }
 
         return found;
     }
 
-    private static IMethodSymbol? ChooseConstructor(SourceProductionContext spc, INamedTypeSymbol type)
+    // Prefer a parameterless constructor; otherwise there must be exactly one to choose from.
+    private static IMethodSymbol? ChooseConstructor(INamedTypeSymbol type)
     {
         var ctors = type.InstanceConstructors
             .Where(static c => c.DeclaredAccessibility == Accessibility.Public)
             .ToList();
 
-        // Prefer a parameterless constructor; otherwise there must be exactly one to choose from.
-        var ctor = ctors.FirstOrDefault(static c => c.Parameters.Length == 0)
-                   ?? (ctors.Count == 1 ? ctors[0] : null);
-
-        if (ctor is null)
-        {
-            spc.ReportDiagnostic(Diagnostic.Create(RaskVal002, type.Locations.FirstOrDefault(), type.Name));
-        }
-
-        return ctor;
+        return ctors.FirstOrDefault(static c => c.Parameters.Length == 0)
+               ?? (ctors.Count == 1 ? ctors[0] : null);
     }
 
-    private static string Build(List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)> found)
+    private static string Build(List<ValidatorModel> found)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -174,11 +220,11 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
 
         // Keeps each validator's constructor from being trimmed: it is only ever invoked through the
         // generated factory below, which the trimmer cannot see as a use of the type itself.
-        foreach (var (validator, _, _) in found)
+        foreach (var validator in found)
         {
             sb.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(")
                 .Append("global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, ")
-                .Append("typeof(").Append(Fqn(validator)).AppendLine("))]");
+                .Append("typeof(").Append(validator.TypeFqn).AppendLine("))]");
         }
 
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
@@ -190,13 +236,12 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         sb.AppendLine("            new (global::System.Type, global::System.Func<global::System.IServiceProvider?, object>)[]");
         sb.AppendLine("            {");
 
-        foreach (var (validator, modelFqn, ctor) in found)
+        foreach (var validator in found)
         {
-            sb.Append("                (typeof(").Append(modelFqn).Append("), static __sp => new ")
-                .Append(Fqn(validator)).Append('(');
-            sb.Append(string.Join(", ", ctor!.Parameters.Select(static p =>
-                "global::Rask.RaskValidators.Service<"
-                + p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ">(__sp)")));
+            sb.Append("                (typeof(").Append(validator.ModelKey).Append("), static __sp => new ")
+                .Append(validator.TypeFqn).Append('(');
+            sb.Append(string.Join(", ", validator.Parameters!.Value.Select(static p =>
+                "global::Rask.RaskValidators.Service<" + p + ">(__sp)")));
             sb.AppendLine(")),");
         }
 
@@ -224,12 +269,13 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
     // The T of the nearest AbstractValidator<T> in the base chain, or null when there is none.
-    private static ITypeSymbol? ModelOf(INamedTypeSymbol type, INamedTypeSymbol abstractValidator)
+    private static ITypeSymbol? ModelOf(INamedTypeSymbol type)
     {
         for (var b = type.BaseType; b is not null; b = b.BaseType)
         {
-            if (SymbolEqualityComparer.Default.Equals(b.OriginalDefinition, abstractValidator)
-                && b.TypeArguments.Length == 1)
+            if (b.TypeArguments.Length == 1
+                && string.Equals(b.OriginalDefinition.MetadataName, "AbstractValidator`1", System.StringComparison.Ordinal)
+                && string.Equals(b.OriginalDefinition.ContainingNamespace?.ToDisplayString(), "FluentValidation", System.StringComparison.Ordinal))
             {
                 return b.TypeArguments[0];
             }
