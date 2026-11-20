@@ -56,6 +56,16 @@ public static class BrowserSqliteServiceCollectionExtensions
             return services;
         }
 
+        // One database per app: the snapshot options, store and snapshotter are single services, so a second name would
+        // take the first one's — its tick snapshotting the first database into the first's store, its own never saved.
+        if (services.FirstOrDefault(d => d.ServiceType == typeof(BrowserSqliteOptions))?.ImplementationInstance
+                is BrowserSqliteOptions other)
+        {
+            throw new InvalidOperationException(
+                $"AddRaskBrowserSqlite(\"{options.Name}\") was called after AddRaskBrowserSqlite(\"{other.Name}\"). One app keeps "
+                + "one browser database; put both sets of tables in one database instead.");
+        }
+
         services.AddSingleton(options);
 
         // Public, so an app can tell the user "another tab has this open" rather than showing an empty

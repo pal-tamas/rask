@@ -36,7 +36,22 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
 
         Directory.CreateDirectory(_directory);
         var destination = Path.Combine(_directory, snapshotName);
-        File.Move(sourceFilePath, destination, overwrite: true);
+
+        // Moved under a name no listing matches, then renamed within the directory. The source is in the temp directory,
+        // often another filesystem, where a move is a copy: straight to its name, a half-copied snapshot would be listed,
+        // kept by retention in place of a whole one, and left behind by a crash.
+        var partial = destination + ".partial-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            File.Move(sourceFilePath, partial);
+            File.Move(partial, destination, overwrite: true);
+        }
+        catch
+        {
+            File.Delete(partial);
+            throw;
+        }
+
         return Task.CompletedTask;
     }
 

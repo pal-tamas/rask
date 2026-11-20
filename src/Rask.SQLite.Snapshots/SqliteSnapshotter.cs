@@ -61,7 +61,9 @@ internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
 
     private void CreateConsistentCopy(string databasePath, string destinationPath)
     {
-        using var source = new SqliteConnection($"Data Source={databasePath}");
+        // Unpooled, both: a pooled connection keeps its file open after Dispose, and every snapshot's destination is a new
+        // path, so each would leave one more pool — a file handle on a snapshot already moved away — for the process's life.
+        using var source = new SqliteConnection(Unpooled(databasePath));
         source.Open();
 
         // Let the backup ride out brief write locks instead of failing on a busy database.
@@ -74,11 +76,14 @@ internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
             pragma.ExecuteNonQuery();
         }
 
-        using var destination = new SqliteConnection($"Data Source={destinationPath}");
+        using var destination = new SqliteConnection(Unpooled(destinationPath));
         destination.Open();
 
         source.BackupDatabase(destination);
     }
+
+    internal static string Unpooled(string path) =>
+        new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created SQLite snapshot {SnapshotName}.")]
     private static partial void LogSnapshotCreated(ILogger logger, string snapshotName);
