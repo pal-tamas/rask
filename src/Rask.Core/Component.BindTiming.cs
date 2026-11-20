@@ -14,7 +14,7 @@ public abstract partial class Component
     // message is about a value already being corrected.
     private protected static void WriteTypedBind(
         StringBuilder sb, LiveRenderContext ctx, BindTiming timing, ExpressionAccessor.Accessor acc,
-        EditContext? bindCtx, Func<Task>? afterBind, bool text, MoneyMarks? money = null,
+        EditContext? bindCtx, Func<Task>? afterBind, bool text, IFieldNumbers? money = null,
         bool secret = false)
     {
         if (timing.AtEveryKey && text)
@@ -59,7 +59,7 @@ public abstract partial class Component
     // touched and its rules run on `change`, as it is left. Once touched, each key runs them again.
     private protected static void WriteKeystrokeBind(
         StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
-        Func<Task>? afterBind, MoneyMarks? money = null)
+        Func<Task>? afterBind, IFieldNumbers? money = null)
     {
         AppendAttr(sb, "data-rask-on-input",
             ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, acc.Field, false, afterBind, money)));

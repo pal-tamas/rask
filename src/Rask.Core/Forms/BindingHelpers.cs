@@ -123,11 +123,19 @@ public static class BindingHelpers
             DateTimeOffset dto => dto.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
             DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             TimeOnly t => t.ToString("HH:mm", CultureInfo.InvariantCulture),
-            TimeSpan ts => ts.ToString(@"hh\:mm", CultureInfo.InvariantCulture),
+            TimeSpan ts => TimeOfDay(ts),
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? ""
         };
     }
+
+    // A TimeSpan in a time input is a time of day, hh:mm. One that is none — a day or more, or negative — was written
+    // "02:00" for 1.02:00 and "01:30" for -01:30, and a save wrote that back as the value: in the constant ("c")
+    // spelling instead, which a time input shows empty rather than wrong, and a text input shows and reads back whole.
+    private static string TimeOfDay(TimeSpan value) =>
+        value >= TimeSpan.Zero && value < TimeSpan.FromDays(1)
+            ? value.ToString(@"hh\:mm", CultureInfo.InvariantCulture)
+            : value.ToString("c", CultureInfo.InvariantCulture);
 
     // Adds or removes an item in a bound ICollection<T> by a supplied comparer — the membership edit a
     // multi-select control performs on every toggle. When `include`, the item is added only if no element
@@ -217,10 +225,11 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         StringSetHandler(acc, ctx, fid, validateOnSet, afterBind, money: null);
 
-    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    // As above, for a field that spells its number itself: an amount with its marks (MoneyMarks), a number in a text
+    // field in the reader's culture (ReaderNumbers).
     internal static Func<string, Task> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
-        Func<Task>? afterBind, MoneyMarks? money) =>
+        Func<Task>? afterBind, IFieldNumbers? money) =>
         async raw =>
         {
             if (!TryBind(acc, ctx, fid, raw, money))
@@ -258,10 +267,11 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         TouchAndValidateHandler(acc, ctx, fid, setOnChange, afterBind, money: null);
 
-    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    // As above, for a field that spells its number itself: an amount with its marks (MoneyMarks), a number in a text
+    // field in the reader's culture (ReaderNumbers).
     internal static Func<string, Task> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
-        Func<Task>? afterBind, MoneyMarks? money) =>
+        Func<Task>? afterBind, IFieldNumbers? money) =>
         async raw =>
         {
             var didBind = setOnChange && TryBind(acc, ctx, fid, raw, money);
@@ -441,7 +451,7 @@ public static class BindingHelpers
     // must not pass for it: the form says under the field what it could not read (UnreadValue), and until a
     // value arrives that it can, no rule is asked about the old one and no save goes through. The same for
     // text the browser held back and reported as an empty field (UnreadInput): it is not an empty field.
-    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw, MoneyMarks? money)
+    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw, IFieldNumbers? money)
     {
         if (money is not null && !TrySpellAmount(acc, ctx, fid, money, ref raw))
         {
@@ -466,7 +476,7 @@ public static class BindingHelpers
     // An amount is read with the field's own marks, and handed on in the one spelling every culture leaves alone.
     // Text that is no amount is unread, as a number the reader's culture cannot read is.
     private static bool TrySpellAmount(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, MoneyMarks money, ref string raw)
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, IFieldNumbers money, ref string raw)
     {
         if (raw.Length == 0 || !UnreadValue.IsNumeric(acc.PropertyType))
         {
@@ -527,13 +537,12 @@ public static class BindingHelpers
         var effective = underlying ?? t;
         if (effective.IsEnum)
         {
-            if (Enum.TryParse(effective, raw, true, out var en))
-            {
-                acc.Setter(en);
-                return true;
-            }
+            return EnumText.TryParse(effective, raw, out var en) && Set(acc, en);
+        }
 
-            return false;
+        if (effective == typeof(DateTimeOffset))
+        {
+            return TrySetMoment(acc, raw);
         }
 
         // A number is read in the one spelling the parsers know (NumberText), never as the reader spelled it.
@@ -559,6 +568,52 @@ public static class BindingHelpers
         return false;
     }
 
+    // A datetime-local input sends a clock time with no offset ("2026-11-19T10:00"), as FormatValue showed it: the
+    // clock time of the value's OWN offset. So it is read back in that offset — the value before, or UTC for a field
+    // that held none — never the server's zone, which moved every edited moment by the server's distance from it.
+    private static bool TrySetMoment(ExpressionAccessor.Accessor acc, string raw)
+    {
+        if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var clock))
+        {
+            return false;
+        }
+
+        DateTimeOffset moment;
+        if (clock.Kind == DateTimeKind.Unspecified)
+        {
+            var offset = acc.Getter() is DateTimeOffset before ? before.Offset : TimeSpan.Zero;
+            if (!TryAt(clock, offset, out moment))
+            {
+                return false;
+            }
+        }
+        else if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out moment))
+        {
+            return false;
+        }
+
+        return Set(acc, moment);
+    }
+
+    private static bool Set(ExpressionAccessor.Accessor acc, object? value)
+    {
+        acc.Setter(value);
+        return true;
+    }
+
+    private static bool TryAt(DateTime clock, TimeSpan offset, out DateTimeOffset moment)
+    {
+        var utc = clock.Ticks - offset.Ticks;
+        if (utc < DateTime.MinValue.Ticks || utc > DateTime.MaxValue.Ticks)
+        {
+            moment = default;
+            return false;
+        }
+
+        moment = new DateTimeOffset(clock, offset);
+        return true;
+    }
+
     // Parses a DOM string value into the typed value of a controlled IFormControl<T> (the inverse of
     // FormatValue). Identity for string; enums and IParsable<T> types round-trip via the same parser the
     // bound setter uses. Takes a runtime Type so the caller's generic T carries no trimming annotation —
@@ -576,14 +631,7 @@ public static class BindingHelpers
         var effective = Nullable.GetUnderlyingType(targetType) ?? targetType;
         if (effective.IsEnum)
         {
-            if (Enum.TryParse(effective, raw, true, out var en))
-            {
-                value = en;
-                return true;
-            }
-
-            value = null;
-            return false;
+            return EnumText.TryParse(effective, raw, out value);
         }
 
         return RouteValueParser.TryParse(targetType, raw, out value);

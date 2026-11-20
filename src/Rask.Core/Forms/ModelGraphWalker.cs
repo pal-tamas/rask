@@ -16,6 +16,11 @@ namespace Rask.Core.Forms;
 // type too.
 public static class ModelGraphWalker
 {
+    // Bounds on one walk, which runs on every validation. A model is a form's worth of objects; past these it is an
+    // entity graph (an order's customer's every order…), and walking it is a request's worth of work, or a database's.
+    internal const int MaxDepth = 32;
+    internal const int MaxNodes = 10_000;
+
     // Breadth-first walk over `root` and everything reachable through its public instance
     // properties / IEnumerable items / IDictionary values. Yields each visited reference at
     // most once (cycle-safe via reference equality). Leaves — primitives, strings, enums,
@@ -36,36 +41,60 @@ public static class ModelGraphWalker
         }
 
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        var queue = new Queue<object>();
-        queue.Enqueue(root);
+        var queue = new Queue<(object Node, int Depth)>();
+        queue.Enqueue((root, 0));
         visited.Add(root);
 
-        while (queue.Count > 0)
+        while (queue.TryDequeue(out var next))
         {
-            var current = queue.Dequeue();
+            var (current, depth) = next;
             yield return current;
+
+            if (depth >= MaxDepth)
+            {
+                continue;
+            }
 
             foreach (var child in EnumerateChildren(current))
             {
-                if (child is null)
+                if (child is null || IsLeaf(child.GetType()) || IsOpaque(child) || !visited.Add(child))
                 {
                     continue;
                 }
 
-                if (IsLeaf(child.GetType()))
+                if (visited.Count > MaxNodes)
                 {
-                    continue;
+                    ReportCapped(root);
+                    yield break;
                 }
 
-                if (!visited.Add(child))
-                {
-                    continue;
-                }
-
-                queue.Enqueue(child);
+                queue.Enqueue((child, depth + 1));
             }
         }
     }
+
+    // What is never walked into: a query (enumerating it runs it — a DbSet, an IQueryable navigation), reflection's
+    // own objects (a Type's properties reach every assembly loaded), a delegate, a stream, a task, a type marked
+    // [SkipValidation], and EF's lazy loader (it leads to the DbContext).
+    private static bool IsOpaque(object value) =>
+        value is IQueryable or MemberInfo or Assembly or Delegate or Stream or Task
+        || Skips(value.GetType())
+        || UnloadedNavigation.IsLoader(value.GetType());
+
+    // Rask's [SkipValidation], or ASP.NET Core's (Microsoft.Extensions.Validation) — matched by name, so neither
+    // package needs the other.
+    private static bool Skips(MemberInfo member) =>
+        member.GetCustomAttributes(inherit: true)
+            .Any(static a => a is SkipValidationAttribute || string.Equals(a.GetType().Name, nameof(SkipValidationAttribute), StringComparison.Ordinal));
+
+    private static void ReportCapped(object root) =>
+        Diagnostics.RaskDiagnostics.ReportOnce(
+            "modelgraph:capped:" + root.GetType().FullName,
+            Diagnostics.RaskLogLevel.Warning,
+            "Rask.Forms",
+            () => $"Validating a {root.GetType().Name} reached more than {MaxNodes} objects, so the objects past those "
+                  + "were not validated. A form's model is what the form edits: give it its own type rather than an "
+                  + "entity whose navigations reach the rest of the database.");
 
     // Resolves a FluentValidation-style property path (e.g. "Address.Street", "Items[0].Name",
     // "Settings[\"smtp\"].Host") against `root`. Returns (owner, terminalPropertyName) when the
@@ -128,6 +157,12 @@ public static class ModelGraphWalker
             yield break;
         }
 
+        // A query is not its rows until it runs, and walking it would run it.
+        if (instance is IQueryable)
+        {
+            yield break;
+        }
+
         // Plain collections: yield items. Strings implement IEnumerable but we treat them
         // as leaves (IsLeaf handles it before enqueue, but check here too so we don't
         // enumerate their characters).
@@ -144,12 +179,13 @@ public static class ModelGraphWalker
         var type = instance.GetType();
         foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (prop.GetIndexParameters().Length > 0)
-            {
-                continue;
-            }
-
-            if (!prop.CanRead)
+            // A leaf leads nowhere, so it is not read at all; nor is what is marked [SkipValidation], nor an EF
+            // navigation that is not loaded (reading it would load it — UnloadedNavigation).
+            if (prop.GetIndexParameters().Length > 0
+                || !prop.CanRead
+                || IsLeaf(prop.PropertyType)
+                || Skips(prop)
+                || UnloadedNavigation.Is(instance, prop))
             {
                 continue;
             }

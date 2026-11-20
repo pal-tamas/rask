@@ -346,6 +346,35 @@ async Task Save(RouteModel route)
 
 <!-- demo:validation-save-fails -->
 
+### What validation walks, and what it leaves alone
+
+Every check walks the model's object graph — its properties, the items of its lists, the values of its
+dictionaries — so a rule on an address inside an order is heard with nothing declared. The walk never goes
+into a query (`IQueryable`, a `DbSet`), a delegate, a stream, a task or reflection's own objects, and stops at
+32 levels or 10,000 objects. Two more things are left alone:
+
+- **What you mark `[SkipValidation]`.** On a property, nothing under it is read or validated; on a class or a
+  struct, no object of that type is walked into (the form's own model is always validated). ASP.NET Core's
+  `[SkipValidation]` (`Microsoft.Extensions.Validation`) is honoured the same way.
+
+  ```csharp
+  public sealed class OrderForm
+  {
+      public List<OrderLine> Lines { get; set; } = [];
+
+      [SkipValidation]                 // the customer's whole history: not the form's to check
+      public Customer? Customer { get; set; }
+  }
+  ```
+
+- **An Entity Framework navigation that is not loaded.** Reading it would load it — a query per navigation per
+  check. An entity that lazy-loads holds EF's `ILazyLoader` (a proxy, or the "injected loader" pattern), and the
+  walk asks it `IsLoaded` before it reads a navigation; one not loaded is skipped, never loaded. Rask finds the
+  loader by its type's name, so `Rask` takes no dependency on EF. The delegate pattern
+  (`Action<object, string>`) cannot be asked: mark such a navigation `[SkipValidation]`. A DataAnnotations
+  attribute on a navigation itself (`[Required] Customer`) is still read by .NET's validator when its object is
+  checked.
+
 ### When the rules run
 
 A field's rules run when its value reaches the model, and a bound field says nothing until the next
@@ -429,10 +458,18 @@ the whole form when its handler is `OnAnySubmit`, which takes what was posted wh
 
 **How a number is spelled.** A number input always sends digits and a dot, whatever the reader typed:
 `12,5` in a Hungarian browser arrives as `12.5`. Such text is read the same in every culture, and `1e3`
-is read as 1000. A number that arrives spelled another way — typed into a text field over a numeric
-member, written by a test — is read in the session's culture: `12,5` and `1 234,5` under `hu`, `1,234.5`
-under `en`, with separators accepted only around groups of three. Anything else is not a number, and the
-field says so; a comma is never quietly read as a separator of thousands.
+is read as 1000. A number that arrives spelled another way — written by a test, or by hand into a frame —
+is read in the session's culture: `12,5` and `1 234,5` under `hu`, `1,234.5` under `en`, with separators
+accepted only around groups of three. Anything else is not a number, and the field says so; a comma is
+never quietly read as a separator of thousands.
+
+**A number in a text field speaks the reader's language both ways.** A numeric member bound to a field
+typed into as text (`.Type(InputType.Text)`, often with `.InputMode(InputMode.Decimal)`) is *shown* with
+the reader's decimal mark — `1234,5` under `de` and `hu`, `1234.5` under `en` — and *read* in the same
+culture, every time: under `de`, `1.234` is one thousand two hundred and thirty-four and `1,234` is a
+fraction. What the field shows reads back as the same number. A number input (`type="number"`) is not
+this: the browser sends it in digits and a dot, and it is read so. An amount (`Ui.Input.Money()`) keeps
+its own marks.
 
 **The kit's typed pickers follow the same rule.** `Ui.DatePicker` and `Ui.TimePicker` with
 `Type(…Input)` are typed a part at a time. Left with parts that make no value — a day and no month, an

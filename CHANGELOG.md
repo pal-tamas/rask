@@ -26,6 +26,12 @@ them until tagged releases begin.
   lands on in any windowed list — are skeleton rows of the rows' own height, so nothing moves when they arrive.
   `aria-setsize` says the real count. A plain list keeps paging as before, with a box of skeleton rows past the last row
   found while more may follow.
+- **`[SkipValidation]`, and an unloaded EF navigation is never loaded by validation.** Before: the walk every check
+  makes of a form's model read every property, so a lazy-loading entity loaded each navigation (a query per check),
+  and nothing could say "not this one". After: `[SkipValidation]` on a property (or on a class, for every object of
+  it) leaves it unread and unvalidated — ASP.NET Core's attribute of that name is honoured too — and a navigation
+  whose entity holds EF's `ILazyLoader` (a proxy, or the injected-loader pattern) is skipped while `IsLoaded` says it is
+  not loaded. Found by name: `Rask` still references no EF.
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the
@@ -451,6 +457,28 @@ them until tagged releases begin.
   the process umask and narrowed it after; now it is created 0600, like every other secret the CLI writes.
 - **`rask db drop` asks once.** Before: confirming at rask's prompt handed over to `dotnet ef database drop`, which
   asked again; a confirmed drop now passes EF `--force`.
+- **BREAKING: a number bound to a text field is shown and read in the reader's culture.** Before: it was shown in
+  the parsers' spelling (`1234.5`) and read by guessing — text of digits and a dot was taken as the parsers'
+  spelling in every culture — so a German reader's `1.234` (one thousand two hundred and thirty-four) became 1.234,
+  and a Hungarian field showed `1234.5`. After: an `Input.Bind(...)` over a numeric member whose type is typed into
+  as text (anything but `number`/`range`; `inputmode=decimal` included) shows `1234,5` under `de`/`hu` and reads
+  what is typed in that culture only; what it shows reads back as the same number. `type="number"` inputs (the
+  default for a numeric member) and `Ui.Input.Money()` amounts are unchanged.
+- **A bound `DateTimeOffset` keeps its own offset; a route or query one with none is UTC.** Before: a
+  `datetime-local` field showed the value's clock time and read the edit back in the SERVER's zone, so every save
+  moved the moment by the server's distance from the value's offset (and a `[QueryParam]` moment depended on where
+  the server ran). After: the edit is read in the offset the value had (UTC for a field that held none), and a moment
+  parsed from a route or query value with no offset is UTC; one that names its offset keeps it.
+- **A bound enum takes only what it defines.** Before: `Enum.TryParse` let any number (`"99"`, `"-1"`) or comma list
+  into the model. After: a member's name, its defined number, or — for `[Flags]` — a combination of members; anything
+  else leaves the model as it was and the field says it could not read it.
+- **A `TimeSpan` that is no time of day is written whole.** Before: `1.02:00` showed as `02:00` and `-01:30` as
+  `01:30`, and a save wrote that back. After: such a value is written in the constant spelling (`1.02:00:00`), which a
+  time input shows empty rather than wrong.
+- **Validating a model no longer walks a query or an unbounded graph.** Before: `ModelGraphWalker` enumerated an
+  `IQueryable` property (running it) and followed every reachable object on every validation. After: queries,
+  reflection objects, delegates, streams and tasks are not walked into, and a walk stops at 32 levels or 10,000
+  objects, said once as a `Rask.Forms` warning.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

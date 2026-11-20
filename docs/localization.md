@@ -334,7 +334,8 @@ the columns and every `Where` stay as they were (see [Data](data.md#app-wide-mod
 These are **wire formats**, not display formats, and they do not follow the visitor:
 
 - `<input type="date">` and `type="number"` values — the HTML5 wire format is fixed, and **the browser
-  localizes the display itself**
+  localizes the display itself** (a number bound to a *text* field is the reader's, shown and read in their
+  culture: [Forms](forms-validation.md))
 - route values and generated URLs
 - reconciliation keys, DOM event payloads, and anything else crossing the socket
 

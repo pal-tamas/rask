@@ -59,7 +59,13 @@ internal static class TypedParserRegistry
 
         // Date / time.
         Register<DateTime>();
-        Register<DateTimeOffset>();
+        // A moment written with no offset (a datetime-local input, a query value) is UTC, not the server's own zone:
+        // read as local it moved by however far the server stands from the writer. One that says its offset keeps it.
+        Map[typeof(DateTimeOffset)] = static raw =>
+            DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+                ? (true, (object?)parsed)
+                : (false, null);
+        Arrays[typeof(DateTimeOffset)] = static length => new DateTimeOffset[length];
         Register<DateOnly>();
         Register<TimeOnly>();
         Register<TimeSpan>();
