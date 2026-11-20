@@ -268,6 +268,32 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(bare, TestContext.Current.CancellationToken)).StatusCode);
     }
 
+    [Fact]
+    public async Task A_bearer_token_from_signing_in_says_who_the_caller_is_without_a_cookie()
+    {
+        using var app = new EndpointApp(auth: o =>
+        {
+            o.Bearer = true;
+            o.BearerSigningKey = "a-signing-key-long-enough-for-hmac-sha256!";
+        });
+        using var browser = app.Client();
+        await Post(browser, "/api/auth/register", new { email = "owner@example.com", password = Password, firstRunToken = Token });
+        using var login = new HttpRequestMessage(HttpMethod.Post, "/api/auth/login");
+        login.Headers.Add(RaskAuthDefaults.RequestHeader, "1");
+        login.Headers.Add("X-Rask-Auth-Mode", "bearer");
+        login.Content = JsonContent.Create(new { email = "owner@example.com", password = Password });
+        var session = await (await app.Client().SendAsync(login, TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        using var native = app.Client();
+        native.DefaultRequestHeaders.Authorization = new("Bearer", session.GetProperty("accessToken").GetString());
+
+        var me = await native.GetAsync("/api/auth/me", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, me.StatusCode);
+        var described = await me.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("owner@example.com", described.GetProperty("email").GetString());
+    }
+
     private static async Task<HttpResponseMessage> Post(HttpClient client, string path, object? body)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, path);

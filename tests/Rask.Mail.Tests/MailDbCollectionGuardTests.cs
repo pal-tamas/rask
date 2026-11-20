@@ -20,5 +20,7 @@ public sealed class MailDbCollectionGuardTests
             // Reads the metrics counters the processor emits — no context of its own.
             "MailMetricsTests",
             // The fake stands in for the whole battery, so there is no database to reach.
-            "MailFakeTests");
+            "MailFakeTests",
+            // Maps a setting to MailKit's socket option; no context, no connection.
+            "SmtpSecurityTests");
 }

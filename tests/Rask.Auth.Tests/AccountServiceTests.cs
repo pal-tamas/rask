@@ -237,6 +237,38 @@ public sealed class AccountServiceTests
         return outcome.Result;
     }
 
+    [Fact]
+    public async Task One_client_trying_many_accounts_is_held_after_thirty_failures()
+    {
+        await using var harness = await ClaimedAsync();
+        for (var i = 0; i < 30; i++)
+        {
+            await SignInAsync(harness, $"guess{i}@example.com", "WrongPassword1", client: "203.0.113.7");
+        }
+
+        var next = await SignInAsync(harness, "another@example.com", "WrongPassword1", client: "203.0.113.7");
+        var elsewhere = await SignInAsync(harness, "another@example.com", "WrongPassword1", client: "198.51.100.1");
+
+        Assert.Equal(AuthError.TooManyAttempts, next.Error);
+        Assert.Equal(AuthError.InvalidCredentials, elsewhere.Error);
+    }
+
+    [Fact]
+    public async Task Guesses_at_one_account_from_many_clients_slow_it_down_but_never_lock_the_owner_out()
+    {
+        await using var harness = await ClaimedAsync();
+        for (var i = 0; i < 6; i++)
+        {
+            await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: $"10.0.0.{i}");
+        }
+
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var owner = await SignInAsync(harness, "owner@example.com", Password, client: "192.0.2.1");
+
+        Assert.True(owner.Succeeded, $"sign-in failed: {owner.Error}");
+        Assert.True(System.Diagnostics.Stopwatch.GetElapsedTime(started) >= TimeSpan.FromSeconds(1));
+    }
+
     private static async Task<AuthResult> SignInAsync(
         AuthHarness harness, string email, string password, string? client = null)
     {

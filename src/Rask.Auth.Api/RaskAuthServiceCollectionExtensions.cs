@@ -156,6 +156,7 @@ public static class RaskAuthServiceCollectionExtensions
             Limit = sp.GetRequiredService<AuthOptions>().SignInAttemptsPerMinute,
         });
         services.TryAddSingleton<AuthTokens>();
+        services.TryAddSingleton(static sp => new AccountSlowdown(sp.GetRequiredService<TimeProvider>()));
 
         // Passkey ceremonies: the sealed challenges, and what a ceremony is verified against.
         services.TryAddSingleton<PasskeyChallenges>();
@@ -312,6 +313,15 @@ public static class RaskAuthServiceCollectionExtensions
     ///         framework accepts and disregards is this repo's most costly bug class.
     ///     </para>
     /// </remarks>
+    // The scheme a request names: the token's when it sends one, the cookie's otherwise.
+    private static string SchemeOf(HttpContext context) =>
+        context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? JwtBearerDefaults.AuthenticationScheme
+            : CookieAuthenticationDefaults.AuthenticationScheme;
+
+    // The authenticate scheme a bearer-enabled app reads its caller with: the token when the request carries one.
+    private const string CookieOrBearerScheme = "Rask.CookieOrBearer";
+
     private static void AddBearer(IServiceCollection services)
     {
         // The guard is against AddScheme throwing "Scheme already exists" -- lazily, when the options
@@ -324,11 +334,23 @@ public static class RaskAuthServiceCollectionExtensions
             {
                 o.AddScheme<JwtBearerHandler>(JwtBearerDefaults.AuthenticationScheme, displayName: null);
             }
+
+            // Who the caller is, read by the scheme its request names: a token for the caller that sends one, the cookie
+            // for everyone else. Authenticate only — signing in and out, a challenge and a refusal stay the cookie's, so a
+            // page behaves as before. An app that chose its own authenticate scheme keeps it.
+            if (auth.Bearer && o.DefaultAuthenticateScheme is null && !o.SchemeMap.ContainsKey(CookieOrBearerScheme))
+            {
+                o.AddScheme<PolicySchemeHandler>(CookieOrBearerScheme, displayName: null);
+                o.DefaultAuthenticateScheme = CookieOrBearerScheme;
+            }
         });
+
+        services.AddOptions<PolicySchemeOptions>(CookieOrBearerScheme).Configure(static o => o.ForwardDefaultSelector = SchemeOf);
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<
             IPostConfigureOptions<JwtBearerOptions>, JwtBearerPostConfigureOptions>());
         services.TryAddTransient<JwtBearerHandler>();
+        services.TryAddTransient<PolicySchemeHandler>();
 
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<AuthOptions>(static (o, auth) =>

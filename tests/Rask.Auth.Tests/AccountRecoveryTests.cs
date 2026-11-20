@@ -1,5 +1,6 @@
 using System.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Wire;
@@ -100,6 +101,24 @@ public sealed class AccountRecoveryTests
         // ever passes, a leaked link stays live for as long as it has not expired.
         Assert.False(replay.Succeeded);
         Assert.Equal(AuthError.InvalidToken, replay.Error);
+    }
+
+    [Fact]
+    public async Task A_reset_link_sent_to_an_address_the_account_has_left_is_refused()
+    {
+        await using var harness = await ClaimedAsync();
+        var (userId, token) = Parse((await RequestResetAsync(harness, Owner))!.Link!);
+        await using (var db = harness.NewContext())
+        {
+            var owner = Authenticatable.NormalizeEmail(Owner);
+            await db.Set<TestUser>()
+                .Where(u => u.Email == owner)
+                .ExecuteUpdateAsync(set => set.SetProperty(u => u.Email, "moved@example.com"), TestContext.Current.CancellationToken);
+        }
+
+        var result = await ResetAsync(harness, userId, token, NewPassword);
+
+        Assert.Equal(AuthError.InvalidToken, result.Error);
     }
 
     [Fact]
