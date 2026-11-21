@@ -51,6 +51,22 @@ internal static class AggregateSave
         StoredAggregates.Mark(aggregate);
     }
 
+    /// <summary>What is remembered of <paramref name="aggregate" />, or <see langword="null" /> when nothing is.</summary>
+    internal static object? ReadOf(object aggregate) => AsRead.TryGetValue(aggregate, out var read) ? read : null;
+
+    /// <summary>Puts back what <see cref="ReadOf" /> gave, after a <c>Db.Transaction</c> attempt rolled back (AttemptUndo).</summary>
+    internal static void ResetRead(object aggregate, object? read)
+    {
+        if (read is Dictionary<(Type, string), object> copies)
+        {
+            AsRead.AddOrUpdate(aggregate, copies);
+        }
+        else
+        {
+            AsRead.Remove(aggregate);
+        }
+    }
+
     /// <summary>
     ///     Remembers what a save of <paramref name="context" /> wrote for each aggregate staged on it — the caller's
     ///     <c>SaveChangesAsync</c> after <c>Save(db)</c> included — so its next save reads nothing.

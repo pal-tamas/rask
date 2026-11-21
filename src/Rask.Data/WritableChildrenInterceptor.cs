@@ -74,6 +74,7 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         if (context is not null)
         {
             WritableChildren.Ensure(context);
+            AttemptUndo.Capture(context);          // before MarkTracked and before any interceptor bumps a version
             StoredAggregates.MarkTracked(context);
         }
     }

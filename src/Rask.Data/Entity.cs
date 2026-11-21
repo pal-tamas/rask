@@ -21,7 +21,7 @@ namespace Rask.Data;
 /// </remarks>
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
 #pragma warning disable S4035 // a base by design: Equals compares GetType(), so a derived type never equals its base
-public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>
+public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGeneratedKey
 #pragma warning restore S4035
 {
     // Taken once: an integer key is assigned on insert, and a set holding the entity must still find it after.
@@ -48,6 +48,9 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>
     public DateTime UpdatedAt { get; private set; }
 
     private bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default!);
+
+    // The key an insert was given, taken back when that insert's Db.Transaction attempt rolled back (AttemptUndo).
+    void IGeneratedKey.ClearKey() => Id = default!;
 
     /// <summary>
     ///     The same entity: the same type and the same <see cref="Id" />. One with no id yet is equal only to itself.
