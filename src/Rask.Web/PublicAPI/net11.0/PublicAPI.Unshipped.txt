@@ -1811,17 +1811,10 @@ Rask.Web.Types.GPUCanvasConfiguration.Equals(Rask.Web.Types.GPUCanvasConfigurati
 Rask.Web.Types.GPUCanvasConfiguration.Format.get -> Rask.Web.Types.GPUTextureFormat
 Rask.Web.Types.GPUCanvasConfiguration.Format.init -> void
 Rask.Web.Types.GPUCanvasConfiguration.GPUCanvasConfiguration() -> void
-Rask.Web.Types.GPUCanvasConfiguration.ToneMapping.get -> Rask.Web.Types.GPUCanvasToneMapping?
+Rask.Web.Types.GPUCanvasConfiguration.ToneMapping.get -> Rask.Web.Types.CanvasToneMapping?
 Rask.Web.Types.GPUCanvasConfiguration.ToneMapping.init -> void
 Rask.Web.Types.GPUCanvasConfiguration.ViewFormats.get -> Rask.Web.Types.GPUTextureFormat[]?
 Rask.Web.Types.GPUCanvasConfiguration.ViewFormats.init -> void
-Rask.Web.Types.GPUCanvasToneMapping
-Rask.Web.Types.GPUCanvasToneMapping.<Clone>$() -> Rask.Web.Types.GPUCanvasToneMapping!
-Rask.Web.Types.GPUCanvasToneMapping.Equals(Rask.Web.Types.GPUCanvasToneMapping? other) -> bool
-Rask.Web.Types.GPUCanvasToneMapping.GPUCanvasToneMapping() -> void
-Rask.Web.Types.GPUCanvasToneMapping.Mode.get -> Rask.Web.Types.GPUCanvasToneMappingMode?
-Rask.Web.Types.GPUCanvasToneMapping.Mode.init -> void
-Rask.Web.Types.GPUCanvasToneMappingMode
 Rask.Web.Types.GPUColorTargetState
 Rask.Web.Types.GPUColorTargetState.<Clone>$() -> Rask.Web.Types.GPUColorTargetState!
 Rask.Web.Types.GPUColorTargetState.Blend.get -> Rask.Web.Types.GPUBlendState?
@@ -5541,9 +5534,6 @@ override Rask.Web.Types.GPUBufferDescriptor.ToString() -> string!
 override Rask.Web.Types.GPUCanvasConfiguration.Equals(object? obj) -> bool
 override Rask.Web.Types.GPUCanvasConfiguration.GetHashCode() -> int
 override Rask.Web.Types.GPUCanvasConfiguration.ToString() -> string!
-override Rask.Web.Types.GPUCanvasToneMapping.Equals(object? obj) -> bool
-override Rask.Web.Types.GPUCanvasToneMapping.GetHashCode() -> int
-override Rask.Web.Types.GPUCanvasToneMapping.ToString() -> string!
 override Rask.Web.Types.GPUColorTargetState.Equals(object? obj) -> bool
 override Rask.Web.Types.GPUColorTargetState.GetHashCode() -> int
 override Rask.Web.Types.GPUColorTargetState.ToString() -> string!
@@ -6446,8 +6436,6 @@ static Rask.Web.Types.GPUBufferDescriptor.operator !=(Rask.Web.Types.GPUBufferDe
 static Rask.Web.Types.GPUBufferDescriptor.operator ==(Rask.Web.Types.GPUBufferDescriptor? left, Rask.Web.Types.GPUBufferDescriptor? right) -> bool
 static Rask.Web.Types.GPUCanvasConfiguration.operator !=(Rask.Web.Types.GPUCanvasConfiguration? left, Rask.Web.Types.GPUCanvasConfiguration? right) -> bool
 static Rask.Web.Types.GPUCanvasConfiguration.operator ==(Rask.Web.Types.GPUCanvasConfiguration? left, Rask.Web.Types.GPUCanvasConfiguration? right) -> bool
-static Rask.Web.Types.GPUCanvasToneMapping.operator !=(Rask.Web.Types.GPUCanvasToneMapping? left, Rask.Web.Types.GPUCanvasToneMapping? right) -> bool
-static Rask.Web.Types.GPUCanvasToneMapping.operator ==(Rask.Web.Types.GPUCanvasToneMapping? left, Rask.Web.Types.GPUCanvasToneMapping? right) -> bool
 static Rask.Web.Types.GPUColorTargetState.operator !=(Rask.Web.Types.GPUColorTargetState? left, Rask.Web.Types.GPUColorTargetState? right) -> bool
 static Rask.Web.Types.GPUColorTargetState.operator ==(Rask.Web.Types.GPUColorTargetState? left, Rask.Web.Types.GPUColorTargetState? right) -> bool
 static Rask.Web.Types.GPUCommandBufferDescriptor.operator !=(Rask.Web.Types.GPUCommandBufferDescriptor? left, Rask.Web.Types.GPUCommandBufferDescriptor? right) -> bool
@@ -16233,8 +16221,6 @@ Rask.Web.Types.GPUBufferMapState.Pending = -1715503300 -> Rask.Web.Types.GPUBuff
 Rask.Web.Types.GPUBufferMapState.Unmapped = 764239693 -> Rask.Web.Types.GPUBufferMapState
 Rask.Web.Types.GPUCanvasAlphaMode.Opaque = 1863671838 -> Rask.Web.Types.GPUCanvasAlphaMode
 Rask.Web.Types.GPUCanvasAlphaMode.Premultiplied = -2048939793 -> Rask.Web.Types.GPUCanvasAlphaMode
-Rask.Web.Types.GPUCanvasToneMappingMode.Extended = 260928096 -> Rask.Web.Types.GPUCanvasToneMappingMode
-Rask.Web.Types.GPUCanvasToneMappingMode.Standard = 63526728 -> Rask.Web.Types.GPUCanvasToneMappingMode
 Rask.Web.Types.GPUCompareFunction.Always = 1731637220 -> Rask.Web.Types.GPUCompareFunction
 Rask.Web.Types.GPUCompareFunction.Equal = 796199151 -> Rask.Web.Types.GPUCompareFunction
 Rask.Web.Types.GPUCompareFunction.Greater = 1355287449 -> Rask.Web.Types.GPUCompareFunction

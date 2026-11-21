@@ -2,11 +2,11 @@
  "schema": 1,
  "sources": {
   "@mdn/browser-compat-data": "8.1.10",
-  "@webref/css": "8.7.9",
+  "@webref/css": "8.7.10",
   "@webref/elements": "2.9.2",
   "@webref/events": "1.28.0",
-  "@webref/idl": "3.87.0",
-  "webref/dfns": "5974de543af444e0911fc13ecbf6412ba8055d9a",
+  "@webref/idl": "3.87.1",
+  "webref/dfns": "ef2aea25dcdd870d5e2e00f2b191241528500313",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
   "w3c/aria": "90cf7d99e51db94c0ac96fde17c4269d3ccbff44"
@@ -121594,10 +121594,6 @@
    "opaque",
    "premultiplied"
   ],
-  "GPUCanvasToneMappingMode": [
-   "standard",
-   "extended"
-  ],
   "GPUCompareFunction": [
    "never",
    "less",
@@ -126122,19 +126118,11 @@
     },
     {
      "name": "toneMapping",
-     "type": "GPUCanvasToneMapping"
+     "type": "CanvasToneMapping"
     },
     {
      "name": "alphaMode",
      "type": "GPUCanvasAlphaMode"
-    }
-   ]
-  },
-  "GPUCanvasToneMapping": {
-   "members": [
-    {
-     "name": "mode",
-     "type": "GPUCanvasToneMappingMode"
     }
    ]
   },
@@ -146933,8 +146921,7 @@
     "name": "quotes",
     "keywords": [
      "auto",
-     "none",
-     "bikeshed-this"
+     "none"
     ],
     "accepts": [],
     "support": {
