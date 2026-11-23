@@ -1,13 +1,18 @@
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
 
 namespace Rask.SqlServer;
 
 /// <summary>
 /// The options extension <c>UseRaskSqlServer</c> adds: it registers <see cref="RaskSqlServerConventionSetPlugin"/>
-/// in EF's internal service provider, and carries the <see cref="SqlServerOptions"/> the connection interceptor
+/// in EF's internal service provider, translates <c>end - start</c> between two dates
+/// (<see cref="SqlServerDurationTranslatorPlugin"/>), and carries the <see cref="SqlServerOptions"/> the connection interceptor
 /// applies.
 /// </summary>
 /// <remarks>
@@ -25,9 +30,18 @@ internal sealed class RaskSqlServerOptionsExtension(SqlServerOptions options) : 
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
+    // EF Core's services builder activates the plugin by reflection without a trimming annotation, so its constructor
+    // is kept here.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqlServerDurationTranslatorPlugin))]
     public void ApplyServices(IServiceCollection services)
     {
-        new EntityFrameworkServicesBuilder(services).TryAdd<IConventionSetPlugin, RaskSqlServerConventionSetPlugin>();
+        new EntityFrameworkRelationalServicesBuilder(services)
+            .TryAdd<IConventionSetPlugin, RaskSqlServerConventionSetPlugin>()
+            .TryAdd<IMethodCallTranslatorPlugin, SqlServerDurationTranslatorPlugin>()
+            .TryAdd<IMemberTranslatorPlugin, SqlServerDurationTranslatorPlugin>();
+
+        // `end - start` between two dates reaches the plugin above as a call it can translate.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor>(QueryDuration.Interceptor));
 
         // Carried by every UseRaskSqlServer context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);

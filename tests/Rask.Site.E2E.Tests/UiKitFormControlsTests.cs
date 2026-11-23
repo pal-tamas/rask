@@ -109,6 +109,22 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
     });
 
     [Fact]
+    public Task A_hand_picked_control_in_a_field_is_labelled_by_its_member() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("field", "Field");
+        var scope = Page.Locator("[data-testid='ui-field-auto']");
+        var state = Page.Locator("[data-testid='ui-field-auto-state']");
+
+        // Ui.Field[Ui.Input.Bind(() => _booking.Plate).InputClass("uppercase")]: no Ui.Label, so [Display] names it.
+        var plate = scope.Locator("input[name='Plate']");
+        await Expect(plate).ToHaveAccessibleNameAsync(new System.Text.RegularExpressions.Regex("^Licence plate"));
+        await Expect(plate).ToHaveAccessibleDescriptionAsync("Shown in capitals.");
+        await Expect(plate).ToHaveCSSAsync("text-transform", "uppercase");
+        await plate.FillAsync("ab-123");
+        await Expect(state).ToContainTextAsync("plate ab-123");
+    });
+
+    [Fact]
     public Task The_clear_button_appears_with_the_first_keystroke_and_empties_the_field() => RunAsync(async () =>
     {
         await OpenUiPageAsync("input", "Input");

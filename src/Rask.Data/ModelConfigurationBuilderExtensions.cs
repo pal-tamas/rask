@@ -33,34 +33,40 @@ public static class ModelConfigurationBuilderExtensions
     }
 
     /// <summary>
-    ///     The order the database puts text in when a query asks for it: <c>c.OrderTextBy("Hungarian_100_CI_AS")</c>, and
-    ///     <c>OrderBy(x =&gt; x.Name.InTextOrder())</c> puts <c>Cu</c> before <c>Cs</c> and <c>O</c> before <c>Ö</c>, as
+    ///     How the database compares text, named once by its SQL Server collation: <c>c.OrderTextBy("Hungarian_100_CI_AS")</c>
+    ///     — and <c>OrderBy(x =&gt; x.Name.InTextOrder())</c> puts <c>Cu</c> before <c>Cs</c> and <c>O</c> before <c>Ö</c>, as
     ///     Hungarian does.
     /// </summary>
     /// <param name="configurationBuilder">The conventions being configured.</param>
-    /// <param name="collation">The database's name for the order — a SQL Server collation.</param>
+    /// <param name="collation">The SQL Server collation the app's database compares text by.</param>
     /// <returns>The same builder.</returns>
     /// <remarks>
     ///     <para>
-    ///         Only the <c>ORDER BY</c> changes: on SQL Server <c>x.Name.InTextOrder()</c> is written
-    ///         <c>[Name] COLLATE Hungarian_100_CI_AS</c>. No column is given the collation, so the schema needs no
-    ///         migration, and a <c>Where</c> on the same column compares as it always did.
+    ///         On SQL Server only the <c>ORDER BY</c> changes: <c>x.Name.InTextOrder()</c> is written
+    ///         <c>[Name] COLLATE Hungarian_100_CI_AS</c>, no column is given the collation, and a <c>Where</c> compares as
+    ///         the database's own default collation says.
     ///     </para>
     ///     <para>
-    ///         On every other database <c>InTextOrder()</c> orders by the column as it is: the name is SQL Server's, and
-    ///         an app that runs on SQLite in development keeps working. Order a list already read with
-    ///         <c>TextOrder.In("hu")</c>.
+    ///         On SQLite through <c>UseRaskSqlite</c> the database compares as SQL Server would: every connection registers
+    ///         the collation's language and sensitivities as <c>RASK_TEXT</c>, every text column is created with it, and
+    ///         <c>Contains</c>, <c>StartsWith</c>, <c>EndsWith</c> and <c>LIKE</c> compare by it too — so <c>"csaba"</c>
+    ///         finds <c>Csaba</c>, a unique index refuses <c>CSABA</c> beside it, and <c>"árv"</c> is in <c>Árvíztűrő</c>.
+    ///         A plain <c>UseSqlite</c> (a browser app's) orders by the column as it is.
+    ///     </para>
+    ///     <para>
+    ///         On PostgreSQL <c>InTextOrder()</c> orders by the language's ICU collation (<c>"hu-HU-x-icu"</c>); a
+    ///         <c>Where</c> still compares case-sensitively there. Order a list already read with <c>TextOrder.In("hu")</c>.
     ///     </para>
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Off SQL Server, as the model is built: <paramref name="collation" /> names a language Rask cannot tell.
+    /// </exception>
     public static ModelConfigurationBuilder OrderTextBy(this ModelConfigurationBuilder configurationBuilder, string collation)
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);
         ArgumentException.ThrowIfNullOrWhiteSpace(collation);
 
-        configurationBuilder.Conventions.Add(services => new TextOrderTranslationConvention(
-            string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)
-                ? collation
-                : null));
+        configurationBuilder.Conventions.Add(services => TextOrderTranslationConvention.For(collation, services));
         return configurationBuilder;
     }
 

@@ -27,4 +27,12 @@ public sealed class TestDatabase<[DynamicallyAccessedMembers(DataTrimming.Contex
     /// </summary>
     /// <remarks>Each <c>CreateDbContext()</c> is a new, unshared context that its caller disposes.</remarks>
     public IDbContextFactory<TContext> Factory { get; }
+
+    /// <summary>This database once <paramref name="createSchema" /> has made its schema.</summary>
+    internal async Task<TestDatabase<TContext>> WithSchema(
+        Func<TContext, CancellationToken, Task> createSchema, CancellationToken cancellationToken)
+    {
+        await CreateSchema(Context, createSchema, cancellationToken).ConfigureAwait(false);
+        return this;
+    }
 }

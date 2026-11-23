@@ -69,6 +69,17 @@ public static class SqliteCollations
     public const string DecimalOrder = "EF_DECIMAL";
 
     /// <summary>
+    /// The name of the text collating sequence a model's text columns are created with once it names how text compares
+    /// with <c>c.OrderTextBy("Hungarian_100_CI_AS")</c>: that collation's language and sensitivities, registered on
+    /// every connection <c>UseRaskSqlite</c> opens.
+    /// </summary>
+    /// <remarks>
+    /// The name is in the schema, so a tool that opens the file without registering it cannot compare those columns —
+    /// SQLite answers <c>no such collation sequence: RASK_TEXT</c>. Rask's own connections always register it.
+    /// </remarks>
+    public const string TextOrder = "RASK_TEXT";
+
+    /// <summary>
     /// Registers Rask's collating sequences on an open <paramref name="connection"/>, replacing any
     /// same-named sequence already registered on it. Call on every open.
     /// </summary>

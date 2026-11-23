@@ -886,9 +886,10 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 **Labels.** `Ui.Input`, `Ui.Textarea` and `Ui.Select` are Flux UI's: `Label` draws a label over the field,
 `Description` help text under the label, and each bound field shows its own validation message under the control.
-A bound kit control given no `Label` takes its member's `[Display(Name = …)]` — the one attribute Rask names a
-field by (`[DisplayName]` is read nowhere, [RASK131](diagnostics.md#rask131)) — so the label, the validation
-message's `{0}` and a `Ui.Filters` badge all say the same name; a `Label` you give, or a `Ui.Field` you compose around the control, wins:
+As in Flux, a control draws a label only when it is given one: a bare bound control is never labelled by its
+member. The member's `[Display(Name = …)]` — the one attribute Rask names a field by (`[DisplayName]` is read nowhere,
+[RASK131](diagnostics.md#rask131)), so the label, the validation message's `{0}` and a `Ui.Filters` badge all say the
+same name — labels it from a FIELD: a `Ui.Field` around the control with no `Ui.Label` of its own, or `Ui.Field.Bind`:
 
 ```csharp
 public sealed class SignUp
@@ -896,7 +897,16 @@ public sealed class SignUp
     [Display(Name = "Work email")] public string Email { get; set; } = "";
 }
 
-Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]   // <label>Work email</label> over the input
+Form.Model(_model)[Ui.Field[Ui.Input.Bind(() => _model.Email), Ui.Error]]   // <label>Work email</label> over the input
+Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]                       // neither label nor message
+```
+
+A bare control draws no message either. In a table cell, whose column header names it, write the message beside
+it as Flux's `<flux:error name>` sits beside its input: `Ui.Error.For(…)` shows that member's messages, each row its
+own, and the control is `aria-invalid` while its member holds one:
+
+```csharp
+Ui.TableCell[Ui.Input.Bind(() => row.Size).Type(InputType.Number), Ui.Error.For(() => row.Size)]
 ```
 
 **The whole field from the member.** `Ui.Field.Bind(() => m.X)` picks the control as well: its label, help
@@ -910,14 +920,19 @@ choice first for a nullable one), and a range two controls under one label, each
 Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
 `.Choices(Vehicle.Find)`; without them rendering throws and says so. `[Editable(false)]` makes a text or
 number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
-step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones;
-`.Control<UiInput<string>>(c => c.Clearable())` tunes the control drawn, and throws naming it when it is another.
+step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones.
+
+To choose the control and tune it, bind the control and put it in a `Ui.Field` with no `Ui.Label` of its own: the
+field labels it from the member — the same `[Display(Name)]`, the automatic *Required* badge, and the
+`[Display(Description)]` unless the field holds a `Ui.Description`. So there are three ways to write a field:
 
 ```csharp
-Ui.Field.Bind(() => _model.Email)                                    // label, email input, its message
+Ui.Field.Bind(() => _model.Email)                                    // the field picks the control: label, email input, message
 Ui.Field.Bind(() => _model.Km)                                       // a range: Km.Start and Km.End
 Ui.Field.Bind(() => _model.Vehicle).Choices(Vehicle.Find)            // a typed id
 Ui.Field.Bind(() => _model.Note).Multiline()
+Ui.Field[Ui.Input.Bind(() => _model.Plate).InputClass("uppercase"), Ui.Error]   // you pick and tune; the member labels it
+Ui.Field[Ui.Label["Plate"], Ui.Input.Bind(() => _model.Plate), Ui.Error]        // fully by hand, drawn as written
 ```
 
 <!-- demo:floating-labels -->

@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Rask.Data;
 
 namespace Rask.SQLite;
 
@@ -16,7 +17,8 @@ namespace Rask.SQLite;
 /// The same hook re-registers <see cref="SqliteCollations"/>, which replaces EF Core's culture-sensitive
 /// <c>EF_DECIMAL</c> collation with an invariant one so ordering a <see cref="decimal"/> column is correct
 /// on every locale; a pooled connection's <c>Deactivate()</c> un-registers it, so it too must run on
-/// every open.
+/// every open. A model that names how text compares (<c>c.OrderTextBy("Hungarian_100_CI_AS")</c>) gets
+/// <see cref="SqliteCollations.TextOrder"/> registered beside it, with <c>instr</c> and <c>LIKE</c> compared the same way.
 /// </remarks>
 public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
 {
@@ -35,7 +37,7 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
         if (connection is SqliteConnection sqlite && !JoinedATransaction(eventData))
         {
             SqlitePragmas.Apply(sqlite, _options);
-            SqliteCollations.Apply(sqlite);
+            ApplyCollations(sqlite, eventData);
         }
     }
 
@@ -81,7 +83,19 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
         if (connection is SqliteConnection sqlite && !JoinedATransaction(eventData))
         {
             await SqlitePragmas.ApplyAsync(sqlite, _options, cancellationToken).ConfigureAwait(false);
-            SqliteCollations.Apply(sqlite);
+            ApplyCollations(sqlite, eventData);
+        }
+    }
+
+    // The decimal order always; the text order the context's model names with OrderTextBy, when it names one — its text
+    // columns were created with it, so a connection without it could not compare them.
+    private static void ApplyCollations(SqliteConnection connection, ConnectionEndEventData eventData)
+    {
+        SqliteCollations.Apply(connection);
+        if (eventData.Context?.Model.FindAnnotation(TextCollation.Annotation)?.Value is string name)
+        {
+            var collation = TextCollation.Parse(name);
+            SqliteTextOrder.Apply(connection, collation.Culture.CompareInfo, collation.Options);
         }
     }
 

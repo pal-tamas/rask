@@ -548,7 +548,7 @@ A message's `{0}` — "The **Work email** field is required." — is the field's
 way Rask names a field — on the form, on a dispatched request, in an async pass, in a FluentValidation message and in
 a Rask.Data model's generated server checks (the generator copies `[Display]` onto `<Entity>Model`).
 `System.ComponentModel.DisplayNameAttribute` is read nowhere; [RASK131](diagnostics.md#rask131) warns on one and its
-quick-fix rewrites it as `[Display(Name = …)]`. A bound kit control given no `.Label(…)` is labelled by the same name — see [Labels](forms.md#controls-at-a-glance).
+quick-fix rewrites it as `[Display(Name = …)]`. A field around a bound kit control — `Ui.Field[…]` with no `Ui.Label`, or `Ui.Field.Bind` — is labelled by the same name; a bare control is not — see [Labels](forms.md#controls-at-a-glance).
 
 ```csharp
 public sealed class SignUp

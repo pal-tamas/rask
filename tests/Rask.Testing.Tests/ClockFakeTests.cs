@@ -29,6 +29,30 @@ public sealed class ClockFakeTests
     }
 
     [Fact]
+    public void A_type_handed_the_fake_as_its_time_provider_sees_it_advance()
+    {
+        using var clock = Clock.Fake(at: Monday9am);
+        var lanes = new Lanes(clock);
+
+        clock.Advance(90.Minutes);
+
+        Assert.Equal(Monday9am + 90.Minutes, lanes.Now);
+    }
+
+    [Fact]
+    public void The_fake_handed_to_a_type_is_the_clock_Clock_Now_reads()
+    {
+        using var clock = Clock.Fake(at: Monday9am);
+        TimeProvider handed = clock;
+
+        clock.Advance(1.Day);
+
+        Assert.Equal(Clock.Now, handed.GetUtcNow());
+        Assert.Equal(Clock.TimeProvider.GetUtcNow(), handed.GetUtcNow());
+        Assert.Equal(clock.Now, handed.GetUtcNow());
+    }
+
+    [Fact]
     public void Disposing_the_fake_puts_real_time_back()
     {
         var clock = Clock.Fake(at: Monday9am);
@@ -47,4 +71,10 @@ public sealed class ClockFakeTests
 
         Assert.Contains("only moves forward", failure.Message);
     }
+}
+
+// An app's type that takes the clock it reads, as TA's pump lanes do.
+internal sealed class Lanes(TimeProvider time)
+{
+    public DateTimeOffset Now => time.GetUtcNow();
 }

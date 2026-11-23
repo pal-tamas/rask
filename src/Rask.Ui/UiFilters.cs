@@ -125,6 +125,13 @@ public sealed partial class UiFilters : Component
         }
     }
 
+    // Each control as the panel stacks it: one bound to a member its [Display] names, and given no label, in a field
+    // labelled by that name, as its badge is.
+    private Component?[] Framed() =>
+        [.. (Children ?? []).Select(child => child is IUiFieldControl control && UiFieldNaming.LabelOf(control) is { } name
+            ? Ui.Field[Ui.Label[name], child]
+            : child)];
+
     /// <summary>The table the set drives, handed over as it is built: the first after the set.</summary>
     internal void Drives(UiTable table)
     {
@@ -144,6 +151,8 @@ public sealed partial class UiFilters : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
+        // Named before the set takes them: taken, a control is bound to the address, which no [Display] names.
+        var framed = Framed();
         foreach (var field in (Children ?? []).OfType<IUiFilterField>())
         {
             field.Take(this);
@@ -155,7 +164,7 @@ public sealed partial class UiFilters : Component
         var panel = Ui.Modal.Name(name).Flyout().Lazy().Class("md:w-96")[
             Div.Class("space-y-6")[
                 Ui.Heading.Level(2).Lg[RaskStrings.Get(RaskString.Filters, "Filters")],
-                Div.Class("space-y-6").Aria("controls", controls)[Children ?? []],
+                Div.Class("space-y-6").Aria("controls", controls)[framed],
                 Div.Class("flex gap-2")[
                     Ui.Button.Ghost.Disabled(active == 0).Aria("controls", controls).OnClick(ClearAsync)[RaskStrings.Get(RaskString.FiltersClear, "Clear filters")],
                     Ui.Spacer,

@@ -252,6 +252,7 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
+static Rask.Data.Db.Lock(string! name, System.TimeSpan? wait = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
 static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
@@ -311,11 +312,13 @@ Rask.Data.CurrentUser.extension(Rask.Current!)
 static Rask.Data.CurrentUser.Claim(string! type) -> string?
 static Rask.Data.CurrentUser.IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.UsePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).Claim(string! type) -> string?
 static Rask.Data.CurrentUser.extension(Rask.Current!).IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
 static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
 static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).UsePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).UserId.get -> System.Guid?
 static Rask.Data.CurrentUser.get_Principal() -> System.Security.Claims.ClaimsPrincipal?
 static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
@@ -570,3 +573,6 @@ virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.D
 ~override Rask.Data.Problem.ToString() -> string
 ~override Rask.Data.ValueFacets.Equals(object obj) -> bool
 ~override Rask.Data.ValueFacets.ToString() -> string
+Rask.Data.CoveringIndexBuilderExtensions
+static Rask.Data.CoveringIndexBuilderExtensions.Covering(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, params string![]! propertyNames) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
+static Rask.Data.CoveringIndexBuilderExtensions.Covering<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, object?>!>! columns) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!

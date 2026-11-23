@@ -5,6 +5,10 @@ namespace Rask;
 /// Flux UI's field: <c>Ui.Field[Ui.Label["Email"], Ui.Input.Bind(() =&gt; m.Email), Ui.Error]</c>. The field
 /// spaces its parts and tells them which control they belong to, so the label reaches it and the error shows
 /// its messages. Every kit control also takes <c>Label</c> and <c>Description</c> and draws this around itself.
+/// A field holding a bound control and no <c>Ui.Label</c> is labelled by the member:
+/// <c>Ui.Field[Ui.Input.Bind(() =&gt; m.Plate).InputClass("uppercase")]</c> draws its <c>[Display(Name)]</c>, the
+/// <em>Required</em> badge the control's own label would carry, and its <c>[Display(Description)]</c> where the field
+/// holds no <c>Ui.Description</c>.
 /// </remarks>
 public sealed partial class UiField : Component
 {
@@ -32,10 +36,17 @@ public sealed partial class UiField : Component
 
     public string? Class { get; set; }
 
+    // False for a field the kit composes around one part of a control whose field is labelled already: a range's end.
+    internal bool NamesBound { get; set; } = true;
+
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(Variant == Ui.FieldVariant.Inline ? Inline : Block, Disabled, Class)
+    protected override Component? Render()
+    {
+        var parts = NamesBound ? UiFieldNaming.Of(Children) : new UiFieldNaming.Parts(Children, null);
+
+        return Div.Class((Variant ?? parts.Variant) == Ui.FieldVariant.Inline ? Inline : Block, Disabled, Class)
             .Data("ui-field", "")[
-            Context.Provide(UiFieldScope.Of(Children))[Children ?? []]
+            Context.Provide(UiFieldScope.Of(parts.Children))[parts.Children ?? []]
         ];
+    }
 }

@@ -163,12 +163,9 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
     private static async Task<bool> AddUnderKeyLock(TContext db, Job row, CancellationToken cancellationToken)
     {
         var resource = $"rask-job:{row.WaitingKey}";
-        await db.Database.ExecuteSqlAsync(
-            $"""
-             DECLARE @granted int;
-             EXEC @granted = sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction';
-             IF @granted < 0 THROW 51000, 'The rask-job key lock was not granted.', 1;
-             """,
+        await db.Database.ExecuteSqlRawAsync(
+            SqlServerAppLock.TakeForTransaction,
+            [resource],
             cancellationToken).ConfigureAwait(false);
         return await AddChecked(db, row, cancellationToken).ConfigureAwait(false);
     }

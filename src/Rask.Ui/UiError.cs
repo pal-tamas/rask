@@ -8,7 +8,9 @@ namespace Rask;
 /// <para>
 /// Flux UI's error. Inside a <see cref="UiField" /> a bare <c>Ui.Error</c> shows the first message of the
 /// field's bound control. Anywhere else, say which member: <c>Ui.Error.For(() =&gt; model.Email)</c>, or by
-/// <see cref="Name" /> on the form's model.
+/// <see cref="Name" /> on the form's model: beside a bare bound control in a table cell,
+/// <c>Ui.TableCell[Ui.Input.Bind(() =&gt; row.Size), Ui.Error.For(() =&gt; row.Size)]</c>, as Flux's
+/// <c>flux:error name</c> sits beside its input.
 /// </para>
 /// <para>
 /// Always in the page, hidden while there is nothing to say: it is a live region, and a screen reader only
@@ -68,15 +70,16 @@ public sealed partial class UiError : Component
             return null;
         }
 
-        var field = (For, Name) switch
-        {
-            ({ } bind, _) => ExpressionAccessor.Parse(bind).Field,
-            (_, { } name) => new FieldIdentifier(form.Model, name),
-            _ => scope?.Bound is { } bound ? ExpressionAccessor.Parse(bound).Field : (FieldIdentifier?)null,
-        };
-
-        return field is { } known && form.GetValidationMessages(known) is [var first, ..] ? first : null;
+        return Field(form, scope) is { } known && form.GetValidationMessages(known) is [var first, ..] ? first : null;
     }
+
+    // The member it speaks for: the one it names, else the field's control's.
+    private FieldIdentifier? Field(EditContext form, UiFieldScope? scope) => (For, Name) switch
+    {
+        ({ } bind, _) => ExpressionAccessor.Parse(bind).Field,
+        (_, { } name) => new FieldIdentifier(form.Model, name),
+        _ => scope?.Bound is { } bound ? ExpressionAccessor.Parse(bound).Field : null,
+    };
 
     private UiIcon? Glyph() => Icon switch
     {
