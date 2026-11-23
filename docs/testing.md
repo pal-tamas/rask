@@ -334,6 +334,16 @@ var lanes = new PumpLanes(clock);   // PumpLanes(TimeProvider time)
 clock.Advance(2.Hours);             // lanes and Clock.Now both read monday 11:00
 ```
 
+**Signed in, with no session around the test.** `Current.UsePrincipal(principal)` is the signed-in principal until
+it is disposed: `Current.Principal`, `Current.Claim`, `Current.IsInRole`, `Current.UserId` (its `NameIdentifier`) and
+the tenant (its `rask:tenant` claim) all read it, the way they read a request's — no `IPrincipalSource` stub and no
+`Db.UseScope` to hand-roll. `Current.UseUser(id)` and `Tenant.Use(id)` still win over it, as they do over a request's.
+
+```csharp
+using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity(
+    [new Claim(ClaimTypes.NameIdentifier, ada.ToString()), new Claim(Tenant.ClaimType, acme.ToString())], "Test")));
+```
+
 ### A real database server, when the machine has one
 
 Some tests need the database the app runs on — SQL Server's locking, a stored procedure, a migration — and not

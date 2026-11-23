@@ -207,9 +207,9 @@ public static partial class Db
     /// </remarks>
     internal static ClaimsPrincipal? PrincipalFromScope() => PrincipalIn(AmbientScope.Value);
 
-    /// <summary>The signed-in principal <paramref name="scope" /> holds, or null.</summary>
+    /// <summary>The signed-in principal <paramref name="scope" /> holds, or null — unless <c>Current.UsePrincipal</c> named one.</summary>
     internal static ClaimsPrincipal? PrincipalIn(IServiceProvider? scope) =>
-        scope?.GetService<IPrincipalSource>()?.Current;
+        CurrentUser.ExplicitPrincipal ?? scope?.GetService<IPrincipalSource>()?.Current;
 
     /// <summary>Whether <see cref="CreateContext" /> has anything to build a context from.</summary>
     internal static bool HasContext =>

@@ -800,7 +800,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Current.Tenant.Id` is your key type;
   NOT a Guid any more) — for a static `Product.Create(…)` factory or any code with no constructor to inject into.
   Set for a live session, every HTTP request (minimal API, controller, CQRS endpoint) and a background job, which records `UserId` at enqueue and runs as that user;
-  `Current.UseUser(id)` scopes it by hand.
+  `Current.UseUser(id)` scopes it by hand; `Current.UsePrincipal(principal)` signs a whole `ClaimsPrincipal` in (a test's: Principal/Claim/IsInRole/UserId/tenant all read it, as from a request; UseUser and Tenant.Use still win).
   An id, never the `User` row — load that yourself.
   Components still inject `IUserProvider` (it raises `Changed`).
   **A TENANT-SCOPED READ WITH NO TENANT THROWS** — returning nothing is indistinguishable from an empty database and returning everything is the leak.

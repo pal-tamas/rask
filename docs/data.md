@@ -1665,6 +1665,7 @@ public sealed class Product : Aggregate<Guid>
 | `Current.User` / `Current.RequiredUser` | the signed-in user's own row — your `User`'s read face — once it says `IUser` (below) |
 | `Current.Tenant` / `Current.RequiredTenant` | the tenant's own row, once your tenant aggregate says `ITenant` — see [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant) |
 | `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
+| `Current.UsePrincipal(principal)` | a scope signed in as `principal` — its claims, roles, user and tenant answer everything above; a test with no session around it |
 
 **Where it is set.** For a live session's work (rendering, event handlers), for every HTTP request (a minimal API,
 a controller, a CQRS endpoint), and for a background job — which runs for the user who enqueued it, because the
@@ -2565,7 +2566,8 @@ app.Use(async (context, next) =>
 ```
 
 Outside any scope — a hosted service's loop, a test — say who the work is for with `Current.UseUser(id)` and
-`Tenant.Use(id)`, or clear the tenant with `Tenant.None()`.
+`Tenant.Use(id)`, or clear the tenant with `Tenant.None()`; `Current.UsePrincipal(principal)` signs a whole principal in
+instead — claims, roles, user and tenant read from it as from a request's.
 
 **In a WebAssembly app none of this is yours to write.** Rask.Data's browser build does it from
 `AddRaskData<AppDbContext>()`: it points the model surface at the context before the first render, and the browser

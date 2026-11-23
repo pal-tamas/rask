@@ -35,6 +35,11 @@ them until tagged releases begin.
   time: hand it to a type that takes a clock (`new PumpLanes(clock)`) and that type and `Clock.Now` tell the same time,
   which `Advance` moves for both. Before, it wrapped a private provider nobody could reach, so such a type needed
   `Clock.TimeProvider`. `Now`, `Advance` and `Dispose` are as they were (docs/testing.md).
+- **`Current.UsePrincipal(principal)` signs a principal in for a scope.** Beside `Current.UseUser`: until disposed,
+  `Current.Principal`, `Current.Claim`, `Current.IsInRole`, `Current.UserId` and the tenant (its `rask:tenant` claim)
+  read that principal the way they read a request's, and it wins over the session's or request's own;
+  `Current.UseUser` and `Tenant.Use` still win over it. A test no longer hand-rolls an `IServiceProvider` +
+  `IPrincipalSource` stub under `Db.UseScope` (docs/testing.md, docs/data.md).
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
