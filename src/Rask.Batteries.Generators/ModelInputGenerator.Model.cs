@@ -395,10 +395,10 @@ public sealed partial class ModelInputGenerator
                 ? WriteOf(property, kind, "__" + kind + index.ToString(CultureInfo.InvariantCulture) + "_" + property.Name, byRef: false)
                 : null,
             new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
-            new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+            new EquatableArray<string>(property.GetAttributes().Where(ValidationAttributeSource.IsValidation).Select(ValidationAttributeSource.Construction)),
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
-            Named: NamedOf(property),
+            Named: ValidationAttributeSource.NameOf(property),
             Shape: ShapeOf(property.Type, valueObject));
     }
 
@@ -477,9 +477,9 @@ public sealed partial class ModelInputGenerator
                 m.Write is { } kind
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
                     : null,
-                new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+                new EquatableArray<string>(m.Property.GetAttributes().Where(ValidationAttributeSource.IsValidation).Select(ValidationAttributeSource.Construction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
-                NamedOf(m.Property),
+                ValidationAttributeSource.NameOf(m.Property),
                 ShapeOf(m.Property.Type, nested));
         }).ToList();
 
@@ -541,78 +541,15 @@ public sealed partial class ModelInputGenerator
             return type.Name is not ("KeyAttribute" or "ConcurrencyCheckAttribute" or "TimestampAttribute");
         }
 
-        for (var current = type.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current.ToDisplayString() is ValidationAttribute)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    // What the server can run: [Display], [UIHint] and the other DataAnnotations that describe a field are copied
-    // to the form but validate nothing.
-    private static bool IsValidation(AttributeData attribute)
-    {
-        for (var current = attribute.AttributeClass?.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current.ToDisplayString() is ValidationAttribute)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return ValidationAttributeSource.IsValidation(attribute);
     }
 
     private static string RenderAttribute(AttributeData attribute)
     {
-        var arguments = attribute.ConstructorArguments.Select(Argument)
-            .Concat(attribute.NamedArguments.Select(static n => n.Key + " = " + Argument(n.Value)));
+        var arguments = attribute.ConstructorArguments.Select(ValidationAttributeSource.Argument)
+            .Concat(attribute.NamedArguments.Select(static n => n.Key + " = " + ValidationAttributeSource.Argument(n.Value)));
 
         return "[" + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
                "(" + string.Join(", ", arguments) + ")]";
     }
-
-    // What a failed check calls the field, as C# the server runs: [Display]'s name — through its resources, at run time,
-    // where it names a ResourceType — else the member's own.
-    private static string NamedOf(ISymbol property)
-    {
-        var attributes = property.GetAttributes();
-        var fallback = Quoted(property.Name);
-
-        if (attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayAttribute) is not { } display)
-        {
-            return fallback;
-        }
-
-        if (display.NamedArguments.Any(static n => n.Key is "ResourceType" && !n.Value.IsNull))
-        {
-            return "(" + RenderConstruction(display) + ").GetName() ?? " + fallback;
-        }
-
-        return display.NamedArguments.FirstOrDefault(static n => n.Key is "Name").Value is { Value: string { Length: > 0 } } name
-            ? name.ToCSharpString()
-            : fallback;
-    }
-
-    // The same attribute as an object the server validates with — named arguments become an initializer.
-    private static string RenderConstruction(AttributeData attribute)
-    {
-        var named = attribute.NamedArguments.Select(static n => n.Key + " = " + Argument(n.Value)).ToList();
-        return "new " + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
-               "(" + string.Join(", ", attribute.ConstructorArguments.Select(Argument)) + ")" +
-               (named.Count == 0 ? "" : " { " + string.Join(", ", named) + " }");
-    }
-
-    // TypedConstant.ToCSharpString renders an array as a bare `{ a, b }`, which is not an expression and so not
-    // an attribute argument: [AllowedValues("draft", "live")] was copied as a syntax error. An array is
-    // written as the array creation a params argument is shorthand for.
-    private static string Argument(TypedConstant constant) =>
-        constant.Kind == TypedConstantKind.Array && !constant.IsNull
-            ? "new " + constant.Type!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + " { " +
-              string.Join(", ", constant.Values.Select(Argument)) + " }"
-            : constant.ToCSharpString();
 }

@@ -31,6 +31,18 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
+  Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
+  aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
+  was written with none of them. After: the save's first step asks, for every row it adds or changes, the attributes of
+  its properties — all of them on a new row, and on a stored one only those the save changes, so an old row a rule
+  tightened since still opens and saves for another field — then its type's attributes and `IValidatableObject` /
+  `IAsyncValidatableObject`, then its `Validate()`; the root's whenever anything in the aggregate changes, a removed
+  row included. A deleted aggregate is asked its `ValidateDelete()`. Both are found by convention — an instance method
+  with no parameters returning `IEnumerable<Problem>` or `IAsyncEnumerable<Problem>`, private is fine and no `partial`
+  is needed — and the save is refused, before anything is stamped or versioned, with one `RaskValidationException`
+  naming each failure under the field the form model names (`Title`, `Lines[2].Quantity`) in the words
+  `Create(model)` uses. A one-value value object is checked by the value it holds. Generated, never reflected.
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else

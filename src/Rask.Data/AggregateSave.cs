@@ -283,7 +283,7 @@ internal static class AggregateSave
                 var gone = context.Entry(removed);
                 gone.State = EntityState.Deleted;
                 Restore(gone, asRead);
-                ChildWrites.LetGoByItsRoot(removed);
+                ChildWrites.LetGoByItsRoot(removed, aggregate);
             }
         }
 

@@ -50,8 +50,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
     internal const int AllWrites = CreateWrite | UpdateWrite;
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
-    private const string DisplayAttribute = "System.ComponentModel.DataAnnotations.DisplayAttribute";
-    private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
     private const string UnsafeAccessor = "global::System.Runtime.CompilerServices.UnsafeAccessor";
     private const string UnsafeAccessorKind = "global::System.Runtime.CompilerServices.UnsafeAccessorKind";
 

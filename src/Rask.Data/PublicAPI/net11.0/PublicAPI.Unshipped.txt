@@ -570,3 +570,11 @@ virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.D
 ~override Rask.Data.Problem.ToString() -> string
 ~override Rask.Data.ValueFacets.Equals(object obj) -> bool
 ~override Rask.Data.ValueFacets.ToString() -> string
+Rask.Data.CheckedProperty
+Rask.Data.CheckedProperty.CheckedProperty(string! name, System.Func<string!>! displayName, System.Func<object?, object?>? valueOf, params System.ComponentModel.DataAnnotations.ValidationAttribute![]! checks) -> void
+Rask.Data.CheckedProperty.Checks.get -> System.Collections.Generic.IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationAttribute!>!
+Rask.Data.CheckedProperty.DisplayName.get -> System.Func<string!>!
+Rask.Data.CheckedProperty.Name.get -> string!
+Rask.Data.CheckedProperty.ValueOf.get -> System.Func<object?, object?>?
+Rask.Data.GeneratedDomainRules
+static Rask.Data.GeneratedDomainRules.Add<TEntity>(System.Collections.Generic.IReadOnlyList<Rask.Data.CheckedProperty!>! properties, System.Collections.Generic.IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationAttribute!>! typeChecks, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Data.Problem>!>? validate, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Data.Problem>!>? validateDelete, System.Func<System.ComponentModel.DataAnnotations.ValidationAttribute!, object?, string!, string!>? words) -> void
