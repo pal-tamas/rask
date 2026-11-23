@@ -31,6 +31,15 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Clock.Fake(at)` is a `TimeProvider` itself.** `ClockFake : TimeProvider, IDisposable`, its `GetUtcNow` the frozen
+  time: hand it to a type that takes a clock (`new PumpLanes(clock)`) and that type and `Clock.Now` tell the same time,
+  which `Advance` moves for both. Before, it wrapped a private provider nobody could reach, so such a type needed
+  `Clock.TimeProvider`. `Now`, `Advance` and `Dispose` are as they were (docs/testing.md).
+- **`Current.UsePrincipal(principal)` signs a principal in for a scope.** Beside `Current.UseUser`: until disposed,
+  `Current.Principal`, `Current.Claim`, `Current.IsInRole`, `Current.UserId` and the tenant (its `rask:tenant` claim)
+  read that principal the way they read a request's, and it wins over the session's or request's own;
+  `Current.UseUser` and `Tenant.Use` still win over it. A test no longer hand-rolls an `IServiceProvider` +
+  `IPrincipalSource` stub under `Db.UseScope` (docs/testing.md, docs/data.md).
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
@@ -450,6 +459,18 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
+  `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
+  `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
+  while the page handled it: a Hunland user's pumps page, told of a Klapcsik pump, read Klapcsik's pumps. Apps worked
+  around it with `ExecutionContext.SuppressFlow()` + `Task.Run` around `Dispatcher.Publish`. After: each delivery is
+  queued in order and started in none of the publisher's flow (`LiveSessionBase.DeliverLiveEvent`), so it runs with
+  its session's scope, user and tenant; the event's own in-memory and durable handlers still run in the publisher's
+  work. Pinned by `PublishedEventScopeTests` (Rask.Server.Tests), for a page and for a subscriber.
+- **`TestDatabase.Start<TContext>` and `FromEnvironment<TContext>` run the app assembly's module initializer first.**
+  It is what registers the app's aggregates, and the runtime runs it only once something of that assembly is touched;
+  the shared constructor lookup (`AppContextConstructor`) now runs it (`RuntimeHelpers.RunModuleConstructor`) before
+  the schema is made, so an app's test needs no `RunModuleConstructor` line of its own (Eszaf's `TestDatabase`).
 - **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
   load inside any transaction refused them, because events were once published before the commit. They are not —
   `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are

@@ -28,7 +28,7 @@ public sealed class CurrentTests
     {
         var principal = SignedIn(_alice, _acme);
 
-        using (Db.UseScope(new StubScope(principal)))
+        using (Db.UseScope(new SessionScope(principal)))
         {
             Assert.Same(principal, Current.Principal);
             Assert.Equal(_alice, Current.RequiredUserId);
@@ -39,10 +39,66 @@ public sealed class CurrentTests
     }
 
     [Fact]
+    public void UsePrincipal_answers_for_the_principal_its_user_and_its_tenant_until_disposed()
+    {
+        var principal = SignedIn(_alice, _acme);
+
+        using (Current.UsePrincipal(principal))
+        {
+            Assert.Same(principal, Current.Principal);
+            Assert.Equal(_alice, Current.RequiredUserId);
+            Assert.Equal(_acme, Tenant.RequiredKey);
+        }
+
+        Assert.Null(Current.Principal);
+        Assert.Null(Current.UserId);
+        Assert.Null(Tenant.Key);
+    }
+
+    [Fact]
+    public void UsePrincipal_beats_the_principal_of_the_scope_and_gives_it_back_on_dispose()
+    {
+        var session = SignedIn(_alice, _acme);
+        var other = SignedIn(_bob, _globex);
+        using var scope = Db.UseScope(new SessionScope(session));
+
+        Guid? user;
+        Guid? tenant;
+        using (Current.UsePrincipal(other))
+        {
+            user = Current.UserId;
+            tenant = Tenant.Key;
+        }
+
+        Assert.Equal(_bob, user);
+        Assert.Equal(_globex, tenant);
+        Assert.Same(session, Current.Principal);
+    }
+
+    [Fact]
+    public async Task UsePrincipal_follows_an_await_and_nests()
+    {
+        using (Current.UsePrincipal(SignedIn(_alice, _acme)))
+        {
+            await Task.Yield();
+            Assert.Equal(_alice, Current.UserId);
+
+            using (Current.UsePrincipal(SignedIn(_bob, _globex)))
+            {
+                Assert.Equal(_bob, Current.UserId);
+            }
+
+            Assert.Equal(_alice, Current.UserId);
+        }
+
+        Assert.Null(Current.UserId);
+    }
+
+    [Fact]
     public void An_anonymous_principal_has_no_user_id()
     {
         // What a session holds before sign-in: a principal, never null, with no identity claims.
-        using (Db.UseScope(new StubScope(new ClaimsPrincipal(new ClaimsIdentity()))))
+        using (Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity())))
         {
             Assert.NotNull(Current.Principal);
             Assert.Null(Current.UserId);
@@ -57,7 +113,7 @@ public sealed class CurrentTests
             new Claim("department", "support"),
             new Claim(ClaimTypes.Role, "Admin"));
 
-        using var scope = Db.UseScope(new StubScope(principal));
+        using var scope = Current.UsePrincipal(principal);
         var department = Current.Claim("department");
         var missing = Current.Claim("nickname");
         var admin = Current.IsInRole("Admin");
@@ -75,7 +131,7 @@ public sealed class CurrentTests
         var anonymous = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim("department", "sales"), new Claim(ClaimTypes.Role, "Admin")]));
 
-        using var scope = Db.UseScope(new StubScope(anonymous));
+        using var scope = Current.UsePrincipal(anonymous);
         var department = Current.Claim("department");
         var admin = Current.IsInRole("Admin");
 
@@ -98,7 +154,7 @@ public sealed class CurrentTests
     {
         var principal = SignedIn(_alice, _acme);
 
-        using var scope = Db.UseScope(new StubScope(principal));
+        using var scope = Current.UsePrincipal(principal);
 
         Assert.Throws<ArgumentException>(() => Current.Claim(" "));
         Assert.Throws<ArgumentException>(() => Current.IsInRole(""));
@@ -111,7 +167,7 @@ public sealed class CurrentTests
 
         // A job runs for the user its row recorded, whoever is ambient. Nobody signed in to run it, so the
         // principal is not rewritten to pretend otherwise.
-        using (Db.UseScope(new StubScope(principal)))
+        using (Current.UsePrincipal(principal))
         using (Current.UseUser(_bob))
         {
             Assert.Equal(_bob, Current.UserId);
@@ -141,7 +197,7 @@ public sealed class CurrentTests
     [Fact]
     public void An_explicit_tenant_beats_the_principal_and_Across_and_None_are_nobodys()
     {
-        using (Db.UseScope(new StubScope(SignedIn(_alice, _acme))))
+        using (Current.UsePrincipal(SignedIn(_alice, _acme)))
         {
             using (Tenant.Use(_globex))
             {
@@ -171,7 +227,8 @@ public sealed class CurrentTests
             .. more,
         ], "Test"));
 
-    private sealed class StubScope(ClaimsPrincipal principal) : IServiceProvider, IPrincipalSource
+    // What a session or request holds: its own principal, through the scope the host made ambient.
+    private sealed class SessionScope(ClaimsPrincipal principal) : IServiceProvider, IPrincipalSource
     {
         public ClaimsPrincipal? Current => principal;
 

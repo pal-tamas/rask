@@ -321,6 +321,28 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 `TestDatabase.Start<CrmContext>(…)` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
 go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
 (with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start(…)`.
+The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
+app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
+
+**The fake clock is a `TimeProvider`.** Hand it to a type of the app's that takes one, and that type and `Clock.Now`
+tell the same time, which `Advance` moves for both:
+
+```csharp
+using var clock = Clock.Fake(at: monday9am);
+var lanes = new PumpLanes(clock);   // PumpLanes(TimeProvider time)
+
+clock.Advance(2.Hours);             // lanes and Clock.Now both read monday 11:00
+```
+
+**Signed in, with no session around the test.** `Current.UsePrincipal(principal)` is the signed-in principal until
+it is disposed: `Current.Principal`, `Current.Claim`, `Current.IsInRole`, `Current.UserId` (its `NameIdentifier`) and
+the tenant (its `rask:tenant` claim) all read it, the way they read a request's — no `IPrincipalSource` stub and no
+`Db.UseScope` to hand-roll. `Current.UseUser(id)` and `Tenant.Use(id)` still win over it, as they do over a request's.
+
+```csharp
+using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity(
+    [new Claim(ClaimTypes.NameIdentifier, ada.ToString()), new Claim(Tenant.ClaimType, acme.ToString())], "Test")));
+```
 
 ### A real database server, when the machine has one
 
