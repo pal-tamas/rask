@@ -2073,14 +2073,29 @@ public sealed class AppModel : IRaskModel
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
   usually has.
-- **`OrderTextBy(collation)`** names the order the database puts text in when a query asks for it with
-  `InTextOrder()`. On SQL Server `OrderBy(x => x.Name.InTextOrder())` is written
-  `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` — in the `ORDER BY` only: no column is given the collation, so the
-  schema needs no migration, and a `Where` on the same column compares as it always did (under the Hungarian
-  collation `c` would stop finding `Csaba`). The name is SQL Server's, so on every other database `InTextOrder()`
-  orders by the column as it is, and an app on SQLite in development keeps working. It runs in the database — through
-  `ToList`, `Count` and a grid's paging alike; a list already in memory orders the same way with `TextOrder.In("hu")`
-  (see [Localization](localization.md#dates-numbers-and-text-order)).
+- **`OrderTextBy(collation)`** names, once, how the app's database compares text — by its SQL Server collation — and
+  a query asks for that order with `InTextOrder()`. It runs in the database, through `ToList`, `Count` and a grid's
+  paging alike; a list already in memory orders the same way with `TextOrder.In("hu")`
+  (see [Localization](localization.md#dates-numbers-and-text-order)). What each database does with it:
+
+  | | `OrderBy(x => x.Name.InTextOrder())` | `Where(x => x.Name == "csaba")`, a unique index, `Contains`/`StartsWith`/`EndsWith` |
+  |---|---|---|
+  | **SQL Server** | `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` | as the database's own collation says — no column is given one, so no migration |
+  | **SQLite** (`UseRaskSqlite`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
+  | **PostgreSQL** | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is — **the gap** |
+  | a plain `UseSqlite` (a browser app) | by the column as it is | as SQLite compares |
+
+  On SQLite every connection `UseRaskSqlite` opens registers the collation's language and sensitivities (Hungarian →
+  `hu-HU`; `CI` ignores case; `AS` keeps `á` apart from `a`; no `KS`/`WS` ignores kana and width) as
+  [`RASK_TEXT`](sqlite.md#text-that-compares-as-sql-server-does), every text column of the model is created with it,
+  and `instr` and `LIKE` — what EF writes `Contains`, `StartsWith` and `EndsWith` as — compare the same way. So a test
+  on SQLite finds `Csaba` for `"csaba"`, `Árvíztűrő` for `Contains("árv")`, and a unique index refuses `CSABA` beside
+  `Csaba` — what the app's SQL Server does. A column given a collation of its own (`UseCollation`) keeps it. A
+  collation name Rask cannot read (an unknown language) is refused as the model is built, off SQL Server.
+
+  PostgreSQL orders by the language's ICU collation, which every server built with ICU (the official images are)
+  imports. Comparing case-insensitively there takes a *nondeterministic* collation on each column, and those refuse
+  `LIKE` before PostgreSQL 18 — so Rask leaves PostgreSQL's equality and `LIKE` as they are.
 
   ```csharp
   // before — the collation repeated in every query

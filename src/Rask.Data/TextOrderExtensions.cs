@@ -12,8 +12,9 @@ public static class TextOrderExtensions
     /// <remarks>
     ///     <para>
     ///         On SQL Server it is written <c>[Name] COLLATE Hungarian_100_CI_AS</c> — in that <c>ORDER BY</c> only, so the
-    ///         column, its schema and every <c>Where</c> on it stay as they are. On every other database it orders by the
-    ///         column as it is.
+    ///         column, its schema and every <c>Where</c> on it stay as they are. On SQLite through <c>UseRaskSqlite</c> it is
+    ///         <c>COLLATE "RASK_TEXT"</c>, the same comparison registered on the connection; on PostgreSQL the language's
+    ///         ICU collation, <c>COLLATE "hu-HU-x-icu"</c>. Anywhere else it orders by the column as it is.
     ///     </para>
     ///     <para>
     ///         It runs in the database: a list already in memory orders with <c>TextOrder.In("hu")</c> or

@@ -191,6 +191,30 @@ converting an existing table means rebuilding it. `rask new` therefore scaffolds
 `decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the
 [invariant collation](data-access.md#does-sqlite-support-decimal).
 
+## Text that compares as SQL Server does
+
+An app whose production database is SQL Server says how that database compares text once, in its `IRaskModel`:
+`c.OrderTextBy("Hungarian_100_CI_AS")` ([Data](data.md#app-wide-model-rules-one-iraskmodel)). On SQLite, through
+`UseRaskSqlite(...)`, the same model then compares text the way that collation does — so its tests can run on SQLite
+and mean what they would on the server:
+
+- every connection registers the collating sequence `RASK_TEXT` (`SqliteCollations.TextOrder`): the collation's
+  language (Hungarian → `hu-HU`) compared through .NET's `CompareInfo` with its sensitivities (`CI` → ignore case, `AS`
+  → keep accents, kana and width ignored unless `KS`/`WS` say otherwise; `BIN`/`BIN2` → ordinal);
+- every text column of the model is created `COLLATE "RASK_TEXT"`, so `=`, `IN`, a unique index, `GROUP BY`,
+  `DISTINCT` and `ORDER BY` compare by it — `"csaba"` finds `Csaba`, and a unique index refuses `CSABA` beside it;
+- a collation does not reach a function, and EF Core writes `Contains` as `instr(…) > 0` and `StartsWith`/`EndsWith`
+  as `LIKE` — which SQLite folds for ASCII alone. So the connection replaces `instr` and `like` with the culture's
+  (SQLite lets an application redefine both): `Contains("árv")` finds `Árvíztűrő`, `EF.Functions.Like` keeps its
+  `%`, `_` and `ESCAPE`, and `IndexOf` still counts characters from 1 as SQLite does;
+- `x.Name.InTextOrder()` is written `COLLATE "RASK_TEXT"`. STRICT tables take the collation like any other.
+
+What it costs. Each comparison is a managed callback, as `EF_DECIMAL`'s is, and a `LIKE` pattern cannot use an index
+(it could not under SQLite's own `LIKE` either). The collation's name is in the schema: a tool that opens the file
+without registering it — the `sqlite3` shell, a viewer — answers `no such collation sequence: RASK_TEXT` for those
+columns. Rask's own connections always register it; a plain `UseSqlite` (a browser app's) does not, so there
+`OrderTextBy` leaves the columns as they are and `InTextOrder()` orders by the column as it is.
+
 ## Full-text search — FTS5 through EF Core
 
 SQLite ships a real full-text engine, [FTS5](https://sqlite.org/fts5.html) — compiled into the SQLite build

@@ -103,6 +103,9 @@ public static class RaskSqliteDbContextOptionsExtensions
         // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
         RaskDbContext.WithSharedWarnings(optionsBuilder);
 
+        // The connection interceptor below registers the collation OrderTextBy names, so the model may use it.
+        TextCollationOptionsExtension.Add(optionsBuilder);
+
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.
             .AddInterceptors(new RaskSqliteRangeExclusionInterceptor())

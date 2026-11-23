@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Rask.SQLite;
 using Rask.SqlServer;
 
 /// <summary>
-/// <c>UseRaskPostgres</c> and <c>UseRaskSqlServer</c> read their connection string from <c>Rask:ConnectionStrings:App</c>.
+/// <c>UseRaskPostgres</c>, <c>UseRaskSqlServer</c> and <c>UseRaskSqlite</c> read their connection string from <c>Rask:ConnectionStrings:App</c>.
 /// These tests point every context at the server the gate started, so this hands the real overloads a service provider
 /// carrying exactly that one key.
 /// </summary>
@@ -26,6 +27,11 @@ internal static class TestConnectionStrings
         this DbContextOptionsBuilder<TContext> builder, string connectionString, Action<SqlServerOptions>? configure = null)
         where TContext : DbContext =>
         builder.UseRaskSqlServer(App(connectionString), configure);
+
+    internal static DbContextOptionsBuilder<TContext> UseRaskSqliteAt<TContext>(
+        this DbContextOptionsBuilder<TContext> builder, string connectionString)
+        where TContext : DbContext =>
+        builder.UseRaskSqlite(App(connectionString));
 
     private static IServiceProvider App(string connectionString) =>
         new ConfigurationServices(new ConfigurationBuilder()

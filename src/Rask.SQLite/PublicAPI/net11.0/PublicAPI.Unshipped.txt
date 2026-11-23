@@ -62,6 +62,7 @@ Rask.SQLite.SqliteTempStore.Default = 0 -> Rask.SQLite.SqliteTempStore
 Rask.SQLite.SqliteTempStore.File = 1 -> Rask.SQLite.SqliteTempStore
 Rask.SQLite.SqliteTempStore.Memory = 2 -> Rask.SQLite.SqliteTempStore
 const Rask.SQLite.SqliteCollations.DecimalOrder = "EF_DECIMAL" -> string!
+const Rask.SQLite.SqliteCollations.TextOrder = "RASK_TEXT" -> string!
 static Rask.SQLite.SqliteCollations.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
 static Rask.SQLite.SqliteConnectionExtensions.BeginImmediate(this Microsoft.Data.Sqlite.SqliteConnection! connection) -> Microsoft.Data.Sqlite.SqliteTransaction!
 static Rask.SQLite.SqliteConnectionExtensions.InImmediateTransaction(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

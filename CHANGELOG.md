@@ -31,6 +31,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`c.OrderTextBy("Hungarian_100_CI_AS")` makes SQLite compare text as that SQL Server collation does.** Before: the
+  name was SQL Server's alone, so on SQLite `InTextOrder()` ordered by the column as it was, `Where(x => x.Name ==
+  "csaba")` missed `Csaba`, a unique index let `CSABA` in beside it, and `Contains("árv")` missed `Árvíztűrő` — a test
+  on SQLite proved nothing about the app's SQL Server. After: through `UseRaskSqlite` every connection registers the
+  collation's language and sensitivities as `RASK_TEXT` (`SqliteCollations.TextOrder`; Hungarian → `hu-HU`, `CI`
+  ignores case, `AS` keeps accents), every text column of the model is created `COLLATE "RASK_TEXT"`, `instr` and
+  `LIKE` are replaced on the connection by the same comparison (so `Contains`/`StartsWith`/`EndsWith`/`EF.Functions.Like`
+  ignore case beyond ASCII), and `InTextOrder()` writes `COLLATE "RASK_TEXT"`. STRICT tables take it. On PostgreSQL
+  `InTextOrder()` now orders by the language's ICU collation (`COLLATE "hu-HU-x-icu"`); equality there stays
+  case-sensitive (docs/data.md). A plain `UseSqlite` is unchanged. A collation whose language Rask cannot read is
+  refused as the model is built, off SQL Server. Parity: `TextOrderParityTests` on SQL Server, PostgreSQL and SQLite.
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
