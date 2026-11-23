@@ -2333,6 +2333,7 @@ public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
 public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
 public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
+public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
 public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);       // no end: open
 public sealed partial record RefundMonths(int From, int To) : Range(From, To, Min: 1, Max: 12);
@@ -2362,6 +2363,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
+| `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
 
@@ -2382,6 +2384,13 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value.
+
+**A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in
+`Clock.Zone` (what `Clock.Wall` reads), with `DateTimeKind.Unspecified` — how a `datetime2` (SQL Server) or `TEXT`
+(SQLite) column keeps it and reads it back. A `DateTime` of `DateTimeKind.Utc` is converted to `Clock.Zone` as it is
+made, and one of `DateTimeKind.Local` from the machine's zone, so `FuelingMoment.Create(Clock.Now.UtcDateTime)` and
+`FuelingMoment.Create(Clock.Wall)` are the same value, and a column of moments never mixes the two. A bound field of
+one draws a `Ui.DayAndTime`, ending now for `NotAfterNow`.
 
 **A stored value is loaded, never re-checked.** EF Core builds what a row holds without asking the rules — a row
 stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on

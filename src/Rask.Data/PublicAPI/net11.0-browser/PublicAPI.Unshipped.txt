@@ -590,3 +590,18 @@ Rask.Data.ValueLoading
 Rask.Data.ValueLoading.Dispose() -> void
 Rask.Data.ValueLoading.ValueLoading() -> void
 static Rask.Data.GeneratedValueRules.Loading() -> Rask.Data.ValueLoading
+Rask.Data.Moment
+Rask.Data.Moment.Day.get -> System.DateOnly
+Rask.Data.Moment.Moment(Rask.Data.Moment! original) -> void
+Rask.Data.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false) -> void
+Rask.Data.Moment.Value.get -> System.DateTime
+override Rask.Data.Moment.Equals(object? obj) -> bool
+override Rask.Data.Moment.GetHashCode() -> int
+override sealed Rask.Data.Moment.ToString() -> string!
+override Rask.Data.Moment.EqualityContract.get -> System.Type!
+override Rask.Data.Moment.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override abstract Rask.Data.Moment.<Clone>$() -> Rask.Data.Moment!
+override sealed Rask.Data.Moment.Equals(Rask.Data.Value? other) -> bool
+static Rask.Data.Moment.operator !=(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
+static Rask.Data.Moment.operator ==(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
+virtual Rask.Data.Moment.Equals(Rask.Data.Moment? other) -> bool
