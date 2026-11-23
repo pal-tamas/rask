@@ -1590,7 +1590,10 @@ trip and the page hears no toggle.
 and the message the form holds for the control, and tells each part which control it belongs to. The label is a real
 `<label for>`, and `Ui.Error` reads the form (bare inside a field, `For(() => m.Email)` anywhere, `Message("…")` for
 your own words) from a live region that is always in the page. Every control's `Label` and `Description` draw the same
-field around it. Every example, the error's rules and the reference: **[rask.sh/ui/field](https://rask.sh/ui/field/)**.
+field around it. A field that must be filled (the answer `aria-required` comes from: `[Required]`, or a non-nullable
+member of a generated model) says so beside its label with Flux's badge — *Required*, from the strings catalog
+(`FieldRequired`, *Kötelező* in Hungarian), `aria-hidden` because `aria-required` already says it; a control's own
+`.Badge(…)` wins and `.Badge("")` says nothing. Every example, the error's rules and the reference: **[rask.sh/ui/field](https://rask.sh/ui/field/)**.
 
 A control you give no `Id` takes one from the member it binds, else its label: `Ui.Input.Bind(() => m.Name)` is
 `f-name`, its error `f-name-error`, its help text `f-name-description`. Ids are unique on the page: a second field that

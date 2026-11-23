@@ -911,4 +911,7 @@ public enum RaskString
 
     /// <summary>What a strict range's end not after its start says (<c>Range(Start, End, Strict: true)</c>). <c>{0}</c> is the start.</summary>
     ValidationRangeAfter,
+
+    /// <summary>The badge beside the label of a field that must be filled (<c>Ui.Field</c>, a control's <c>Label</c>).</summary>
+    FieldRequired,
 }

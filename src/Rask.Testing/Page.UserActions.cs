@@ -153,7 +153,7 @@ public partial class Page
         var fields = root.DescendantsAndSelf().Where(IsField).ToList();
 
         var byLabel = root.DescendantsAndSelf()
-            .Where(n => string.Equals(n.Tag, "label", StringComparison.Ordinal) && Same(n.TextContent, label))
+            .Where(n => string.Equals(n.Tag, "label", StringComparison.Ordinal) && Same(NamingText(n), label))
             .Select(l => l.Attribute("for") is { } id
                 ? fields.FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.Ordinal))
                 : l.DescendantsAndSelf().FirstOrDefault(IsField))
@@ -446,6 +446,15 @@ public partial class Page
         Normalize(string.Concat(root.DescendantsAndSelf()
             .Where(n => n.Tag is not ("script" or "style" or "template") && !Ancestors(n).Any(a => a.Tag is "script" or "style" or "template"))
             .Select(n => n.Text + " ")));
+
+    // What a label names its field by, as assistive tech reads it: a part marked aria-hidden — a "Required" badge
+    // beside it — is not part of the name.
+    private static string NamingText(HtmlNode label) =>
+        string.Concat(label.DescendantsAndSelf()
+            .Where(n => !Silenced(n) && !Ancestors(n).TakeWhile(a => !ReferenceEquals(a, label)).Any(Silenced))
+            .Select(n => n.Text + " "));
+
+    private static bool Silenced(HtmlNode n) => string.Equals(n.Attribute("aria-hidden"), "true", StringComparison.Ordinal);
 
     private static string FieldName(HtmlNode f) =>
         f.Attribute("aria-label") ?? f.Attribute("placeholder") ?? f.Attribute("name") ?? f.Id ?? $"<{f.Tag}>";

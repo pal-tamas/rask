@@ -326,6 +326,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("FilterRangeAtMost", 1),
         ("FilterRangeBetween", 2),
         ("ToastClose", 0),
+        ("FieldRequired", 0),
         ("ValidationNumberMin", 1),
         ("ValidationNumberMax", 1),
         ("ValidationDecimals", 1),

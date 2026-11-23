@@ -141,7 +141,9 @@ internal sealed class UiWithField
             return control;
         }
 
-        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge).Class(Hidden(labelSrOnly))[_label];
+        // A field that must be filled says so beside its label, as Flux's badge does; the author's own badge wins, and
+        // an empty one (`.Badge("")`) says nothing.
+        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(Badge()).Class(Hidden(labelSrOnly))[_label];
         var description = _description is null
             ? null
             : Ui.Description.Id(UiFieldId.Description(ControlId)).Class(Hidden(descriptionSrOnly))[_description];
@@ -161,6 +163,18 @@ internal sealed class UiWithField
         var error = Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error).Class(classes);
 
         return icon ? error : error.Icon(false);
+    }
+
+    // A field that must be filled says so beside its label, as Flux's badge does: the author's own badge wins, and an
+    // empty one (`.Badge("")`) says nothing.
+    private string? Badge()
+    {
+        if (_badge is not null)
+        {
+            return _badge.Length == 0 ? null : _badge;
+        }
+
+        return Required ? RaskStrings.Get(RaskString.FieldRequired, "Required") : null;
     }
 
     private Dictionary<string, string?> BuildAria()

@@ -882,6 +882,7 @@ they say when you set nothing.
 | `FilterRangeAtMost` | Filters: a range's badge, its most alone | `at most {0}` |
 | `FilterRangeBetween` | Filters: a range's badge, both ends | `{0} – {1}` |
 | `ToastClose` | Toast: its close control (a cross) | `Close notification` |
+| `FieldRequired` | Field: the badge beside the label of a field that must be filled | `Required` |
 | `ValidationNumberMin` | Validation — a number below a value object's `Number(Min: …)` / `Whole(Min: …)` | `Enter {0} or more.` |
 | `ValidationNumberMax` | Validation — a number above a value object's `Number(Max: …)` / `Whole(Max: …)` | `Enter {0} or less.` |
 | `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |

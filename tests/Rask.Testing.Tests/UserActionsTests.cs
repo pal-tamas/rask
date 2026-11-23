@@ -84,6 +84,20 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_part_of_a_label_hidden_from_assistive_tech_is_not_part_of_its_name()
+    {
+        var product = new Product();
+        var page = Page.Render(() => Form.Model(product)[
+            Label.For("name")["Name", Span.Aria("hidden", "true")["Required"]],
+            Input.Bind(() => product.Name).Id("name")
+        ]);
+
+        var failure = await Record.ExceptionAsync(() => page.Type("Tea").Into("Name"));
+
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public async Task A_field_can_be_found_by_its_placeholder()
     {
         var page = Page.Render(new ProductForm());

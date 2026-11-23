@@ -31,6 +31,11 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A field that must be filled says so beside its label.** Before: only `aria-required` marked it; a sighted reader saw
+  nothing until Save refused. After: a labelled kit control whose field is required — `[Required]`, or a non-nullable
+  member of a generated model, the same answer `aria-required` comes from — shows Flux's badge *Required* (new key
+  `FieldRequired`, Hungarian *Kötelező*), `aria-hidden` so it is not read twice; a control's own `.Badge(…)` wins and
+  `.Badge("")` shows none. Rask.Testing finds a field by its label without the label's `aria-hidden` parts.
 - **A value object is declared from a Rask.Data base record and checked as it is made:
   `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);`,
   `public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);`.** Before: a value

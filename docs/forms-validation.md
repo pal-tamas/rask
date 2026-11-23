@@ -156,7 +156,8 @@ A plain `Input`, `Select` and `Textarea` write it, and so does every `Ui.*` cont
 carries its other `aria-*`. It is only `aria-required`, never the native `required` attribute, which would
 switch the browser's own validation bubble on. An `aria-required` written on the control wins:
 `Input.Bind(() => m.Name).AriaRequired(false)`. A radio, a range, a slider and a plain `group` write none,
-because ARIA has no required state for their roles.
+because ARIA has no required state for their roles. A labelled kit control also shows it: Flux's badge beside the
+label says *Required* (`RaskString.FieldRequired`), hidden from assistive tech, which hears `aria-required`.
 
 A registration is keyed by the type that declares the property and covers the types derived from it. A path
 is followed through the declared types of the properties it walks, and an index stands for the collection's
