@@ -23,9 +23,13 @@ internal static class MigrationSession
         _ => null,
     };
 
-    /// <summary>Opens <paramref name="db" />'s connection for its migrations, the limits lifted; closing it hands it back.</summary>
+    /// <summary>
+    ///     Opens <paramref name="db" />'s connection for its migrations, the limits lifted, creating the database first when the
+    ///     server does not have it yet; closing it hands it back.
+    /// </summary>
     internal static async Task<IAsyncDisposable> Open(DbContext db, CancellationToken cancellationToken)
     {
+        await MissingDatabase.Create(db, cancellationToken).ConfigureAwait(false);
         await db.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         if (LiftLimits(db.Database.ProviderName) is { } lift)
         {
