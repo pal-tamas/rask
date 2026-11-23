@@ -8,17 +8,18 @@ using Rask.Cqrs;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A one-value value object the usual way: a positional record.</summary>
-public sealed record ContactName(string Value)
+/// <summary>A one-value value object the usual way: a text declared from its base record, with a rule of its own.</summary>
+public sealed partial record ContactName(string Value) : Text(Value)
 {
     public const string TooShort = "A name has at least two characters.";
 
-    // The rule, where the value is: found by its shape, with no interface to implement.
-    public static IEnumerable<string> Validate(string value)
+    // The rule, where the value is: asked as it is made, and by every form and write over the model. A blank
+    // name is the base's to refuse, as required.
+    protected override IEnumerable<Problem> Rules()
     {
-        if (value.Trim().Length < 2)
+        if (Value.Length is > 0 and < 2)
         {
-            yield return TooShort;
+            yield return Problem.Whole(TooShort);
         }
     }
 }
@@ -33,14 +34,8 @@ public sealed record ContactCode
     public static ContactCode Of(string value) => new() { Value = value };
 }
 
-/// <summary>A one-value value object that is a struct.</summary>
-public readonly record struct ContactRank(int Value)
-{
-    public const string Negative = "A rank is not negative.";
-
-    public static ValueTask<IEnumerable<string>> Validate(int value) =>
-        ValueTask.FromResult<IEnumerable<string>>(value < 0 ? [Negative] : []);
-}
+/// <summary>A one-value value object that is a struct, with no rule of its own.</summary>
+public readonly record struct ContactRank(int Value);
 
 /// <summary>An adopted table whose name is a value object — and is what the unique rule is over.</summary>
 public sealed class Contact : Aggregate<int, Model, Deletable, PerTenant>
@@ -52,16 +47,16 @@ public sealed class Contact : Aggregate<int, Model, Deletable, PerTenant>
 
     public int? TenantId { get; private set; }
 
-    public ContactName Name { get; private set; } = new("");
+    public ContactName Name { get; private set; } = null!;
 
     public ContactCode? Code { get; private set; }
 
     public ContactRank Rank { get; private set; }
 
     public static Contact Named(string name, string? code = null, int rank = 0) =>
-        new() { Name = new ContactName(name), Code = code is null ? null : ContactCode.Of(code), Rank = new ContactRank(rank) };
+        new() { Name = ContactName.Create(name), Code = code is null ? null : ContactCode.Of(code), Rank = new ContactRank(rank) };
 
-    public void Rename(string name) => Name = new ContactName(name);
+    public void Rename(string name) => Name = ContactName.Create(name);
 
     public static void Configure(EntityTypeBuilder<Contact> builder)
     {
@@ -79,7 +74,7 @@ public sealed class ComplexContact
 
     public int? TenantId { get; set; }
 
-    public ContactName Name { get; set; } = new("");
+    public ContactName Name { get; set; } = ContactName.Create("--");
 
     public ContactCode? Code { get; set; }
 
@@ -151,7 +146,7 @@ public sealed class ValueObjectColumnTests : IDisposable
             bob = (await Contact.Find(bare, cancellationToken: TestContext.Current.CancellationToken))!;
         }
 
-        Assert.Equal(new ContactName("Ada"), ada.Name);
+        Assert.Equal(ContactName.Create("Ada"), ada.Name);
         Assert.Equal("A-1", ada.Code!.Value);
         Assert.Equal(new ContactRank(3), ada.Rank);
         Assert.Null(bob.Code);
@@ -257,7 +252,7 @@ public sealed class ValueObjectColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Contact.Named("Ada"));
-        var wanted = new ContactName("Ada");
+        var wanted = ContactName.Create("Ada");
 
         using (Tenant.Use(Acme))
         {
@@ -317,7 +312,7 @@ public sealed class ValueObjectColumnTests : IDisposable
 
     [Theory]
     [InlineData("Name", typeof(Rask.Core.Forms.Validate<string>))]
-    [InlineData("Rank", typeof(Func<int?, ValueTask<IEnumerable<string>>>))]
+    [InlineData("Rank", typeof(Rask.Core.Forms.Validate<int?>))]
     public void A_value_objects_rule_is_one_kept_delegate_of_the_fields_own_type_handed_back_every_time(string property, Type shape)
     {
         var ruleOf = RuleOfContactModel();
@@ -342,7 +337,7 @@ public sealed class ValueObjectColumnTests : IDisposable
     }
 
     [Fact]
-    public void A_name_that_cannot_be_null_is_asked_about_the_empty_value_in_the_value_objects_own_words()
+    public void A_name_that_cannot_be_null_is_asked_its_own_rule_and_is_required_in_the_bases_words()
     {
         var rule = (Rask.Core.Forms.Validate<string>)RuleOfContactModel()("Name")!;
 
@@ -352,21 +347,19 @@ public sealed class ValueObjectColumnTests : IDisposable
 
         Assert.Equal([ContactName.TooShort], tooShort);
         Assert.Empty(fine);
-        Assert.Equal([ContactName.TooShort], nothing);
+        Assert.Equal([GeneratedModelRules.RequiredMessage], nothing);
     }
 
     [Fact]
-    public async Task A_number_that_cannot_be_null_and_holds_nothing_says_the_one_sentence_since_there_is_no_empty_number_to_ask_about()
+    public void A_number_that_cannot_be_null_and_holds_nothing_says_the_one_sentence_since_there_is_no_empty_number_to_ask_about()
     {
-        var rule = (Func<int?, ValueTask<IEnumerable<string>>>)RuleOfContactModel()("Rank")!;
+        var rule = (Rask.Core.Forms.Validate<int?>)RuleOfContactModel()("Rank")!;
 
-        var nothing = await rule(null);
-        var negative = await rule(-1);
-        var fine = await rule(3);
+        var nothing = rule(null).ToList();
+        var negative = rule(-1).ToList();
 
         Assert.Equal([GeneratedModelRules.RequiredMessage], nothing);
-        Assert.Equal([ContactRank.Negative], negative);
-        Assert.Empty(fine);
+        Assert.Empty(negative);
     }
 
     [Fact]
@@ -385,13 +378,13 @@ public sealed class ValueObjectColumnTests : IDisposable
             create = await Assert.ThrowsAsync<RaskValidationException>(
                 () => Contact.Create(model, cancellationToken: TestContext.Current.CancellationToken));
             update = await Assert.ThrowsAsync<RaskValidationException>(
-                () => Contact.Update(id, new ContactModel { Name = new string('x', 2), Rank = -5 }, cancellationToken: TestContext.Current.CancellationToken));
+                () => Contact.Update(id, new ContactModel { Name = "x", Rank = -5 }, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         Assert.Equal(
-            [("Name", ContactName.TooShort), ("Rank", GeneratedModelRules.RequiredMessage)],
+            [("Name", GeneratedModelRules.RequiredMessage), ("Rank", GeneratedModelRules.RequiredMessage)],
             create.Failures.Select(f => (f.Fields.Single(), f.Message)));
-        Assert.Equal([("Rank", ContactRank.Negative)], update.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal([("Name", ContactName.TooShort)], update.Failures.Select(f => (f.Fields.Single(), f.Message)));
         Assert.Equal(0, commands.Count);
     }
 
@@ -407,7 +400,7 @@ public sealed class ValueObjectColumnTests : IDisposable
             stored = await database.Load<Contact>(created.Id, TestContext.Current.CancellationToken);
         }
 
-        Assert.Equal(new ContactName("Ada"), stored!.Name);
+        Assert.Equal(ContactName.Create("Ada"), stored!.Name);
         Assert.Equal(new ContactRank(2), stored.Rank);
     }
 

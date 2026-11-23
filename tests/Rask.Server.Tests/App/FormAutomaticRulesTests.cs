@@ -15,27 +15,30 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.App;
 
 /// <summary>A name that is a value object, and states its own rule where the value is.</summary>
-public sealed record BerthName(string Value)
+public sealed partial record BerthName(string Value) : Text(Value)
 {
     public const int MaxLength = 255;
-    public const string Required = "Kötelező kitölteni.";
+    // A blank name is its base's to refuse, in the framework's sentence: the reader's language, here English.
+    public const string Required = GeneratedModelRules.RequiredMessage;
     public const string TooShort = "A berth's name has at least two characters.";
     public const string TooLong = "A berth's name is at most 255 characters.";
 
-    // Everything about the name, the empty one included: no attribute says any of it.
-    public static IEnumerable<string> Validate(string value)
+    // Everything about the name: the base refuses a blank one as required, in the reader's language, and no
+    // attribute says any of it.
+    protected override IEnumerable<Problem> Rules()
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (Value.Length == 0)
         {
-            yield return Required;
+            yield break;
         }
-        else if (value.Trim().Length < 2)
+
+        if (Value.Length < 2)
         {
-            yield return TooShort;
+            yield return Problem.Whole(TooShort);
         }
-        else if (value.Length > MaxLength)
+        else if (Value.Length > MaxLength)
         {
-            yield return TooLong;
+            yield return Problem.Whole(TooLong);
         }
     }
 }
@@ -49,7 +52,7 @@ public sealed class Berth : Aggregate<int, Model, Deletable, PerTenant>
 
     public int? TenantId { get; private set; }
 
-    public BerthName Name { get; private set; } = new("");
+    public BerthName Name { get; private set; } = null!;
 
     public static void Configure(EntityTypeBuilder<Berth> builder)
     {

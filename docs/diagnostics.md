@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK131, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -119,7 +119,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK098](#rask098) | Warning | A web API member is missing from a browser `<RaskBrowserTargets>` names |
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
 | [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
-| [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
 | [RASK105](#rask105) | Error | A value object compares by reference |
@@ -149,12 +148,13 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK129](#rask129) | Error | A value object declared from a base record is not `sealed partial` |
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
+| [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 **Retired, never recycled:** RASK025, RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
 RASK049, RASK050, RASK054, RASK056, RASK057, RASK058, RASK059, RASK061, RASK062, RASK063, RASK064, RASK065, RASK066,
-RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091 and RASK100, the islands build's
+RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091, RASK100 and RASK102, the islands build's
 RASKISLAND001–019, and the npm front-end build's RASKSPA001–005 and RASKSPA007. Each guarded a mistake that can no
 longer be written; a suppression that names one is dead and can be deleted.
 
@@ -1884,68 +1884,6 @@ db.Set<Warehouse.Order>()
 
 ---
 
-## RASK102
-
-**A value object's `Validate` is not the shape of a rule, so no form runs it** · Warning
-
-A value object that holds one value states its rule by convention, and a form bound to the aggregate's
-generated model [runs it with nothing written on the field](data.md#what-a-form-over-the-model-asks-by-itself).
-The convention is exact:
-
-```csharp
-public static IEnumerable<string> Validate(string value)     // the value it holds, the messages out
-// or returning ValueTask<IEnumerable<string>> / Task<IEnumerable<string>>
-```
-
-A `Validate` of any other shape is not run — and a rule that never runs looks exactly like one that ran and
-passed. So a one-value value object an aggregate holds, with a `Validate` and none that qualifies, is reported
-on that method, with what is wrong and the signature that would qualify:
-
-```csharp
-public sealed record DestinationName(string Value)
-{
-    public static string Validate(string value) => …;   // ⚠ RASK102: it returns 'string', not the messages
-}
-```
-
-> 'DestinationName.Validate(string)' on value object 'DestinationName' is not run by any form because it
-> returns 'string', not the messages — a rule is 'public static IEnumerable<string> Validate(string value)', or
-> the same returning ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>
-
-What it names: not `public`, not `static`, generic, more or fewer than one parameter, a parameter taken by
-`ref`, `out` or `ref readonly` (a rule is handed the value itself; `in` is fine), a parameter that is not
-exactly the held value's type (`Validate(DestinationName value)` included), or a return type that is not the
-messages.
-
-The nullable form of a held number, date or id is the one that reads as a rule, so it is named with its fix:
-
-```csharp
-public readonly record struct NormPercent(decimal Value)
-{
-    public static IEnumerable<string> Validate(decimal? value) => …;   // ⚠ RASK102: declare it 'decimal'
-}
-```
-
-> 'NormPercent.Validate(decimal?)' on value object 'NormPercent' is not run by any form because its parameter
-> is 'decimal?', not the 'decimal' it holds; declare it 'decimal', because an unfilled field is never put to the
-> rule and a property that is not nullable is required by its type — a rule is …
-
-A rule has nothing to say about an unfilled number: a property that is not nullable is
-[required by its type](data.md#what-a-form-over-the-model-asks-by-itself), and a nullable one may be left
-empty. `Validate(string? value)` over a `string` IS the rule — an annotation is not another type — and it is
-asked with the empty string, never `null`.
-
-**Not reported:** a value object that already has a rule of the right shape, whatever overloads sit beside it;
-a `Validate` that implements an interface (`IValidatableObject`) or overrides a base member; a value object of
-several values; and any type that is not a value object held by an aggregate.
-
-**Fix:** give it the signature above. If the method is something else, rename it — or keep it and silence the
-warning at that site with a reason.
-
-A project that does not build warnings-as-errors still builds: it shows this warning and the rule is not run.
-
----
-
 ## RASK103
 
 **A constructor-built value object holds a value object of several values** · Error
@@ -3195,3 +3133,58 @@ public sealed class SignUp
 as `[Display(Name = "X")]`, adds `using System.ComponentModel.DataAnnotations;` where the file lacks it, and drops
 `using System.ComponentModel;` when nothing else in the file uses it; it is withheld for a subclass of
 `DisplayNameAttribute`, whose name is built however that subclass builds it).
+
+---
+
+## RASK132
+
+**A value object's `Validate` is never asked: declare it from a base record** · Warning
+
+A value object states its rules in its constructor: one [declared from a base record](data.md#declared-from-a-base-record)
+— `Text`, `Number`, `Whole`, `Day`, `Range`, or `Value` with its own `Rules()` — is checked as it is made, and a
+form bound to the aggregate's generated model asks the same rules
+[with nothing written on the field](data.md#what-a-form-over-the-model-asks-by-itself). A `public static Validate`
+beside the value it holds was the earlier way to say it, and nothing reads it any more: no form asks it, and
+neither do the generated `Create(model)` and `Update(id, model)`. A rule that is never asked looks exactly like one
+that was asked and passed, so a one-value value object an aggregate holds, not declared from a base record, with a
+static `Validate` of any shape, is reported on that method with the declaration that would hold its rule:
+
+```csharp
+public readonly record struct DriverName(string Value)
+{
+    public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);   // ⚠ RASK132
+}
+```
+
+> 'DriverName.Validate(string)' on value object 'DriverName' is never asked: no form and no generated write runs a
+> value object's Validate, only the rules of one declared from a Rask.Data base record — declare it 'public sealed
+> partial record DriverName(string Value) : Text(Value, …);' with its rules as the base's arguments, or ': Value'
+> with them in 'protected override IEnumerable<Problem> Rules()', and make it with 'DriverName.Create(…)'
+
+**Fix:** declare it from the base that takes what it holds — `Text` for a `string`, `Number` for a `decimal`,
+`Whole` for a `long`, `Day` for a `DateOnly` — with the rules as arguments, and move a rule no argument says into
+`Rules()`; anything else derives from `Value`. Then make it with `X.Create(…)` ([RASK127](#rask127) points at each
+`new X(…)` left behind):
+
+```csharp
+// before
+public readonly record struct DriverName(string Value)
+{
+    public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);
+}
+Driver = new DriverName(name);
+
+// after
+public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100);
+Driver = DriverName.Create(name, nameof(Driver));
+```
+
+A rule that awaits something — a lookup — is not a value's: it belongs on the field (`.Validate(async v => …)`), on
+the form, or in the aggregate's unique rule (`IsUnique("…")`), which a form over the generated model asks by itself.
+
+**Not reported:** a value object declared from a base record, whatever else it declares; an instance `Validate`, or
+one that implements an interface (`IValidatableObject`); a value object of several values; and any type that is
+not a value object held by an aggregate — so a static method a hand-written form names on a field
+(`.Validate(DestinationName.Validate)`) is left alone.
+
+RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
