@@ -2205,6 +2205,28 @@ pass it, and only a real unique index closes that. Where the index does exist th
 word, reported the same way. An index declared with plain `IsUnique()` has no message to fail with and is not
 checked.
 
+### An index that answers the query by itself
+
+A query that finds rows by one column and reads a few others can be answered from the index alone, if the index
+carries them. Say which, on the index — once, for every database:
+
+```csharp
+builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // or Covering(p => p.Amount)
+```
+
+- **SQL Server** writes `CREATE INDEX … ([PayeeId]) INCLUDE ([Amount], [Note])` — EF Core's own
+  `IncludeProperties`, so the model snapshot and the migration read exactly as if you had written that.
+- **PostgreSQL** writes `… ("PayeeId") INCLUDE ("Amount", "Note")`.
+- **SQLite** has no included columns: the index is its key columns alone, and nothing of the declaration reaches
+  the model or a migration — an app that runs its tests on SQLite carries no SQL Server call into them.
+- The covered columns are carried, not ordered by: they are no part of the index's key, and a unique index stays
+  unique over its keys alone.
+- A covered member that is not a mapped property of the entity (a navigation, a complex property, an ignored
+  member), or one that is already a key of the index, fails the model build with its name.
+
+It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
+`ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
+
 ### What deleting a referenced row says
 
 A row that other rows still point at cannot go, and only the database knows. Say what that means once, on the

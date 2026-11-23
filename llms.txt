@@ -789,6 +789,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   **MULTI-TENANCY, the `PerTenant` trait**: `Invoice : Aggregate<Guid, PerTenant>` gives a table a TenantId column and a query filter nothing can compose away;
   AN INDEX IS WHAT THE APP WRITES — Rask adds nothing: name TenantId in a per-tenant one (`HasIndex(u => new { u.TenantId, u.Badge }).IsUnique("…")`), leave it out of a global one (`HasIndex(u => u.Username).IsUnique("…")`), and its unique rule is asked over exactly those columns;
   the name, message and filter are kept as written.
+  an index that answers its query alone is `HasIndex(p => p.PayeeId).Covering(p => new { p.Amount })` — INCLUDE on SQL Server and PostgreSQL, the keys alone on SQLite, no provider call in the model;
   ONLY THE ROOT CARRIES THE TENANT: every entity under it, at any depth, has no tenant column and is READ THROUGH ITS ROOT (#1251), along the path the aggregate's own collections make (nothing declared) — its filter is an `EXISTS` on each tenant-scoped parent's key and tenant, OR'd, so one child type held by two roots (`Driver.Chips` by DriverId, `Vehicle.Chips` by VehicleId, both keys optional) returns both kinds and only the current tenant's;
   `Tenant.Across()` lifts it, a child is written only under a parent of the tenant in flight (an untracked parent is looked up through the filter), and a child taken out of its parent's collection is deleted.
   A child that keeps a TenantId of its own is stamped from its root and refused when it disagrees;
