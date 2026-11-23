@@ -86,33 +86,33 @@ public sealed partial class ModelInputGenerator
                      + "but gets no form model.",
         helpLinkUri: DiagnosticHelp.Link("RASK083"));
 
-    internal static readonly DiagnosticDescriptor Rask102 = new(
-        "RASK102",
-        "A value object's Validate is not the shape of a rule, so no form runs it",
-        "'{0}' on value object '{1}' is not run by any form because {2} — a rule is "
-        + "'public static IEnumerable<string> Validate({3} value)', or the same returning "
-        + "ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>",
+    // RASK102 said a value object's Validate was not the shape of a rule while that convention was read; it is
+    // retired with the convention, and this rule says the convention itself is gone.
+    internal static readonly DiagnosticDescriptor Rask132 = new(
+        "RASK132",
+        "A value object's Validate is never asked: declare it from a base record",
+        "'{0}' on value object '{1}' is never asked: no form and no generated write runs a value object's Validate, "
+        + "only the rules of one declared from a Rask.Data base record — declare it {2}, and make it with '{1}.Create(…)'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "A value object that holds one value states its rule by convention: a public static, "
-                     + "non-generic Validate taking exactly the value it holds — by value or 'in', never as its "
-                     + "nullable form — and returning the messages. A form "
-                     + "bound to the aggregate's generated model then runs it with nothing written on the field. "
-                     + "A Validate of any other shape is not run, and a rule that never runs looks exactly like "
-                     + "one that ran and passed.",
-        helpLinkUri: DiagnosticHelp.Link("RASK102"));
+        description: "A value object's rule lives in its constructor: one declared from Text, Number, Whole, Day, Range or "
+                     + "Value is checked as it is made, and a form bound to the aggregate's generated model asks the same "
+                     + "rules with nothing written on the field. A public static Validate beside the value it holds was "
+                     + "the earlier way to say it, and nothing reads it any more — a rule that is never asked looks "
+                     + "exactly like one that was asked and passed.",
+        helpLinkUri: DiagnosticHelp.Link("RASK132"));
 
     // Once per method, however many aggregates hold the value object.
-    private static void ReportRuleMisses(SourceProductionContext context, Entity entity, HashSet<RuleMiss> reported)
+    private static void ReportStaleRules(SourceProductionContext context, Entity entity, HashSet<StaleRule> reported)
     {
         var held = entity.Members.Select(static m => m.ValueObject)
             .Concat(entity.ValueObjects.SelectMany(static v => v.Members.Select(static m => m.ValueObject)));
 
-        foreach (var miss in held.Where(static v => v is not null).SelectMany(static v => v!.RuleMisses).Where(reported.Add))
+        foreach (var stale in held.Where(static v => v is not null).SelectMany(static v => v!.StaleRules).Where(reported.Add))
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                Rask102, miss.Location?.ToLocation(), miss.Signature, miss.ValueObject, miss.Reason, miss.Held));
+                Rask132, stale.Location?.ToLocation(), stale.Signature, stale.ValueObject, stale.Declaration));
         }
     }
 
