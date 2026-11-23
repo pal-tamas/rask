@@ -7,14 +7,21 @@ namespace Rask.Generators.Tests;
 /// <summary>The RASK127 and RASK129 quick-fixes, applied and compared.</summary>
 public class ValueObjectCodeFixTests
 {
-    // The generated half's constructor, written by hand: the analyzer runs without the generator.
-    private static string Plate(string elsewhere) => $$"""
+    // The generated half's Create, written by hand: the analyzer runs without the generator.
+    private static string Source(string elsewhere) => $$"""
         using Rask.Data;
         namespace Shop;
-        public sealed partial record Plate() : Text(MaxLength: 10)
+        public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10)
         {
-            private Plate(string value) : this() => Value = value;
-            public static Plate Create(string? value, string? field = null) => new(value ?? "");
+            public static Plate Create(string Value, string? field = null) => new(Value);
+        }
+        public sealed partial record Km(int Start, int End) : Rask.Data.Range(Start, End)
+        {
+            public static Km Create(int Start, int End, string? field = null) => new(Start, End);
+        }
+        public sealed class Trip
+        {
+            public Km Leg { get; } = Km.Create(1, 2);
         }
         public static class Elsewhere
         {
@@ -35,37 +42,54 @@ public class ValueObjectCodeFixTests
             new ValueObjectFactoryGenerator(), new ValueObjectModifiersCodeFixProvider(), "RASK129",
             "using Rask.Data;\nnamespace Shop;\n" + declaration + "\n", "Rask.Data", "Rask.Cqrs");
 
-    [Fact]
-    public async Task The_RASK127_fix_turns_new_into_Create()
+    [Theory]
+    [InlineData("public static Plate Make(string v) => new Plate(v);", "public static Plate Make(string v) => Plate.Create(v);")]
+    [InlineData("public static Plate Make(string v) => new(v);", "public static Plate Make(string v) => Plate.Create(v);")]
+    [InlineData("public static Km Make(int a) => new Km(a, a + 1);", "public static Km Make(int a) => Km.Create(a, a + 1);")]
+    public async Task The_RASK127_fix_turns_new_into_Create(string written, string expected)
     {
-        var fixed_ = await Fix127(Plate("public static Plate Make(string v) => new Plate(v);"));
+        var source = Source(written);
 
-        Assert.Contains("public static Plate Make(string v) => Plate.Create(v);", fixed_, StringComparison.Ordinal);
-    }
+        var fixed_ = await Fix127(source);
 
-    [Fact]
-    public async Task The_RASK127_fix_names_the_type_of_a_target_typed_new()
-    {
-        var fixed_ = await Fix127(Plate("public static Plate Make(string v) => new(v);"));
-
-        Assert.Contains("public static Plate Make(string v) => Plate.Create(v);", fixed_, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task The_RASK127_fix_is_withheld_for_with_and_for_a_new_with_no_value()
-    {
-        Assert.False(await Offered127(Plate("public static Plate Copy(Plate p) => p with { };")));
-        Assert.False(await Offered127(Plate("public static Plate Make() => new Plate();")));
+        Assert.Contains(expected, fixed_, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("public record Plate() : Text(MaxLength: 10);", "public sealed partial record Plate() : Text(MaxLength: 10);")]
-    [InlineData("public partial record Plate() : Text(MaxLength: 10);", "public sealed partial record Plate() : Text(MaxLength: 10);")]
-    [InlineData("public sealed record Plate() : Text(MaxLength: 10);", "public sealed partial record Plate() : Text(MaxLength: 10);")]
-    [InlineData("record Plate() : Text(MaxLength: 10);", "sealed partial record Plate() : Text(MaxLength: 10);")]
+    [InlineData("public static Km Longer(Km k) => k with { End = 5 };", "public static Km Longer(Km k) => Km.Create(k.Start, 5);")]
+    [InlineData("public static Km Same(Km k) => k with { };", "public static Km Same(Km k) => Km.Create(k.Start, k.End);")]
+    [InlineData("public static Km Leg(Trip t) => t.Leg with { Start = 0 };", "public static Km Leg(Trip t) => Km.Create(0, t.Leg.End);")]
+    [InlineData("public static Plate Renamed(Plate p) => p with { };", "public static Plate Renamed(Plate p) => Plate.Create(p.Value);")]
+    public async Task The_RASK127_fix_turns_a_with_into_Create_over_every_positional_member(string written, string expected)
+    {
+        var source = Source(written);
+
+        var fixed_ = await Fix127(source);
+
+        Assert.Contains(expected, fixed_, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public static Km Copy() => Make() with { End = 5 }; static Km Make() => Km.Create(1, 2);")]
+    public async Task The_RASK127_fix_is_withheld_for_a_with_on_a_value_it_would_read_twice(string written)
+    {
+        var source = Source(written);
+
+        var offered = await Offered127(source);
+
+        Assert.False(offered);
+    }
+
+    [Theory]
+    [InlineData("public record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
+    [InlineData("public partial record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
+    [InlineData("public sealed record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
+    [InlineData("record Plate(int Start, int End) : Rask.Data.Range(Start, End);", "sealed partial record Plate(int Start, int End) : Rask.Data.Range(Start, End);")]
     public async Task The_RASK129_fix_adds_sealed_and_partial(string declaration, string expected)
     {
-        var fixed_ = await Fix129(declaration);
+        var source = declaration;
+
+        var fixed_ = await Fix129(source);
 
         Assert.Contains("\n" + expected + "\n", fixed_, StringComparison.Ordinal);
     }

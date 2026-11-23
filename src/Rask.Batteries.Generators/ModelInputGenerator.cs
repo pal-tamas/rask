@@ -345,7 +345,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool SingleValue,
         EquatableArray<ValueObjectMember> Members,
         ValueRule Rule = ValueRule.None,
-        EquatableArray<RuleMiss> RuleMisses = default);
+        EquatableArray<RuleMiss> RuleMisses = default,
+        bool Checked = false);
 
     private sealed record ValueObjectMember(
         string Name,

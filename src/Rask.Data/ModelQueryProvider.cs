@@ -54,6 +54,7 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
     {
         ArgumentNullException.ThrowIfNull(expression);
 
+        using var loading = Loading.Read();
         var (context, provider, bound) = Bind(expression);
         using (context)
         {
@@ -65,6 +66,7 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
     {
         ArgumentNullException.ThrowIfNull(expression);
 
+        using var loading = Loading.Read();
         var (context, provider, bound) = Bind(expression);
         using (context)
         {
@@ -111,6 +113,7 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
 
     public List<TElement> Materialize<TElement>(Expression expression)
     {
+        using var loading = Loading.Read();
         var (context, provider, bound) = Bind(expression);
         using (context)
         {

@@ -360,6 +360,13 @@ public sealed partial class ModelInputGenerator
                     given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
             };
 
+            // A value object that checks itself as it is made (Range, Value) refuses under its own members: `End`
+            // becomes `Km.End`, the field the form shows it under.
+            if (member.ValueObject is { SingleValue: false, Checked: true })
+            {
+                value = "global::Rask.Data.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")";
+            }
+
             s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)
                 .Append(member.ValueObject is { } held ? AndNotEmpty(given, held, member.Nullable) : "").AppendLine(")");
             s.AppendLine("        {");

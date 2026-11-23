@@ -42,15 +42,30 @@ public static class ValueObjectColumn
     /// <returns>The same builder.</returns>
     /// <exception cref="InvalidOperationException">The value object cannot be built from its value.</exception>
     public static PropertyBuilder Map<[DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(
-        PropertyBuilder property, Expression<Func<TValueObject, TValue>> value)
+        PropertyBuilder property, Expression<Func<TValueObject, TValue>> value) =>
+        Map(property, value, default);
+
+    /// <summary>
+    ///     Stores <paramref name="property" /> as the one value <paramref name="value" /> reads from it, in a column
+    ///     shaped by what the value object declares.
+    /// </summary>
+    /// <typeparam name="TValueObject">The value object's type.</typeparam>
+    /// <typeparam name="TValue">The type of the value it holds, which is the column's.</typeparam>
+    /// <param name="property">The entity's property that holds the value object.</param>
+    /// <param name="value">Reads the one value — <c>v =&gt; v.Value</c>.</param>
+    /// <param name="facets">The length, precision and scale it declares — the generated <c>X.__Facets</c>.</param>
+    /// <returns>The same builder.</returns>
+    /// <exception cref="InvalidOperationException">The value object cannot be built from its value.</exception>
+    public static PropertyBuilder Map<[DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(
+        PropertyBuilder property, Expression<Func<TValueObject, TValue>> value, ValueFacets facets)
     {
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
 
-        var (converter, comparer, rebuild) = Conversion(value);
+        var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(rebuild, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
@@ -66,48 +81,58 @@ public static class ValueObjectColumn
     /// <returns>The same builder.</returns>
     /// <exception cref="InvalidOperationException">The value object cannot be built from its value.</exception>
     public static ComplexTypePropertyBuilder Map<[DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(
-        ComplexTypePropertyBuilder property, Expression<Func<TValueObject, TValue>> value)
+        ComplexTypePropertyBuilder property, Expression<Func<TValueObject, TValue>> value) =>
+        Map(property, value, default);
+
+    /// <summary>
+    ///     Stores <paramref name="property" /> — held inside another value object — as the one value
+    ///     <paramref name="value" /> reads from it, in a column shaped by what the value object declares.
+    /// </summary>
+    /// <typeparam name="TValueObject">The value object's type.</typeparam>
+    /// <typeparam name="TValue">The type of the value it holds, which is the column's.</typeparam>
+    /// <param name="property">The outer value object's property that holds the value object.</param>
+    /// <param name="value">Reads the one value — <c>v =&gt; v.Value</c>.</param>
+    /// <param name="facets">The length, precision and scale it declares — the generated <c>X.__Facets</c>.</param>
+    /// <returns>The same builder.</returns>
+    /// <exception cref="InvalidOperationException">The value object cannot be built from its value.</exception>
+    public static ComplexTypePropertyBuilder Map<[DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(
+        ComplexTypePropertyBuilder property, Expression<Func<TValueObject, TValue>> value, ValueFacets facets)
     {
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
 
-        var (converter, comparer, rebuild) = Conversion(value);
+        var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(rebuild, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
 
-    // The value object declared from a base record, built once so its declared rules can be read: the column takes
-    // its length, precision and scale. Null for any other value object. The entity's own Configure runs after this,
-    // so a HasMaxLength there still has the last word (RASK128 says when it disagrees).
-    private static void Declare<TValueObject, TValue>(
-        Func<TValue, TValueObject> rebuild, Action<int> length, Action<int, int> precision)
+    // The length, precision and scale a value object declared from a base record states, read when the app was
+    // compiled — building one to ask would check its rules. The entity's own Configure runs after this, so a
+    // HasMaxLength there still has the last word (RASK128 says when it disagrees).
+    private static void Declare(ValueFacets facets, Action<int> length, Action<int, int> precision)
     {
-        if (!typeof(Text).IsAssignableFrom(typeof(TValueObject)) && !typeof(Number).IsAssignableFrom(typeof(TValueObject)))
+        if (facets.MaxLength is > 0 and var most)
         {
-            return;
+            length(most);
         }
 
-        switch (rebuild(default!))
+        if (facets.Precision is { } digits)
         {
-            case Text { MaxLength: > 0 } text:
-                length(text.MaxLength);
-                break;
-            case Number { Precision: { } digits } number:
-                precision(digits, number.Scale ?? 0);
-                break;
-            case Number { Scale: { } scale }:
-                precision(DefaultPrecision, scale);
-                break;
+            precision(digits, facets.Scale ?? 0);
+        }
+        else if (facets.Scale is { } scale)
+        {
+            precision(DefaultPrecision, scale);
         }
     }
 
-    private static (ValueConverter<TValueObject, TValue> Converter, ValueComparer<TValueObject> Comparer, Func<TValue, TValueObject> Rebuild) Conversion<
+    private static (ValueConverter<TValueObject, TValue> Converter, ValueComparer<TValueObject> Comparer) Conversion<
         [DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(Expression<Func<TValueObject, TValue>> value)
     {
-        var build = Build<TValueObject, TValue>(value);
+        var build = Loaded(Build<TValueObject, TValue>(value));
         var read = value.Compile();
         var rebuild = build.Compile();
 
@@ -116,8 +141,29 @@ public static class ValueObjectColumn
             new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
                 v => Hash(read, v),
-                v => Copy(read, rebuild, v)),
-            rebuild);
+                v => Copy(read, rebuild, v)));
+    }
+
+    // A value object that checks its rules as it is made (Rask.Data.Value) is rebuilt from its column inside a loading
+    // scope, so a row stored before a rule was tightened still loads, and a snapshot of it still copies. An expression
+    // tree cannot hold a `using`, so the build is a call to a method that does.
+    private static Expression<Func<TValue, TValueObject>> Loaded<TValueObject, TValue>(Expression<Func<TValue, TValueObject>> build)
+    {
+        if (!typeof(Value).IsAssignableFrom(typeof(TValueObject)))
+        {
+            return build;
+        }
+
+        var raw = build.Compile();
+        return value => Load(raw, value);
+    }
+
+    private static TValueObject Load<TValueObject, TValue>(Func<TValue, TValueObject> build, TValue value)
+    {
+        using (Loading.Begin())
+        {
+            return build(value);
+        }
     }
 
     private static bool Same<TValueObject, TValue>(Func<TValueObject, TValue> read, TValueObject? a, TValueObject? b)

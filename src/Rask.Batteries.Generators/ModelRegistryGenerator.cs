@@ -262,7 +262,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
                 var path = prefix.Add(property.Name);
                 var pathTypes = types.Add(typeName);
                 paths.Add(new ValueObjectPath(
-                    new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue));
+                    new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue, Facets: FacetsOf(type, typeName)));
 
                 if (singleValue is null && UnbuildableHolderOf(type) is { } holder)
                 {
@@ -767,7 +767,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             {
                 source.Append(indent).Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
                     .Append(".Property(x => x.").Append(group.Key).Append("), (").Append(self.Types[0])
-                    .Append(" v) => v.").Append(held).Append(')');
+                    .Append(" v) => v.").Append(held).Append(self.Facets is { } facets ? ", " + facets : "").Append(')');
 
                 if (self.ColumnPrefix is { } prefix)
                 {
@@ -890,11 +890,23 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
     // Segments and Types run in step, root first. SingleValue names the one stored property of a one-value type,
     // and ColumnPrefix is the owning path's column name once a path has been re-rooted under a nested builder.
+    // Facets is the generated `X.__Facets` of a value object declared from Text or Number — the length, precision and
+    // scale its column is given — or null for any other.
     private readonly record struct ValueObjectPath(
         EquatableArray<string> Segments,
         EquatableArray<string> Types,
         string? SingleValue,
-        string? ColumnPrefix = null);
+        string? ColumnPrefix = null,
+        string? Facets = null);
+
+    // A value object declared from Text or Number states its column's facets in its generated half; one compiled
+    // into a referenced assembly has them only if that assembly ran this generator.
+    private static string? FacetsOf(INamedTypeSymbol type, string typeName) =>
+        AggregateShape.ValueBaseOf(type) is "Text" or "Number" && !type.IsGenericType &&
+        (type.DeclaringSyntaxReferences.Any(static r => r.GetSyntax() is RecordDeclarationSyntax { ParameterList: not null }) ||
+         !type.GetMembers("__Facets").IsEmpty)
+            ? typeName + ".__Facets"
+            : null;
 
     // Internal so the model generator's Create asks "is this a strongly-typed id, and over what" of the same
     // definition the registry registers the value converter from.

@@ -2227,63 +2227,89 @@ A value object is **its values**: two with the same values are the same. Any com
 not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
 value's column, and one that holds several is an EF Core **complex type**.
 
-### One value, declared from a base record
+### Declared from a base record
 
-A value object that holds ONE value is declared from the base record of what it holds — `Text`, `Number`, `Whole`
-or `Day` — with its rules as the base's arguments. Rask writes the rest:
+A value object is declared from the Rask.Data base record of what it holds, with its rules as the base's
+arguments, and is checked as it is made — no instance exists that its rules refuse. Rask writes the rest:
 
 ```csharp
-public sealed partial record DriverName() : Text(MaxLength: 1000);
-public sealed partial record ChipCode() : Text(MaxLength: 1000, Trim: false);
-public sealed partial record TaxNumber() : Text(Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
-public sealed partial record Litres() : Number(Min: 1, Scale: 2);
-public sealed partial record Pieces() : Whole(Min: 0, Max: 1000);
-public sealed partial record InvoiceDay() : Day(NotAfterToday: true);
+public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
+public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 1000, Trim: false);
+public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
+public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
+public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
+public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
+public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);       // no end: open
+public sealed partial record RefundMonths(int From, int To) : Range(From, To, Min: 1, Max: 12);
+
+public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
+{
+    protected override IEnumerable<Problem> Rules()
+    {
+        if (Date is null != Quantity is null) yield return Problem.At(Quantity, "Both or neither.");
+    }
+}
 
 public sealed class Delivery : Aggregate<Guid, Model>
 {
     public DriverName Driver { get; private set; } = DriverName.Create("Unknown");
     public Litres Fuel { get; private set; } = Litres.Create(1);
-    public InvoiceDay? Invoiced { get; private set; }
+    public KmRange Km { get; private set; } = KmRange.Create(0, 1);
 
     public void Fill(decimal litres) => Fuel = Litres.Create(litres, nameof(Fuel));
+    public void Drive(int start, int end) => Km = KmRange.Create(start, end, nameof(Km));
 }
 ```
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string` | `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default) |
-| `Number` | `decimal` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
-| `Whole` | `long` | `Min`, `Max` |
-| `Day` | `DateOnly` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
+| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default) |
+| `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
+| `Whole` | `long Value` | `Min`, `Max` |
+| `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
+| `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
+| `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
 
-The generated half gives each one:
+The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
+compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a
+`RaskValidationException` — one failure per problem, under the member it names — and the generated half adds,
+over the primary constructor's parameters:
 
-- `X.Create(value, field)` — checks the rules and throws a `RaskValidationException` with every message under
-  `field`, so a form whose submit lets it through shows them there. Text is trimmed first unless it says `Trim: false`.
-- `X.TryCreate(value, out var x, out var problems)` and `X.CreateOptional(value)` (nothing for a blank or absent
-  value, else `Create`).
-- A private constructor EF Core rebuilds a stored value through: a row is loaded as it was stored and never
-  checked again, so tightening a rule does not make old rows unreadable.
+- `X.Create(…, field)` — the same, with `field` in front of each failure: `KmRange.Create(10, 5, "Km")` is refused
+  under `Km.End`, `DriverName.Create(text, "Driver")` exactly under `Driver`, so a form whose submit lets it through
+  shows each message there. The `field` is optional.
+- `X.TryCreate(…, out var x, out var problems)` — the answer without an exception.
+- `X.CreateOptional(…, field)` — nothing when nothing was given (text: only blanks), a required failure under each
+  member left empty when only some were (`KmRange.CreateOptional(5, null, "Km")` → `Km.End`), otherwise `Create`.
 
-It is one column, like any one-value value object, and the column takes what the value object declares: a
-`Text(MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a
-scale alone keeps EF Core's precision of 18). The entity's own `Configure` runs after and still has the last word —
-and [RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
+`new KmRange(…)` would throw without naming the field, and a `with` copies a value past its rules:
+[RASK127](diagnostics.md#rask127) refuses both outside the type, tests included, and its quick-fix writes the
+`Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
+([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
+same type and hold the same values; a one-value record's `ToString()` is its value.
+
+**A stored value is loaded, never re-checked.** EF Core builds what a row holds without asking the rules — a row
+stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on
+a row leaves the next `Create` checking again. Only what the code makes goes through them.
+
+**The column takes what the value object declares**, read from its base arguments when the app is compiled —
+constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
+MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Value, Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a
+scale alone keeps EF Core's precision of 18). A one-value record is one column; a `Range` or `Value` record is a
+complex type, one column per member. The entity's own `Configure` runs after and still has the last word —
+[RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
 object's, since a value the rule accepts would then not fit.
 
-A generated form model carries it as its value (`string? Driver`), a form bound to it asks the same rules under the
-field, and the generated `Create(model)`/`Update(id, model)` ask them before anything is written — each message in
-the reader's language from Rask's strings catalog. A property that is not nullable is required; a nullable one may
-be left empty.
+A generated form model carries a one-value record as its value (`string? Driver`): a form bound to it asks the same
+rules under the field and gives a text input the `MaxLength` as its `maxlength`, and the generated
+`Create(model)`/`Update(id, model)` ask them before anything is written — each message in the reader's language
+from Rask's strings catalog. A property that is not nullable is required; a nullable one may be left empty.
 
-Two values are equal when they are of the same type and hold the same value; the rules take no part. Its
-`ToString()` is the value. Make it only through `Create`: `new DriverName()` builds one no rule was asked about,
-and a `with` copies one past them — [RASK127](diagnostics.md#rask127) refuses both outside the type. It must be
-`sealed partial` ([RASK129](diagnostics.md#rask129)), since Rask writes its other half.
+An aggregate that stores a bare `string`, number, moment or `Guid` gets [RASK130](diagnostics.md#rask130) — a
+suggestion, and a warning under `<RaskStrict>` — pointing at the value object that would carry its rules.
 
-The shape below — a `record` holding one value with a `public static Validate` — still works, and is what a value
-object with a rule the bases cannot say (a checksum, a lookup) is written as.
+The shape below — a `record` holding one value with a `public static Validate` — still works for now.
 
 ### Value objects of any shape
 

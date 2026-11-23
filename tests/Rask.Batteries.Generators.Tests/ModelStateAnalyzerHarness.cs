@@ -11,14 +11,19 @@ namespace Rask.Batteries.Generators.Tests;
 /// </summary>
 internal static class ModelStateAnalyzerHarness
 {
-    public static async Task<IReadOnlyList<Diagnostic>> RunAsync(DiagnosticAnalyzer analyzer, string source)
+    /// <param name="analyzer">The analyzer to run.</param>
+    /// <param name="source">The snippet, which must compile.</param>
+    /// <param name="options">Changes the compilation's options — a severity an editorconfig would set, say — or null.</param>
+    public static async Task<IReadOnlyList<Diagnostic>> RunAsync(
+        DiagnosticAnalyzer analyzer, string source, Func<CSharpCompilationOptions, CSharpCompilationOptions>? options = null)
     {
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest), path: "Source.cs");
+        var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             [tree],
             References(),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            options is null ? compilationOptions : options(compilationOptions));
 
         // A snippet that does not compile proves nothing: a symbol that fails to bind is not an entity, so the
         // analyzer would report nothing and read exactly like a passing non-trigger case.

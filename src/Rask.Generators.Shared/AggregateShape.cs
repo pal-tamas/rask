@@ -234,7 +234,7 @@ internal static class AggregateShape
     ///     backing field — a computed property (<c>Display =&gt; …</c>) is not one.
     /// </summary>
     /// <remarks>
-    ///     A value object declared from a base record (<c>record DriverName() : Text(MaxLength: 1000)</c>) stores the
+    ///     A value object declared from a base record (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>) stores the
     ///     base's <c>Value</c> and nothing else: the rules its base keeps are not state.
     /// </remarks>
     public static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol type) =>
@@ -251,10 +251,31 @@ internal static class AggregateShape
     ///     <c>Day</c> of Rask.Data, derived from directly — or null for any other type.
     /// </summary>
     public static string? ValueBaseOf(INamedTypeSymbol type) =>
-        type.BaseType is { Name: "Text" or "Number" or "Whole" or "Day", Arity: 0, ContainingType: null } valueBase &&
+        DeclaredValueBaseOf(type) is ("Text" or "Number" or "Whole" or "Day") and var valueBase ? valueBase : null;
+
+    /// <summary>
+    ///     The Rask.Data base record a value object checked as it is made derives from directly — <c>Value</c>,
+    ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c> or <c>Range</c> — or null for any other type.
+    /// </summary>
+    public static string? DeclaredValueBaseOf(INamedTypeSymbol type) =>
+        type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Range", Arity: 0, ContainingType: null } valueBase &&
         IsRaskDataType(valueBase)
             ? valueBase.Name
             : null;
+
+    /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Data's <c>Value</c>.</summary>
+    public static bool IsValueRecord(INamedTypeSymbol type)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current is { Name: "Value", Arity: 0, ContainingType: null } && IsRaskDataType(current))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>How generated code writes <paramref name="property" />, or null when it cannot.</summary>
     public static WriteKind? WriteKindOf(IPropertySymbol property)

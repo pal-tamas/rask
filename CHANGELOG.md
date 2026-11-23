@@ -31,20 +31,32 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
-- **A one-value value object is declared from a base record: `public sealed partial record DriverName() : Text(MaxLength: 1000);`
-  (`Text`, `Number`, `Whole`, `Day` in Rask.Data).** Before: a one-value value object was a `record struct X(string Value)`
-  with a hand-written `public static IEnumerable<string> Validate(string)` — its own English messages, its column length
-  restated in `Configure`, and nothing stopping `new X("")` past the rule. After: the rules are the base's arguments
-  (`MaxLength`, `MinLength`, `Pattern`/`Message`, `Trim`; `Min`, `Max`, `Scale`, `Precision`; `NotBefore`, `NotAfter`,
-  `NotAfterToday`), and the new `ValueObjectFactoryGenerator` writes `X.Create(value, field)` (throws a
-  `RaskValidationException` under `field`), `TryCreate`, `CreateOptional` and the private constructor EF Core loads through
-  without re-checking. A generated form model, a bound form and `Create(model)`/`Update(id, model)` ask the same rules,
-  worded from the strings catalog (new keys `ValidationNumberMin`, `ValidationNumberMax`, `ValidationDecimals`, with
-  Hungarian); the column takes `HasMaxLength`/`HasPrecision` from the declaration, still overridable in `Configure`, and
-  a bound text input or textarea takes the length as its `maxlength` (new `RaskValidation.RegisterFieldLengths`). New
-  diagnostics: [RASK127](docs/diagnostics.md#rask127) (`new`/`with` outside the type, quick-fix to `Create`),
-  [RASK128](docs/diagnostics.md#rask128) (`Configure` disagrees with the declared length/precision) and
-  [RASK129](docs/diagnostics.md#rask129) (not `sealed partial`, quick-fix). The `Validate` shape still works.
+- **A value object is declared from a Rask.Data base record and checked as it is made:
+  `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);`,
+  `public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);`.** Before: a value
+  object was a `record struct X(string Value)` with a hand-written `public static IEnumerable<string> Validate(string)` —
+  its own English messages, its column length restated in `Configure`, and nothing stopping `new X("")` or a `with`
+  past the rule; a value of several members (a range, a pair filled together) had no rule of its own at all. After: the
+  bases `Text`, `Number`, `Whole`, `Day` and `Range` take the rules as arguments (`MaxLength`, `MinLength`,
+  `Pattern`/`Message`, `Trim`; `Min`, `Max`, `Scale`, `Precision`; `NotBefore`, `NotAfter`, `NotAfterToday`; `Strict`,
+  `Min`, `Max`, a null end being open), and `Value` runs the record's own `Rules()` (`Problem.At(Quantity, "…")`). The
+  constructor checks them and throws a `RaskValidationException` under the member each names; the new
+  `ValueObjectFactoryGenerator` writes, over the primary constructor, `X.Create(…, field)` (`KmRange.Create(10, 5, "Km")`
+  is refused under `Km.End`), `TryCreate` (no exception) and `CreateOptional` (nothing for nothing, a required failure
+  under a member left empty). A stored row is loaded without its rules (the materialization interceptor and the column
+  converter load inside a scope, closed again by EF Core's own report of a failed query), so tightening a rule never
+  makes old rows unreadable or a tracked edit unsaveable. The column takes `HasMaxLength`/`HasPrecision` from the base
+  arguments read at compile time, constants included (`X.__Facets`), still overridable in `Configure`; a generated form
+  model, a bound form and `Create(model)`/`Update(id, model)` ask the same rules, and a bound text input or textarea
+  takes the length as its `maxlength` (new `RaskValidation.RegisterFieldLengths`). The messages come from the strings
+  catalog through a generated module initializer (new keys `ValidationNumberMin`, `ValidationNumberMax`,
+  `ValidationDecimals`, `ValidationRangeNotBefore`, `ValidationRangeAfter`, with Hungarian). `Range` is a global alias
+  next to `using Rask.Data`, so it never clashes with `System.Range`. New diagnostics:
+  [RASK127](docs/diagnostics.md#rask127) (`new`/`with` outside the type, tests included; quick-fix to `Create`, a `with`
+  over every positional member), [RASK128](docs/diagnostics.md#rask128) (`Configure` disagrees with the declared
+  length/precision), [RASK129](docs/diagnostics.md#rask129) (not `sealed partial`, quick-fix) and
+  [RASK130](docs/diagnostics.md#rask130) (an aggregate stores a bare string, number, moment or Guid — a suggestion, a
+  warning under `<RaskStrict>`). The `Validate` shape still works for now.
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
   (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
   scrollbar thumb that shrank and jumped with every page, a drag to the bottom stopping at row fifty. After:

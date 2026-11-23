@@ -1,5 +1,9 @@
 <Project>
   <ItemGroup>
     <Using Include="Rask.Data"/>
+    <!-- `record KmRange(int Start, int End) : Range(Start, End)` names Rask.Data's base, which System's implicit using
+         would otherwise make ambiguous with System.Range (CS0104). An alias wins over both namespace imports; the
+         `..` operator keeps building System.Range, which the compiler finds without a name. -->
+    <Using Include="Rask.Data.Range" Alias="Range"/>
   </ItemGroup>
 </Project>

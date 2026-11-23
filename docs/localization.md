@@ -885,6 +885,8 @@ they say when you set nothing.
 | `ValidationNumberMin` | Validation — a number below a value object's `Number(Min: …)` / `Whole(Min: …)` | `Enter {0} or more.` |
 | `ValidationNumberMax` | Validation — a number above a value object's `Number(Max: …)` / `Whole(Max: …)` | `Enter {0} or less.` |
 | `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |
+| `ValidationRangeNotBefore` | Validation — a range's end before its start (`Range(Start, End)`) | `It cannot be before the start, {0}.` |
+| `ValidationRangeAfter` | Validation — a strict range's end not after its start (`Range(Start, End, Strict: true)`) | `It must be after the start, {0}.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

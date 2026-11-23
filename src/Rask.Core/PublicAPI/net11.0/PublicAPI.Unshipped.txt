@@ -19894,3 +19894,5 @@ static Rask.Core.Reader.NetworkOf(System.Net.IPAddress? address) -> string!
 Rask.Core.Globalization.RaskString.ValidationNumberMin = 282 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationNumberMax = 283 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationDecimals = 284 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationRangeAfter = 286 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationRangeNotBefore = 285 -> Rask.Core.Globalization.RaskString

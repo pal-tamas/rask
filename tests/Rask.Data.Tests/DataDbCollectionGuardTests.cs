@@ -21,6 +21,8 @@ public sealed class DataDbCollectionGuardTests
             nameof(GeneratedModelRulesTests),
             // Value objects compared in memory; it never builds a context.
             nameof(ValueObjectEqualityTests),
+            // Value objects made in memory, their rules asked; it never builds a context.
+            nameof(BaseRecordValueObjectRuleTests),
             // Builds a context type of its own, in a collection that runs alone after every parallel one.
             nameof(AppModelRulesTests));
 }

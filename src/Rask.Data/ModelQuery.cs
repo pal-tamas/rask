@@ -372,6 +372,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> run,
         CancellationToken cancellationToken)
     {
+        using var loading = Loading.Read();
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
         return await run(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);

@@ -355,8 +355,9 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationUrl), nameof(RaskString.ValidationCreditCard), nameof(RaskString.ValidationPattern),
         nameof(RaskString.ValidationMatch), nameof(RaskString.ValidationFileType), nameof(RaskString.ValidationNotAllowed),
         nameof(RaskString.ValidationBase64), nameof(RaskString.ValidationInvalid),
-        // A value object declared from Number or Whole: its generated half words its rules.
+        // A value object declared from Number, Whole or Range: the app's generated module initializer words its rules.
         nameof(RaskString.ValidationNumberMin), nameof(RaskString.ValidationNumberMax), nameof(RaskString.ValidationDecimals),
+        nameof(RaskString.ValidationRangeNotBefore), nameof(RaskString.ValidationRangeAfter),
         // A form's .ConfirmLeave() with no question of its own: Core's chain step asks it.
         nameof(RaskString.ConfirmLeaveQuestion),
     ];

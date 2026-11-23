@@ -12,7 +12,7 @@ namespace Rask.Generators.CodeFixes;
 
 /// <summary>
 ///     RASK129 — a record declared from a base record gains the <c>sealed</c> and <c>partial</c> it lacks:
-///     <c>public record DriverName() : Text(…)</c> becomes <c>public sealed partial record DriverName() : Text(…)</c>.
+///     <c>public record DriverName(string Value) : Text(…)</c> becomes <c>public sealed partial record DriverName(string Value) : Text(…)</c>.
 /// </summary>
 /// <remarks>Withheld when the record already has both, and only a type it is nested in is not partial.</remarks>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ValueObjectModifiersCodeFixProvider))]

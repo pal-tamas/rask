@@ -4,3 +4,7 @@ is_global = true
 # A name that is a Visual Basic keyword (Shared, Select, Option, Get): an app is C#, and Features/Shared is where
 # `rask new` keeps what features share. Rask turns it off in its own repository for the same reason.
 dotnet_diagnostic.CA1716.severity = none
+
+# An aggregate or entity that stores a bare string, number, moment or Guid where a value object would carry its rules
+# (RASK130). A suggestion everywhere else; under <RaskStrict> a warning, and at errors it fails the build.
+dotnet_diagnostic.RASK130.severity = warning

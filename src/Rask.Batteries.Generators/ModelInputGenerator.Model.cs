@@ -494,7 +494,8 @@ public sealed partial class ModelInputGenerator
             valueObject.SingleValue,
             new EquatableArray<ValueObjectMember>(members),
             RuleOf(valueObject),
-            new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)));
+            new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)),
+            Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null);
 
         converted[valueObject] = shape;
         return shape;

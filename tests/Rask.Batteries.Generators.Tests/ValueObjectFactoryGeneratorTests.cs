@@ -1,26 +1,41 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Rask.Batteries.Generators.Analyzers;
 
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// A value object declared from a base record — <c>record DriverName() : Text(MaxLength: 1000)</c>: its generated
-/// half, how a generated model builds and asks it, and RASK127–129.
+/// A value object declared from a Rask.Data base record — <c>record KmRange(int Start, int End) : Range(Start, End)</c>:
+/// its generated half, how a generated model builds and asks it, the column facets the registry hands EF Core, and
+/// RASK127–130.
 /// </summary>
 public class ValueObjectFactoryGeneratorTests
 {
     private const string Usings = """
         using System;
+        using System.Collections.Generic;
         using Rask.Data;
+        using Range = Rask.Data.Range;
         namespace Shop;
 
         """;
 
     private const string ValueObjects = """
-        public sealed partial record DriverName() : Text(MaxLength: 1000);
-        public sealed partial record Litres() : Number(Min: 1, Scale: 2);
-        public sealed partial record Pieces() : Whole(Min: 0, Max: 1000);
-        public sealed partial record InvoiceDay() : Day(NotAfterToday: true);
+        public static class Limits { public const int Name = 1000; }
+        public sealed partial record DriverName(string Value) : Text(Value, MaxLength: Limits.Name);
+        public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 1000, Trim: false);
+        public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
+        public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+        public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
+        public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);
+        public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);
+        public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
+        {
+            protected override IEnumerable<Problem> Rules()
+            {
+                if (Date is null != Quantity is null) yield return Problem.At(Quantity, "Both or neither.");
+            }
+        }
 
         """;
 
@@ -43,35 +58,101 @@ public class ValueObjectFactoryGeneratorTests
             ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore", .. extra]);
 
     [Theory]
-    [InlineData("DriverName", "string")]
-    [InlineData("Litres", "decimal")]
-    [InlineData("Pieces", "long")]
-    [InlineData("InvoiceDay", "global::System.DateOnly")]
-    public void Each_base_gets_its_constructor_and_factories_for_the_value_it_holds(string name, string held)
+    [InlineData("DriverName", "string Value", "string? Value")]
+    [InlineData("Litres", "decimal Value", "decimal? Value")]
+    [InlineData("Pieces", "long Value", "long? Value")]
+    [InlineData("InvoiceDay", "global::System.DateOnly Value", "global::System.DateOnly? Value")]
+    [InlineData("KmRange", "int Start, int End", "int? Start, int? End")]
+    [InlineData("ChipPeriod", "global::System.DateTime From, global::System.DateTime? To", "global::System.DateTime? From, global::System.DateTime? To")]
+    [InlineData("Opening", "global::System.DateOnly? Date, decimal? Quantity", "global::System.DateOnly? Date, decimal? Quantity")]
+    public void Each_base_gets_its_factories_over_its_primary_constructor(string name, string parameters, string optional)
     {
         var run = Run(ValueObjects);
+
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"private {name}({held} value) : this() => Value = value;", generated, StringComparison.Ordinal);
-        Assert.Contains($"public static {name} Create({held}? value, string? field = null)", generated, StringComparison.Ordinal);
-        Assert.Contains($"public static bool TryCreate({held}? value,", generated, StringComparison.Ordinal);
-        Assert.Contains($"public static {name}? CreateOptional({held}? value, string? field = null)", generated, StringComparison.Ordinal);
-        Assert.Contains($"__Problems({held}? value)", generated, StringComparison.Ordinal);
+        Assert.Contains($"public static {name} Create({parameters}, string? field = null)", generated, StringComparison.Ordinal);
+        Assert.Contains($"public static bool TryCreate({parameters}, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out {name}? result,", generated, StringComparison.Ordinal);
+        Assert.Contains($"public static {name}? CreateOptional({optional}, string? field = null)", generated, StringComparison.Ordinal);
+        Assert.Contains("= new " + name + "(", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_a_value_object_of_one_value_gets_the_rule_a_form_asks()
+    {
+        var run = Run(ValueObjects);
+
+        var name = run.GeneratedSource("DriverName.Value.g.cs");
+        var range = run.GeneratedSource("KmRange.Value.g.cs");
+
+        Assert.Contains("__Problems(string? value)", name, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Problems", range, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CreateOptional_refuses_only_the_members_that_may_not_be_empty()
+    {
+        var run = Run(ValueObjects);
+
+        var range = run.GeneratedSource("KmRange.Value.g.cs");
+        var period = run.GeneratedSource("ChipPeriod.Value.g.cs");
+
+        Assert.Contains("Missing(\"Start\")", range, StringComparison.Ordinal);
+        Assert.Contains("Missing(\"End\")", range, StringComparison.Ordinal);
+        Assert.Contains("Missing(\"From\")", period, StringComparison.Ordinal);
+        Assert.DoesNotContain("Missing(\"To\")", period, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("DriverName", "__Facets => new(MaxLength: 1000);", "__MaxLength => 1000;")]
+    [InlineData("ChipCode", "__Facets => new(MaxLength: 1000);", "__MaxLength => 1000;")]
+    [InlineData("Litres", "__Facets => new(Scale: 2);", null)]
+    public void The_column_facets_are_read_from_the_base_arguments_constants_included(string name, string facets, string? maxLength)
+    {
+        var run = Run(ValueObjects);
+
+        var generated = run.GeneratedSource(name + ".Value.g.cs");
+
+        Assert.Contains(facets, generated, StringComparison.Ordinal);
+        if (maxLength is null)
+        {
+            Assert.DoesNotContain("__MaxLength", generated, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains(maxLength, generated, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void The_registry_hands_the_column_the_facets_the_value_object_declares()
+    {
+        var run = GeneratorHarness.Run(
+            Usings + ValueObjects + Holder,
+            [new ValueObjectFactoryGenerator(), new ModelRegistryGenerator()],
+            ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
+
+        var registry = run.GeneratedSource("ModelRegistry");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("(global::Shop.DriverName v) => v.Value, global::Shop.DriverName.__Facets)", registry, StringComparison.Ordinal);
+        Assert.Contains("(global::Shop.Pieces v) => v.Value)", registry, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Messages_are_worded_from_the_catalog_where_the_compilation_has_one()
     {
-        var withCatalog = Run(ValueObjects, "Rask.Core").GeneratedSource("Litres.Value.g.cs");
+        var withCatalog = Run(ValueObjects, "Rask.Core");
         var without = GeneratorHarness.RunWithout(
-                Usings + ValueObjects, new ValueObjectFactoryGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Rask.Wire")
-            .GeneratedSource("Litres.Value.g.cs");
+            Usings + ValueObjects, new ValueObjectFactoryGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Rask.Wire");
 
-        Assert.Contains("RaskString.ValidationNumberMin, problem.Template, problem.Limit", withCatalog, StringComparison.Ordinal);
-        Assert.Contains("RaskString.ValidationDecimals", withCatalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("RaskStrings", without, StringComparison.Ordinal);
-        Assert.Empty(Run(ValueObjects, "Rask.Core").GeneratedCompileErrors());
+        var words = withCatalog.GeneratedSource("__RaskValueWords");
+
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", words, StringComparison.Ordinal);
+        Assert.Contains("RaskString.ValidationRangeAfter, problem.Template, problem.Limit", words, StringComparison.Ordinal);
+        Assert.Empty(withCatalog.GeneratedCompileErrors());
+        Assert.False(without.HasGeneratedSource("__RaskValueWords"));
     }
 
     [Fact]
@@ -80,19 +161,22 @@ public class ValueObjectFactoryGeneratorTests
         var run = Run("""
             public static partial class Fleet
             {
-                public sealed partial record Plate() : Text(MaxLength: 10);
+                public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);
             }
             """);
 
+        var generated = run.GeneratedSource("Plate.Value.g.cs");
+
         Assert.Empty(run.Diagnostics);
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("partial class Fleet", run.GeneratedSource("Plate.Value.g.cs"), StringComparison.Ordinal);
+        Assert.Contains("partial class Fleet", generated, StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_generated_model_asks_the_generated_rule_and_builds_through_Create()
     {
         var run = Run(ValueObjects + Holder);
+
         var model = run.GeneratedSource("DeliveryModel");
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -107,16 +191,19 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Theory]
-    [InlineData("public partial record Plate() : Text(MaxLength: 10);", "'sealed'")]
-    [InlineData("public sealed record Plate() : Text(MaxLength: 10);", "'partial'")]
-    [InlineData("public record Plate() : Text(MaxLength: 10);", "'sealed partial'")]
-    public void A_record_that_is_not_sealed_partial_is_RASK129(string declaration, string lacks)
+    [InlineData("public partial record Plate(string Value) : Text(Value, MaxLength: 10);", "Text", "'sealed'")]
+    [InlineData("public sealed record Plate(string Value) : Text(Value, MaxLength: 10);", "Text", "'partial'")]
+    [InlineData("public record Plate(string Value) : Text(Value, MaxLength: 10);", "Text", "'sealed partial'")]
+    [InlineData("public record Plate(int Start, int End) : Range(Start, End);", "Range", "'sealed partial'")]
+    [InlineData("public sealed record Plate(int Count) : Value;", "Value", "'partial'")]
+    public void A_record_that_is_not_sealed_partial_is_RASK129(string declaration, string valueBase, string lacks)
     {
         var run = Run(declaration);
 
         var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK129");
+
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("'Plate' is declared from Rask.Data.Text, so it must be " + lacks, diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'Plate' is declared from Rask.Data." + valueBase + ", so it must be " + lacks, diagnostic.GetMessage(), StringComparison.Ordinal);
         Assert.DoesNotContain(run.RunResult.Results.SelectMany(r => r.GeneratedSources), s => s.HintName.Contains("Plate", StringComparison.Ordinal));
     }
 
@@ -126,11 +213,12 @@ public class ValueObjectFactoryGeneratorTests
         var run = Run("""
             public static class Fleet
             {
-                public sealed partial record Plate() : Text(MaxLength: 10);
+                public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);
             }
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK129");
+
         Assert.Contains("'Fleet', which it is nested in", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
@@ -139,41 +227,51 @@ public class ValueObjectFactoryGeneratorTests
     {
         var run = Run(ValueObjects + "public record Other(string Value);");
 
-        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK129");
+        var diagnostics = run.Diagnostics;
+
+        Assert.DoesNotContain(diagnostics, d => d.Id == "RASK129");
     }
 
     // ---- RASK127 ----
 
     private const string Plate = """
         using Rask.Data;
+        using Range = Rask.Data.Range;
         namespace Shop;
-        public sealed partial record Plate() : Text(MaxLength: 10)
+        public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10)
         {
-            public static Plate Blank() => new();
+            public static Plate Blank() => new("x");
             public Plate Same() => this with { };
         }
+        public sealed partial record Km(int Start, int End) : Range(Start, End);
         public static class Elsewhere
         {
             ELSEWHERE
         }
         """;
 
-    [Fact]
-    public async Task A_base_record_value_object_made_with_new_outside_its_type_is_RASK127()
+    [Theory]
+    [InlineData("public static Plate Make() => new Plate(\"a\");", "Plate", "Text")]
+    [InlineData("public static Km Make() => new(1, 2);", "Km", "Range")]
+    public async Task A_value_object_made_with_new_outside_its_type_is_RASK127(string elsewhere, string name, string valueBase)
     {
-        var diagnostic = Assert.Single(await ModelStateAnalyzerHarness.RunAsync(
-            new ValueObjectCreationAnalyzer(), Plate.Replace("ELSEWHERE", "public static Plate Make() => new Plate();", StringComparison.Ordinal)));
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
+            new ValueObjectCreationAnalyzer(), Plate.Replace("ELSEWHERE", elsewhere, StringComparison.Ordinal));
+
+        var diagnostic = Assert.Single(diagnostics);
 
         Assert.Equal("RASK127", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("'Plate' is declared from Rask.Data.Text, so it is made only by 'Plate.Create(…)'", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains($"'{name}' is declared from Rask.Data.{valueBase}, so it is made only by '{name}.Create(…)'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task A_with_outside_its_type_is_RASK127()
     {
-        var diagnostic = Assert.Single(await ModelStateAnalyzerHarness.RunAsync(
-            new ValueObjectCreationAnalyzer(), Plate.Replace("ELSEWHERE", "public static Plate Copy(Plate p) => p with { };", StringComparison.Ordinal)));
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
+            new ValueObjectCreationAnalyzer(), Plate.Replace("ELSEWHERE", "public static Km Copy(Km k) => k with { End = 5 };", StringComparison.Ordinal));
+
+        var diagnostic = Assert.Single(diagnostics);
 
         Assert.Contains("instead of 'with'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
@@ -185,7 +283,9 @@ public class ValueObjectFactoryGeneratorTests
             new ValueObjectCreationAnalyzer(),
             Plate.Replace("ELSEWHERE", "public record Other(string Value); public static Other Make() => new Other(\"a\") with { };", StringComparison.Ordinal));
 
-        Assert.Empty(diagnostics);
+        var none = diagnostics;
+
+        Assert.Empty(none);
     }
 
     // ---- RASK128 ----
@@ -197,15 +297,17 @@ public class ValueObjectFactoryGeneratorTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed partial record DriverName() : Text(MaxLength: 1000);
-            public sealed partial record Litres() : Number(Min: 1, Scale: 2, Precision: 9);
-            public sealed partial record Note() : Text(MinLength: 2);
+            public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
+            public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2, Precision: 9);
+            public sealed partial record Note(string Value) : Text(Value, 0, 2);
+            public sealed partial record Ordered(string Value) : Text(Value, 1000);
             public sealed class Delivery : Aggregate<Guid>
             {
                 private Delivery() { }
                 public DriverName Driver { get; private set; } = null!;
                 public Litres Fuel { get; private set; } = null!;
                 public Note Remark { get; private set; } = null!;
+                public Ordered Line { get; private set; } = null!;
                 public static void Configure(EntityTypeBuilder<Delivery> builder)
                 {
                     {{configure}}
@@ -215,12 +317,15 @@ public class ValueObjectFactoryGeneratorTests
 
     [Theory]
     [InlineData("builder.Property(d => d.Driver).HasMaxLength(200);", "declares MaxLength: 1000, but 'HasMaxLength' gives its column a length of 200")]
+    [InlineData("builder.Property(d => d.Line).HasMaxLength(200);", "declares MaxLength: 1000, but 'HasMaxLength' gives its column a length of 200")]
     [InlineData("builder.Property(d => d.Driver).HasColumnType(\"nvarchar(max)\");", "gives its column no length")]
     [InlineData("builder.Property(d => d.Fuel).HasPrecision(18, 4);", "declares Precision: 9, Scale: 2, but 'HasPrecision' gives its column a precision of 18 and a scale of 4")]
     [InlineData("builder.Property(d => d.Fuel).HasColumnType(\"decimal(9,3)\");", "a precision of 9 and a scale of 3")]
     public async Task A_configured_facet_other_than_the_value_objects_is_RASK128(string configure, string said)
     {
-        var diagnostic = Assert.Single(await Configured(configure));
+        var diagnostics = await Configured(configure);
+
+        var diagnostic = Assert.Single(diagnostics);
 
         Assert.Equal("RASK128", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
@@ -235,6 +340,98 @@ public class ValueObjectFactoryGeneratorTests
     [InlineData("var length = 200; builder.Property(d => d.Driver).HasMaxLength(length);")]
     public async Task A_configured_facet_that_agrees_or_is_not_literal_is_fine(string configure)
     {
-        Assert.Empty(await Configured(configure));
+        var diagnostics = await Configured(configure);
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
+    }
+
+    // ---- RASK130 ----
+
+    private const string Entity = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Shop;
+        public enum Kind { A, B }
+        public readonly record struct CustomerId(Guid Value);
+        public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100);
+        public sealed class Delivery : Aggregate<Guid, Timestamps, Versioned>
+        {
+            private Delivery() { }
+            public string Note { get; private set; } = "";
+            public decimal? Litres { get; private set; }
+            public DateOnly Day { get; private set; }
+            public Guid Reference { get; private set; }
+            public bool Done { get; private set; }
+            public Kind Kind { get; private set; }
+            public CustomerId Customer { get; private set; }
+            public DriverName Driver { get; private set; } = null!;
+            public List<string> Tags { get; private set; } = [];
+            public string Display => Note + "!";
+        }
+        """;
+
+    [Fact]
+    public async Task A_bare_primitive_an_aggregate_stores_is_a_RASK130_suggestion()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), Entity);
+
+        var flagged = diagnostics.Select(d => d.Flagged()).ToList();
+
+        Assert.Equal(["Note", "Litres", "Day", "Reference"], flagged);
+        Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
+        Assert.Contains("'Delivery.Litres' is a bare 'decimal?' — declare a value object for it", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_app_that_sets_RaskStrict_is_warned_about_a_bare_primitive()
+    {
+        var strict = StrictSeverity("RASK130");
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
+            new PrimitiveStatePropertyAnalyzer(), Entity, options => options.WithSpecificDiagnosticOptions([new("RASK130", strict)]));
+
+        Assert.Equal(ReportDiagnostic.Warn, strict);
+        Assert.Equal(4, diagnostics.Count);
+        Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Warning, d.Severity));
+    }
+
+    [Fact]
+    public async Task A_class_that_is_not_an_entity_is_not_RASK130()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
+            new PrimitiveStatePropertyAnalyzer(), "namespace Shop; public sealed class Form { public string Name { get; set; } = \"\"; }");
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
+    }
+
+    // The severity rask-strict.globalconfig — the file <RaskStrict> adds to an app's every project — gives an id.
+    private static ReportDiagnostic StrictSeverity(string id)
+    {
+        var line = File.ReadLines(RepoPath("src", "Rask.Core", "build", "rask-strict.globalconfig"))
+            .Single(l => l.StartsWith("dotnet_diagnostic." + id + ".severity", StringComparison.Ordinal));
+
+        return line.Split('=')[1].Trim() switch
+        {
+            "error" => ReportDiagnostic.Error,
+            "warning" => ReportDiagnostic.Warn,
+            "suggestion" => ReportDiagnostic.Info,
+            _ => ReportDiagnostic.Suppress,
+        };
+    }
+
+    private static string RepoPath(params string[] parts)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return Path.Combine([directory!.FullName, .. parts]);
     }
 }

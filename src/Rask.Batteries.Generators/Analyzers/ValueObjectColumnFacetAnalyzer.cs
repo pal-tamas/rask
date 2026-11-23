@@ -38,8 +38,8 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
         helpLinkUri: DiagnosticHelp.Link("RASK128"));
 
     // The parameters of each base's constructor, in order, for an argument given by position.
-    private static readonly string[] TextParameters = ["MaxLength", "MinLength", "Pattern", "Message", "Trim"];
-    private static readonly string[] NumberParameters = ["Min", "Max", "Scale", "Precision"];
+    private static readonly string[] TextParameters = ["Value", "MaxLength", "MinLength", "Pattern", "Message", "Trim"];
+    private static readonly string[] NumberParameters = ["Value", "Min", "Max", "Scale", "Precision"];
     private static readonly string[] NumberFacets = ["Precision", "Scale"];
 
     private static readonly Regex Sizes = new(@"\(\s*(?<first>\d+|max)\s*(?:,\s*(?<second>\d+)\s*)?\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, System.TimeSpan.FromSeconds(1));

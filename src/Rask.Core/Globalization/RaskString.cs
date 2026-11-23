@@ -905,4 +905,10 @@ public enum RaskString
 
     /// <summary>What a number with more decimal places than a value object's <c>Number(Scale: …)</c> says. <c>{0}</c> is the most.</summary>
     ValidationDecimals,
+
+    /// <summary>What a range's end before its start says (<c>Range(Start, End)</c>). <c>{0}</c> is the start.</summary>
+    ValidationRangeNotBefore,
+
+    /// <summary>What a strict range's end not after its start says (<c>Range(Start, End, Strict: true)</c>). <c>{0}</c> is the start.</summary>
+    ValidationRangeAfter,
 }

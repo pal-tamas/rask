@@ -19,7 +19,7 @@ internal enum ModelValueObjectBuild
     AccessorMembers,
 
     /// <summary>
-    ///     Declared from a base record (<c>record DriverName() : Text(MaxLength: 1000)</c>): built through the generated
+    ///     Declared from a base record (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>): built through the generated
     ///     <c>DriverName.Create(value)</c>, never a constructor.
     /// </summary>
     Factory,

@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Rask.Data;
 
-/// <summary>Which rule of a value object's base record a value broke. Read by generated code.</summary>
+/// <summary>Which rule of a value object's base record a value broke: what <see cref="ValueWords" /> words.</summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public enum ValueProblemKind
 {
@@ -35,4 +35,10 @@ public enum ValueProblemKind
 
     /// <summary>A day after its latest, the <see cref="ValueProblem.Limit" />.</summary>
     AfterLatest,
+
+    /// <summary>A range's end before its start, the <see cref="ValueProblem.Limit" />.</summary>
+    EndBeforeStart,
+
+    /// <summary>A strict range's end not after its start, the <see cref="ValueProblem.Limit" />.</summary>
+    EndNotAfterStart,
 }

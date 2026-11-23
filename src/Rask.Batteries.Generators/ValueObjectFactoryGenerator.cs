@@ -12,18 +12,25 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators;
 
 /// <summary>
-/// Writes the generated half of a value object declared from a base record —
-/// <c>public sealed partial record DriverName() : Text(MaxLength: 1000);</c>: the private constructor EF Core rebuilds
-/// a stored value through, <c>Create</c>, <c>TryCreate</c> and <c>CreateOptional</c>, and the <c>__Problems</c> a form
-/// and a generated write ask.
+/// Writes the generated half of a value object declared from a Rask.Data base record —
+/// <c>public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);</c>: <c>Create</c>,
+/// <c>TryCreate</c> and <c>CreateOptional</c> over its primary constructor's parameters, and for one holding one value
+/// the <c>__Problems</c> a form and a generated write ask, plus the column facets (<c>__Facets</c>,
+/// <c>__MaxLength</c>) read from the arguments it hands its base.
 /// </summary>
 /// <remarks>
-/// The base keeps the rules and says which one a value broke; the messages are worded here, from Rask's strings
-/// catalog where the compilation has Rask.Core, so they are in the reader's language — the server build of
-/// Rask.Data cannot reach the catalog itself.
+/// <para>
+/// No rule is written here: every member makes the value through its constructor, which checks them, and reads the
+/// answer — inside an attempt (<c>GeneratedValueRules.Attempt</c>) for the ones that must not throw.
+/// </para>
+/// <para>
+/// The rules are worded by Rask.Data's <c>ValueWords</c>; a compilation that has Rask's strings catalog hands it the
+/// catalog in a module initializer, so they are said in the reader's language — the server build of Rask.Data cannot
+/// reach the catalog itself.
+/// </para>
 /// </remarks>
 [Generator]
-public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
+public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
 {
     internal static readonly DiagnosticDescriptor Rask129 = new(
         "RASK129",
@@ -32,16 +39,19 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "A record deriving from Text, Number, Whole or Day gets its constructor, Create, TryCreate and "
+        description: "A record deriving from Value, Text, Number, Whole, Day or Range gets Create, TryCreate and "
                      + "CreateOptional generated into it, so it has to be partial; and it is the value itself, never a "
                      + "base for another, so it has to be sealed. A type it is nested in has to be partial too.",
         helpLinkUri: DiagnosticHelp.Link("RASK129"));
 
-    private const string Strings = "global::Rask.Core.Globalization.RaskStrings";
-    private const string Keys = "global::Rask.Core.Globalization.RaskString";
-    private const string Kinds = "global::Rask.Data.ValueProblemKind";
     private const string Rules = "global::Rask.Data.GeneratedValueRules";
+    private const string ProblemType = "global::Rask.Data.Problem";
+    private const string ProblemList = "global::System.Collections.Generic.IReadOnlyList<" + ProblemType + ">";
     private const string Messages = "global::System.Collections.Generic.IReadOnlyList<string>";
+    private const string Hidden = "    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
+    private static readonly SymbolDisplayFormat TypeFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -53,18 +63,29 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
             .Where(static value => value is not null)
             .Select(static (value, _) => value!);
 
-        // Worded from the catalog only where the compilation has one with every key the rules name.
-        var catalog = context.CompilationProvider.Select(static (compilation, _) =>
-            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
-            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationDecimals").Length > 0);
+        context.RegisterSourceOutput(values.Collect(), static (spc, all) => Emit(spc, all));
 
-        context.RegisterSourceOutput(values.Collect().Combine(catalog), static (spc, all) => Emit(spc, all.Left, all.Right));
+        // Worded from the catalog only where the compilation has one with every key the bases name.
+        var catalog = context.CompilationProvider.Select(static (compilation, _) =>
+            compilation.GetTypeByMetadataName("Rask.Data.ValueWords") is not null &&
+            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
+            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationRangeAfter").Length > 0);
+
+        context.RegisterSourceOutput(catalog, static (spc, has) =>
+        {
+            if (has)
+            {
+                spc.AddSource("__RaskValueWords.g.cs", SourceText.From(RenderWords(), Encoding.UTF8));
+            }
+        });
     }
 
     private static ValueObject? Describe(GeneratorSyntaxContext ctx, CancellationToken token)
     {
-        if (ctx.SemanticModel.GetDeclaredSymbol((RecordDeclarationSyntax)ctx.Node, token) is not INamedTypeSymbol type ||
-            AggregateShape.ValueBaseOf(type) is not { } valueBase)
+        var node = (RecordDeclarationSyntax)ctx.Node;
+        if (ctx.SemanticModel.GetDeclaredSymbol(node, token) is not INamedTypeSymbol type ||
+            AggregateShape.DeclaredValueBaseOf(type) is not { } valueBase ||
+            !IsPrimaryDeclaration(type, node))
         {
             return null;
         }
@@ -88,8 +109,98 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
             valueBase,
             new EquatableArray<string>([.. containers]),
             type.IsGenericType,
+            ReadParameters(ctx.SemanticModel, node, token),
+            ReadFacets(ctx.SemanticModel, node, token),
             problem,
             SymbolLocation.From(type));
+    }
+
+    // One declaration speaks for a partial record: the one with the primary constructor, else the first.
+    private static bool IsPrimaryDeclaration(INamedTypeSymbol type, RecordDeclarationSyntax node)
+    {
+        var declarations = type.DeclaringSyntaxReferences.Select(static r => r.GetSyntax()).OfType<RecordDeclarationSyntax>().ToList();
+        var primary = declarations.Find(static d => d.ParameterList is not null) ?? declarations.FirstOrDefault();
+        return primary is not null && primary.SyntaxTree == node.SyntaxTree && primary.Span == node.Span;
+    }
+
+    private static EquatableArray<Parameter> ReadParameters(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
+    {
+        if (node.ParameterList is not { } list)
+        {
+            return new EquatableArray<Parameter>([]);
+        }
+
+        var parameters = new List<Parameter>();
+        foreach (var syntax in list.Parameters)
+        {
+            if (model.GetDeclaredSymbol(syntax, token) is not { } parameter)
+            {
+                continue;
+            }
+
+            var declared = parameter.Type;
+            var nullable = declared.NullableAnnotation == NullableAnnotation.Annotated ||
+                           declared.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+            parameters.Add(new Parameter(
+                parameter.Name,
+                declared.ToDisplayString(TypeFormat),
+                NullableForm(declared, nullable),
+                declared.SpecialType == SpecialType.System_String,
+                declared.IsValueType,
+                nullable));
+        }
+
+        return new EquatableArray<Parameter>([.. parameters]);
+    }
+
+    // The type CreateOptional takes the parameter as: itself when it may already be null, else its nullable form.
+    private static string NullableForm(ITypeSymbol declared, bool nullable)
+    {
+        if (nullable)
+        {
+            return declared.ToDisplayString(TypeFormat);
+        }
+
+        return declared.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat) + "?";
+    }
+
+    // The column facets the record hands its base — `Text(Value, MaxLength: Limits.Name)` — as constants, read
+    // here so the column is shaped without building an instance (which would check its rules).
+    private static ColumnFacets ReadFacets(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
+    {
+        var call = node.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().FirstOrDefault();
+        if (call is null || model.GetSymbolInfo(call, token).Symbol is not IMethodSymbol constructor)
+        {
+            return new ColumnFacets(null, null, null);
+        }
+
+        int? maxLength = null, precision = null, scale = null;
+        for (var i = 0; i < call.ArgumentList.Arguments.Count; i++)
+        {
+            var argument = call.ArgumentList.Arguments[i];
+            var name = argument.NameColon?.Name.Identifier.ValueText ??
+                       (i < constructor.Parameters.Length ? constructor.Parameters[i].Name : null);
+            var constant = model.GetConstantValue(argument.Expression, token);
+            if (!constant.HasValue || constant.Value is not int value)
+            {
+                continue;
+            }
+
+            switch (name)
+            {
+                case "MaxLength" when value > 0:
+                    maxLength = value;
+                    break;
+                case "Precision":
+                    precision = value;
+                    break;
+                case "Scale":
+                    scale = value;
+                    break;
+            }
+        }
+
+        return new ColumnFacets(maxLength, precision, scale);
     }
 
     // What the declaration lacks, in the words of the message: "sealed partial", "sealed" or "partial".
@@ -124,9 +235,8 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
             _ => "class",
         };
 
-    private static void Emit(SourceProductionContext context, ImmutableArray<ValueObject> all, bool catalog)
+    private static void Emit(SourceProductionContext context, ImmutableArray<ValueObject> all)
     {
-        // Distinct because a partial record contributes one entry per declaration.
         foreach (var value in all.Distinct().OrderBy(static v => v.FullyQualifiedName, System.StringComparer.Ordinal))
         {
             if (value.Problem is { } problem)
@@ -135,159 +245,22 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (value.Generic)
+            if (value.Generic || value.Parameters.Count == 0)
             {
                 continue;
             }
 
             context.AddSource(
                 value.FullyQualifiedName.Replace("global::", "").Replace('<', '_').Replace('>', '_') + ".Value.g.cs",
-                SourceText.From(Render(value, catalog), Encoding.UTF8));
+                SourceText.From(Render(value), Encoding.UTF8));
         }
     }
 
-    private static string Render(ValueObject value, bool catalog)
-    {
-        var s = new StringBuilder();
-        s.AppendLine("// <auto-generated/>");
-        s.AppendLine("#nullable enable");
-        s.AppendLine();
+    /// <summary>One primary-constructor parameter, as the generated members take it.</summary>
+    private sealed record Parameter(string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable);
 
-        if (value.Namespace.Length > 0)
-        {
-            s.Append("namespace ").Append(value.Namespace).AppendLine(";");
-            s.AppendLine();
-        }
-
-        foreach (var container in value.Containers)
-        {
-            s.AppendLine(container);
-            s.AppendLine("{");
-        }
-
-        s.Append("partial record ").AppendLine(value.Name);
-        s.AppendLine("{");
-        AppendMembers(s, value, Held(value.ValueBase));
-        AppendSay(s, value.ValueBase, catalog);
-        s.AppendLine("}");
-
-        foreach (var _ in value.Containers)
-        {
-            s.AppendLine("}");
-        }
-
-        return s.ToString();
-    }
-
-    private static string Held(string valueBase) =>
-        valueBase switch
-        {
-            "Text" => "string",
-            "Number" => "decimal",
-            "Whole" => "long",
-            _ => "global::System.DateOnly",
-        };
-
-    private static void AppendMembers(StringBuilder s, ValueObject value, string held)
-    {
-        var name = value.Name;
-        var text = string.Equals(held, "string", System.StringComparison.Ordinal);
-        var given = text ? "value!" : "value.GetValueOrDefault()";
-        var blank = text ? "string.IsNullOrWhiteSpace(value)" : "value is null";
-
-        s.Append("    private static readonly ").Append(name).AppendLine(" __Rules = new();");
-        s.AppendLine();
-        s.AppendLine("    // How EF Core rebuilds a stored value: as it was stored, never checked again.");
-        s.Append("    private ").Append(name).Append('(').Append(held).AppendLine(" value) : this() => Value = value;");
-        s.AppendLine();
-        s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" /> holding <paramref name=\"value\" />, once its rules accept it.</summary>");
-        s.AppendLine("    /// <param name=\"value\">The value as given.</param>");
-        s.AppendLine("    /// <param name=\"field\">The field it came from, as a form names it, so a refusal is shown under it.</param>");
-        s.AppendLine("    /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">The rules refuse it.</exception>");
-        s.Append("    public static ").Append(name).Append(" Create(").Append(held).AppendLine("? value, string? field = null)");
-        s.AppendLine("    {");
-        s.AppendLine("        var problems = __Problems(value);");
-        s.Append("        return problems.Count == 0 ? new ").Append(name).Append("(__Rules.Normalize(").Append(given)
-            .Append(")) : throw ").Append(Rules).AppendLine(".Refused(problems, field);");
-        s.AppendLine("    }");
-        s.AppendLine();
-        s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" /> holding <paramref name=\"value\" />, or what its rules say against it.</summary>");
-        s.Append("    public static bool TryCreate(").Append(held).Append("? value, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ")
-            .Append(name).Append("? result, out ").Append(Messages).AppendLine(" problems)");
-        s.AppendLine("    {");
-        s.AppendLine("        problems = __Problems(value);");
-        s.Append("        result = problems.Count == 0 ? new ").Append(name).Append("(__Rules.Normalize(").Append(given).AppendLine(")) : null;");
-        s.AppendLine("        return result is not null;");
-        s.AppendLine("    }");
-        s.AppendLine();
-        s.Append("    /// <summary>Nothing for a value left ").Append(text ? "blank" : "empty").AppendLine("; otherwise <see cref=\"Create\" />.</summary>");
-        s.Append("    public static ").Append(name).Append("? CreateOptional(").Append(held).AppendLine("? value, string? field = null) =>");
-        s.Append("        ").Append(blank).AppendLine(" ? null : Create(value, field);");
-        s.AppendLine();
-        s.AppendLine("    /// <summary>What the rules say against <paramref name=\"value\" />: what a form and a generated write ask.</summary>");
-        s.AppendLine("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        s.Append("    public static ").Append(Messages).Append(" __Problems(").Append(held).AppendLine("? value) =>");
-        s.Append("        ").Append(Rules).AppendLine(".Said(__Rules.Problems(value), __Say);");
-
-        if (text)
-        {
-            s.AppendLine();
-            s.AppendLine("    /// <summary>The most characters it may hold, or null for no limit: what a bound input is given as its maxlength.</summary>");
-            s.AppendLine("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-            s.AppendLine("    public static int? __MaxLength => __Rules.MaxLength > 0 ? __Rules.MaxLength : null;");
-        }
-    }
-
-    // Each rule the base can break, worded from the catalog; the English stands in where there is none.
-    private static void AppendSay(StringBuilder s, string valueBase, bool catalog)
-    {
-        s.AppendLine();
-        if (!catalog)
-        {
-            s.AppendLine("    private static readonly global::System.Func<global::Rask.Data.ValueProblem, string>? __Say = null;");
-            return;
-        }
-
-        s.AppendLine("    private static string __Say(global::Rask.Data.ValueProblem problem) =>");
-        s.AppendLine("        problem.Kind switch");
-        s.AppendLine("        {");
-        foreach (var (kind, key, limit) in Sentences(valueBase))
-        {
-            s.Append("            ").Append(Kinds).Append('.').Append(kind).Append(" => ").Append(Strings).Append(".Get(")
-                .Append(Keys).Append('.').Append(key).Append(", problem.Template").Append(limit ? ", problem.Limit" : "").AppendLine("),");
-        }
-
-        s.AppendLine("            _ => problem.English,");
-        s.AppendLine("        };");
-    }
-
-    private static IEnumerable<(string Kind, string Key, bool Limit)> Sentences(string valueBase)
-    {
-        yield return ("Required", "ValidationRequired", false);
-
-        switch (valueBase)
-        {
-            case "Text":
-                yield return ("TooShort", "ValidationTooShort", true);
-                yield return ("TooLong", "ValidationTooLong", true);
-                yield return ("Pattern", "ValidationPattern", false);
-                break;
-            case "Day":
-                yield return ("BeforeEarliest", "ValidationDateMin", true);
-                yield return ("AfterLatest", "ValidationDateMax", true);
-                break;
-            default:
-                yield return ("BelowMin", "ValidationNumberMin", true);
-                yield return ("AboveMax", "ValidationNumberMax", true);
-                if (string.Equals(valueBase, "Number", System.StringComparison.Ordinal))
-                {
-                    yield return ("TooManyDecimals", "ValidationDecimals", true);
-                    yield return ("TooManyDigits", "ValidationNumberRange", false);
-                }
-
-                break;
-        }
-    }
+    /// <summary>The column facets a value object declares, as constants; null where it declares none.</summary>
+    private sealed record ColumnFacets(int? MaxLength, int? Precision, int? Scale);
 
     private sealed record ValueObject(
         string FullyQualifiedName,
@@ -296,6 +269,12 @@ public sealed class ValueObjectFactoryGenerator : IIncrementalGenerator
         string ValueBase,
         EquatableArray<string> Containers,
         bool Generic,
+        EquatableArray<Parameter> Parameters,
+        ColumnFacets Facets,
         string? Problem,
-        SymbolLocation? Location);
+        SymbolLocation? Location)
+    {
+        /// <summary>Holds one value — Text, Number, Whole or Day over one parameter — which forms ask directly.</summary>
+        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" && Parameters.Count == 1;
+    }
 }

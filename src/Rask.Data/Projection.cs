@@ -60,6 +60,7 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,
         CancellationToken cancellationToken)
     {
+        using var loading = Loading.Read();
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
         var projected = ModelQueryBinder.BindNested(_source(context.Set<TEntity>()).Select(_selector), context);

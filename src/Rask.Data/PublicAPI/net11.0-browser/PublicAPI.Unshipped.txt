@@ -422,10 +422,6 @@ static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading(this Micro
 static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
 ~override Rask.Data.ValueProblem.Equals(object obj) -> bool
 ~override Rask.Data.ValueProblem.ToString() -> string
-abstract Rask.Data.Day.<Clone>$() -> Rask.Data.Day!
-abstract Rask.Data.Number.<Clone>$() -> Rask.Data.Number!
-abstract Rask.Data.Text.<Clone>$() -> Rask.Data.Text!
-abstract Rask.Data.Whole.<Clone>$() -> Rask.Data.Whole!
 override Rask.Data.Day.Equals(object? obj) -> bool
 override Rask.Data.Day.GetHashCode() -> int
 override Rask.Data.Number.Equals(object? obj) -> bool
@@ -441,35 +437,14 @@ override sealed Rask.Data.Text.ToString() -> string!
 override sealed Rask.Data.Whole.ToString() -> string!
 Rask.Data.Day
 Rask.Data.Day.Day(Rask.Data.Day! original) -> void
-Rask.Data.Day.Day(System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false) -> void
-Rask.Data.Day.NotAfter.get -> System.DateOnly?
-Rask.Data.Day.NotAfterToday.get -> bool
-Rask.Data.Day.NotBefore.get -> System.DateOnly?
-Rask.Data.Day.Problems(System.DateOnly? value) -> System.Collections.Generic.IEnumerable<Rask.Data.ValueProblem>!
 Rask.Data.Day.Value.get -> System.DateOnly
-Rask.Data.Day.Value.init -> void
 Rask.Data.GeneratedValueRules
 Rask.Data.Number
-Rask.Data.Number.Max.get -> decimal?
-Rask.Data.Number.Min.get -> decimal?
-Rask.Data.Number.Number(decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null) -> void
 Rask.Data.Number.Number(Rask.Data.Number! original) -> void
-Rask.Data.Number.Precision.get -> int?
-Rask.Data.Number.Problems(decimal? value) -> System.Collections.Generic.IEnumerable<Rask.Data.ValueProblem>!
-Rask.Data.Number.Scale.get -> int?
 Rask.Data.Number.Value.get -> decimal
-Rask.Data.Number.Value.init -> void
 Rask.Data.Text
-Rask.Data.Text.MaxLength.get -> int
-Rask.Data.Text.Message.get -> string?
-Rask.Data.Text.MinLength.get -> int
-Rask.Data.Text.Pattern.get -> string?
-Rask.Data.Text.Problems(string? value) -> System.Collections.Generic.IEnumerable<Rask.Data.ValueProblem>!
-Rask.Data.Text.Text(int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true) -> void
 Rask.Data.Text.Text(Rask.Data.Text! original) -> void
-Rask.Data.Text.Trim.get -> bool
 Rask.Data.Text.Value.get -> string!
-Rask.Data.Text.Value.init -> void
 Rask.Data.ValueProblem
 Rask.Data.ValueProblem.Deconstruct(out Rask.Data.ValueProblemKind Kind, out object? Limit, out string? Message) -> void
 Rask.Data.ValueProblem.English.get -> string!
@@ -495,17 +470,10 @@ Rask.Data.ValueProblemKind.TooManyDecimals = 6 -> Rask.Data.ValueProblemKind
 Rask.Data.ValueProblemKind.TooManyDigits = 7 -> Rask.Data.ValueProblemKind
 Rask.Data.ValueProblemKind.TooShort = 1 -> Rask.Data.ValueProblemKind
 Rask.Data.Whole
-Rask.Data.Whole.Max.get -> long?
-Rask.Data.Whole.Min.get -> long?
-Rask.Data.Whole.Problems(long? value) -> System.Collections.Generic.IEnumerable<Rask.Data.ValueProblem>!
 Rask.Data.Whole.Value.get -> long
-Rask.Data.Whole.Value.init -> void
-Rask.Data.Whole.Whole(long? Min = null, long? Max = null) -> void
 Rask.Data.Whole.Whole(Rask.Data.Whole! original) -> void
 static Rask.Data.Day.operator !=(Rask.Data.Day? left, Rask.Data.Day? right) -> bool
 static Rask.Data.Day.operator ==(Rask.Data.Day? left, Rask.Data.Day? right) -> bool
-static Rask.Data.GeneratedValueRules.Refused(System.Collections.Generic.IReadOnlyList<string!>! messages, string? field) -> Rask.Cqrs.RaskValidationException!
-static Rask.Data.GeneratedValueRules.Said(System.Collections.Generic.IEnumerable<Rask.Data.ValueProblem>! problems, System.Func<Rask.Data.ValueProblem, string!>? say) -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Data.Number.operator !=(Rask.Data.Number? left, Rask.Data.Number? right) -> bool
 static Rask.Data.Number.operator ==(Rask.Data.Number? left, Rask.Data.Number? right) -> bool
 static Rask.Data.Text.operator !=(Rask.Data.Text? left, Rask.Data.Text? right) -> bool
@@ -514,19 +482,101 @@ static Rask.Data.ValueProblem.operator !=(Rask.Data.ValueProblem left, Rask.Data
 static Rask.Data.ValueProblem.operator ==(Rask.Data.ValueProblem left, Rask.Data.ValueProblem right) -> bool
 static Rask.Data.Whole.operator !=(Rask.Data.Whole? left, Rask.Data.Whole? right) -> bool
 static Rask.Data.Whole.operator ==(Rask.Data.Whole? left, Rask.Data.Whole? right) -> bool
-virtual Rask.Data.Day.EqualityContract.get -> System.Type!
 virtual Rask.Data.Day.Equals(Rask.Data.Day? other) -> bool
-virtual Rask.Data.Day.Normalize(System.DateOnly value) -> System.DateOnly
-virtual Rask.Data.Day.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual Rask.Data.Number.EqualityContract.get -> System.Type!
 virtual Rask.Data.Number.Equals(Rask.Data.Number? other) -> bool
-virtual Rask.Data.Number.Normalize(decimal value) -> decimal
-virtual Rask.Data.Number.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual Rask.Data.Text.EqualityContract.get -> System.Type!
 virtual Rask.Data.Text.Equals(Rask.Data.Text? other) -> bool
-virtual Rask.Data.Text.Normalize(string! value) -> string!
-virtual Rask.Data.Text.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual Rask.Data.Whole.EqualityContract.get -> System.Type!
 virtual Rask.Data.Whole.Equals(Rask.Data.Whole? other) -> bool
-virtual Rask.Data.Whole.Normalize(long value) -> long
-virtual Rask.Data.Whole.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Data.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false) -> void
+Rask.Data.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null) -> void
+Rask.Data.Problem
+Rask.Data.Problem.Deconstruct(out string? Field, out string! Message) -> void
+Rask.Data.Problem.Equals(Rask.Data.Problem other) -> bool
+Rask.Data.Problem.Field.get -> string?
+Rask.Data.Problem.Field.init -> void
+Rask.Data.Problem.Message.get -> string!
+Rask.Data.Problem.Message.init -> void
+Rask.Data.Problem.Problem() -> void
+Rask.Data.Problem.Problem(string? Field, string! Message) -> void
+Rask.Data.Range
+Rask.Data.Range.Range(Rask.Data.Range! original) -> void
+Rask.Data.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string! startMember = "", string! endMember = "") -> void
+Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true) -> void
+Rask.Data.Value
+Rask.Data.Value.Value() -> void
+Rask.Data.Value.Value(Rask.Data.Value! original) -> void
+Rask.Data.ValueAttempt
+Rask.Data.ValueAttempt.Dispose() -> void
+Rask.Data.ValueAttempt.Problems.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.Problem>!
+Rask.Data.ValueAttempt.ValueAttempt() -> void
+Rask.Data.ValueFacets
+Rask.Data.ValueFacets.Deconstruct(out int? MaxLength, out int? Precision, out int? Scale) -> void
+Rask.Data.ValueFacets.Equals(Rask.Data.ValueFacets other) -> bool
+Rask.Data.ValueFacets.MaxLength.get -> int?
+Rask.Data.ValueFacets.MaxLength.init -> void
+Rask.Data.ValueFacets.Precision.get -> int?
+Rask.Data.ValueFacets.Precision.init -> void
+Rask.Data.ValueFacets.Scale.get -> int?
+Rask.Data.ValueFacets.Scale.init -> void
+Rask.Data.ValueFacets.ValueFacets() -> void
+Rask.Data.ValueFacets.ValueFacets(int? MaxLength = null, int? Precision = null, int? Scale = null) -> void
+Rask.Data.ValueProblemKind.EndBeforeStart = 10 -> Rask.Data.ValueProblemKind
+Rask.Data.ValueProblemKind.EndNotAfterStart = 11 -> Rask.Data.ValueProblemKind
+Rask.Data.ValueWords
+Rask.Data.Whole.Whole(long Value, long? Min = null, long? Max = null) -> void
+abstract Rask.Data.Value.<Clone>$() -> Rask.Data.Value!
+override Rask.Data.Day.EqualityContract.get -> System.Type!
+override Rask.Data.Day.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Data.Number.EqualityContract.get -> System.Type!
+override Rask.Data.Number.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Data.Problem.GetHashCode() -> int
+override Rask.Data.Range.EqualityContract.get -> System.Type!
+override Rask.Data.Range.Equals(object? obj) -> bool
+override Rask.Data.Range.GetHashCode() -> int
+override Rask.Data.Range.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Data.Range.ToString() -> string!
+override Rask.Data.Text.EqualityContract.get -> System.Type!
+override Rask.Data.Text.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Data.Value.Equals(object? obj) -> bool
+override Rask.Data.Value.GetHashCode() -> int
+override Rask.Data.Value.ToString() -> string!
+override Rask.Data.ValueFacets.GetHashCode() -> int
+override Rask.Data.Whole.EqualityContract.get -> System.Type!
+override Rask.Data.Whole.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override abstract Rask.Data.Day.<Clone>$() -> Rask.Data.Day!
+override abstract Rask.Data.Number.<Clone>$() -> Rask.Data.Number!
+override abstract Rask.Data.Range.<Clone>$() -> Rask.Data.Range!
+override abstract Rask.Data.Text.<Clone>$() -> Rask.Data.Text!
+override abstract Rask.Data.Whole.<Clone>$() -> Rask.Data.Whole!
+override sealed Rask.Data.Day.Equals(Rask.Data.Value? other) -> bool
+override sealed Rask.Data.Number.Equals(Rask.Data.Value? other) -> bool
+override sealed Rask.Data.Range.Equals(Rask.Data.Value? other) -> bool
+override sealed Rask.Data.Text.Equals(Rask.Data.Value? other) -> bool
+override sealed Rask.Data.Whole.Equals(Rask.Data.Value? other) -> bool
+static Rask.Data.GeneratedValueRules.Attempt() -> Rask.Data.ValueAttempt
+static Rask.Data.GeneratedValueRules.Messages(System.Collections.Generic.IReadOnlyList<Rask.Data.Problem>! problems) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Data.GeneratedValueRules.Missing(string! member) -> Rask.Data.Problem
+static Rask.Data.GeneratedValueRules.Refused(System.Collections.Generic.IReadOnlyList<Rask.Data.Problem>! problems, string? field) -> Rask.Cqrs.RaskValidationException!
+static Rask.Data.GeneratedValueRules.Required() -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Data.GeneratedValueRules.Under<T>(string! field, System.Func<T>! make) -> T
+static Rask.Data.Problem.At<T>(T member, string! message, string! field = "") -> Rask.Data.Problem
+static Rask.Data.Problem.Whole(string! message) -> Rask.Data.Problem
+static Rask.Data.Problem.operator !=(Rask.Data.Problem left, Rask.Data.Problem right) -> bool
+static Rask.Data.Problem.operator ==(Rask.Data.Problem left, Rask.Data.Problem right) -> bool
+static Rask.Data.Range.operator !=(Rask.Data.Range? left, Rask.Data.Range? right) -> bool
+static Rask.Data.Range.operator ==(Rask.Data.Range? left, Rask.Data.Range? right) -> bool
+static Rask.Data.Value.operator !=(Rask.Data.Value? left, Rask.Data.Value? right) -> bool
+static Rask.Data.Value.operator ==(Rask.Data.Value? left, Rask.Data.Value? right) -> bool
+static Rask.Data.ValueFacets.operator !=(Rask.Data.ValueFacets left, Rask.Data.ValueFacets right) -> bool
+static Rask.Data.ValueFacets.operator ==(Rask.Data.ValueFacets left, Rask.Data.ValueFacets right) -> bool
+static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value, Rask.Data.ValueFacets facets) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!
+static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value, Rask.Data.ValueFacets facets) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
+static Rask.Data.ValueWords.Use(System.Func<Rask.Data.ValueProblem, string!>! say) -> void
+virtual Rask.Data.Range.Equals(Rask.Data.Range? other) -> bool
+virtual Rask.Data.Value.EqualityContract.get -> System.Type!
+virtual Rask.Data.Value.Equals(Rask.Data.Value? other) -> bool
+virtual Rask.Data.Value.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.Data.Problem>!
+~override Rask.Data.Problem.Equals(object obj) -> bool
+~override Rask.Data.Problem.ToString() -> string
+~override Rask.Data.ValueFacets.Equals(object obj) -> bool
+~override Rask.Data.ValueFacets.ToString() -> string
