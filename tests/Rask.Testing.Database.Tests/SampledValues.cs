@@ -38,6 +38,9 @@ public sealed partial record Opened(DateOnly Value) : Day(Value, NotBefore: Open
     public static readonly DateOnly First = new(2030, 1, 1);
 }
 
+/// <summary>A moment that cannot be in the future.</summary>
+public sealed partial record Fueled(DateTime Value) : Moment(Value, NotAfterNow: true);
+
 /// <summary>A strict range of whole numbers.</summary>
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);
 

@@ -377,7 +377,7 @@ and the record's own `Rules()` both accept it, and every call makes the same one
 |---|---|
 | `Text` | letters to its `MinLength` (or a few, within its `MaxLength`); a simple `Pattern` — literals, `.`, `\d`, `\w`, `\s`, character classes, groups (the first alternative), counted repeats — is met |
 | `Number`, `Whole` | its `Min` (at its `Scale`), or 1 within its `Max` |
-| `Day` | its `NotBefore`, or `Clock.Today` within its latest day |
+| `Day`, `Moment` | its `NotBefore`, or `Clock.Today` (`Clock.Wall`) within its latest |
 | `Range` | from its `Min` (or 1, or today) one step on — a day for dates, an hour for times — within its `Max` |
 | `Value` | a sample of each member: a text, 1, today, an enum's first member, `true`, or another value object made the same way |
 

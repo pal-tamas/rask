@@ -30,4 +30,7 @@ public enum FieldKind
 
     /// <summary>One of a fixed set — an enum's members, listed with their labels in <see cref="FieldShape.Options" />.</summary>
     Choice,
+
+    /// <summary>A moment on the wall clock — a day and a time of day — and whether it may be after now.</summary>
+    Moment,
 }

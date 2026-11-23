@@ -20,6 +20,7 @@ public class FieldShapeGeneratorTests
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Max: 999.5m, Scale: 2);
         public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
+        public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
         public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true, Min: 0, Max: 9999);
         public sealed partial record Shift(DateTime From, DateTime? To) : Range(From, To);
         public readonly record struct DepotId(Guid Value);
@@ -38,6 +39,7 @@ public class FieldShapeGeneratorTests
             public Litres Fuelled { get; private set; } = Litres.Create(1);
             public Pieces Count { get; private set; } = Pieces.Create(0);
             public InvoiceDay? Invoiced { get; private set; }
+            public FuelingMoment? FuelledAt { get; private set; }
             public KmRange Km { get; private set; } = KmRange.Create(0, 1);
             public Shift? Worked { get; private set; }
             public Fuel Fuel { get; private set; }
@@ -57,6 +59,7 @@ public class FieldShapeGeneratorTests
     [InlineData("Litres", Kind + ".Number, Min: 1m, Max: 999.5m, Scale: 2")]
     [InlineData("Pieces", Kind + ".Whole, Min: 0m, Max: 1000m")]
     [InlineData("InvoiceDay", Kind + ".Day, NotAfterToday: true")]
+    [InlineData("FuelingMoment", Kind + ".Moment, NotAfterNow: true")]
     [InlineData("KmRange", Kind + ".Range, Min: 0m, Max: 9999m, Strict: true, Start: \"Start\", End: \"End\", Ends: " + Kind + ".Whole")]
     [InlineData("Shift", Kind + ".Range, Start: \"From\", End: \"To\")")]
     public void Each_value_object_tells_its_field_the_rules_its_base_call_states(string name, string shape)

@@ -49,15 +49,17 @@ public sealed class MakeTests
     }
 
     [Fact]
-    public void A_day_is_its_earliest_or_today_within_its_latest()
+    public void A_day_or_a_moment_is_its_earliest_or_now_within_its_latest()
     {
         using var clock = Clock.Fake(at: new DateTimeOffset(2026, 11, 23, 9, 0, 0, TimeSpan.Zero));
 
         var inspected = Test.Make<Inspected>();
         var opened = Test.Make<Opened>();
+        var fueled = Test.Make<Fueled>();
 
         Assert.Equal(Clock.Today, inspected.Value);
         Assert.Equal(Opened.First, opened.Value);
+        Assert.Equal(Clock.Wall, fueled.Value);
     }
 
     [Fact]

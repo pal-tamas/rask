@@ -118,16 +118,16 @@ and the Catalog domain.
 
 The domain applies **DDD tactical patterns**: `Product` is an aggregate root with private setters
 that only changes through `Create` / `Update`, and `Money` / `ProductName` / `StockLevel` are value
-objects. Each value object **owns its validation rule** as a static `Validate` method shaped exactly
-like Rask's inline validator (`Func<T, IEnumerable<string>>`), so the form and the domain enforce the
-same rule from one source:
+objects. Each value object **owns its rules**: it is declared from a Rask.Data base record and its constructor
+checks them, so no instance exists that they refuse, and a form bound to the aggregate's generated model asks the
+same rules with nothing written on the field ([declared from a base record](data.md#declared-from-a-base-record)):
 
 ```csharp
-// In the value object:
-public static IEnumerable<string> Validate(decimal amount) { /* the one rule */ }
+// The value object: its rules are the base's arguments.
+public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 100);
 
-// In the form (named as a method group — see forms-validation.md):
-Input.Bind(() => _form.Price).Validate(Money.Validate).Id("p-price").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")
+// In the domain: made only through the generated Create, refused under the field it names.
+Name = ProductName.Create(name, nameof(Name));
 ```
 
 The EF Core mapping lives in an `IEntityTypeConfiguration<Product>` (applied with
