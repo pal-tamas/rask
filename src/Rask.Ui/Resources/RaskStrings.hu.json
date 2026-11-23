@@ -306,5 +306,8 @@
   "ValidationFileType": "Csak ilyen kiterjesztésű fájl választható: {0}.",
   "ValidationNotAllowed": "Ez az érték nem adható meg.",
   "ValidationBase64": "Érvényes Base64-kódolású szöveget adjon meg.",
-  "ValidationInvalid": "Érvénytelen érték."
+  "ValidationInvalid": "Érvénytelen érték.",
+  "ValidationNumberMin": "Az érték legalább {0} legyen.",
+  "ValidationNumberMax": "Az érték legfeljebb {0} lehet.",
+  "ValidationDecimals": "Legfeljebb {0} tizedesjegy adható meg."
 }

@@ -148,6 +148,11 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private BindTiming _timing;
     private bool _saidInvalid;
     private bool _saidRequired;
+    private bool _saidMaxLength;
+
+    // The input types the HTML spec gives maxlength to: the text-like ones (no type at all is text).
+    private static bool TakesMaxLength(string? type) =>
+        type is null or "text" or "search" or "url" or "tel" or "email" or "password";
 
     /// <summary>
     ///     The marks of an amount this input shows grouped (<c>data-rask-mask-money</c>): its value is written with
@@ -182,6 +187,11 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         if (acc is not null && TakesAriaRequired(resolvedType))
         {
             SayRequired(acc, ref _saidRequired);
+        }
+
+        if (acc is not null)
+        {
+            MaxLength = SaidMaxLength(acc, MaxLength, TakesMaxLength(resolvedType), ref _saidMaxLength);
         }
 
         base.WriteAttributes(sb);

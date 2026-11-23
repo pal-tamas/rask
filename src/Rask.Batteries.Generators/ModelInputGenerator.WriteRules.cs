@@ -407,7 +407,13 @@ public sealed partial class ModelInputGenerator
             return (IsText(rule) ? "string.IsNullOrWhiteSpace(value)" : "value is null") + " ? " + required + " : " + NoMessages;
         }
 
-        string Ask(string value) => (awaited ? "await " : "") + valueObject + ".Validate(" + value + ")";
+        string Ask(string value) => (awaited ? "await " : "") + valueObject + "." + rule.Asked + "(" + value + ")";
+
+        // A base record calls blank text no value: a field that may be empty is not asked about it.
+        if (rule.FromBase && IsText(rule) && !rule.Required)
+        {
+            return "string.IsNullOrWhiteSpace(value) ? " + NoMessages + " : " + Ask("value");
+        }
 
         var empty = NoMessages;
         if (rule.Required)

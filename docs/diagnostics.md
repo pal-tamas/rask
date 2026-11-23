@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK126, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK129, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -27,6 +27,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK118** | marks the enclosing class `[RaskMarkup]` and makes it (and every type it is nested in) `partial` |
 | **RASK119** | deletes the redundant `StateHasChanged()` statement |
 | **RASK121** | makes the `[JSInvokable]` method `public` |
+| **RASK127** | rewrites `new DriverName(value)` into `DriverName.Create(value)` |
+| **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -141,6 +143,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK124](#rask124) | Warning | An event's handlers disagree on who may publish it remotely |
 | [RASK125](#rask125) | Warning | An action with several `[Route]`s gets a client method for the first |
 | [RASK126](#rask126) | Warning | Lazy-loading proxies on a context that does not allow lazy loading |
+| [RASK127](#rask127) | Error | A value object declared from a base record is made past its rules |
+| [RASK128](#rask128) | Warning | A column is configured differently from its value object |
+| [RASK129](#rask129) | Error | A value object declared from a base record is not `sealed partial` |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3078,3 +3083,58 @@ lazy loading (discouraged), opt in on the same options, and the warning goes:
 ```
 
 See [data access](data-access.md#lazy-loading-is-off).
+
+## RASK127
+
+**A value object declared from a base record is made past its rules** · Error · quick-fix
+
+A value object declared from `Text`, `Number`, `Whole` or `Day` is made through its generated `Create`, `TryCreate`
+or `CreateOptional`, which check the rules it declares. `new DriverName()` — the parameterless constructor C# gives a
+record with a primary constructor — builds one no rule was asked about, and a `with` copies one past them. Inside
+the value object's own type both are allowed; EF Core rebuilds stored values through the generated private
+constructor and is not affected.
+
+```csharp
+public sealed partial record DriverName() : Text(MaxLength: 1000);
+
+var name = new DriverName("Ada");          // ✗ RASK127
+var copy = name with { };                  // ✗ RASK127
+var made = DriverName.Create("Ada");       // ✓
+```
+
+**Fix:** call `DriverName.Create(value)` (**quick-fix available** — the lightbulb rewrites `new DriverName(value)`,
+or a target-typed `new(value)`, into it; a `with` has no one rewrite and gets no fix).
+
+## RASK128
+
+**A column is configured differently from its value object** · Warning
+
+A value object declared from `Text` or `Number` gives its column the length, precision and scale it declares. The
+entity's own `Configure` runs after that and still wins, so a `HasMaxLength`, `HasPrecision` or `HasColumnType` that
+says otherwise leaves the column and the rule disagreeing: a value the rule accepts does not fit, or the column
+keeps decimals the rule refuses. Only literal arguments are compared, on both sides — the value object's base
+arguments and the call's — so the warning is never a guess; a length computed at run time is not checked.
+
+```csharp
+public sealed partial record DriverName() : Text(MaxLength: 1000);
+
+builder.Property(d => d.Driver).HasMaxLength(200);             // ⚠ RASK128 — the rule allows 1000
+builder.Property(d => d.Fuel).HasColumnType("decimal(18,4)");  // ⚠ RASK128 on a Number(Scale: 2, Precision: 9)
+```
+
+**Fix:** change the value object's declaration, which the rule and the column then both follow, or drop the call.
+
+## RASK129
+
+**A value object declared from a base record is not `sealed partial`** · Error · quick-fix
+
+Rask writes the other half of a record deriving from `Text`, `Number`, `Whole` or `Day` — its constructor, `Create`,
+`TryCreate`, `CreateOptional` — so the record has to be `partial`; it is the value itself, never a base for another,
+so it has to be `sealed`. A type it is nested in has to be `partial` too. Nothing is generated until it is.
+
+```csharp
+public record DriverName() : Text(MaxLength: 1000);                 // ✗ RASK129
+public sealed partial record DriverName() : Text(MaxLength: 1000);  // ✓
+```
+
+**Fix:** declare it `sealed partial` (**quick-fix available** — the lightbulb adds whichever is missing).

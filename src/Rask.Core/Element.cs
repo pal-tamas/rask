@@ -423,6 +423,27 @@ public abstract partial class Element : Component
         }
     }
 
+    // A bound text control is given the most characters its field may hold (RaskValidation.RegisterFieldLengths), as
+    // its maxlength — unless the author set one. Returns what the control's MaxLength is to be; `said` remembers that
+    // the value is the framework's, so it is taken off again once the field has no length any more.
+    private protected static int? SaidMaxLength(Forms.ExpressionAccessor.Accessor bound, int? current, bool applies, ref bool said)
+    {
+        var length = applies ? Forms.RaskValidation.MaxLengthOf(bound) : null;
+        if (length is { } most && (current is null || said))
+        {
+            said = true;
+            return most;
+        }
+
+        if (length is null && said)
+        {
+            said = false;
+            return null;
+        }
+
+        return current;
+    }
+
     private bool AuthorSaysRequired() =>
         (Aria?.ContainsKey("required") ?? false) || (Attributes?.ContainsKey("aria-required") ?? false);
 

@@ -26,7 +26,7 @@ public sealed partial class ModelInputGenerator
     /// </summary>
     private readonly record struct Seams(
         bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields, bool OptionalFields, bool DuplicateRowSentence,
-        bool CheckSentences);
+        bool CheckSentences, bool FieldLengths);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -44,7 +44,8 @@ public sealed partial class ModelInputGenerator
                 validation?.GetMembers("RegisterOptionalFields").Length > 0,
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationDuplicateRow").Length > 0,
-                compilation.GetTypeByMetadataName("Rask.Core.Forms.DataAnnotationsFieldValidator")?.GetMembers("Message").Length > 0);
+                compilation.GetTypeByMetadataName("Rask.Core.Forms.DataAnnotationsFieldValidator")?.GetMembers("Message").Length > 0,
+                validation?.GetMembers("RegisterFieldLengths").Length > 0);
         });
 
     /// <summary>How a one-value value object states its rule, when it does.</summary>
@@ -68,6 +69,12 @@ public sealed partial class ModelInputGenerator
         if (!valueObject.SingleValue)
         {
             return ValueRule.None;
+        }
+
+        // Declared from a base record: its rule is the generated X.__Problems, which this run cannot see yet.
+        if (valueObject.Build == ModelValueObjectBuild.Factory)
+        {
+            return ValueRule.Sync;
         }
 
         var held = valueObject.Members[0].Property.Type;
@@ -273,6 +280,11 @@ public sealed partial class ModelInputGenerator
             {
                 AppendIsRequired(s, model);
             }
+
+            if (AnnouncesLengths(entity, model))
+            {
+                AppendMaxLengthOf(s, model);
+            }
         }
 
         if (store)
@@ -295,6 +307,12 @@ public sealed partial class ModelInputGenerator
                 s.Append("        ").Append(RaskValidation).Append(".RegisterRequiredFields(typeof(").Append(model.Type)
                     .Append("), ").Append(model.Key).AppendLine("IsRequired);");
             }
+
+            if (AnnouncesLengths(entity, model))
+            {
+                s.Append("        ").Append(RaskValidation).Append(".RegisterFieldLengths(typeof(").Append(model.Type)
+                    .Append("), ").Append(model.Key).AppendLine("MaxLengthOf);");
+            }
         }
 
         if (store)
@@ -302,6 +320,28 @@ public sealed partial class ModelInputGenerator
             s.Append("        ").Append(RaskValidation).Append(".RegisterStoreRules(typeof(").Append(FormModelType(entity))
                 .AppendLine("), StoreRules);");
         }
+    }
+
+    // A text value object declared from a base record knows its most characters; a bound input is told them.
+    private static bool AnnouncesLengths(Entity entity, RuledModel model) =>
+        entity.AnnouncesFieldLengths && model.Rules.Exists(HasLength);
+
+    private static bool HasLength(FieldRule rule) =>
+        rule.FromBase && string.Equals(rule.ModelType, "string?", System.StringComparison.Ordinal);
+
+    private static void AppendMaxLengthOf(StringBuilder s, RuledModel model)
+    {
+        s.AppendLine();
+        s.Append("    private static int? ").Append(model.Key).AppendLine("MaxLengthOf(string property) =>");
+        s.AppendLine("        property switch");
+        s.AppendLine("        {");
+        foreach (var rule in model.Rules.Where(HasLength))
+        {
+            s.Append("            \"").Append(rule.Property).Append("\" => ").Append(rule.ValueObject).AppendLine(".__MaxLength,");
+        }
+
+        s.AppendLine("            _ => null,");
+        s.AppendLine("        };");
     }
 
     private static bool AnnouncesRequired(Entity entity, RuledModel model) =>
@@ -404,7 +444,8 @@ public sealed partial class ModelInputGenerator
             .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
             .Select(static m => m.RequiredByType
                 ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
-                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
+                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable,
+                    m.ValueObject.Build == ModelValueObjectBuild.Factory))
             .ToList();
 
         if (root.Count > 0)
@@ -418,7 +459,8 @@ public sealed partial class ModelInputGenerator
                 .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
                 .Select(static m => m.RequiredByType
                     ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
-                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
+                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable,
+                    m.ValueObject.Build == ModelValueObjectBuild.Factory))
                 .ToList();
 
             if (rules.Count > 0)
@@ -430,6 +472,15 @@ public sealed partial class ModelInputGenerator
 
     private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules);
 
-    /// <summary>One field's rule: its value object's <c>Validate</c>, or — with no value object to ask — only that it is filled.</summary>
-    private sealed record FieldRule(string Property, string ModelType, string? ValueObject, ValueRule Kind, bool Required);
+    /// <summary>
+    ///     One field's rule: its value object's <c>Validate</c> — or, for one declared from a base record
+    ///     (<paramref name="FromBase" />), its generated <c>__Problems</c> — or, with no value object to ask, only that
+    ///     it is filled.
+    /// </summary>
+    private sealed record FieldRule(
+        string Property, string ModelType, string? ValueObject, ValueRule Kind, bool Required, bool FromBase = false)
+    {
+        /// <summary>The value object's static method the rule asks.</summary>
+        public string Asked => FromBase ? "__Problems" : "Validate";
+    }
 }

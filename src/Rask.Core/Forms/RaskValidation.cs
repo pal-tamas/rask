@@ -35,6 +35,7 @@ public static class RaskValidation
     private static volatile Dictionary<Type, Func<IServiceProvider?, IStoreRules?>> _storeRules = [];
     private static volatile Dictionary<Type, Func<string, Delegate?>> _fieldRules = [];
     private static volatile RequiredFields _requiredFields = RequiredFields.None;
+    private static volatile FieldLengths _fieldLengths = FieldLengths.None;
 
     /// <summary>
     ///     Whether a <c>Form</c> validates its model with no validator declared. <see langword="true" />
@@ -324,6 +325,32 @@ public static class RaskValidation
         !bound.UnderOptional && _requiredFields.IsRequired(bound.Target.GetType(), bound.PropertyName);
 
     internal static bool IsUnderOptional(Expression? holder) => _requiredFields.IsUnderOptional(holder);
+
+    /// <summary>
+    ///     Registers the most characters each text field of one model type may hold, so a control bound to one is
+    ///     given it as its <c>maxlength</c> — the length a value object declares (<c>Text(MaxLength: 1000)</c>), told
+    ///     to the browser instead of found out on submit. The seam a data layer's generator plugs into; call it once
+    ///     per model type, from a <c>[ModuleInitializer]</c>.
+    /// </summary>
+    /// <param name="modelType">The type that declares the properties. A type derived from it is covered too.</param>
+    /// <param name="maxLengthOf">
+    ///     Given a property's name, the most characters it may hold, or <see langword="null" /> for no limit. Asked once
+    ///     per property and the answer kept until a type is registered again.
+    /// </param>
+    public static void RegisterFieldLengths(Type modelType, Func<string, int?> maxLengthOf)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(maxLengthOf);
+
+        lock (Gate)
+        {
+            _fieldLengths = _fieldLengths.With(modelType, maxLengthOf);
+        }
+    }
+
+    // The most characters the field a control is bound to may hold, or null: what its maxlength says.
+    internal static int? MaxLengthOf(ExpressionAccessor.Accessor bound) =>
+        _fieldLengths.MaxLengthOf(bound.Target.GetType(), bound.PropertyName);
 
     /// <summary>
     ///     Registers the rules a store keeps for one form model — a unique index, a range that must not

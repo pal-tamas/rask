@@ -69,9 +69,10 @@ internal static class CodeFixHarness
 
     // Applies the fix for a source-generator-produced diagnostic (e.g. RASK001).
     public static async Task<string> ApplyGeneratorFixAsync(
-        IIncrementalGenerator generator, CodeFixProvider provider, string diagnosticId, string source)
+        IIncrementalGenerator generator, CodeFixProvider provider, string diagnosticId, string source,
+        params string[] extraAssemblies)
     {
-        var (document, diagnostic) = await GeneratorDiagnosticAsync(generator, diagnosticId, source);
+        var (document, diagnostic) = await GeneratorDiagnosticAsync(generator, diagnosticId, source, extraAssemblies);
         return await ApplyAsync(provider, document, diagnostic);
     }
 
@@ -85,9 +86,9 @@ internal static class CodeFixHarness
     }
 
     private static async Task<(Document, Diagnostic)> GeneratorDiagnosticAsync(
-        IIncrementalGenerator generator, string diagnosticId, string source)
+        IIncrementalGenerator generator, string diagnosticId, string source, params string[] extraAssemblies)
     {
-        var document = CreateDocument(source);
+        var document = CreateDocument(source, extraAssemblies);
         var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
         var runResult = CSharpGeneratorDriver
             .Create(generator)

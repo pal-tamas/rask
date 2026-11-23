@@ -781,7 +781,9 @@ internal static class GeneratedModelShape
         // backing field, so no form can write it and no build strategy below can rebuild it — counting it would
         // make a record's primary constructor one parameter short and drop the whole nested model.
         private static List<IPropertySymbol> StoredProperties(INamedTypeSymbol named) =>
-            named.GetMembers().OfType<IPropertySymbol>()
+            AggregateShape.ValueBaseOf(named) is not null
+                ? AggregateShape.StoredProperties(named).ToList()
+                : named.GetMembers().OfType<IPropertySymbol>()
                 .Where(static p => !p.IsStatic && !p.IsIndexer &&
                                    p.DeclaredAccessibility == Accessibility.Public &&
                                    p.GetMethod is { DeclaredAccessibility: Accessibility.Public } &&
@@ -807,6 +809,12 @@ internal static class GeneratedModelShape
             var parameterless = named.InstanceConstructors.FirstOrDefault(static c => c.Parameters.Length == 0);
             var reachable = !named.IsGenericType && IsNameableFromGeneratedCode(named);
             var writes = properties.Select(WriteKindOf).ToList();
+
+            // Declared from a base record: built only through its generated X.Create, which checks the rules.
+            if (AggregateShape.ValueBaseOf(named) is not null && named.InstanceConstructors.FirstOrDefault() is { } primary)
+            {
+                return (ModelValueObjectBuild.Factory, parameterless ?? primary, writes);
+            }
 
             if (fullConstructors.FirstOrDefault(static c => c.DeclaredAccessibility == Accessibility.Public) is { } open)
             {

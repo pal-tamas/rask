@@ -17,4 +17,10 @@ internal enum ModelValueObjectBuild
     ///     directly, a non-public setter or a backing field through <c>[UnsafeAccessor]</c>.
     /// </summary>
     AccessorMembers,
+
+    /// <summary>
+    ///     Declared from a base record (<c>record DriverName() : Text(MaxLength: 1000)</c>): built through the generated
+    ///     <c>DriverName.Create(value)</c>, never a constructor.
+    /// </summary>
+    Factory,
 }

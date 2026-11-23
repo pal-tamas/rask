@@ -116,6 +116,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     private string? _content;
     private bool _saidInvalid;
     private bool _saidRequired;
+    private bool _saidMaxLength;
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -129,6 +130,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             _content = BindingHelpers.FormatValue(acc.Getter());
             SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
             SayRequired(acc, ref _saidRequired);
+            MaxLength = SaidMaxLength(acc, MaxLength, applies: true, ref _saidMaxLength);
         }
         else if (Value is not null)
         {

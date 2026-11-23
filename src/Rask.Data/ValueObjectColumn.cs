@@ -31,6 +31,9 @@ public static class ValueObjectColumn
     // comparer asks to be kept.
     private const DynamicallyAccessedMemberTypes Kept = DataTrimming.Entity | DynamicallyAccessedMemberTypes.PublicMethods;
 
+    // EF Core's own precision for a decimal column, kept when a value object declares only its scale.
+    private const int DefaultPrecision = 18;
+
     /// <summary>Stores <paramref name="property" /> as the one value <paramref name="value" /> reads from it.</summary>
     /// <typeparam name="TValueObject">The value object's type.</typeparam>
     /// <typeparam name="TValue">The type of the value it holds, which is the column's.</typeparam>
@@ -44,8 +47,12 @@ public static class ValueObjectColumn
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
 
-        var (converter, comparer) = Conversion(value);
-        return property.HasConversion(converter, comparer);
+        var (converter, comparer, rebuild) = Conversion(value);
+        property.HasConversion(converter, comparer);
+
+        Declare(rebuild, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+
+        return property;
     }
 
     /// <summary>
@@ -64,11 +71,40 @@ public static class ValueObjectColumn
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
 
-        var (converter, comparer) = Conversion(value);
-        return property.HasConversion(converter, comparer);
+        var (converter, comparer, rebuild) = Conversion(value);
+        property.HasConversion(converter, comparer);
+
+        Declare(rebuild, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+
+        return property;
     }
 
-    private static (ValueConverter<TValueObject, TValue> Converter, ValueComparer<TValueObject> Comparer) Conversion<
+    // The value object declared from a base record, built once so its declared rules can be read: the column takes
+    // its length, precision and scale. Null for any other value object. The entity's own Configure runs after this,
+    // so a HasMaxLength there still has the last word (RASK128 says when it disagrees).
+    private static void Declare<TValueObject, TValue>(
+        Func<TValue, TValueObject> rebuild, Action<int> length, Action<int, int> precision)
+    {
+        if (!typeof(Text).IsAssignableFrom(typeof(TValueObject)) && !typeof(Number).IsAssignableFrom(typeof(TValueObject)))
+        {
+            return;
+        }
+
+        switch (rebuild(default!))
+        {
+            case Text { MaxLength: > 0 } text:
+                length(text.MaxLength);
+                break;
+            case Number { Precision: { } digits } number:
+                precision(digits, number.Scale ?? 0);
+                break;
+            case Number { Scale: { } scale }:
+                precision(DefaultPrecision, scale);
+                break;
+        }
+    }
+
+    private static (ValueConverter<TValueObject, TValue> Converter, ValueComparer<TValueObject> Comparer, Func<TValue, TValueObject> Rebuild) Conversion<
         [DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(Expression<Func<TValueObject, TValue>> value)
     {
         var build = Build<TValueObject, TValue>(value);
@@ -80,7 +116,8 @@ public static class ValueObjectColumn
             new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
                 v => Hash(read, v),
-                v => Copy(read, rebuild, v)));
+                v => Copy(read, rebuild, v)),
+            rebuild);
     }
 
     private static bool Same<TValueObject, TValue>(Func<TValueObject, TValue> read, TValueObject? a, TValueObject? b)

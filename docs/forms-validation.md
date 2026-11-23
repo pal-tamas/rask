@@ -124,6 +124,14 @@ object's own, with no `[Required]` and with the automatic validators on or off. 
 null (`int Weight`, `string Plate`) is required the same way, in the framework's one sentence — *This field is
 required.*, in the reader's language.
 
+A value object declared from one of Rask.Data's [base records](data.md#one-value-declared-from-a-base-record) —
+`public sealed partial record DriverName() : Text(MaxLength: 1000)` — is asked the same way: its rules are the
+base's arguments, the field runs its generated `DriverName.__Problems`, and the messages (*Enter at most 1000
+characters.*, *Enter 1 or more.*, *Choose a date on or before …*) come from the strings catalog in the reader's
+language. A nullable one left blank says nothing. A bound text input or textarea is also given the declared length as
+its `maxlength` (registered by the generated model through `RaskValidation.RegisterFieldLengths`), so the browser
+stops at 1000 characters instead of the save refusing the 1001st; a `.MaxLength(…)` written on the control wins.
+
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
 by the layer that generates the model; it is keyed by the type that declares the property, so a nested

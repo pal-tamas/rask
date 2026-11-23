@@ -31,6 +31,20 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A one-value value object is declared from a base record: `public sealed partial record DriverName() : Text(MaxLength: 1000);`
+  (`Text`, `Number`, `Whole`, `Day` in Rask.Data).** Before: a one-value value object was a `record struct X(string Value)`
+  with a hand-written `public static IEnumerable<string> Validate(string)` — its own English messages, its column length
+  restated in `Configure`, and nothing stopping `new X("")` past the rule. After: the rules are the base's arguments
+  (`MaxLength`, `MinLength`, `Pattern`/`Message`, `Trim`; `Min`, `Max`, `Scale`, `Precision`; `NotBefore`, `NotAfter`,
+  `NotAfterToday`), and the new `ValueObjectFactoryGenerator` writes `X.Create(value, field)` (throws a
+  `RaskValidationException` under `field`), `TryCreate`, `CreateOptional` and the private constructor EF Core loads through
+  without re-checking. A generated form model, a bound form and `Create(model)`/`Update(id, model)` ask the same rules,
+  worded from the strings catalog (new keys `ValidationNumberMin`, `ValidationNumberMax`, `ValidationDecimals`, with
+  Hungarian); the column takes `HasMaxLength`/`HasPrecision` from the declaration, still overridable in `Configure`, and
+  a bound text input or textarea takes the length as its `maxlength` (new `RaskValidation.RegisterFieldLengths`). New
+  diagnostics: [RASK127](docs/diagnostics.md#rask127) (`new`/`with` outside the type, quick-fix to `Create`),
+  [RASK128](docs/diagnostics.md#rask128) (`Configure` disagrees with the declared length/precision) and
+  [RASK129](docs/diagnostics.md#rask129) (not `sealed partial`, quick-fix). The `Validate` shape still works.
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
   (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
   scrollbar thumb that shrank and jumped with every page, a drag to the bottom stopping at row fifty. After:

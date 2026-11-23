@@ -355,7 +355,7 @@ public sealed partial class ModelInputGenerator
             var value = member.ValueObject switch
             {
                 null => given,
-                { SingleValue: true } single => BuildExpression(single, _ => given),
+                { SingleValue: true } single => BuildExpression(single, _ => given, member.Nullable),
                 { } valueObject => FromModelExpression(
                     given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
             };

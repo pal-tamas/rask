@@ -233,12 +233,28 @@ internal static class AggregateShape
     ///     The properties of a value object that hold stored state: public getter, instance, and either a setter or a
     ///     backing field — a computed property (<c>Display =&gt; …</c>) is not one.
     /// </summary>
+    /// <remarks>
+    ///     A value object declared from a base record (<c>record DriverName() : Text(MaxLength: 1000)</c>) stores the
+    ///     base's <c>Value</c> and nothing else: the rules its base keeps are not state.
+    /// </remarks>
     public static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol type) =>
-        type.GetMembers().OfType<IPropertySymbol>()
+        ValueBaseOf(type) is not null
+            ? type.BaseType!.GetMembers("Value").OfType<IPropertySymbol>()
+            : type.GetMembers().OfType<IPropertySymbol>()
             .Where(static p => !p.IsStatic && !p.IsIndexer &&
                                p.DeclaredAccessibility == Accessibility.Public &&
                                p.GetMethod is { DeclaredAccessibility: Accessibility.Public } &&
                                (p.SetMethod is not null || HasBackingField(p)));
+
+    /// <summary>
+    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c> or
+    ///     <c>Day</c> of Rask.Data, derived from directly — or null for any other type.
+    /// </summary>
+    public static string? ValueBaseOf(INamedTypeSymbol type) =>
+        type.BaseType is { Name: "Text" or "Number" or "Whole" or "Day", Arity: 0, ContainingType: null } valueBase &&
+        IsRaskDataType(valueBase)
+            ? valueBase.Name
+            : null;
 
     /// <summary>How generated code writes <paramref name="property" />, or null when it cannot.</summary>
     public static WriteKind? WriteKindOf(IPropertySymbol property)

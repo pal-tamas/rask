@@ -7569,6 +7569,7 @@ static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) ->
 static Rask.Core.Forms.RaskValidation.IsRequired(System.Linq.Expressions.LambdaExpression! bound) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
 static Rask.Core.Forms.RaskValidation.RegisterOptionalFields(System.Type! modelType, System.Func<string!, bool>! isOptional) -> void
+static Rask.Core.Forms.RaskValidation.RegisterFieldLengths(System.Type! modelType, System.Func<string!, int?>! maxLengthOf) -> void
 static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
@@ -19891,3 +19892,6 @@ Rask.Core.Reader.Now.get -> System.DateTimeOffset
 Rask.Core.Reader.TimeZone.get -> System.TimeZoneInfo!
 Rask.Core.Reader.Today.get -> System.DateOnly
 static Rask.Core.Reader.NetworkOf(System.Net.IPAddress? address) -> string!
+Rask.Core.Globalization.RaskString.ValidationNumberMin = 282 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNumberMax = 283 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationDecimals = 284 -> Rask.Core.Globalization.RaskString

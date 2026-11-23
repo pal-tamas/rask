@@ -47,7 +47,7 @@ internal static class ModelStateAnalyzerHarness
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
         var refs = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
 
-        foreach (var name in new[] { "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore" })
+        foreach (var name in new[] { "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.Relational" })
         {
             refs.Add(MetadataReference.CreateFromFile(Assembly.Load(name).Location));
         }

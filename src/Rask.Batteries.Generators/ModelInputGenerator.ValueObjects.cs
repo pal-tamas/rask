@@ -339,7 +339,9 @@ public sealed partial class ModelInputGenerator
     }
 
     // The value object built from one value per member, in whichever way this value object is built.
-    private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value)
+    // `optional`: the value object may be absent, so one declared from a base record is built by CreateOptional,
+    // which keeps blank text as nothing rather than refusing it.
+    private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value, bool optional = false)
     {
         string InConstructorOrder() =>
             string.Join(", ", shape.ConstructorOrder.Select(name => value(shape.Members.First(m => string.Equals(m.Name, name, StringComparison.Ordinal)))));
@@ -350,6 +352,7 @@ public sealed partial class ModelInputGenerator
             ModelValueObjectBuild.Initializer => "new " + shape.TypeName + " { " + string.Join(", ",
                 shape.Members.Select(m => m.Name + " = " + value(m))) + " }",
             ModelValueObjectBuild.AccessorConstructor => "__New" + shape.ModelName + "(" + InConstructorOrder() + ")",
+            ModelValueObjectBuild.Factory => shape.TypeName + (optional ? ".CreateOptional(" : ".Create(") + value(shape.Members[0]) + ")",
             _ => "__Build" + shape.ModelName + "(" + string.Join(", ", shape.Members.Select(value)) + ")",
         };
     }
@@ -382,7 +385,7 @@ public sealed partial class ModelInputGenerator
             var inner = prefix + (counter++).ToString(CultureInfo.InvariantCulture);
             if (valueObject.SingleValue)
             {
-                return "(" + access + " is { } " + inner + " ? " + BuildExpression(valueObject, _ => inner) + " : " + empty + ")";
+                return "(" + access + " is { } " + inner + " ? " + BuildExpression(valueObject, _ => inner, member.Nullable) + " : " + empty + ")";
             }
 
             var storedMember = stored is null ? null : StoredAccess(stored, storedMayBeNull, member.Name);

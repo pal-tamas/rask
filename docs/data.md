@@ -2224,6 +2224,66 @@ A value object is **its values**: two with the same values are the same. Any com
 not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
 value's column, and one that holds several is an EF Core **complex type**.
 
+### One value, declared from a base record
+
+A value object that holds ONE value is declared from the base record of what it holds — `Text`, `Number`, `Whole`
+or `Day` — with its rules as the base's arguments. Rask writes the rest:
+
+```csharp
+public sealed partial record DriverName() : Text(MaxLength: 1000);
+public sealed partial record ChipCode() : Text(MaxLength: 1000, Trim: false);
+public sealed partial record TaxNumber() : Text(Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
+public sealed partial record Litres() : Number(Min: 1, Scale: 2);
+public sealed partial record Pieces() : Whole(Min: 0, Max: 1000);
+public sealed partial record InvoiceDay() : Day(NotAfterToday: true);
+
+public sealed class Delivery : Aggregate<Guid, Model>
+{
+    public DriverName Driver { get; private set; } = DriverName.Create("Unknown");
+    public Litres Fuel { get; private set; } = Litres.Create(1);
+    public InvoiceDay? Invoiced { get; private set; }
+
+    public void Fill(decimal litres) => Fuel = Litres.Create(litres, nameof(Fuel));
+}
+```
+
+| Base | Holds | Rules |
+|---|---|---|
+| `Text` | `string` | `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default) |
+| `Number` | `decimal` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
+| `Whole` | `long` | `Min`, `Max` |
+| `Day` | `DateOnly` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
+
+The generated half gives each one:
+
+- `X.Create(value, field)` — checks the rules and throws a `RaskValidationException` with every message under
+  `field`, so a form whose submit lets it through shows them there. Text is trimmed first unless it says `Trim: false`.
+- `X.TryCreate(value, out var x, out var problems)` and `X.CreateOptional(value)` (nothing for a blank or absent
+  value, else `Create`).
+- A private constructor EF Core rebuilds a stored value through: a row is loaded as it was stored and never
+  checked again, so tightening a rule does not make old rows unreadable.
+
+It is one column, like any one-value value object, and the column takes what the value object declares: a
+`Text(MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a
+scale alone keeps EF Core's precision of 18). The entity's own `Configure` runs after and still has the last word —
+and [RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
+object's, since a value the rule accepts would then not fit.
+
+A generated form model carries it as its value (`string? Driver`), a form bound to it asks the same rules under the
+field, and the generated `Create(model)`/`Update(id, model)` ask them before anything is written — each message in
+the reader's language from Rask's strings catalog. A property that is not nullable is required; a nullable one may
+be left empty.
+
+Two values are equal when they are of the same type and hold the same value; the rules take no part. Its
+`ToString()` is the value. Make it only through `Create`: `new DriverName()` builds one no rule was asked about,
+and a `with` copies one past them — [RASK127](diagnostics.md#rask127) refuses both outside the type. It must be
+`sealed partial` ([RASK129](diagnostics.md#rask129)), since Rask writes its other half.
+
+The shape below — a `record` holding one value with a `public static Validate` — still works, and is what a value
+object with a rule the bases cannot say (a checksum, a lookup) is written as.
+
+### Value objects of any shape
+
 One an abstract base declares is mapped the same way, at any depth, on every aggregate deriving from it: each
 concrete aggregate is its own table holding the base's columns, and its read face and form model carry them too.
 A generic base (`Filing<TSelf> where TSelf : Filing<TSelf>`) is no different: `VatReturn : Filing<VatReturn>` holds

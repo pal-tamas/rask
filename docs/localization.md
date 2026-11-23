@@ -882,6 +882,9 @@ they say when you set nothing.
 | `FilterRangeAtMost` | Filters: a range's badge, its most alone | `at most {0}` |
 | `FilterRangeBetween` | Filters: a range's badge, both ends | `{0} – {1}` |
 | `ToastClose` | Toast: its close control (a cross) | `Close notification` |
+| `ValidationNumberMin` | Validation — a number below a value object's `Number(Min: …)` / `Whole(Min: …)` | `Enter {0} or more.` |
+| `ValidationNumberMax` | Validation — a number above a value object's `Number(Max: …)` / `Whole(Max: …)` | `Enter {0} or less.` |
+| `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |
