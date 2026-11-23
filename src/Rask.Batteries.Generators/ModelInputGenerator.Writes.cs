@@ -96,16 +96,16 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
         s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
         AppendKeyRemarks(s, entity);
-        s.Append("        public static ").Append(Awaits(entity) ? "async " : "").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
             .Append(modelType).Append(" model, ").Append(applyParameter).Append(DbParameter).Append(TokenFqn)
             .AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-        AppendValidateCall(s, entity);
+        AppendValidateCall(s);
         AppendNewEntity(s, entity, withId: false);
         s.AppendLine("            __Apply(entity, model);");
         s.AppendLine("            apply?.Invoke(entity);");
-        AppendReturn(s, entity, WritesFqn + ".Create(entity, db, cancellationToken)");
+        AppendReturn(s, WritesFqn + ".Create(entity, db, cancellationToken)");
         s.AppendLine("        }");
         s.AppendLine();
 
@@ -126,16 +126,16 @@ public sealed partial class ModelInputGenerator
         s.AppendLine(DbDoc);
         s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
         s.AppendLine("        /// <returns>The inserted entity.</returns>");
-        s.Append("        public static ").Append(Awaits(entity) ? "async " : "").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
             .Append(entity.IdTypeName).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
             .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-        AppendValidateCall(s, entity);
+        AppendValidateCall(s);
         AppendNewEntity(s, entity, withId: true);
         s.AppendLine("            __Apply(entity, model);");
         s.AppendLine("            apply?.Invoke(entity);");
-        AppendReturn(s, entity, WritesFqn + ".Create(entity, db, cancellationToken)");
+        AppendReturn(s, WritesFqn + ".Create(entity, db, cancellationToken)");
         s.AppendLine("        }");
         s.AppendLine();
 
@@ -164,15 +164,14 @@ public sealed partial class ModelInputGenerator
             s.AppendLine(ConflictDoc);
         }
 
-        s.Append("        public static ").Append(Awaits(entity) ? "async " : "").Append(TaskFqn).Append('<').Append(entityType).Append("> Update(")
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Update(")
             .Append(idType).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
             .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-        AppendValidateCall(s, entity);
+        AppendValidateCall(s);
         AppendReturn(
             s,
-            entity,
             WritesFqn + ".Update<" + entityType + ">(id!, " + version
             + ", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken)");
         s.AppendLine("        }");
