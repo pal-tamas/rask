@@ -171,6 +171,7 @@ Rask.Testing.ClockFake
 Rask.Testing.ClockFake.Advance(System.TimeSpan by) -> void
 Rask.Testing.ClockFake.Dispose() -> void
 Rask.Testing.ClockFake.Now.get -> System.DateTimeOffset
+override Rask.Testing.ClockFake.GetUtcNow() -> System.DateTimeOffset
 static Rask.Testing.ClockFakes.Fake(System.DateTimeOffset at) -> Rask.Testing.ClockFake!
 static Rask.Testing.ClockFakes.extension(Rask.Clock!).Fake(System.DateTimeOffset at) -> Rask.Testing.ClockFake!
 Rask.Testing.TestDownloadSink.Stage(string! filename, System.IO.Stream! stream, string? contentType) -> void

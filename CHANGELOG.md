@@ -31,6 +31,10 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Clock.Fake(at)` is a `TimeProvider` itself.** `ClockFake : TimeProvider, IDisposable`, its `GetUtcNow` the frozen
+  time: hand it to a type that takes a clock (`new PumpLanes(clock)`) and that type and `Clock.Now` tell the same time,
+  which `Advance` moves for both. Before, it wrapped a private provider nobody could reach, so such a type needed
+  `Clock.TimeProvider`. `Now`, `Advance` and `Dispose` are as they were (docs/testing.md).
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else

@@ -324,6 +324,16 @@ go to that database, through the app's own context (its model, its `SaveChangesA
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
 
+**The fake clock is a `TimeProvider`.** Hand it to a type of the app's that takes one, and that type and `Clock.Now`
+tell the same time, which `Advance` moves for both:
+
+```csharp
+using var clock = Clock.Fake(at: monday9am);
+var lanes = new PumpLanes(clock);   // PumpLanes(TimeProvider time)
+
+clock.Advance(2.Hours);             // lanes and Clock.Now both read monday 11:00
+```
+
 ### A real database server, when the machine has one
 
 Some tests need the database the app runs on — SQL Server's locking, a stored procedure, a migration — and not
