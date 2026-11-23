@@ -580,3 +580,6 @@ virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.D
 ~override Rask.Data.Problem.ToString() -> string
 ~override Rask.Data.ValueFacets.Equals(object obj) -> bool
 ~override Rask.Data.ValueFacets.ToString() -> string
+Rask.Data.CoveringIndexBuilderExtensions
+static Rask.Data.CoveringIndexBuilderExtensions.Covering(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, params string![]! propertyNames) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
+static Rask.Data.CoveringIndexBuilderExtensions.Covering<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, object?>!>! columns) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
