@@ -31,6 +31,16 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Five domain and data-annotation analyzers, suggestions by default and warnings under `<RaskStrict>`.**
+  [RASK140](docs/diagnostics.md#rask140): `DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` or
+  `.ToLocalTime()` inside an aggregate, an entity or a value object, with a quick-fix to the `Clock` read of the same
+  type (`Clock.Wall`, `Clock.Wall.Date` or `Clock.Today`, `Clock.Now.UtcDateTime`, `Clock.Now`,
+  `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)`). [RASK141](docs/diagnostics.md#rask141): `Current.Service<T>()`
+  inside one. [RASK142](docs/diagnostics.md#rask142): `Task.WhenAll` over database work inside `Db.Transaction`,
+  whose work shares one connection. [RASK143](docs/diagnostics.md#rask143): `[Key]` on an aggregate or an entity,
+  keyed by the `Id` it inherits. [RASK144](docs/diagnostics.md#rask144): `[Compare("X")]` naming no property of its
+  model, which refuses every submit. Under `<RaskStrict>errors</RaskStrict>` they are errors like every other
+  warning; none of them fires in a scaffolded app.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

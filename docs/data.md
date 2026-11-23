@@ -104,7 +104,7 @@ framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
-| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. |
+| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
 | `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
@@ -1096,7 +1096,8 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   so an aggregate loaded or made before the block is saved by the retry as if the failed attempt had never run.
 - **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
-- **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
+- **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it — [RASK142](diagnostics.md#rask142)
+  says so where it sees one.
 - **What does not join:** the cache does not take part — `Cache.Remember` and `Cache.Forget` act at once and
   are not undone by a rollback. Nor does a context built without Rask's interceptors and never handed to a Rask call.
 
@@ -1430,6 +1431,29 @@ When a page shows the order between loading and changing it, the same rules run 
 - **No `Deletable` means no `Delete`.** `Order.Delete(id)` is then a compile error, and
   the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
   the row, its history and everything that refers to it.
+
+### Time in the domain
+
+An aggregate, an entity and a value object read the time from Rask's `Clock`, never the machine's: `Clock.Now` is
+now in UTC, `Clock.Wall` the wall clock in the app's zone (`AddRask(timeZone: "Europe/Budapest")`, `c.TimeZone` on a
+`RaskApp`), `Clock.Today` its day and `Clock.Zone` the zone itself. A test's `Clock.Fake(at: …)` freezes all of
+them, together with the audit stamps and `3.Days.Ago`; it freezes nothing that reads `DateTime.Now`.
+
+```csharp
+public void Stamp() => ModifiedAt = Clock.Wall;                                   // not DateTime.Now
+public DateTime OnTheWall(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(utc, Clock.Zone);  // not utc.ToLocalTime()
+```
+
+`DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` and `.ToLocalTime()` in domain code are
+[RASK140](diagnostics.md#rask140), whose quick-fix writes the `Clock` read of the same type.
+
+### Services stay outside the domain
+
+The domain decides from the state it holds and what its caller hands it. A service it would need — a price list, an
+exchange rate, the mail sender — is the caller's to use: pass what it answered into the operation
+(`order.Price(sku, prices.Of(sku))`), or raise a [domain event](#keeping-state-inside-the-aggregate) and let its
+handler use the service. `Current.Service<T>()` inside an aggregate, an entity or a value object is
+[RASK141](diagnostics.md#rask141).
 
 ### How a form save writes
 

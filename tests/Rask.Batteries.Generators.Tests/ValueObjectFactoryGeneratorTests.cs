@@ -380,7 +380,7 @@ public class ValueObjectFactoryGeneratorTests
     [Fact]
     public async Task An_app_that_sets_RaskStrict_is_warned_about_a_bare_primitive()
     {
-        var strict = StrictSeverity("RASK130");
+        var strict = StrictConfig.Severity("RASK130");
 
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
             new PrimitiveStatePropertyAnalyzer(), Entity, options => options.WithSpecificDiagnosticOptions([new("RASK130", strict)]));
@@ -399,31 +399,5 @@ public class ValueObjectFactoryGeneratorTests
         var none = diagnostics;
 
         Assert.Empty(none);
-    }
-
-    // The severity rask-strict.globalconfig — the file <RaskStrict> adds to an app's every project — gives an id.
-    private static ReportDiagnostic StrictSeverity(string id)
-    {
-        var line = File.ReadLines(RepoPath("src", "Rask.Core", "build", "rask-strict.globalconfig"))
-            .Single(l => l.StartsWith("dotnet_diagnostic." + id + ".severity", StringComparison.Ordinal));
-
-        return line.Split('=')[1].Trim() switch
-        {
-            "error" => ReportDiagnostic.Error,
-            "warning" => ReportDiagnostic.Warn,
-            "suggestion" => ReportDiagnostic.Info,
-            _ => ReportDiagnostic.Suppress,
-        };
-    }
-
-    private static string RepoPath(params string[] parts)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return Path.Combine([directory!.FullName, .. parts]);
     }
 }
