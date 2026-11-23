@@ -51,6 +51,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Postgres\Rask.Postgres.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SqlServer\Rask.SqlServer.csproj"/>
+    <!-- AddRaskData(...).OwnsSchema(): migrate-on-start against a server that does not have the database yet. -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>

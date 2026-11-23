@@ -384,6 +384,12 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Migrate-on-start creates a database the server does not have yet, again.** Before (since the start's migrations
+  run on one connection with the session timeouts lifted): that connection was opened ahead of EF Core's `Migrate`,
+  so a fresh app on an empty SQL Server or PostgreSQL failed its start with "cannot open database" (4060) or `3D000`
+  instead of creating its database. After: the missing database is created first, then the connection opens; two
+  hosts starting together on an empty server both start (the one that loses the create waits for the other's
+  database), and the migrations stay under EF Core's migration lock. SQLite was never affected.
 - **BREAKING (Rask.Jobs): a new recurring schedule waits for its next occurrence.** Before: a schedule never run before
   fired on the first poll — a `.Monthly.On(1).At(6, 0)` close-the-books deployed on the 15th ran on the 15th, an
   `.Every(1.Hour)` job at every first boot. After: its `RecurringJobState` row starts at the occurrence just gone by, so
