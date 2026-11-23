@@ -195,3 +195,14 @@ Rask.Testing.Page.ElementActions.Submit(string? form = null) -> System.Threading
 Rask.Testing.Page.Invoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.Shows(System.Func<string!, bool>! condition) -> void
 Rask.Testing.Page.TryInvoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<bool>!
+Rask.Testing.RefusalAssertion
+Rask.Testing.RefusalAssertion.At(string! field) -> Rask.Testing.RefusalAssertion!
+Rask.Testing.RefusalAssertion.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
+Rask.Testing.RefusalAssertion.Only(string! field) -> Rask.Testing.RefusalAssertion!
+Rask.Testing.RefusalAssertion.Whole() -> Rask.Testing.RefusalAssertion!
+Rask.Testing.RefusalAssertionException
+Rask.Testing.RefusalAssertionException.RefusalAssertionException() -> void
+Rask.Testing.RefusalAssertionException.RefusalAssertionException(string! message, System.Exception! innerException) -> void
+Rask.Testing.RefusalAssertionException.RefusalAssertionException(string! message) -> void
+static Rask.Testing.Test.Refuses(System.Action! act) -> Rask.Testing.RefusalAssertion!
+static Rask.Testing.Test.Refuses(System.Func<System.Threading.Tasks.Task!>! act) -> System.Threading.Tasks.Task<Rask.Testing.RefusalAssertion!>!

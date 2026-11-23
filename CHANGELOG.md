@@ -31,6 +31,21 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
+  msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
+  a form shows under that field — or above the form when none is named — instead of the error page an
+  `InvalidOperationException` ends in. The path is read from the lambda only when refusing: members (`Km.Start`), an
+  evaluated index (`Parts[2].Quantity`), a captured local under its form name (`parts` → `Parts`), `this.` dropped
+  ([data](docs/data.md#refusing-an-operation-refuse)).
+- **`Test.Refuses(…)` says where an operation was refused.** `Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End")`,
+  `(await Test.Refuses(() => Dispatcher.Send(cmd))).Only("Number")`, `.Whole()`; an operation that goes through or throws
+  anything else fails with a `RefusalAssertionException` naming what happened
+  ([testing](docs/testing.md#asserting-a-refusal-testrefuses)).
+- **`Events.Fake()` records what a test published.** `using var events = Events.Fake();` (`Rask.Cqrs`) records every
+  event published in the test's flow — `Dispatcher.Publish`, an injected `IDispatcher`, and the domain events a save
+  publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
+  `events.Published<DriverChipsChanged>().Once()`, `.Never()`, `.Times(n)`, `.Where(e => …)`, `.Only()`, `.All`
+  ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

@@ -1431,6 +1431,37 @@ When a page shows the order between loading and changing it, the same rules run 
   the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
   the row, its history and everything that refers to it.
 
+### Refusing an operation: `Refuse`
+
+An `InvalidOperationException` ends the request with an error page. When the person can do something about it,
+say so with `Refuse` instead: it throws a `RaskValidationException`, which a form shows like any failed rule — the
+message under the field it names, or above the form when it names none.
+
+```csharp
+public void Ship(string tracking)
+{
+    Refuse.Unless(Status == OrderStatus.Paid, $"A {Status} order cannot ship.");          // the whole form
+    Refuse.When(tracking.Length == 0, () => tracking, "Give the tracking number.");     // under "Tracking"
+    (Status, Tracking) = (OrderStatus.Shipped, tracking);
+}
+
+for (var i = 0; i < Parts.Count; i++)
+{
+    Refuse.When(locked.Contains(Parts[i].Id), () => Parts[i].Quantity, Texts.LockedChanged);  // "Parts[2].Quantity"
+}
+```
+
+- `Refuse.When(condition, …)` refuses when the condition holds, `Refuse.Unless(condition, …)` when it does not,
+  and `Refuse.At(() => field, message)` always — the branch that already knows. Each takes the field as a lambda,
+  or no field for the form as a whole.
+- **The field path is read from the lambda**, as the form names it: `() => Km.Start` is `Km.Start`; an index is
+  evaluated, so `() => Parts[i].Quantity` is `Parts[2].Quantity`; a captured local or parameter takes its form
+  field's name (`() => parts[i].Quantity` is `Parts[2].Quantity`); `this.` is dropped. A lambda that is not a chain
+  of members and indexers (`() => Total()`) throws an `ArgumentException` naming the shape to write.
+- **The lambda is read only when the operation is refused.** A call that goes through pays for the expression the
+  compiler builds at the call site and nothing more, so a guard in a loop over thousands of rows stays cheap.
+- A child row's own key, rather than its index, is `Problem.At(child)`'s to give, from a value object's rules.
+
 ### How a form save writes
 
 **The model is the truth.** A save stores what the model holds, property by property, and reads nothing back

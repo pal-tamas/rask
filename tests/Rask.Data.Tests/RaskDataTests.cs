@@ -137,6 +137,25 @@ public sealed class RaskDataTests : IDisposable
     }
 
     [Fact]
+    public async Task Under_the_events_fake_a_save_records_its_domain_events_and_runs_their_handlers_only_when_asked()
+    {
+        using var events = Events.Fake();
+        var widget = Widget.Create("faked");
+        await using (var db = NewContext())
+        {
+            db.Widgets.Add(widget);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var heardBeforeRun = _recorder.Events.Count;
+        await events.Run(TestContext.Current.CancellationToken);
+
+        events.Published<WidgetCreated>().Where(e => e.Id == widget.Id).Once();
+        Assert.Equal(0, heardBeforeRun);
+        Assert.Contains(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
+    }
+
+    [Fact]
     public async Task A_save_inside_a_transaction_of_its_own_publishes_its_events_once_that_commits()
     {
         await using var db = NewContext();

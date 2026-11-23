@@ -457,6 +457,43 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
 handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
 where the outbox is on; without it a durable handler already runs in line.
 
+### Asserting what was published: `Events.Fake()`
+
+```csharp
+using var events = Events.Fake();
+
+await Dispatcher.Send(new ChangeDriverChips(driver.Id, chips));
+
+events.Published<DriverChipsChanged>().Once();
+events.Published<DriverChipsChanged>().Where(e => e.DriverId == driver.Id).Once();
+events.Published<DriverRetired>().Never();
+var changed = events.Published<DriverChipsChanged>().Only();   // the event itself; .All for every one
+```
+
+It records every event handed to `Dispatcher.Publish` or an injected `IDispatcher` in the test's own flow —
+and so the domain events an aggregate raises, which its save publishes once the change commits (with
+`AddRaskCqrs()` registered, as a `RaskApp` has it). As with `Jobs.Fake()`, **nothing hears a recorded event**:
+no handler, no subscription, no open page. `await events.Run()` publishes every recorded event for real, and
+what its handlers publish in turn. A durable handler the outbox stored in the save's transaction stays the
+outbox's to run (`Outbox.Fake()`). `.Times(n)` counts exactly; a failed count names every event that was
+published instead.
+
+### Asserting a refusal: `Test.Refuses`
+
+```csharp
+Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End");
+(await Test.Refuses(() => Dispatcher.Send(new AddSupply(form)))).At("Parts[2].Quantity");
+(await Test.Refuses(() => Dispatcher.Send(new Register("")))).Only("Number");
+Test.Refuses(() => order.Ship("1Z")).Whole();
+```
+
+A refusal is any exception that names its fields — a failed rule, `Refuse.When(…)`, a value object's `Create`, a
+unique index. `.At(field)` asserts a failure under that field among any others, `.Only(field)` that every failure
+is under that field alone, `.Whole()` that one is about the form as a whole; each hands back the same refusal, so
+they chain, and `.Failures` holds them all. An operation that goes through, or throws anything else, fails with a
+`RefusalAssertionException` saying what happened instead. A lambda that returns a `Task` is awaited; any other runs
+as it is.
+
 ---
 
 ## 2. The test stack
