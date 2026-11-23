@@ -312,11 +312,13 @@ Rask.Data.CurrentUser.extension(Rask.Current!)
 static Rask.Data.CurrentUser.Claim(string! type) -> string?
 static Rask.Data.CurrentUser.IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.UsePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).Claim(string! type) -> string?
 static Rask.Data.CurrentUser.extension(Rask.Current!).IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
 static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
 static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).UsePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).UserId.get -> System.Guid?
 static Rask.Data.CurrentUser.get_Principal() -> System.Security.Claims.ClaimsPrincipal?
 static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid

@@ -13,7 +13,7 @@ internal static partial class UiApi
 
     public static IReadOnlyList<UiApiPart> Field { get; } =
     [
-        new("Ui.Field", typeof(UiField), "flux:field", "A label, a control, help text and the control's message, stacked and wired together.",
+        new("Ui.Field", typeof(UiField), "flux:field", "A label, a control, help text and the control's message, stacked and wired together. With no Ui.Label, a bound control's member labels it.",
         [
             new("Variant", typeof(Ui.FieldVariant?), "Inline puts the label beside the control, for a checkbox or a switch. Stacked when unset."),
         ]),
@@ -32,7 +32,6 @@ internal static partial class UiApi
             new("Blur", typeof(bool?), "Writes the model when the reader leaves a text field."),
             new("Debounce", typeof(TimeSpan?), "Writes a text field's model once typing has paused this long.", "a TimeSpan: 300.Milliseconds"),
             new("Choices", typeof(object), "The rows an id is picked from, as Ui.Select takes them: a field holding an id has no control without them.", "Ui.Choice rows, or a search"),
-            new("Control", typeof(object), "Tunes the control drawn: .Control<UiInput<string>>(c => c.Clearable()). Throws when it is another control.", "steps on the control"),
         ]),
         new("Ui.Label", typeof(UiLabel), "flux:label", "A <label> for the field's control. Its children are its words.",
         [

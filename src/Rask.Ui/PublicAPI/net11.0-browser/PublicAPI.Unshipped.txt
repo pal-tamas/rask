@@ -9358,7 +9358,6 @@ Rask.UiBoundField<T>.Blur.set -> void
 Rask.UiBoundField<T>.Choices<TValue>(System.Collections.Generic.IEnumerable<Rask.Ui.Choice<TValue>>! choices) -> Rask.UiBoundField<T>!
 Rask.UiBoundField<T>.Choices<TValue>(System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiBoundField<T>!
 Rask.UiBoundField<T>.Choices<TValue>(System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiBoundField<T>!
-Rask.UiBoundField<T>.Control<TControl>(System.Action<TControl!>! tune) -> Rask.UiBoundField<T>!
 Rask.UiBoundField<T>.Debounce.get -> System.TimeSpan?
 Rask.UiBoundField<T>.Debounce.set -> void
 Rask.UiBoundField<T>.Description.get -> string?

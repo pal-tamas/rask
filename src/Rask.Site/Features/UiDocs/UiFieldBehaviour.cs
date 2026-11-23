@@ -19,6 +19,11 @@ internal sealed partial class UiFieldBehaviour : Component
             + "the kit ships none, so each part is the native element that already behaves that way: `<label>`, "
             + "`<fieldset>`, `<legend>`.",
             "`Ui.Field.Inline` puts the label beside the control, for a checkbox or a switch; the default stacks them.",
+            "Rask's own: a field holding a bound control and no `Ui.Label` is labelled by the member. "
+            + "`Ui.Field[Ui.Input.Bind(() => m.Plate).InputClass(\"uppercase\")]` draws its `[Display(Name)]`, the "
+            + "*Required* badge where it must be filled, and its `[Display(Description)]` where the field holds no "
+            + "`Ui.Description` — before the control, or after a checkbox in an inline field. A `Ui.Label` of your own "
+            + "draws the field as you wrote it.",
         ]);
 
     private static UiDocsTopic Error() =>

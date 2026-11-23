@@ -61,6 +61,15 @@ them until tagged releases begin.
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and
   PostgreSQL, through each provider's own annotation, and leaves SQLite's index as its keys with nothing in the model
   or a migration. A covered member that is not mapped, or is already a key, fails the model build with its name.
+- **`Clock.Fake(at)` is a `TimeProvider` itself.** `ClockFake : TimeProvider, IDisposable`, its `GetUtcNow` the frozen
+  time: hand it to a type that takes a clock (`new PumpLanes(clock)`) and that type and `Clock.Now` tell the same time,
+  which `Advance` moves for both. Before, it wrapped a private provider nobody could reach, so such a type needed
+  `Clock.TimeProvider`. `Now`, `Advance` and `Dispose` are as they were (docs/testing.md).
+- **`Current.UsePrincipal(principal)` signs a principal in for a scope.** Beside `Current.UseUser`: until disposed,
+  `Current.Principal`, `Current.Claim`, `Current.IsInRole`, `Current.UserId` and the tenant (its `rask:tenant` claim)
+  read that principal the way they read a request's, and it wins over the session's or request's own;
+  `Current.UseUser` and `Tenant.Use` still win over it. A test no longer hand-rolls an `IServiceProvider` +
+  `IPrincipalSource` stub under `Db.UseScope` (docs/testing.md, docs/data.md).
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
@@ -68,8 +77,18 @@ them until tagged releases begin.
   `min`/`max`/`step`, a date picker ending today for `NotAfterToday`, `Ui.DayAndTime`, a checkbox, an enum select in
   declaration order, a range as two controls under one label with `X.Start`/`X.End` messages, and an id select over
   the `.Choices(…)` it must be given. `[Editable(false)]` makes an input read-only and any other control disabled;
-  `Label`/`Description`/`Placeholder`/`Badge` win over the attributes, `.Control<TControl>(…)` tunes the control drawn.
-  `Ui.Field[…]` is unchanged. The chain generator now lets a seedless container and a generic component joined by
+  `Label`/`Description`/`Placeholder`/`Badge` win over the attributes. To pick and tune the control yourself, bind it
+  inside `Ui.Field[…]`: a field holding a bound control and no `Ui.Label` is now labelled by the member —
+  `Ui.Field[Ui.Input.Bind(() => m.Plate).InputClass("uppercase")]` draws its `[Display(Name)]`, the same *Required*
+  badge, and its `[Display(Description)]` unless the field holds a `Ui.Description` (before the control; after a
+  checkbox, inline). Before: such a field drew no label at all. A field with a `Ui.Label` of its own, or an unbound
+  control, is unchanged. **BREAKING: a bound control no longer labels itself** from its member's `[Display(Name)]`
+  (nor badges it, nor says its message): put it in `Ui.Field[…]` or use `Ui.Field.Bind`; a bare
+  `Ui.Input.Bind(() => m.X)` draws neither label nor message, as Flux's does. A table cell writes its message beside
+  the control, as Flux's `flux:error name` does — `Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]`
+  — which shows that row's messages; the control stays `aria-invalid` while its member holds one. In a `Ui.Filters`
+  panel a control given no label is drawn in a field labelled by its member's `[Display]` name, as its badge is. The
+  chain generator now lets a seedless container and a generic component joined by
   `[RaskChainEntry]` share one entry: it hands back a seed carrying the container's steps, indexer and a conversion
   to it beside the other's openings, and the first step decides which the chain is (`docs/building-components.md`).
 - **Field shapes: a generated model tells every bound control what its field is (BREAKING:
@@ -470,6 +489,18 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
+  `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
+  `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
+  while the page handled it: a Hunland user's pumps page, told of a Klapcsik pump, read Klapcsik's pumps. Apps worked
+  around it with `ExecutionContext.SuppressFlow()` + `Task.Run` around `Dispatcher.Publish`. After: each delivery is
+  queued in order and started in none of the publisher's flow (`LiveSessionBase.DeliverLiveEvent`), so it runs with
+  its session's scope, user and tenant; the event's own in-memory and durable handlers still run in the publisher's
+  work. Pinned by `PublishedEventScopeTests` (Rask.Server.Tests), for a page and for a subscriber.
+- **`TestDatabase.Start<TContext>` and `FromEnvironment<TContext>` run the app assembly's module initializer first.**
+  It is what registers the app's aggregates, and the runtime runs it only once something of that assembly is touched;
+  the shared constructor lookup (`AppContextConstructor`) now runs it (`RuntimeHelpers.RunModuleConstructor`) before
+  the schema is made, so an app's test needs no `RunModuleConstructor` line of its own (Eszaf's `TestDatabase`).
 - **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
   load inside any transaction refused them, because events were once published before the commit. They are not —
   `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are

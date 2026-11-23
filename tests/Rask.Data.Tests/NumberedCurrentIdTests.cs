@@ -39,7 +39,7 @@ public sealed class NumberedCurrentIdTests : IDisposable
 
         int? number;
         Guid? carried;
-        using (Db.UseScope(new SignedIn("12")))
+        using (Current.UsePrincipal(SignedIn("12")))
         {
             number = CurrentRows.UserId<int>();
             carried = CurrentUser.Id;
@@ -55,7 +55,7 @@ public sealed class NumberedCurrentIdTests : IDisposable
         Use(CurrentRowKind.User, typeof(Member), static (Guid key) => (MemberRead row) => row.Id == key, static (MemberRead row) => row.Id);
 
         Guid? read;
-        using (Db.UseScope(new SignedIn("12")))
+        using (Current.UsePrincipal(SignedIn("12")))
         {
             read = Current.UserId;
         }
@@ -155,7 +155,7 @@ public sealed class NumberedCurrentIdTests : IDisposable
         Use(CurrentRowKind.Tenant, typeof(NumberShop), static (int key) => (NumberShopRead row) => row.Id == key, static (NumberShopRead row) => row.Id);
 
         int? tenant;
-        using (Db.UseScope(new SignedIn("12", new Claim(Tenant.ClaimType, "7"))))
+        using (Current.UsePrincipal(SignedIn("12", new Claim(Tenant.ClaimType, "7"))))
         {
             tenant = CurrentRows.TenantId<int>();
         }
@@ -206,11 +206,6 @@ public sealed class NumberedCurrentIdTests : IDisposable
         where TRead : class, IReadModel =>
         CurrentRows.Use(new CurrentRow<TRead, TKey>(kind, aggregate, byKey, keyOf));
 
-    private sealed class SignedIn(string nameIdentifier, params Claim[] more) : IServiceProvider, IPrincipalSource
-    {
-        public ClaimsPrincipal? Current { get; } = new(new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, nameIdentifier), .. more], "Test"));
-
-        public object? GetService(Type serviceType) => serviceType == typeof(IPrincipalSource) ? this : null;
-    }
+    private static ClaimsPrincipal SignedIn(string nameIdentifier, params Claim[] more) =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, nameIdentifier), .. more], "Test"));
 }

@@ -26,10 +26,6 @@ internal static class UiBoundMember
         new($"{Call(bound)} holds another row's id, and a field picks an id from rows: give .Choices(…) the rows — "
             + "the shapes Ui.Select.Choices takes, e.g. .Choices(Vehicle.Find).");
 
-    /// <summary>The control <c>.Control&lt;T&gt;(…)</c> named is not the one the field draws.</summary>
-    internal static InvalidOperationException NotTheControl(LambdaExpression bound, Component drawn, Type named) =>
-        new($"{Call(bound)} draws a {Spelled(drawn.GetType())}, not a {Spelled(named)}: write .Control<{Spelled(drawn.GetType())}>(…).");
-
     /// <summary>A range end of a type the field has no control for.</summary>
     internal static InvalidOperationException NoControlFor(LambdaExpression bound, Type end) =>
         new($"{Call(bound)} is a range whose ends are {Spelled(end)}, which no control draws: bind each end with a control "

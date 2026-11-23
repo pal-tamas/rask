@@ -77,6 +77,18 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_refused_save_says_each_cells_message_beside_its_control()
+    {
+        var page = Draw();
+
+        await page.On("form").Submit();
+
+        Assert.Equal("true", page.Find("tbody input[type=\"text\"]").Attribute("aria-invalid"));
+        Assert.Equal(4, page.FindAll("tbody [data-ui-error]").Count(error => error.TextContent.Contains("Kötelező kitölteni", StringComparison.Ordinal)));
+        Assert.False(page.Exists("tbody label[data-ui-label]"));
+    }
+
+    [Fact]
     public async Task A_row_added_to_the_reported_form_and_taken_away_again_is_answered_with_a_diff()
     {
         var page = Draw();
@@ -165,16 +177,17 @@ public sealed partial class TankEditorShape : Component
 
     private Component Row(VirtualTank row) =>
         Ui.TableRow.Key(row.Key)[
-            Ui.TableCell.Class("align-top")[Ui.Field[
-                Ui.Input.Bind(() => row.Name).MaxLength(1000).ShowValidation(false).Validate(Named), Ui.Error]],
-            Ui.TableCell.Class("align-top")[Ui.Field[
-                Ui.Input.Bind(() => row.Size).Type(InputType.Number).ShowValidation(false).Validate(Litres), Ui.Error]],
-            Ui.TableCell.Class("align-top")[Ui.Field[
-                Ui.Input.Bind(() => row.CriticalLevel).Type(InputType.Number).ShowValidation(false).Validate(Litres), Ui.Error]],
-            Ui.TableCell.Class("align-top")[Ui.Field[
-                Ui.Select.Bind(() => row.CompanyId).Placeholder("Válasszon…").ShowValidation(false).Validate(Chosen)[
+            // Flux's cell: the bare control, and its message beside it — the column's header names it.
+            Ui.TableCell.Class("align-top")[
+                Ui.Input.Bind(() => row.Name).MaxLength(1000).Validate(Named), Ui.Error.For(() => row.Name)],
+            Ui.TableCell.Class("align-top")[
+                Ui.Input.Bind(() => row.Size).Type(InputType.Number).Validate(Litres), Ui.Error.For(() => row.Size)],
+            Ui.TableCell.Class("align-top")[
+                Ui.Input.Bind(() => row.CriticalLevel).Type(InputType.Number).Validate(Litres), Ui.Error.For(() => row.CriticalLevel)],
+            Ui.TableCell.Class("align-top")[
+                Ui.Select.Bind(() => row.CompanyId).Placeholder("Válasszon…").Validate(Chosen)[
                     _companies.Select(company => Ui.SelectOption.Key(company.Id).Value(company.Id)[company.Name])
-                ], Ui.Error]],
+                ], Ui.Error.For(() => row.CompanyId)],
             Ui.TableCell.Key("actions").End.Class("align-top")[
                 _form.VirtualTanks.Count > 1
                     ? Ui.Button.Key("remove-row").Ghost.Sm.Square(true).Icon(Ui.IconName.Trash).Tooltip("Virtuális tartály törlése")

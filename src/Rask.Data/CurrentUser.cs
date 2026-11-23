@@ -38,6 +38,7 @@ namespace Rask.Data;
 public static class CurrentUser
 {
     private static readonly AsyncLocal<UserScope?> AmbientUser = new();
+    private static readonly AsyncLocal<ClaimsPrincipal?> AmbientPrincipal = new();
 
     extension(Current)
     {
@@ -131,8 +132,34 @@ public static class CurrentUser
         ///     somebody in. It wins over the signed-in principal, and it changes <c>Current.UserId</c> only —
         ///     never <c>Current.Principal</c>.
         /// </remarks>
-        public static IDisposable UseUser(Guid? userId) => new Scope(new UserScope(userId));
+        public static IDisposable UseUser(Guid? userId) => new Scope<UserScope>(AmbientUser, new UserScope(userId));
+
+        /// <summary>
+        ///     Makes <paramref name="principal" /> the signed-in principal until the returned scope is disposed.
+        /// </summary>
+        /// <param name="principal">Who is signed in: their claims, roles and tenant.</param>
+        /// <returns>A scope that restores the previous principal.</returns>
+        /// <remarks>
+        ///     What a test does to run as somebody signed in, with no session or request around it. It wins over the
+        ///     principal of the session or request in flight, and everything read from a principal reads this one —
+        ///     <c>Current.Principal</c>, <c>Current.Claim</c>, <c>Current.IsInRole</c>, <c>Current.UserId</c> from its
+        ///     <see cref="ClaimTypes.NameIdentifier" />, and the tenant its <c>rask:tenant</c> claim names — the same way
+        ///     a request's principal is read. <c>Current.UseUser</c> and <c>Tenant.Use</c> still win over it:
+        ///     <code>
+        ///     using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity(
+        ///         [new Claim(ClaimTypes.NameIdentifier, ada.ToString()), new Claim(Tenant.ClaimType, acme.ToString())], "Test")));
+        ///     </code>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="principal" /> is null.</exception>
+        public static IDisposable UsePrincipal(ClaimsPrincipal principal)
+        {
+            ArgumentNullException.ThrowIfNull(principal);
+            return new Scope<ClaimsPrincipal>(AmbientPrincipal, principal);
+        }
     }
+
+    /// <summary>The principal <c>Current.UsePrincipal</c> opened in this flow, or null.</summary>
+    internal static ClaimsPrincipal? ExplicitPrincipal => AmbientPrincipal.Value;
 
     /// <summary>
     ///     The user the work in flight is for, as the <see cref="Guid" /> the framework carries it in — the one the
@@ -206,15 +233,19 @@ public static class CurrentUser
 
     private sealed record UserScope(Guid? UserId);
 
-    private sealed class Scope : IDisposable
+    // One value of one flow's slot, until disposed: what UseUser and UsePrincipal open, each over its own slot.
+    private sealed class Scope<T> : IDisposable
+        where T : class
     {
-        private readonly UserScope? _previous;
+        private readonly AsyncLocal<T?> _slot;
+        private readonly T? _previous;
         private bool _disposed;
 
-        internal Scope(UserScope state)
+        internal Scope(AsyncLocal<T?> slot, T value)
         {
-            _previous = AmbientUser.Value;
-            AmbientUser.Value = state;
+            _slot = slot;
+            _previous = slot.Value;
+            slot.Value = value;
         }
 
         public void Dispose()
@@ -222,7 +253,7 @@ public static class CurrentUser
             if (!_disposed)
             {
                 _disposed = true;
-                AmbientUser.Value = _previous;
+                _slot.Value = _previous;
             }
         }
     }

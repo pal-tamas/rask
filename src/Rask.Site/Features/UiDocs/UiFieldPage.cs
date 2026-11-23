@@ -36,7 +36,8 @@ public sealed partial class UiFieldPage : Component
             UiDocsExample.Key("ui-field-auto").Heading("Auto field").File("FieldAutoExample.cs").Demo(FieldAutoExample).Testid("ui-field-auto")
                 .Blurb("Rask's own: Ui.Field.Bind draws the whole field from the member. The label, help text and "
                        + "placeholder are its [Display], the badge its [Required], and the control what it holds: an "
-                       + "email input, a number, a select over an enum, a textarea when asked, a checkbox."),
+                       + "email input, a number, a select over an enum, a textarea when asked, a checkbox. To pick and "
+                       + "tune the control yourself, put it in Ui.Field[…]: the member still labels it."),
             UiFieldBehaviour
         ];
 }
