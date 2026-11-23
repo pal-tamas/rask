@@ -499,6 +499,10 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
+  fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
+  continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —
+  served, but not stored, so the next request drew it again. After: it asks the paint itself whether it is done.
 - **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
   `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
   `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope

@@ -46,8 +46,12 @@ public sealed class Cached : Component
     private IFragmentStore? _store;
     private bool _lookedOnce;
     private bool _kept;
-    private int _outstanding;
     private int _startedThisWalk;
+
+    // The paints of the work started under it, asked whether they are done rather than counted down by a continuation
+    // of their own: the wave loop's continuation on the same task can run first and render again. Written and
+    // read only by its walks, which never run two at a time.
+    private List<Task>? _painting;
 
     // The lookup that had not landed when the page was built: the first render waits for it, as for any hook.
     private Task? _lookup;
@@ -242,16 +246,29 @@ public sealed class Cached : Component
         for (var fragment = _walking; fragment is not null; fragment = fragment._outer)
         {
             fragment._startedThisWalk++;
-            Interlocked.Increment(ref fragment._outstanding);
-            _ = fragment.Settle(painted);
+            fragment._painting ??= [];
+            fragment._painting.RemoveAll(static work => work.IsCompleted);
+            fragment._painting.Add(painted);
         }
     }
 
-    // Counts the work off once it has painted, however it ended: a faulted hook is its boundary's to report.
-    private async Task Settle(Task painted)
+    // Done the moment the paint is, however it ended: a faulted hook is its boundary's to report.
+    private bool StillPainting()
     {
-        await painted.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        Interlocked.Decrement(ref _outstanding);
+        if (_painting is null)
+        {
+            return false;
+        }
+
+        foreach (var work in _painting)
+        {
+            if (!work.IsCompleted)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -262,7 +279,7 @@ public sealed class Cached : Component
     /// <param name="addedHead">Whether something under it contributed to the page's head.</param>
     internal void Captured(string html, bool addedHead)
     {
-        if (!Capturing || _startedThisWalk > 0 || Volatile.Read(ref _outstanding) > 0 || _key is not { } key || _store is not { } store)
+        if (!Capturing || _startedThisWalk > 0 || StillPainting() || _key is not { } key || _store is not { } store)
         {
             return;
         }
