@@ -1985,11 +1985,12 @@ public void A_shipped_order_refuses_to_be_cancelled()
 ```
 
 Behaviour that touches the database gets a real one in a line, rather than a mocked `DbContext` — and
-it is the app's OWN context, so the test runs the model and the save the app runs in production. Save
-through `database.Context`, then read through the model surface exactly as the app does:
+it is the app's OWN context, so the test runs the model and the save the app runs in production. With nothing to
+configure it is SQLite in memory, a database of the test's own; save through `database.Context`, then read through
+the model surface exactly as the app does:
 
 ```csharp
-await using var database = await TestDatabase.Start<AppDbContext>(o => o.UseSqlite($"Data Source={path}"));
+await using var database = await TestDatabase.Start<AppDbContext>();
 
 var anvil = Product.Create("Anvil", 9.99m);
 database.Context.Add(anvil);
@@ -2022,9 +2023,22 @@ schema, wires the auditing and soft-delete interceptors so the conventions behav
 production, and points the model surface at it. Disposing clears it, so one test cannot leak its
 database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
 
-It is provider-agnostic on purpose: the options callback is yours, so `Rask.Data` gains no provider
-dependency and a test runs against the database the app actually uses. SQLite over a temporary file is
-the usual choice; `:memory:` lives only as long as its connection, and every read opens its own.
+**In memory, and side by side.** `TestDatabase.Start<AppDbContext>()` (and `TestDatabase.Start()` over Rask's own
+context) come with `Rask.SQLite.EntityFrameworkCore`, which every server app already has through `Rask.Server`. Each
+is a named, shared-cache SQLite database in memory (`Data Source=rask-test-…;Mode=Memory;Cache=Shared`), kept alive
+by one connection the fixture holds: every context it hands out — `Context`, `Factory`, `Load<T>`, the model
+surface's reads and writes — opens its own connection to the same name and sees the same rows, and disposing the
+fixture lets the database go. It is configured through `UseRaskSqlite`, so a decimal orders as a number and a model
+that names `c.OrderTextBy("Hungarian_100_CI_AS")` compares text case-insensitively, in Hungarian order, as its SQL
+Server does ([text order](#app-wide-model-rules-one-iraskmodel)); the schema is the model's, so an app whose
+migrations are SQL Server's still gets its tables. **Tests run in parallel**: a database started inside a test binds
+the model surface for that test's own flow, so two tests side by side each read their own rows. One started in a class
+fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow and points the process-wide surface instead —
+those tests take turns, one fixture at a time.
+
+The options callback is still there for another database: `TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs))`,
+or SQLite over a file. A provider's specifics stay in Rask (the collation, `end - start`, `Db.Lock`, a covering
+index), so the app's tests need no SQL Server of their own to mean what they say.
 
 Domain-event *publication* is deliberately not wired — that needs a service provider to resolve handlers
 through, which is more than a database fixture should invent. Assert on `DomainEvents` instead.

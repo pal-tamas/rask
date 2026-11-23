@@ -41,17 +41,52 @@ namespace Rask.Data;
 public static partial class Db
 {
     private static readonly AsyncLocal<IServiceProvider?> AmbientScope = new();
+    private static readonly AsyncLocal<FlowDatabase?> Flow = new();
     private static Func<DbContext>? _factory;
     private static int _generation;
 
     /// <summary>Whether <see cref="Configure(IServiceProvider)" /> (or an overload) has run.</summary>
-    public static bool IsOn => _factory is not null;
+    public static bool IsOn => Flow.Value is not null || _factory is not null;
 
     /// <summary>
     ///     How many times the model surface has been pointed at a database. Part of the read context's
     ///     model cache key — see <see cref="RaskReadDbContext" />.
     /// </summary>
-    internal static int Generation => Volatile.Read(ref _generation);
+    internal static int Generation => Flow.Value?.ReadModelKey ?? Volatile.Read(ref _generation);
+
+    /// <summary>The database a test started in this flow, or null — see <see cref="BindFlow" />.</summary>
+    internal static FlowDatabase? InFlow => Flow.Value;
+
+    /// <summary>
+    ///     Points the model surface at <paramref name="write" /> and <paramref name="read" /> for this flow alone — the
+    ///     test that started a database, and what it awaits — over the process-wide factory.
+    /// </summary>
+    /// <remarks>
+    ///     What lets tests run side by side, each with a database of its own. The caller must not be an async method:
+    ///     a flow's value set inside one is gone again once it returns.
+    /// </remarks>
+    internal static FlowDatabase BindFlow(Func<DbContext> write, Func<RaskReadDbContext> read)
+    {
+        var bound = new FlowDatabase(write, read, Interlocked.Increment(ref _generation));
+        Flow.Value = bound;
+        Ambient.DeclineTestApp();
+        return bound;
+    }
+
+    /// <summary>
+    ///     Forgets the database bound to this flow: a <c>Configure</c> the flow makes after starting one is its say, as
+    ///     it was before tests ran side by side.
+    /// </summary>
+    internal static void LeaveFlow() => Flow.Value = null;
+
+    /// <summary>Forgets <paramref name="bound" /> in this flow, if it is still the one bound there.</summary>
+    internal static void UnbindFlow(FlowDatabase bound)
+    {
+        if (ReferenceEquals(Flow.Value, bound))
+        {
+            Flow.Value = null;
+        }
+    }
 
     /// <summary>
     ///     Points the model surface at the application's <c>DbContext</c>, read off its own
@@ -82,6 +117,7 @@ public static partial class Db
                           "Db.Configure(IDbContextFactory<AppDbContext>) with the factory directly.");
 
         _factory = binding.CreateContext;
+        LeaveFlow();
         Interlocked.Increment(ref _generation);
         Ambient.DeclineTestApp();
 
@@ -102,6 +138,7 @@ public static partial class Db
     {
         ArgumentNullException.ThrowIfNull(factory);
         _factory = factory.CreateDbContext;
+        LeaveFlow();
         Interlocked.Increment(ref _generation);
         Ambient.DeclineTestApp();
     }
@@ -118,6 +155,7 @@ public static partial class Db
     {
         ArgumentNullException.ThrowIfNull(createContext);
         _factory = createContext;
+        LeaveFlow();
         Interlocked.Increment(ref _generation);
         Ambient.DeclineTestApp();
     }
@@ -213,6 +251,7 @@ public static partial class Db
 
     /// <summary>Whether <see cref="CreateContext" /> has anything to build a context from.</summary>
     internal static bool HasContext =>
+        Flow.Value is not null ||
         _factory is not null ||
         (AmbientScope.Value ?? Ambient.Services)?.GetService<AmbientContextBinding>() is not null;
 
@@ -236,7 +275,7 @@ public static partial class Db
             return scoped.CreateContext();
         }
 
-        return (_factory ?? throw new InvalidOperationException(
+        return (Flow.Value?.Write ?? _factory ?? throw new InvalidOperationException(
             "The model database has not been configured. A Rask app gets this from the host; elsewhere " +
             "call `Db.Configure(app.Services)` once after building the container, having registered the " +
             "context with `services.AddRaskData<AppDbContext>()`."))();
@@ -267,4 +306,10 @@ public static partial class Db
             }
         }
     }
+
+    /// <summary>A test's database, bound to the flow that started it.</summary>
+    /// <param name="Write">Opens a write context on it.</param>
+    /// <param name="Read">Opens a read context on it.</param>
+    /// <param name="ReadModelKey">Its own generation, so the read model mirrored from its write model is its own.</param>
+    internal sealed record FlowDatabase(Func<DbContext> Write, Func<RaskReadDbContext> Read, int ReadModelKey);
 }

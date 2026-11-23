@@ -309,7 +309,7 @@ it waits: only a call with nothing else to go on boots it — `Page.Visit`, a ba
 public async Task A_company_that_still_has_contacts_is_not_removed()
 {
     using var clock = Clock.Fake(at: monday9am);   // the only Rask.Testing call in this test
-    await using var database = await TestDatabase.Start<CrmContext>(o => o.UseSqlServer(cs));
+    await using var database = await TestDatabase.Start<CrmContext>();   // SQLite in memory, its own
     var company = Company.Named("Acme");
     database.Context.AddRange(company, Contact.At(company));
     await database.Context.SaveChangesAsync();
@@ -318,9 +318,24 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 }
 ```
 
-`TestDatabase.Start<CrmContext>(…)` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
+`TestDatabase.Start<CrmContext>()` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
 go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
-(with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start(…)`.
+(with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start()`.
+
+**In memory is the way to test a model.** With nothing to configure, `Start` makes a SQLite database in memory for
+the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFrameworkCore`, which `Rask.Server` brings):
+
+- every context it hands out — `database.Context`, `database.Factory`, `database.Load<T>`, `Company.Where(…)` and the
+  rest of the model surface — opens its own connection to the same named database, so they all see the same rows;
+- tests run **in parallel**: a database started inside the test binds the model surface for that test alone, so two
+  tests side by side never read each other's rows (one started in a class fixture's `InitializeAsync` is
+  process-wide instead, and those tests take turns);
+- a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
+  text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
+  unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));
+- disposing it lets the database go.
+
+`Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
 
@@ -389,8 +404,9 @@ await using var database = await TestDatabase.FromEnvironment<ShopContext>(
     "SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs), o => (o.Shared, o.LockFile) = (true, "/tmp/shop-test-db.lock"));
 ```
 
-Either way a process holds one at a time — the model surface is process-wide, so a second `FromEnvironment` waits
-until the first is disposed. The provider is the callback's: `(o, cs) => o.UseSqlite(cs)` works the same, which is
+Either way a process holds one at a time — a database started this way points the process-wide model surface, so a
+second `FromEnvironment` waits until the first is disposed. (An in-memory `Start` binds the test's own flow instead,
+which is why those run side by side.) The provider is the callback's: `(o, cs) => o.UseSqlite(cs)` works the same, which is
 how Rask tests it.
 
 Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —

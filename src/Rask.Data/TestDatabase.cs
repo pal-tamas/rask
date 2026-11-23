@@ -16,7 +16,7 @@ namespace Rask.Data;
 ///     </para>
 ///     <example>
 ///         <code>
-/// await using var database = await TestDatabase.Start(o => o.UseSqlite("Data Source=:memory:"));
+/// await using var database = await TestDatabase.Start();   // SQLite in memory, the test's own
 ///
 /// database.Context.Add(Order.Place("A-1"));
 /// await database.Context.SaveChangesAsync();
@@ -33,9 +33,9 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         <b>Provider-agnostic on purpose.</b> The options callback is yours, so this adds no provider
-///         dependency to <c>Rask.Data</c> and a test runs against whichever database the app uses. SQLite
-///         over a temporary file is the usual choice; <c>:memory:</c> is faster but lives only as long as
-///         its connection, so a test that opens several contexts wants a file.
+///         dependency to <c>Rask.Data</c>. With nothing to configure — <c>TestDatabase.Start&lt;AppDbContext&gt;()</c>,
+///         from <c>Rask.SQLite.EntityFrameworkCore</c> — it is a SQLite database in memory of the test's own, which every
+///         context it hands out shares; that is the usual choice.
 ///     </para>
 ///     <para>
 ///         Domain-event publication is <em>not</em> wired: <see cref="DomainEventInterceptor" /> needs a
@@ -51,13 +51,17 @@ public partial class TestDatabase : IAsyncDisposable
     private readonly Func<RaskReadDbContext> _openRead;
     private readonly Func<DbContext> _openWrite;
     private readonly IAsyncDisposable? _lease;
+    private readonly Db.FlowDatabase _flow;
 
+    // Binds the model surface to this database for the flow that is starting it — so it must run in that flow, outside
+    // any async method of its own (see Db.BindFlow).
     private protected TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite, IAsyncDisposable? lease)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
         _lease = lease;
+        _flow = Db.BindFlow(openWrite, openRead);
     }
 
     /// <summary>Builds the database over a plain <see cref="RaskDbContext" />, creates its schema, and makes it the ambient one.</summary>
@@ -72,12 +76,11 @@ public partial class TestDatabase : IAsyncDisposable
     /// </param>
     /// <param name="cancellationToken">Cancels schema creation.</param>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
-    public static async Task<TestDatabase> Start(
+    public static Task<TestDatabase> Start(
         Action<DbContextOptionsBuilder> configure,
         TimeProvider? timeProvider = null,
         CancellationToken cancellationToken = default) =>
-        await Open<RaskDbContext>(configure, static options => new RaskDbContext(options), timeProvider, SchemaStep.Create, lease: null, cancellationToken)
-            .ConfigureAwait(false);
+        StartHolding(configure, lease: null, timeProvider, cancellationToken);
 
     /// <summary>
     ///     Builds the database over the app's own context, creates its schema, and makes it the ambient one — so the
@@ -106,11 +109,50 @@ public partial class TestDatabase : IAsyncDisposable
         where TContext : RaskDbContext
     {
         ArgumentNullException.ThrowIfNull(configure);
-        return Open(configure, AppContextConstructor.For<TContext>(), timeProvider, SchemaStep.Create, lease: null, cancellationToken);
+        return StartHolding<TContext>(configure, lease: null, timeProvider, cancellationToken);
     }
 
+    /// <summary>
+    ///     <see cref="Start(Action{DbContextOptionsBuilder}, TimeProvider?, CancellationToken)" />, holding
+    ///     <paramref name="lease" /> — what keeps the database alive, an in-memory one's open connection — until disposed.
+    /// </summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
-    private static async Task<TestDatabase<TContext>> Open<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
+    internal static Task<TestDatabase> StartHolding(
+        Action<DbContextOptionsBuilder> configure,
+        IAsyncDisposable? lease,
+        TimeProvider? timeProvider,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        // Opened here, in the caller's flow, and only awaited inside: see Open.
+        return Started(Open<RaskDbContext>(
+            configure, static options => new RaskDbContext(options), timeProvider, SchemaStep.Create, lease, cancellationToken));
+
+        static async Task<TestDatabase> Started(Task<TestDatabase<RaskDbContext>> opening) =>
+            await opening.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     <see cref="Start{TContext}(Action{DbContextOptionsBuilder}, TimeProvider?, CancellationToken)" />, holding
+    ///     <paramref name="lease" /> until disposed.
+    /// </summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    internal static Task<TestDatabase<TContext>> StartHolding<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
+        Action<DbContextOptionsBuilder> configure,
+        IAsyncDisposable? lease,
+        TimeProvider? timeProvider,
+        CancellationToken cancellationToken)
+        where TContext : RaskDbContext
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        return Open(configure, AppContextConstructor.For<TContext>(), timeProvider, SchemaStep.Create, lease, cancellationToken);
+    }
+
+    // Not async: everything up to the schema runs in the caller's flow, so the database it binds the model surface to is
+    // the caller's own (Db.BindFlow) — and tests side by side each read and write their own.
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    private static Task<TestDatabase<TContext>> Open<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         Action<DbContextOptionsBuilder> configure,
         Func<DbContextOptions<TContext>, TContext> construct,
         TimeProvider? timeProvider,
@@ -142,22 +184,6 @@ public partial class TestDatabase : IAsyncDisposable
             return construct(builder.Options);
         }
 
-        // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
-        // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
-        // created the schema and disposed would hand the first query an empty file.
-        var schemaOwner = Create();
-        try
-        {
-            await createSchema(schemaOwner, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            await schemaOwner.DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-
-        Db.Configure(Create);
-
         // The read side is the same database through a context of its own, so `Order.Where(…)` works in a test
         // exactly as it does in an app — and it is configured AFTER Db, because building the read model
         // mirrors the write model and so needs the write side already pointed somewhere.
@@ -168,8 +194,13 @@ public partial class TestDatabase : IAsyncDisposable
             return new RaskReadDbContext(builder.Options);
         }
 
+        // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
+        // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
+        // created the schema and disposed would hand the first query an empty file.
+        var schemaOwner = Create();
+        Db.Configure(Create);
         ReadDb.Configure(CreateRead);
-        return new TestDatabase<TContext>(schemaOwner, CreateRead, Create, lease);
+        return new TestDatabase<TContext>(schemaOwner, CreateRead, Create, lease).WithSchema(createSchema, cancellationToken);
     }
 
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
@@ -221,17 +252,39 @@ public partial class TestDatabase : IAsyncDisposable
     public RaskReadDbContext OpenRead() => _openRead();
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
+    /// <remarks>Not async up to the unbinding, so the flow that disposes it — the test's — forgets it too.</remarks>
+    public ValueTask DisposeAsync()
     {
+        Db.UnbindFlow(_flow);
         Db.Reset();
         ReadDb.Reset();
+        GC.SuppressFinalize(this);
+        return LetGo();
+    }
+
+    /// <summary>Creates the schema through the fixture's own context; on a failure, lets the database go again.</summary>
+    private protected async Task CreateSchema<TContext>(
+        TContext schemaOwner, Func<TContext, CancellationToken, Task> createSchema, CancellationToken cancellationToken)
+        where TContext : RaskDbContext
+    {
+        try
+        {
+            await createSchema(schemaOwner, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private async ValueTask LetGo()
+    {
         await _schemaOwner.DisposeAsync().ConfigureAwait(false);
         if (_lease is not null)
         {
             await _lease.DisposeAsync().ConfigureAwait(false);
         }
-
-        GC.SuppressFinalize(this);
     }
 
     private static async Task<TEntity?> FindByKeyAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(

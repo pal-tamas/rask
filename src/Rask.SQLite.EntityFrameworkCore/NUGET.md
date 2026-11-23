@@ -47,6 +47,18 @@ o.UseRaskSqlite(sp, p =>
 });
 ```
 
+## Text that compares as SQL Server does
+
+A model that names its SQL Server collation once — `c.OrderTextBy("Hungarian_100_CI_AS")` in its `IRaskModel` — gets
+that comparison on every `UseRaskSqlite` connection: the `RASK_TEXT` collation on every text column (equality, unique
+indexes, `ORDER BY`), and `instr`/`LIKE` replaced so `Contains`, `StartsWith` and `EndsWith` ignore case beyond ASCII.
+
+## A test database in memory
+
+`await using var database = await TestDatabase.Start<AppDbContext>();` — a SQLite database in memory of the test's
+own, configured through `UseRaskSqlite`, shared by every context it hands out (`Context`, `Factory`, the model
+surface), gone when disposed. Tests that start one each run side by side.
+
 ## STRICT tables
 
 SQLite is dynamically typed: the text `"lots"` stores happily in an `INTEGER` column and surfaces as a

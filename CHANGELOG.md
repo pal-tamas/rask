@@ -31,6 +31,16 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
+  Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
+  `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
+  took its turn. After: `TestDatabase.Start<TContext>()` and `TestDatabase.Start()` (from
+  `Rask.SQLite.EntityFrameworkCore`) make a named shared-cache SQLite database in memory per test
+  (`rask-test-<guid>`), kept alive by one held connection; `Context`, `Factory`, `Load<T>` and the model surface each
+  open their own connection to it and see the same rows; it is configured through `UseRaskSqlite` (invariant decimal
+  order, the `OrderTextBy` collation); disposing lets it go. A database started inside a test binds `Db`/`ReadDb` for
+  that test's own flow, so parallel tests never read each other's rows; one started in a class fixture stays
+  process-wide, and a `Db.Configure`/`ReadDb.Configure` the test makes afterwards is still its say.
 - **`c.OrderTextBy("Hungarian_100_CI_AS")` makes SQLite compare text as that SQL Server collation does.** Before: the
   name was SQL Server's alone, so on SQLite `InTextOrder()` ordered by the column as it was, `Where(x => x.Name ==
   "csaba")` missed `Csaba`, a unique index let `CSABA` in beside it, and `Contains("árv")` missed `Árvíztűrő` — a test
