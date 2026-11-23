@@ -8,9 +8,9 @@ namespace Rask;
 /// <para>
 /// Flux UI's error. Inside a <see cref="UiField" /> a bare <c>Ui.Error</c> shows the first message of the
 /// field's bound control. Anywhere else, say which member: <c>Ui.Error.For(() =&gt; model.Email)</c>, or by
-/// <see cref="Name" /> on the form's model. Beside a bare bound control — a table cell's
-/// <c>Ui.TableCell[Ui.Input.Bind(() =&gt; row.Size), Ui.Error.For(() =&gt; row.Size)]</c>, Flux's <c>flux:error name</c> —
-/// it takes the id that control's <c>aria-describedby</c> names.
+/// <see cref="Name" /> on the form's model: beside a bare bound control in a table cell,
+/// <c>Ui.TableCell[Ui.Input.Bind(() =&gt; row.Size), Ui.Error.For(() =&gt; row.Size)]</c>, as Flux's
+/// <c>flux:error name</c> sits beside its input.
 /// </para>
 /// <para>
 /// Always in the page, hidden while there is nothing to say: it is a live region, and a screen reader only
@@ -47,7 +47,7 @@ public sealed partial class UiError : Component
         var custom = Children?.Any() == true;
         var message = custom ? null : Message ?? FormMessage(scope);
         var shown = custom || message is not null;
-        var box = Div.Id(Id ?? scope?.ErrorId ?? BesideId())
+        var box = Div.Id(Id ?? scope?.ErrorId)
             .Class(shown ? null : "hidden", Look, Class)
             .Data("ui-error", "")
             .Role("alert")
@@ -80,12 +80,6 @@ public sealed partial class UiError : Component
         (_, { } name) => new FieldIdentifier(form.Model, name),
         _ => scope?.Bound is { } bound ? ExpressionAccessor.Parse(bound).Field : null,
     };
-
-    // Outside a field, the id the control drawn for the same member names in its aria-describedby (UiBareControls).
-    private string? BesideId() =>
-        EditContextScope.Current is { } form && Field(form, null) is { } known && UiBareControls.ControlOf(known) is { } control
-            ? UiFieldId.Error(control)
-            : null;
 
     private UiIcon? Glyph() => Icon switch
     {

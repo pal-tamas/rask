@@ -902,8 +902,8 @@ Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]                       // n
 ```
 
 A bare control draws no message either. In a table cell, whose column header names it, write the message beside
-it as Flux's `<flux:error name>` sits beside its input: `Ui.Error.For(…)` takes the id the control's
-`aria-describedby` names, and the control is `aria-invalid` while the member holds a message — each row its own:
+it as Flux's `<flux:error name>` sits beside its input: `Ui.Error.For(…)` shows that member's messages, each row its
+own, and the control is `aria-invalid` while its member holds one:
 
 ```csharp
 Ui.TableCell[Ui.Input.Bind(() => row.Size).Type(InputType.Number), Ui.Error.For(() => row.Size)]

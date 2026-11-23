@@ -1625,8 +1625,8 @@ around it — put the bound control in `Ui.Field[…]` with no `Ui.Label`: the f
 placeholder is the control's own step. A field with a `Ui.Label` of its own, or with a control bound to nothing, is
 drawn exactly as written. A bare bound control — no field, no `.Label(…)` — draws neither a label nor a message, as in
 Flux: that is the shape for a table cell, whose column header names it, with its message beside it —
-`Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]`; the error takes the id the control's
-`aria-describedby` names, row by row.
+`Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]`, which shows that row's messages, as
+Flux's `flux:error name` does.
 
 ```csharp
 Ui.Field.Bind(() => model.Name)                              // the field picks the control: [Display] label, description, placeholder

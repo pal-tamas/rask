@@ -83,11 +83,8 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
 
         await page.On("form").Submit();
 
-        var name = page.Find("tbody input[type=\"text\"]");
-        var error = name.Attribute("id") + "-error";
-        Assert.Equal("true", name.Attribute("aria-invalid"));
-        Assert.Contains(error, name.Attribute("aria-describedby"), StringComparison.Ordinal);
-        Assert.Contains("Kötelező kitölteni", page.TextOf("#" + error), StringComparison.Ordinal);
+        Assert.Equal("true", page.Find("tbody input[type=\"text\"]").Attribute("aria-invalid"));
+        Assert.Equal(4, page.FindAll("tbody [data-ui-error]").Count(error => error.TextContent.Contains("Kötelező kitölteni", StringComparison.Ordinal)));
         Assert.False(page.Exists("tbody label[data-ui-label]"));
     }
 

@@ -47,8 +47,9 @@ them until tagged releases begin.
   (nor badges it, nor says its message): put it in `Ui.Field[…]` or use `Ui.Field.Bind`; a bare
   `Ui.Input.Bind(() => m.X)` draws neither label nor message, as Flux's does. A table cell writes its message beside
   the control, as Flux's `flux:error name` does — `Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]`
-  — and the error now takes the id the control's `aria-describedby` names (each row its own), the control
-  `aria-invalid` while the member holds a message. The chain generator now lets a seedless container and a generic component joined by
+  — which shows that row's messages; the control stays `aria-invalid` while its member holds one. In a `Ui.Filters`
+  panel a control given no label is drawn in a field labelled by its member's `[Display]` name, as its badge is. The
+  chain generator now lets a seedless container and a generic component joined by
   `[RaskChainEntry]` share one entry: it hands back a seed carrying the container's steps, indexer and a conversion
   to it beside the other's openings, and the first step decides which the chain is (`docs/building-components.md`).
 - **Field shapes: a generated model tells every bound control what its field is (BREAKING:

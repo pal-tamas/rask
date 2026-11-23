@@ -63,11 +63,18 @@ internal static class UiFieldNaming
             }
         }
 
-        // A control given a label or a description of its own draws its own field.
-        return found is { Bound: not null } and not IUiFormControl { Label: not null } and not IUiFormControl { Description: not null }
-            ? found
-            : null;
+        return found is not null && Unworded(found) ? found : null;
     }
+
+    /// <summary>
+    ///     The label a field around <paramref name="control" /> would draw for it — its member's <c>[Display]</c> name — or
+    ///     null for a control that has words of its own, or a member with no name.
+    /// </summary>
+    internal static string? LabelOf(IUiFieldControl control) => Unworded(control) ? DisplayNames.Of(control.Bound) : null;
+
+    // Bound, and given no label or description of its own: a control with either draws its own field.
+    private static bool Unworded(IUiFieldControl control) =>
+        control is { Bound: not null } and not IUiFormControl { Label: not null } and not IUiFormControl { Description: not null };
 
     private static Component? Described(IUiFieldControl control) =>
         DisplayNames.DescriptionOf(control.Bound) is { } text ? Ui.Description[text] : null;

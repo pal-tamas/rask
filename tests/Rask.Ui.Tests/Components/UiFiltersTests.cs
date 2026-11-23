@@ -232,6 +232,17 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_filter_given_no_label_is_labelled_in_the_panel_by_its_members_display_name()
+    {
+        var page = Page.Visit("/ui-filters-tests/display-named?who=ada");
+
+        await Open(page);
+
+        var input = page.Find("dialog input[data-ui-control]");
+        Assert.Equal("Customer", page.TextOf("dialog label[for=\"" + input.Attribute("id") + "\"]"));
+    }
+
+    [Fact]
     public void A_range_a_preset_made_is_said_by_the_presets_name()
     {
         var page = Page.Visit(Orders + "?period=2026-10-03..2026-10-09~last7Days");

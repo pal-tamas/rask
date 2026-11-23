@@ -19,8 +19,8 @@ namespace Rask;
 ///     <para>
 ///     With no label and no description <see cref="Wrap" /> hands the control back alone — no label and no
 ///     message, as Flux's control alone draws neither — and <see cref="Aria" /> then names the parts of the
-///     <see cref="UiField" /> the call site composed around it, or, with no field around it, the
-///     <c>Ui.Error.For(…)</c> written beside it for the same member (<see cref="UiBareControls" />): a table cell's
+///     <see cref="UiField" /> the call site composed around it. With no field around it, its message is a
+///     <c>Ui.Error.For(…)</c> written beside it, as Flux's <c>flux:error name</c> is: a table cell's
 ///     <c>Ui.TableCell[Ui.Input.Bind(() =&gt; row.Size), Ui.Error.For(() =&gt; row.Size)]</c>.
 ///     </para>
 ///     <para>
@@ -42,7 +42,6 @@ internal sealed class UiWithField
     private readonly string? _badge;
     private readonly string? _error;
     private readonly bool _showValidation;
-    private readonly bool _bare;
 
     private UiWithField(IUiFieldControl control, Shorthand props)
     {
@@ -52,9 +51,6 @@ internal sealed class UiWithField
         (_error, _showValidation) = (props.Error, props.ShowValidation);
         Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
         Required = Requires(control);
-
-        // Drawn with no field around it, a bound control's message is a Ui.Error.For(…) beside it, as Flux's error is.
-        _bare = _bound is not null && !Wraps && ComposedAround() is null && UiBareControls.Claim(_bound, ControlId);
         Aria = BuildAria();
     }
 
@@ -205,7 +201,7 @@ internal sealed class UiWithField
         var ownError = Wraps && _showValidation;
         string?[] describedBy =
         [
-            Invalid && (ownError || scope?.HasError == true || _bare) ? UiFieldId.Error(ControlId) : null,
+            Invalid && (ownError || scope?.HasError == true) ? UiFieldId.Error(ControlId) : null,
             _description is not null || scope?.HasDescription == true ? UiFieldId.Description(ControlId) : null,
             _descriptionTrailing is not null ? TrailingId : null,
         ];

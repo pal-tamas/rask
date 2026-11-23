@@ -7,7 +7,7 @@ namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     A bare bound control draws neither a label nor a message, as Flux's does; in a table cell its message is a
-///     <c>Ui.Error.For(() =&gt; row.X)</c> beside it, which takes the id the control's <c>aria-describedby</c> names.
+///     <c>Ui.Error.For(() =&gt; row.X)</c> beside it, as Flux's <c>flux:error name</c> is: it shows that member's messages.
 /// </summary>
 public partial class UiErrorBesideTests : global::Rask.Core.RaskMarkup
 {
@@ -24,46 +24,30 @@ public partial class UiErrorBesideTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_error_for_the_member_beside_the_control_says_its_message_after_a_refused_save()
+    public async Task An_error_for_the_member_beside_each_rows_control_says_its_message_after_a_refused_save()
     {
-        var row = new Row();
-        var page = Page.Render(() => Form.Model(row).OnSubmit(_ => Task.FromException(new Refused("Too big.", "Size")))[
-            Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)],
+        Row[] rows = [new(), new()];
+        var page = Page.Render(() => Form.Model(rows[0]).OnSubmit(_ => Task.FromException(new Refused("Too big.", "Size")))[
+            rows.Select(row => Ui.TableCell.Key(row.Key)[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size).Id("e-" + row.Key)]),
             Ui.Button.Submit["Save"]
         ]);
 
         await page.On("form").Submit();
 
-        Assert.Contains("Too big.", page.TextOf("#f-size-error"), StringComparison.Ordinal);
+        Assert.Contains("Too big.", page.TextOf("#e-" + rows[0].Key), StringComparison.Ordinal);
+        Assert.True(page.Exists("#e-" + rows[1].Key + ".hidden"));
         Assert.Equal("true", page.Find("input#f-size").Attribute("aria-invalid"));
-        Assert.Equal("f-size-error", page.Find("input#f-size").Attribute("aria-describedby"));
     }
 
     [Fact]
-    public void Each_rows_error_takes_its_own_controls_id()
-    {
-        Row[] rows = [new(), new()];
-
-        var page = Page.Render(() => Form.Model(rows[0])[
-            rows.Select(row => Ui.TableCell.Key(row.Key)[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)])
-        ]);
-
-        Assert.Equal(2, page.FindAll("[data-ui-error]").Count);
-        Assert.True(page.Exists("input#f-size"));
-        Assert.True(page.Exists("input#f-size-2"));
-        Assert.True(page.Exists("#f-size-error[data-ui-error]"));
-        Assert.True(page.Exists("#f-size-2-error[data-ui-error]"));
-    }
-
-    [Fact]
-    public void A_valid_control_names_no_error()
+    public void An_error_beside_a_valid_control_is_hidden()
     {
         var row = new Row();
 
         var page = Page.Render(() => Form.Model(row)[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]);
 
-        Assert.Null(page.Find("input#f-size").Attribute("aria-describedby"));
-        Assert.True(page.Exists("#f-size-error.hidden"));
+        Assert.True(page.Exists("[data-ui-error].hidden"));
+        Assert.Null(page.Find("input#f-size").Attribute("aria-invalid"));
     }
 
     private sealed class Row
