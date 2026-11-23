@@ -2398,6 +2398,13 @@ same type and hold the same values; a one-value record's `ToString()` is its val
 stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on
 a row leaves the next `Create` checking again. Only what the code makes goes through them.
 
+**Over remote dispatch it travels as what it holds.** A command, query, event or result crossing between the
+browser and the server (`Rask.Cqrs.Client`/`Rask.Cqrs.Server`) may carry one: a one-value record is its bare value
+on the wire — `"ABC-123"`, `12.5`, never `{"value":"ABC-123"}` — and a `Range` or `Value` record an object of its
+members. The receiving end rebuilds it through the generated `Create` **unchecked**, as a loaded row is, so a rule
+tightened on one end never makes the other unable to read; a handler that must rely on the rules asks them
+(`DriverName.Create(command.Driver.Value, "Driver")`). See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
+
 **The column takes what the value object declares**, read from its base arguments when the app is compiled —
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
 MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Value, Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a

@@ -31,6 +31,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A CQRS contract carries what the domain holds: record structs, value objects and typed ids.** Before: a
+  `record struct` member was RASK053 ("not supported as contract members yet"), and a value object declared from
+  `Text`/`Number`/`Whole`/`Day` had no wire encoding at all. After: a command, query, event or result crossing
+  between the browser and the server may hold a `record struct`; a one-value value object
+  (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id
+  (`record struct VehicleId(int Value)`, over a `Guid`, a `string`, …) travel as the bare value — `"ABC-123"`, `42`,
+  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. The receiving end
+  rebuilds a value object through its generated `Create` inside the loading scope a row is read in, so it is not
+  checked on arrival (a rule tightened on one end never makes the other unable to read); a handler that relies on
+  a rule asks it with `X.Create`. The generated API client is unchanged, since its server reads with
+  System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
