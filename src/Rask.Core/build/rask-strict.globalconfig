@@ -6,5 +6,6 @@ is_global = true
 dotnet_diagnostic.CA1716.severity = none
 
 # An aggregate or entity that stores a bare string, number, moment or Guid where a value object would carry its rules
-# (RASK130). A suggestion everywhere else; under <RaskStrict> a warning, and at errors it fails the build.
+# (RASK130). A suggestion everywhere else; under <RaskStrict> a warning — at errors too, where it does not fail the
+# build (Rask.Strict.targets keeps it out of TreatWarningsAsErrors).
 dotnet_diagnostic.RASK130.severity = warning

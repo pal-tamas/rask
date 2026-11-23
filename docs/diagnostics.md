@@ -3157,7 +3157,8 @@ gives its column its length and a bound input its `maxlength`. The framework's o
 value object, a collection, or a property computed from others.
 
 A suggestion by default, so it never fails a build; an app that sets `<RaskStrict>` gets it as a warning
-(`rask-strict.globalconfig`), which `<RaskStrict>errors</RaskStrict>` turns into an error.
+(`rask-strict.globalconfig`) — under `<RaskStrict>errors</RaskStrict>` too, where it stays a warning and does not fail
+the build: moving a model onto value objects is done one aggregate at a time.
 
 ```csharp
 public sealed class Delivery : Aggregate<Guid>

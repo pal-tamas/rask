@@ -18,7 +18,7 @@
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a
         sentence is joined with (rask-strict-tests.globalconfig)
       - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors; a NuGet audit
-        finding (NU1901-NU1904) stays a warning
+        finding (NU1901-NU1904) and RASK130 stay warnings
 
     Read here, in the TARGETS, not in Rask.props: NuGet imports a package's props before the app's csproj is
     evaluated, so a props file never sees a <RaskStrict> written in the csproj. Every property set here is read
@@ -52,6 +52,12 @@
          warnings into one, IL2104 (trim) or IL3053 (AOT), and the app cannot fix code it does not own (Microsoft.JSInterop
          is one today). The app's own assembly is reported warning by warning (IL2026, IL3050, …), and those stay errors. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
+    <!-- RASK130 (a bare string, number, moment or Guid on an aggregate or entity) says where a value object would carry
+         the rules; moving an app's model onto value objects is work the app does one aggregate at a time, so the
+         finding is shown, never a build that stops until all of it is done. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);RASK130</WarningsNotAsErrors>
+    <!-- The same for a build run with `-warnaserror`, which MSBuild's logger applies from its own list. -->
+    <MSBuildWarningsNotAsErrors>$(MSBuildWarningsNotAsErrors);RASK130</MSBuildWarningsNotAsErrors>
   </PropertyGroup>
 
   <!-- A <RaskStrict> in the csproj alone comes too late for the documentation file, and the compiler's request

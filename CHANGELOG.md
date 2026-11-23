@@ -61,7 +61,7 @@ them until tagged releases begin.
   over every positional member), [RASK128](docs/diagnostics.md#rask128) (`Configure` disagrees with the declared
   length/precision), [RASK129](docs/diagnostics.md#rask129) (not `sealed partial`, quick-fix) and
   [RASK130](docs/diagnostics.md#rask130) (an aggregate stores a bare string, number, moment or Guid — a suggestion, a
-  warning under `<RaskStrict>`). The `Validate` shape still works for now.
+  warning under `<RaskStrict>`, never an error: `<RaskStrict>errors</RaskStrict>` keeps it out of TreatWarningsAsErrors). The `Validate` shape still works for now.
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
   (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
   scrollbar thumb that shrank and jumped with every page, a drag to the bottom stopping at row fifty. After:
