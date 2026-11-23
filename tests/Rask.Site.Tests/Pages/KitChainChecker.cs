@@ -43,12 +43,21 @@ internal static class KitChainChecker
 
         if (KitComponent(name) is { } component)
         {
-            return StepProblems(entry, component);
+            return StepProblems(entry, JoinedOpenedBy(entry, component) ?? component);
         }
 
         // A method of the kit's own — `Ui.Fact("Company", company)` — hands back an element, whose steps are Core's.
         return KitMethod(name) ? [] : [$"Ui.{name} is not in the kit"];
     }
+
+    // A component joined to this entry by [RaskChainEntry] whose required opening is the chain's first step:
+    // `Ui.Field.Bind(…)` is a UiBoundField, not the UiField container.
+    private static Type? JoinedOpenedBy(MemberAccessExpressionSyntax entry, Type component) =>
+        entry.Parent is MemberAccessExpressionSyntax first && first.Expression == entry
+            ? Array.Find(Kit.GetExportedTypes(), t =>
+                t.GetCustomAttribute<RaskChainEntryAttribute>()?.Entry == component.Name.Split('`')[0]
+                && t.GetProperty(first.Name.Identifier.ValueText)?.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() is not null)
+            : null;
 
     private static bool KitMethod(string name) =>
         typeof(Ui).GetMethods(BindingFlags.Public | BindingFlags.Static).Any(method => method.Name == name);

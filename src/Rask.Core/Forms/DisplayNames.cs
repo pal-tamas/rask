@@ -20,13 +20,26 @@ internal static class DisplayNames
 
     /// <summary>The name the member <paramref name="bound" /> reads gives it, or null for one that has none.</summary>
     internal static string? Of(LambdaExpression? bound) =>
-        Unwrapped(bound?.Body) is MemberExpression { Member: PropertyInfo or FieldInfo } member ? Of(member.Member) : null;
+        Declared(bound)?.GetName() is { Length: > 0 } displayed ? displayed : null;
+
+    /// <summary>The help text the member <paramref name="bound" /> reads gives it — its <c>[Display(Description)]</c> — or null.</summary>
+    internal static string? DescriptionOf(LambdaExpression? bound) =>
+        Declared(bound)?.GetDescription() is { Length: > 0 } description ? description : null;
+
+    /// <summary>The placeholder the member <paramref name="bound" /> reads gives it — its <c>[Display(Prompt)]</c> — or null.</summary>
+    internal static string? PromptOf(LambdaExpression? bound) =>
+        Declared(bound)?.GetPrompt() is { Length: > 0 } prompt ? prompt : null;
 
     /// <summary>
     ///     Whether <paramref name="member" />'s name comes from resources its <c>[Display]</c> names, so it is in the
     ///     reader's language already, and not a literal an app's own resources may translate.
     /// </summary>
     internal static bool FromResources(MemberInfo member) => _declared.GetOrAdd(member, Read)?.ResourceType is not null;
+
+    private static DisplayAttribute? Declared(LambdaExpression? bound) =>
+        Unwrapped(bound?.Body) is MemberExpression { Member: PropertyInfo or FieldInfo } member
+            ? _declared.GetOrAdd(member.Member, Read)
+            : null;
 
     private static DisplayAttribute? Read(MemberInfo member) => member.GetCustomAttribute<DisplayAttribute>(inherit: true);
 

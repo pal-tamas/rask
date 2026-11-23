@@ -279,6 +279,7 @@ public sealed class FluxConformanceTests
         [typeof(UiEditorDialog)] = "the owner, 2026-11-04: a list's editor over it, opened and closed by a query key, made of flux:modal (#1295)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",
         [typeof(UiDayAndTime<>)] = "the owner, 2026-11-04: a moment as Flux's typed date picker and time picker in one row, not the datetime picker (#1297)",
+        [typeof(UiBoundField<>)] = "the owner, 2026-11-23: flux:field drawn from a bound member — F-73",
         [typeof(UiNotFound)] = "the owner, 2026-11-06: the built-in 404 inside the app's frame, as Flux's warning callout (TA+Eszaf survey, step 10)",
         [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
         [typeof(UiFormTabs)] = "the owner, 2026-11-06: a long form's flux:tabs, a red flux:badge counting each tab's invalid fields, the first opened on a refused save (TA+Eszaf survey, step 8)",

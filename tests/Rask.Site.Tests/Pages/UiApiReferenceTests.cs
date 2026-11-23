@@ -64,7 +64,19 @@ public sealed class UiApiReferenceTests
         // The kit's own parts, which the owner asked for, say so in place of a Flux part (FluxConformanceTests.Approved).
         Assert.All(parts, part => Assert.True(
             part.Flux.StartsWith("flux:", StringComparison.Ordinal) || part.Flux == UiApi.NotFlux, part.Entry + " names no Flux part"));
-        Assert.All(parts, part => Assert.Equal("Ui" + part.Entry["Ui.".Length..], part.Component.Name.Split('`')[0]));
+        Assert.All(parts, part => Assert.Equal("Ui" + part.Entry["Ui.".Length..], EntryOf(part.Component)));
         Assert.Equal(parts.Count, parts.Select(part => part.Entry).Distinct(StringComparer.Ordinal).Count());
     }
+
+    // The entry a component is reached by: its own name, or — joined to another's by [RaskChainEntry] — that entry and
+    // the opening it adds there (`Ui.Field.Bind`).
+    private static string EntryOf(Type component) =>
+        component.GetCustomAttribute<RaskChainEntryAttribute>() is { } joined
+            ? joined.Entry + "." + RequiredOpening(component)
+            : component.Name.Split('`')[0];
+
+    private static string RequiredOpening(Type component) =>
+        component.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Single(property => property.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() is not null)
+            .Name;
 }

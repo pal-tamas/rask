@@ -17,7 +17,7 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
     protected override string ServerLog => app.ServerLog;
 
     [Theory]
-    [InlineData("field", "Field", "ui-field|ui-field-shorthand|ui-field-trailing|ui-field-badge|ui-field-split|ui-field-fieldset|ui-bound")]
+    [InlineData("field", "Field", "ui-field|ui-field-shorthand|ui-field-trailing|ui-field-badge|ui-field-split|ui-field-fieldset|ui-bound|ui-field-auto")]
     [InlineData("input", "Input", "ui-input|ui-input-shorthand|ui-input-class|ui-input-types|ui-input-file|ui-input-sm|ui-input-disabled|ui-input-readonly|ui-input-invalid|ui-input-mask|ui-input-icons|ui-input-icon-buttons|ui-input-clearable|ui-input-kbd|ui-input-button|ui-input-group|ui-input-affixes|ui-input-group-label")]
     [InlineData("textarea", "Textarea", "ui-textarea-bare|ui-textarea|ui-textarea-rows|ui-textarea-auto|ui-textarea-resize")]
     [InlineData("checkbox", "Checkbox", "ui-checkbox|ui-checkbox-group|ui-checkbox-descriptions|ui-checkbox-fieldset|ui-checkbox-all|ui-checkbox-checked|ui-checkbox-disabled|ui-checkbox-cards|ui-checkbox-vertical|ui-checkbox-card-icons|ui-checkbox-custom|ui-checkbox-pills|ui-checkbox-buttons")]
@@ -80,6 +80,31 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
         await Expect(state).ToContainTextAsync("4 seats");
         await scope.Locator("[data-ui-checkbox]").ClickAsync();
         await Expect(scope.Locator("[data-ui-checkbox] input")).ToBeCheckedAsync();
+        await Expect(state).ToContainTextAsync("agreed yes");
+    });
+
+    [Fact]
+    public Task An_auto_field_draws_the_control_its_member_holds_and_writes_back() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("field", "Field");
+        var scope = Page.Locator("[data-testid='ui-field-auto']");
+        var state = Page.Locator("[data-testid='ui-field-auto-state']");
+
+        // Each control is the member's: [Display] names it and prompts it, [EmailAddress] types it, an int is a number,
+        // an enum a select, Multiline a textarea, a bool a checkbox.
+        var name = scope.Locator("input[placeholder='Ada Lovelace']");
+        await Expect(name).ToHaveAccessibleNameAsync(new System.Text.RegularExpressions.Regex("^Name"));
+        await Expect(scope.Locator("label").First).ToContainTextAsync("Required");
+        await name.FillAsync("Ada");
+        await Expect(state).ToContainTextAsync("Ada ·");
+        await scope.Locator("input[type='email']").FillAsync("ada@example.com");
+        await Expect(state).ToContainTextAsync("ada@example.com");
+        await scope.Locator("input[type='number']").FillAsync("3");
+        await Expect(state).ToContainTextAsync("3 seats");
+        await scope.Locator("select").SelectOptionAsync("Enterprise");
+        await Expect(state).ToContainTextAsync("Enterprise");
+        await Expect(scope.Locator("textarea")).ToHaveCountAsync(1);
+        await scope.Locator("[data-ui-checkbox]").ClickAsync();
         await Expect(state).ToContainTextAsync("agreed yes");
     });
 

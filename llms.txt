@@ -1451,6 +1451,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `NavLink` itself now writes `aria-current="page"` when active (empty `ActiveClass` opts out).
   FIELDS ARE FLUX UI's (the first family rebuilt on Flux): `Ui.Field[Ui.Label.Badge("Required")["Email"], Ui.Input.Bind(() => m.Email).ShowValidation(false), Ui.Error, Ui.Description["…"]]`;
   `Ui.Field.Inline` puts the label beside a checkbox or switch;
+  `Ui.Field.Bind(() => m.X)` draws the WHOLE field from the member — label/description/placeholder from `[Display(Name|Description|Prompt)]`, the control from its field shape or type (text input, email/tel/url/password, number with min/max/step, date picker, `Ui.DayAndTime`, checkbox, enum select, a range as two controls with errors on `X.Start`/`X.End`, an id select over the `.Choices(…)` you must give), `.Multiline()` for a textarea, `[Editable(false)]` read-only/disabled, `.Control<UiInput<string>>(c => …)` to tune the control drawn;
   `Ui.Label` is a real `<label for>` that inside a field points at the field's control (a kit control by its derived id, a plain element by its `Id`;
   `For(id)` outside one), with `Badge` and a `Trailing` slot;
   `Ui.Description` sits under the label when before the control and under the control when after it;

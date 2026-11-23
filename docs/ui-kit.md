@@ -1377,7 +1377,7 @@ Grouped by what each piece is for.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Calendar` `Ui.DatePicker` `Ui.DatetimePicker` `Ui.DatetimePickerButton` `Ui.TimePicker` `Ui.DayAndTime` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Field` `Ui.Field.Bind` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Calendar` `Ui.DatePicker` `Ui.DatetimePicker` `Ui.DatetimePickerButton` `Ui.TimePicker` `Ui.DayAndTime` |
 | **Layout** | `Ui.Separator` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `UiPaginator`, `Ui.Breakpoint`, `UiStylesheet` |
@@ -1603,6 +1603,29 @@ The lengths are the member's too: `Ui.Input` and `Ui.Textarea` bound to a field 
 (`Text(Value, MaxLength: 100, MinLength: 2)`, told through the model's [field shapes](forms-validation.md)) write
 `maxlength` and `minlength` on the control, so the browser stops at the most and refuses the fewest on submit.
 `.MaxLength(n)` (input) and `.MinLength(n)` (input and textarea) — the HTML attributes Flux forwards — win over them.
+
+**The auto field.** `Ui.Field.Bind(() => m.Name)` draws the whole field from the member — Rask's own, approved by the
+owner (2026-11-23), made of Flux's parts: the label, help text and placeholder are its `[Display(Name, Description,
+Prompt)]`, the badge the automatic *Required*, and the control what the member's [field shape](forms-validation.md)
+(else its type) says it holds. Text is a `Ui.Input` (`email`, `tel`, `url`, `password` from the member's attributes;
+`.Multiline()` a `Ui.Textarea`); a number or whole number an input with its `min`, `max` and a step of 10^-scale; a day
+a `Ui.DatePicker` (ending today for `NotAfterToday`); a moment a `Ui.DayAndTime`; a `bool` a `Ui.Checkbox`; an enum a
+`Ui.Select` over its options in their order, with an empty one for a nullable member; another row's id a `Ui.Select`
+over the `.Choices(…)` you give (the shapes `Ui.Select.Choices` takes — without them it throws, naming the member); a
+range two controls of its ends' kind under one label, `Km.Start` and `Km.End` each with its own message.
+`[Editable(false)]` makes an input or textarea read-only and every other control disabled. The steps `Label`,
+`Description`, `Placeholder` and `Badge` win over the attributes, `Disabled`, `ShowValidation` and `Live` reach every
+control, `Blur` and `Debounce` the text ones, and `.Control<UiInput<string>>(c => c.Class("uppercase"))` tunes the
+control drawn (it throws, naming the control, when it is another). `Ui.Field[…]` with parts of your own is unchanged:
+the first step says which of the two the chain is.
+
+```csharp
+Ui.Field.Bind(() => model.Name)                              // [Display] label, description, placeholder
+Ui.Field.Bind(() => model.Km)                                // a range: two controls, errors Km.Start / Km.End
+Ui.Field.Bind(() => model.Vehicle).Choices(Vehicle.Find)     // a typed id
+Ui.Field.Bind(() => model.Note).Multiline()                  // a textarea only when asked
+Ui.Field.Bind(() => model.Plate).Label("Rendszám").Control<UiInput<string>>(c => c.Class("uppercase"))
+```
 
 A control you give no `Id` takes one from the member it binds, else its label: `Ui.Input.Bind(() => m.Name)` is
 `f-name`, its error `f-name-error`, its help text `f-name-description`. Ids are unique on the page: a second field that

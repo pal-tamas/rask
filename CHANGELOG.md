@@ -31,6 +31,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
+  label and help text at the call site. After: the label, help text and placeholder are the member's
+  `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
+  its type) says it holds — a text, email, tel, url or password input (`.Multiline()` a textarea), a number with its
+  `min`/`max`/`step`, a date picker ending today for `NotAfterToday`, `Ui.DayAndTime`, a checkbox, an enum select in
+  declaration order, a range as two controls under one label with `X.Start`/`X.End` messages, and an id select over
+  the `.Choices(…)` it must be given. `[Editable(false)]` makes an input read-only and any other control disabled;
+  `Label`/`Description`/`Placeholder`/`Badge` win over the attributes, `.Control<TControl>(…)` tunes the control drawn.
+  `Ui.Field[…]` is unchanged. The chain generator now lets a seedless container and a generic component joined by
+  `[RaskChainEntry]` share one entry: it hands back a seed carrying the container's steps, indexer and a conversion
+  to it beside the other's openings, and the first step decides which the chain is (`docs/building-components.md`).
 - **Field shapes: a generated model tells every bound control what its field is (BREAKING:
   `RaskValidation.RegisterFieldLengths` is replaced by `RaskValidation.RegisterFieldShapes`).** Before: a control knew a
   field only as its property's type, plus a text value object's `maxlength`. After: each value object declared from a

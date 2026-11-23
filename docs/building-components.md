@@ -100,6 +100,26 @@ exclusive because a control with both would have two sources of truth for one fi
 That is a language constraint rather than a house rule: a step whose type mentions `T` cannot be
 written before something has said what `T` is.
 
+## Two components on one entry
+
+`[RaskChainEntry("UiSelect")]` puts a component's openings on another component's entry, so the two read as
+one name and the argument tells them apart: `Ui.Select.Bind(() => m.Country)` is one answer,
+`Ui.Select.Bind(() => m.Tags)` several. The entry joined to may also be a plain container — no type to pin,
+nothing required — as `Ui.Field` is:
+
+```csharp
+Ui.Field[Ui.Label["Email"], Ui.Input.Bind(() => m.Email), Ui.Error]   // the container, as always
+Ui.Field.Variant(Ui.FieldVariant.Inline)[…]                            // its steps, unchanged
+Ui.Field.Bind(() => m.Email)                                           // UiBoundField<string>, T from the lambda
+```
+
+The entry then hands back a seed that carries the container's own steps, its children indexer and a
+conversion to it, and the generic component's openings beside them. Nothing is built until a step says
+which of the two the chain is, and **the first step decides**: once `.Class(…)` or `[…]` has made it the
+container there is no `Bind` to take, and once `Bind` has opened the other there is no container step. A
+container that is an element, a second container on the name, or a container step an opening also takes is
+two components claiming one name — [RASK040](diagnostics.md#rask040).
+
 ## What the IDE shows you
 
 - Typing a component name and `.` on an ordinary component lists **every** setter it has.

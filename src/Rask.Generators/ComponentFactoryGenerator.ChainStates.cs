@@ -66,7 +66,9 @@ public sealed partial class ComponentFactoryGenerator
 
             foreach (var name in byNamespace.GroupBy(static c => c.EntryName, StringComparer.Ordinal))
             {
-                EmitStateTypes(sb, [.. name], scoped ? "    " : string.Empty, assemblyName, runtimePrefix);
+                EmitStateTypes(
+                    sb, [.. name], JoinedContainer(entries, name.Key, byNamespace.Key), scoped ? "    " : string.Empty,
+                    assemblyName, runtimePrefix);
             }
 
             if (scoped)
@@ -92,7 +94,7 @@ public sealed partial class ComponentFactoryGenerator
     // ambiguous (CS0121). They also need no `using`, which extensions in another assembly only avoid by
     // living in the global namespace.
     private static void EmitStateTypes(
-        StringBuilder sb, List<Candidate> group, string pad, string assemblyName, string runtimePrefix)
+        StringBuilder sb, List<Candidate> group, Candidate? container, string pad, string assemblyName, string runtimePrefix)
     {
         // The seed is the entry's, and every component joined to it puts its openings inside — so the
         // states below are emitted for each of them, while the seed is written once.
@@ -131,19 +133,17 @@ public sealed partial class ComponentFactoryGenerator
         var seedCarriesKey = required.Count > 0 || c.TypeParameters.Length > 0;
         if (seedCarriesKey)
         {
-            sb.Append(pad).AppendLine("    private readonly object? _key;");
-            sb.Append(pad).AppendLine();
-            sb.Append(pad).Append("    internal ").Append(SeedName(c)).AppendLine("(object? key) => _key = key;");
-            sb.Append(pad).AppendLine();
-            sb.Append(pad).AppendLine(
-                "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
-            sb.Append(pad).Append("    public ").Append(SeedName(c)).AppendLine(" Key(object? key) => new(key);");
-            sb.Append(pad).AppendLine();
+            EmitSeedKey(sb, c, pad);
         }
 
         foreach (var joined in group)
         {
             EmitSeedOpenings(sb, joined, pad + "    ", assemblyName, runtimePrefix, seedCarriesKey, joined == c);
+        }
+
+        if (container is not null)
+        {
+            EmitContainerSteps(sb, container, SeedName(c), pad + "    ", assemblyName, seedCarriesKey);
         }
 
         sb.Append(pad).AppendLine("}");
@@ -152,6 +152,18 @@ public sealed partial class ComponentFactoryGenerator
         {
             EmitStagesAndStates(sb, joined, pad, assemblyName, runtimePrefix);
         }
+    }
+
+    private static void EmitSeedKey(StringBuilder sb, Candidate c, string pad)
+    {
+        sb.Append(pad).AppendLine("    private readonly object? _key;");
+        sb.Append(pad).AppendLine();
+        sb.Append(pad).Append("    internal ").Append(SeedName(c)).AppendLine("(object? key) => _key = key;");
+        sb.Append(pad).AppendLine();
+        sb.Append(pad).AppendLine(
+            "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
+        sb.Append(pad).Append("    public ").Append(SeedName(c)).AppendLine(" Key(object? key) => new(key);");
+        sb.Append(pad).AppendLine();
     }
 
     // What a chain can start with, inside the entry's seed: the explicit type opening (only for the

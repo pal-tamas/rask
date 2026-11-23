@@ -202,6 +202,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     // Flux's `mask:dynamic="$money($input)"`, when the chain says `.Money()`.
     private MoneyMarks? _money;
 
+    // The badge a bound field gives its input (Ui.Field.Bind(…).Badge(…)): Flux's input takes none of its own.
+    private string? _badge;
+
     /// <summary>
     ///     Shows an amount grouped as it is typed — Flux's <c>mask:dynamic="$money($input)"</c>:
     ///     <c>Ui.Input.Bind(() =&gt; m.Amount).Money()</c> shows <c>1234.56</c> as <c>1,234.56</c>, and
@@ -228,6 +231,16 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         return this;
     }
 
+    /// <summary>The badge beside the label, from the bound field this input is drawn by. The kit's own chain step.</summary>
+    /// <param name="badge">The field's badge, or null for the automatic one.</param>
+    internal UiInput<T> Badged(string? badge)
+    {
+        _badge = badge;
+        // What a generated step does when it writes a new value: the input is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+        return this;
+    }
+
     /// <summary>The control this input is the text box of, when it is one's: its list and its bound member.</summary>
     internal UiInputHost? Host { get; private set; }
 
@@ -247,7 +260,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(this, Id, Host?.Bound ?? Bind, Label);
 
-    string? IUiFormControl.Badge => null;
+    string? IUiFormControl.Badge => _badge;
 
     LambdaExpression? IUiFieldControl.Bound => Host?.Bound ?? Bind;
 

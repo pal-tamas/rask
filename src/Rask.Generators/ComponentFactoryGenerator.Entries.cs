@@ -149,7 +149,7 @@ public sealed partial class ComponentFactoryGenerator
 
             // The entry hands back a SEED whenever the chain has something to demand first — a type
             // argument to pin, or a required property. One property per component NAME.
-            if (NeedsSeed(c))
+            if (HandsBackSeed(c, entries))
             {
                 if (seeded.Add(c.EntryName))
                 {
@@ -430,10 +430,19 @@ public sealed partial class ComponentFactoryGenerator
             }
 
             // Joined on purpose: [RaskChainEntry] says these components share an entry, so the openings
-            // sit side by side on one seed and the argument types tell them apart. Not a collision.
+            // sit side by side on one seed and the argument types tell them apart. Not a collision — unless
+            // the seed cannot carry them all (see CanShareEntry).
             if (members.Any(static c => !string.Equals(c.EntryName, c.TypeName, StringComparison.Ordinal)))
             {
-                result.AddRange(members);
+                if (CanShareEntry(members))
+                {
+                    result.AddRange(members);
+                }
+                else
+                {
+                    ReportEntryCollision(spc, members);
+                }
+
                 continue;
             }
 

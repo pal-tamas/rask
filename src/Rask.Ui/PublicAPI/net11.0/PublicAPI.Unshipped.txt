@@ -8660,7 +8660,6 @@ static RaskBuilderSettersRask_Ui.get_Block(Rask.UiField! __b) -> Rask.UiField!
 static RaskBuilderSettersRask_Ui.get_Inline(Rask.UiField! __b) -> Rask.UiField!
 RaskBuilderSettersRask_Ui.extension(Rask.UiField!)
 static Rask.Ui.Description.get -> Rask.UiDescription!
-static Rask.Ui.Field.get -> Rask.UiField!
 static Rask.Ui.Fieldset.get -> Rask.UiFieldset!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDescription! __b, string? value) -> Rask.UiDescription!
 static Rask.Ui.Legend.get -> Rask.UiLegend!
@@ -9315,3 +9314,68 @@ static RaskBuilderSettersRask_Ui.Max<T>(this Rask.UiDayAndTime<T>! __b, System.D
 static RaskBuilderSettersRask_Ui.Min<T>(this Rask.UiDayAndTime<T>! __b, System.DateTime? value) -> Rask.UiDayAndTime<T>!
 static RaskBuilderSettersRask_Ui.MinLength<T>(this Rask.UiInput<T>! __b, int? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.MinLength<T>(this Rask.UiTextarea<T>! __b, int? value) -> Rask.UiTextarea<T>!
+Rask.RaskSeed_UiField
+Rask.RaskSeed_UiField.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.UiBoundField<T>!
+Rask.RaskSeed_UiField.Block.get -> Rask.UiField!
+Rask.RaskSeed_UiField.Class(params System.ReadOnlySpan<string?> parts) -> Rask.UiField!
+Rask.RaskSeed_UiField.Class(string? value) -> Rask.UiField!
+Rask.RaskSeed_UiField.Inline.get -> Rask.UiField!
+Rask.RaskSeed_UiField.Key(object? key) -> Rask.RaskSeed_UiField
+Rask.RaskSeed_UiField.RaskSeed_UiField() -> void
+Rask.RaskSeed_UiField.Variant(Rask.Ui.FieldVariant? value) -> Rask.UiField!
+Rask.RaskSeed_UiField.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
+Rask.RaskSeed_UiField.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
+Rask.RaskSeed_UiField.this[params object?[]! children].get -> Rask.Core.Component!
+Rask.UiBoundField<T>
+Rask.UiBoundField<T>.UiBoundField() -> void
+static Rask.RaskSeed_UiField.implicit operator Rask.UiField!(Rask.RaskSeed_UiField seed) -> Rask.UiField!
+static Rask.Ui.Field.get -> Rask.RaskSeed_UiField
+static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiBoundField<T>! __b, string? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Bind<T>(this Rask.UiBoundField<T>! __b, System.Linq.Expressions.Expression<System.Func<T>!>! value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Blur<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiBoundField<T>! __b, System.TimeSpan? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Description<T>(this Rask.UiBoundField<T>! __b, string? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiBoundField<T>! __b, string? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Multiline<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Multiline<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiBoundField<T>! __b, string? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiBoundField_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBoundField_1<T>(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBoundField_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
+Rask.UiBoundField<T>.Badge.get -> string?
+Rask.UiBoundField<T>.Badge.set -> void
+Rask.UiBoundField<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>!
+Rask.UiBoundField<T>.Bind.set -> void
+Rask.UiBoundField<T>.Blur.get -> bool?
+Rask.UiBoundField<T>.Blur.set -> void
+Rask.UiBoundField<T>.Choices<TValue>(System.Collections.Generic.IEnumerable<Rask.Ui.Choice<TValue>>! choices) -> Rask.UiBoundField<T>!
+Rask.UiBoundField<T>.Choices<TValue>(System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiBoundField<T>!
+Rask.UiBoundField<T>.Choices<TValue>(System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiBoundField<T>!
+Rask.UiBoundField<T>.Control<TControl>(System.Action<TControl!>! tune) -> Rask.UiBoundField<T>!
+Rask.UiBoundField<T>.Debounce.get -> System.TimeSpan?
+Rask.UiBoundField<T>.Debounce.set -> void
+Rask.UiBoundField<T>.Description.get -> string?
+Rask.UiBoundField<T>.Description.set -> void
+Rask.UiBoundField<T>.Disabled.get -> bool?
+Rask.UiBoundField<T>.Disabled.set -> void
+Rask.UiBoundField<T>.Label.get -> string?
+Rask.UiBoundField<T>.Label.set -> void
+Rask.UiBoundField<T>.Live.get -> bool?
+Rask.UiBoundField<T>.Live.set -> void
+Rask.UiBoundField<T>.Multiline.get -> bool?
+Rask.UiBoundField<T>.Multiline.set -> void
+Rask.UiBoundField<T>.Placeholder.get -> string?
+Rask.UiBoundField<T>.Placeholder.set -> void
+Rask.UiBoundField<T>.ShowValidation.get -> bool?
+Rask.UiBoundField<T>.ShowValidation.set -> void
+Rask.UiBoundFieldChoices
+static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Collections.Generic.IEnumerable<Rask.Ui.Choice<T>>! choices) -> Rask.UiBoundField<T?>!
+static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiBoundField<T?>!
+static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiBoundField<T?>!

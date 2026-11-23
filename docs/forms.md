@@ -899,6 +899,27 @@ public sealed class SignUp
 Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]   // <label>Work email</label> over the input
 ```
 
+**The whole field from the member.** `Ui.Field.Bind(() => m.X)` picks the control as well: its label, help
+text and placeholder are the member's `[Display(Name, Description, Prompt)]`, its badge the automatic
+*Required*, and the control what the member holds — its [field shape](forms-validation.md) on a generated
+model, else its type. Text is a `Ui.Input` (`email`/`tel`/`url`/`password` from `[EmailAddress]`, `[Phone]`,
+`[Url]`, `[DataType(DataType.Password)]`; `.Multiline()` a `Ui.Textarea`), a number an input with its
+`min`/`max` and a step of its scale, a day a `Ui.DatePicker` (ending today when it may not be after it), a moment
+a `Ui.DayAndTime`, a `bool` a `Ui.Checkbox`, an enum a `Ui.Select` over its members in their order (an empty
+choice first for a nullable one), and a range two controls under one label, each end with its own message.
+Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
+`.Choices(Vehicle.Find)`; without them rendering throws and says so. `[Editable(false)]` makes a text or
+number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
+step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones;
+`.Control<UiInput<string>>(c => c.Clearable())` tunes the control drawn, and throws naming it when it is another.
+
+```csharp
+Ui.Field.Bind(() => _model.Email)                                    // label, email input, its message
+Ui.Field.Bind(() => _model.Km)                                       // a range: Km.Start and Km.End
+Ui.Field.Bind(() => _model.Vehicle).Choices(Vehicle.Find)            // a typed id
+Ui.Field.Bind(() => _model.Note).Multiline()
+```
+
 <!-- demo:floating-labels -->
 
 ### Accessible validation

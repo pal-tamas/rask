@@ -17,6 +17,23 @@ internal static partial class UiApi
         [
             new("Variant", typeof(Ui.FieldVariant?), "Inline puts the label beside the control, for a checkbox or a switch. Stacked when unset."),
         ]),
+        new("Ui.Field.Bind", typeof(UiBoundField<string>), NotFlux,
+            "The whole field drawn from a bound member: its label, help text and placeholder from [Display], the control its shape or type calls for, and its message.",
+        [
+            new("Bind", typeof(Expression<Func<string>>), "The member it reads and writes: () => m.Name. Its shape picks the control: text, number, day, moment, bool, enum, id or range.", "() => a T"),
+            new("Label", typeof(string), "The label, in place of the member's [Display(Name)]."),
+            new("Description", typeof(string), "Help text under the label, in place of the member's [Display(Description)]."),
+            new("Placeholder", typeof(string), "Shown while it is empty, in place of the member's [Display(Prompt)]."),
+            new("Badge", typeof(string), "A word beside the label, in place of the automatic \"Required\"; \"\" says nothing."),
+            new("Multiline", typeof(bool?), "Text in a textarea rather than an input."),
+            new("ShowValidation", typeof(bool?), "False leaves the message to a Ui.Error of your own."),
+            new("Disabled", typeof(bool?), "Takes no input. [Editable(false)] makes a text or number input read-only, every other control disabled."),
+            new("Live", typeof(bool?), "Writes the model as it is typed or picked."),
+            new("Blur", typeof(bool?), "Writes the model when the reader leaves a text field."),
+            new("Debounce", typeof(TimeSpan?), "Writes a text field's model once typing has paused this long.", "a TimeSpan: 300.Milliseconds"),
+            new("Choices", typeof(object), "The rows an id is picked from, as Ui.Select takes them: a field holding an id has no control without them.", "Ui.Choice rows, or a search"),
+            new("Control", typeof(object), "Tunes the control drawn: .Control<UiInput<string>>(c => c.Clearable()). Throws when it is another control.", "steps on the control"),
+        ]),
         new("Ui.Label", typeof(UiLabel), "flux:label", "A <label> for the field's control. Its children are its words.",
         [
             new("Badge", typeof(string), "A word beside the label: \"Required\", \"Optional\"."),

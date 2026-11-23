@@ -225,7 +225,7 @@ public sealed partial class ComponentFactoryGenerator
             }
 
             var visibility = c.IsPublic ? "public" : "internal";
-            if (NeedsSeed(c))
+            if (HandsBackSeed(c, entries))
             {
                 // One seed property per component NAME; the steps that turn it into a component are
                 // emitted below, as extensions.
@@ -332,20 +332,23 @@ public sealed partial class ComponentFactoryGenerator
 
         foreach (var byMember in group.GroupBy(static c => c.Group!.Member, StringComparer.Ordinal))
         {
-            // Components joined by [RaskChainEntry] share one seed on purpose; anything else on one member is
-            // two components claiming one name.
+            // Components joined by [RaskChainEntry] share one seed on purpose — a seedless container among them
+            // too, which the seed then carries (CanShareEntry); anything else on one member is two components
+            // claiming one name.
             var members = byMember.ToList();
             if (members.Select(static c => c.EntryName).Distinct(StringComparer.Ordinal).Count() > 1
-                || (members.Count > 1 && members.Any(static c => !NeedsSeed(c))))
+                || !CanShareEntry(members))
             {
                 ReportEntryCollision(spc, members);
                 continue;
             }
 
-            var c = members[0];
+            // The namesake's documentation is the entry's: `Ui.Field` is the field, whatever else it opens.
+            var c = members.FirstOrDefault(static m => string.Equals(m.TypeName, m.EntryName, StringComparison.Ordinal))
+                    ?? members[0];
             var visibility = c.IsPublic ? "public" : "internal";
             EmitEntryDoc(sb, c);
-            if (NeedsSeed(c))
+            if (members.Any(NeedsSeed))
             {
                 sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
                     .Append(CSharpNames.Escape(byMember.Key)).AppendLine(" => default;");
@@ -384,17 +387,18 @@ public sealed partial class ComponentFactoryGenerator
         foreach (var c in entries)
         {
             // A grouped entry is a member of its group, never forwarded into a host under a bare name.
-            if (c.Group is not null || (NeedsSeed(c) && !seeded.Add(c.EntryName)))
+            var seed = HandsBackSeed(c, entries);
+            if (c.Group is not null || (seed && !seeded.Add(c.EntryName)))
             {
                 continue;
             }
 
-            foreach (var (name, _) in NeedsSeed(c) ? [(c.EntryName, null)] : EntriesOf(c))
+            foreach (var (name, _) in seed ? [(c.EntryName, null)] : EntriesOf(c))
             {
                 refs.Add(new EntryRef(
                     hostFqn,
                     name,
-                    NeedsSeed(c) ? SeedFqn(c) : c.FullyQualifiedName,
+                    seed ? SeedFqn(c) : c.FullyQualifiedName,
                     string.Empty,
                     string.Empty,
                     string.Empty,
