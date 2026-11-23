@@ -448,6 +448,10 @@ them until tagged releases begin.
   queued in order and started in none of the publisher's flow (`LiveSessionBase.DeliverLiveEvent`), so it runs with
   its session's scope, user and tenant; the event's own in-memory and durable handlers still run in the publisher's
   work. Pinned by `PublishedEventScopeTests` (Rask.Server.Tests), for a page and for a subscriber.
+- **`TestDatabase.Start<TContext>` and `FromEnvironment<TContext>` run the app assembly's module initializer first.**
+  It is what registers the app's aggregates, and the runtime runs it only once something of that assembly is touched;
+  the shared constructor lookup (`AppContextConstructor`) now runs it (`RuntimeHelpers.RunModuleConstructor`) before
+  the schema is made, so an app's test needs no `RunModuleConstructor` line of its own (Eszaf's `TestDatabase`).
 - **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
   load inside any transaction refused them, because events were once published before the commit. They are not —
   `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A model in an assembly of its own, for Rask.Testing.Database.Tests: its aggregate is registered by this assembly's
+    module initializer, which nothing runs until something of the assembly is touched — as an app's model is, seen
+    from its tests.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

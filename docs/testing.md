@@ -321,6 +321,8 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 `TestDatabase.Start<CrmContext>(…)` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
 go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
 (with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start(…)`.
+The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
+app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
 
 ### A real database server, when the machine has one
 

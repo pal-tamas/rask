@@ -41,6 +41,8 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\Rask.Testing.Fixture.UnsetApp\Rask.Testing.Fixture.UnsetApp.csproj"/>
+    <!-- A model registered by its own assembly's module initializer (ModelOfAnotherAssemblyTests). -->
+    <ProjectReference Include="..\Rask.Testing.Fixture.Pumps\Rask.Testing.Fixture.Pumps.csproj"/>
   </ItemGroup>
 
 </Project>
