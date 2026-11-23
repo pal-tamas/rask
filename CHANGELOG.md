@@ -31,6 +31,14 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
+  several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
+  `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the
+  read face named them `KmStart`/`KmEnd`, so every list filter and sort changed. After: one call in `Configure` names
+  each column after the pattern (`{Member}` is the value object's member; nested value objects keep `_` below it), and
+  the generator reads the same call, so the read face is `StartKm`/`EndKm` too (`DeliveryNote.Where(n => n.StartKm
+  >= 100)`). A pattern without `{Member}` throws `ArgumentException`; a member that is not a complex value object
+  throws `InvalidOperationException`.
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
