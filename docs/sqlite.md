@@ -256,6 +256,15 @@ rebuilds the index with it. A path that does not lead through a `ToJson()` navig
 the migration is built, naming the path. SQLite only for now — on another provider `AddRaskData` refuses to boot a
 context that declares one, rather than let the filter scan without saying so.
 
+## How long between two dates
+
+EF Core's SQLite provider cannot translate `end - start` between two dates, so `UseRaskSqlite(...)` does:
+`OrderBy(n => n.EndDate - n.StartDate)`, `Where(n => n.EndDate - n.StartDate > 90.Minutes)` and
+`(n.EndDate - n.StartDate).TotalHours` run in the database, as whole microseconds from
+`unixepoch(x, 'subsec')`. EF Core stores a date as text and SQLite reads three fractional digits of it, so the
+length is exact to the millisecond; a `DateTimeOffset`'s stored offset is read, so lengths are measured in UTC. The
+same query runs on SQL Server and PostgreSQL: [How long between two dates, in a query](data.md#how-long-between-two-dates-in-a-query).
+
 ## Why it hooks connection-open (not startup)
 
 Only `journal_mode=WAL` persists in the database file header. Every other pragma

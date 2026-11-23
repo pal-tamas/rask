@@ -48,6 +48,14 @@ them until tagged releases begin.
   connection of its own — `sp_getapplock` on SQL Server, `pg_advisory_lock` on PostgreSQL, an in-process lock on
   single-host SQLite — and a wait that runs out throws a `TimeoutException` naming the lock. The jobs battery's key lock
   now spells `sp_getapplock` through the same helper.
+- **`end - start` between two dates works in a query on SQL Server and SQLite.** Before: EF Core's SQL Server and
+  SQLite providers translated neither a `DateTime`/`DateTimeOffset` subtraction nor anything done with its `TimeSpan`,
+  so `OrderBy(n => n.EndDate - n.StartDate)` failed and an app wrote SQL Server's `EF.Functions.DateDiffSecond`, which
+  no other database has. After: `UseRaskSqlServer` writes it `DATEDIFF_BIG(microsecond, start, end)` and
+  `UseRaskSqlite` as microseconds from `unixepoch(x, 'subsec')` (exact to the millisecond), so ordering by it,
+  comparing it with a `TimeSpan` (`> 90.Minutes`) and its `TotalDays`…`TotalMilliseconds` run in the database, a
+  `DateTimeOffset` measured in UTC — the answers PostgreSQL's provider already gave
+  ([Data](docs/data.md#how-long-between-two-dates-in-a-query)).
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else
