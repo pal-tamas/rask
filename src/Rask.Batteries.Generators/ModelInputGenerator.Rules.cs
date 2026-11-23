@@ -48,59 +48,24 @@ public sealed partial class ModelInputGenerator
                 validation?.GetMembers("RegisterFieldShapes").Length > 0);
         });
 
-    /// <summary>How a one-value value object states its rule, when it does.</summary>
-    private enum ValueRule
-    {
-        None,
-        Sync,
-        Async,
-    }
+    /// <summary>
+    ///     Whether a one-value value object carries a rule a form and a write ask: one declared from a Rask.Data base
+    ///     record, whose generated <c>X.__Problems</c> (this run cannot see it yet) answers what its constructor checks.
+    /// </summary>
+    private static bool DeclaresRules(ModelValueObject valueObject) =>
+        valueObject.SingleValue && valueObject.Build == ModelValueObjectBuild.Factory;
 
     /// <summary>
-    ///     The rule a one-value value object carries by CONVENTION: a public static <c>Validate</c> taking the
-    ///     value it holds and returning the messages — as they are, or awaited.
+    ///     The static <c>Validate</c> methods of a one-value value object that is NOT declared from a base record:
+    ///     what RASK132 says no form and no write asks.
     /// </summary>
     /// <remarks>
-    ///     No interface and no attribute: the value object stays a plain type. Anything that is not exactly this
-    ///     shape is not a rule.
+    ///     An instance method, or one that implements an interface — <c>IValidatableObject.Validate</c> — is somebody
+    ///     else's contract and is never taken for an attempt at the rule.
     /// </remarks>
-    private static ValueRule RuleOf(ModelValueObject valueObject)
+    private static IEnumerable<StaleRule> StaleRulesOf(ModelValueObject valueObject)
     {
-        if (!valueObject.SingleValue)
-        {
-            return ValueRule.None;
-        }
-
-        // Declared from a base record: its rule is the generated X.__Problems, which this run cannot see yet.
-        if (valueObject.Build == ModelValueObjectBuild.Factory)
-        {
-            return ValueRule.Sync;
-        }
-
-        var held = valueObject.Members[0].Property.Type;
-
-        var rule = valueObject.Type.GetMembers("Validate").OfType<IMethodSymbol>()
-            .FirstOrDefault(method => WhyNotARule(method, held) is null);
-
-        if (rule is null)
-        {
-            return ValueRule.None;
-        }
-
-        return IsMessages(rule.ReturnType) ? ValueRule.Sync : ValueRule.Async;
-    }
-
-    /// <summary>
-    ///     The <c>Validate</c> methods of a one-value value object that has NO rule, each with why it is not
-    ///     one — what RASK102 says. Empty once any of them qualifies: the others are then ordinary overloads.
-    /// </summary>
-    /// <remarks>
-    ///     A method that implements an interface or overrides a base member is somebody else's contract —
-    ///     <c>IValidatableObject.Validate</c> — and is never taken for an attempt at the rule.
-    /// </remarks>
-    private static IEnumerable<RuleMiss> RuleMissesOf(ModelValueObject valueObject)
-    {
-        if (!valueObject.SingleValue || RuleOf(valueObject) != ValueRule.None)
+        if (!valueObject.SingleValue || DeclaresRules(valueObject))
         {
             yield break;
         }
@@ -109,89 +74,42 @@ public sealed partial class ModelInputGenerator
 
         foreach (var method in valueObject.Type.GetMembers("Validate").OfType<IMethodSymbol>())
         {
-            if (method.MethodKind != MethodKind.Ordinary || method.IsOverride || ImplementsAContract(method) ||
-                WhyNotARule(method, held) is not { } reason)
+            if (method.MethodKind != MethodKind.Ordinary || !method.IsStatic || ImplementsAContract(method))
             {
                 continue;
             }
 
-            yield return new RuleMiss(
+            yield return new StaleRule(
                 method.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
                 valueObject.Type.Name,
-                reason,
-                held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                InsteadOf(valueObject.Type.Name, held),
                 SymbolLocation.From(method));
         }
     }
 
-    // Null when the method IS a rule; otherwise the first thing about it that is not.
-    private static string? WhyNotARule(IMethodSymbol method, ITypeSymbol held)
+    // What RASK132 tells the author to write instead: the base record that takes a value of this type, else Value.
+    private static string InsteadOf(string name, ITypeSymbol held)
     {
-        if (method.DeclaredAccessibility != Accessibility.Public)
-        {
-            return "it is not public";
-        }
+        var declared = "'public sealed partial record " + name + "(" +
+                       held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) + " Value) : ";
+        const string OwnRules = "'protected override IEnumerable<Problem> Rules()'";
 
-        if (!method.IsStatic)
-        {
-            return "it is not static";
-        }
-
-        if (method.IsGenericMethod)
-        {
-            return "it is generic";
-        }
-
-        if (method.Parameters.Length != 1)
-        {
-            return $"it takes {method.Parameters.Length} parameters, not the one value";
-        }
-
-        return WhyNotTheValue(method.Parameters[0], held) ?? (IsMessages(method.ReturnType) || IsAwaitedMessages(method.ReturnType)
-            ? null
-            : $"it returns '{method.ReturnType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', not the messages");
+        return BaseFor(held) is { } valueBase
+            ? declared + valueBase + "(Value, …);' with its rules as the base's arguments, or ': Value' with them in " + OwnRules
+            : declared + "Value;' with its rules in " + OwnRules;
     }
 
-    // Null when the parameter takes the held value as the generated call hands it over: by value, or by 'in'.
-    private static string? WhyNotTheValue(IParameterSymbol parameter, ITypeSymbol held)
-    {
-        if (parameter.RefKind is not (RefKind.None or RefKind.In))
+    // The base record whose constructor takes a value of exactly this type, if one does.
+    private static string? BaseFor(ITypeSymbol held) =>
+        held.SpecialType switch
         {
-            return $"it takes its value by '{RefWord(parameter.RefKind)}', and a rule is handed the value itself";
-        }
-
-        if (SymbolEqualityComparer.Default.Equals(parameter.Type, held))
-        {
-            return null;
-        }
-
-        var declared = parameter.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-        var value = held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-        var reason = $"its parameter is '{declared}', not the '{value}' it holds";
-
-        // The one miss that reads as a rule: 'decimal?' so the rule can say "required" — which it is never asked.
-        return IsNullableOf(parameter.Type, held)
-            ? reason + $"; declare it '{value}', because an unfilled field is never put to the rule and a property "
-                     + "that is not nullable is required by its type"
-            : reason;
-    }
-
-    private static bool IsNullableOf(ITypeSymbol type, ITypeSymbol held) =>
-        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, TypeArguments.Length: 1 } nullable &&
-        SymbolEqualityComparer.Default.Equals(nullable.TypeArguments[0], held);
-
-    private static string RefWord(RefKind kind) =>
-        kind switch
-        {
-            RefKind.Ref => "ref",
-            RefKind.Out => "out",
-            _ => "ref readonly",
+            SpecialType.System_String => "Text",
+            SpecialType.System_Decimal => "Number",
+            SpecialType.System_Int64 => "Whole",
+            _ when held is { Name: "DateOnly", ContainingNamespace.Name: "System" } => "Day",
+            SpecialType.System_DateTime => "Moment",
+            _ => null,
         };
-
-    private static bool IsAwaitedMessages(ITypeSymbol type) =>
-        type is INamedTypeSymbol { Name: "ValueTask" or "Task", TypeArguments.Length: 1 } awaited &&
-        string.Equals(awaited.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal) &&
-        IsMessages(awaited.TypeArguments[0]);
 
     private static bool ImplementsAContract(IMethodSymbol method) =>
         method.ExplicitInterfaceImplementations.Length > 0 ||
@@ -200,13 +118,8 @@ public sealed partial class ModelInputGenerator
             .Any(member => SymbolEqualityComparer.Default.Equals(
                 method.ContainingType.FindImplementationForInterfaceMember(member), method));
 
-    /// <summary>A <c>Validate</c> that looks meant as a value object's rule and is not one.</summary>
-    private sealed record RuleMiss(string Signature, string ValueObject, string Reason, string Held, SymbolLocation? Location);
-
-    private static bool IsMessages(ITypeSymbol type) =>
-        type is INamedTypeSymbol { Name: "IEnumerable", TypeArguments.Length: 1 } sequence &&
-        sequence.TypeArguments[0].SpecialType == SpecialType.System_String &&
-        string.Equals(sequence.ContainingNamespace.ToDisplayString(), "System.Collections.Generic", System.StringComparison.Ordinal);
+    /// <summary>A <c>Validate</c> on a value object that no form and no write asks, and the declaration that would be.</summary>
+    private sealed record StaleRule(string Signature, string ValueObject, string Declaration, SymbolLocation? Location);
 
     /// <summary>Whether the model remembers which row it was filled from: an aggregate root's, with a key.</summary>
     private static bool HasSelfKey(Entity entity) => !entity.IsChild && entity.IdTypeName is not null;
@@ -411,9 +324,7 @@ public sealed partial class ModelInputGenerator
     // so a form and a write ask the very same thing.
     private static void AppendRule(StringBuilder s, Entity entity, string modelKey, FieldRule rule)
     {
-        var type = rule.Kind == ValueRule.Sync
-            ? ValidateDelegate + "<" + rule.ModelType + ">"
-            : "global::System.Func<" + rule.ModelType + ", global::System.Threading.Tasks.ValueTask<" + StringSequence + ">>";
+        var type = ValidateDelegate + "<" + rule.ModelType + ">";
 
         s.Append("    private static readonly ").Append(type).Append(' ').Append(modelKey).Append(rule.Property).AppendLine(" =");
         s.Append("        ").Append(ExtensionsType(entity)).Append('.').Append(RuleMethod(modelKey, rule.Property)).AppendLine(";");
@@ -424,11 +335,10 @@ public sealed partial class ModelInputGenerator
     private static IEnumerable<RuledModel> RuledModels(Entity entity)
     {
         var root = entity.Members
-            .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
+            .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, HasRule: true })
             .Select(static m => m.RequiredByType
-                ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
-                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable,
-                    m.ValueObject.Build == ModelValueObjectBuild.Factory))
+                ? new FieldRule(m.Name, m.ModelType, null, Required: true)
+                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable))
             .ToList();
 
         if (root.Count > 0)
@@ -439,11 +349,10 @@ public sealed partial class ModelInputGenerator
         foreach (var nested in entity.ValueObjects.Where(static v => !v.SingleValue))
         {
             var rules = nested.Members
-                .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
+                .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, HasRule: true })
                 .Select(static m => m.RequiredByType
-                    ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
-                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable,
-                    m.ValueObject.Build == ModelValueObjectBuild.Factory))
+                    ? new FieldRule(m.Name, m.ModelType, null, Required: true)
+                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable))
                 .ToList();
 
             var beside = RangeEnds(nested).ToList();
@@ -457,14 +366,8 @@ public sealed partial class ModelInputGenerator
     private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules, List<RangeEnd> Beside);
 
     /// <summary>
-    ///     One field's rule: its value object's <c>Validate</c> — or, for one declared from a base record
-    ///     (<paramref name="FromBase" />), its generated <c>__Problems</c> — or, with no value object to ask, only that
-    ///     it is filled.
+    ///     One field's rule: the generated <c>__Problems</c> of the value object declared from a base record that it
+    ///     holds — or, with no value object to ask, only that it is filled.
     /// </summary>
-    private sealed record FieldRule(
-        string Property, string ModelType, string? ValueObject, ValueRule Kind, bool Required, bool FromBase = false)
-    {
-        /// <summary>The value object's static method the rule asks.</summary>
-        public string Asked => FromBase ? "__Problems" : "Validate";
-    }
+    private sealed record FieldRule(string Property, string ModelType, string? ValueObject, bool Required);
 }

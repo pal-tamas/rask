@@ -1509,8 +1509,8 @@ model type, and a control bound to `Shipping.Street` announces `aria-required` a
 before anything is saved, as ever. One bound to `Billing.Street` announces nothing and lets an empty street
 through: a field's rule sees its own value and not the fields beside it, so it cannot tell an address nobody
 gave from one that lacks a street. The write can, and says *This field is required.* under `Billing.Street`,
-[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip.Validate`)
-is still asked there about a value that was typed. Nothing is written for this: the generated model registers
+[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip`, declared
+`: Text(Value, MinLength: 4)`) is still asked there about a value that was typed. Nothing is written for this: the generated model registers
 which of its properties may be left empty
 ([`RaskValidation.RegisterOptionalFields`](forms-validation.md#how-a-control-knows-a-field-is-required)).
 
@@ -1549,11 +1549,7 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 A form bound to an aggregate's generated model runs two kinds of rule with nothing written on the form:
 
 ```csharp
-public sealed record DestinationName(string Value)
-{
-    public static IEnumerable<string> Validate(string value) =>       // found by its shape
-        value.Trim().Length < 2 ? ["A name has at least two characters."] : [];
-}
+public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);
 
 builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already exists.");
 
@@ -1563,36 +1559,29 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 ]
 ```
 
-**The value object's own rule.** A value object that holds ONE value and has a `public static Validate` taking
-exactly that value and returning the messages — `IEnumerable<string>`, or a `ValueTask`/`Task` of it — is asked by
-the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
-accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
-says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
-object of several values is left alone. Over a number, a date or an id, declare the parameter `decimal`, not
-`decimal?` — RASK102 says so: an unfilled field is never put to the rule.
+**The value object's own rules.** A value object that holds ONE value and is
+[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole` or `Day`, its base's
+arguments and any `Rules()` of its own — is asked by the field that holds it, before any `.Validate(…)` written on
+the field, which then runs only for a value it accepted. The form asks exactly what its constructor checks, through
+the generated `X.__Problems`, so the two cannot drift. A value object not declared from a base record has no rule
+of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
+([RASK132](diagnostics.md#rask132)) rather than let it look like a rule that passed.
 
-**A non-nullable value-object property is required: its rule is asked with the empty value.** So "required" is
-said by the type, in its own words, and no attribute is needed:
+**A non-nullable value-object property is required, and its base says so.** No attribute is needed:
 
 ```csharp
 // before                                               // after
 [Required(ErrorMessage = "A destination needs a name.")]
-public DestinationName Name { get; private set; }       public DestinationName Name { get; private set; }
-
-public static IEnumerable<string> Validate(string value)
-{
-    if (string.IsNullOrWhiteSpace(value)) yield return "A destination needs a name.";   // asked for an empty field too
-    else if (value.Length > MaxLength) yield return $"A name is at most {MaxLength} characters.";
-}
+public DestinationName Name { get; private set; }       public DestinationName Name { get; private set; } = null!;
 ```
 
-- a **text** value object is asked about `""` when the field holds nothing, and what it answers is shown. If it
-  accepts `""`, an empty text field is stored as that; a field that holds nothing at all (`null`, from a caller
-  with no form) still says *This field is required.*
-- a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
+- a **text** value object is asked about `""` when the field holds nothing, and `Text` answers that it is
+  required — in the reader's language, from the strings catalog
+- a value object over a **number or a date** has no empty value to be asked about, so an unfilled field
   says the one sentence *This field is required.* and the rule is asked once there is a value
-- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule — and
-  so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the `decimal?` it holds
+- a **nullable** property (`DestinationName? Alias`) is optional: an empty field (text: only blanks) is not put
+  to the rule — and so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the
+  `decimal?` it holds
 - a **plain** non-nullable property — `int Weight`, `decimal Price`, `DateOnly Built`, `Guid OwnerId`, `bool`,
   `string Plate` — and a value object with no rule are required the same way: an unfilled field says the one
   sentence. For text, unfilled means `null`, `""` or only white space; for everything else, no value
@@ -1641,8 +1630,8 @@ The message shows under the field, or under each field of an index over several:
 It is a courtesy, never the rule: two people can pass it at the same moment, and the save — the index itself,
 or the declared rule asked again in the save's transaction — still refuses the second, shown the same way.
 
-Both belong to the **generated** model. A model you write by hand gets neither — name the rule on the field
-(`.Validate(DestinationName.Validate)`) and let the save report the index. An index declared somewhere other
+Both belong to the **generated** model. A model you write by hand gets neither — write the rule on the field
+(`.Validate(…)`) and let the save report the index. An index declared somewhere other
 than the aggregate's own `Configure`, and one on a row inside an aggregate, are enforced by the save and not
 asked beforehand.
 
@@ -2371,6 +2360,7 @@ public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
 public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
 public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
+public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
 public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);       // no end: open
 public sealed partial record RefundMonths(int From, int To) : Range(From, To, Min: 1, Max: 12);
@@ -2400,6 +2390,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
+| `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
 
@@ -2421,9 +2412,23 @@ over the primary constructor's parameters:
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value.
 
+**A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in
+`Clock.Zone` (what `Clock.Wall` reads), with `DateTimeKind.Unspecified` — how a `datetime2` (SQL Server) or `TEXT`
+(SQLite) column keeps it and reads it back. A `DateTime` of `DateTimeKind.Utc` is converted to `Clock.Zone` as it is
+made, and one of `DateTimeKind.Local` from the machine's zone, so `FuelingMoment.Create(Clock.Now.UtcDateTime)` and
+`FuelingMoment.Create(Clock.Wall)` are the same value, and a column of moments never mixes the two. A bound field of
+one draws a `Ui.DayAndTime`, ending now for `NotAfterNow`.
+
 **A stored value is loaded, never re-checked.** EF Core builds what a row holds without asking the rules — a row
 stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on
 a row leaves the next `Create` checking again. Only what the code makes goes through them.
+
+**Over remote dispatch it travels as what it holds.** A command, query, event or result crossing between the
+browser and the server (`Rask.Cqrs.Client`/`Rask.Cqrs.Server`) may carry one: a one-value record is its bare value
+on the wire — `"ABC-123"`, `12.5`, never `{"value":"ABC-123"}` — and a `Range` or `Value` record an object of its
+members. The receiving end rebuilds it through the generated `Create` **unchecked**, as a loaded row is, so a rule
+tightened on one end never makes the other unable to read; a handler that must rely on the rules asks them
+(`DriverName.Create(command.Driver.Value, "Driver")`). See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
 **The column takes what the value object declares**, read from its base arguments when the app is compiled —
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
@@ -2442,7 +2447,8 @@ from Rask's strings catalog. A property that is not nullable is required; a null
 An aggregate that stores a bare `string`, number, moment or `Guid` gets [RASK130](diagnostics.md#rask130) — a
 suggestion, and a warning under `<RaskStrict>` — pointing at the value object that would carry its rules.
 
-The shape below — a `record` holding one value with a `public static Validate` — still works for now.
+A value object of any other shape — below — holds no rule of its own: a `public static Validate` beside its
+value is never asked ([RASK132](diagnostics.md#rask132)).
 
 ### Value objects of any shape
 
@@ -2506,17 +2512,17 @@ property, and a form model carries it as a nested model.
 **Declare it nullable and it is optional** — a class or a struct alike:
 
 ```csharp
-public readonly record struct Percent(decimal Value)
-{
-    public static IEnumerable<string> Validate(decimal value) => value is < 0 or > 100 ? ["0 to 100."] : [];
-}
+public sealed partial record Percent(decimal Value) : Number(Value, Min: 0, Max: 100);
+public readonly record struct Grade(int Value);
 
 public Email? Backup { get; private set; }        // nullable column Backup,   form field string?  Backup
 public Percent? Discount { get; private set; }    // nullable column Discount, form field decimal? Discount
+public Grade? Rank { get; private set; }          // nullable column Rank,     form field int?     Rank
 ```
 
-An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent.Validate` by the
-form and by `Create`/`Update`, and the read face shows `decimal? Discount`. A nullable struct of **several**
+An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent`'s rules by the form
+and by `Create`/`Update`, and the read face shows `decimal? Discount`. A value object that checks a rule is a
+`sealed record`: a struct has a `default` that no constructor checked, so `Grade` holds no rule. A nullable struct of **several**
 values (`Money?` over a `record struct`) is not unwrapped: the form model carries the struct as it is, and its
 mapping is yours to write in `Configure`.
 

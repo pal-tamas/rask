@@ -4,13 +4,8 @@ using Rask.Cqrs;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A one-value value object that is a struct, with a rule.</summary>
-public readonly record struct OfferDiscount(int Value)
-{
-    public const string OutOfRange = "A discount is between 0 and 100.";
-
-    public static IEnumerable<string> Validate(int value) => value is < 0 or > 100 ? [OutOfRange] : [];
-}
+/// <summary>A one-value value object that is a struct: no rule of its own, which only a base record can hold.</summary>
+public readonly record struct OfferDiscount(int Value);
 
 /// <summary>A one-value struct over text, so the column has a length.</summary>
 public readonly record struct OfferCode(string Value);
@@ -69,8 +64,8 @@ public sealed class OfferPlan : Aggregate<int, Model, Deletable>
 
 /// <summary>
 /// A one-value struct value object held as <c>T?</c> is a value object like any other, and optional: a nullable
-/// column of the value it holds, a nullable field of that value on the form model, and a rule asked only when
-/// the field is filled — what a nullable reference-type value object has always been.
+/// column of the value it holds, a nullable field of that value on the form model, and never required — what a
+/// nullable reference-type value object has always been.
 /// </summary>
 [Collection(DataDbCollection.Name)]
 public sealed class OptionalStructValueObjectTests : IDisposable
@@ -150,16 +145,15 @@ public sealed class OptionalStructValueObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task A_filled_value_the_rule_refuses_is_refused_by_the_write_and_an_empty_one_is_not_asked()
+    public async Task A_filled_value_is_written_as_it_is_and_an_empty_one_is_not_required()
     {
         await using var database = await StartDatabaseAsync();
 
-        var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => Offer.Create(new OfferModel { Title = "Ada", Discount = 140 }, cancellationToken: TestContext.Current.CancellationToken));
-        var accepted = await Offer.Create(new OfferModel { Title = "Ada" }, cancellationToken: TestContext.Current.CancellationToken);
+        var filled = await Offer.Create(new OfferModel { Title = "Ada", Discount = 140 }, cancellationToken: TestContext.Current.CancellationToken);
+        var empty = await Offer.Create(new OfferModel { Title = "Bob" }, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal([("Discount", OfferDiscount.OutOfRange)], refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
-        Assert.Null(accepted.Discount);
+        Assert.Equal(new OfferDiscount(140), filled.Discount);
+        Assert.Null(empty.Discount);
     }
 
     [Fact]
@@ -204,7 +198,7 @@ public sealed class OptionalStructValueObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task Inside_a_value_object_built_through_its_members_it_is_stored_or_left_empty_and_asked_when_filled()
+    public async Task Inside_a_value_object_built_through_its_members_it_is_stored_or_left_empty()
     {
         await using var database = await StartDatabaseAsync();
         var bare = OfferPlan.With(null);
@@ -212,14 +206,11 @@ public sealed class OptionalStructValueObjectTests : IDisposable
 
         var full = await OfferPlan.Create(
             new OfferPlanModel { Terms = new() { Early = 4, Days = 10 } }, cancellationToken: TestContext.Current.CancellationToken);
-        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => OfferPlan.Create(
-            new OfferPlanModel { Terms = new() { Early = -1, Days = 10 } }, cancellationToken: TestContext.Current.CancellationToken));
 
         var storedBare = (await database.Load<OfferPlan>(bare.Id, TestContext.Current.CancellationToken))!;
         var storedFull = (await database.Load<OfferPlan>(full.Id, TestContext.Current.CancellationToken))!;
         Assert.Null(storedBare.Terms.Early);
         Assert.Equal(new OfferDiscount(4), storedFull.Terms.Early);
-        Assert.Equal([("Terms.Early", OfferDiscount.OutOfRange)], refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
     }
 
     private static async Task<int> SaveAsync(Offer offer)

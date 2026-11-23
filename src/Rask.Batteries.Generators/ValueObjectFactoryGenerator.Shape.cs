@@ -25,6 +25,7 @@ public sealed partial class ValueObjectFactoryGenerator
         decimal? Max = null,
         int? Scale = null,
         bool NotAfterToday = false,
+        bool NotAfterNow = false,
         bool Strict = false,
         string? Start = null,
         string? End = null,
@@ -90,6 +91,7 @@ public sealed partial class ValueObjectFactoryGenerator
             ("MinLength", int least) when least > 0 => shape with { MinLength = least },
             ("Scale", int scale) => shape with { Scale = scale },
             ("NotAfterToday", bool notAfter) => shape with { NotAfterToday = notAfter },
+            ("NotAfterNow", bool notAfter) => shape with { NotAfterNow = notAfter },
             ("Strict", bool strict) => shape with { Strict = strict },
             ("Min", _) when AsDecimal(value) is { } min => shape with { Min = min },
             ("Max", _) when AsDecimal(value) is { } max => shape with { Max = max },
@@ -104,7 +106,7 @@ public sealed partial class ValueObjectFactoryGenerator
     // `__Field`: only for the bases a control is drawn for, and only where the compilation has the seam to name.
     private static void AppendField(StringBuilder s, ValueObject value)
     {
-        if (!value.HasFieldSeam || value.ValueBase is not ("Text" or "Number" or "Whole" or "Day" or "Range"))
+        if (!value.HasFieldSeam || value.ValueBase is not ("Text" or "Number" or "Whole" or "Day" or "Moment" or "Range"))
         {
             return;
         }
@@ -119,6 +121,11 @@ public sealed partial class ValueObjectFactoryGenerator
         if (facets.NotAfterToday)
         {
             named.Add("NotAfterToday: true");
+        }
+
+        if (facets.NotAfterNow)
+        {
+            named.Add("NotAfterNow: true");
         }
 
         if (string.Equals(value.ValueBase, "Range", StringComparison.Ordinal))
