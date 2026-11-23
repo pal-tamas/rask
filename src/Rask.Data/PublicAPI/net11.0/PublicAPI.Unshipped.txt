@@ -597,3 +597,5 @@ override sealed Rask.Data.Moment.Equals(Rask.Data.Value? other) -> bool
 static Rask.Data.Moment.operator !=(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
 static Rask.Data.Moment.operator ==(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
 virtual Rask.Data.Moment.Equals(Rask.Data.Moment? other) -> bool
+Rask.Data.ValueObjectColumnsBuilderExtensions
+static Rask.Data.ValueObjectColumnsBuilderExtensions.Columns<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue>!>! member, string! pattern) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!

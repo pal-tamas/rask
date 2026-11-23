@@ -2447,6 +2447,24 @@ complex type, one column per member. The entity's own `Configure` runs after and
 [RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
 object's, since a value the rule accepts would then not fit.
 
+**Columns named before the value object existed.** EF Core names a complex type's columns `Km_Start` and `Km_End`.
+A table whose columns were already `StartKm` and `EndKm` — read by reports and raw SQL — keeps them with one line in
+the entity's `Configure`:
+
+```csharp
+public KmRange Km { get; private set; } = KmRange.Create(0, 1);
+
+public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
+    b.Columns(n => n.Km, "{Member}Km").Columns(n => n.Trip, "{Member}Date");   // StartKm, EndKm; StartDate, EndDate
+```
+
+`{Member}` is each member of the value object; a value object nested inside it keeps EF Core's naming below the
+pattern (`ReadingKm_Value`). The read face follows the same names — `DeliveryNote.Where(n => n.StartKm >= 100)`, not
+`KmStart` — because the generator reads the call from `Configure`, so write it there with the pattern as a constant
+(a pattern that makes no C# name, `"Km {Member}"`, names the columns only and leaves the face's `KmStart`). A
+pattern without `{Member}`, or a member that is not a value object of several members, throws as the model is built.
+The form model is unchanged: `Km.Start` and `Km.End`.
+
 A generated form model carries a one-value record as its value (`string? Driver`): a form bound to it asks the same
 rules under the field and gives a text input the `MaxLength`/`MinLength` as its `maxlength`/`minlength` (its field
 shape, `X.__Field` — see [forms validation](forms-validation.md)), and the generated
