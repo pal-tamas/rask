@@ -5,12 +5,12 @@ using Rask.Core.Forms;
 
 namespace Rask.FluentValidationTests;
 
-// A FluentValidation message names its field by the [Display] or [DisplayName] the field's label and its
-// DataAnnotations messages read, [Display] first; a rule's WithName still has the last word.
-public class DisplayNameTests
+// A FluentValidation message names its field by the [Display] name the field's label and its DataAnnotations
+// messages read, never by a [DisplayName]; a rule's WithName still has the last word.
+public class DisplayTests
 {
     [Fact]
-    public async Task A_display_name_attribute_names_the_field_in_a_fluent_message()
+    public async Task A_display_attribute_names_the_field_in_a_fluent_message()
     {
         var contact = new Contact();
         var form = RegisterValidator(contact, new ContactValidator());
@@ -21,14 +21,14 @@ public class DisplayNameTests
     }
 
     [Fact]
-    public async Task Display_wins_over_display_name_in_a_fluent_message()
+    public async Task A_display_name_attribute_leaves_fluent_validations_own_name()
     {
         var contact = new Contact();
         var form = RegisterValidator(contact, new ContactValidator());
 
         await form.Validate(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["'Family name' must not be empty."], form.GetValidationMessages(new FieldIdentifier(contact, nameof(Contact.Family))));
+        Assert.Equal(["'Family' must not be empty."], form.GetValidationMessages(new FieldIdentifier(contact, nameof(Contact.Family))));
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class DisplayNameTests
     }
 
     [Fact]
-    public async Task A_field_with_neither_attribute_keeps_fluent_validations_own_name()
+    public async Task A_field_with_no_attribute_keeps_fluent_validations_own_name()
     {
         var contact = new Contact();
         var form = RegisterValidator(contact, new ContactValidator());
@@ -55,9 +55,11 @@ public class DisplayNameTests
 
     public sealed class Contact
     {
-        [DisplayName("Given name")] public string Given { get; set; } = "";
+        [Display(Name = "Given name")] public string Given { get; set; } = "";
 
-        [Display(Name = "Family name"), DisplayName("Surname")] public string Family { get; set; } = "";
+#pragma warning disable RASK131 // The [DisplayName] Rask does not read is what this field is here to prove.
+        [DisplayName("Surname")] public string Family { get; set; } = "";
+#pragma warning restore RASK131
 
         [Display(Name = "Nickname")] public string Nick { get; set; } = "";
 

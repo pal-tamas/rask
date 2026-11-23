@@ -270,8 +270,8 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
     // validator is constructed — action invocation (submit, change, blur) doesn't re-enter
     // LiveRenderContext, so reading it at validation time would return null.
     [UnconditionalSuppressMessage("Trimming", "IL2026",
-        Justification = "ValidationContext's no-display-name ctor reflects for DisplayNameAttribute on the " +
-                        "model — same constraint as Validate/ValidateField: the user-owned model type is " +
+        Justification = "ValidationContext's no-display-name ctor reflects over the model for its display " +
+                        "name — same constraint as Validate/ValidateField: the user-owned model type is " +
                         "preserved through the consumer's binding/page annotations.")]
     private ValidationContext NewValidationContext(object model) =>
         new(model, _services, null);

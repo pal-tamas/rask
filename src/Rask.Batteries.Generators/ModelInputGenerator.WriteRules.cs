@@ -449,7 +449,7 @@ public sealed partial class ModelInputGenerator
             .Append("object? value, string name, string displayName, object model, string path, ").Append(FailureList)
             .AppendLine(" failures)");
         s.AppendLine("    {");
-        s.AppendLine("        // The trim-safe context: it names the field by its [Display] or [DisplayName] without reflecting over the model.");
+        s.AppendLine("        // The trim-safe context: it names the field by its [Display] name without reflecting over the model.");
         s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, displayName, null, null) { MemberName = name };");
         s.AppendLine("        return check.GetValidationResult(value, context) is { ErrorMessage: { } error }");
         s.Append("            ? ").Append(ModelRules).Append(".Told(failures, path, name, ")

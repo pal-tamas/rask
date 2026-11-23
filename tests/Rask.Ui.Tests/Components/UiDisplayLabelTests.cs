@@ -6,11 +6,10 @@ using Rask.Core;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     A bound kit control given no <c>Label</c> is labelled by its member's <c>[Display(Name = …)]</c> or
-///     <c>[DisplayName]</c>, <c>[Display]</c> first, as Blazor's <c>Label</c> reads them; a label the call site gives,
-///     or a <c>Ui.Field</c> it composes, keeps the say.
+///     A bound kit control given no <c>Label</c> is labelled by its member's <c>[Display(Name = …)]</c>, and never by a
+///     <c>[DisplayName]</c>; a label the call site gives, or a <c>Ui.Field</c> it composes, keeps the say.
 /// </summary>
-public partial class UiDisplayNameLabelTests : global::Rask.Core.RaskMarkup
+public partial class UiDisplayLabelTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_bound_input_is_labelled_by_its_members_display_name()
@@ -24,23 +23,13 @@ public partial class UiDisplayNameLabelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_display_name_attribute_labels_a_bound_control_too()
-    {
-        var model = new Account();
-
-        var html = Form.Model(model)[Ui.Textarea.Bind(() => model.Notes)].ToHtml();
-
-        Assert.Contains(">Remarks</label>", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Display_wins_over_display_name_for_the_label()
+    public void A_display_name_attribute_labels_nothing()
     {
         var model = new Account();
 
         var html = Form.Model(model)[Ui.Input.Bind(() => model.Phone)].ToHtml();
 
-        Assert.Contains(">Mobile</label>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<label", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Telephone", html, StringComparison.Ordinal);
     }
 
@@ -67,7 +56,7 @@ public partial class UiDisplayNameLabelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_member_with_neither_attribute_draws_no_label()
+    public void A_member_with_no_attribute_draws_no_label()
     {
         var model = new Account();
 
@@ -100,9 +89,11 @@ public partial class UiDisplayNameLabelTests : global::Rask.Core.RaskMarkup
     {
         [Display(Name = "Work email")] public string Email { get; set; } = "";
 
-        [DisplayName("Remarks")] public string Notes { get; set; } = "";
+        [Display(Name = "Remarks")] public string Notes { get; set; } = "";
 
-        [Display(Name = "Mobile"), DisplayName("Telephone")] public string Phone { get; set; } = "";
+#pragma warning disable RASK131 // The [DisplayName] Rask does not read is what this member is here to prove.
+        [DisplayName("Telephone")] public string Phone { get; set; } = "";
+#pragma warning restore RASK131
 
         [Display(Name = "Accept the terms")] public bool Terms { get; set; }
 

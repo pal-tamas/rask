@@ -5,12 +5,12 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
 
-// The {0} of a DataAnnotations message is the field's display name as .NET 11's Blazor reads it: [Display]'s name
-// wins over [DisplayName], and [DisplayName] — which .NET's own Validator skips — still names the field.
-public class DisplayNameMessageTests
+// The {0} of a DataAnnotations message is the field's [Display] name, the one attribute Rask names a field by;
+// a [DisplayName] names nothing, so a field carrying only that keeps its member name.
+public class DisplayMessageTests
 {
     [Fact]
-    public void A_display_name_attribute_names_the_field_in_dotnets_own_message()
+    public void A_display_attribute_names_the_field_in_dotnets_own_message()
     {
         var person = new Person();
 
@@ -20,13 +20,13 @@ public class DisplayNameMessageTests
     }
 
     [Fact]
-    public void Display_wins_over_display_name_on_the_same_field()
+    public void A_field_named_only_by_display_name_keeps_its_member_name()
     {
         var person = new Person();
 
         var said = InEnglish(() => Messages(DataAnnotationsFieldValidator.Validate(person)));
 
-        Assert.Equal("The Family name field is required.", said[nameof(Person.Family)]);
+        Assert.Equal("The Family field is required.", said[nameof(Person.Family)]);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class DisplayNameMessageTests
     }
 
     [Fact]
-    public void A_field_with_neither_attribute_keeps_its_member_name()
+    public void A_field_with_no_attribute_keeps_its_member_name()
     {
         var person = new Person();
 
@@ -79,7 +79,7 @@ public class DisplayNameMessageTests
 
         var names = (DisplayNames.Of(() => person.Given), DisplayNames.Of(() => person.Family), DisplayNames.Of(() => person.Plain));
 
-        Assert.Equal(("Given name", "Family name", (string?)null), names);
+        Assert.Equal(("Given name", (string?)null, (string?)null), names);
     }
 
     private static Dictionary<string, string> Messages(IEnumerable<ValidationEntry> entries) =>
@@ -106,9 +106,11 @@ public class DisplayNameMessageTests
 
     private sealed class Person
     {
-        [Required, DisplayName("Given name")] public string? Given { get; set; }
+        [Required, Display(Name = "Given name")] public string? Given { get; set; }
 
-        [Required, Display(Name = "Family name"), DisplayName("Surname")] public string? Family { get; set; }
+#pragma warning disable RASK131 // The [DisplayName] Rask does not read is what this field is here to prove.
+        [Required, DisplayName("Surname")] public string? Family { get; set; }
+#pragma warning restore RASK131
 
         [StringLength(2), Display(Name = nameof(Names.Nickname), ResourceType = typeof(Names))] public string Alias { get; set; } = "toolong";
 
@@ -117,7 +119,7 @@ public class DisplayNameMessageTests
 
     private sealed class AwaitedSignUp
     {
-        [Required, DisplayName("Work email"), Free] public string? Email { get; set; }
+        [Required, Display(Name = "Work email"), Free] public string? Email { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

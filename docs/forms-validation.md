@@ -528,18 +528,18 @@ populated one tags the named field.
 
 ### The name a message gives the field
 
-A message's `{0}` — "The **Work email** field is required." — is the field's display name, read as .NET 11's
-Blazor reads it: `[Display(Name = …)]` first (through its `ResourceType` when it names one), then
-`[DisplayName]`, then the member's own name. .NET's `Validator` reads `[Display]` alone; Rask honours
-`[DisplayName]` as well, on the form, on a dispatched request, in an async pass and in a Rask.Data model's
-generated server checks (the generator copies `[DisplayName]` onto `<Entity>Model` beside `[Display]`). A bound
-kit control given no `.Label(…)` is labelled by the same name — see [Labels](forms.md#controls-at-a-glance).
+A message's `{0}` — "The **Work email** field is required." — is the field's display name: its
+`[Display(Name = …)]` (through its `ResourceType` when it names one), else the member's own name. That is the ONE
+way Rask names a field — on the form, on a dispatched request, in an async pass, in a FluentValidation message and in
+a Rask.Data model's generated server checks (the generator copies `[Display]` onto `<Entity>Model`).
+`System.ComponentModel.DisplayNameAttribute` is read nowhere; [RASK131](diagnostics.md#rask131) warns on one and its
+quick-fix rewrites it as `[Display(Name = …)]`. A bound kit control given no `.Label(…)` is labelled by the same name — see [Labels](forms.md#controls-at-a-glance).
 
 ```csharp
 public sealed class SignUp
 {
     [Required, Display(Name = "Work email")] public string? Email { get; set; }   // "The Work email field is required."
-    [Required, DisplayName("Given name")]   public string? First { get; set; }   // "The Given name field is required."
+    [Required, Display(Name = "Given name")] public string? First { get; set; }  // "The Given name field is required."
 }
 ```
 
@@ -614,8 +614,8 @@ builder.Services.AddValidation(o => o.LocalizerProvider = (_, factory) => factor
 
 A failed attribute is then looked up with .NET's own keys, in this order — the attribute's `ErrorMessage` itself,
 `{Type}_{Member}_{Attribute}_Error`, `{Type}_{Attribute}_Error`, `{Attribute}_Error` — and the template found is
-filled in by the attribute (`ValidationAttribute.FormatMessage`): `{0}` is the field's display name (`[Display]` or
-`[DisplayName]`, itself looked up in the same resources), and a `[Range]`'s `{1}` and `{2}` are its bounds. The
+filled in by the attribute (`ValidationAttribute.FormatMessage`): `{0}` is the field's display name (its `[Display]`
+name, itself looked up in the same resources), and a `[Range]`'s `{1}` and `{2}` are its bounds. The
 same resources word a form, a dispatched request and a minimal API, on the Server and in the browser, in the
 reader's language. Without a `LocalizerProvider`, .NET's default applies: resources named after each model. In
 the browser a WASM app adds the `Microsoft.Extensions.Localization` package for `AddLocalization()`; Rask fetches
@@ -673,8 +673,8 @@ Validating one root-model field — when its value arrives — scopes FluentVali
 (`MemberNameValidatorSelector`, fast path); submit runs every rule. FluentValidation's own
 `Cascade(CascadeMode.Stop)` mirrors Rask's first-error-wins gating.
 
-A FluentValidation message names the field by the same `[Display]` / `[DisplayName]` its label and its
-DataAnnotations messages read ("'Given name' must not be empty."): Rask puts them behind FluentValidation's
+A FluentValidation message names the field by the same `[Display]` name its label and its
+DataAnnotations messages read ("'Given name' must not be empty."): Rask puts it behind FluentValidation's
 `ValidatorOptions.Global.DisplayNameResolver`. A rule's `.WithName(…)` still wins, and a resolver the app sets
 itself replaces Rask's.
 

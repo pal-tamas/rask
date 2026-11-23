@@ -4,9 +4,9 @@ using Rask.Core.Forms;
 namespace Rask;
 
 // FluentValidation names a field by its own rules — a rule's WithName, then its global DisplayNameResolver, then the
-// property's name split at its capitals — and its default resolver reads no attribute. This puts the attributes
-// behind whatever resolver is there, so "'Given name' must not be empty." reads the [Display] or [DisplayName] the
-// field's label and its DataAnnotations messages read (DisplayNames), [Display] first. A resolver the app sets
+// property's name split at its capitals — and its default resolver reads no attribute. This puts [Display] behind
+// whatever resolver is there, so "'Given name' must not be empty." reads the [Display] name the field's label and its
+// DataAnnotations messages read (DisplayNames), and nothing else. A resolver the app sets
 // itself replaces this one, and a rule's WithName still wins over both.
 internal static class FluentDisplayNames
 {

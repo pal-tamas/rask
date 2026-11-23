@@ -867,6 +867,13 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **BREAKING: a field is named by `[Display(Name = …)]` alone; `[DisplayName]` is read nowhere.** Before: a control's
+  label, a filter chip, the `{0}` of a validation message, a FluentValidation message and a Rask.Data model's
+  generated server checks read `System.ComponentModel.DisplayNameAttribute` where a member had no `[Display]` name —
+  Rask reworded .NET's messages to get it in, and the model generator copied `[DisplayName]` onto `<Entity>Model`.
+  After: all of them read `[Display(Name = …)]` (with its `ResourceType`) and nothing else, so a member carrying only
+  `[DisplayName("Given name")]` is shown as `Given`; the new warning [RASK131](docs/diagnostics.md#rask131) flags each
+  one, and its quick-fix rewrites it as `[Display(Name = "Given name")]`.
 - **RASK025 is retired.** It warned that a text-family `InputType` (`Text`, `Search`, `Tel`, `Url`, `Email`,
   `Password`) on a non-string `Input<T>` "could never round-trip". Since numbers in a text field are shown and read in
   the reader's culture (above), every value a field can hold reads back as itself from a text field — a number in the

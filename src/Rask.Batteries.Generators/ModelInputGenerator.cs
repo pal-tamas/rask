@@ -51,7 +51,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
     private const string DisplayAttribute = "System.ComponentModel.DataAnnotations.DisplayAttribute";
-    private const string DisplayNameAttribute = "System.ComponentModel.DisplayNameAttribute";
     private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
     private const string UnsafeAccessor = "global::System.Runtime.CompilerServices.UnsafeAccessor";
     private const string UnsafeAccessorKind = "global::System.Runtime.CompilerServices.UnsafeAccessorKind";

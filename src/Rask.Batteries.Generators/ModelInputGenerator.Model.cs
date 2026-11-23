@@ -538,12 +538,6 @@ public sealed partial class ModelInputGenerator
             return type.Name is not ("KeyAttribute" or "ConcurrencyCheckAttribute" or "TimestampAttribute");
         }
 
-        // The field's name where [Display] gives none: the form's label and its messages read it as they read [Display].
-        if (type.ToDisplayString() is DisplayNameAttribute)
-        {
-            return true;
-        }
-
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
             if (current.ToDisplayString() is ValidationAttribute)
@@ -580,13 +574,11 @@ public sealed partial class ModelInputGenerator
     }
 
     // What a failed check calls the field, as C# the server runs: [Display]'s name — through its resources, at run time,
-    // where it names a ResourceType — else [DisplayName]'s, else the member's own.
+    // where it names a ResourceType — else the member's own.
     private static string NamedOf(IPropertySymbol property)
     {
         var attributes = property.GetAttributes();
-        var named = attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayNameAttribute)?
-            .ConstructorArguments.FirstOrDefault();
-        var fallback = named is { Value: string { Length: > 0 } } given ? given.ToCSharpString() : Quoted(property.Name);
+        var fallback = Quoted(property.Name);
 
         if (attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayAttribute) is not { } display)
         {

@@ -94,7 +94,7 @@ internal static class AppValidationMessages
         return arity < 0 ? name : name[..arity];
     }
 
-    // What {0} says: a [Display] or [DisplayName] the member carries — a literal one looked up in the same resources,
+    // What {0} says: the [Display] name the member carries — a literal one looked up in the same resources,
     // as .NET does — else the member's own name. A type-level rule names the type.
     [UnconditionalSuppressMessage("Trimming", "IL2070",
         Justification = "GetProperty on the type of a model the app validates: the app preserves its models' " +

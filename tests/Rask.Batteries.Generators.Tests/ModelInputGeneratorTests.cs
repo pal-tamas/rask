@@ -137,7 +137,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void A_display_name_attribute_is_copied_onto_the_form_beside_display()
+    public void A_display_name_attribute_is_left_off_the_form_and_display_is_copied()
     {
         var run = Run("""
             using System;
@@ -156,18 +156,18 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.ProductModel").ReplaceLineEndings("\n");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("    [global::System.ComponentModel.DisplayNameAttribute(\"Remarks\")]\n    public string? Notes", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayNameAttribute", source, StringComparison.Ordinal);
         Assert.Contains("    [global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Label\")]\n    public string? Tag", source, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("[Display(Name = \"Remarks\"), DisplayName(\"Comment\")]", "\"Remarks\"")]
-    [InlineData("[DisplayName(\"Comment\")]", "\"Comment\"")]
+    [InlineData("[Display(Name = \"Remarks\")]", "\"Remarks\"")]
+    [InlineData("[DisplayName(\"Comment\")]", "\"Notes\"")]
     [InlineData("", "\"Notes\"")]
     [InlineData(
-        "[Display(Name = nameof(Names.Notes), ResourceType = typeof(Names)), DisplayName(\"Comment\")]",
-        "(new global::System.ComponentModel.DataAnnotations.DisplayAttribute() { Name = \"Notes\", ResourceType = typeof(Shop.Names) }).GetName() ?? \"Comment\"")]
-    public void A_check_the_server_runs_names_the_field_as_display_and_display_name_do(string attributes, string named)
+        "[Display(Name = nameof(Names.Notes), ResourceType = typeof(Names))]",
+        "(new global::System.ComponentModel.DataAnnotations.DisplayAttribute() { Name = \"Notes\", ResourceType = typeof(Shop.Names) }).GetName() ?? \"Notes\"")]
+    public void A_check_the_server_runs_names_the_field_by_display_alone(string attributes, string named)
     {
         var run = Run($$"""
             using System;

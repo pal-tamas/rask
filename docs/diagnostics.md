@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK130, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK131, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -29,6 +29,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK121** | makes the `[JSInvokable]` method `public` |
 | **RASK127** | rewrites `new KmRange(a, b)` into `KmRange.Create(a, b)`, and `km with { End = 5 }` into `KmRange.Create(km.Start, 5)` |
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
+| **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -147,6 +148,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK128](#rask128) | Warning | A column is configured differently from its value object |
 | [RASK129](#rask129) | Error | A value object declared from a base record is not `sealed partial` |
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
+| [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3168,3 +3170,27 @@ public sealed class Delivery : Aggregate<Guid>
 **Fix:** declare a value object for the property and store that. No quick-fix: which base and which rules is the
 app's call. To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the
 project.
+
+## RASK131
+
+**A property is named by `[DisplayName]`, which Rask never reads** · Warning
+
+Rask has ONE way to name a field for its readers — a control's label, a `Ui.Filters` chip, a column header, the `{0}`
+of a validation message, a FluentValidation message and a Rask.Data model's generated server checks — and it is
+`[Display(Name = …)]` from `System.ComponentModel.DataAnnotations`, through its `ResourceType` for a translated name.
+That is the attribute .NET's own `Validator` reads too. `System.ComponentModel.DisplayNameAttribute` (or a subclass
+of it) is read by none of them, so a property carrying only that one is shown by its member name. Reported in any
+project that references Rask, on any property.
+
+```csharp
+public sealed class SignUp
+{
+    [Required, DisplayName("Given name")] public string? First { get; set; }         // ⚠ RASK131 — "The First field is required."
+    [Required, Display(Name = "Given name")] public string? Given { get; set; }      // ✓ — "The Given name field is required."
+}
+```
+
+**Fix:** write `[Display(Name = …)]` instead (**quick-fix available** — the lightbulb rewrites `[DisplayName("X")]`
+as `[Display(Name = "X")]`, adds `using System.ComponentModel.DataAnnotations;` where the file lacks it, and drops
+`using System.ComponentModel;` when nothing else in the file uses it; it is withheld for a subclass of
+`DisplayNameAttribute`, whose name is built however that subclass builds it).

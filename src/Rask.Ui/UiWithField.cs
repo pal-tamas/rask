@@ -25,7 +25,7 @@ namespace Rask;
 ///     </para>
 ///     <para>
 ///     A bound control given no label is labelled by the member it is bound to, where that member's
-///     <c>[Display(Name = …)]</c> or <c>[DisplayName]</c> names it — as Blazor's <c>Label</c> reads them — unless
+///     <c>[Display(Name = …)]</c> names it — the one name its validation messages read too — unless
 ///     the call site composed a <c>Ui.Field</c> around it, which carries a label of its own.
 ///     </para>
 /// </remarks>
@@ -105,7 +105,7 @@ internal sealed class UiWithField
     /// <param name="invalid">Flux's <c>invalid</c>, for a control with no binding to ask.</param>
     /// <param name="error">Flux's <c>error</c>: a message the call site states, for a control bound to nothing.</param>
     /// <param name="namesBound">
-    ///     With no <paramref name="label" />, the bound member's <c>[Display]</c> or <c>[DisplayName]</c> is the label:
+    ///     With no <paramref name="label" />, the bound member's <c>[Display]</c> name is the label:
     ///     false for a part another control draws the field of.
     /// </param>
     internal static UiWithField For(
