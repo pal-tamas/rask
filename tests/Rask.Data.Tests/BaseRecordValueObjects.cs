@@ -27,6 +27,9 @@ public sealed partial record RigAxles(long Value) : Whole(Value, Min: 2, Max: 9)
 /// <summary>A day that cannot be in the future.</summary>
 public sealed partial record RigInspected(DateOnly Value) : Day(Value, NotAfterToday: true);
 
+/// <summary>A moment on the wall clock that cannot be in the future.</summary>
+public sealed partial record RigFueled(DateTime Value) : Moment(Value, NotAfterNow: true);
+
 /// <summary>A strict range: the end after the start.</summary>
 public sealed partial record RigKm(int Start, int End) : Range(Start, End, Strict: true);
 
@@ -82,7 +85,10 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 
     public RigInspected? Inspected { get; private set; }
 
-    public static Rig Of(string driver, string plate, decimal tank, long axles, string? chip = null, DateOnly? inspected = null) =>
+    public RigFueled? Fueled { get; private set; }
+
+    public static Rig Of(
+        string driver, string plate, decimal tank, long axles, string? chip = null, DateOnly? inspected = null, DateTime? fueled = null) =>
         new()
         {
             Driver = RigDriver.Create(driver, nameof(Driver)),
@@ -91,6 +97,7 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
             Axles = RigAxles.Create(axles, nameof(Axles)),
             Chip = RigChip.CreateOptional(chip, nameof(Chip)),
             Inspected = RigInspected.CreateOptional(inspected, nameof(Inspected)),
+            Fueled = RigFueled.CreateOptional(fueled, nameof(Fueled)),
         };
 }
 

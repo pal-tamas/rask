@@ -46,6 +46,14 @@ them until tagged releases begin.
   publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
   `events.Published<DriverChipsChanged>().Once()`, `.Never()`, `.Times(n)`, `.Where(e => …)`, `.Only()`, `.All`
   ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
+- **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
+  fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
+  out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
+  Moment(Value, NotAfterNow: true);` holds the moment as `Clock.Wall` shows it in `Clock.Zone`, always
+  `DateTimeKind.Unspecified` (a UTC or machine-local `DateTime` is converted as it is made), takes `NotBefore`,
+  `NotAfter` and `NotAfterNow` (now is `Clock.Wall`), and gives its `.Day`. It gets `Create`/`TryCreate`/
+  `CreateOptional` like the other bases, is stored as one `datetime2`/`TEXT` column, and a bound `Ui.Field.Bind`
+  draws a `Ui.DayAndTime` ending now for `NotAfterNow` (`FieldKind.Moment`, `FieldShape.NotAfterNow`).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

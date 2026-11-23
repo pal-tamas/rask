@@ -19900,6 +19900,7 @@ Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Choice = 6 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Day = 3 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Id = 5 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Moment = 7 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Number = 1 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Range = 4 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Text = 0 -> Rask.Core.Forms.FieldKind
@@ -19915,13 +19916,13 @@ Rask.Core.Forms.FieldOption.Value.get -> object!
 Rask.Core.Forms.FieldOption.Value.init -> void
 Rask.Core.Forms.FieldShape
 Rask.Core.Forms.FieldShape.<Clone>$() -> Rask.Core.Forms.FieldShape!
-Rask.Core.Forms.FieldShape.Deconstruct(out Rask.Core.Forms.FieldKind Kind, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out int? Scale, out bool NotAfterToday, out bool Strict, out string? Start, out string? End, out Rask.Core.Forms.FieldKind? Ends, out System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options) -> void
+Rask.Core.Forms.FieldShape.Deconstruct(out Rask.Core.Forms.FieldKind Kind, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out int? Scale, out bool NotAfterToday, out bool Strict, out string? Start, out string? End, out Rask.Core.Forms.FieldKind? Ends, out System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options, out bool NotAfterNow) -> void
 Rask.Core.Forms.FieldShape.End.get -> string?
 Rask.Core.Forms.FieldShape.End.init -> void
 Rask.Core.Forms.FieldShape.Ends.get -> Rask.Core.Forms.FieldKind?
 Rask.Core.Forms.FieldShape.Ends.init -> void
 Rask.Core.Forms.FieldShape.Equals(Rask.Core.Forms.FieldShape? other) -> bool
-Rask.Core.Forms.FieldShape.FieldShape(Rask.Core.Forms.FieldKind Kind, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, int? Scale = null, bool NotAfterToday = false, bool Strict = false, string? Start = null, string? End = null, Rask.Core.Forms.FieldKind? Ends = null, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options = null) -> void
+Rask.Core.Forms.FieldShape.FieldShape(Rask.Core.Forms.FieldKind Kind, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, int? Scale = null, bool NotAfterToday = false, bool Strict = false, string? Start = null, string? End = null, Rask.Core.Forms.FieldKind? Ends = null, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options = null, bool NotAfterNow = false) -> void
 Rask.Core.Forms.FieldShape.Kind.get -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldShape.Kind.init -> void
 Rask.Core.Forms.FieldShape.Max.get -> decimal?
@@ -19932,6 +19933,8 @@ Rask.Core.Forms.FieldShape.Min.get -> decimal?
 Rask.Core.Forms.FieldShape.Min.init -> void
 Rask.Core.Forms.FieldShape.MinLength.get -> int?
 Rask.Core.Forms.FieldShape.MinLength.init -> void
+Rask.Core.Forms.FieldShape.NotAfterNow.get -> bool
+Rask.Core.Forms.FieldShape.NotAfterNow.init -> void
 Rask.Core.Forms.FieldShape.NotAfterToday.get -> bool
 Rask.Core.Forms.FieldShape.NotAfterToday.init -> void
 Rask.Core.Forms.FieldShape.Options.get -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>?
