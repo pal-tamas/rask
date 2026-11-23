@@ -886,9 +886,10 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 **Labels.** `Ui.Input`, `Ui.Textarea` and `Ui.Select` are Flux UI's: `Label` draws a label over the field,
 `Description` help text under the label, and each bound field shows its own validation message under the control.
-A bound kit control given no `Label` takes its member's `[Display(Name = …)]` — the one attribute Rask names a
-field by (`[DisplayName]` is read nowhere, [RASK131](diagnostics.md#rask131)) — so the label, the validation
-message's `{0}` and a `Ui.Filters` badge all say the same name; a `Label` you give, or a `Ui.Field` you compose around the control, wins:
+As in Flux, a control draws a label only when it is given one: a bare bound control is never labelled by its
+member. The member's `[Display(Name = …)]` — the one attribute Rask names a field by (`[DisplayName]` is read nowhere,
+[RASK131](diagnostics.md#rask131)), so the label, the validation message's `{0}` and a `Ui.Filters` badge all say the
+same name — labels it from a FIELD: a `Ui.Field` around the control with no `Ui.Label` of its own, or `Ui.Field.Bind`:
 
 ```csharp
 public sealed class SignUp
@@ -896,7 +897,16 @@ public sealed class SignUp
     [Display(Name = "Work email")] public string Email { get; set; } = "";
 }
 
-Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]   // <label>Work email</label> over the input
+Form.Model(_model)[Ui.Field[Ui.Input.Bind(() => _model.Email), Ui.Error]]   // <label>Work email</label> over the input
+Form.Model(_model)[Ui.Input.Bind(() => _model.Email)]                       // neither label nor message
+```
+
+A bare control draws no message either. In a table cell, whose column header names it, write the message beside
+it as Flux's `<flux:error name>` sits beside its input: `Ui.Error.For(…)` takes the id the control's
+`aria-describedby` names, and the control is `aria-invalid` while the member holds a message — each row its own:
+
+```csharp
+Ui.TableCell[Ui.Input.Bind(() => row.Size).Type(InputType.Number), Ui.Error.For(() => row.Size)]
 ```
 
 **The whole field from the member.** `Ui.Field.Bind(() => m.X)` picks the control as well: its label, help

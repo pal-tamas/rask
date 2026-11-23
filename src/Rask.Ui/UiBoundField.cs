@@ -73,7 +73,7 @@ public sealed partial class UiBoundField<T> : Component
     {
         var readOnly = UiBoundMember.IsReadOnly(Bind);
         return new UiBoundLook(
-            Label,
+            Label ?? DisplayNames.Of(Bind),
             Description ?? DisplayNames.DescriptionOf(Bind),
             Placeholder ?? DisplayNames.PromptOf(Bind),
             Badge,

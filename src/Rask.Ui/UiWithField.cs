@@ -17,16 +17,17 @@ namespace Rask;
 ///     return field.Wrap(input);
 ///     </code>
 ///     <para>
-///     With no label and no description <see cref="Wrap" /> hands the control back alone, and
-///     <see cref="Aria" /> then names the parts of the <see cref="UiField" /> the call site composed around it.
-///     A BOUND control with neither is still wrapped, in a field holding the control and its
-///     <see cref="UiError" />: a rule that fails has to say so somewhere, and a control inside a
-///     <c>Ui.Field</c> of the call site's own leaves that to the field.
+///     With no label and no description <see cref="Wrap" /> hands the control back alone — no label and no
+///     message, as Flux's control alone draws neither — and <see cref="Aria" /> then names the parts of the
+///     <see cref="UiField" /> the call site composed around it, or, with no field around it, the
+///     <c>Ui.Error.For(…)</c> written beside it for the same member (<see cref="UiBareControls" />): a table cell's
+///     <c>Ui.TableCell[Ui.Input.Bind(() =&gt; row.Size), Ui.Error.For(() =&gt; row.Size)]</c>.
 ///     </para>
 ///     <para>
-///     A bound control given no label is labelled by the member it is bound to, where that member's
-///     <c>[Display(Name = …)]</c> names it — the one name its validation messages read too — unless
-///     the call site composed a <c>Ui.Field</c> around it, which carries a label of its own.
+///     As in Flux, a control draws a label only when it is given one: a bound control is never labelled by its
+///     member on its own. The member's <c>[Display(Name = …)]</c> labels it from a field — a <c>Ui.Field</c> the
+///     call site composed around it with no <c>Ui.Label</c> (<see cref="UiFieldNaming" />), or
+///     <c>Ui.Field.Bind</c>.
 ///     </para>
 /// </remarks>
 internal sealed class UiWithField
@@ -41,15 +42,19 @@ internal sealed class UiWithField
     private readonly string? _badge;
     private readonly string? _error;
     private readonly bool _showValidation;
+    private readonly bool _bare;
 
     private UiWithField(IUiFieldControl control, Shorthand props)
     {
         (ControlId, _bound) = (control.ControlId, control.Bound);
-        _label = props.Label ?? (props.NamesBound && ComposedAround() is null ? DisplayNames.Of(_bound) : null);
+        _label = props.Label;
         (_description, _descriptionTrailing, _badge) = (props.Description, props.DescriptionTrailing, props.Badge);
         (_error, _showValidation) = (props.Error, props.ShowValidation);
         Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
         Required = Requires(control);
+
+        // Drawn with no field around it, a bound control's message is a Ui.Error.For(…) beside it, as Flux's error is.
+        _bare = _bound is not null && !Wraps && ComposedAround() is null && UiBareControls.Claim(_bound, ControlId);
         Aria = BuildAria();
     }
 
@@ -93,8 +98,7 @@ internal sealed class UiWithField
             control.Badge,
             null,
             control.Invalid == true,
-            saysMessages && control.ShowValidation != false,
-            NamesBound: true));
+            saysMessages && control.ShowValidation != false));
 
     /// <summary>The field for one control, from the shorthand props it was given.</summary>
     /// <param name="control">The control: its id and what it is bound to.</param>
@@ -104,10 +108,6 @@ internal sealed class UiWithField
     /// <param name="badge">Flux's <c>badge</c>, beside the label.</param>
     /// <param name="invalid">Flux's <c>invalid</c>, for a control with no binding to ask.</param>
     /// <param name="error">Flux's <c>error</c>: a message the call site states, for a control bound to nothing.</param>
-    /// <param name="namesBound">
-    ///     With no <paramref name="label" />, the bound member's <c>[Display]</c> name is the label:
-    ///     false for a part another control draws the field of.
-    /// </param>
     internal static UiWithField For(
         IUiFieldControl control,
         string? label = null,
@@ -115,9 +115,8 @@ internal sealed class UiWithField
         string? descriptionTrailing = null,
         string? badge = null,
         bool invalid = false,
-        string? error = null,
-        bool namesBound = false) =>
-        new(control, new Shorthand(label, description, descriptionTrailing, badge, error, invalid, true, namesBound));
+        string? error = null) =>
+        new(control, new Shorthand(label, description, descriptionTrailing, badge, error, invalid, true));
 
     /// <summary>The control inside its field, or alone when it was given nothing to draw one with.</summary>
     /// <param name="control">The control's own markup, carrying <see cref="ControlId" />.</param>
@@ -206,7 +205,7 @@ internal sealed class UiWithField
         var ownError = Wraps && _showValidation;
         string?[] describedBy =
         [
-            Invalid && (ownError || scope?.HasError == true) ? UiFieldId.Error(ControlId) : null,
+            Invalid && (ownError || scope?.HasError == true || _bare) ? UiFieldId.Error(ControlId) : null,
             _description is not null || scope?.HasDescription == true ? UiFieldId.Description(ControlId) : null,
             _descriptionTrailing is not null ? TrailingId : null,
         ];
@@ -238,6 +237,5 @@ internal sealed class UiWithField
         string? Badge,
         string? Error,
         bool Invalid,
-        bool ShowValidation,
-        bool NamesBound = false);
+        bool ShowValidation);
 }

@@ -1623,7 +1623,10 @@ around it — put the bound control in `Ui.Field[…]` with no `Ui.Label`: the f
 `[Display(Description)]` where the field holds no `Ui.Description`, wired by the field's ids (`label for`,
 `aria-describedby`). The label goes where the control's own goes: before it, or after a checkbox in an inline field. A
 placeholder is the control's own step. A field with a `Ui.Label` of its own, or with a control bound to nothing, is
-drawn exactly as written.
+drawn exactly as written. A bare bound control — no field, no `.Label(…)` — draws neither a label nor a message, as in
+Flux: that is the shape for a table cell, whose column header names it, with its message beside it —
+`Ui.TableCell[Ui.Input.Bind(() => row.Size), Ui.Error.For(() => row.Size)]`; the error takes the id the control's
+`aria-describedby` names, row by row.
 
 ```csharp
 Ui.Field.Bind(() => model.Name)                              // the field picks the control: [Display] label, description, placeholder
