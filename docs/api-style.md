@@ -211,6 +211,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Time | `Clock` (static) | `Now`, `Wall`, `Today`, `Zone`; `Clock.Fake(at:)` + `Advance` in tests |
 | Values for people | `Format` (static) | `Day`, `Moment`, `Number` — in the visitor's culture |
 | Text order | `TextOrder` (static) | `Current`, `In("hu")`; `c.OrderTextBy(collation)` in the model, `x.Name.InTextOrder()` in a query |
+| Named lock across hosts | `Db` (static) | `Lock(name)`; `.For(30.Seconds)` — no step waits as long as it takes |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Kept session answers | `Sessions` (static) / `ISessions` | `Forget(user)`, `Forget(userId)` |
 | Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |

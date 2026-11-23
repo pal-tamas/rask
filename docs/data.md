@@ -1109,12 +1109,13 @@ Some work must never run twice at once however many hosts the app runs on — ta
 month. `Db.Lock(name)` takes a lock the **database** keeps, held until you dispose it:
 
 ```csharp
-await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+await using var turn = await Db.Lock("pump:" + pumpId).For(2.Minutes);
 await pump.Talk();
 ```
 
-- **`wait`** is how long to wait for the current holder: omitted, as long as it takes; `TimeSpan.Zero`, not at all.
-  A wait that runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
+- **`.For(wait)`** is the most it waits for the current holder — a step at the end, as every timing in Rask is. With no
+  step, `await Db.Lock("pump:7")` waits as long as it takes; `.For(TimeSpan.Zero)` does not wait at all. A wait that
+  runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
   again". The call's cancellation token (or the work it runs in) cancels the wait.
 - **It is its own connection's**, kept open while the lock is held and never the one of a `Db.Transaction` in
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
