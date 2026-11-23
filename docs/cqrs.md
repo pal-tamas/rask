@@ -107,6 +107,13 @@ public sealed partial class OrdersPage : Component, IEventHandler<OrderPlaced>
 The same `Publish` reaches both, and so does a domain event an aggregate raises, after its commit. A component is
 never registered as a DI service. See [lifecycle](lifecycle.md#a-page-that-handles-an-event).
 
+**Whose scope each side runs in.** The event's service handlers — in memory and durable — are part of the
+publisher's work: a job that publishes inside `Tenant.Use(row.Tenant)` and as the user who enqueued it has its
+handlers run in that tenant, as that user. A page that hears it never is: its handler runs in the page's own
+session, with that session's tenant and user (`Tenant.Key`, `Current.UserId`, `Current.User`), whatever scope the
+publisher had open — and so does a subscriber's loop, in the flow that opened the subscription. Publishing from a job
+needs no `ExecutionContext.SuppressFlow()` around it.
+
 ### Durable handlers
 
 A handler that must not be lost implements `IDurableHandler<T>` instead. It is written to the

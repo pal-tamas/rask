@@ -386,8 +386,31 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     ///     Hands <paramref name="e" /> to <paramref name="listener" />, mounted in this session, as an event of the
     ///     session's own: in order behind what it is doing, under its lock, with the event's services, and rendered once.
     /// </summary>
-    internal void DeliverLiveEvent(Component listener, Func<object, object, Task> handle, object e) =>
-        EnqueueLiveEvent(() => RunAsEventAsync(() => listener.HandleLiveEvent(handle, e, EventServices)));
+    /// <remarks>
+    ///     Queued in the order published, and run in none of the publisher's flow: a job publishes from inside the
+    ///     tenant its row recorded (<c>Tenant.Use</c>) and as the user who enqueued it (<c>Current.UseUser</c>), and
+    ///     every <see cref="AsyncLocal{T}" /> it holds wins over what this session's own scope says. Inherited, a page of
+    ///     one tenant drew another tenant's rows. Started bare, the delivery sees what any work of the session's own
+    ///     sees: its scope (<see cref="EnterWorkScope" />), its user and the tenant they belong to.
+    /// </remarks>
+    internal void DeliverLiveEvent(Component listener, Func<object, object, Task> handle, object e)
+    {
+        if (ExecutionContext.IsFlowSuppressed())
+        {
+            EnqueueLiveEvent(() => Bare(listener, handle, e));
+            return;
+        }
+
+        using (ExecutionContext.SuppressFlow())
+        {
+            EnqueueLiveEvent(() => Bare(listener, handle, e));
+        }
+    }
+
+    // Never inline: the queue runs the work at once when nothing is ahead of it, which would be on the publisher's
+    // thread, with its flow. Started while the flow is suppressed, the task begins with none.
+    private Task Bare(Component listener, Func<object, object, Task> handle, object e) =>
+        Task.Run(() => RunAsEventAsync(() => listener.HandleLiveEvent(handle, e, EventServices)), CancellationToken.None);
 
     /// <summary>Queues work behind this session's earlier work, in order. A host with its own chain uses that.</summary>
     protected virtual void EnqueueLiveEvent(Func<Task> work)

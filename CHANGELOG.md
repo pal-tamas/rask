@@ -440,6 +440,14 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
+  `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
+  `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
+  while the page handled it: a Hunland user's pumps page, told of a Klapcsik pump, read Klapcsik's pumps. Apps worked
+  around it with `ExecutionContext.SuppressFlow()` + `Task.Run` around `Dispatcher.Publish`. After: each delivery is
+  queued in order and started in none of the publisher's flow (`LiveSessionBase.DeliverLiveEvent`), so it runs with
+  its session's scope, user and tenant; the event's own in-memory and durable handlers still run in the publisher's
+  work. Pinned by `PublishedEventScopeTests` (Rask.Server.Tests), for a page and for a subscriber.
 - **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
   load inside any transaction refused them, because events were once published before the commit. They are not —
   `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are
