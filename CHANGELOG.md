@@ -31,6 +31,13 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`UseRaskSqlServer` writes SQL for the compatibility level the server reports.** Before: EF Core assumed its own
+  default level whatever the server ran, so an app on SQL Server 2025 pinned 170 by hand (`UseCompatibilityLevel`, a
+  helper of its own) and one on Azure SQL Edge got SQL its 150 database may not run. After: the first options build
+  for a connection string reads the database's level (`sys.databases`, or the server version's — 17 → 170, 16 → 160,
+  15 → 150 — before the database exists) on one unpooled connection, and every later build is a lookup; an
+  unreachable server (an offline `dotnet ef`) keeps EF Core's default, warns once and is asked again after 30 s. The
+  new `SqlServerOptions.CompatibilityLevel` (`Rask:SqlServer:CompatibilityLevel`) pins a level and asks nothing.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

@@ -39,6 +39,12 @@ public static class RaskSqlServerDbContextOptionsExtensions
     /// a hand-written <c>BeginTransaction</c> in <c>context.Database.CreateExecutionStrategy().ExecuteAsync(...)</c>,
     /// or set <c>Retry.Enabled</c> to <c>false</c>. <c>SaveChanges</c> and Rask's own batteries need nothing.
     /// </para>
+    /// <para>
+    /// EF Core generates SQL for the database's compatibility level, read from the server the first time a connection
+    /// string is seen and kept for the process — <see cref="SqlServerOptions.CompatibilityLevel"/>
+    /// (<c>Rask:SqlServer:CompatibilityLevel</c>) pins it instead. A server that cannot be reached, as under an offline
+    /// <c>dotnet ef</c>, leaves EF Core's default and is asked again later.
+    /// </para>
     /// </remarks>
     public static DbContextOptionsBuilder UseRaskSqlServer(
         this DbContextOptionsBuilder optionsBuilder,
@@ -64,6 +70,10 @@ public static class RaskSqlServerDbContextOptionsExtensions
                 Microsoft.Extensions.Options.Options.DefaultName, typeof(SqlServerOptions), [$"Rask:SqlServer: {ex.Message}"]);
         }
 
+        // The level the SQL is written for: pinned by the options, or the server's own, read once per connection string.
+        var compatibilityLevel = options.CompatibilityLevel
+            ?? SqlServerCompatibilityLevels.From(services).For(connectionString, services);
+
         // Replaces any earlier call's extension, so the latest settings are the ones the interceptor reads.
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new RaskSqlServerOptionsExtension(options));
 
@@ -83,6 +93,11 @@ public static class RaskSqlServerDbContextOptionsExtensions
             if (options.SplitQueries)
             {
                 sqlServer.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            }
+
+            if (compatibilityLevel is { } level)
+            {
+                sqlServer.UseCompatibilityLevel(level);
             }
         });
 

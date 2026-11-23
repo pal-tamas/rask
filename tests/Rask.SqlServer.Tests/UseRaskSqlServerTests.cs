@@ -283,12 +283,6 @@ public sealed class UseRaskSqlServerTests
     private static IServiceProvider ServicesWith(Dictionary<string, string?> settings) =>
         new ConfigurationServices(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
 
-    // Just the configuration: that is all UseRaskSqlServer asks the provider for.
-    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
-    }
-
     private sealed class PlainContext(DbContextOptions<PlainContext> options) : DbContext(options);
 
     public sealed class WideKeyed
