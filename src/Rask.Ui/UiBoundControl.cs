@@ -22,9 +22,10 @@ internal static class UiBoundControl
             FieldKind.Id => throw UiBoundMember.NoChoices(bind),
             FieldKind.Choice => Chosen(bind, look, shape?.Options ?? OptionsOf(type)),
             FieldKind.Day => Day(bind, shape, look),
+            FieldKind.Moment => Moment(bind, shape, look),
             FieldKind.Number or FieldKind.Whole => Number(bind, shape!, look),
             _ when type == typeof(bool) => Checked(bind, look),
-            _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => Moment(bind, look),
+            _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => Moment(bind, shape, look),
             _ => Text(bind, look),
         };
     }
@@ -95,8 +96,10 @@ internal static class UiBoundControl
             .Disabled(look.Locked)
             .Live(look.Timing.Live);
 
-    private static UiDayAndTime<T> Moment<T>(Expression<Func<T>> bind, UiBoundLook look) =>
+    // Latest now where the shape says so: the wall clock as the field is drawn.
+    private static UiDayAndTime<T> Moment<T>(Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look) =>
         Ui.DayAndTime.Bind(bind)
+            .Max(shape?.NotAfterNow == true ? Clock.Wall : null)
             .Label(look.Label)
             .Description(look.Description)
             .Badge(look.Badge)
