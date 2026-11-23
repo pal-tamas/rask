@@ -82,10 +82,9 @@ public static class BulkInsertExtensions
                 "between batches, which would discard them. Call SaveChangesAsync (or ChangeTracker.Clear) first.");
         }
 
-        // Inside a transaction every batch's SaveChanges runs before the commit — and DomainEventInterceptor
-        // publishes in SavedChanges. A load that failed later would already have announced rows that rolled
-        // back, so refuse the combination rather than ship an event nobody can take back. The raw writer runs
-        // no interceptor at all, so there the events would simply never be delivered — refuse those too.
+        // Inside a transaction the load is one unit: its batches' events wait for the commit (DomainEventInterceptor),
+        // and a rollback gives them — and the keys the rows were given — back (AttemptUndo), so a retry inserts and
+        // announces each once.
         var enclosed = options.SingleTransaction
             || options.SkipChangeTracking
             || context.Database.CurrentTransaction is not null;
@@ -97,9 +96,10 @@ public static class BulkInsertExtensions
             ? entities.ToList()
             : entities;
 
-        if (enclosed)
+        // The raw writer runs no interceptor at all, so its rows' events would simply never be delivered.
+        if (options.SkipChangeTracking)
         {
-            GuardAgainstDomainEvents(source, options.SkipChangeTracking);
+            GuardAgainstDomainEvents(source);
         }
 
         if (!options.SingleTransaction)
@@ -167,6 +167,13 @@ public static class BulkInsertExtensions
 
             return written;
         }
+        catch when (transaction is not null)
+        {
+            // Rolled back out loud, not by disposing it uncommitted: the rolled-back notice is what gives the batches'
+            // events and keys back, so a retry of the load inserts and announces each row once.
+            await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
         finally
         {
             if (transaction is not null)
@@ -176,7 +183,7 @@ public static class BulkInsertExtensions
         }
     }
 
-    private static void GuardAgainstDomainEvents<TEntity>(IEnumerable<TEntity> entities, bool skipChangeTracking)
+    private static void GuardAgainstDomainEvents<TEntity>(IEnumerable<TEntity> entities)
         where TEntity : class
     {
         if (!typeof(IHasDomainEvents).IsAssignableFrom(typeof(TEntity)))
@@ -189,16 +196,10 @@ public static class BulkInsertExtensions
             return;
         }
 
-        throw new InvalidOperationException(skipChangeTracking
-            ? "BulkInsert cannot skip change tracking while the entities carry domain events: the raw " +
-              "writer runs no ISaveChangesInterceptor, so DomainEventInterceptor would never see them and the " +
-              "events would simply never be delivered. Drop SkipChangeTracking, clear the events, or use " +
-              "Rask.Outbox, whose messages are written in the same transaction and drained after it commits."
-            : "BulkInsert cannot run inside a transaction while the entities carry domain events: " +
-              "DomainEventInterceptor publishes in SavedChanges, which inside a transaction happens before " +
-              "the commit, so a later failure would leave events published for rows that rolled back. " +
-              "Either drop SingleTransaction (and any enclosing transaction), clear the events, or use " +
-              "Rask.Outbox, whose messages are written in the same transaction and drained after it commits.");
+        throw new InvalidOperationException(
+            "BulkInsert cannot skip change tracking while the entities carry domain events: the raw " +
+            "writer runs no ISaveChangesInterceptor, so DomainEventInterceptor would never see them and the " +
+            "events would simply never be delivered. Drop SkipChangeTracking or clear the events.");
     }
 
     private static Task<int> InsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(

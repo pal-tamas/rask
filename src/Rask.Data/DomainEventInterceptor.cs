@@ -37,6 +37,9 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
     // or when it is disposed uncommitted and collected.
     private readonly ConditionalWeakTable<DbTransaction, List<IEvent>> _awaitingCommit = new();
 
+    // The same saves, so a rollback gives each aggregate its events back and a retry saves (and stores) them again.
+    private readonly ConditionalWeakTable<DbTransaction, List<Pending>> _givenBackOnRollback = new();
+
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -93,6 +96,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             }
 
             pending.Entities.Add(entity);
+            pending.Raised.Add([.. entity.DomainEvents]);
             pending.Events.AddRange(entity.DomainEvents);
         }
 
@@ -116,6 +120,13 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         if (AmbientTransaction.Of(context) is { } ambient)
         {
             ambient.AfterCommit(() => PublishAsync(pending.Events, CancellationToken.None));
+
+            // A rolled-back attempt gives the events back to their aggregates, so a retry saves (and stores) them again.
+            ambient.OnRollback(() =>
+            {
+                pending.PutBack();
+                return Task.CompletedTask;
+            });
             return;
         }
 
@@ -123,6 +134,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         if (context.Database.CurrentTransaction?.GetDbTransaction() is { } transaction)
         {
             _awaitingCommit.GetValue(transaction, static _ => []).AddRange(pending.Events);
+            _givenBackOnRollback.GetValue(transaction, static _ => []).Add(pending);
             return;
         }
 
@@ -158,18 +170,32 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
 
     /// <inheritdoc/>
     void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
-        _awaitingCommit.Remove(transaction);
+        RolledBack(transaction);
 
     /// <inheritdoc/>
     Task IDbTransactionInterceptor.TransactionRolledBackAsync(
         DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
     {
-        _awaitingCommit.Remove(transaction);
+        RolledBack(transaction);
         return Task.CompletedTask;
+    }
+
+    private void RolledBack(DbTransaction transaction)
+    {
+        _awaitingCommit.Remove(transaction);
+        if (_givenBackOnRollback.TryGetValue(transaction, out var saves))
+        {
+            _givenBackOnRollback.Remove(transaction);
+            foreach (var pending in saves)
+            {
+                pending.PutBack();
+            }
+        }
     }
 
     private Task PublishCommittedAsync(DbTransaction transaction, CancellationToken cancellationToken)
     {
+        _givenBackOnRollback.Remove(transaction);
         if (!_awaitingCommit.TryGetValue(transaction, out var events))
         {
             return Task.CompletedTask;
@@ -196,11 +222,25 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
 
         public List<IEvent> Events { get; } = [];
 
+        // What each of Entities held, in the same order, so a rolled-back attempt can give each its own back.
+        public List<IEvent[]> Raised { get; } = [];
+
         public void Clear()
         {
             foreach (var entity in Entities)
             {
                 entity.ClearDomainEvents();
+            }
+        }
+
+        public void PutBack()
+        {
+            for (var i = 0; i < Entities.Count; i++)
+            {
+                if (Entities[i] is IAttemptState state)
+                {
+                    state.PutBack(Raised[i]);
+                }
             }
         }
     }

@@ -398,6 +398,27 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`BulkInsert` takes entities carrying domain events inside a transaction.** Before: `SingleTransaction` and a
+  load inside any transaction refused them, because events were once published before the commit. They are not —
+  `DomainEventInterceptor` waits for the commit — so the refusal only cost a two-pass load. After: the events are
+  published once the load commits and never on a rollback, and a rollback gives them (and a generated key) back, so a
+  retried `SingleTransaction` load inserts and announces each row once; `SingleTransaction` now rolls back explicitly
+  instead of disposing its transaction uncommitted. Only `SkipChangeTracking`, which runs no interceptor, still
+  refuses them.
+- **A `Db.Transaction` attempt that rolls back takes back what it did to the aggregates it saved.** Before: a save
+  inside the block cleared the aggregate's domain events, bumped its `Version` in memory, remembered it as saved and
+  marked it as having a row — before the commit — and none of that was undone when the attempt rolled back. An
+  aggregate loaded or made before the block was then saved wrongly by the retry (or by a second try in code): its
+  events never reached the outbox, the change was not written (the diff was empty), a later save failed with a
+  concurrency error, and a new one was "updated" instead of inserted, so its row was lost. After: the state is
+  captured as each save begins and put back on rollback — remembered read, `Version`, "has a row" mark, domain
+  events, and a database-generated key — so the retry saves it as if the failed attempt had never run.
+- **Migrate-on-start creates a database the server does not have yet, again.** Before (since the start's migrations
+  run on one connection with the session timeouts lifted): that connection was opened ahead of EF Core's `Migrate`,
+  so a fresh app on an empty SQL Server or PostgreSQL failed its start with "cannot open database" (4060) or `3D000`
+  instead of creating its database. After: the missing database is created first, then the connection opens; two
+  hosts starting together on an empty server both start (the one that loses the create waits for the other's
+  database), and the migrations stay under EF Core's migration lock. SQLite was never affected.
 - **BREAKING (Rask.Jobs): a new recurring schedule waits for its next occurrence.** Before: a schedule never run before
   fired on the first poll — a `.Monthly.On(1).At(6, 0)` close-the-books deployed on the 15th ran on the 15th, an
   `.Every(1.Hour)` job at every first boot. After: its `RecurringJobState` row starts at the occurrence just gone by, so

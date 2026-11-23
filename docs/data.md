@@ -1089,8 +1089,11 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   PostgreSQL refuses one with a serialization failure (40001). Both are transient, so with retrying on (the
   default for both providers) the loser runs again from the top and sees the winner's row; with retrying off
   it throws.
-- **On a retrying context the whole work may run again**, so keep side effects outside the database (a mail,
-  an HTTP call) out of it — or put them in a [durable handler](outbox.md).
+- **On a retrying context the whole work may run again**, so keep side effects outside the database (an HTTP
+  call, a cache write) out of it — or put them in a [durable handler](outbox.md). `Mail.Send` and `Jobs.Enqueue`
+  are rows, so they are written once. What an attempt that rolled back did to the aggregates it saved is taken
+  back — their remembered read, `Version`, domain events, and a key the database generated for a row that is gone —
+  so an aggregate loaded or made before the block is saved by the retry as if the failed attempt had never run.
 - **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
 - **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
@@ -2729,11 +2732,11 @@ When the load really must be all-or-nothing, ask for it:
 await db.BulkInsert(products, o => o.SingleTransaction = true);
 ```
 
-**Entities carrying domain events are rejected in that mode** — and inside an ambient transaction, for the
-same reason. `DomainEventInterceptor` publishes in `SavedChanges`, which inside a transaction runs *before*
-the commit, so a load that failed later would already have announced rows that no longer exist. Clear the
-events, drop the transaction, or use [`Rask.Outbox`](outbox.md): its messages are written in the same
-transaction and drained after it commits, which is exactly the durable-delivery shape this needs.
+**Domain events wait for the commit** — in that mode and inside any transaction around the load (yours, or a
+`Db.Transaction`): every batch's events are published once the whole load commits, and none when it rolls
+back. A rollback gives each entity its events back (and clears a key the database generated for a row that is
+gone), so a retrying strategy that runs the load again inserts and announces each row once. Durable handlers'
+[outbox](outbox.md) rows are written in the same transaction as the batches.
 
 ### The fast path
 

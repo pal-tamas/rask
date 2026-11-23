@@ -3161,7 +3161,6 @@ Rask.Core.Css.PrintColorAdjustKeywords.Exact.get -> Rask.Core.Css
 Rask.Core.Css.PrintColorAdjustKeywords.PrintColorAdjustKeywords() -> void
 Rask.Core.Css.QuotesKeywords
 Rask.Core.Css.QuotesKeywords.Auto.get -> Rask.Core.Css
-Rask.Core.Css.QuotesKeywords.BikeshedThis.get -> Rask.Core.Css
 Rask.Core.Css.QuotesKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.QuotesKeywords.QuotesKeywords() -> void
 Rask.Core.Css.ResizeKeywords
