@@ -27,7 +27,8 @@ public sealed partial class ModelInputGenerator
     private static string RuleMethod(string modelKey, string property) => "__Rule_" + modelKey + property;
 
     private static bool Awaits(Entity entity) =>
-        entity.AwaitingChildren.Count > 0 || RuledModels(entity).Any(static m => m.Rules.Any(static r => r.Kind == ValueRule.Async));
+        entity.AwaitingChildren.Count > 0 || AwaitsOwnRules(entity) ||
+        RuledModels(entity).Any(static m => m.Rules.Any(static r => r.Kind == ValueRule.Async));
 
     private static bool Validates(Entity entity) =>
         entity.ValidatingChildren.Count > 0 || OwnReach(entity).Checked;
@@ -38,8 +39,8 @@ public sealed partial class ModelInputGenerator
 
         return new RuleReach(
             rules.Count > 0 || CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable, ValueRule.Sync)) ||
-            entity.Children.Any(static c => c.ByParts),
-            rules.Exists(static r => r.Kind == ValueRule.Async));
+            entity.Children.Any(static c => c.ByParts) || entity.OwnRules is { Sync: true },
+            rules.Exists(static r => r.Kind == ValueRule.Async) || AwaitsOwnRules(entity));
     }
 
     // The root's value objects of several values: each is a nested model that is there or is not.
@@ -143,6 +144,7 @@ public sealed partial class ModelInputGenerator
         }
 
         AppendRuleMethods(s, entity);
+        AppendOwnMethods(s, entity);
 
         if (CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => HasNestedChecks(m.ValueObject!)))
         {
@@ -198,6 +200,12 @@ public sealed partial class ModelInputGenerator
                         .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).AppendLine(", model, path, failures);");
                 }
             }
+
+            AppendOwnCall(s, entity);
+        }
+        else
+        {
+            AppendOwnAwaitedCalls(s, entity);
         }
 
         s.AppendLine("        return failures;");
@@ -451,8 +459,10 @@ public sealed partial class ModelInputGenerator
             .Append("object? value, string name, string displayName, object model, string path, ").Append(FailureList)
             .AppendLine(" failures)");
         s.AppendLine("    {");
-        s.AppendLine("        // The trim-safe context: it names the field by its [Display] name without reflecting over the model.");
-        s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, displayName, null, null) { MemberName = name };");
+        s.AppendLine("        // The trim-safe context: it names the field by its [Display] name without reflecting over the model, and");
+        s.AppendLine("        // hands a rule the services of the work in progress, as the form does.");
+        s.Append("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, displayName, ").Append(AmbientServices)
+            .AppendLine(", null) { MemberName = name };");
         s.AppendLine("        return check.GetValidationResult(value, context) is { ErrorMessage: { } error }");
         s.Append("            ? ").Append(ModelRules).Append(".Told(failures, path, name, ")
             .Append(fromCatalog ? "global::Rask.Core.Forms.DataAnnotationsFieldValidator.Message(check, value, error)" : "error").AppendLine(")");

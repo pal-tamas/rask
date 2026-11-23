@@ -588,3 +588,5 @@ Rask.Data.CheckedProperty.Name.get -> string!
 Rask.Data.CheckedProperty.ValueOf.get -> System.Func<object?, object?>?
 Rask.Data.GeneratedDomainRules
 static Rask.Data.GeneratedDomainRules.Add<TEntity>(System.Collections.Generic.IReadOnlyList<Rask.Data.CheckedProperty!>! properties, System.Collections.Generic.IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationAttribute!>! typeChecks, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Data.Problem>!>? validate, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Data.Problem>!>? validateDelete, System.Func<System.ComponentModel.DataAnnotations.ValidationAttribute!, object?, string!, string!>? words) -> void
+static Rask.Data.GeneratedModelRules.Names(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>? failures, string! field) -> bool
+static Rask.Data.GeneratedModelRules.Said(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>? failures, string! path, System.ComponentModel.DataAnnotations.ValidationResult? result) -> System.Collections.Generic.IList<Rask.Wire.FieldFailure!>?

@@ -237,7 +237,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> AwaitingChildren = default,
         EquatableArray<string> CompositeChildren = default,
         EquatableArray<IdListShape> IdLists = default,
-        bool KeyedByParts = false)
+        bool KeyedByParts = false,
+        ModelOwnRules? OwnRules = null)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
@@ -324,7 +325,11 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool KeyPart = false,
         string? DeclaredOn = null,
         string? Named = null,
-        string? Shape = null);
+        string? Shape = null)
+    {
+        /// <summary>The awaited attributes (<c>AsyncValidationAttribute</c>), asked once the others let the value through.</summary>
+        public EquatableArray<string> AwaitedChecks { get; init; } = new([]);
+    }
 
     private sealed record Write(
         ModelWriteKind Kind,

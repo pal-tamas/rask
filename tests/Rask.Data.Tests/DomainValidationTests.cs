@@ -145,6 +145,48 @@ public sealed class DomainValidationTests : IDisposable
         Assert.Equal("That word is forbidden.", Assert.Single(refused.Errors["Name"]));
     }
 
+    [Fact]
+    public async Task Create_of_the_model_asks_the_models_own_Validate()
+    {
+        await using var database = await StartDatabaseAsync();
+        var model = new CharterModel { Name = "Beagle", Guests = 20 };
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => Charter.Create(model, cancellationToken: Token));
+
+        Assert.Equal("At most twelve guests.", Assert.Single(refused.Errors["Guests"]));
+    }
+
+    [Fact]
+    public async Task Create_of_the_model_awaits_an_async_attribute_and_a_save_does_too()
+    {
+        await using var database = await StartDatabaseAsync();
+        var taken = new CharterModel { Name = "Endeavour", Guests = 2 };
+        var free = new CharterModel { Name = "Beagle", Guests = 2 };
+        var built = false;
+
+        var fromModel = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Charter.Create(taken, apply: _ => built = true, cancellationToken: Token));
+        var fromSave = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Charter.Create(free, apply: c => c.Rename("Endeavour"), cancellationToken: Token));
+
+        Assert.False(built);
+        Assert.Equal("Name is taken.", Assert.Single(fromModel.Errors["Name"]));
+        Assert.Equal("Name is taken.", Assert.Single(fromSave.Errors["Name"]));
+    }
+
+    [Fact]
+    public async Task Create_of_the_model_hands_an_attribute_the_services_of_the_work_in_progress()
+    {
+        await using var database = await StartDatabaseAsync();
+        await using var services = new ServiceCollection().AddSingleton(new ForbiddenWords("Bilge")).BuildServiceProvider();
+        using var work = Ambient.Enter(services);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Mooring.Create(new MooringModel { Name = "Bilge" }, cancellationToken: Token));
+
+        Assert.Equal("That word is forbidden.", Assert.Single(refused.Errors["Name"]));
+    }
+
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
 }

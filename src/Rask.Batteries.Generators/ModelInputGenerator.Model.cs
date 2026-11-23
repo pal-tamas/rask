@@ -52,7 +52,10 @@ public sealed partial class ModelInputGenerator
                 : Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
         }
 
-        return Accepted(symbol, name, location, cancellationToken);
+        return Accepted(symbol, name, location, cancellationToken) with
+        {
+            OwnRules = OwnRulesOf(ctx.SemanticModel.Compilation, symbol),
+        };
     }
 
     // A row matched by its key's parts rather than an Id: the parts its holder does not give lead the model, each one
@@ -395,11 +398,15 @@ public sealed partial class ModelInputGenerator
                 ? WriteOf(property, kind, "__" + kind + index.ToString(CultureInfo.InvariantCulture) + "_" + property.Name, byRef: false)
                 : null,
             new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
-            new EquatableArray<string>(property.GetAttributes().Where(ValidationAttributeSource.IsValidation).Select(ValidationAttributeSource.Construction)),
+            new EquatableArray<string>(property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: ShapeOf(property.Type, valueObject));
+            Shape: ShapeOf(property.Type, valueObject))
+        {
+            AwaitedChecks = new EquatableArray<string>(
+                property.GetAttributes().Where(ValidationAttributeSource.IsAsync).Select(ValidationAttributeSource.Construction)),
+        };
     }
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
@@ -477,7 +484,7 @@ public sealed partial class ModelInputGenerator
                 m.Write is { } kind
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
                     : null,
-                new EquatableArray<string>(m.Property.GetAttributes().Where(ValidationAttributeSource.IsValidation).Select(ValidationAttributeSource.Construction)),
+                new EquatableArray<string>(m.Property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
                 ValidationAttributeSource.NameOf(m.Property),
                 ShapeOf(m.Property.Type, nested));
@@ -543,6 +550,10 @@ public sealed partial class ModelInputGenerator
 
         return ValidationAttributeSource.IsValidation(attribute);
     }
+
+    // What a write asks synchronously. An awaited attribute is never asked that way: .NET's own Validator awaits it.
+    private static bool IsSyncValidation(AttributeData attribute) =>
+        ValidationAttributeSource.IsValidation(attribute) && !ValidationAttributeSource.IsAsync(attribute);
 
     private static string RenderAttribute(AttributeData attribute)
     {
