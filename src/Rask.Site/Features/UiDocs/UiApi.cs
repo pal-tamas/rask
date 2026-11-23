@@ -419,6 +419,8 @@ internal static partial class UiApi
             new("Description", typeof(string), "Help text between the label and the pair."),
             new("DescriptionTrailing", typeof(string), "Help text under the pair."),
             new("Badge", typeof(string), "A word beside the label: \"Optional\"."),
+            new("Min", typeof(DateTime?), "The earliest moment: no day before it, and on its day no time before it."),
+            new("Max", typeof(DateTime?), "The latest moment: no day after it, and on its day no time after it."),
             new("Disabled", typeof(bool?), "Takes no input, the day nor the time."),
             new("Invalid", typeof(bool?), "Error styling the form did not ask for."),
             new("Locale", typeof(string), "The culture the day is typed and the time written in. The app's culture when unset."),
