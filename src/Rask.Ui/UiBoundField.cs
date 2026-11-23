@@ -65,8 +65,8 @@ public sealed partial class UiBoundField<T> : Component
     {
         var shape = RaskValidation.ShapeOf(ExpressionAccessor.Parse(Bind));
         return shape is { Kind: FieldKind.Range }
-            ? UiBoundRange.Draw(this, Bind, shape, Look(), Tune)
-            : UiBoundControl.Draw(Bind, shape, Look(), _choices, Tune);
+            ? UiBoundRange.Draw(this, Bind, shape, Look())
+            : UiBoundControl.Draw(Bind, shape, Look(), _choices);
     }
 
     private UiBoundLook Look()
@@ -83,7 +83,4 @@ public sealed partial class UiBoundField<T> : Component
             Multiline == true,
             new UiBoundTiming(Live, Blur, Debounce));
     }
-
-    // Every control drawn, tuned by the `.Control<T>(…)` step when there is one.
-    private void Tune(Component control) => _tune?.Invoke(control);
 }

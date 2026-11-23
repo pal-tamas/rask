@@ -1615,16 +1615,23 @@ over the `.Choices(…)` you give (the shapes `Ui.Select.Choices` takes — with
 range two controls of its ends' kind under one label, `Km.Start` and `Km.End` each with its own message.
 `[Editable(false)]` makes an input or textarea read-only and every other control disabled. The steps `Label`,
 `Description`, `Placeholder` and `Badge` win over the attributes, `Disabled`, `ShowValidation` and `Live` reach every
-control, `Blur` and `Debounce` the text ones, and `.Control<UiInput<string>>(c => c.Class("uppercase"))` tunes the
-control drawn (it throws, naming the control, when it is another). `Ui.Field[…]` with parts of your own is unchanged:
-the first step says which of the two the chain is.
+control, and `Blur` and `Debounce` the text ones. The first step says which of the two the chain is.
+
+To pick and tune the control yourself, as Flux does it — the binding and the tuning on the control, the field a frame
+around it — put the bound control in `Ui.Field[…]` with no `Ui.Label`: the field labels it from the member, with the same
+`[Display(Name)]`, the same *Required* badge the control's own label would carry (its `.Badge(…)` wins), and its
+`[Display(Description)]` where the field holds no `Ui.Description`, wired by the field's ids (`label for`,
+`aria-describedby`). The label goes where the control's own goes: before it, or after a checkbox in an inline field. A
+placeholder is the control's own step. A field with a `Ui.Label` of its own, or with a control bound to nothing, is
+drawn exactly as written.
 
 ```csharp
-Ui.Field.Bind(() => model.Name)                              // [Display] label, description, placeholder
+Ui.Field.Bind(() => model.Name)                              // the field picks the control: [Display] label, description, placeholder
 Ui.Field.Bind(() => model.Km)                                // a range: two controls, errors Km.Start / Km.End
 Ui.Field.Bind(() => model.Vehicle).Choices(Vehicle.Find)     // a typed id
 Ui.Field.Bind(() => model.Note).Multiline()                  // a textarea only when asked
-Ui.Field.Bind(() => model.Plate).Label("Rendszám").Control<UiInput<string>>(c => c.Class("uppercase"))
+Ui.Field[Ui.Input.Bind(() => model.Plate).InputClass("uppercase"), Ui.Error]   // you pick and tune it; the member labels it
+Ui.Field[Ui.Label["Rendszám"], Ui.Input.Bind(() => model.Plate), Ui.Error]     // fully by hand
 ```
 
 A control you give no `Id` takes one from the member it binds, else its label: `Ui.Input.Bind(() => m.Name)` is

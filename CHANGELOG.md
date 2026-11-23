@@ -38,8 +38,12 @@ them until tagged releases begin.
   `min`/`max`/`step`, a date picker ending today for `NotAfterToday`, `Ui.DayAndTime`, a checkbox, an enum select in
   declaration order, a range as two controls under one label with `X.Start`/`X.End` messages, and an id select over
   the `.Choices(…)` it must be given. `[Editable(false)]` makes an input read-only and any other control disabled;
-  `Label`/`Description`/`Placeholder`/`Badge` win over the attributes, `.Control<TControl>(…)` tunes the control drawn.
-  `Ui.Field[…]` is unchanged. The chain generator now lets a seedless container and a generic component joined by
+  `Label`/`Description`/`Placeholder`/`Badge` win over the attributes. To pick and tune the control yourself, bind it
+  inside `Ui.Field[…]`: a field holding a bound control and no `Ui.Label` is now labelled by the member —
+  `Ui.Field[Ui.Input.Bind(() => m.Plate).InputClass("uppercase")]` draws its `[Display(Name)]`, the same *Required*
+  badge, and its `[Display(Description)]` unless the field holds a `Ui.Description` (before the control; after a
+  checkbox, inline). Before: such a field drew no label at all. A field with a `Ui.Label` of its own, or an unbound
+  control, is unchanged. The chain generator now lets a seedless container and a generic component joined by
   `[RaskChainEntry]` share one entry: it hands back a seed carrying the container's steps, indexer and a conversion
   to it beside the other's openings, and the first step decides which the chain is (`docs/building-components.md`).
 - **Field shapes: a generated model tells every bound control what its field is (BREAKING:

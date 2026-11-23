@@ -31,26 +31,28 @@ internal static class UiBoundRange
         [typeof(DateTimeOffset?)] = Moment<DateTimeOffset?>,
     };
 
-    internal static Component Draw(Component owner, LambdaExpression bind, FieldShape shape, UiBoundLook look, Action<Component> tune)
+    internal static Component Draw(Component owner, LambdaExpression bind, FieldShape shape, UiBoundLook look)
     {
         var id = UiFieldId.Derive(owner, null, bind, look.Label);
         var ends = shape with { Kind = shape.Ends ?? FieldKind.Number };
-        var start = Control(new End(bind, EndOf(bind, shape.Start ?? throw UiBoundMember.NoEnds(bind)), id + "-start", ends, look), tune);
-        var end = Control(new End(bind, EndOf(bind, shape.End ?? throw UiBoundMember.NoEnds(bind)), id + "-end", ends, look), tune);
+        var start = Control(new End(bind, EndOf(bind, shape.Start ?? throw UiBoundMember.NoEnds(bind)), id + "-start", ends, look));
+        var end = Control(new End(bind, EndOf(bind, shape.End ?? throw UiBoundMember.NoEnds(bind)), id + "-end", ends, look));
 
         return UiWithField.For(new UiBoundRangeField(id + "-start", bind, look), saysMessages: false)
             .Wrap(Div.Class(Ends).Data("ui-field-range", "")[start, end]);
     }
 
-    private static Component Control(End end, Action<Component> tune)
+    private static UiField Control(End end)
     {
         var control = Controls.TryGetValue(end.Member.Type, out var draw)
             ? draw(end)
             : throw UiBoundMember.NoControlFor(end.Range, end.Member.Type);
-        tune(control);
 
         // Each end in a field of its own, so its message is said under it and its control is described by it.
-        return Ui.Field[control, end.Look.ShowValidation == false ? null : Ui.Error];
+        // The range's one label names the field; an end's own [Display] does not label it again.
+        var field = (UiField)Ui.Field[control, end.Look.ShowValidation == false ? null : Ui.Error];
+        field.NamesBound = false;
+        return field;
     }
 
     // The end's member on the range the field is bound to. Its Start and End stay in a trimmed app: the generated

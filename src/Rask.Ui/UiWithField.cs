@@ -49,7 +49,7 @@ internal sealed class UiWithField
         (_description, _descriptionTrailing, _badge) = (props.Description, props.DescriptionTrailing, props.Badge);
         (_error, _showValidation) = (props.Error, props.ShowValidation);
         Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
-        Required = control.TakesAriaRequired && UiRequired.Is(_bound);
+        Required = Requires(control);
         Aria = BuildAria();
     }
 
@@ -165,17 +165,28 @@ internal sealed class UiWithField
         return icon ? error : error.Icon(false);
     }
 
+    /// <summary>
+    ///     The badge beside the label of <paramref name="control" />'s field: its own <c>Badge</c>, else <em>Required</em>
+    ///     where its member must be filled — what the control's own label says, for a label its field draws.
+    /// </summary>
+    internal static string? BadgeOf(IUiFieldControl control) =>
+        Badged((control as IUiFormControl)?.Badge, Requires(control));
+
+    private string? Badge() => Badged(_badge, Required);
+
     // A field that must be filled says so beside its label, as Flux's badge does: the author's own badge wins, and an
     // empty one (`.Badge("")`) says nothing.
-    private string? Badge()
+    private static string? Badged(string? badge, bool required)
     {
-        if (_badge is not null)
+        if (badge is not null)
         {
-            return _badge.Length == 0 ? null : _badge;
+            return badge.Length == 0 ? null : badge;
         }
 
-        return Required ? RaskStrings.Get(RaskString.FieldRequired, "Required") : null;
+        return required ? RaskStrings.Get(RaskString.FieldRequired, "Required") : null;
     }
+
+    private static bool Requires(IUiFieldControl control) => control.TakesAriaRequired && UiRequired.Is(control.Bound);
 
     private Dictionary<string, string?> BuildAria()
     {

@@ -180,27 +180,6 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Control_tunes_the_control_drawn()
-    {
-        var leg = new Leg();
-
-        var page = Page.Render(() => Ui.Field.Bind(() => leg.Note).Control<UiInput<string?>>(c => c.InputClass("uppercase")));
-
-        Assert.Contains("uppercase", page.Find("input#f-note").Attribute("class"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Control_of_another_type_names_the_control_drawn()
-    {
-        var leg = new Leg();
-
-        var error = Assert.ThrowsAny<Exception>(() =>
-            Page.Render(() => Ui.Field.Bind(() => leg.Note).Control<UiTextarea<string?>>(c => c.Rows(3))));
-
-        Assert.Contains("UiInput<String>", Innermost(error).Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_member_not_to_be_edited_is_a_read_only_input_and_a_disabled_select()
     {
         var leg = new Leg();

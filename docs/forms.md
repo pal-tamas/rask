@@ -910,14 +910,19 @@ choice first for a nullable one), and a range two controls under one label, each
 Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
 `.Choices(Vehicle.Find)`; without them rendering throws and says so. `[Editable(false)]` makes a text or
 number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
-step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones;
-`.Control<UiInput<string>>(c => c.Clearable())` tunes the control drawn, and throws naming it when it is another.
+step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones.
+
+To choose the control and tune it, bind the control and put it in a `Ui.Field` with no `Ui.Label` of its own: the
+field labels it from the member — the same `[Display(Name)]`, the automatic *Required* badge, and the
+`[Display(Description)]` unless the field holds a `Ui.Description`. So there are three ways to write a field:
 
 ```csharp
-Ui.Field.Bind(() => _model.Email)                                    // label, email input, its message
+Ui.Field.Bind(() => _model.Email)                                    // the field picks the control: label, email input, message
 Ui.Field.Bind(() => _model.Km)                                       // a range: Km.Start and Km.End
 Ui.Field.Bind(() => _model.Vehicle).Choices(Vehicle.Find)            // a typed id
 Ui.Field.Bind(() => _model.Note).Multiline()
+Ui.Field[Ui.Input.Bind(() => _model.Plate).InputClass("uppercase"), Ui.Error]   // you pick and tune; the member labels it
+Ui.Field[Ui.Label["Plate"], Ui.Input.Bind(() => _model.Plate), Ui.Error]        // fully by hand, drawn as written
 ```
 
 <!-- demo:floating-labels -->
