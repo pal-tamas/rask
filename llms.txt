@@ -597,6 +597,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   note that AddRaskCqrsClient() installs its remote invokers into the PROCESS-WIDE CqrsRegistry the endpoint also dispatches through, so one process cannot host both halves.
   The wire codecs are source-generated Utf8JsonWriter/Utf8JsonReader code, not reflection, so remote dispatch publishes clean under the WASM/AOT trimmer;
   RASK053 reports a shape with no wire encoding and reaches no existing code, because codecs are generated only for a compilation referencing one of the two transport packages.
+  A contract may hold `record struct`s, value objects and typed ids: a one-value value object (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id (`readonly partial record struct VehicleId(int Value)`) travel as the BARE value (`"ABC-123"`, `42`, never `{"value":…}`), a `Range`/several-member value object or record struct as an object of its members;
+  the receiver rebuilds a value object through its generated `Create` UNCHECKED (the loading scope a row is read in), so a handler that relies on a rule asks it (`DriverName.Create(cmd.Driver.Value, "Driver")`); the generated API client does not unwrap (its server reads with System.Text.Json).
   `rask new --template wasm-hosted` scaffolds the whole arrangement in one project (its server's Program.cs is `RaskApp.Create(args).Serve();`): the message records live in `Shared/`, which both halves compile;
   the browser app in `Client/` registers `AddRaskCqrsClient()` in its own `Client/Program.cs`;
   and `RaskClientPackageReference` (a reference the browser app gets and the server does not) is what keeps the two transports apart.
@@ -959,6 +961,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   a courtesy — the save still decides;
   a hand-written model gets neither);
   A DELETE THE DATABASE REFUSES BECAUSE THE ROW IS STILL REFERENCED says a sentence declared once in that `Configure` — `.OnDelete(DeleteBehavior.Restrict, "…")` on the relationship, `b.WhenReferenced("…")` for every other reference (tables the model does not map included) — as a `RaskValidationException` with one failure and NO field, never a hand-written catch of `DbUpdateException` (a soft delete is never refused;
+  `ExecuteDelete` says the same sentence; SQLite, which names no constraint, is ASKED which relationship still holds a row, so it answers exactly as SQL Server/PostgreSQL do — tests on SQLite alone are enough;
+  a unique violation lands under the FORM's field: a complex member as `Km.Start`, an aggregate's child row as `Pistols[1].Number`, or the field `.IsUnique("…").Field("Plate")` names;
   an insert-side foreign-key failure is not translated) (part of the row) rather than owned entities (a joined table with hidden identity), nested ones included — but a value object CONTAINING another needs a parameterless ctor + settable (private) properties, because EF cannot bind a nested complex type to a constructor parameter (a positional record is fine when it holds only scalars).
   STRONGLY-TYPED IDS need nothing declared: `Aggregate<ProductId>` where ProductId is a user-defined single-value type gets a generated ValueConverter registered ONCE PER TYPE in ConfigureConventions, so the key, foreign keys and nullable occurrences are all converted;
   one the generator cannot convert is RASK073.

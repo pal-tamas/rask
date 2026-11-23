@@ -42,7 +42,7 @@ namespace Rask.Data;
 ///         names no field: it is about the delete, not about anything on a form.
 ///     </para>
 /// </remarks>
-public static class ViolationMessageBuilderExtensions
+public static partial class ViolationMessageBuilderExtensions
 {
     /// <summary>Makes the index unique, and says what a save that violates it fails with.</summary>
     /// <param name="index">The index.</param>
