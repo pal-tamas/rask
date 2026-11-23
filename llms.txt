@@ -890,6 +890,9 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   UnlessWaiting) and Mail.Send write their rows IN the transaction (gone on rollback);
   the cache does NOT take part;
   omitted, the write opens a context from Db, saves and disposes, and IS its own transaction.
+  **`Db.Lock(name, wait?)` IS A NAMED LOCK ACROSS HOSTS** (`await using var turn = await Db.Lock("pump-" + id, wait: 2.Minutes);`): held until disposed, on a connection of its own (never the Db.Transaction's, so it outlives a rollback);
+  wait omitted = forever, `TimeSpan.Zero` = no wait, ran out = `TimeoutException`;
+  SQL Server sp_getapplock (Session, ≤255 chars), PostgreSQL pg_advisory_lock(hashtext(name)) under lock_timeout, SQLite an in-process lock (one host); other providers NotSupportedException.
   A staged `Create` returns an entity not yet persisted (a Guid key is already set;
   a store-generated int key is 0 until the caller saves);
   the `Version` check still pins the original and is compared at the caller's save.
