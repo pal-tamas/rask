@@ -57,6 +57,15 @@ hidden, and a request that is not a page answers an RFC 9457 problem by default,
 message; the app gives its own exceptions a status with `server.Answer<T>(status)`. See
 [a refusal is shown](lifecycle.md#a-refusal-is-shown-refusedexception).
 
+## Rules live on the aggregate
+
+An assistant should not re-check a rule in a page or a handler before saving. A property's DataAnnotations attribute,
+the aggregate's `IValidatableObject`, its `Validate()` and its `ValidateDelete()` are asked by **every** save —
+`Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:` context — and a refusal reaches the form as a
+`RaskValidationException` with each message under its field. A stored row is asked only about the properties the
+save changes, so old data that a rule tightened since still saves for its other fields. See
+[what every save asks](data.md#what-every-save-asks).
+
 ## How to use it
 
 1. Scaffold: `rask new MyApp`.

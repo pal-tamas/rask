@@ -959,6 +959,9 @@ writes what changed since — it never reads the row again.
   `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
   silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
+- **The domain is asked first** — the changed properties' attributes, `Validate()`, `ValidateDelete()` — and a save
+  it refuses is a `RaskValidationException` with nothing written, stamped or versioned
+  ([what every save asks](#what-every-save-asks)).
 - **The interceptors run** as for any write: times stamped, `Version` bumped, tenant checked, domain events
   published after the commit.
 - **Nothing is held open.** `Find` takes no `db:` and returns the aggregate untracked, so it is safe to keep in a
@@ -977,6 +980,55 @@ writes what changed since — it never reads the row again.
   the aggregate through its own methods.
 
 `Order.Update(id, o => o.Ship("1Z999"))` does the same in one call when there is nothing to show in between.
+
+### What every save asks
+
+Every save — `Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:` context you save yourself — asks the
+domain before anything is written. A rule is written once, on the aggregate, and holds however the row is changed:
+
+```csharp
+public sealed class Voyage : Aggregate<Guid, Versioned, Deletable>
+{
+    private readonly List<Leg> _legs = [];
+
+    [Required, StringLength(80)] public string Title { get; private set; } = "";   // a DataAnnotations rule
+    public bool Sealed { get; private set; }
+    public IReadOnlyCollection<Leg> Legs => _legs;
+
+    public void Seal() => Sealed = true;
+
+    IEnumerable<Problem> Validate()                     // the aggregate's own rule, over its rows
+    {
+        if (Sealed && _legs.Count == 0) yield return Problem.At(Legs, "A sealed voyage needs a leg.");
+    }
+
+    async IAsyncEnumerable<Problem> ValidateDelete()    // asked by a delete, in its place
+    {
+        if (await Booking.Where(b => b.VoyageId == Id).Any()) yield return Problem.Whole("It has bookings.");
+    }
+}
+```
+
+For every row the save adds or changes, in this order:
+
+1. **The validation attributes of its properties** — every one on a new row, but on a stored row only the properties
+   this save changes. A row stored before a rule was tightened still opens, and still saves for another field; the
+   rule is asked again once that field is touched. A one-value value object is checked by the value it holds, as its
+   form field is.
+2. **Its type's attributes, and `IValidatableObject` / `IAsyncValidatableObject`** when it implements one.
+3. **Its `Validate()`** — the root's whenever anything in the aggregate changes, a removed row included, because a
+   rule over the rows is the root's.
+
+A deleted aggregate is asked its `ValidateDelete()` instead. Both are plain methods found by name: an instance method
+with no parameters returning `IEnumerable<Problem>`, or `IAsyncEnumerable<Problem>` when it reads something. Private
+is fine, and the aggregate needs no `partial`.
+
+What they refuse is ONE `RaskValidationException`, with every failure under the field the generated model names —
+`Title`, `Legs`, `Legs[2].Port` — and a built-in attribute worded exactly as `Create(model)` words it, so a form that
+lets the exception through shows each message under its field. It is asked first of every save step, so a refused
+save has been stamped and versioned by nothing: fix the value and `Save()` again. A rule resolves services from the
+request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
+runs no interceptor ([bulk insert](#bulk-insert)).
 
 ### Changing two aggregates together: `db:`
 
@@ -1625,13 +1677,18 @@ than the aggregate's own `Configure`, and one on a row inside an aggregate, are 
 asked beforehand.
 
 A `partial class ProductModel` of your own merges into the generated one, which is the way to add members,
-`IValidatableObject` or display helpers. The build says when it cannot generate: a **hand-written, non-`partial`
+`IValidatableObject` or display helpers. `Create(model)` and `Update(id, model)` run what the form runs: the fields'
+attributes — an `AsyncValidationAttribute` awaited once the field's other rules pass — then the model's own
+`IValidatableObject` (or `IAsyncValidatableObject`, in its place) and the validation attributes on your half of it,
+with the services of the work in progress in every `ValidationContext`. The build says when it cannot generate: a **hand-written, non-`partial`
 `ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and an aggregate **declared
 inside another class** is a warning and gets no model ([RASK083](diagnostics.md#rask083)).
 
-On the wire a model's properties are **camelCase**. Only validation attributes are copied from the aggregate, so a
-`[JsonPropertyName]` on the aggregate does not rename the model's property; a property you declare yourself on a
-`partial ProductModel` keeps its own pin.
+On the wire a model's properties are **camelCase**. Only DataAnnotations attributes are copied from the aggregate — the
+validation ones, those that describe a field (`[Display]`, `[DataType]`, `[Editable]`, `[DisplayFormat]`, `[UIHint]`…),
+and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[ConcurrencyCheck]`, a Schema attribute
+like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
+property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
 
 ## The current user — `Current`
 
@@ -2683,6 +2740,8 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 ## What the interceptors do
 
+- **`WritableChildrenInterceptor`** — first of all: hands a held collection EF Core can fill, and asks the domain's
+  rules of the save ([what every save asks](#what-every-save-asks)) before any other interceptor touches a row.
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each `Versioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
 - **`SoftDeleteInterceptor`** — for an aggregate that names `SoftDelete`, rewrites a `Deleted`

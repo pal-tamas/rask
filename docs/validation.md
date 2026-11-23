@@ -35,7 +35,8 @@ There are several places a rule can live. Pick by what the rule is about:
 
 | The rule | Write it as | Why there |
 | --- | --- | --- |
-| One field, always true — required, a length, a range, a pattern | An attribute on the aggregate's property: `[Required]`, `[StringLength(80)]` | The generated model copies it, so every form, the save and EF Core's column all read the same rule |
+| One field, always true — required, a length, a range, a pattern | An attribute on the aggregate's property: `[Required]`, `[StringLength(80)]` | The generated model copies it, so every form, `Create(model)`, every save of the aggregate and EF Core's column all read the same rule |
+| The aggregate as a whole — its rows together, a state it may not be saved in, whether it may be deleted | `Validate()` / `ValidateDelete()` on the aggregate | Every save asks it, however the row was changed ([data — what every save asks](data.md#what-every-save-asks)) |
 | No two rows alike, or a row still referenced | `HasIndex(…).IsUnique("…")`, `OnDelete(…, "…")`, `WhenReferenced("…")` in `Configure` | The database owns it; a form asks before the save, and a collision comes back as a field message ([data](data.md#what-a-unique-indexs-violation-says)) |
 | Several fields of one form together — two passwords match, an end after a start | `.Validate(…)` on the `Form` | Its message belongs to the form, not to one input ([forms](forms-validation.md#a-rule-across-fields)) |
 | Needs a service or I/O, on a dispatched command | An `IRequestValidator<T>` | Runs for every caller of the command, not only the form, and is async by construction ([below](#requests)) |
@@ -50,9 +51,11 @@ that input.
 | --- | --- | --- |
 | A `Form.Model(m)` | The inline `.Validate(…)` rules, then the model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
+| `Create(model)` / `Update(id, model)` | The model's attributes (async ones awaited), its own `IValidatableObject`, then the save's | [data](data.md#what-the-model-carries) |
+| Any save of an aggregate — `Save()`, `Update(id, apply)`, `Delete`, a `db:` context | The changed properties' attributes, `IValidatableObject`, `Validate()` — or `ValidateDelete()` for a delete | [data](data.md#what-every-save-asks) |
 | A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 
-All three share a rule written on the type: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
+The first three share a rule written on the type: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
 types, an `Order` command when it is dispatched, **and** an `Order` posted to `/api/orders`. Write the
 rules once.
 
