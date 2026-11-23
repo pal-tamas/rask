@@ -42,6 +42,12 @@ them until tagged releases begin.
   `InTextOrder()` now orders by the language's ICU collation (`COLLATE "hu-HU-x-icu"`); equality there stays
   case-sensitive (docs/data.md). A plain `UseSqlite` is unchanged. A collation whose language Rask cannot read is
   refused as the model is built, off SQL Server. Parity: `TextOrderParityTests` on SQL Server, PostgreSQL and SQLite.
+- **`Db.Lock(name, wait)`: one holder at a time, across every host of the app.** Before: a lock that must hold across
+  hosts (one host at a time talks to a pump) was hand-written `sp_getapplock` SQL on a connection the app kept open
+  itself, SQL Server only. After: `await using var turn = await Db.Lock("pump-" + id, wait: 2.Minutes);` takes it on a
+  connection of its own — `sp_getapplock` on SQL Server, `pg_advisory_lock` on PostgreSQL, an in-process lock on
+  single-host SQLite — and a wait that runs out throws a `TimeoutException` naming the lock. The jobs battery's key lock
+  now spells `sp_getapplock` through the same helper.
 - **`Ui.Field.Bind(() => m.X)`: the whole field drawn from a bound member.** Before: every field named its control,
   label and help text at the call site. After: the label, help text and placeholder are the member's
   `[Display(Name, Description, Prompt)]`, the badge the automatic *Required*, and the control what its field shape (else

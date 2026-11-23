@@ -252,6 +252,7 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
+static Rask.Data.Db.Lock(string! name, System.TimeSpan? wait = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
 static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!

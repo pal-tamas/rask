@@ -1103,6 +1103,28 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.
 
+### One holder at a time, across hosts: `Db.Lock`
+
+Some work must never run twice at once however many hosts the app runs on — talking to one pump, closing one
+month. `Db.Lock(name)` takes a lock the **database** keeps, held until you dispose it:
+
+```csharp
+await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+await pump.Talk();
+```
+
+- **`wait`** is how long to wait for the current holder: omitted, as long as it takes; `TimeSpan.Zero`, not at all.
+  A wait that runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
+  again". The call's cancellation token (or the work it runs in) cancels the wait.
+- **It is its own connection's**, kept open while the lock is held and never the one of a `Db.Transaction` in
+  progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
+  with its connection. Disposing twice lets go once.
+- **SQL Server** takes it with `sp_getapplock` (owned by the session, names up to 255 characters), released with
+  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtext(name))` — a 32-bit hash, so two names that hash
+  alike share one lock — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
+  connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
+  name. Any other provider throws `NotSupportedException`.
+
 ### Named sets: `db.Orders`
 
 Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:
