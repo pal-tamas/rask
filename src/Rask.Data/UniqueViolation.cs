@@ -28,6 +28,9 @@ internal static class UniqueViolation
     /// <summary>The index annotation <c>IsUnique("…")</c> writes.</summary>
     internal const string Annotation = "Rask:ViolationMessage";
 
+    /// <summary>The index annotation <c>Field("…")</c> writes.</summary>
+    internal const string FieldAnnotation = "Rask:ViolationField";
+
     private const string PostgresUniqueViolation = "23505";
     private const string SqlServerErrorNumber = "HelpLink.EvtID";
     private const string PostgresConstraintName = "ConstraintName";
@@ -43,7 +46,7 @@ internal static class UniqueViolation
     internal static RaskValidationException? Translate(DbContext? context, Exception? failure)
     {
         if (context is null ||
-            failure is not DbUpdateException { InnerException: DbException provider } ||
+            failure is not DbUpdateException { InnerException: DbException provider } update ||
             !IsUniqueViolation(provider))
         {
             return null;
@@ -55,8 +58,22 @@ internal static class UniqueViolation
             .ToList();
 
         return Violated(provider, candidates) is { } index
-            ? new RaskValidationException([FailureOf(index)], failure)
+            ? new RaskValidationException([FailureOf(index, RowsOf(context, update, index))], failure)
             : null;
+    }
+
+    // Where the rows the failed command wrote sit on their aggregate's form: "" for a root, "Pistols[2]." for a child.
+    // Only an added or changed row can collide; several of them, and the error does not say which, take one each.
+    private static List<string> RowsOf(DbContext context, DbUpdateException failure, IIndex index)
+    {
+        var rows = failure.Entries
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified &&
+                            index.DeclaringEntityType.IsAssignableFrom(entry.Metadata))
+            .Select(entry => RowPath.Of(context, entry))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return rows.Count == 0 ? [""] : rows;
     }
 
     private static bool IsUniqueViolation(DbException provider) =>
@@ -118,12 +135,39 @@ internal static class UniqueViolation
     }
 
     /// <summary>
-    ///     What the violation of <paramref name="index" /> says: its message, over every property the index names
-    ///     in index order — the tenant aside, which is never a field — and found by the index's name.
+    ///     What the violation of <paramref name="index" /> says: its message, over the field <c>Field("…")</c> named or
+    ///     else every property the index names in index order — the tenant aside, which is never a field — and found by
+    ///     the index's name.
     /// </summary>
-    internal static FieldFailure FailureOf(IReadOnlyIndex index) =>
-        new(
+    internal static FieldFailure FailureOf(IReadOnlyIndex index) => FailureOf(index, [""]);
+
+    /// <summary>The same, under each of <paramref name="rows" /> — what leads to the row on its form, or <c>""</c>.</summary>
+    internal static FieldFailure FailureOf(IReadOnlyIndex index, IReadOnlyList<string> rows)
+    {
+        var fields = FieldsOf(index);
+
+        return new(
             (string)index.FindAnnotation(Annotation)!.Value!,
-            [.. index.Properties.Select(static p => p.Name).Where(static name => !string.Equals(name, Columns.TenantId, StringComparison.Ordinal))],
+            [.. rows.SelectMany(row => fields.Select(field => row + field))],
             Source: index.GetDatabaseName());
+    }
+
+    private static List<string> FieldsOf(IReadOnlyIndex index) =>
+        index.FindAnnotation(FieldAnnotation)?.Value is string field
+            ? [field]
+            : [.. index.Properties
+                .Where(static p => p.DeclaringType is not IReadOnlyEntityType || !string.Equals(p.Name, Columns.TenantId, StringComparison.Ordinal))
+                .Select(PathOf)];
+
+    // A member of a complex property is the form's `Km.Start`, not its bare `Start`.
+    private static string PathOf(IReadOnlyPropertyBase property)
+    {
+        var path = new List<string> { property.Name };
+        for (var type = property.DeclaringType; type is IReadOnlyComplexType complex; type = complex.ComplexProperty.DeclaringType)
+        {
+            path.Insert(0, complex.ComplexProperty.Name);
+        }
+
+        return string.Join('.', path);
+    }
 }

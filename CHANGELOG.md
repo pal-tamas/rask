@@ -44,6 +44,28 @@ them until tagged releases begin.
   makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
   member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
   at `X.Create(…)`. Rask.Testing now references Rask.Data.
+- **A unique index's violation lands under the field the form shows.** Before: the failure named the index's bare
+  property names — `Start` for a member of a complex property, `Number` for a child row of an aggregate, which no
+  form field matched, so the message became a toast. After: a complex member is `Km.Start`, a child row is named by
+  its place in the aggregate's collection (`Pistols[1].Number`), as a form's list names its rows, and
+  `.IsUnique("…").Field("Plate")` names the field outright for an index over a normalised or computed column.
+- **A refused delete says the same sentence on SQLite as on SQL Server and PostgreSQL, and `ExecuteDelete` says it
+  too.** Before: SQLite names no constraint, so a delete onto an entity with two relationships with a sentence fell
+  back to `WhenReferenced`'s general one, and an `ExecuteDelete` the database refused threw the provider's raw
+  exception on every provider. After: on SQLite Rask asks — one statement, a cheap `EXISTS` per relationship, on the
+  same connection and transaction — which relationship still holds a row, and answers with that relationship's
+  sentence and constraint name; an `ExecuteDelete` is a `RaskValidationException` with the same sentence.
+- **A CQRS contract carries what the domain holds: record structs, value objects and typed ids.** Before: a
+  `record struct` member was RASK053 ("not supported as contract members yet"), and a value object declared from
+  `Text`/`Number`/`Whole`/`Day` had no wire encoding at all. After: a command, query, event or result crossing
+  between the browser and the server may hold a `record struct`; a one-value value object
+  (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id
+  (`record struct VehicleId(int Value)`, over a `Guid`, a `string`, …) travel as the bare value — `"ABC-123"`, `42`,
+  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. The receiving end
+  rebuilds a value object through its generated `Create` inside the loading scope a row is read in, so it is not
+  checked on arrival (a rule tightened on one end never makes the other unable to read); a handler that relies on
+  a rule asks it with `X.Create`. The generated API client is unchanged, since its server reads with
+  System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
