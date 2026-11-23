@@ -31,6 +31,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A unique index's violation lands under the field the form shows.** Before: the failure named the index's bare
+  property names — `Start` for a member of a complex property, `Number` for a child row of an aggregate, which no
+  form field matched, so the message became a toast. After: a complex member is `Km.Start`, a child row is named by
+  its place in the aggregate's collection (`Pistols[1].Number`), as a form's list names its rows, and
+  `.IsUnique("…").Field("Plate")` names the field outright for an index over a normalised or computed column.
+- **A refused delete says the same sentence on SQLite as on SQL Server and PostgreSQL, and `ExecuteDelete` says it
+  too.** Before: SQLite names no constraint, so a delete onto an entity with two relationships with a sentence fell
+  back to `WhenReferenced`'s general one, and an `ExecuteDelete` the database refused threw the provider's raw
+  exception on every provider. After: on SQLite Rask asks — one statement, a cheap `EXISTS` per relationship, on the
+  same connection and transaction — which relationship still holds a row, and answers with that relationship's
+  sentence and constraint name; an `ExecuteDelete` is a `RaskValidationException` with the same sentence.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

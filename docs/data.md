@@ -2176,6 +2176,24 @@ index names in index order — `TenantId` aside, which is never a field — and 
 |---|---|---|
 | `(Name, TenantId)` | one, over `Name` | `"Name"` |
 | `(Year, Number)` | one, over `Year` and `Number` | `"Year"` and `"Number"`, the same message under both |
+| `Km.Start`, a member of a complex property | one, over `Km.Start` | `"Km.Start"` |
+| `Number` on a child row of an aggregate | one, over that row: `Pistols[1].Number` | `"Pistols[1].Number"` |
+| `NormalizedPlate`, declared `.Field("Plate")` | one, over `Plate` | `"Plate"` |
+
+- **The field is the form's name for it.** A member of a complex property is named by its path (`Km.Start`, not
+  `Start`). A child row an aggregate holds is named by its place in the collection, as a form's list names its rows
+  (`Pistols[1].Number`) — so the message is shown under that row, not in a toast. When the error does not say which
+  of several new or changed rows collided, the message goes under each of them. A plain EF Core graph that no
+  aggregate holds keeps the bare property name.
+- **`Field("…")` says it outright**, for an index whose column is not what the form edits — a normalised copy, a
+  computed key — or one over several properties of which the form shows one:
+
+  ```csharp
+  builder.HasIndex(v => v.NormalizedPlate).IsUnique("A vehicle with this plate already exists.").Field("Plate");
+  ```
+
+  It replaces the index's properties as the field — a child row still carries its row — and the checks
+  [before a save](#when-the-index-may-not-be-there) name the same field.
 
 - **The message is a constant, and stays one.** It is shown to whoever sent the value, and nothing is appended
   to it — not the value, and not which row it collided with.
@@ -2265,7 +2283,8 @@ await Trailer.Delete(id);   // nothing else at the call site
 A delete the database refuses then fails as a `RaskValidationException` with ONE failure that names **no
 field** — it is about the delete, not about anything on a form — where the provider's `DbUpdateException`
 would have named tables and constraints. `Errors` holds the sentence under the empty key. Every delete through
-the context does this: `Trailer.Delete(id)` and plain `db.Remove(…)` + `SaveChangesAsync`.
+the context does this: `Trailer.Delete(id)`, plain `db.Remove(…)` + `SaveChangesAsync`, and
+`db.Set<Trailer>().Where(…).ExecuteDeleteAsync()`.
 
 Which sentence, in this order:
 
@@ -2273,9 +2292,17 @@ Which sentence, in this order:
 |---|---|
 | which constraint (PostgreSQL, SQL Server), and it is a relationship in the model | that relationship's sentence, else the entity's `WhenReferenced` |
 | which constraint, and the model does not know it — a table that is not mapped | the entity's `WhenReferenced` |
-| nothing (SQLite), and exactly one relationship onto the deleted entity has a sentence | that sentence |
-| nothing (SQLite), and no relationship has a sentence, or several do | the entity's `WhenReferenced` |
+| nothing (SQLite) — Rask asks which mapped relationship still holds a row, and one does | that relationship's sentence, else the entity's `WhenReferenced` |
+| nothing (SQLite), and no mapped relationship holds a row — a table that is not mapped | the entity's `WhenReferenced` |
 | anything, and no sentence fits | the provider's exception, untouched |
+
+- **SQLite answers as SQL Server and PostgreSQL do**, so an app whose tests run on SQLite alone sees the same
+  sentence and the same `Source` (the constraint's name). SQLite's `FOREIGN KEY constraint failed` names no
+  constraint, so after a refused delete Rask asks, on the same connection and in the same transaction, ONE
+  statement with a cheap `EXISTS` per relationship that can refuse (not `Cascade`, not `SetNull`) — those with a
+  sentence first — over the keys of the rows the delete was removing. Only a failed delete pays for it.
+- **An `ExecuteDelete` is answered the same way**, from the statement that failed: the table it deleted from, and
+  — on SQLite — its own `WHERE`, run again to select the keys it was deleting.
 
 - **Only a refused DELETE is translated.** A row inserted or updated with a key that points nowhere fails with
   the same provider code and keeps the provider's exception.
