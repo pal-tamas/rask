@@ -158,10 +158,10 @@ mistake, the rule notes the ID.
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
   See [forms §7](forms-advanced.md#nested--complex-models).
 - **Keep a field's simple rules in a value object.** Required, length and format belong to the value:
-  expose them as a `static IEnumerable<string> Validate(T value)` (the shape of an inline rule) and
-  name it from the field — `Input.Bind(() => _form.Price).Validate(Money.Validate)` — *and* enforce it
-  inside the aggregate. One source of truth. See
-  [rules in a value object](forms-validation.md#rules-in-a-value-object).
+  declare it from a base record — `public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 100);`
+  — and its constructor checks them, the aggregate makes it with `ProductName.Create(…)`, and a form bound to the
+  generated model asks the same rules with nothing written on the field. One source of truth. See
+  [declared from a base record](data.md#declared-from-a-base-record).
 
 ## Routing & lifecycle
 

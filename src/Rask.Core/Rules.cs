@@ -3,16 +3,12 @@ using Rask.Core.Globalization;
 namespace Rask;
 
 /// <summary>
-///     The sentences a form's own rules answer with, in the reader's language: what a value object's
-///     <c>Validate</c> or a control's <c>.Validate(…)</c> returns, so no two pages say the same thing differently.
+///     The sentences a form's own rules answer with, in the reader's language: what a control's <c>.Validate(…)</c>
+///     returns, so no two pages say the same thing differently.
 /// </summary>
 /// <remarks>
 ///     <code>
-///     public readonly record struct DriverName(string Value)
-///     {
-///         public static IEnumerable&lt;string&gt; Validate(string value) => Rules.Text(value, 100);
-///     }
-///
+///     Ui.Input.Bind(() => model.Driver).Validate(name => Rules.Text(name, 100))
 ///     Ui.Input.Bind(() => model.Note).Validate(note => Rules.Optional(note, 500))
 ///     </code>
 ///     <para>

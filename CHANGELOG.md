@@ -156,7 +156,8 @@ them until tagged releases begin.
   over every positional member), [RASK128](docs/diagnostics.md#rask128) (`Configure` disagrees with the declared
   length/precision), [RASK129](docs/diagnostics.md#rask129) (not `sealed partial`, quick-fix) and
   [RASK130](docs/diagnostics.md#rask130) (an aggregate stores a bare string, number, moment or Guid — a suggestion, a
-  warning under `<RaskStrict>`, never an error: `<RaskStrict>errors</RaskStrict>` keeps it out of TreatWarningsAsErrors). The `Validate` shape still works for now.
+  warning under `<RaskStrict>`, never an error: `<RaskStrict>errors</RaskStrict>` keeps it out of TreatWarningsAsErrors). The
+  older `Validate` shape is no longer read (see *Changed*).
 - **A paged `.Choices((typed, page) => …)` whose page says how many rows there are has the whole list's scrollbar
   (`Ui.ChoiceRows<T>`, owner 2026-11-20).** Before: the list was as long as the pages found so far — fifty rows' worth of
   scrollbar thumb that shrank and jumped with every page, a drag to the bottom stopping at row fifty. After:
@@ -979,6 +980,19 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **BREAKING: a value object's rule is its base record's; a `public static Validate` beside its value is no longer
+  asked.** Before: a one-value value object (`record struct DriverName(string Value)`) stated its rule as a
+  `public static IEnumerable<string> Validate(string value)` — or a `ValueTask`/`Task` of it — which a form over the
+  generated model and `Create(model)`/`Update(id, model)` found by its shape and asked, beside the base-record shape
+  that checks the rules in the constructor; a misshapen one was RASK102. After: only a value object declared from a
+  base record carries a rule — `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100);`,
+  `: Number(…)`, `: Whole(…)`, `: Day(…)`, or own words in `protected override IEnumerable<Problem> Rules()` beside
+  any of them — and the generated writes and field rules are synchronous throughout (`__ValidateAwaited` and
+  `__CollectAwaited` are gone, as is an awaited value-object rule: an awaited check belongs on the field,
+  `.Validate(async v => …)`, or in `IsUnique("…")`). A static `Validate` on a one-value value object an aggregate
+  holds is the new warning [RASK132](docs/diagnostics.md#rask132), at the method, naming the declaration that would
+  hold its rule — so an app upgrading is told of every rule that would otherwise go unasked. RASK102 is retired. A
+  hand-written form that names a static method on a field (`.Validate(DestinationName.Validate)`) is unchanged.
 - **BREAKING: a field is named by `[Display(Name = …)]` alone; `[DisplayName]` is read nowhere.** Before: a control's
   label, a filter chip, the `{0}` of a validation message, a FluentValidation message and a Rask.Data model's
   generated server checks read `System.ComponentModel.DisplayNameAttribute` where a member had no `[Display]` name —
