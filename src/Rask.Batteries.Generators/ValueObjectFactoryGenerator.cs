@@ -15,8 +15,8 @@ namespace Rask.Batteries.Generators;
 /// Writes the generated half of a value object declared from a Rask.Data base record —
 /// <c>public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);</c>: <c>Create</c>,
 /// <c>TryCreate</c> and <c>CreateOptional</c> over its primary constructor's parameters, and for one holding one value
-/// the <c>__Problems</c> a form and a generated write ask, plus the column facets (<c>__Facets</c>,
-/// <c>__MaxLength</c>) read from the arguments it hands its base.
+/// the <c>__Problems</c> a form and a generated write ask, plus the column facets (<c>__Facets</c>) and the field shape a
+/// bound control is told (<c>__Field</c>), read from the arguments it hands its base.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -111,6 +111,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             type.IsGenericType,
             ReadParameters(ctx.SemanticModel, node, token),
             ReadFacets(ctx.SemanticModel, node, token),
+            ReadShape(ctx.SemanticModel, node, token),
+            ctx.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Core.Forms.FieldShape") is not null,
             problem,
             SymbolLocation.From(type));
     }
@@ -271,6 +273,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         bool Generic,
         EquatableArray<Parameter> Parameters,
         ColumnFacets Facets,
+        ShapeFacets Shape,
+        bool HasFieldSeam,
         string? Problem,
         SymbolLocation? Location)
     {

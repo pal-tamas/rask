@@ -130,9 +130,23 @@ rules are the base's arguments, checked by its constructor, and the field runs i
 which makes the value through that constructor and answers without an exception. The messages (*Enter at most 1000
 characters.*, *Enter 1 or more.*, *Choose a date on or before …*) come from the strings catalog in the reader's
 language. A nullable one left blank says nothing. A `Range` or `Value` record is a nested model, and a refusal its
-`Create(…, "Km")` throws on submit is shown under the member it names (`Km.End`). A bound text input or textarea is also given the declared length as
-its `maxlength` (registered by the generated model through `RaskValidation.RegisterFieldLengths`), so the browser
-stops at 1000 characters instead of the save refusing the 1001st; a `.MaxLength(…)` written on the control wins.
+`Create(…, "Km")` throws on submit is shown under the member it names (`Km.End`). A range the aggregate always holds
+is on the model from the start (`= new()`), so `() => m.Km!.End` binds with no null in the path, and each end runs the
+range's own rule as it is committed — the end against the start beside it, strict or not, and both within `Min`/`Max`
+— by asking the generated `KmRange.TryCreate`, so the form says *It must be after the start, 10.* under `Km.End`
+before the save does.
+
+**Field shapes.** The generated model also tells every control bound to it what its field is — a
+`Rask.Core.Forms.FieldShape`, registered per model type through `RaskValidation.RegisterFieldShapes`: the kind
+(`FieldKind.Text`, `Number`, `Whole`, `Day`, `Range`, `Id`, `Choice`) and the rules the value object's base call
+states as constants (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`, `NotAfterToday`; a range's `Strict`, the
+names of its two ends and their kind). Each value object answers its own generated `X.__Field`; a member holding
+another aggregate's typed id is `FieldKind.Id`; an enum is `FieldKind.Choice` with its members and their labels
+(`[Display(Name = …)]`, else the member's name), written out at compile time so nothing reflects over the enum. A
+plain `string`, number, date or `bool` says what it is through its type and is not registered. A range's ends whose
+type is not a whole number, a number or a `DateOnly` — a `DateTime` moment — have `Ends = null`. A bound text input
+or textarea is given the declared lengths as its `maxlength` and `minlength`, so the browser stops at 1000
+characters instead of the save refusing the 1001st; a `.MaxLength(…)`/`.MinLength(…)` written on the control wins.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type

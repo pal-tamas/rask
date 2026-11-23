@@ -253,7 +253,8 @@ public sealed partial class ModelInputGenerator
                 s.Append("    ").AppendLine(attribute);
             }
 
-            s.Append("    public ").Append(member.ModelType).Append(' ').Append(member.Name).AppendLine(" { get; set; }");
+            s.Append("    public ").Append(member.ModelType).Append(' ').Append(member.Name).Append(" { get; set; }")
+                .AppendLine(HeldWhole(member) ? " = new();" : "");
             s.AppendLine();
         }
 
@@ -279,6 +280,11 @@ public sealed partial class ModelInputGenerator
             s.AppendLine();
         }
     }
+
+    // A value object of several values the aggregate is never without — a range, an address — is on the model from the
+    // start, empty, so a field binds `() => m.Km!.Start` with no null in the path; left empty, each member says so.
+    private static bool HeldWhole(Member member) =>
+        member is { Role: ModelMemberRole.Value, Nullable: false, ValueObject.SingleValue: false };
 
     // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
     // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
@@ -409,13 +415,7 @@ public sealed partial class ModelInputGenerator
         var modelType = FormModelType(entity);
         s.Append("    internal static void __Fill(").Append(modelType).Append(" model, ").Append(entityType).AppendLine(" entity)");
         s.AppendLine("    {");
-        foreach (var member in entity.Members)
-        {
-            var value = member.ValueObject is null
-                ? "entity." + member.Name
-                : ToModelExpression("entity." + member.Name, member.ValueObject, member.Nullable, modelType);
-            s.Append("        model.").Append(member.Name).Append(" = ").Append(value).AppendLine(";");
-        }
+        AppendMemberFill(s, entity, modelType);
 
         foreach (var child in entity.Children)
         {
@@ -461,6 +461,22 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("    }");
 
         s.AppendLine();
+    }
+
+    private static void AppendMemberFill(StringBuilder s, Entity entity, string modelType)
+    {
+        foreach (var member in entity.Members)
+        {
+            var value = member.ValueObject is null
+                ? "entity." + member.Name
+                : ToModelExpression("entity." + member.Name, member.ValueObject, member.Nullable, modelType);
+            if (HeldWhole(member) && !member.ValueObject!.IsValueType)
+            {
+                value += " ?? new " + modelType + "." + member.ValueObject.ModelName + "()";
+            }
+
+            s.Append("        model.").Append(member.Name).Append(" = ").Append(value).AppendLine(";");
+        }
     }
 
     // Each link's other part, in the order the aggregate holds them.

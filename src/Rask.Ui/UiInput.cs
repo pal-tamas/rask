@@ -180,6 +180,12 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <summary>The most characters that can be typed. The browser refuses the rest and says nothing.</summary>
     public int? MaxLength { get; set; }
 
+    /// <summary>
+    ///     The fewest characters it takes: the browser refuses a shorter value on submit. A bound field whose value object
+    ///     declares <c>MinLength</c> is given it without this.
+    /// </summary>
+    public int? MinLength { get; set; }
+
     /// <summary>Takes focus when the page arrives. One per page.</summary>
     public bool? Autofocus { get; set; }
 
@@ -311,6 +317,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .Max(Max)
             .Step(Step)
             .MaxLength(MaxLength)
+            .MinLength(MinLength)
             .Autofocus(Autofocus == true)
             .Disabled(Disabled == true)
             .ReadOnly(ReadOnly == true)

@@ -390,6 +390,8 @@ public sealed partial class ModelInputGenerator
             s.AppendLine();
         }
 
+        AppendRangeRuleMethods(s, entity);
+
         if (rules.Exists(static r => r.Rule.Required) ||
             HeldValueObjects(entity).Any(static m => RequiresHeld(m.ValueObject!, m.Nullable)))
         {

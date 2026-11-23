@@ -53,6 +53,9 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
     /// <inheritdoc cref="UiInput{T}.ReadOnly" />
     public bool? ReadOnly { get; set; }
 
+    /// <inheritdoc cref="UiInput{T}.MinLength" />
+    public int? MinLength { get; set; }
+
     /// <summary>Classes for the <c>&lt;textarea&gt;</c>.</summary>
     public string? Class { get; set; }
 
@@ -143,6 +146,7 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
             .OnInput(Writable(OnInput))
             .Placeholder(Placeholder)
             .Rows(rows.Count)
+            .MinLength(MinLength)
             .Disabled(Disabled == true)
             .ReadOnly(ReadOnly == true)
             .Aria(field.Aria)

@@ -64,6 +64,8 @@ public sealed partial class UiDayAndTime<T> : ICarriesHandSteps
             .Locale(Locale)
             .Live(Live)
             .Clearable(UiChoices.MayBeEmpty(parts.Day, typeof(DateOnly?)))
+            .Min(UiDayAndTimeValue.Day(Min))
+            .Max(UiDayAndTimeValue.Day(Max))
             .Disabled(locked)
             .Invalid(Invalid == true || IsInvalid(context, dayAt))
             .Class(Fill);
@@ -75,6 +77,8 @@ public sealed partial class UiDayAndTime<T> : ICarriesHandSteps
             .Id(timeId)
             .Locale(Locale)
             .Live(Live)
+            .Min(UiDayAndTimeValue.TimeOnBoundDay(day, Min))
+            .Max(UiDayAndTimeValue.TimeOnBoundDay(day, Max))
             .Disabled(locked || day is null)
             .Invalid(Invalid == true || IsInvalid(context, timeAt))
             .Class(Fill);

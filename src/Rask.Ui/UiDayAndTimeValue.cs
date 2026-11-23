@@ -64,6 +64,27 @@ internal static class UiDayAndTimeValue
         return Kept(whole, DateOnly.FromDateTime(whole).ToDateTime(time ?? TimeOnly.MinValue));
     }
 
+    /// <summary>
+    ///     The time of <paramref name="bound" /> when <paramref name="day" /> is its day — what the time picker may not go
+    ///     past on the first or the last day — and nothing on any other day.
+    /// </summary>
+    internal static TimeOnly? TimeOnBoundDay(DateOnly? day, DateTime? bound) =>
+        day is { } shown && Day(bound) == shown ? Time(bound) : null;
+
+    /// <summary>
+    ///     The moment kept between <paramref name="min" /> and <paramref name="max" />: a day picked onto the first day
+    ///     with an earlier time takes the earliest moment, and so for the last — the pickers refuse the rest themselves.
+    /// </summary>
+    internal static DateTime Within(DateTime moment, DateTime? min, DateTime? max)
+    {
+        if (min is { } earliest && moment < earliest)
+        {
+            return Kept(moment, earliest);
+        }
+
+        return max is { } latest && moment > latest ? Kept(moment, latest) : moment;
+    }
+
     // A moment the model held in UTC or local time stays so: only the day or the time changed.
     private static DateTime Kept(DateTime? was, DateTime now) => was is { } before ? DateTime.SpecifyKind(now, before.Kind) : now;
 }

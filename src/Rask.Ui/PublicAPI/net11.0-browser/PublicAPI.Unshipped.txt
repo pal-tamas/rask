@@ -9303,3 +9303,15 @@ Rask.Ui.ChoiceRows<T>.Total.get -> int
 Rask.UiEditorSchema
 static Rask.UiEditorSchema.Allow(string! tag, params string![]! attributes) -> void
 static Rask.UiEditorSchema.Allow(string! tag, string! attribute, System.Func<string!, bool>! accepts) -> void
+Rask.UiDayAndTime<T>.Max.get -> System.DateTime?
+Rask.UiDayAndTime<T>.Max.set -> void
+Rask.UiDayAndTime<T>.Min.get -> System.DateTime?
+Rask.UiDayAndTime<T>.Min.set -> void
+Rask.UiInput<T>.MinLength.get -> int?
+Rask.UiInput<T>.MinLength.set -> void
+Rask.UiTextarea<T>.MinLength.get -> int?
+Rask.UiTextarea<T>.MinLength.set -> void
+static RaskBuilderSettersRask_Ui.Max<T>(this Rask.UiDayAndTime<T>! __b, System.DateTime? value) -> Rask.UiDayAndTime<T>!
+static RaskBuilderSettersRask_Ui.Min<T>(this Rask.UiDayAndTime<T>! __b, System.DateTime? value) -> Rask.UiDayAndTime<T>!
+static RaskBuilderSettersRask_Ui.MinLength<T>(this Rask.UiInput<T>! __b, int? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.MinLength<T>(this Rask.UiTextarea<T>! __b, int? value) -> Rask.UiTextarea<T>!

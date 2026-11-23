@@ -26,7 +26,7 @@ public sealed partial class ModelInputGenerator
     /// </summary>
     private readonly record struct Seams(
         bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields, bool OptionalFields, bool DuplicateRowSentence,
-        bool CheckSentences, bool FieldLengths);
+        bool CheckSentences, bool FieldShapes);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -45,7 +45,7 @@ public sealed partial class ModelInputGenerator
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationDuplicateRow").Length > 0,
                 compilation.GetTypeByMetadataName("Rask.Core.Forms.DataAnnotationsFieldValidator")?.GetMembers("Message").Length > 0,
-                validation?.GetMembers("RegisterFieldLengths").Length > 0);
+                validation?.GetMembers("RegisterFieldShapes").Length > 0);
         });
 
     /// <summary>How a one-value value object states its rule, when it does.</summary>
@@ -238,7 +238,8 @@ public sealed partial class ModelInputGenerator
         var models = entity.AnnouncesFieldRules ? RuledModels(entity).ToList() : [];
         var store = AsksTheStore(entity);
         var optional = entity.AnnouncesOptionalFields ? OptionalSlots(entity).ToList() : [];
-        if (models.Count == 0 && !store && optional.Count == 0)
+        var shaped = entity.AnnouncesFieldShapes ? ShapedModels(entity).ToList() : [];
+        if (models.Count == 0 && !store && optional.Count == 0 && shaped.Count == 0)
         {
             return;
         }
@@ -253,39 +254,16 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("    {");
         AppendRegistrations(s, entity, models, store);
         AppendOptionalRegistrations(s, optional);
+        AppendShapeRegistrations(s, shaped);
         s.AppendLine("    }");
         AppendOptionalSlots(s, optional);
 
         foreach (var model in models)
         {
-            s.AppendLine();
-            foreach (var rule in model.Rules)
-            {
-                AppendRule(s, entity, model.Key, rule);
-            }
-
-            s.AppendLine();
-            s.Append("    private static global::System.Delegate? ").Append(model.Key).AppendLine("RuleOf(string property) =>");
-            s.AppendLine("        property switch");
-            s.AppendLine("        {");
-            foreach (var property in model.Rules.Select(static rule => rule.Property))
-            {
-                s.Append("            \"").Append(property).Append("\" => ").Append(model.Key).Append(property).AppendLine(",");
-            }
-
-            s.AppendLine("            _ => null,");
-            s.AppendLine("        };");
-
-            if (AnnouncesRequired(entity, model))
-            {
-                AppendIsRequired(s, model);
-            }
-
-            if (AnnouncesLengths(entity, model))
-            {
-                AppendMaxLengthOf(s, model);
-            }
+            AppendModelRules(s, entity, model);
         }
+
+        AppendShapes(s, shaped);
 
         if (store)
         {
@@ -293,6 +271,39 @@ public sealed partial class ModelInputGenerator
         }
 
         s.AppendLine("}");
+    }
+
+    // The kept delegates of one model, the switch that hands them back, and what it says is required.
+    private static void AppendModelRules(StringBuilder s, Entity entity, RuledModel model)
+    {
+        s.AppendLine();
+        foreach (var rule in model.Rules.Where(rule => !model.Beside.Exists(b => string.Equals(b.Property, rule.Property, System.StringComparison.Ordinal))))
+        {
+            AppendRule(s, entity, model.Key, rule);
+        }
+
+        foreach (var beside in model.Beside)
+        {
+            AppendBesideRule(s, entity, model.Key, beside);
+        }
+
+        s.AppendLine();
+        s.Append("    private static global::System.Delegate? ").Append(model.Key).AppendLine("RuleOf(string property) =>");
+        s.AppendLine("        property switch");
+        s.AppendLine("        {");
+        foreach (var property in model.Rules.Select(static rule => rule.Property)
+                     .Concat(model.Beside.Select(static beside => beside.Property)).Distinct(System.StringComparer.Ordinal))
+        {
+            s.Append("            \"").Append(property).Append("\" => ").Append(model.Key).Append(property).AppendLine(",");
+        }
+
+        s.AppendLine("            _ => null,");
+        s.AppendLine("        };");
+
+        if (AnnouncesRequired(entity, model))
+        {
+            AppendIsRequired(s, model);
+        }
     }
 
     // One registration per generated model type: a form asks by the exact type its field belongs to.
@@ -307,12 +318,6 @@ public sealed partial class ModelInputGenerator
                 s.Append("        ").Append(RaskValidation).Append(".RegisterRequiredFields(typeof(").Append(model.Type)
                     .Append("), ").Append(model.Key).AppendLine("IsRequired);");
             }
-
-            if (AnnouncesLengths(entity, model))
-            {
-                s.Append("        ").Append(RaskValidation).Append(".RegisterFieldLengths(typeof(").Append(model.Type)
-                    .Append("), ").Append(model.Key).AppendLine("MaxLengthOf);");
-            }
         }
 
         if (store)
@@ -320,28 +325,6 @@ public sealed partial class ModelInputGenerator
             s.Append("        ").Append(RaskValidation).Append(".RegisterStoreRules(typeof(").Append(FormModelType(entity))
                 .AppendLine("), StoreRules);");
         }
-    }
-
-    // A text value object declared from a base record knows its most characters; a bound input is told them.
-    private static bool AnnouncesLengths(Entity entity, RuledModel model) =>
-        entity.AnnouncesFieldLengths && model.Rules.Exists(HasLength);
-
-    private static bool HasLength(FieldRule rule) =>
-        rule.FromBase && string.Equals(rule.ModelType, "string?", System.StringComparison.Ordinal);
-
-    private static void AppendMaxLengthOf(StringBuilder s, RuledModel model)
-    {
-        s.AppendLine();
-        s.Append("    private static int? ").Append(model.Key).AppendLine("MaxLengthOf(string property) =>");
-        s.AppendLine("        property switch");
-        s.AppendLine("        {");
-        foreach (var rule in model.Rules.Where(HasLength))
-        {
-            s.Append("            \"").Append(rule.Property).Append("\" => ").Append(rule.ValueObject).AppendLine(".__MaxLength,");
-        }
-
-        s.AppendLine("            _ => null,");
-        s.AppendLine("        };");
     }
 
     private static bool AnnouncesRequired(Entity entity, RuledModel model) =>
@@ -450,7 +433,7 @@ public sealed partial class ModelInputGenerator
 
         if (root.Count > 0)
         {
-            yield return new RuledModel(FormModelType(entity), "Root_", root);
+            yield return new RuledModel(FormModelType(entity), "Root_", root, []);
         }
 
         foreach (var nested in entity.ValueObjects.Where(static v => !v.SingleValue))
@@ -463,14 +446,15 @@ public sealed partial class ModelInputGenerator
                     m.ValueObject.Build == ModelValueObjectBuild.Factory))
                 .ToList();
 
-            if (rules.Count > 0)
+            var beside = RangeEnds(nested).ToList();
+            if (rules.Count > 0 || beside.Count > 0)
             {
-                yield return new RuledModel(FormModelType(entity) + "." + nested.ModelName, nested.ModelName + "_", rules);
+                yield return new RuledModel(FormModelType(entity) + "." + nested.ModelName, nested.ModelName + "_", rules, beside);
             }
         }
     }
 
-    private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules);
+    private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules, List<RangeEnd> Beside);
 
     /// <summary>
     ///     One field's rule: its value object's <c>Validate</c> — or, for one declared from a base record

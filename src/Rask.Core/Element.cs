@@ -423,16 +423,22 @@ public abstract partial class Element : Component
         }
     }
 
-    // A bound text control is given the most characters its field may hold (RaskValidation.RegisterFieldLengths), as
-    // its maxlength — unless the author set one. Returns what the control's MaxLength is to be; `said` remembers that
-    // the value is the framework's, so it is taken off again once the field has no length any more.
-    private protected static int? SaidMaxLength(Forms.ExpressionAccessor.Accessor bound, int? current, bool applies, ref bool said)
+    // A bound text control is given the most and the fewest characters its field may hold (RaskValidation.
+    // RegisterFieldShapes), as its maxlength and minlength — unless the author set them. Each returns what the
+    // control's attribute is to be; `said` remembers that the value is the framework's, so it is taken off again once
+    // the field has no such length any more.
+    private protected static int? SaidMaxLength(Forms.ExpressionAccessor.Accessor bound, int? current, bool applies, ref bool said) =>
+        SaidLength(applies ? Forms.RaskValidation.MaxLengthOf(bound) : null, current, ref said);
+
+    private protected static int? SaidMinLength(Forms.ExpressionAccessor.Accessor bound, int? current, bool applies, ref bool said) =>
+        SaidLength(applies ? Forms.RaskValidation.MinLengthOf(bound) : null, current, ref said);
+
+    private static int? SaidLength(int? length, int? current, ref bool said)
     {
-        var length = applies ? Forms.RaskValidation.MaxLengthOf(bound) : null;
-        if (length is { } most && (current is null || said))
+        if (length is { } given && (current is null || said))
         {
             said = true;
-            return most;
+            return given;
         }
 
         if (length is null && said)

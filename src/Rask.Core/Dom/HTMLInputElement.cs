@@ -149,9 +149,10 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidInvalid;
     private bool _saidRequired;
     private bool _saidMaxLength;
+    private bool _saidMinLength;
 
-    // The input types the HTML spec gives maxlength to: the text-like ones (no type at all is text).
-    private static bool TakesMaxLength(string? type) =>
+    // The input types the HTML spec gives maxlength and minlength to: the text-like ones (no type at all is text).
+    private static bool TakesLength(string? type) =>
         type is null or "text" or "search" or "url" or "tel" or "email" or "password";
 
     /// <summary>
@@ -191,7 +192,9 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
         if (acc is not null)
         {
-            MaxLength = SaidMaxLength(acc, MaxLength, TakesMaxLength(resolvedType), ref _saidMaxLength);
+            var takesLength = TakesLength(resolvedType);
+            MaxLength = SaidMaxLength(acc, MaxLength, takesLength, ref _saidMaxLength);
+            MinLength = SaidMinLength(acc, MinLength, takesLength, ref _saidMinLength);
         }
 
         base.WriteAttributes(sb);

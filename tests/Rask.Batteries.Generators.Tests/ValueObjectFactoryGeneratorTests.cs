@@ -105,24 +105,16 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Theory]
-    [InlineData("DriverName", "__Facets => new(MaxLength: 1000);", "__MaxLength => 1000;")]
-    [InlineData("ChipCode", "__Facets => new(MaxLength: 1000);", "__MaxLength => 1000;")]
-    [InlineData("Litres", "__Facets => new(Scale: 2);", null)]
-    public void The_column_facets_are_read_from_the_base_arguments_constants_included(string name, string facets, string? maxLength)
+    [InlineData("DriverName", "__Facets => new(MaxLength: 1000);")]
+    [InlineData("ChipCode", "__Facets => new(MaxLength: 1000);")]
+    [InlineData("Litres", "__Facets => new(Scale: 2);")]
+    public void The_column_facets_are_read_from_the_base_arguments_constants_included(string name, string facets)
     {
         var run = Run(ValueObjects);
 
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Contains(facets, generated, StringComparison.Ordinal);
-        if (maxLength is null)
-        {
-            Assert.DoesNotContain("__MaxLength", generated, StringComparison.Ordinal);
-        }
-        else
-        {
-            Assert.Contains(maxLength, generated, StringComparison.Ordinal);
-        }
     }
 
     [Fact]

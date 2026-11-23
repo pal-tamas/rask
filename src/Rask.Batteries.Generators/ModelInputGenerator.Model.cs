@@ -398,7 +398,8 @@ public sealed partial class ModelInputGenerator
             new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
-            Named: NamedOf(property));
+            Named: NamedOf(property),
+            Shape: ShapeOf(property.Type, valueObject));
     }
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
@@ -478,7 +479,8 @@ public sealed partial class ModelInputGenerator
                     : null,
                 new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
-                NamedOf(m.Property));
+                NamedOf(m.Property),
+                ShapeOf(m.Property.Type, nested));
         }).ToList();
 
         var shape = new ValueObjectShape(
@@ -495,7 +497,8 @@ public sealed partial class ModelInputGenerator
             new EquatableArray<ValueObjectMember>(members),
             RuleOf(valueObject),
             new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)),
-            Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null);
+            Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null,
+            ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type));
 
         converted[valueObject] = shape;
         return shape;
@@ -575,7 +578,7 @@ public sealed partial class ModelInputGenerator
 
     // What a failed check calls the field, as C# the server runs: [Display]'s name — through its resources, at run time,
     // where it names a ResourceType — else the member's own.
-    private static string NamedOf(IPropertySymbol property)
+    private static string NamedOf(ISymbol property)
     {
         var attributes = property.GetAttributes();
         var fallback = Quoted(property.Name);

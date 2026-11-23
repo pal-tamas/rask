@@ -76,6 +76,15 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
     /// <inheritdoc cref="IUiFormControl.Invalid" />
     public bool? Invalid { get; set; }
 
+    /// <summary>
+    ///     The earliest moment it takes: no day before its day, and on that day no time before its time. A day picked
+    ///     onto that day keeps its time only when it is not earlier, else it takes this one.
+    /// </summary>
+    public DateTime? Min { get; set; }
+
+    /// <summary>The latest moment it takes, as <see cref="Min" /> the earliest.</summary>
+    public DateTime? Max { get; set; }
+
     /// <summary>The culture the day is typed and the time written in. The current culture unless set.</summary>
     public string? Locale { get; set; }
 
@@ -142,6 +151,8 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
             .Id(field.ControlId)
             .Locale(Locale)
             .Clearable(UiDayAndTimeValue.MayBeEmpty<T>(Bind))
+            .Min(UiDayAndTimeValue.Day(Min))
+            .Max(UiDayAndTimeValue.Day(Max))
             .Disabled(locked)
             .Invalid(field.Invalid)
             .Class(DayWidth);
@@ -152,6 +163,8 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
             .Key("time")
             .Id(field.ControlId + "-time")
             .Locale(Locale)
+            .Min(UiDayAndTimeValue.TimeOnBoundDay(UiDayAndTimeValue.Day(moment), Min))
+            .Max(UiDayAndTimeValue.TimeOnBoundDay(UiDayAndTimeValue.Day(moment), Max))
             .Disabled(locked || moment is null)
             .Invalid(field.Invalid)
             .Class(TimeWidth(Culture));
@@ -173,7 +186,7 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
     {
         if (UiDayAndTimeValue.OnDay(Now(), day == default ? null : day) is { } moment)
         {
-            return UiFormCommit.CommitAsync(this, _accessor, _context, UiDayAndTimeValue.As<T>(moment));
+            return UiFormCommit.CommitAsync(this, _accessor, _context, UiDayAndTimeValue.As<T>(UiDayAndTimeValue.Within(moment, Min, Max)));
         }
 
         // The day taken away: no moment where the bound type can say so — a required one says it must be given at
@@ -183,7 +196,7 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
 
     private Task TimeAsync(TimeOnly? time) =>
         UiDayAndTimeValue.AtTime(Now(), time) is { } moment
-            ? UiFormCommit.CommitAsync(this, _accessor, _context, UiDayAndTimeValue.As<T>(moment))
+            ? UiFormCommit.CommitAsync(this, _accessor, _context, UiDayAndTimeValue.As<T>(UiDayAndTimeValue.Within(moment, Min, Max)))
             : Task.CompletedTask;
 
     private Task UnreadAsync(string said) => UiFormCommit.UnreadAsync(this, _accessor, _context, _shown, said);

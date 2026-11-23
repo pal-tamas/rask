@@ -2302,7 +2302,8 @@ complex type, one column per member. The entity's own `Configure` runs after and
 object's, since a value the rule accepts would then not fit.
 
 A generated form model carries a one-value record as its value (`string? Driver`): a form bound to it asks the same
-rules under the field and gives a text input the `MaxLength` as its `maxlength`, and the generated
+rules under the field and gives a text input the `MaxLength`/`MinLength` as its `maxlength`/`minlength` (its field
+shape, `X.__Field` — see [forms validation](forms-validation.md)), and the generated
 `Create(model)`/`Update(id, model)` ask them before anything is written — each message in the reader's language
 from Rask's strings catalog. A property that is not nullable is required; a nullable one may be left empty.
 

@@ -562,6 +562,8 @@ public sealed class FluxConformanceTests
         ["flux:input/Max"] = "the <input>'s own `max`, which Flux forwards (`max=\"2999-12-31\"` in its own example)",
         ["flux:input/Step"] = "the <input>'s own `step`, which Flux forwards",
         ["flux:input/MaxLength"] = "the <input>'s own `maxlength`, which Flux forwards",
+        ["flux:input/MinLength"] = "the <input>'s own `minlength`, which Flux forwards",
+        ["flux:textarea/MinLength"] = "the <textarea>'s own `minlength`, which Flux forwards",
         ["flux:input/Autofocus"] = "the <input>'s own `autofocus`, which Flux forwards",
         ["flux:input/Name"] = "the <input>'s own `name`, which Flux forwards",
         ["flux:input/Ref"] = "`x-ref` on the <input>: the handle code focuses or measures it by",

@@ -37,6 +37,7 @@ public sealed partial class ValueObjectFactoryGenerator
         }
 
         AppendFacets(s, value);
+        AppendField(s, value);
         s.AppendLine("}");
 
         foreach (var _ in value.Containers)
@@ -182,15 +183,6 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine("    /// <summary>The length, precision and scale it declares: what its column is given.</summary>");
         s.AppendLine(Hidden);
         s.Append("    public static global::Rask.Data.ValueFacets __Facets => new(").Append(string.Join(", ", named)).AppendLine(");");
-
-        if (string.Equals(value.ValueBase, "Text", System.StringComparison.Ordinal))
-        {
-            s.AppendLine();
-            s.AppendLine("    /// <summary>The most characters it may hold, or null for no limit: what a bound input is given as its maxlength.</summary>");
-            s.AppendLine(Hidden);
-            s.Append("    public static int? __MaxLength => ")
-                .Append(facets.MaxLength is { } most ? most.ToString(CultureInfo.InvariantCulture) : "null").AppendLine(";");
-        }
     }
 
     private static void AddFacet(List<string> named, string name, int? value)

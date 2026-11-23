@@ -877,6 +877,10 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
 - **Required-ness is the member's**, as for `.Choices`: a `DateTime?` the model does not require has the day's × and
   empties to `null`; a required one has none and, emptied, says "The … field is required." at the save; a `DateTime`
   cannot be empty, and an emptied day says "This field is required." at once and keeps its moment.
+- **Bounds**: `.Min(DateTime)` and `.Max(DateTime)` are the earliest and the latest moment it takes — the day picker's
+  `Min`/`Max` days, and the time picker's `Min`/`Max` on the first and the last day only. A day or a time typed past
+  them is refused with the pickers' own message; a day picked onto the first day with an earlier time takes the
+  earliest moment (and so for the last). Both forms of `Bind` take them.
 - **Messages** stand under the pair, in the member's name: a day or a time half typed ("Enter a valid date." /
   "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
   while one shows.
@@ -1594,6 +1598,11 @@ field around it. A field that must be filled (the answer `aria-required` comes f
 member of a generated model) says so beside its label with Flux's badge — *Required*, from the strings catalog
 (`FieldRequired`, *Kötelező* in Hungarian), `aria-hidden` because `aria-required` already says it; a control's own
 `.Badge(…)` wins and `.Badge("")` says nothing. Every example, the error's rules and the reference: **[rask.sh/ui/field](https://rask.sh/ui/field/)**.
+
+The lengths are the member's too: `Ui.Input` and `Ui.Textarea` bound to a field whose value object declares them
+(`Text(Value, MaxLength: 100, MinLength: 2)`, told through the model's [field shapes](forms-validation.md)) write
+`maxlength` and `minlength` on the control, so the browser stops at the most and refuses the fewest on submit.
+`.MaxLength(n)` (input) and `.MinLength(n)` (input and textarea) — the HTML attributes Flux forwards — win over them.
 
 A control you give no `Id` takes one from the member it binds, else its label: `Ui.Input.Bind(() => m.Name)` is
 `f-name`, its error `f-name-error`, its help text `f-name-description`. Ids are unique on the page: a second field that

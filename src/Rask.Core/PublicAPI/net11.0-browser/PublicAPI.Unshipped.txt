@@ -7568,7 +7568,6 @@ static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) ->
 static Rask.Core.Forms.RaskValidation.IsRequired(System.Linq.Expressions.LambdaExpression! bound) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
 static Rask.Core.Forms.RaskValidation.RegisterOptionalFields(System.Type! modelType, System.Func<string!, bool>! isOptional) -> void
-static Rask.Core.Forms.RaskValidation.RegisterFieldLengths(System.Type! modelType, System.Func<string!, int?>! maxLengthOf) -> void
 static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
@@ -19897,3 +19896,60 @@ Rask.Core.Globalization.RaskString.ValidationDecimals = 284 -> Rask.Core.Globali
 Rask.Core.Globalization.RaskString.ValidationRangeAfter = 286 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FieldRequired = 287 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationRangeNotBefore = 285 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Choice = 6 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Day = 3 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Id = 5 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Number = 1 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Range = 4 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Text = 0 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Whole = 2 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldOption
+Rask.Core.Forms.FieldOption.<Clone>$() -> Rask.Core.Forms.FieldOption!
+Rask.Core.Forms.FieldOption.Deconstruct(out object! Value, out string! Label) -> void
+Rask.Core.Forms.FieldOption.Equals(Rask.Core.Forms.FieldOption? other) -> bool
+Rask.Core.Forms.FieldOption.FieldOption(object! Value, string! Label) -> void
+Rask.Core.Forms.FieldOption.Label.get -> string!
+Rask.Core.Forms.FieldOption.Label.init -> void
+Rask.Core.Forms.FieldOption.Value.get -> object!
+Rask.Core.Forms.FieldOption.Value.init -> void
+Rask.Core.Forms.FieldShape
+Rask.Core.Forms.FieldShape.<Clone>$() -> Rask.Core.Forms.FieldShape!
+Rask.Core.Forms.FieldShape.Deconstruct(out Rask.Core.Forms.FieldKind Kind, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out int? Scale, out bool NotAfterToday, out bool Strict, out string? Start, out string? End, out Rask.Core.Forms.FieldKind? Ends, out System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options) -> void
+Rask.Core.Forms.FieldShape.End.get -> string?
+Rask.Core.Forms.FieldShape.End.init -> void
+Rask.Core.Forms.FieldShape.Ends.get -> Rask.Core.Forms.FieldKind?
+Rask.Core.Forms.FieldShape.Ends.init -> void
+Rask.Core.Forms.FieldShape.Equals(Rask.Core.Forms.FieldShape? other) -> bool
+Rask.Core.Forms.FieldShape.FieldShape(Rask.Core.Forms.FieldKind Kind, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, int? Scale = null, bool NotAfterToday = false, bool Strict = false, string? Start = null, string? End = null, Rask.Core.Forms.FieldKind? Ends = null, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>? Options = null) -> void
+Rask.Core.Forms.FieldShape.Kind.get -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldShape.Kind.init -> void
+Rask.Core.Forms.FieldShape.Max.get -> decimal?
+Rask.Core.Forms.FieldShape.Max.init -> void
+Rask.Core.Forms.FieldShape.MaxLength.get -> int?
+Rask.Core.Forms.FieldShape.MaxLength.init -> void
+Rask.Core.Forms.FieldShape.Min.get -> decimal?
+Rask.Core.Forms.FieldShape.Min.init -> void
+Rask.Core.Forms.FieldShape.MinLength.get -> int?
+Rask.Core.Forms.FieldShape.MinLength.init -> void
+Rask.Core.Forms.FieldShape.NotAfterToday.get -> bool
+Rask.Core.Forms.FieldShape.NotAfterToday.init -> void
+Rask.Core.Forms.FieldShape.Options.get -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.FieldOption!>?
+Rask.Core.Forms.FieldShape.Options.init -> void
+Rask.Core.Forms.FieldShape.Scale.get -> int?
+Rask.Core.Forms.FieldShape.Scale.init -> void
+Rask.Core.Forms.FieldShape.Start.get -> string?
+Rask.Core.Forms.FieldShape.Start.init -> void
+Rask.Core.Forms.FieldShape.Strict.get -> bool
+Rask.Core.Forms.FieldShape.Strict.init -> void
+override Rask.Core.Forms.FieldOption.Equals(object? obj) -> bool
+override Rask.Core.Forms.FieldOption.GetHashCode() -> int
+override Rask.Core.Forms.FieldOption.ToString() -> string!
+override Rask.Core.Forms.FieldShape.Equals(object? obj) -> bool
+override Rask.Core.Forms.FieldShape.GetHashCode() -> int
+override Rask.Core.Forms.FieldShape.ToString() -> string!
+static Rask.Core.Forms.FieldOption.operator !=(Rask.Core.Forms.FieldOption? left, Rask.Core.Forms.FieldOption? right) -> bool
+static Rask.Core.Forms.FieldOption.operator ==(Rask.Core.Forms.FieldOption? left, Rask.Core.Forms.FieldOption? right) -> bool
+static Rask.Core.Forms.FieldShape.operator !=(Rask.Core.Forms.FieldShape? left, Rask.Core.Forms.FieldShape? right) -> bool
+static Rask.Core.Forms.FieldShape.operator ==(Rask.Core.Forms.FieldShape? left, Rask.Core.Forms.FieldShape? right) -> bool
+static Rask.Core.Forms.RaskValidation.RegisterFieldShapes(System.Type! modelType, System.Func<string!, Rask.Core.Forms.FieldShape?>! shapeOf) -> void

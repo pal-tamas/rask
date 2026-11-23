@@ -31,6 +31,20 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Field shapes: a generated model tells every bound control what its field is (BREAKING:
+  `RaskValidation.RegisterFieldLengths` is replaced by `RaskValidation.RegisterFieldShapes`).** Before: a control knew a
+  field only as its property's type, plus a text value object's `maxlength`. After: each value object declared from a
+  base record gets `X.__Field`, a `Rask.Core.Forms.FieldShape` — the `FieldKind` (`Text`, `Number`, `Whole`, `Day`,
+  `Range`, `Id`, `Choice`) and the constants its base call states (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`,
+  `NotAfterToday`, a range's `Strict`, its two ends and their kind) — and the generated model registers a shape for
+  every field: value objects, a nested range's ends, another aggregate's typed id, an enum with its members' labels.
+  A bound `Input`/`Textarea` (and `Ui.Input`/`Ui.Textarea`) now also says `minlength`; `Ui.Input`/`Ui.Textarea` take
+  `.MinLength(n)`, and `Ui.DayAndTime` takes `.Min(DateTime)`/`.Max(DateTime)`. A range the aggregate always holds is
+  on the generated model from the start (`= new()`), and each end checks the range's own rule as it is committed — a
+  form says *It must be after the start, 10.* under `Km.End` before the save does — through a type-carried rule that
+  is handed the object holding the field (`RegisterFieldRules` now takes a `Func<object, T, IEnumerable<string>>`).
+  Hand-written registrations move from `RegisterFieldLengths(type, name => 40)` to
+  `RegisterFieldShapes(type, name => new FieldShape(FieldKind.Text, MaxLength: 40))`.
 - **A field that must be filled says so beside its label.** Before: only `aria-required` marked it; a sighted reader saw
   nothing until Save refused. After: a labelled kit control whose field is required — `[Required]`, or a non-nullable
   member of a generated model, the same answer `aria-required` comes from — shows Flux's badge *Required* (new key
@@ -53,7 +67,7 @@ them until tagged releases begin.
   makes old rows unreadable or a tracked edit unsaveable. The column takes `HasMaxLength`/`HasPrecision` from the base
   arguments read at compile time, constants included (`X.__Facets`), still overridable in `Configure`; a generated form
   model, a bound form and `Create(model)`/`Update(id, model)` ask the same rules, and a bound text input or textarea
-  takes the length as its `maxlength` (new `RaskValidation.RegisterFieldLengths`). The messages come from the strings
+  takes the length as its `maxlength` (through `RaskValidation.RegisterFieldShapes`, below). The messages come from the strings
   catalog through a generated module initializer (new keys `ValidationNumberMin`, `ValidationNumberMax`,
   `ValidationDecimals`, `ValidationRangeNotBefore`, `ValidationRangeAfter`, with Hungarian). `Range` is a global alias
   next to `using Rask.Data`, so it never clashes with `System.Range`. New diagnostics:

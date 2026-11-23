@@ -35,7 +35,7 @@ public static class RaskValidation
     private static volatile Dictionary<Type, Func<IServiceProvider?, IStoreRules?>> _storeRules = [];
     private static volatile Dictionary<Type, Func<string, Delegate?>> _fieldRules = [];
     private static volatile RequiredFields _requiredFields = RequiredFields.None;
-    private static volatile FieldLengths _fieldLengths = FieldLengths.None;
+    private static volatile FieldShapes _fieldShapes = FieldShapes.None;
 
     /// <summary>
     ///     Whether a <c>Form</c> validates its model with no validator declared. <see langword="true" />
@@ -145,7 +145,9 @@ public static class RaskValidation
     /// <param name="rule">
     ///     Given a property's name, hands back its rule or <see langword="null" /> when it has none: a
     ///     <see cref="Validate{T}" /> or a <c>Func&lt;T, ValueTask&lt;IEnumerable&lt;string&gt;&gt;&gt;</c>
-    ///     over the property's declared type <c>T</c>, the same two shapes a <c>Validate</c> step takes. A
+    ///     over the property's declared type <c>T</c>, the same two shapes a <c>Validate</c> step takes — or a
+    ///     <c>Func&lt;object, T, IEnumerable&lt;string&gt;&gt;</c>, handed the object that holds the property first, for
+    ///     a rule that reads the fields beside it (a range's end against its start). A
     ///     control over a value type bound to a <c>bool?</c> or an <c>int?</c> — a checkbox, a switch — is
     ///     handed the rule over the nullable type, and asks it about what the property holds, null included.
     ///     Asked on every render of a bound field, so it hands back a delegate it keeps, and builds none.
@@ -173,6 +175,18 @@ public static class RaskValidation
             || ruleOf(field.FieldName) is not { } own)
         {
             return written;
+        }
+
+        // A rule that reads the fields beside its own is asked with the object that holds them. One over another type
+        // than the control's — a slider over double bound to a double? end — is left to the write, which runs it.
+        if (BesideRule.Reads(own))
+        {
+            if (BesideRule.Over<T>(own, field.Model) is not { } beside)
+            {
+                return written;
+            }
+
+            own = beside;
         }
 
         if (own is Validate<T> or Func<T, ValueTask<IEnumerable<string>>>)
@@ -327,30 +341,37 @@ public static class RaskValidation
     internal static bool IsUnderOptional(Expression? holder) => _requiredFields.IsUnderOptional(holder);
 
     /// <summary>
-    ///     Registers the most characters each text field of one model type may hold, so a control bound to one is
-    ///     given it as its <c>maxlength</c> — the length a value object declares (<c>Text(MaxLength: 1000)</c>), told
-    ///     to the browser instead of found out on submit. The seam a data layer's generator plugs into; call it once
-    ///     per model type, from a <c>[ModuleInitializer]</c>.
+    ///     Registers what each field of one model type is — its <see cref="FieldShape" />: the kind of value it holds
+    ///     and the rules its value object declares (<c>Text(Value, MaxLength: 1000)</c>) — so a control bound to one is
+    ///     told them up front: a text input its <c>maxlength</c> and <c>minlength</c>, instead of found out on submit.
+    ///     The seam a data layer's generator plugs into; call it once per model type, from a <c>[ModuleInitializer]</c>.
+    ///     Registering a type again replaces what it had.
     /// </summary>
     /// <param name="modelType">The type that declares the properties. A type derived from it is covered too.</param>
-    /// <param name="maxLengthOf">
-    ///     Given a property's name, the most characters it may hold, or <see langword="null" /> for no limit. Asked once
-    ///     per property and the answer kept until a type is registered again.
+    /// <param name="shapeOf">
+    ///     Given a property's name, its shape, or <see langword="null" /> for a property that has none to tell — one whose
+    ///     own type says all there is. Asked once per property and the answer kept until a type is registered again.
     /// </param>
-    public static void RegisterFieldLengths(Type modelType, Func<string, int?> maxLengthOf)
+    public static void RegisterFieldShapes(Type modelType, Func<string, FieldShape?> shapeOf)
     {
         ArgumentNullException.ThrowIfNull(modelType);
-        ArgumentNullException.ThrowIfNull(maxLengthOf);
+        ArgumentNullException.ThrowIfNull(shapeOf);
 
         lock (Gate)
         {
-            _fieldLengths = _fieldLengths.With(modelType, maxLengthOf);
+            _fieldShapes = _fieldShapes.With(modelType, shapeOf);
         }
     }
 
+    // The shape of the field a control is bound to, or null when its model registered none.
+    internal static FieldShape? ShapeOf(ExpressionAccessor.Accessor bound) =>
+        _fieldShapes.ShapeOf(bound.Target.GetType(), bound.PropertyName);
+
     // The most characters the field a control is bound to may hold, or null: what its maxlength says.
-    internal static int? MaxLengthOf(ExpressionAccessor.Accessor bound) =>
-        _fieldLengths.MaxLengthOf(bound.Target.GetType(), bound.PropertyName);
+    internal static int? MaxLengthOf(ExpressionAccessor.Accessor bound) => ShapeOf(bound)?.MaxLength;
+
+    // The fewest characters the field a control is bound to may hold, or null: what its minlength says.
+    internal static int? MinLengthOf(ExpressionAccessor.Accessor bound) => ShapeOf(bound)?.MinLength;
 
     /// <summary>
     ///     Registers the rules a store keeps for one form model — a unique index, a range that must not

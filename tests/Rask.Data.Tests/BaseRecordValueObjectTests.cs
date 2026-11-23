@@ -178,19 +178,56 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     }
 
     [Fact]
-    public void A_form_bound_to_the_generated_model_is_told_each_text_fields_most_characters()
+    public void A_form_bound_to_the_generated_model_is_told_each_fields_shape()
     {
-        var maxLengthOf = Generated<Func<string, int?>>("Root_MaxLengthOf");
+        var shapeOf = Generated<Func<string, Rask.Core.Forms.FieldShape?>>("Root_ShapeOf");
 
-        var driver = maxLengthOf("Driver");
-        var chip = maxLengthOf("Chip");
-        var plate = maxLengthOf("Plate");
-        var axles = maxLengthOf("Axles");
+        var driver = shapeOf("Driver");
+        var chip = shapeOf("Chip");
+        var plate = shapeOf("Plate");
+        var tank = shapeOf("Tank");
+        var axles = shapeOf("Axles");
+        var inspected = shapeOf("Inspected");
 
-        Assert.Equal(20, driver);
-        Assert.Equal(12, chip);
-        Assert.Null(plate);
-        Assert.Null(axles);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Text, MaxLength: 20), driver);
+        Assert.Equal(12, chip!.MaxLength);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Text), plate);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Number, Min: 1, Scale: 2), tank);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Whole, Min: 2, Max: 9), axles);
+        Assert.True(inspected!.NotAfterToday);
+    }
+
+    [Fact]
+    public void A_range_on_a_generated_model_is_there_from_the_start_and_its_end_is_checked_beside_its_start()
+    {
+        var model = new LegModel();
+        var ruleOf = Generated<Func<string, Delegate?>>("RigKmModel_RuleOf", typeof(LegModel));
+        var end = (Func<object, int?, IEnumerable<string>>)ruleOf("End")!;
+        model.Km!.Start = 10;
+
+        var notAfter = end(model.Km, 10);
+        var after = end(model.Km, 11);
+        var empty = end(model.Km, null);
+
+        Assert.Equal(["It must be after the start, 10."], notAfter);
+        Assert.Empty(after);
+        Assert.Equal([GeneratedModelRules.RequiredMessage], empty);
+    }
+
+    [Fact]
+    public void A_ranges_ends_are_shaped_as_whole_numbers_and_the_range_names_them()
+    {
+        var model = new LegModel();
+        var shapeOf = Generated<Func<string, Rask.Core.Forms.FieldShape?>>("RigKmModel_ShapeOf", typeof(LegModel));
+
+        var start = shapeOf("Start");
+        var km = Generated<Func<string, Rask.Core.Forms.FieldShape?>>("Root_ShapeOf", typeof(LegModel))("Km");
+
+        Assert.NotNull(model.Km);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Whole), start);
+        Assert.Equal(
+            new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Range, Strict: true, Start: "Start", End: "End", Ends: Rask.Core.Forms.FieldKind.Whole),
+            km);
     }
 
     // Written past the rules on purpose: a row stored before a rule was tightened. The table name comes from the
@@ -207,10 +244,11 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     // The generated switch a form asks, reached the only way a file-local class can be: by its name.
     private static Func<string, Delegate?> RuleOfRigModel() => Generated<Func<string, Delegate?>>("Root_RuleOf");
 
-    private static T Generated<T>(string name)
+    private static T Generated<T>(string name, Type? model = null)
         where T : Delegate
     {
-        var rules = typeof(RigModel).Assembly.GetTypes().Single(t => t.Name.EndsWith("__RigModelRules", StringComparison.Ordinal));
+        var holder = "__" + (model ?? typeof(RigModel)).Name + "Rules";
+        var rules = typeof(RigModel).Assembly.GetTypes().Single(t => t.Name.EndsWith(holder, StringComparison.Ordinal));
         var method = rules.GetMethod(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
         return method.CreateDelegate<T>();
     }
