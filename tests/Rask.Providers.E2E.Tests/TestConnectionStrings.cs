@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Rask.SQLite;
 using Rask.SqlServer;
 
 /// <summary>
@@ -26,6 +27,11 @@ internal static class TestConnectionStrings
         this DbContextOptionsBuilder<TContext> builder, string connectionString, Action<SqlServerOptions>? configure = null)
         where TContext : DbContext =>
         builder.UseRaskSqlServer(App(connectionString), configure);
+
+    internal static DbContextOptionsBuilder<TContext> UseRaskSqliteAt<TContext>(
+        this DbContextOptionsBuilder<TContext> builder, string connectionString)
+        where TContext : DbContext =>
+        builder.UseRaskSqlite(App(connectionString));
 
     private static IServiceProvider App(string connectionString) =>
         new ConfigurationServices(new ConfigurationBuilder()

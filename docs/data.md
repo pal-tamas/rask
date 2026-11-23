@@ -2221,6 +2221,37 @@ Which sentence, in this order:
 - **A soft delete is never refused.** An aggregate that names `SoftDelete` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
 
+### How long between two dates, in a query
+
+`end - start` between two `DateTime`s or two `DateTimeOffset`s is a `TimeSpan` in C#, and a query can order by it,
+compare it with a `TimeSpan` and read its `TotalHours` the same way on every database:
+
+```csharp
+// before — SQL Server's own function, which SQLite and PostgreSQL do not have
+.OrderBy(n => EF.Functions.DateDiffSecond(n.StartDate, n.EndDate))
+// after — the length of the trip, on every provider
+.OrderBy(n => n.EndDate - n.StartDate)
+
+var slow = await DeliveryNote.Where(n => n.EndDate - n.StartDate > 90.Minutes);
+var hours = await DeliveryNote.AsQueryable().Select(n => (n.EndDate - n.StartDate).TotalHours).ToListAsync();
+```
+
+PostgreSQL's provider translates all of it itself. SQL Server's and SQLite's translate none of it, so
+`UseRaskSqlServer` and `UseRaskSqlite` add the translation (a plain `UseSqlServer`/`UseSqlite` does not):
+
+| Database | `n.EndDate - n.StartDate` is written | Exact to |
+|---|---|---|
+| SQL Server | `DATEDIFF_BIG(microsecond, [StartDate], [EndDate])` | the microsecond |
+| SQLite | `CAST(round((unixepoch([EndDate], 'subsec') - unixepoch([StartDate], 'subsec')) * 1000000.0) AS INTEGER)` | the millisecond |
+| PostgreSQL | `"EndDate" - "StartDate"` (an `interval`) | the microsecond |
+
+The length is a count of microseconds, so a `TimeSpan` on the other side of a comparison is sent as the same count,
+and a projection of the length itself reads a `TimeSpan` back. `TotalDays`, `TotalHours`, `TotalMinutes`,
+`TotalSeconds` and `TotalMilliseconds` divide it down in the database. A `DateTimeOffset` is measured in UTC, as its
+subtraction is; a nullable date makes a nullable length, which no comparison matches. SQLite stores a date as text and
+reads three fractional digits of it, hence the millisecond. A date column stored through a value converter of the
+app's own (ticks, Unix time) is left untranslated — EF Core says so — rather than measured wrong.
+
 ## Value objects
 
 A value object is **its values**: two with the same values are the same. Any composite an entity holds that is

@@ -100,6 +100,9 @@ public static class RaskSqliteDbContextOptionsExtensions
         // DDL; this adds the model and query halves.
         AddFullTextSearchModelAndQuery(optionsBuilder);
 
+        // `end - start` between two dates in a query, which SQLite's own provider does not translate.
+        SqliteDurationOptionsExtension.Add(optionsBuilder);
+
         // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
         RaskDbContext.WithSharedWarnings(optionsBuilder);
 
