@@ -31,6 +31,19 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
+  `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
+  own constructor to upper-case it. After: `public sealed partial record Vin(string Value) : Text(Value, MinLength: 17,
+  MaxLength: 17, Upper: true);` keeps it culture-invariant in capitals (Hungarian `ő` → `Ő` included), after the trim
+  and before the lengths and the pattern are checked. A stored value still loads as stored; the bound input is not
+  drawn in capitals yet.
+- **`Test.Make<T>()` (Rask.Testing) is a value object its rules accept.** Before: a test that needed a `Vin`, a
+  `KmRange` or a `TaxNumber` wrote a literal that matched today's rules, and broke when a rule was tightened. After:
+  `Test.Make<Vin>()` reads the rules the record hands its base — `Text` lengths and a simple `Pattern`, `Number`/`Whole`
+  `Min`/`Max`/`Scale`, `Day` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
+  makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
+  member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
+  at `X.Create(…)`. Rask.Testing now references Rask.Data.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

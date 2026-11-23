@@ -2340,6 +2340,7 @@ arguments, and is checked as it is made — no instance exists that its rules re
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
 public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 1000, Trim: false);
+public sealed partial record Vin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
 public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
 public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
@@ -2369,7 +2370,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default) |
+| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
@@ -2393,6 +2394,14 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value.
+
+**`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
+`"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
+for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
+put in capitals when it is made.
+
+**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
+the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
 **A stored value is loaded, never re-checked.** EF Core builds what a row holds without asking the rules — a row
 stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on

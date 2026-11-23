@@ -493,7 +493,7 @@ Rask.Data.Problem.Problem(string? Field, string! Message) -> void
 Rask.Data.Range
 Rask.Data.Range.Range(Rask.Data.Range! original) -> void
 Rask.Data.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string! startMember = "", string! endMember = "") -> void
-Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true) -> void
+Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false) -> void
 Rask.Data.Value
 Rask.Data.Value.Value() -> void
 Rask.Data.Value.Value(Rask.Data.Value! original) -> void

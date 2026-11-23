@@ -12,6 +12,12 @@ public sealed partial record RigDriver(string Value) : Text(Value, MaxLength: 20
 /// <summary>A text kept as typed, its length named by a constant.</summary>
 public sealed partial record RigChip(string Value) : Text(Value, MaxLength: RigLimits.Chip, Trim: false);
 
+/// <summary>A text kept in capitals, of exactly 17 characters.</summary>
+public sealed partial record RigVin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
+
+/// <summary>A text kept in capitals that the pattern checks as kept.</summary>
+public sealed partial record RigCode(string Value) : Text(Value, Pattern: "^[A-ZÁÉÍÓÖŐÚÜŰ]+$", Upper: true);
+
 /// <summary>A text with a pattern and its own words for it.</summary>
 public sealed partial record RigPlate(string Value) : Text(Value, Pattern: @"^[A-Z]{3}-\d{3}$", Message: RigPlate.Form)
 {
