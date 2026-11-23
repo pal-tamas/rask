@@ -44,6 +44,22 @@ public sealed class OwnsSchemaTests : IDisposable
     }
 
     [Fact]
+    public async Task A_schema_taken_over_is_left_as_it_is_by_the_next_start()
+    {
+        await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL); "
+                  + "INSERT INTO \"Ledgers\" (\"Title\") VALUES ('kept');");
+        await StartAndStop();
+        var objectsAfterTheTakeover = await Objects();
+        var historyAfterTheTakeover = await _db.History();
+
+        await StartAndStop();
+
+        Assert.Equal(objectsAfterTheTakeover, await Objects());
+        Assert.Equal(historyAfterTheTakeover, await _db.History());
+        Assert.Equal("kept|", await _db.Scalar("SELECT \"Title\" || '|' || COALESCE(\"Memo\", '') FROM \"Ledgers\""));
+    }
+
+    [Fact]
     public async Task Two_hosts_starting_together_take_the_schema_over_once()
     {
         await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL);");
@@ -112,6 +128,17 @@ public sealed class OwnsSchemaTests : IDisposable
     }
 
     public void Dispose() => _db.Dispose();
+
+    private async Task StartAndStop()
+    {
+        using var host = Host(s => s.WhenTable("Ledgers"));
+        await host.StartAsync(TestContext.Current.CancellationToken);
+        await host.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    // Every table, index and trigger in the file, by kind and name: what a second takeover must not add to.
+    private Task<object?> Objects() =>
+        _db.Scalar("SELECT group_concat(\"type\" || ':' || \"name\", ',') FROM (SELECT \"type\", \"name\" FROM sqlite_master ORDER BY \"type\", \"name\")");
 
     private IHost Host(Action<SchemaOwnership> ownership, MemoTimeoutWitness? witness = null)
     {
