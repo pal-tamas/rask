@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A JSON column stays `nvarchar(max)` on SQL Server at every compatibility level, with no type named by the app.**
+  Before: at compatibility level 170 (which `UseRaskSqlServer` reads from a SQL Server 2025) EF Core maps a value
+  collection, a `ToJson()` complex or owned type and a primitive collection to the native `json` type, so the model —
+  and every migration — changed with the level the server reported, and a column made at 170 could not be created on a
+  150 server. The only way to pin it, `SetContainerColumnType("nvarchar(max)")`, is SQL Server's word, and SQLite fails
+  on it (`near "max"`). After: Rask's conventions keep every JSON column `nvarchar(max)` on SQL Server, `TEXT` on SQLite
+  and Npgsql's `jsonb` on PostgreSQL; a model that pinned `nvarchar(max)` by hand drops the call with no migration, and a
+  type the app states itself (`SetContainerColumnType`, `HasColumnType`) still wins. Moving a column to `json` stays a
+  migration the app writes. RASK177 now names `SetContainerColumnType` too.
+- **An index's `Where(…)` and `Computed(…)` read a one-value value object as its column.** Before:
+  `HasIndex(f => f.PistolId).Where(f => f.Number.Value > 0)` over a `record FuelingNumber(int Value) : Value` failed the
+  model build ("Number … is not a value object Fueling maps"), and `Where(f => f.Number != FuelingNumber.Unset)` failed
+  with "SqlServer has no column type for FuelingNumber", so the filter stayed a provider-specific `HasFilter`. After:
+  `.Value` is the column, compared with a plain number, and a value object constant is written as the column stores
+  it — `[Number] > 0` on SQL Server, `"Number" > 0` on PostgreSQL and SQLite.
 - **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
   generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
   `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
@@ -49,6 +64,14 @@ them until tagged releases begin.
   it, a serializer writes `{}`, and the read face and the generated model leave it out, so no form is prefilled with it
   and no browser receives it. Set it with `Secret.Applied(Change<T>, current)`. A `Secret<T>` of a password value
   object is not RASK175. [docs/domain.md](docs/domain.md#secrets-secrett)
+- **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
+  as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
+  model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
+  production refused it. After: the IRaskModel says it once; Rask's providers write the key (`NO ACTION`, named by
+  the app's `ConstraintNames` rule) in the migrations and in `EnsureCreated` on SQLite, SQL Server and PostgreSQL, so
+  the delete is refused everywhere with the tenant's `WhenReferenced` sentence. It is a database key, not an EF Core
+  relationship; a database that already has the keys empties the first migration's `AddForeignKey`s
+  (docs/multi-tenancy.md).
 - **RASK133: an aggregate written on a `DbContext` around its own operations.** `db.Products.Add(p)`,
   `db.Update(order)`, `db.Remove(supply)` (and their `Range`/`Async` forms) in a method that also calls
   `SaveChanges(Async)` skip the aggregate's factory, its operations, their roles and the rules every save asks. The
