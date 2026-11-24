@@ -69,10 +69,11 @@ public sealed class AppCommandTests : IDisposable
     [Fact]
     public void The_audit_takes_names_repeated_or_split_by_commas()
     {
-        var options = AuditOptions.Parse(["--aggregate", "Driver,Vehicle", "-a", "Tank", "--json"]);
+        var options = AuditOptions.Parse(["--aggregate", "Driver,Vehicle", "-a", "Tank", "--unique-candidates", "--json"]);
 
         Assert.Equal(["Driver", "Vehicle", "Tank"], options!.Aggregates);
         Assert.True(options.Json);
+        Assert.True(options.UniqueCandidates);
     }
 
     [Fact]

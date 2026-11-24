@@ -64,6 +64,12 @@ them until tagged releases begin.
   it, a serializer writes `{}`, and the read face and the generated model leave it out, so no form is prefilled with it
   and no browser receives it. Set it with `Secret.Applied(Change<T>, current)`. A `Secret<T>` of a password value
   object is not RASK175. [docs/domain.md](docs/domain.md#secrets-secrett)
+- **A read face reads its rows for update: `await Month.Where(m => m.Id == id).ForUpdate()`.** Before: the update lock
+  existed only inside `LockedBy(…, LockRead.ForUpdate)` and an operation's `forUpdate:`, and RASK177 told an app with
+  `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE` in raw SQL to use a `ForUpdate()` it could not call. After: `ModelQuery<T>.ForUpdate()`
+  reads the rows under `WITH (UPDLOCK, HOLDLOCK)` on SQL Server, `FOR UPDATE OF` on PostgreSQL and as written on SQLite
+  (its one writer serializes), held to the end of the `Db.Transaction`; outside one it is refused, and so is a
+  `Count()`/`Any()` of it on every database. RASK177's message names `X.Where(…).ForUpdate()` inside `Db.Transaction`.
 - **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
   as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
   model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
@@ -90,6 +96,13 @@ them until tagged releases begin.
   narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
   save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
   See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
+- **`rask audit --unique-candidates` says whether the stored rows let a unique index in.** Before: adding
+  `IsUnique()` to an index over old data failed at the migration, on the first duplicate the database met. After: the
+  audit asks every unique index the model declares — migrated or not, its `.Where(…)` applied — of every stored row in
+  LINQ, and reports each group of rows that would collide by their ids (`id = id`), never the values; a NULL key
+  collides with nothing, and texts differing only in letter case are reported apart, as a collision under a
+  case-insensitive collation. An index filtered by hand-written SQL is named in a note. See
+  [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
 - **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
   moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
   aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published

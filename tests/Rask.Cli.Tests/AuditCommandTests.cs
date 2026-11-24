@@ -10,10 +10,10 @@ public sealed class AuditCommandTests
     [Fact]
     public void The_app_is_run_with_the_audit_command_and_each_named_aggregate()
     {
-        var args = AuditCommand.BuildArguments(ProjectDir, ["Driver", "Vehicle"], json: true);
+        var args = AuditCommand.BuildArguments(ProjectDir, ["Driver", "Vehicle"], json: true, uniqueCandidates: true);
 
         Assert.Equal(
-            ["run", "--project", ProjectDir, "--verbosity", "quiet", "--", "rask", "audit", "--aggregate", "Driver", "--aggregate", "Vehicle", "--json"],
+            ["run", "--project", ProjectDir, "--verbosity", "quiet", "--", "rask", "audit", "--aggregate", "Driver", "--aggregate", "Vehicle", "--unique-candidates", "--json"],
             args);
     }
 

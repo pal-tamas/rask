@@ -21,14 +21,21 @@ internal static partial class ForUpdateSql
 
     private const string Marker = "-- " + Tag;
 
+    // What the tag line becomes once rewritten, so a context that carries two interceptors which rewrite locks it once.
+    private const string Rewritten = Marker + ", locked";
+
     /// <summary>Rewrites <paramref name="command" /> when it is a read tagged <see cref="Tag" />.</summary>
     internal static void Apply(DbCommand command, DbContext? context)
     {
-        if (context is not null && command.CommandText.StartsWith(Marker, StringComparison.Ordinal))
+        if (context is not null && command.CommandText.StartsWith(Marker, StringComparison.Ordinal)
+            && !command.CommandText.StartsWith(Rewritten, StringComparison.Ordinal))
         {
-            command.CommandText = Rewrite(context.Database.ProviderName, command.CommandText);
+            command.CommandText = Locked(context.Database.ProviderName, command.CommandText);
         }
     }
+
+    // The rewrite, its tag line marked as done.
+    private static string Locked(string? provider, string sql) => Rewritten + Rewrite(provider, sql)[Marker.Length..];
 
     /// <summary><paramref name="sql" /> with its first table read under an update lock, as <paramref name="provider" /> says it.</summary>
     internal static string Rewrite(string? provider, string sql) => provider switch
@@ -38,6 +45,14 @@ internal static partial class ForUpdateSql
             sql.TrimEnd() + "\nFOR UPDATE OF " + table.Groups["alias"].Value,
         _ => sql,
     };
+
+    /// <summary>The refusal of a count, or an <c>Any</c>, of a query read <c>ForUpdate()</c>.</summary>
+    /// <param name="subject">The read face, as the app writes it: <c>Product</c>.</param>
+    /// <param name="terminal">The terminal called: <c>Count</c>.</param>
+    internal static InvalidOperationException Aggregate(string subject, string terminal) =>
+        new($"{subject}.Where(…).ForUpdate().{terminal}() locks nothing: a lock is held on the rows a read hands back, "
+            + "and PostgreSQL holds none for an aggregate. Read the rows and count them: "
+            + $"var rows = await {subject}.Where(…).ForUpdate();");
 
     // FROM [dbo].[Periods] AS [p]
     [GeneratedRegex(@"FROM\s+(?:\[[^\]]+\]\.)?\[[^\]]+\]\s+AS\s+\[[^\]]+\]", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]

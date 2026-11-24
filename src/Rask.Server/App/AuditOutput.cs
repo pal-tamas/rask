@@ -32,6 +32,11 @@ internal static class AuditOutput
             Breaches(text, broken);
         }
 
+        foreach (var note in report.Notes)
+        {
+            text.AppendLine().Append("Note: ").AppendLine(note);
+        }
+
         // An id rule of a child entity's table is reported under the child, which no root count names.
         var others = report.Breaches.Where(b => !report.Read.Any(r => string.Equals(r.Aggregate, b.Aggregate, StringComparison.Ordinal))).ToList();
         foreach (var group in others.GroupBy(static b => b.Aggregate, StringComparer.Ordinal))
@@ -77,6 +82,13 @@ internal static class AuditOutput
 
                 json.WriteEndArray();
                 json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+            json.WriteStartArray("notes");
+            foreach (var note in report.Notes)
+            {
+                json.WriteStringValue(note);
             }
 
             json.WriteEndArray();

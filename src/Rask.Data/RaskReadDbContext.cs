@@ -94,7 +94,8 @@ public class RaskReadDbContext : DbContext, ITenantScoped
         && core.WarningsConfiguration.GetBehavior(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)
             == WarningBehavior.Ignore
         && core.ReplacedServices?.TryGetValue((typeof(IModelCacheKeyFactory), null), out var keys) == true
-        && keys == typeof(ReadModelCacheKeyFactory);
+        && keys == typeof(ReadModelCacheKeyFactory)
+        && core.Interceptors?.Contains(ForUpdateInterceptor.Instance) == true;
 
     /// <summary>The read context's own configuration, for the factories that build its options to apply up front.</summary>
     /// <param name="optionsBuilder">The options being built.</param>
@@ -128,6 +129,12 @@ public class RaskReadDbContext : DbContext, ITenantScoped
         // are two, or a test suite that points Db somewhere new per class. Keying on Db's generation
         // rebuilds the mirror exactly when the write side moved, and never otherwise.
         optionsBuilder.ReplaceService<IModelCacheKeyFactory, ReadModelCacheKeyFactory>();
+
+        // A read face's ForUpdate() is written in the database's own words as it runs.
+        if (optionsBuilder.Options.FindExtension<CoreOptionsExtension>()?.Interceptors?.Contains(ForUpdateInterceptor.Instance) != true)
+        {
+            optionsBuilder.AddInterceptors(ForUpdateInterceptor.Instance);
+        }
     }
 
     // Opened once, while the read model is built, and disposed immediately. Building a DbContext's model is

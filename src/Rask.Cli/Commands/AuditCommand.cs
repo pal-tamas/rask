@@ -23,12 +23,13 @@ internal sealed class AuditCommand(IConsole console, IFileSystem fileSystem, IPr
 
     public override string Summary => "Report every stored aggregate its current rules refuse (reads the database, never writes).";
 
-    public override string Usage => "rask audit [--aggregate <Name>]... [--json] [--project <path>]";
+    public override string Usage => "rask audit [--aggregate <Name>]... [--unique-candidates] [--json] [--project <path>]";
 
     public override IReadOnlyList<string> Examples =>
     [
         "rask audit",
         "rask audit --aggregate Driver",
+        "rask audit --unique-candidates   # before a migration adds a unique index",
         "rask audit --json > audit.json",
         "dotnet App.dll rask audit   # on the server, from the published app",
     ];
@@ -38,6 +39,7 @@ internal sealed class AuditCommand(IConsole console, IFileSystem fileSystem, IPr
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
             .MultiOption("aggregate", 'a', "Name", "Ask only this aggregate (repeat, or separate names with commas).")
+            .Flag("unique-candidates", description: "Ask the model's unique indexes instead: the stored rows each would refuse, before its migration runs.")
             .Option("project", 'p', "path", "The app's project (default: found from the current directory).")
             .Flag("dry-run", description: "Print what would run without reading the database.")
             .WithJson();
@@ -61,7 +63,7 @@ internal sealed class AuditCommand(IConsole console, IFileSystem fileSystem, IPr
             return Fail($"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside the app's project, or pass --project.");
         }
 
-        var dotnetArgs = BuildArguments(project, parsed.MultiOption("aggregate"), parsed.HasFlag("json"));
+        var dotnetArgs = BuildArguments(project, parsed.MultiOption("aggregate"), parsed.HasFlag("json"), parsed.HasFlag("unique-candidates"));
         if (parsed.HasFlag("dry-run"))
         {
             WriteDryRun("run", "dotnet " + string.Join(' ', dotnetArgs));
@@ -72,7 +74,7 @@ internal sealed class AuditCommand(IConsole console, IFileSystem fileSystem, IPr
     }
 
     /// <summary>The <c>dotnet run</c> that has the app audit itself. Pure, so tests assert on it without a process.</summary>
-    internal static IReadOnlyList<string> BuildArguments(string project, IReadOnlyList<string> aggregates, bool json)
+    internal static IReadOnlyList<string> BuildArguments(string project, IReadOnlyList<string> aggregates, bool json, bool uniqueCandidates = false)
     {
         // Quiet, so the build says only what failed: with --json, the report is all the output is.
         var args = new List<string> { "run", "--project", project, "--verbosity", "quiet", "--", "rask", "audit" };
@@ -80,6 +82,11 @@ internal sealed class AuditCommand(IConsole console, IFileSystem fileSystem, IPr
         {
             args.Add("--aggregate");
             args.Add(aggregate);
+        }
+
+        if (uniqueCandidates)
+        {
+            args.Add("--unique-candidates");
         }
 
         if (json)
