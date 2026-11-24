@@ -84,6 +84,26 @@ public sealed class StorageTank
     public DateTime CountedAt { get; set; }
 }
 
+/// <summary>A pistol's number at the pump: 1 or more, though a legacy schema gives a row written without one 0.</summary>
+public sealed partial record NozzleNumber(int Value) : Whole(Value, Min: 1);
+
+/// <summary>When a pump was last told something, as the clock on the wall showed it.</summary>
+public sealed partial record NozzleSent(DateTime Value) : Value;
+
+/// <summary>A pump's nozzle, whose value objects take the database's defaults a legacy schema gives them.</summary>
+public sealed class PumpNozzle
+{
+    public Guid Id { get; set; }
+
+    public NozzleNumber Number { get; set; } = null!;
+
+    public NozzleSent Sent { get; set; } = null!;
+
+    public bool Locked { get; set; }
+
+    public DateTime SeenAt { get; set; }
+}
+
 /// <summary>The three declarations, on Rask's conventions.</summary>
 public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : RaskDbContext(options)
 {
@@ -112,6 +132,16 @@ public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : R
             b.Default(t => t.Kind, PumpKind.Pump);
             b.Default(t => t.CreatedAt, () => Clock.Now);
             b.Default(t => t.CountedAt, () => Clock.Now.UtcDateTime);
+        });
+        modelBuilder.Entity<PumpNozzle>(b =>
+        {
+            // what an aggregate's generated Configure maps a one-value value object as
+            ValueObjectColumn.Map<NozzleNumber, int>(b.Property(n => n.Number), v => v.Value);
+            ValueObjectColumn.Map<NozzleSent, DateTime>(b.Property(n => n.Sent), v => v.Value);
+            b.StoredDefault(n => n.Number, 0);
+            b.Default(n => n.Sent, () => Clock.Wall);
+            b.Default(n => n.Locked, false);
+            b.Default(n => n.SeenAt, () => Clock.Wall);
         });
     }
 }

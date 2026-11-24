@@ -16,7 +16,8 @@ namespace Rask.Postgres;
 /// <summary>
 /// Npgsql's migrations, plus the objects no model annotation describes: the <c>rask_unicode</c> text search
 /// configuration PostgreSQL full-text search needs (#1109), and the <c>rask_text</c> collation <c>OrderTextBy</c> asks for
-/// (<see cref="PostgresTextCollation" />).
+/// (<see cref="PostgresTextCollation" />), and the <c>rask_search</c> collation <c>x.Loosely()</c> compares by
+/// (<see cref="PostgresSearchCollation" />).
 /// </summary>
 /// <remarks>
 /// The column and its GIN index are Npgsql's own (see <see cref="PostgresFullTextSearchConvention" />). What is added
@@ -37,12 +38,19 @@ internal sealed class RaskPostgresMigrationsSqlGenerator(
         var commands = base.Generate(operations, model, options);
         var collation = PostgresTextCollation.CreateFor(operations, model);
         var unicode = model is not null && NeedsUnicodeConfiguration(operations, model);
-        if (collation is null && !unicode)
+        var search = PostgresSearchCollation.CreatedBy(operations);
+        if (collation is null && !unicode && !search)
         {
             return commands;
         }
 
         var builder = new MigrationCommandListBuilder(Dependencies);
+        if (search)
+        {
+            builder.AppendLine(PostgresSearchCollation.Create);
+            builder.EndCommand();
+        }
+
         if (collation is not null)
         {
             builder.AppendLines(collation);

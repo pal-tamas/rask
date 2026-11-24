@@ -156,6 +156,41 @@ Under a retrying execution strategy (`Rask:Sqlite:Retry:Enabled`, or `UseRaskSql
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
 
+## A running number
+
+`b.Numbered(…)` — beside [`b.Computed(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c), which it pairs with.
+
+A number every row has among its group — the fuelings of a pistol, counted by moment — kept by Rask in every save,
+with no SQL in the app (D18):
+
+```csharp
+static void Configure(EntityTypeBuilder<Fueling> b)
+{
+    b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId);
+    b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id },
+            skip: f => f.MergedParentId != null)
+        .Same(f => f.ParentId)                                                      // an IBC part has its fill's number
+        .SkipWhen<Distribution, string>((f, shares) => shares.Any(s => s.FromFuelingId == f.Id), s => s.FromFuelingId);
+}
+```
+
+- **What it keeps.** Each row of a group is numbered 1, 2, 3 … in the order `by` says, the first member first; a row
+  `skip` leaves out has none (null), and the rows after it close up. A row whose group is null has none.
+- **When.** A save that adds, deletes or moves a row — changes its group, a member of `by`, `skip` or `Same` — numbers
+  each group it touched anew from the earliest place it touched, counting on from the last number before it, and
+  writes only the numbers that changed — before the save's transaction commits, so a rollback takes them back too.
+  The rows the context holds are told their new numbers and stay unchanged.
+- **`Same(f => f.ParentId)`**: a row that names another takes that row's number instead of a place of its own, and
+  follows it when it moves.
+- **`SkipWhen<TOther, TRow>(when, row)`**: another table's rows leave a row out — a fueling distributed from is not
+  counted. A save that adds, changes or deletes a `TOther` row numbers anew the group of the row `row` names.
+- **One numbering of a group at a time, on every database.** SQL Server takes `sp_getapplock` owned by the save's
+  transaction and PostgreSQL `pg_advisory_xact_lock`, per group, in a sorted order, before the rows go out; SQLite's
+  one writer already keeps saves apart. Saves racing into one group leave it numbered without a gap or a twin.
+- `by` is a member, or several as an anonymous type (`new { f.Moment, f.Id }`): plain values, or one-value value objects compared by their value. The
+  number is a whole number — nullable when a row can have none — or a one-value value object over one. The entity's
+  key is one column. A raw `ExecuteUpdate` passes no save, so it numbers nothing.
+
 ## Batch update and delete
 
 For work the database can do on its own — a retention sweep, a column every row gets the same value in — EF Core's

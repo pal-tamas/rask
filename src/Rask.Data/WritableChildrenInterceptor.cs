@@ -80,41 +80,57 @@ internal sealed class WritableChildrenInterceptor
     }
 
     /// <inheritdoc />
+    /// <remarks>Runs what the save left for before its commit (<see cref="SaveFollowUps" />), then commits.</remarks>
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
         Remember(eventData.Context);
+        FollowUp(eventData.Context, CancellationToken.None).GetAwaiter().GetResult();
         SaveTransaction.Close(eventData.Context, commit: true);
         return result;
     }
 
     /// <inheritdoc />
+    /// <remarks>Runs what the save left for before its commit (<see cref="SaveFollowUps" />), then commits.</remarks>
     public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
         Remember(eventData.Context);
+        await FollowUp(eventData.Context, cancellationToken).ConfigureAwait(false);
         await SaveTransaction.Close(eventData.Context, commit: true, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
     /// <inheritdoc />
     /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
-    public override void SaveChangesFailed(DbContextErrorEventData eventData) =>
+    public override void SaveChangesFailed(DbContextErrorEventData eventData)
+    {
+        SaveFollowUps.Forget(eventData.Context);
         SaveTransaction.Close(eventData.Context, commit: false);
+    }
 
     /// <inheritdoc />
     /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
-    public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default) =>
-        SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+    public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        SaveFollowUps.Forget(eventData.Context);
+        return SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+    }
 
     /// <inheritdoc />
     /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
-    public override void SaveChangesCanceled(DbContextEventData eventData) =>
+    public override void SaveChangesCanceled(DbContextEventData eventData)
+    {
+        SaveFollowUps.Forget(eventData.Context);
         SaveTransaction.Close(eventData.Context, commit: false);
+    }
 
     /// <inheritdoc />
     /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
-    public override Task SaveChangesCanceledAsync(DbContextEventData eventData, CancellationToken cancellationToken = default) =>
-        SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+    public override Task SaveChangesCanceledAsync(DbContextEventData eventData, CancellationToken cancellationToken = default)
+    {
+        SaveFollowUps.Forget(eventData.Context);
+        return SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+    }
 
     /// <inheritdoc />
     /// <remarks>A parent read under an update lock is written in the database's own words here (<see cref="ForUpdateSql" />).</remarks>
@@ -167,6 +183,21 @@ internal sealed class WritableChildrenInterceptor
         }
     }
 
+    // What fails after the rows went out rolls back the transaction the domain step opened for the save, as a failed
+    // save does: the follow-up is part of the save.
+    private static async Task FollowUp(DbContext? context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SaveFollowUps.Run(context, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await SaveTransaction.Close(context, commit: false, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
+    }
+
     // A refused save never starts, so nothing later rolls back what the domain step opened for it.
     private static async Task CheckAsync(DbContext context, CancellationToken cancellationToken)
     {
@@ -185,6 +216,8 @@ internal sealed class WritableChildrenInterceptor
     {
         if (context is not null)
         {
+            // A save refused before it went out left its follow-ups behind: they are not this save's.
+            SaveFollowUps.Forget(context);
             WritableChildren.Ensure(context);
             ChildPositions.Stamp(context);
             AttemptUndo.Capture(context);          // before MarkTracked and before any interceptor bumps a version

@@ -217,6 +217,12 @@ browser app's plain `UseSqlite(BrowserSqlite.ConnectionString(…))`, so every R
 decimal order and `end - start` come with it there too). A `UseSqlite` with neither leaves the columns as they are,
 and `InTextOrder()` orders by the column as it is.
 
+A search beside that order, [`x.Loosely()`](data.md#app-wide-model-rules-one-iraskmodel), compares case and accents
+aside under a second collation every Rask connection registers, `RASK_SEARCH` (the invariant culture, ignoring case,
+accents, kana and width — SQL Server's `Latin1_General_100_CI_AI`). It is written into the query alone, never the
+schema, and `Contains`/`StartsWith`/`EndsWith` on it become `rask_search(text, value, how)`, a function registered with
+it. A plain `UseSqlite` refuses `x.Loosely()` with the reason rather than comparing as the column does.
+
 ## Moments that compare as SQL Server does
 
 EF Core stores a `DateTimeOffset` as text with its offset and then refuses to order or compare it: text order is not

@@ -80,6 +80,7 @@ internal static class AggregateShape
     public const int PerTenant = 128;
     public const int Broadcast = 256;
     public const int SoftRemoved = 512;
+    public const int Audited = 1024;
 
     /// <summary>
     ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
@@ -178,6 +179,7 @@ internal static class AggregateShape
                 "PerTenant" or "PerTenantThrough" => PerTenant,
                 "Broadcast" => Broadcast,
                 "SoftRemoved" => SoftRemoved,
+                "Audited" => Audited,
                 _ => 0,
             }
             : 0;
