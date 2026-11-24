@@ -6,7 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
 
-/// <summary>Registers <see cref="ValueObjectMemberTranslator" />, so a query reads a value object's one value from its column.</summary>
+/// <summary>
+///     Registers <see cref="ValueObjectMemberTranslator" />, so a query reads a value object's one value from its column,
+///     and <see cref="OptionalComplexValueValidator" />, so an optional value object whose members are all optional is held
+///     in its row's columns whatever the provider.
+/// </summary>
 /// <remarks>
 ///     Registered whatever the provider: EF Core applies the extensions in no set order, and only a relational
 ///     provider ever asks for a member translator.
@@ -32,6 +36,9 @@ internal sealed class ValueObjectQueryOptionsExtension : IDbContextOptionsExtens
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, ValueObjectMemberTranslator>();
+
+        // An optional value object whose members are all optional, on a provider Rask does not configure.
+        OptionalComplexValueValidator.Register(services);
     }
 
     public void Validate(IDbContextOptions options)
