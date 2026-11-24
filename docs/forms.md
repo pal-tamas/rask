@@ -1036,6 +1036,11 @@ Form.For(Note.Rename, id)[f => [
 - **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.
 - `.Missing(component)` is drawn for an id no row has, `.OnSaved(async () => …)` runs after a save — closing a dialog,
   say. A form handed another id reads that aggregate afresh.
+- **Every step a hand form takes.** The `<form>` it draws takes what `Form.Model(m)` does — `.Id(…)`, `.Class(…)`,
+  `.Style(…)`, `.Data(…)`, `.Attributes(…)`, `.ConfirmLeave("Leave without saving?")` and
+  `.OnInvalidSubmit(m => …)` — so moving a hand form to `Form.For` loses none of them. `.Saved("Company saved.")` is
+  what is toasted once it saves: by `Ui.EditorDialog` in place of its own "Saved" (the catalog's `EditorSaved`), or by
+  the form itself when nothing hosts it.
 - **Rows: a list parameter.** An operation that takes a list of rows — the `Children<TEntity, TSpec>.Sync` of
   [children made from a form's rows](data.md) — is an editable list: `f.Parts`, a row per child the aggregate holds
   (read off the child by the spec's member names, its `Id` among them, so `Sync` matches it), each row's fields the

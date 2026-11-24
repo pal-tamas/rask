@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
+  generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
+  `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
+  toasted "Saved". After: it takes `.Id`, `.Class`, `.Style`, `.Data`, `.Attributes`, `.ConfirmLeave` and
+  `.OnInvalidSubmit` onto the `<form>` it draws, and `.Saved("Company saved.")` is the toast — the dialog's in place of
+  its catalog `EditorSaved`, or the form's own when nothing hosts it. `IOperationFormHost.Saved` takes the message.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
