@@ -588,6 +588,12 @@ virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.D
 Rask.Data.CoveringIndexBuilderExtensions
 static Rask.Data.CoveringIndexBuilderExtensions.Covering(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, params string![]! propertyNames) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.CoveringIndexBuilderExtensions.Covering<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, object?>!>! columns) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.Refuse
+static Rask.Data.Refuse.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.Unless(bool condition, string! message) -> void
+static Rask.Data.Refuse.Unless<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.When(bool condition, string! message) -> void
+static Rask.Data.Refuse.When<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
 Rask.Data.KeepEmptyBuilderExtensions
 Rask.Data.GeneratedEmptyTexts
 static Rask.Data.GeneratedEmptyTexts.Of<TValue>(System.Func<TValue>! make) -> TValue

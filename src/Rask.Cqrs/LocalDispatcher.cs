@@ -70,6 +70,13 @@ internal sealed class LocalDispatcher : IDispatcher
     {
         ArgumentNullException.ThrowIfNull(e);
 
+        // A test's Events.Fake() takes it before anything hears it — and before the durable mark below is taken, so its
+        // Run() publishes it as it would have been published now.
+        if (Events.Recorded(e, provider))
+        {
+            return;
+        }
+
         // Use the runtime type so a base-typed reference still reaches the right handlers and subscribers.
         var type = e.GetType();
 
