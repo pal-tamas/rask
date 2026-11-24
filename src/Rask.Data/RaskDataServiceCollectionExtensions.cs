@@ -43,6 +43,9 @@ public static partial class RaskDataServiceCollectionExtensions
             // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
             services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
+
+            // Before auditing, so a gated member it keeps unwritten is not what makes the row look changed.
+            services.AddSingleton<ISaveChangesInterceptor, GatedWritesInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
             // Publishes after the commit and clears the events only then, so the outbox (which reads the same events

@@ -154,6 +154,34 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public ModelQuery<TEntity> IgnoreQueryFilters() =>
         Then(q => q.IgnoreQueryFilters([ModelBuilderExtensions.SoftDeleteFilter]), _ordered, _unrankedSearch);
 
+    /// <summary>
+    ///     Reads every tenant's rows, for the one query this says it of: <c>await Pistol.Across("a lent chip").Any(…)</c>.
+    /// </summary>
+    /// <param name="reason">
+    ///     Why this read crosses the tenant boundary, in a few words — required, so every crossing says what it is for
+    ///     where a reviewer reads it.
+    /// </param>
+    /// <returns>The same query, with the tenant filter lifted from every table it reads.</returns>
+    /// <remarks>
+    ///     <para>
+    ///         The per-query form of <see cref="Tenant.Across" />: the tenant filter is a named filter, and this lifts
+    ///         that one alone — the soft-delete filter stays, as <see cref="IgnoreQueryFilters" /> leaves the tenant's.
+    ///         A child read through its parent, and a table that belongs to its tenant through another aggregate
+    ///         (<see cref="PerTenantThrough{TParent}" />), are read across as well, since their filter is the same one.
+    ///     </para>
+    ///     <para>
+    ///         It only reads. A row it hands back that is then changed is saved in the tenant it belongs to, and a
+    ///         save into another is refused as any is; a rule that must SEE every tenant's rows — a user name unique
+    ///         across all of them — asks with this inside its <c>Validate()</c>.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="reason" /> is empty.</exception>
+    public ModelQuery<TEntity> Across(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        return Then(q => q.IgnoreQueryFilters([ModelBuilderExtensions.TenantFilter]), _ordered, _unrankedSearch);
+    }
+
     /// <summary>Splits the query's joins into separate round trips.</summary>
     public ModelQuery<TEntity> AsSplitQuery() => Then(q => q.AsSplitQuery(), _ordered, _unrankedSearch);
 

@@ -523,3 +523,7 @@ Rask.Background.Running<TResult>.ByTenant() -> Rask.Background.Running<TResult>
 Rask.Background.Running.ByTenant() -> Rask.Background.Running
 Rask.Background.RecurringJob.RunOnFirstStart() -> Rask.Background.RecurringJob!
 Rask.Background.RecurringJob.RunsOnFirstStart.get -> bool
+static Rask.Background.JobReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!

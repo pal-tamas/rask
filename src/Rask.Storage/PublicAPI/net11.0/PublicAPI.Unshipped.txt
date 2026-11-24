@@ -252,3 +252,5 @@ static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Sin
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
 static Rask.Storage.StoredFileReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!

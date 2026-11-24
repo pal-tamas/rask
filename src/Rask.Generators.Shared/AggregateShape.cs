@@ -79,6 +79,7 @@ internal static class AggregateShape
     public const int SoftDelete = 64;
     public const int PerTenant = 128;
     public const int Broadcast = 256;
+    public const int SoftRemoved = 512;
 
     /// <summary>
     ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
@@ -112,6 +113,23 @@ internal static class AggregateShape
             .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
             .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
             .FirstOrDefault();
+
+    /// <summary>
+    ///     The aggregate <c>PerTenantThrough&lt;TParent&gt;</c> names, fully qualified, or null when the base names none.
+    /// </summary>
+    public static string? TenantParentOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "PerTenantThrough").FirstOrDefault();
+
+    /// <summary>The children each <c>OneInForce&lt;TChild&gt;</c> the base names, fully qualified.</summary>
+    public static IEnumerable<string> InForceChildrenOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "OneInForce");
+
+    /// <summary>Whether a removed child keeps its row, stamped: its base names <c>SoftRemoved</c>.</summary>
+    public static bool SoftRemoves(INamedTypeSymbol entity) => !IsAggregate(entity) && Has(entity, SoftRemoved);
+
+    private static IEnumerable<string> TypeArgumentOf(INamedTypeSymbol symbol, string trait) =>
+        TraitArguments(symbol)
+            .OfType<INamedTypeSymbol>()
+            .Where(t => string.Equals(t.Name, trait, StringComparison.Ordinal) && t.TypeArguments.Length == 1 && IsRaskDataType(t))
+            .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     /// <summary>Whether the table has <c>CreatedAt</c>: only when its base names <c>Created</c> or <c>Timestamps</c>.</summary>
     public static bool StampsCreated(INamedTypeSymbol entity) => Has(entity, Created);
@@ -157,8 +175,9 @@ internal static class AggregateShape
                 "UpdateModel" => UpdateModel,
                 "Deletable" => Deletable,
                 "SoftDelete" => SoftDelete,
-                "PerTenant" => PerTenant,
+                "PerTenant" or "PerTenantThrough" => PerTenant,
                 "Broadcast" => Broadcast,
+                "SoftRemoved" => SoftRemoved,
                 _ => 0,
             }
             : 0;

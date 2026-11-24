@@ -1474,6 +1474,8 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
+| `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) |
+| `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
 
 With neither `Deletable` nor `SoftDelete` there is no `Delete` at all — calling it is a compile error, which is
 what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
@@ -1490,8 +1492,45 @@ What the table does not carry, the generated types do not either. A `Reading` li
 `Reading.OrderBy(r => r.UpdatedAt)` is a compile error, not a query that fails. `DeletedAt` is on a read face
 only for an aggregate that names `SoftDelete`.
 
-A child `Entity` takes only a timestamp trait — `OrderLine : Entity<Guid, Timestamps>`. Tenancy, the version, the
-delete and the form model are the aggregate's, so naming one on an entity is a compile error (CS0311).
+A child `Entity` takes only a timestamp trait and `SoftRemoved` — `OrderLine : Entity<Guid, Timestamps>`,
+`VirtualTank : Entity<VirtualTankId, Timestamps, SoftRemoved>`. Tenancy, the version, the delete and the form model are
+the aggregate's, so naming one on an entity is a compile error (CS0311).
+
+#### History and the one in force
+
+**`SoftRemoved`** keeps a child its aggregate lets go of. Removed from the collection — by `Sync`, `Remove`, a
+list's own — its row stays, stamped with `DeletedAt`, together with what it holds: whatever points at it (a fueling
+at a virtual tank) still does, and a unique index over it still counts it, so the name it held stays taken. The
+aggregate's load and the child's read face no longer see it; `IgnoreQueryFilters()` lists it again. An aggregate root
+names `SoftDelete` instead, and a root that names `SoftRemoved` is refused when the model is built.
+
+**`OneInForce<TChild>`** keeps the history of a child and at most one of it in force — a return's filings, a
+period's closings. The child says when one is, in its own `Configure`; the aggregate puts the next one in force and
+ends the last in one step:
+
+```csharp
+public sealed class Period : Aggregate<PeriodId, Versioned, OneInForce<PeriodFiling>>
+{
+    private readonly List<PeriodFiling> _filings = [];
+    public IReadOnlyList<PeriodFiling> Filings => _filings;
+
+    public void Close(Filer by) => _filings.Put(PeriodFiling.Of(by, Clock.Now), end: f => f.Unfile(by, Clock.Now));
+    public void Reopen(Filer by) => _filings.End(f => f.Unfile(by, Clock.Now));
+    public bool Closed => Filings.InForce() is not null;
+}
+
+public sealed class PeriodFiling : Entity<PeriodFilingId>
+{
+    public DateTime? UnfiledAt { get; private set; }
+    static void Configure(EntityTypeBuilder<PeriodFiling> b) => b.InForceWhile(f => f.UnfiledAt == null, Texts.AlreadyFiled);
+}
+```
+
+The rule is a unique index on the child's key to its aggregate over the rows in force only — filtered on SQL
+Server, partial on PostgreSQL and SQLite — so of two saves that each file one, one commits and the other is refused
+with a `RaskValidationException` under the new child's row (`Filings[1].PeriodId`) carrying the message; never a
+check-then-insert. `InForce()`, `Put(…)` and `End(…)`
+ask the same condition in memory, and `InForce()` throws if it ever finds two.
 
 > **Upgrading from the consts.** An aggregate that said nothing used to get `Timestamps`, `Versioned`, `Model` and
 > `Deletable`. Name them on its base — `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` — or its next
@@ -2706,6 +2745,33 @@ All three are read as the model is finalized by every `RaskDbContext` (a plain `
 `ModelRegistry.ApplyConventions`), and the model a migration is made from carries the provider's SQL alone —
 `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` — as if you had written it. A provider other than the
 three refuses the model; say it in that provider's own SQL there.
+
+### A key from a sequence: `FromSequence`
+
+```csharp
+static void Configure(EntityTypeBuilder<Provider> b) => b.Property(p => p.Id).FromSequence("Providers", start: 1000);
+```
+
+The key of each new row is taken from a database sequence as the row is added — before its insert — so an aggregate
+that derives something from its own key (`"p" + Id`) saves once, and a key the app worked out as `MAX + 1` and
+retried on a collision is no longer needed. It is a real sequence on SQL Server and PostgreSQL, made by the
+migration (the name defaults to the entity's and `Ids`); SQLite has none, so there it is a row of Rask's own
+`__RaskSequences` table, advanced in one statement under SQLite's writer lock and started above the highest key the
+table already holds. An `int` or `long` key, or a strongly-typed id over one.
+
+### A member behind a gate: `Gated`
+
+```csharp
+static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+
+services.AddRaskGate<Module>((scope, module) => scope.GetRequiredService<Modules>().IsOn(module));
+```
+
+A screen that hides a field from someone without the module must not clear what someone with it stored. With the
+gate shut for the work in flight, every save — a generated `Update(id, model)`, an operation, an import — leaves a
+gated member as it was stored, and a row added then stores nothing there; the rest of the row is written as usual.
+Only an optional member can be gated. Whether a gate is open is the app's to say, once, per kind of gate; a save
+that writes a gated member with no rule for its kind is refused rather than guessed at.
 
 ### What deleting a referenced row says
 

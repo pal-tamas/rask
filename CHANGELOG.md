@@ -28,6 +28,24 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Five model traits for the DDD plan's history, tenancy, keys and gates (F-30, F-31, F-32, F-34, F-35).**
+  - `SoftRemoved` on a child (`VirtualTank : Entity<VirtualTankId, SoftRemoved>`): a child its aggregate lets go of
+    keeps its row, stamped `DeletedAt`, with what it holds — hidden from the aggregate's load and its read face,
+    listed by `IgnoreQueryFilters()`, its unique name still taken. Before: it was deleted, or kept by a hand-written
+    `Deleted` flag every read had to remember. `Entity<TId, T1, T2>` takes two child traits.
+  - `PerTenantThrough<T>` (`Distribution : Aggregate<DistributionId, PerTenantThrough<Supply>>`): an aggregate with
+    no tenant column of its own is read and written through the tenant of the aggregate it points at, as a child is
+    through its parent. And `X.Across(reason)` lifts the tenant filter — only it — for one read:
+    `await User.Across("unique across every partner").Any(…)`. Before: a `Tenant.Across()` block around the read.
+  - `OneInForce<TChild>` with the child's `b.InForceWhile(f => f.UnfiledAt == null, message)`: a partial unique index
+    keeps at most one in force beside the history, and `Filings.InForce()`, `Filings.Put(next, end: …)` and
+    `Filings.End(…)` ask the same condition in memory. Before: a check-then-insert under a lock.
+  - `b.Property(p => p.Id).FromSequence("Providers", start: 1000)`: the key comes from a sequence as the row is added,
+    before its insert (SQL Server and PostgreSQL sequences; Rask's `__RaskSequences` row on SQLite, started above the
+    table's keys). Before: `MAX + 1` and a retry on the primary-key collision, and a second save for a key-derived code.
+  - `b.Gated(d => d.Card, Module.Tachograph)` + `services.AddRaskGate<Module>((scope, m) => …)`: with the gate shut,
+    a save keeps the stored value of a gated member and an added row stores none. Before: each form re-read the
+    hidden field and wrote it back by hand.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
