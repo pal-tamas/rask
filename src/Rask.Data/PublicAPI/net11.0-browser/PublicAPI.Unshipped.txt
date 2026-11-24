@@ -242,6 +242,7 @@ Rask.Data.TestDatabase.Load<TEntity>(object! key, System.Threading.CancellationT
 Rask.Data.TestDatabase.Load<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.Bind() -> System.IDisposable!
 Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
+Rask.Data.TestDatabase.Options<TOther>() -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TOther!>!
 Rask.Data.Timestamps
 const Rask.Data.GeneratedModelRules.RequiredMessage = "This field is required." -> string!
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!

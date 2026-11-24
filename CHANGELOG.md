@@ -28,6 +28,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
+  app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
+  in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
+  string, since `UseRaskSqlite(string, SqliteOptions)` is internal. After: `new LegacyDb(database.Options<LegacyDb>().Options)`
+  — the provider configured as the fixture's own contexts are, none of its interceptors.
 - **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
   `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
   without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
@@ -48,7 +53,8 @@ them until tagged releases begin.
   named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
   `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
   it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
-  aggregates and every reference by hand.
+  aggregates and every reference by hand. A new `server` app's `<Name>.Tests` project references `Rask.Testing.Data` beside
+  `Rask.Testing`; a `wasm` one stays on `Rask.Testing`.
 - **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
   field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
   validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
