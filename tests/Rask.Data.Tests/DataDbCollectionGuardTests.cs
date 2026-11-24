@@ -29,6 +29,8 @@ public sealed class DataDbCollectionGuardTests
             nameof(RefuseTests),
             // SQL text read into a record; it never builds a context.
             nameof(BulkDeleteTests),
+            // Refusals thrown from conditions and lambdas; it never builds a context.
+            nameof(RefuseTests),
             // Builds a context type of its own, in a collection that runs alone after every parallel one.
             nameof(AppModelRulesTests));
 }
