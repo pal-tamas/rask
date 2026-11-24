@@ -54,6 +54,23 @@ public sealed class SqlServerOptions
     /// </remarks>
     public bool SplitQueries { get; set; }
 
+    /// <summary>
+    /// The compatibility level EF Core generates SQL for — <c>170</c> for SQL Server 2025, <c>160</c> for 2022. Defaults
+    /// to <see langword="null"/>: read from the server.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Left unset, Rask asks the server once per connection string — the database's own level, or, before the database
+    /// exists, the level its server version gives a new one — and EF Core keeps its own default when the server cannot
+    /// be reached or is Azure SQL Database, which reports no version worth mapping.
+    /// </para>
+    /// <para>
+    /// Set it to pin the level without asking: SQL written for a level above the database's fails at run time, and one
+    /// below it gives up the newer translations.
+    /// </para>
+    /// </remarks>
+    public int? CompatibilityLevel { get; set; }
+
     /// <summary>How EF Core retries a transient failure — a dropped connection, an Azure SQL failover.</summary>
     public SqlServerRetryOptions Retry { get; } = new();
 
@@ -96,6 +113,14 @@ public sealed class SqlServerOptions
                 $"{nameof(SqlServerOptions)}.{nameof(LockTimeout)} ({LockTimeout}) must be below "
                 + $"{nameof(CommandTimeout)} ({CommandTimeout}), otherwise the client times out first and lock "
                 + "contention is reported as a slow query.");
+        }
+
+        // Every SQL Server level is a multiple of ten (100, 150, 170): a 17 is a version typed where a level belongs.
+        if (CompatibilityLevel is { } level && (level is <= 0 or > 990 || level % 10 != 0))
+        {
+            throw new InvalidOperationException(
+                $"{nameof(SqlServerOptions)}.{nameof(CompatibilityLevel)} must be a SQL Server compatibility level such as "
+                + $"170 or 160 (was {CompatibilityLevel}). Leave it unset to read it from the server.");
         }
 
         Retry.Validate();

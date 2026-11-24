@@ -31,6 +31,13 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`UseRaskSqlServer` writes SQL for the compatibility level the server reports.** Before: EF Core assumed its own
+  default level whatever the server ran, so an app on SQL Server 2025 pinned 170 by hand (`UseCompatibilityLevel`, a
+  helper of its own) and one on Azure SQL Edge got SQL its 150 database may not run. After: the first options build
+  for a connection string reads the database's level (`sys.databases`, or the server version's — 17 → 170, 16 → 160,
+  15 → 150 — before the database exists) on one unpooled connection, and every later build is a lookup; an
+  unreachable server (an offline `dotnet ef`) keeps EF Core's default, warns once and is asked again after 30 s. The
+  new `SqlServerOptions.CompatibilityLevel` (`Rask:SqlServer:CompatibilityLevel`) pins a level and asks nothing.
 - **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
   `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
   own constructor to upper-case it. After: `public sealed partial record Vin(string Value) : Text(Value, MinLength: 17,

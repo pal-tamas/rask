@@ -3346,6 +3346,19 @@ the section, the generated read faces among them; a single query still picks wit
 `Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
 `UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
 
+**The compatibility level is the server's.** EF Core writes its SQL for a compatibility level, and its own default
+is a guess at the newest server — wrong for a database still at 150 on SQL Server 2019 or Azure SQL Edge, and behind
+one at 170 on SQL Server 2025. `UseRaskSqlServer` asks the server instead, the first time it sees a connection string:
+the database's own level (`sys.databases` for `DB_NAME()`), or, before the database exists, the level the server's
+version gives a new one (2025 → 170, 2022 → 160, 2019 and Azure SQL Edge → 150). The answer is kept for the process,
+so a context is never a round trip; two contexts starting together send one probe, on an unpooled connection with a
+5-second connect timeout. A server it cannot reach — an offline `dotnet ef`, a host starting before its database —
+leaves EF Core's default, is logged once as a warning, and is asked again 30 seconds later; a context built
+meanwhile keeps the default, so `AddDbContextFactory`'s options, built once, keep it until the app restarts. Pin it
+with `Rask:SqlServer:CompatibilityLevel` (`"CompatibilityLevel": 170`, or `s => s.CompatibilityLevel = 170`), which
+asks nothing — the one choice for Azure SQL Database before its database exists, since it reports no version to map.
+An app needs no `UseCompatibilityLevel` of its own.
+
 Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
 on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on
 SQL Server), so a migration that rewrites a table, or waits behind the old instance's queries, is not killed
