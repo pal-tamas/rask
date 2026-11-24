@@ -24,6 +24,7 @@ public partial class PatternInputAttributesTests : global::Rask.Core.RaskMarkup
         var html = Page.Render(() => Input.Bind(() => m.Code)).Render();
 
         Assert.Contains("pattern=\"[A-Z]{2,3}\"", html, StringComparison.Ordinal);
+        Assert.Contains(" data-rask-pattern", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -35,6 +36,7 @@ public partial class PatternInputAttributesTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("pattern=\"[a-z]{4}\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("[A-Z]{2,3}", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-pattern", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -44,7 +46,7 @@ public partial class PatternInputAttributesTests : global::Rask.Core.RaskMarkup
 
         var html = Page.Render(() => Input.Bind(() => m.Word)).Render();
 
-        Assert.DoesNotContain("pattern=", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pattern", html, StringComparison.Ordinal);
     }
 
     [Fact]

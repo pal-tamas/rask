@@ -209,6 +209,22 @@ const leftToTheBrowser = [refuse(stepped), refuse(controlled), refuse(ranged)];
 elapse(0);
 const leftToTheBrowserSubmits = form.submits;
 
+// A pattern the framework wrote from the field's own rule (data-rask-pattern): the page has the sentence, so the
+// bubble is called off and the submit goes with the text. The author's own pattern stays the browser's.
+fresh();
+form = new StubForm();
+const plate = form.add(field("text", {"data-rask-on-change": "plate", "data-rask-bind-on": "action", pattern: "[A-Z]{3}", "data-rask-pattern": ""}));
+type(plate, "abc", {valid: false, patternMismatch: true});
+const ownPatternCalledOff = refuse(plate);
+elapse(0);
+const ownPatternSubmitted = taken();
+form = new StubForm();
+const code = form.add(field("text", {"data-rask-on-change": "code", "data-rask-bind-on": "action", pattern: "[a-z]{4}"}));
+type(code, "AB", {valid: false, patternMismatch: true});
+const authorPatternCalledOff = refuse(code);
+elapse(0);
+const authorPatternSubmits = form.submits;
+
 // A form whose handler takes what was posted whatever the rules say: the browser's refusal stands.
 fresh();
 form = new StubForm(false);
@@ -244,4 +260,8 @@ report({
     besideRequiredSubmits,
     leftToTheBrowser,
     leftToTheBrowserSubmits,
+    ownPatternCalledOff,
+    ownPatternSubmitted,
+    authorPatternCalledOff,
+    authorPatternSubmits,
 });

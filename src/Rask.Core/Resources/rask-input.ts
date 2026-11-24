@@ -421,19 +421,21 @@ document.addEventListener("focusout", (e) => {
 
 // THE BROWSER REFUSES A SUBMIT over a field it calls invalid, in its own words and language, and the page hears
 // nothing. Where all that is wrong is text a bound field cannot read — held back (unread), or a fraction in a
-// number field with no `step` of its own — the page has a sentence for it. So the browser's bubble is called
-// off and the submit goes, for the page to refuse with that sentence under the field. A form with anything
-// else wrong — a `required`, a `pattern`, a `min` the app wrote — stays the browser's to refuse, and only
-// what could not be read is sent. So does a form whose handler takes what was posted whatever the rules say,
+// number field with no `step` of its own — or a `pattern` the framework wrote from the field's own rule
+// (`data-rask-pattern`), the page has a sentence for it. So the browser's bubble is called off and the submit
+// goes, for the page to refuse with that sentence under the field. A form with anything else wrong — a
+// `required`, a `pattern` or a `min` the app wrote — stays the browser's to refuse, and only what could not be
+// read is sent. So does a form whose handler takes what was posted whatever the rules say,
 // or that has no model to have rules (`data-rask-unvalidated`): the browser's refusal is all that stops it.
 const refusing = new WeakSet<HTMLFormElement>();
 
 function pageSpeaksFor(el: Element): boolean {
     const v = (el as HTMLInputElement).validity;
     if (!el.hasAttribute(BIND_ON) && !el.hasAttribute(PAUSE)) return false;
-    if (v.valueMissing || v.typeMismatch || v.patternMismatch || v.tooLong || v.tooShort
+    const ownPattern = el.hasAttribute("data-rask-pattern");
+    if (v.valueMissing || v.typeMismatch || (v.patternMismatch && !ownPattern) || v.tooLong || v.tooShort
         || v.rangeUnderflow || v.rangeOverflow || v.customError) return false;
-    return unread(el) !== null || (v.stepMismatch && !v.badInput && !el.hasAttribute("step"));
+    return unread(el) !== null || v.patternMismatch || (v.stepMismatch && !v.badInput && !el.hasAttribute("step"));
 }
 
 function browserSpeaksFor(el: Element): boolean {
