@@ -3632,7 +3632,7 @@ public sealed record FindLogin(Guid Id) : IQuery<Login>;                        
 App code that only one database understands: an API of the SQL Server, PostgreSQL or SQLite provider or of its
 driver (`IncludeProperties`, `IsClustered`, `SqlException`, `PostgresException`, `SqliteConnection`, …),
 `EF.Functions.*`, raw SQL (`FromSql`/`FromSqlRaw`/`FromSqlInterpolated`, `ExecuteSql*`, `SqlQuery`/`SqlQueryRaw`,
-`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `UseCollation`,
+`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `SetContainerColumnType`, `UseCollation`,
 `HasDefaultValueSql`, `HasComputedColumnSql` and `HasFilter` given SQL, `ToSqlQuery`). An app's tests run on SQLite
 in memory ([testing](testing.md)), and Rask proves what it translates behaves the same on SQLite, SQL Server and
 PostgreSQL; code written for one of them is outside that proof — green on the database the tests run on, different
@@ -3652,7 +3652,7 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
 `EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
 `ForUpdate()` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the

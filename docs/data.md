@@ -1657,7 +1657,8 @@ leaves EF Core's default, is logged once as a warning, and is asked again 30 sec
 meanwhile keeps the default, so `AddDbContextFactory`'s options, built once, keep it until the app restarts. Pin it
 with `Rask:SqlServer:CompatibilityLevel` (`"CompatibilityLevel": 170`, or `s => s.CompatibilityLevel = 170`), which
 asks nothing — the one choice for Azure SQL Database before its database exists, since it reports no version to map.
-An app needs no `UseCompatibilityLevel` of its own.
+An app needs no `UseCompatibilityLevel` of its own. The level changes no column: a JSON column (a value collection, a
+`ToJson()` type) stays `nvarchar(max)` at 170 too, where EF Core alone would switch it to the native `json` type.
 
 Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
 on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on

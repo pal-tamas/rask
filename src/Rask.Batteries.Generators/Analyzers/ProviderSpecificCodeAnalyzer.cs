@@ -171,6 +171,8 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             "ToSqlQuery" => (method.Name, "one database's SQL", "map the entity to a table or a view, and query it with LINQ"),
             "HasColumnType" => (method.Name, "one database's column types",
                 "declare the value object's facets (Number(Value, Scale: 2), Text(Value, MaxLength: 200)) or HasPrecision / HasMaxLength"),
+            "SetContainerColumnType" => (method.Name, "one database's column types",
+                "leave the JSON column's type to Rask, which keeps it the same at every compatibility level"),
             "UseCollation" => (method.Name, "one database's collations",
                 "name the app's text order once with OrderTextBy(…) in ConfigureConventions, and sort with InTextOrder()"),
             "HasDefaultValueSql" when HasSql(call) => (method.Name, "one database's SQL",

@@ -1050,6 +1050,11 @@ collection is stored as `[]`, never as NULL. A nullable one, `List<Stop>? Detour
 column. This works the same way as Laravel's `$table->json('stops')` and Rails' `t.json :stops, null: false`. An
 adopted `Stops nvarchar(max) NOT NULL` column is mapped as it is, with no migration.
 
+The column is the database's own text of any length: `nvarchar(max)` on SQL Server at **every** compatibility level
+(EF Core alone would make it SQL Server 2025's `json` at 170, and change the model — and so the migrations — with the
+level the server reports), `TEXT` on SQLite and `jsonb` on PostgreSQL. A plain value collection (`List<string>`) is
+kept the same way. No app names the type; a `SetContainerColumnType(…)` or `HasColumnType(…)` of its own still wins.
+
 A JSON column is an EF Core *complex collection*, which EF Core writes through a list, so the property needs a
 `List<T>` behind it. **A get-only `IReadOnlyList<T>` auto-property keeps a NULL column**, whatever its nullability:
 

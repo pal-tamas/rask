@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A JSON column stays `nvarchar(max)` on SQL Server at every compatibility level, with no type named by the app.**
+  Before: at compatibility level 170 (which `UseRaskSqlServer` reads from a SQL Server 2025) EF Core maps a value
+  collection, a `ToJson()` complex or owned type and a primitive collection to the native `json` type, so the model —
+  and every migration — changed with the level the server reported, and a column made at 170 could not be created on a
+  150 server. The only way to pin it, `SetContainerColumnType("nvarchar(max)")`, is SQL Server's word, and SQLite fails
+  on it (`near "max"`). After: Rask's conventions keep every JSON column `nvarchar(max)` on SQL Server, `TEXT` on SQLite
+  and Npgsql's `jsonb` on PostgreSQL; a model that pinned `nvarchar(max)` by hand drops the call with no migration, and a
+  type the app states itself (`SetContainerColumnType`, `HasColumnType`) still wins. Moving a column to `json` stays a
+  migration the app writes. RASK177 now names `SetContainerColumnType` too.
 - **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
   generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
   `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
