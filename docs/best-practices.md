@@ -161,7 +161,7 @@ mistake, the rule notes the ID.
   declare it from a base record — `public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 100);`
   — and its constructor checks them, the aggregate makes it with `ProductName.Create(…)`, and a form bound to the
   generated model asks the same rules with nothing written on the field. One source of truth. See
-  [declared from a base record](data.md#declared-from-a-base-record).
+  [declared from a base record](domain.md#declared-from-a-base-record).
 
 ## Routing & lifecycle
 

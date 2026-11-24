@@ -55,7 +55,7 @@ internal static class AggregateLoad
         {
             // Loading ONE root by its key loads the aggregate whole — its children come with it. A query
             // (Product.Where(…)) deliberately does not: listing a thousand roots should not drag in
-            // every line each of them holds. See docs/data.md.
+            // every line each of them holds. See docs/domain.md#children.
             var set = context.Set<TEntity>().AsQueryable();
             return await (tracked ? set : set.AsNoTracking())
                 .WithChildren(context)

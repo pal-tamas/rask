@@ -44,6 +44,8 @@ own ("blazor", "react"). Map every new page to one:
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | full-stack .NET web framework, C# full-stack framework, one C# codebase for UI + data + auth + jobs + deploy | `/`, `getting-started` |
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
+| DDD aggregates and value objects in C#, EF Core value object validation, strongly-typed ids, no service layer | `domain` |
+| EF Core bulk insert, ExecuteUpdate / ExecuteDelete batch updates, data migration of existing rows | `data-writes` |
 | show a database unique-constraint / duplicate-key error under the form field in C#, EF Core unique index validation message | `forms-validation` (#the-database-said-no) |
 | show an error message when a form's save throws in C#, exception in a submit handler without try/catch, ValidationException to the form | `forms-validation` (#a-save-that-fails) |
 | show a "cannot delete, still referenced" message from a click handler in C#, validation exception from an event handler as a toast instead of an error page | `composition-lists` (#a-handler-that-refuses) |

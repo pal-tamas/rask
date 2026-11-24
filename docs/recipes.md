@@ -60,7 +60,7 @@ var mine = await Order.Where(o => o.Customer.Country == "HU");   // navigation, 
 **A part of the aggregate** — an order's lines — is an `Entity<TId>` kept in a private list and changed only
 through the root; loading the root by id loads it whole. Many-to-many between aggregates is a list of ids.
 
-→ Reference: [children](data.md#children) · [the read face](data.md#what-the-read-face-is) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
+→ Reference: [children](domain.md#children) · [the read face](data.md#what-the-read-face-is) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
 
 ## Keep deleted rows, or forbid deleting
 
@@ -74,7 +74,7 @@ public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model> { }   
 Then `rask db add OrderDeletes && rask db update`. `Order.IgnoreQueryFilters()` brings soft-deleted rows
 back into a read.
 
-→ Reference: [choosing what a table carries](data.md#choosing-what-a-table-carries)
+→ Reference: [choosing what a table carries](domain.md#choosing-what-a-table-carries)
 
 ## Add a search box
 

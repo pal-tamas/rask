@@ -38,6 +38,13 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
+  entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
+  transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,
+  text order, `Db.Lock`, code that runs the same on every database, migrations) and `docs/data-writes.md` (bulk
+  insert, batch updates, moving stored rows). Gone from the docs: the command handler and the page that inject a
+  context factory to save, rules that throw `InvalidOperationException`, and SQL or store types written in the model.
+  Two aggregates in one save is the last resort, both entries inside one `Db.Transaction`. The rask.sh guides follow.
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
   sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or

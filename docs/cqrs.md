@@ -498,7 +498,7 @@ has no wire encoding. It reaches no existing code: codecs are generated only for
 references one of the two transport packages, so an app using `Rask.Cqrs` in-process is unconstrained.
 
 **A contract carries what the domain holds.** A `record struct` is a member like a record class. A one-value
-[value object](data.md#value-objects) and a typed id travel as the bare value they hold, so the JSON reads like the
+[value object](domain.md#value-objects) and a typed id travel as the bare value they hold, so the JSON reads like the
 data, not like its wrappers:
 
 ```csharp
