@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **FluentValidation's `GreaterThan`, `LessThan`, `Length(n)` and `PrecisionScale` speak Rask's catalog too.** Before:
+  `RuleFor(x => x.Age).GreaterThan(17)` said "A(z) 'Age' nagyobb kell, hogy legyen, mint '17'." because the catalog had
+  no sentence for it. After: four new `RaskString` keys — `ValidationAbove`, `ValidationBelow`, `ValidationExactLength`,
+  `ValidationDigits` — say "17 feletti értéket adjon meg." and the like, with Rask.Ui's Hungarian and an app's own
+  translation, like the rules that already did.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
