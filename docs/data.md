@@ -1037,6 +1037,40 @@ save has been stamped and versioned by nothing: fix the value and `Save()` again
 request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
 runs no interceptor ([bulk insert](#bulk-insert)).
 
+### A row closed by its parent: `LockedBy`
+
+A delivery note of a closed period, a transaction of a filed return: the row stays as it was while the row it
+belongs to says so. Declare it once in `Configure`, and every save holds to it — a page's, a job's, an import's:
+
+```csharp
+public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
+    b.LockedBy(n => n.Period, (Period p) => p.Closed, Texts.PeriodClosed);
+
+public static void Configure(EntityTypeBuilder<GasClaim> b) =>     // the words made from the parent
+    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", forUpdate: true);
+```
+
+`n => n.Period` is the property holding the parent's key — a typed id, an `int`, a nullable one — and
+`(Period p) => p.Closed` is translated to SQL, so it may reach further (`r => r.Filings.Any(f => f.UnfiledAt == null)`).
+The save asks it with the rest of [what every save asks](#what-every-save-asks), one query per lock for all the rows
+of the save:
+
+- **The old and the new parent.** For a row the save adds, changes or deletes, the parent it was read with and the
+  one it holds now are both read, so a row is moved neither out of a locked parent nor into one. A null key names no
+  parent and locks nothing; a null set to a locked parent is refused.
+- **A child's change locks through its root.** A line added to, changed on or removed from a note of a closed period
+  is refused as the note would be: the aggregate is the unit the lock holds.
+- **Under the parent field, or the whole row.** A new row, or one whose parent the save changes, is refused under
+  that field (`Period`); any other write is refused about the row itself — the whole form for a root.
+- **`forUpdate: true`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
+  SQL Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite, whose one writer serializes the save already — so a
+  "Close period" cannot slip in between the check and the write. The save runs in a transaction of its own when its
+  caller opened none (inside `Db.Transaction`, it is that one). A context whose execution strategy retries cannot
+  take one: wrap such a save in `Db.Transaction` for the lock to hold.
+
+The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
+same save closes is judged as the database has it, before this save.
+
 ### An operation, run as one write
 
 A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
