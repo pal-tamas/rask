@@ -1005,7 +1005,7 @@ public sealed partial class Note : Aggregate<Guid, Versioned>
 }
 
 Form.For(Note.Rename, id)[f => [
-    Ui.Field.Bind(() => f.Title).Label("New title"),
+    Ui.Field.Bind(() => f.Title).Blur().Label("New title"),
     Ui.Button.Primary.Submit["Rename"],
 ]]
 ```
@@ -1015,7 +1015,8 @@ Form.For(Note.Rename, id)[f => [
   Value) : Text(…)`) is its value on the form, with its rules told to the control (`maxlength`, `min`, …) and made
   through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text,
   a number, a day, a bool, an enum or an id is taken as it is.
-- **The domain's rules are the form's.** As each field is committed the operation is tried
+- **The domain's rules are the form's.** As each field is committed — with the next action, or as it is left with
+  `.Blur()` ([bind timing](#bind-timing)) — the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](data.md#an-operation-run-as-one-write)) and what it would be refused for —
   a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
   entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is
