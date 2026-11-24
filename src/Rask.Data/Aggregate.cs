@@ -31,7 +31,7 @@ namespace Rask.Data;
 /// </example>
 /// </remarks>
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
-public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents, IStoredAggregate, IAttemptState
+public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents, IStoredAggregate, IAttemptState, IProjectionCarrier
 {
     // Made on the first Raise: a row that is only read never raises one, and a queue or a list page reads thousands.
     private List<IEvent>? _domainEvents;
@@ -82,6 +82,10 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
     void IAttemptState.Restore(AttemptState before) => (_stored, Version) = (before.Stored, before.Version);
 
     void IAttemptState.PutBack(IReadOnlyList<IEvent> events) => (_domainEvents ??= []).InsertRange(0, events);
+
+    void IProjectionCarrier.Raise(IEvent projected) => Raise(projected);
+
+    void IProjectionCarrier.Withdraw(Predicate<IEvent> projected) => _domainEvents?.RemoveAll(projected);
 }
 
 /// <summary>An aggregate that asks for one trait, in any order — see <see cref="IAggregateTrait" />.</summary>

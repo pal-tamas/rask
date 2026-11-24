@@ -28,6 +28,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`b.Projects(watched, raise)` declares a projection on its rows, in place of a save hook.** Before: state made
+  from rows (a sequence number per pistol, the company a vehicle last fuelled for) was kept by an interceptor or an
+  after-save raw `UPDATE` — outside the save's transaction, hung on whichever aggregate was saved, and lost to a crash
+  between the two. After: `b.Projects(f => new { f.Moment, f.PistolId }, changed => new
+  FuelingsToNumber(changed.Values(f => f.PistolId)))` in `Configure` raises the event once per save that adds, removes,
+  or changes a watched member of the aggregate, from `ProjectedRows<T>` (each row's `Before` and `After`) — raised as
+  the aggregate's own, so a durable handler's outbox row commits in that same save and a rollback raises nothing.
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection

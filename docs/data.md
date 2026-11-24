@@ -1383,6 +1383,34 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
   saves.EachWroteOneAggregate();
   ```
 
+### Declared projections: `Projects`
+
+Some state is made *from* rows rather than kept on them: a fueling's sequence number per pistol, the company a vehicle
+last fuelled for. Written as a save hook — an interceptor that looks at what changed and writes elsewhere after the
+save — it runs outside the save's transaction, so a crash between the two leaves them disagreeing, and it hangs on
+whichever aggregate happened to be saved. Declare it on the rows instead, and let the rows raise an event:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Fueling> b) =>
+    b.Projects(f => new { f.Moment, f.PistolId, f.Number },
+               changed => new FuelingsToNumber(changed.Values(f => f.PistolId)));
+```
+
+- **What it watches:** a save that adds a `Fueling`, removes one, or changes a member `watched` names to another value
+  — `f => f.Moment`, or several as `f => new { … }`. A change to anything else, or a member set to the value it held,
+  raises nothing. Anything but the row's own members (`f => f.Number + 1`) is refused where it is declared.
+- **Once per save:** `raise` gets every row the save changed as `ProjectedRows<Fueling>` — each a `ProjectedRow` with
+  `Before` (a detached copy of what is stored, `null` for an added row) and `After` (the row as written, `null` for a
+  removed one). `changed.Values(f => f.PistolId)` is every value a member holds on either side, each once: the pistol a
+  fueling left as well as the one it went to. Return `null` to raise nothing for this save.
+- **Raised as the aggregate's own event**, onto the first row the save changed: a [durable handler](outbox.md) of it —
+  `IDurableHandler<FuelingsToNumber>` — has its outbox row written **in that same save**, so the projection's work is
+  stored with the change or not at all; an in-memory `IEventHandler` hears it after the commit, and a rollback raises
+  nothing. A retried save raises it once, and a `raise` that throws fails the save.
+- **On an aggregate**, since its events ride on its rows: a `Projects` on a child or a plain entity is refused where it
+  is declared. Declaring the same event again on the same type replaces the first declaration.
+- Nothing is written to the database for it — no column, no SQL, no migration.
+
 ### One holder at a time, across hosts: `Db.Lock`
 
 Some work must never run twice at once however many hosts the app runs on — talking to one pump, closing one
@@ -3629,6 +3657,8 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 - **`WritableChildrenInterceptor`** — first of all: hands a held collection EF Core can fill, and asks the domain's
   rules of the save ([what every save asks](#what-every-save-asks)) before any other interceptor touches a row.
+- **`ProjectionInterceptor`** — next: raises each [declared projection](#declared-projections-projects)'s event onto
+  the rows the save changed, before soft-delete rewrites a removal and before the outbox and the publish read the events.
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each `Versioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
 - **`SoftDeleteInterceptor`** — for an aggregate that names `SoftDelete`, rewrites a `Deleted`
