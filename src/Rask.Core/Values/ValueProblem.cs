@@ -8,7 +8,7 @@ namespace Rask.Values;
 /// </summary>
 /// <param name="Kind">The rule that was broken.</param>
 /// <param name="Limit">The limit it broke — the most characters, the least number, the latest day — or null.</param>
-/// <param name="Message">The value object's own words for it (<c>Text(Message: …)</c>), which win over any.</param>
+/// <param name="Message">The value object's own words for it (<c>Message: …</c> on its base), which win over any.</param>
 internal readonly record struct ValueProblem(ValueProblemKind Kind, object? Limit = null, string? Message = null)
 {
     /// <summary>The framework's English for the rule, with <c>{0}</c> where the limit goes.</summary>
