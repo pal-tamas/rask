@@ -584,6 +584,10 @@ static Rask.Data.Refuse.Unless(bool condition, string! message) -> void
 static Rask.Data.Refuse.Unless<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
 static Rask.Data.Refuse.When(bool condition, string! message) -> void
 static Rask.Data.Refuse.When<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+Rask.Data.KeepEmptyBuilderExtensions
+Rask.Data.GeneratedEmptyTexts
+static Rask.Data.GeneratedEmptyTexts.Of<TValue>(System.Func<TValue>! make) -> TValue
+static Rask.Data.KeepEmptyBuilderExtensions.KeepEmpty<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 Rask.Data.ColumnName
 Rask.Data.ColumnName.AsDeclared.get -> string!
 Rask.Data.ColumnName.CamelCase.get -> string!

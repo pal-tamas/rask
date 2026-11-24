@@ -46,6 +46,19 @@ them until tagged releases begin.
   publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
   `events.Published<DriverChipsChanged>().Once()`, `.Never()`, `.Times(n)`, `.Where(e => …)`, `.Only()`, `.All`
   ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
+- **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
+  `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
+  so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by
+  hand (reflection over the model before each write). After: a member named by `KeepEmpty` in the aggregate's static
+  `Configure` writes `''` when its field is left empty or emptied (the value object made from `''` past its rules), a
+  new row starts with `''`, and a row holding `NULL` there keeps it while the field stays empty. A filled field
+  still answers to every rule; a member not stored as text throws when the model is built.
+- **An attribute on a value-object property shapes its column, and RASK128 says when it disagrees.** Before: a
+  `[MaxLength]`, `[StringLength]` or `[Precision]` on a property holding a `Text`/`Number` value object was overridden
+  by the value object's own facet without a word. After: the attribute wins for that column (`Configure` still over
+  both), the generated model carries it so a form and `Create(model)`/`Update(id, model)` ask it beside the value
+  object's rule, and [RASK128](docs/diagnostics.md#rask128) warns on the attribute when its literal disagrees with
+  the value object's.
 - **`c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class)` names a legacy schema once, in the app's
   `IRaskModel`.** Before: a database another tool made (TA's Prisma schema: `countedAt`, tables named after the class)
   took a `HasColumnName` on every property and a `ToTable` on every entity — hundreds of lines. After: one line names

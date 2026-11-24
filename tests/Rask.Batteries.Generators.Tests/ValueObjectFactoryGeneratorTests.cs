@@ -344,6 +344,54 @@ public class ValueObjectFactoryGeneratorTests
         Assert.Empty(none);
     }
 
+    private static Task<IReadOnlyList<Diagnostic>> Attributed(string attribute, string property) =>
+        ModelStateAnalyzerHarness.RunAsync(new ValueObjectColumnFacetAnalyzer(), $$"""
+            using System;
+            using System.ComponentModel.DataAnnotations;
+            using Microsoft.EntityFrameworkCore;
+            using Rask.Data;
+            namespace Shop;
+            public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
+            public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2, Precision: 9);
+            public sealed class Delivery : Aggregate<Guid>
+            {
+                private Delivery() { }
+                {{attribute}}
+                {{property}}
+            }
+            """);
+
+    [Theory]
+    [InlineData("[MaxLength(200)]", "public DriverName Driver { get; private set; } = null!;", "declares MaxLength: 1000, but [MaxLength] gives its column a length of 200")]
+    [InlineData("[StringLength(50)]", "public DriverName? Driver { get; private set; }", "declares MaxLength: 1000, but [StringLength] gives its column a length of 50")]
+    [InlineData("[MaxLength]", "public DriverName Driver { get; private set; } = null!;", "[MaxLength] gives its column no length")]
+    [InlineData("[Precision(18, 4)]", "public Litres Fuel { get; private set; } = null!;", "declares Precision: 9, Scale: 2, but [Precision] gives its column a precision of 18 and a scale of 4")]
+    public async Task An_attribute_giving_the_column_a_facet_other_than_the_value_objects_is_RASK128(string attribute, string property, string said)
+    {
+        var diagnostics = await Attributed(attribute, property);
+
+        var diagnostic = Assert.Single(diagnostics);
+
+        Assert.Equal("RASK128", diagnostic.Id);
+        Assert.Contains(said, diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.StartsWith(attribute.Trim('[', ']'), diagnostic.Location.SourceTree!.ToString()[diagnostic.Location.SourceSpan.Start..], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[MaxLength(1000)]", "public DriverName Driver { get; private set; } = null!;")]
+    [InlineData("[StringLength(1000)]", "public DriverName Driver { get; private set; } = null!;")]
+    [InlineData("[Precision(9, 2)]", "public Litres Fuel { get; private set; } = null!;")]
+    [InlineData("[Required]", "public DriverName? Driver { get; private set; }")]
+    [InlineData("[MaxLength(10)]", "public string Name { get; private set; } = \"\";")]
+    public async Task An_attribute_that_agrees_with_the_value_object_or_gives_no_facet_is_fine(string attribute, string property)
+    {
+        var diagnostics = await Attributed(attribute, property);
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
+    }
+
     // ---- RASK130 ----
 
     private const string Entity = """
