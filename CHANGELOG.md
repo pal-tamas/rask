@@ -31,6 +31,15 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class)` names a legacy schema once, in the app's
+  `IRaskModel`.** Before: a database another tool made (TA's Prisma schema: `countedAt`, tables named after the class)
+  took a `HasColumnName` on every property and a `ToTable` on every entity — hundreds of lines. After: one line names
+  every column and table the model did not name itself. `n.CamelCase`, `n.SnakeCase`, `n.AsDeclared` (EF Core's) and
+  `n.Path` name a column — a value object's after its whole path (`kmStart`, `km_start`), a JSON column but not what it
+  holds, an owned type's after its navigation; `t.Class`, `t.CamelCase`, `t.SnakeCase`, `t.AsDeclared` name a table, a
+  hierarchy's once. An explicit `HasColumnName`/`ToTable`/`[Column]`/`[Table]` wins, Rask's battery tables keep their
+  names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
+  stated in. Every provider ([data](docs/data.md#app-wide-model-rules-one-iraskmodel)).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

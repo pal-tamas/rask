@@ -2106,6 +2106,33 @@ public sealed class AppModel : IRaskModel
   Server — column default the model did not name itself. `n.Table`, `n.Columns` (as the database names them) and
   `n.Joined` (`Name_TenantId`) describe it; return `null` to keep EF Core's name. A name longer than the database
   allows is cut to its limit: 128 characters on SQL Server, 63 on PostgreSQL.
+- **`ColumnNames`** and **`TableNames`** name every column and table the model did not name itself — what a schema
+  another tool made needs, instead of a `HasColumnName` on every property:
+
+  ```csharp
+  c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class);   // a Prisma schema: countedAt, kmStart; Fueling
+  c.ColumnNames(n => n.SnakeCase).TableNames(t => t.SnakeCase); // a PostgreSQL one: counted_at, km_start; delivery_note
+  ```
+
+  A column's `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and
+  `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`), `n.SnakeCase` (`km_start`) and `n.AsDeclared` (EF Core's
+  `Km_Start`) are its ready names; `n.Table` is the table it is in. A table's are `t.Class` (the class name, whatever
+  its `DbSet` is called), `t.CamelCase`, `t.SnakeCase` and `t.AsDeclared` (EF Core's: the `DbSet`'s name). Return an
+  empty string to keep EF Core's. What they leave alone:
+
+  | | named? |
+  |---|---|
+  | a `HasColumnName`, `ToTable`, `[Column]` or `[Table]` in `Configure` | **no** — it wins |
+  | a value object's columns (`Km_Start` → `kmStart`) | yes, after the whole path |
+  | a JSON column (`ToJson()`, a value-object collection) | the column yes, the properties inside it no |
+  | an owned type in its owner's table | yes, after its navigation (`depotStreet`); its key stays its owner's column |
+  | a hierarchy in one table, its discriminator | the table once, after its root; `discriminator` too |
+  | an owned type's own table, a view's name | no |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — they keep the names their migrations have |
+
+  Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
+  unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work
+  on every provider.
 - **`DeleteBehavior(children:, others:)`** says what a delete does: `children` for an aggregate's
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
