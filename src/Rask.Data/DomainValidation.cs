@@ -19,7 +19,8 @@ namespace Rask.Data;
 ///         and its <see cref="IValidatableObject" /> (or <see cref="IAsyncValidatableObject" />), then its
 ///         <c>Validate()</c>. The root of an aggregate is asked whenever anything in it changes, a child removed
 ///         included, because a rule over the rows is the root's. An aggregate the save deletes is asked its
-///         <c>ValidateDelete()</c> instead.
+///         <c>ValidateDelete()</c> instead. Last, each declared lock (<see cref="LockedByBuilderExtensions" />) of a row
+///         the save writes, or of an aggregate whose child it writes, asks the store for the row's old and new parent.
 ///     </para>
 ///     <para>
 ///         The failures are named as the aggregate's form model names its fields — <c>Title</c>, <c>Lines[2].Quantity</c>
@@ -38,7 +39,7 @@ internal static class DomainValidation
     /// <exception cref="RaskValidationException">A rule refused what the save would write.</exception>
     internal static async Task CheckAsync(DbContext context, CancellationToken cancellationToken)
     {
-        if (!GeneratedDomainRules.Any)
+        if (!GeneratedDomainRules.Any && !ParentLocks.Any)
         {
             return;
         }
@@ -59,6 +60,7 @@ internal static class DomainValidation
         }
 
         await save.Roots().ConfigureAwait(false);
+        await save.Locks(changed).ConfigureAwait(false);
 
         if (save.Failures.Count > 0)
         {
@@ -121,6 +123,39 @@ internal static class DomainValidation
                 }
             }
         }
+
+        // The declared locks (LockedBy) of each row the save writes, and of each aggregate a write to a child of it
+        // touches: its parent's state is asked of the store, one query per lock for all the rows of the save.
+        internal async Task Locks(List<EntityEntry> changed)
+        {
+            if (!ParentLocks.Any)
+            {
+                return;
+            }
+
+            var written = new HashSet<object>(changed.Select(static e => e.Entity), ReferenceEqualityComparer.Instance);
+            var rows = changed.Concat(_roots.Where(r => !written.Contains(r.Entity)));
+            foreach (var type in rows.GroupBy(static e => e.Metadata.ClrType))
+            {
+                var locks = ParentLocks.Of(type.Key);
+                if (locks.IsEmpty)
+                {
+                    continue;
+                }
+
+                var writes = type.Select(e => new LockTarget(e, PlaceOf(e))).ToList();
+                foreach (var rule in locks)
+                {
+                    Failures.AddRange(await rule.Check(context, writes, cancellationToken).ConfigureAwait(false));
+                }
+            }
+        }
+
+        // Where a row sits in its aggregate's form; a deleted row holds no place, nor a root.
+        private string PlaceOf(EntityEntry entry) =>
+            entry.State == EntityState.Deleted || entry.Entity is IAggregate || RootOf(entry) is not { } root
+                ? ""
+                : PathOf(root, entry.Entity);
 
         // Up its foreign key; a row a save let go is a detached copy whose parent key nobody kept, so its root says.
         private EntityEntry? RootOf(EntityEntry entry) =>

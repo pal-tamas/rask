@@ -200,11 +200,6 @@ public sealed class RangeExclusionTests
         protected override void OnModelCreating(ModelBuilder modelBuilder) => configure(modelBuilder);
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.ReplaceService<IModelCacheKeyFactory, NeverCache>();
-    }
-
-    private sealed class NeverCache : IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime) => Guid.NewGuid();
+            => optionsBuilder.ReplaceService<IModelCacheKeyFactory, EachContextItsOwnModel>();
     }
 }

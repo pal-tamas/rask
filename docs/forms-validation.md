@@ -23,7 +23,7 @@ value an earlier one rejected:
 
 ```csharp
 Input.Bind(() => _model.Name)
-    .Validate(DestinationName.Validate)   // required, length, format
+    .Validate(DestinationName.Check)      // required, length, format
     .Validate(NameIsFree)                 // then, only if the first let the value through
 ```
 
@@ -55,33 +55,29 @@ checks them — `public sealed partial record DestinationName(string Value) : Te
 — and a form bound to the aggregate's generated model asks the same rules
 [by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
 
-A form over a model of your own, with no data layer behind it, names a shared rule from the field instead —
-any static method that takes the value and returns the messages:
+A form over a model of your own, with no data layer behind it, names the value object's rules from the field
+instead. Every value object of one value — declared from `Text`, `Number`, `Whole`, `Day` or `Moment`, or `: Value`
+with one member — gets a generated `X.Check(value)`, which answers what `X.Create` would refuse with, in the shape of
+a field's rule:
 
 ```csharp
-public readonly record struct DestinationName(string Value)
+using Rask.Values;
+
+public sealed partial record DestinationName(string Value)
+    : Text(Value, MaxLength: MaxLength, Pattern: @"^\p{L}", Message: "A name starts with a letter.")
 {
     public const int MaxLength = 255;
-
-    public static IEnumerable<string> Validate(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            yield return "A destination needs a name.";
-        else if (value.Length > MaxLength)
-            yield return $"A name is at most {MaxLength} characters.";
-        else if (!char.IsLetter(value[0]))
-            yield return "A name starts with a letter.";
-    }
 }
 
 Ui.Input.Bind(() => _model.Name)
     .MaxLength(DestinationName.MaxLength)
-    .Validate(DestinationName.Validate)
+    .Validate(DestinationName.Check)
 ```
 
-`Validate` takes the method by name, because it has the shape of a rule: the value in, the messages
-out. Every form that edits a destination's name asks the same question, and the constant sets the input's
-`maxlength` too. Nothing asks such a method by itself: on a value object an aggregate holds it is never run
+`Validate` takes it by name: the value in, the messages out, synchronously. Every form that edits a destination's name
+asks the same question the domain asks, and the constant sets the input's `maxlength` too. A number gets `Check` for
+the value and for its nullable form, so it fits a `decimal` field and a `decimal?` one. Any static method of that shape
+works the same way; one named `Validate` on a value object an aggregate holds is never run by itself
 ([RASK132](diagnostics.md#rask132)) — declare that one from a base record.
 
 <!-- demo:validation-value-object -->
@@ -433,7 +429,7 @@ Ui.Input.Bind(() => _model.Traveller).Label("Traveller")
     .Validate(name => name.Length > 0 ? [] : ["Who is travelling?"]),   // runs with the next action: Save
 Ui.Input.Bind(() => _model.Name).Label("Destination")
     .Live()                               // runs as the reader types, 150 ms after the last key
-    .Validate(DestinationName.Validate)
+    .Validate(DestinationName.Check)
     .Validate(NameIsFree),                // a lookup: only for a name the first rule accepted
 Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
     .Blur()                               // runs on leaving the field
@@ -715,6 +711,15 @@ A FluentValidation message names the field by the same `[Display]` name its labe
 DataAnnotations messages read ("'Given name' must not be empty."): Rask puts it behind FluentValidation's
 `ValidatorOptions.Global.DisplayNameResolver`. A rule's `.WithName(…)` still wins, and a resolver the app sets
 itself replaces Rask's.
+
+A built-in rule with no `.WithMessage(…)` says what the equivalent attribute says through Rask: `NotEmpty()` and
+`NotNull()` what `[Required]` says, `MaximumLength`/`MinimumLength`/`Length` what `[StringLength]`/`[MaxLength]`/
+`[MinLength]` say, `EmailAddress()`, `Matches(…)`, `CreditCard()`, `InclusiveBetween`/`ExclusiveBetween` (`[Range]`),
+`GreaterThanOrEqualTo`/`LessThanOrEqualTo` (a value object's least and greatest), `NotEqual` and `IsInEnum` — the
+`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. A rule it has
+no sentence for (`GreaterThan`, `Length(n)` exact, `PrecisionScale`, `Must`), and every language it does not speak,
+keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
+`.WithMessage(…)` always wins, and a language manager the app sets itself replaces Rask's.
 
 An async `MustAsync` rule rides the same wrapper:
 

@@ -19980,7 +19980,6 @@ Rask.Values.Text
 Rask.Values.Text.Text(Rask.Values.Text! original) -> void
 Rask.Values.Text.Value.get -> string!
 Rask.Values.Whole
-Rask.Values.Whole.Value.get -> long
 Rask.Values.Whole.Whole(Rask.Values.Whole! original) -> void
 static Rask.Values.Day.operator !=(Rask.Values.Day? left, Rask.Values.Day? right) -> bool
 static Rask.Values.Day.operator ==(Rask.Values.Day? left, Rask.Values.Day? right) -> bool

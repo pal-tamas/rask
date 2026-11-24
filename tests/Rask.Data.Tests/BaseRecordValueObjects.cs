@@ -82,15 +82,15 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 {
     private Rig() { }
 
-    public RigDriver Driver { get; private set; } = RigDriver.Create("Nobody");
+    public RigDriver Driver { get; private set; } = null!;
 
     public RigChip? Chip { get; private set; }
 
-    public RigPlate Plate { get; private set; } = RigPlate.Create("AAA-000");
+    public RigPlate Plate { get; private set; } = null!;
 
-    public RigLitres Tank { get; private set; } = RigLitres.Create(1);
+    public RigLitres Tank { get; private set; } = null!;
 
-    public RigAxles Axles { get; private set; } = RigAxles.Create(2);
+    public RigAxles Axles { get; private set; } = null!;
 
     public RigInspected? Inspected { get; private set; }
 
@@ -111,12 +111,47 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 }
 
 /// <summary>An aggregate holding value objects of several members, stored as complex values.</summary>
+/// <summary>A value of one member with a rule of its own: a one-value value object, like a base record's.</summary>
+public sealed partial record RigRank(int Value) : Value
+{
+    public const string AtLeastOne = "A rank is 1 or more.";
+
+    protected override IEnumerable<Problem> Rules()
+    {
+        if (Value < 1)
+        {
+            yield return Problem.Whole(AtLeastOne);
+        }
+    }
+}
+
+/// <summary>A whole number held as an int.</summary>
+public sealed partial record RigSeats(int Value) : Whole(Value, Min: 1, Max: 9);
+
+/// <summary>An aggregate holding one-value value objects of an int, written through its generated model.</summary>
+public sealed class Ladder : Aggregate<int, Model>
+{
+    private Ladder() { }
+
+    public RigRank Rank { get; private set; } = null!;
+
+    public RigSeats Seats { get; private set; } = null!;
+}
+
+/// <summary>An aggregate written through its generated model, holding a value of several members with its own rule.</summary>
+public sealed class Bunker : Aggregate<int, Model>
+{
+    private Bunker() { }
+
+    public RigOpening Opening { get; private set; } = null!;
+}
+
 /// <summary>An aggregate holding a text that may be left empty, written through its generated model.</summary>
 public sealed class Notebook : Aggregate<int, Model>
 {
     private Notebook() { }
 
-    public RigNote Note { get; private set; } = RigNote.Create("");
+    public RigNote Note { get; private set; } = null!;
 }
 
 /// <summary>An aggregate written through its generated model, holding a range that checks itself.</summary>
@@ -124,7 +159,7 @@ public sealed class Leg : Aggregate<int, Model>
 {
     private Leg() { }
 
-    public RigKm Km { get; private set; } = RigKm.Create(0, 1);
+    public RigKm Km { get; private set; } = null!;
 }
 
 public sealed class Haul : Aggregate<int>

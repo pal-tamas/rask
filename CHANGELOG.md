@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
+  `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
+  over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
+  warning names the property, and its quick-fix writes `= null!` (docs/data.md's `Delivery` example now does).
+- **A value object of several values is asked as the form is filled.** Before: only a `Range`'s ends were checked
+  live; a `: Value` record of several members — `Opening(DateOnly? Date, decimal? Quantity)` with its own `Rules()` —
+  spoke only on save. After: every member of its nested model asks the record's generated `TryCreate` beside the
+  other members, and each problem shows under the member it names (`Opening.Quantity`) as it is typed.
+- **A `: Value` record of one member is a one-value value object, and `Whole` holds an `int` too.** Before:
+  `record Rank(int Value) : Value { … Rules() … }` was built with `new` by the generated model, its rules ran only
+  on save and a refusal named no field; `Whole` took only a `long Value`. After: it gets `__Problems`, the form asks it
+  under its field as it does a `Text`, and a refusal on save carries the field (`Rank`); `record Seats(int Value) :
+  Whole(Value, Min: 1)` keeps its own `int`. BREAKING: `Whole` no longer declares `Value` — the derived record does.
 - **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
   `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
   runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value
@@ -49,6 +62,10 @@ them until tagged releases begin.
   warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
   `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
 ### Performance
+- **`TestDatabase.Start<TContext>()` copies the model's schema instead of creating it per test.** Before: every
+  in-memory database ran `EnsureCreated`, ~74 ms median for a 54-table model (9 ms at best, on a loaded machine).
+  After: the first database over a model creates the schema and keeps an empty copy; every later one is restored
+  from it through SQLite's backup API (tables, indexes, triggers, `HasData` seed) — ~0.7 ms median for the same model.
 - **Saving an aggregate of thousands of changed children is linear, not quadratic.** Before: the save's checks
   (`AuditingInterceptor`'s root walk — touching the root, a child's tenant against its root's — and `ParentTenantCheck`)
   found each child's parent by scanning every tracked row, so a save cost changed children × rows tracked: 3,000 new
@@ -74,6 +91,61 @@ them until tagged releases begin.
   neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
   property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
   `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
+- **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
+  "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
+  `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
+  `ExclusiveBetween`, `GreaterThanOrEqualTo`, `LessThanOrEqualTo`, `NotEqual` and `IsInEnum` say the `RaskStrings`
+  sentence the equivalent DataAnnotations attribute says, in the reader's language; a rule with no catalog sentence,
+  or a language the catalog does not speak, keeps FluentValidation's own text, `WithMessage` still wins, and a
+  `ValidatorOptions.Global.LanguageManager` the app sets itself replaces Rask's.
+- **`Children<TEntity, TSpec>`: an aggregate's children as one read-only property, made what a form's rows say by `Sync`.**
+  Before: every aggregate wrote a private `List<T>`, a public view and the same add/change/remove loop by hand (TA's
+  `Supply.Change`, `ChipHolding`, `Tank.Change`…). After: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`
+  and `Parts.Sync(specs, s => s.Id, add: SupplyPart.For, update: (p, s) => p.Hold(s), remove: p => p.Release())`: a spec
+  whose key is a part's `Id` updates it, any other adds one, an unnamed part is let go; the children end in the specs'
+  order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
+  property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
+  insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
+  the ids, are an `ArgumentException` before anything changes. Children matched by a key of their own take
+  `Sync(specs, s => s.TransactionId, f => f.TransactionId, add, update)`; a child made from no row is `Parts.Add(x)` /
+  `Parts.Remove(x)`, callable only from the aggregate that declares the property — elsewhere the new error
+  [RASK180](docs/diagnostics.md#rask180). See [Children](docs/data.md#children).
+- **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
+  Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
+  data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
+  durable handler's event was never stored, and the lazy-loading guard did not run. After: the interceptors come from
+  services registered as the host registers them — `AddRaskCqrs()`, `AddRaskData<TContext>()`, and `AddRaskOutbox`
+  when the model maps the outbox table (announced by `Rask.Outbox` itself) — in the app's order, so a save publishes
+  its events to their `IEventHandler`s after the commit and clears them, stores a durable handler's event in the same
+  transaction (or `Outbox.Fake()` records it), and a handler's `IDbContextFactory<TContext>` opens the test's database.
+  Every `Start` overload takes `services:` for what the app's handlers need beyond Rask's registrations. A test that
+  asserted `DomainEvents` after a save asserts it before the save, or on what the handler did.
+  Its contexts' options also say up front what a Rask context configures for itself, so each start builds EF Core's
+  internal services once rather than twice (a test run is refused past twenty).
+- **A database a class or collection fixture started is its test class's own, in parallel.** Before: one started in a
+  fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture classes in parallel read
+  whichever started last. After: Rask.Testing's xUnit v3 hook binds it before each test of the class (a fixture that is
+  a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
+  hand. Disposing a database clears the process-wide binding only while it is still its own.
+
+- **`X.Check(value)` on every one-value value object.** Before: a hand-written form asked a value object's rules
+  through a lambda over `TryCreate`, or a `static Validate` written beside it. After: the generated, public, sync
+  `DriverName.Check(value)` answers what `DriverName.Create` would refuse with, in the shape of a field's rule —
+  `Ui.Input.Bind(() => m.Name).Validate(DriverName.Check)`; a number gets one for `decimal` and one for `decimal?`. The
+  site's destination demos use it.
+- **`b.LockedBy(n => n.Period, (Period p) => p.Closed, message)`: a row closed by its parent, held by every save.**
+  Before: "a closed period's notes stay as they were" was a hand-written save hook per app, reading tables by name
+  with provider SQL, blind to a child-only change or a move between parents, and checked outside the save's
+  transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
+  changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
+  holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`),
+  or from the parent and the write (`(p, w) => …`: `w.Kind` is `Add`, `Change`, `Delete` or `Move`, `w.Row` the row).
+  `LockRead.ForUpdate` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL
+  Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none.
+  `.Except(t => t.RefundId, …)` lets a change that touches only those columns through (a claim taking a transaction
+  over); `.Including(p => p.Filings)` loads a parent navigation for the message. See
+  [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
   hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods
@@ -86,6 +158,17 @@ them until tagged releases begin.
   named `id`, `version` or `cancellationToken`) and the error [RASK172](docs/diagnostics.md#rask172) (roles written
   where the entry cannot read them, which would leave it open). See
   [an operation, run as one write](docs/data.md#an-operation-run-as-one-write).
+- **A non-public factory is born through a generated entry, and every operation says who may run it.** A static method
+  of a `partial` aggregate that returns it — written `private`/`internal` — gets `SupplyId id = await
+  Supply.Register(company, details, parts)`: its roles (`b.Operation(nameof(Register), roles: …)`) asked, the aggregate
+  built and saved with its rules in one `Db.Transaction`, the id handed back. A factory left public gets none and is
+  the warning [RASK173](docs/diagnostics.md#rask173). Each operation and factory also gets `Supply.MayChange` — whether
+  the signed-in principal holds one of its roles, `true` when it names none — for a page to hide what it may not do.
+- **An operation can be tried without being done.** Each operation and factory also gets a hidden
+  `Supply.DryRunChange(id, version, …)` / `DryRunRegister(…)`: the method run on a fresh copy, the rules a save asks
+  asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
+  its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
+  engine a form over the operation uses to show the domain's own rules as it is filled in.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
@@ -750,6 +833,22 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A test project that declares its own context still boots the app on demand.** Before: a `RaskDbContext` subclass
+  in a test project that uses Rask.Testing got a generated design-time factory over `UseRaskDatabase`, so the test
+  assembly referenced `Rask.Server` and Rask.Testing took the TEST project's entry point (the test SDK's `Main`) for the
+  app's — nothing booted, and a read with no database of its own failed with "The read faces have not been pointed at
+  a database". After: an assembly that references a test framework is never taken for the app.
+- **A `DateTimeOffset` orders and compares by its instant on SQLite, as on SQL Server.** Before: EF Core's SQLite
+  provider stored it as text with its offset and refused `OrderBy`, `<`, `>` and `Max` over it, and `==` and a unique
+  index compared the text — so `10:00+01:00` and `09:00+00:00` were two moments, and a query an app ran on SQL Server
+  did not translate in its SQLite tests. After: `UseRaskSqlite` creates every `DateTimeOffset` column
+  `COLLATE "RASK_MOMENT"` (`SqliteCollations.MomentOrder`, registered on every connection), which compares by UTC
+  instant; the stored text is EF Core's own, every tick and the offset kept, and a property with a converter of its own
+  keeps its column. An existing SQLite database with such columns takes one migration (`rask db add MomentOrder`).
+  `DateTimeParityTests` (Providers E2E) pins the date rules on SQL Server, SQLite and PostgreSQL: a tick and
+  `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL —
+  where a `Moment` value object, a wall-clock `DateTime` of `Kind = Unspecified`, is refused on save
+  ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
 - **A value object's generated half is fully documented.** Before: `X.Create(…)` documented only its `field`
   parameter, so an app building its documentation file with warnings as errors failed on CS1573 in a file it never
   wrote (TA had to `NoWarn` CS1573 project-wide). After: `Create`, `TryCreate`, `CreateOptional` and `__Problems`

@@ -145,10 +145,10 @@ public class FieldShapeGeneratorTests
         Assert.Contains(
             "RegisterFieldRules(typeof(global::Shop.TripModel.KmRangeModel), KmRangeModel_RuleOf);", model, StringComparison.Ordinal);
         Assert.Contains("global::System.Func<object, int?, global::System.Collections.Generic.IEnumerable<string>> KmRangeModel_End =", model, StringComparison.Ordinal);
-        Assert.Contains("__InRange_KmRangeModel(model.Start, value, \"End\")", model, StringComparison.Ordinal);
-        Assert.Contains("__InRange_KmRangeModel(value, model.End, \"Start\")", model, StringComparison.Ordinal);
-        Assert.Contains("global::Shop.KmRange.TryCreate(__start, __end, out _, out var __problems);", model, StringComparison.Ordinal);
-        Assert.Contains("global::Shop.Shift.TryCreate(__start, end, out _, out var __problems);", model, StringComparison.Ordinal);
+        Assert.Contains("__InValue_KmRangeModel(model.Start, value, \"End\")", model, StringComparison.Ordinal);
+        Assert.Contains("__InValue_KmRangeModel(value, model.End, \"Start\")", model, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.KmRange.TryCreate(__Start, __End, out _, out var __problems);", model, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.Shift.TryCreate(__From, __ToGiven, out _, out var __problems);", model, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -183,6 +183,80 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_non_public_factory_gets_a_public_entry_that_saves_it_and_hands_back_its_id()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            private static Tag Open(int level) => new() { Id = Guid.CreateVersion7(), Level = level };
+            internal static async Task<Tag> Later(int level) { await Task.Yield(); return Open(level); }
+            public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(nameof(Open), roles: "Admin");
+            """));
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static global::System.Threading.Tasks.Task<global::System.Guid> Open(int level, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
+        Assert.Contains("Build<global::Shop.Tag, global::System.Guid>(\"Open\", \"Admin\", () => global::System.Threading.Tasks.Task.FromResult(Open(level)), cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("Build<global::Shop.Tag, global::System.Guid>(\"Later\", null, () => Later(level), cancellationToken);", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Each_operation_and_factory_gets_a_hidden_dry_run_that_compiles()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            private static Tag Open(int level) => new() { Id = Guid.CreateVersion7(), Level = level };
+            """));
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("DryRunBump(global::System.Guid id, int version, int level, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.Try<global::Shop.Tag>(id!, version, aggregate => { aggregate.Bump(level); return", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.TryBuild<global::Shop.Tag>(() => global::System.Threading.Tasks.Task.FromResult(Open(level)), cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("EditorBrowsableState.Never", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_public_factory_is_RASK173_and_gets_no_entry()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            public static Tag Open(int level) => new() { Id = Guid.CreateVersion7(), Level = level };
+            """));
+
+        var diagnostic = Assert.Single(run.RunResult.Diagnostics, static d => d.Id == "RASK173");
+
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains("'Tag.Open' is a public factory", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.False(run.HasGeneratedSource(".Operations"));
+    }
+
+    [Fact]
+    public void Each_operation_says_whether_the_signed_in_principal_may_run_it()
+    {
+        var run = Run(Supply);
+
+        var generated = run.GeneratedSource("Shop.Supply.Operations");
+
+        Assert.Contains("public static bool MaySetOpening => global::Rask.Data.GeneratedOperations.Admits(\"Admin\");", generated, StringComparison.Ordinal);
+        Assert.Contains("public static bool MayChange => true;", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_factory_named_by_nameof_in_its_Configure_is_not_RASK172()
+    {
+        var diagnostics = await Analyze(Tagged("""
+            public int Level { get; private set; }
+            private static Tag Open(int level) => new() { Id = Guid.CreateVersion7(), Level = level };
+            public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(nameof(Open), roles: "Admin");
+            """), new UnreadConfigurationAnalyzer());
+
+        Assert.DoesNotContain(diagnostics, static d => d.Id == "RASK172");
+    }
+
+    [Fact]
     public async Task A_bare_call_inside_the_aggregate_that_lands_on_the_entry_is_RASK170()
     {
         var diagnostics = await Analyze(Tagged("""

@@ -37,7 +37,7 @@ public sealed class ScaffoldContextShapeTests
     public void A_context_over_plain_DbContext_does_not_map_a_declared_model()
     {
         using var db = new ScaffoldShapedContext(
-            new DbContextOptionsBuilder<ScaffoldShapedContext>().UseSqlite("Data Source=:memory:").Options);
+            new DbContextOptionsBuilder<ScaffoldShapedContext>().UseSqlite("Data Source=:memory:").OneOfManyShapes().Options);
 
         Assert.Null(db.Model.FindEntityType(typeof(Doodad)));
     }
@@ -46,7 +46,7 @@ public sealed class ScaffoldContextShapeTests
     public void A_context_over_RaskDbContext_maps_it()
     {
         using var db = new RaskShapedContext(
-            new DbContextOptionsBuilder<RaskShapedContext>().UseSqlite("Data Source=:memory:").Options);
+            new DbContextOptionsBuilder<RaskShapedContext>().UseSqlite("Data Source=:memory:").OneOfManyShapes().Options);
 
         Assert.NotNull(db.Model.FindEntityType(typeof(Doodad)));
     }
@@ -67,8 +67,8 @@ public sealed class ScaffoldContextShapeTests
     {
         var services = new ServiceCollection();
         services.AddRaskData();
-        services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:"));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+        services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:").OneOfManyShapes());
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:").OneOfManyShapes());
 
         using var provider = services.BuildServiceProvider();
 
@@ -82,8 +82,8 @@ public sealed class ScaffoldContextShapeTests
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<RaskShapedContext>();
-        services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:"));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+        services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:").OneOfManyShapes());
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:").OneOfManyShapes());
 
         using var provider = services.BuildServiceProvider();
         try

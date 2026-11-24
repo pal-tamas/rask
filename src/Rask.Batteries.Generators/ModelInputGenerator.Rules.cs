@@ -105,7 +105,7 @@ public sealed partial class ModelInputGenerator
         {
             SpecialType.System_String => "Text",
             SpecialType.System_Decimal => "Number",
-            SpecialType.System_Int64 => "Whole",
+            SpecialType.System_Int64 or SpecialType.System_Int32 => "Whole",
             _ when held is { Name: "DateOnly", ContainingNamespace.Name: "System" } => "Day",
             SpecialType.System_DateTime => "Moment",
             _ => null,
@@ -355,7 +355,7 @@ public sealed partial class ModelInputGenerator
                     : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable && !m.ValueObject.AllowsEmpty))
                 .ToList();
 
-            var beside = RangeEnds(nested).ToList();
+            var beside = BesideMembers(nested).ToList();
             if (rules.Count > 0 || beside.Count > 0)
             {
                 yield return new RuledModel(FormModelType(entity) + "." + nested.ModelName, nested.ModelName + "_", rules, beside);
@@ -363,7 +363,7 @@ public sealed partial class ModelInputGenerator
         }
     }
 
-    private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules, List<RangeEnd> Beside);
+    private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules, List<BesideMember> Beside);
 
     /// <summary>
     ///     One field's rule: the generated <c>__Problems</c> of the value object declared from a base record that it

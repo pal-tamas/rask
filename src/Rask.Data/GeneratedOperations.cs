@@ -70,8 +70,102 @@ public static class GeneratedOperations
         }, cancellationToken: cancellationToken);
     }
 
-    /// <summary>Whether the principal of the work in flight holds one of <paramref name="roles" />.</summary>
-    internal static bool Admits(string? roles) =>
+    /// <summary>
+    ///     Builds a new <typeparamref name="TAggregate" /> with its factory and saves it as one write — what
+    ///     <c>await Supply.Register(company, details, parts)</c> does.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the factory builds.</typeparam>
+    /// <typeparam name="TId">Its key type.</typeparam>
+    /// <param name="operation">The factory's name, for the refusal a missing role gets.</param>
+    /// <param name="roles">The roles its <c>Configure</c> names, comma-separated, or <see langword="null" /> for none.</param>
+    /// <param name="build">Calls the factory.</param>
+    /// <param name="cancellationToken">Cancels the operation; unset, the work this call belongs to does.</param>
+    /// <returns>The id of the saved aggregate, once committed.</returns>
+    /// <exception cref="ForbiddenException">The principal holds none of <paramref name="roles" />.</exception>
+    /// <exception cref="RaskValidationException">A rule refused what the factory built.</exception>
+    public static async Task<TId> Build<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate, TId>(
+        string operation,
+        string? roles,
+        Func<Task<TAggregate>> build,
+        CancellationToken cancellationToken = default)
+        where TAggregate : Entity<TId>, IAggregate
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentNullException.ThrowIfNull(build);
+        cancellationToken = Ambient.Or(cancellationToken);
+
+        Demand<TAggregate>(operation, roles);
+
+        return await Db.Transaction(async () =>
+        {
+            var aggregate = await build().ConfigureAwait(false);
+            await GeneratedModelWrites.Save(aggregate, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return aggregate.Id;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Tries one operation without doing it — what a generated <c>Supply.DryRunChange(id, version, …)</c> does, and
+    ///     a form over the operation asks as it is filled in: the aggregate loaded afresh at <paramref name="version" />,
+    ///     the method run on that copy, and the rules a save would ask asked of it, with nothing written, locked or
+    ///     announced.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the operation belongs to.</typeparam>
+    /// <param name="key">The id of the aggregate.</param>
+    /// <param name="version">The version the caller read, or <see langword="null" /> for an aggregate with none.</param>
+    /// <param name="apply">Calls the method on the copy.</param>
+    /// <param name="cancellationToken">Cancels the try; unset, the work this call belongs to does.</param>
+    /// <returns>
+    ///     Every failure the operation would be refused for — a stale version, a <c>Refuse</c>, a rule — each under the
+    ///     field it names; empty when it would go through.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">No aggregate has <paramref name="key" />, or it is soft-deleted.</exception>
+    public static Task<IReadOnlyList<FieldFailure>> Try<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        object key,
+        int? version,
+        Func<TAggregate, Task> apply,
+        CancellationToken cancellationToken = default)
+        where TAggregate : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(apply);
+        cancellationToken = Ambient.Or(cancellationToken);
+
+        return DryRun.Of(async () =>
+        {
+            var aggregate = (version is { } read
+                                ? await GeneratedModelWrites.Find<TAggregate>(key, read, cancellationToken).ConfigureAwait(false)
+                                : await GeneratedModelWrites.Find<TAggregate>(key, cancellationToken).ConfigureAwait(false))
+                            ?? throw GeneratedModelWrites.Missing<TAggregate>(key);
+            await apply(aggregate).ConfigureAwait(false);
+            return aggregate;
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Tries a factory without saving what it builds — what a generated <c>Supply.DryRunRegister(…)</c> does: the
+    ///     aggregate built and the rules a save would ask asked of it, with nothing written, locked or announced.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the factory builds.</typeparam>
+    /// <param name="build">Calls the factory.</param>
+    /// <param name="cancellationToken">Cancels the try; unset, the work this call belongs to does.</param>
+    /// <returns>Every failure the save would be refused for, each under the field it names; empty when none.</returns>
+    public static Task<IReadOnlyList<FieldFailure>> TryBuild<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        Func<Task<TAggregate>> build,
+        CancellationToken cancellationToken = default)
+        where TAggregate : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(build);
+        return DryRun.Of(build, Ambient.Or(cancellationToken));
+    }
+
+    /// <summary>
+    ///     Whether the principal of the work in flight holds one of <paramref name="roles" /> — what a generated
+    ///     <c>Supply.MaySetOpening</c> answers.
+    /// </summary>
+    /// <param name="roles">The roles, comma-separated; <see langword="null" /> or empty admits anyone.</param>
+    /// <returns>True when it may run the operation.</returns>
+    public static bool Admits(string? roles) =>
         RolesOf(roles) is not { Length: > 0 } named || named.Any(static role => Current.IsInRole(role));
 
     private static void Demand<TAggregate>(string operation, string? roles)

@@ -170,7 +170,7 @@ internal static class WireShape
 
         var parameter = constructors[0].Parameters[0];
         var properties = AggregateShape.ValueBaseOf(type) is not null
-            ? type.BaseType!.GetMembers("Value").OfType<IPropertySymbol>().ToList()
+            ? AggregateShape.StoredProperties(type).ToList()
             : PublicProperties(type).Where(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)).ToList();
 
         return properties.Count == 1 && SymbolEqualityComparer.Default.Equals(properties[0].Type, parameter.Type)

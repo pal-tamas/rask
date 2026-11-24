@@ -76,7 +76,7 @@ public partial class TestDatabase
                 turn.DropOnEnd(() => Drop(Configure, construct));
             }
 
-            return await Open(Configure, construct, timeProvider: null, SchemaStep.Migrate, turn, cancellationToken).ConfigureAwait(false);
+            return await Open(Configure, construct, timeProvider: null, addServices: null, SchemaStep.Migrate, turn, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
