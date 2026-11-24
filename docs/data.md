@@ -197,7 +197,9 @@ public sealed class Supply : Aggregate<SupplyId>
 `Parts` is an `IReadOnlyList<SupplyPart>` to everyone, in the specs' order — the order a form posted them, so a
 part's rule fails under `Parts[1].Quantity` as for any child. It is also the collection EF Core maps (through the
 property's own backing field): the part `Sync` adds is inserted, the one it changes is updated, the one it lets go
-is deleted, all by the aggregate's save. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved
+is deleted, all by the aggregate's save. Each part's place is stored too, in a `Position` column Rask adds to the
+child's table (`Columns.Position`, a shadow property: a migration adds it), so the parts load back in the order the
+last `Sync` gave them, whatever order the store reads them in. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved
 one of its public properties — one its row left as it was is not there), `Removed`, and `Touched` (added or
 changed), which is what a rule over old rows asks so a row stored before the rule was tightened is let be. The key
 is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two rows naming one part, or a key of another

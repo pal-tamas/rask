@@ -23,7 +23,7 @@ namespace Rask.Data;
 ///         It is the collection EF Core maps — the property's own backing field — so the aggregate declares no private
 ///         <c>List&lt;T&gt;</c> and no public view of it. EF Core loads into it and tracks it as any collection of children:
 ///         a child <c>Sync</c> adds is inserted, one it changes is updated, one it lets go is deleted, all in the
-///         save of the aggregate, and the save's domain step asks each its rules under its row — <c>Parts[1].Quantity</c>.
+///         save of the aggregate, each child's place stored with it (<see cref="Columns.Position" />) so they load back in that order, and the save's domain step asks each its rules under its row — <c>Parts[1].Quantity</c>.
 ///     </para>
 /// </remarks>
 /// <typeparam name="TEntity">The child: an <see cref="Entity{TId}" />.</typeparam>
@@ -35,6 +35,9 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
     where TEntity : class, IEntity
 {
     private readonly List<TEntity> _held = [];
+
+    // Where each child EF Core loaded was stored, while it loads them in: what Add orders them by.
+    private Dictionary<TEntity, int>? _loaded;
 
     /// <summary>How many children there are.</summary>
     public int Count => _held.Count;
@@ -141,6 +144,17 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
     public void Add(TEntity item)
     {
         ArgumentNullException.ThrowIfNull(item);
+
+        // A child EF Core loads goes where it was stored (Columns.Position), whatever order the rows came back in.
+        if (ChildPositions.Take(item) is { } position)
+        {
+            _loaded ??= new Dictionary<TEntity, int>(ReferenceEqualityComparer.Instance);
+            var at = _held.FindIndex(held => _loaded.TryGetValue(held, out var other) && other > position);
+            _loaded[item] = position;
+            _held.Insert(at < 0 ? _held.Count : at, item);
+            return;
+        }
+
         _held.Add(item);
     }
 
@@ -167,6 +181,7 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
 
         _held.Clear();
         _held.AddRange(kept);
+        _loaded = null;
         return new SyncResult<TEntity>(added, changed, removed, touched);
     }
 

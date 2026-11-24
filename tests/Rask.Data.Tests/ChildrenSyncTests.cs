@@ -86,6 +86,25 @@ public sealed class ChildrenSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task Children_load_back_in_the_order_the_last_sync_gave_them_whatever_order_their_ids_sort_in()
+    {
+        await using var database = await StartDatabaseAsync();
+        var cargo = Cargo.Load("Aurora", [new(null, "A", 1), new(null, "B", 2), new(null, "C", 3), new(null, "D", 4)]);
+        var againstTheIds = cargo.Parts.OrderByDescending(static p => p.Id.ToString(), StringComparer.Ordinal).Select(static p => p.Hold).ToList();
+        cargo.Change([.. againstTheIds.Select(hold => { var part = cargo.Parts.Single(p => p.Hold == hold); return new CargoPartSpec(part.Id, part.Hold, part.Tonnes); })]);
+
+        await cargo.Save(cancellationToken: Token);
+        var loaded = (await database.Load<Cargo>(cargo.Id, Token))!;
+        var stored = (await Cargo.Find(cargo.Id, Token))!;
+        stored.Change([.. stored.Parts.Reverse().Select(static p => new CargoPartSpec(p.Id, p.Hold, p.Tonnes))]);
+        await stored.Save(cancellationToken: Token);
+        var reversed = (await database.Load<Cargo>(cargo.Id, Token))!;
+
+        Assert.Equal(againstTheIds, loaded.Parts.Select(static p => p.Hold));
+        Assert.Equal(Enumerable.Reverse(againstTheIds), reversed.Parts.Select(static p => p.Hold));
+    }
+
+    [Fact]
     public async Task A_synced_childs_rule_is_refused_under_its_row_in_the_specs_order()
     {
         await using var database = await StartDatabaseAsync();

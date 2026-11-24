@@ -37,6 +37,12 @@ public static class Columns
     /// <summary>The optimistic-concurrency token. Added by <see cref="Aggregate{TId}" />, which must declare it.</summary>
     public const string Version = "Version";
 
+    /// <summary>
+    ///     A child's place among its siblings in a <see cref="Children{TEntity, TSpec}" />, written by each save so they
+    ///     load back in the order the last <c>Sync</c> gave them. Added to every entity a <c>Children&lt;,&gt;</c> holds.
+    /// </summary>
+    public const string Position = "Position";
+
     /// <summary>Which tenant owns the row. Added only to a table whose <c>Scope</c> const says <c>PerTenant</c>.</summary>
     public const string TenantId = "TenantId";
 

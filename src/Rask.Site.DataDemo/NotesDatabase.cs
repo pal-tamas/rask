@@ -28,7 +28,8 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
             var items = model.FindEntityType(typeof(NoteItem))!.GetTableName()!;
             var operations = db.GetService<IMigrationsModelDiffer>().GetDifferences(null, model.GetRelationalModel());
 
-            // A database restored from IndexedDB already has it all — or, kept from before the checklist, all but its table.
+            // A database restored from IndexedDB already has it all — or, kept from before the checklist, all but its table, or
+            // from before its order was kept, all but the items' Position.
             if (!await HasTable(db, "Note", cancellationToken).ConfigureAwait(false))
             {
                 await Run(db, model, operations, cancellationToken).ConfigureAwait(false);
@@ -45,6 +46,15 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
                     .ToList();
                 await Run(db, model, checklist, cancellationToken).ConfigureAwait(false);
             }
+            else if (!await HasColumn(db, items, Columns.Position, cancellationToken).ConfigureAwait(false))
+            {
+                // Kept from before the checklist kept its order: the items' places, each item where it is until saved again.
+                AddColumnOperation position = new()
+                {
+                    Table = items, Name = Columns.Position, ClrType = typeof(int), ColumnType = "INTEGER", IsNullable = false, DefaultValue = 0,
+                };
+                await Run(db, model, [position], cancellationToken).ConfigureAwait(false);
+            }
 
             ready.Set();
         }
@@ -60,6 +70,12 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
     private static async Task<bool> HasTable(NotesDb db, string table, CancellationToken cancellationToken) =>
         await db.Database
             .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = {table}")
+            .SingleAsync(cancellationToken)
+            .ConfigureAwait(false) > 0;
+
+    private static async Task<bool> HasColumn(NotesDb db, string table, string column, CancellationToken cancellationToken) =>
+        await db.Database
+            .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM pragma_table_info({table}) WHERE name = {column}")
             .SingleAsync(cancellationToken)
             .ConfigureAwait(false) > 0;
 
