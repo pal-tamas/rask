@@ -43,7 +43,7 @@ public sealed partial class ModelInputGenerator
         var type = choice.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var options = choice.GetMembers().OfType<IFieldSymbol>()
             .Where(static f => f.IsConst)
-            .Select(f => "new global::Rask.Core.Forms.FieldOption(" + type + "." + f.Name + ", " + NamedOf(f) + ")");
+            .Select(f => "new global::Rask.Core.Forms.FieldOption(" + type + "." + f.Name + ", " + ValidationAttributeSource.NameOf(f) + ")");
 
         return "new " + FieldShapeType + "(" + FieldKindType + ".Choice, Options: new global::Rask.Core.Forms.FieldOption[] { "
                + string.Join(", ", options) + " })";

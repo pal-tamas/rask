@@ -545,7 +545,7 @@ public static class ModelBuilderExtensions
             typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType) &&
             !typeof(IAggregate).IsAssignableFrom(key.DeclaringEntityType.ClrType));
 
-    // An Entity<TId> key is the entity's to set, except an integer one, which the store's identity produces —
+    // An Entity<TId> key is the entity's to set, except an integer one (or a typed id over one), which the store's identity produces —
     // and except where the application already said how its key is generated. An app with a context of its
     // own calls this AFTER its own configuration, so overwriting an explicit ValueGeneratedOnAdd or a database
     // default here would send an empty key straight past the default that was meant to fill it.
@@ -576,8 +576,21 @@ public static class ModelBuilderExtensions
             return;
         }
 
+        // A typed id over an integer — VehicleId(int Value) — keys an identity column, as the integer would.
+        if (IsInteger(StoredTypeOf(property)))
+        {
+            key.ValueGeneratedOnAdd();
+            return;
+        }
+
         key.ValueGeneratedNever();
     }
+
+    // The type the column holds: a typed id's value type, read off the converter the model registry gave it.
+    private static Type StoredTypeOf(IConventionProperty property) =>
+        property.GetProviderClrType()
+        ?? property.GetValueConverter()?.ProviderClrType
+        ?? property.ClrType;
 
     // Entity<(DeliveryNote, Transaction)>: keyed by the parts the generated Id names, in its order, each the entity's
     // to set. The names are the generated Id's own tuple names — a context wired by hand gets the same key as the
