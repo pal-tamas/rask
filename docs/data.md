@@ -2397,8 +2397,12 @@ builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // o
   the model or a migration — an app that runs its tests on SQLite carries no SQL Server call into them.
 - The covered columns are carried, not ordered by: they are no part of the index's key, and a unique index stays
   unique over its keys alone.
-- A covered member that is not a mapped property of the entity (a navigation, a complex property, an ignored
-  member), or one that is already a key of the index, fails the model build with its name.
+- A value object of several members stored in columns of its own is covered by each of them:
+  `Covering(l => l.Km)` over a `KmRange(int Start, int End)` named `StartKm` and `EndKm` writes
+  `INCLUDE ([EndKm], [StartKm])` — the columns as they are named, `Columns(…)` patterns included. One member of it
+  is `Covering(l => l.Km.Start)`, or `Covering("Km.Start")`.
+- A covered member that is not a mapped property of the entity (a navigation, a value object stored as JSON, an
+  ignored member), or one that is already a key of the index, fails the model build with its name.
 
 It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
 `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
@@ -2584,12 +2588,15 @@ public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 100
 public sealed partial record Vin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
 public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
+public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Scale: 9, Round: true);   // computed: rounded, not refused
 public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
 public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
 public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
 public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);       // no end: open
 public sealed partial record RefundMonths(int From, int To) : Range(From, To, Min: 1, Max: 12);
+public sealed partial record KmReading(int StartKm, int EndKm) : Range(StartKm, EndKm, Strict: true,
+    Message: "A záró km-nek nagyobbnak kell lennie a kezdőnél.");                              // its own words
 
 public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
 {
@@ -2612,13 +2619,17 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
-| `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
+| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern`, `Trim` (on by default), `Upper` (kept in capitals) |
+| `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits), `Round` (to the scale instead of refusing) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
 | `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
+
+**Every base but `Value` takes a `Message`**: what a value that breaks any rule declared there is told, in the app's
+own words, said once however many rules it breaks (a `Range` says it under each end it is about) — instead of the
+framework's sentence for each, from Rask's strings catalog. A text left blank is still told it is required.
 
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
 compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a
@@ -2642,6 +2653,23 @@ same type and hold the same values; a one-value record's `ToString()` is its val
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
+
+**`Round: true` rounds a number to its `Scale` instead of refusing its extra digits** — half away from zero, as SQL
+Server rounds what it stores — before the bounds and the precision are checked. It is for a number nobody typed: a
+unit price or a share of a total computed in the domain, which used to be rounded silently by the column and would
+otherwise be refused for its fourteenth decimal. `UnitPrice.Create(1.0000000005m)` holds `1.000000001m`. A `Round`
+with no `Scale` throws as the value is made.
+
+**A one-value record of an ordered value orders like it.** Over a number, a whole number, a day, a moment or a
+text (any value that is `IComparable` of itself) the generated half makes the record `IComparable` and gives it `<`,
+`>`, `<=` and `>=` against its own type: `fuelings.OrderBy(f => f.Moment)` sorts a list as the database sorts the
+column, and `f.Moment >= since` reads as it means — and translates on the write model, see
+[value objects of any shape](#value-objects-of-any-shape). A record that writes its own `CompareTo` or operators keeps them.
+
+**An enum is a one-value record over `Value`**: `public sealed partial record FuelKind(Fuel Value) : Value;`, with
+any rule of its own in `Rules()`. It is one column of the enum's own type — EF Core's enum-to-number, or whatever
+`HasConversion` the app gives the enum — the generated model carries `Fuel? Fuel`, and a control bound to it is
+offered the enum's members, labelled by their `[Display(Name)]`, as for a bare enum.
 
 **A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
@@ -2820,21 +2848,30 @@ The unique rule's failure names the field `Email` — the form's own name for it
 object is rebuilt through the constructor that takes its value, or, for the private shape, a parameterless
 constructor and its property; both may be private.
 
-**What it costs: a query on the aggregate cannot reach inside the value.**
+**A query on the aggregate reads the value as its column.** `.Value` is the column itself, typed as the value — on
+SQL Server, SQLite and PostgreSQL alike, with the column's own store type and no `CAST` — so a write-side query
+filters, sums and sorts by it; and a value object of one ordered value (a number, a whole number, a day, a moment,
+a text) is generated `IComparable` with `<`, `>`, `<=` and `>=` against its own type, so the whole value compares and
+sorts too, in the database and in a list:
 
 ```csharp
-// on the read face — where queries belong — the value IS the primitive, and everything translates
+// on the read face the value IS the primitive
 await Customer.Where(c => c.Email.StartsWith("ada@")).OrderBy(c => c.Email);
 
-// on the write model (plain EF Core over the aggregate): comparing the whole value translates…
-await db.Set<Customer>().Where(c => c.Email == new Email("ada@example.com")).ToListAsync(ct);
+// on the write model (plain EF Core over the aggregate) the value inside translates…
+await db.Set<Transaction>().Where(t => t.Quantity.Value > 0).SumAsync(t => t.Quantity.Value, ct);
 
-// …and member access does not: "could not be translated"
-await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(ct);
+// …and so does the whole value: compared, ordered, set by ExecuteUpdate
+await db.Set<Fueling>().Where(f => f.Moment >= since).OrderBy(f => f.Moment).ThenBy(f => f.Id).ToListAsync(ct);
+await db.Set<Fueling>().Where(f => f.Id == id).ExecuteUpdateAsync(s => s.SetProperty(f => f.Moment, moment), ct);
+
+// …and outside the database it orders the way the column does
+fuelings.OrderBy(f => f.Moment);
 ```
 
-Before, when a one-value value object was a complex type, the last line translated and no index could name the
-column. Filter and sort on the read face, or compare whole values.
+Only Rask's own conversion is read through: a column the app maps with a converter of its own stores what that
+converter writes, which need not be the value, and `.Value` there is still "could not be translated". Two value
+objects of different types are never compared — the operators take the one type.
 
 **The same holds inside another value object.** `Currency` in `record Money(decimal Amount, Currency Currency)`
 is a converted scalar column of `Money` — `Price_Currency`, the column it always was — which is what lets EF Core

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Rask.Data;
@@ -36,9 +37,24 @@ internal static class OneValueConverters
         return FromValue.TryGetValue(valueObject, out var fromValue) ? fromValue.ComposeWith(written) : null;
     }
 
-    private interface IOwn;
+    /// <summary>
+    ///     Whether <paramref name="converter" /> is Rask's own, storing its value object as the one value
+    ///     <paramref name="member" /> reads — so a query that reads that member reads the column itself.
+    /// </summary>
+    public static bool StoresAs(ValueConverter? converter, MemberInfo member) =>
+        converter is IOwn { Held: { } held } && held.HasSameMetadataDefinitionAs(member);
+
+    private interface IOwn
+    {
+        /// <summary>The member the converter reads the value from — <c>v.Value</c> — or null for a computed one.</summary>
+        MemberInfo? Held { get; }
+    }
 
     private sealed class Own<TValueObject, TValue>(
         Expression<Func<TValueObject, TValue>> value, Expression<Func<TValue, TValueObject>> build)
-        : ValueConverter<TValueObject, TValue>(value, build), IOwn;
+        : ValueConverter<TValueObject, TValue>(value, build), IOwn
+    {
+        public MemberInfo? Held { get; } =
+            value.Body is MemberExpression { Member: var member } access && access.Expression == value.Parameters[0] ? member : null;
+    }
 }

@@ -104,3 +104,87 @@ public sealed class SqlServerCoveringIndexTests
         await db.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 }
+
+/// <summary>A start and an end of a trip's odometer, stored as two columns of their own.</summary>
+public sealed record HaulageKm(int Start, int End);
+
+/// <summary>A haulage, read by its lane with the kilometres it covered.</summary>
+public sealed class Haulage
+{
+    public Guid Id { get; set; }
+
+    public string Lane { get; set; } = "";
+
+    public HaulageKm Km { get; set; } = new(0, 0);
+}
+
+/// <summary>The lane's index carrying the haulage's kilometres: a value object of two members, named as the table always named them.</summary>
+public sealed class CoveredHaulageContext(DbContextOptions<CoveredHaulageContext> options) : DbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Haulage>(b =>
+        {
+            b.ToTable("Haulage");
+            b.ComplexProperty(t => t.Km, km =>
+            {
+                km.Property(k => k.Start).HasColumnName("StartKm");
+                km.Property(k => k.End).HasColumnName("EndKm");
+            });
+            b.HasIndex(t => t.Lane).Covering(t => t.Km);
+        });
+}
+
+/// <summary>The lane's index carrying one member of the haulage's kilometres.</summary>
+public sealed class CoveredHaulageEndContext(DbContextOptions<CoveredHaulageEndContext> options) : DbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Haulage>(b =>
+        {
+            b.ToTable("Haulage");
+            b.ComplexProperty(t => t.Km, km => km.Property(k => k.End).HasColumnName("EndKm"));
+            b.HasIndex(t => t.Lane).Covering(t => new { t.Km.End });
+        });
+}
+
+/// <summary><c>Covering(x =&gt; x.Km)</c> over a value object of several members: the index includes each of its columns.</summary>
+public sealed class ComplexCoveringIndexScriptTests
+{
+    [Fact]
+    public void On_SQL_Server_the_index_includes_each_column_of_the_value_object()
+    {
+        using var db = new CoveredHaulageContext(new DbContextOptionsBuilder<CoveredHaulageContext>()
+            .UseSqlServer("Server=.;Database=rask_script_only").Options);
+
+        var script = db.Database.GenerateCreateScript();
+
+        Assert.Contains("ON [Haulage] ([Lane]) INCLUDE ([EndKm], [StartKm]);", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void On_PostgreSQL_the_index_includes_each_column_of_the_value_object()
+    {
+        using var db = new CoveredHaulageContext(new DbContextOptionsBuilder<CoveredHaulageContext>()
+            .UseNpgsql("Host=localhost;Database=rask_script_only").Options);
+
+        var script = db.Database.GenerateCreateScript();
+
+        Assert.Contains("ON \"Haulage\" (\"Lane\") INCLUDE (\"EndKm\", \"StartKm\");", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_member_of_the_value_object_is_covered_by_its_path()
+    {
+        using var db = new CoveredHaulageEndContext(new DbContextOptionsBuilder<CoveredHaulageEndContext>()
+            .UseSqlServer("Server=.;Database=rask_script_only").Options);
+
+        var script = db.Database.GenerateCreateScript();
+
+        Assert.Contains("ON [Haulage] ([Lane]) INCLUDE ([EndKm]);", script, StringComparison.Ordinal);
+    }
+}

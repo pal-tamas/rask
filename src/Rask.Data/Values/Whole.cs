@@ -17,10 +17,14 @@ public abstract record Whole : Value
     /// <param name="Value">The number as given; the derived record's own positional parameter.</param>
     /// <param name="Min">The least it may be, or null.</param>
     /// <param name="Max">The greatest it may be, or null.</param>
+    /// <param name="Message">
+    ///     What a number that breaks a rule declared here is told, said once however many it breaks; or null for the
+    ///     framework's words for each.
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="Min" /> exceeds <paramref name="Max" />.</exception>
     /// <exception cref="Rask.Cqrs.RaskValidationException">A bound refuses the number.</exception>
 #pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Whole(Value, Min: 0, Max: 1000)`
-    protected Whole(long Value, long? Min = null, long? Max = null)
+    protected Whole(long Value, long? Min = null, long? Max = null, string? Message = null)
 #pragma warning restore IDE1006
         : base(checkNow: false)
     {
@@ -42,11 +46,11 @@ public abstract record Whole : Value
 
         if (Value < Min)
         {
-            Check([Problem.Whole(ValueWords.Say(new ValueProblem(ValueProblemKind.BelowMin, Min)))]);
+            Check([Problem.Whole(ValueWords.Say(new ValueProblem(ValueProblemKind.BelowMin, Min, Message)))]);
         }
         else if (Value > Max)
         {
-            Check([Problem.Whole(ValueWords.Say(new ValueProblem(ValueProblemKind.AboveMax, Max)))]);
+            Check([Problem.Whole(ValueWords.Say(new ValueProblem(ValueProblemKind.AboveMax, Max, Message)))]);
         }
         else
         {

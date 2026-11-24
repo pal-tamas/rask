@@ -19,13 +19,20 @@ public static class ValueWords
     /// <summary>Words every rule from now on with <paramref name="say" />.</summary>
     /// <param name="say">
     ///     Words one problem in the reader's language. Never asked about one that carries the value object's own
-    ///     message (<c>Text(Message: …)</c>).
+    ///     message (<c>Message: …</c> on its base).
     /// </param>
     public static void Use(Func<ValueProblem, string> say)
     {
         ArgumentNullException.ThrowIfNull(say);
         Volatile.Write(ref _say, say);
     }
+
+    /// <summary>
+    ///     The problems a base found, with the value object's own message said once: a text both too long and of the
+    ///     wrong form is told <c>Message</c> one time, not twice.
+    /// </summary>
+    internal static List<Problem>? Once(List<Problem>? problems, string? message) =>
+        message is null || problems is not { Count: > 1 } ? problems : [.. problems.DistinctBy(static p => (p.Field, p.Message))];
 
     /// <summary>What <paramref name="problem" /> says: its own message, else the catalog's words, else the English.</summary>
     internal static string Say(ValueProblem problem) =>

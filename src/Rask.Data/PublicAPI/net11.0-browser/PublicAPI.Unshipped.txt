@@ -497,8 +497,8 @@ virtual Rask.Data.Day.Equals(Rask.Data.Day? other) -> bool
 virtual Rask.Data.Number.Equals(Rask.Data.Number? other) -> bool
 virtual Rask.Data.Text.Equals(Rask.Data.Text? other) -> bool
 virtual Rask.Data.Whole.Equals(Rask.Data.Whole? other) -> bool
-Rask.Data.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false) -> void
-Rask.Data.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null) -> void
+Rask.Data.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false, string? Message = null) -> void
+Rask.Data.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null, bool Round = false, string? Message = null) -> void
 Rask.Data.Problem
 Rask.Data.Problem.Deconstruct(out string? Field, out string! Message) -> void
 Rask.Data.Problem.Equals(Rask.Data.Problem other) -> bool
@@ -510,7 +510,7 @@ Rask.Data.Problem.Problem() -> void
 Rask.Data.Problem.Problem(string? Field, string! Message) -> void
 Rask.Data.Range
 Rask.Data.Range.Range(Rask.Data.Range! original) -> void
-Rask.Data.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string! startMember = "", string! endMember = "") -> void
+Rask.Data.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string? Message = null, string! startMember = "", string! endMember = "") -> void
 Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false) -> void
 Rask.Data.Value
 Rask.Data.Value.Value() -> void
@@ -533,7 +533,7 @@ Rask.Data.ValueFacets.ValueFacets(int? MaxLength = null, int? Precision = null, 
 Rask.Data.ValueProblemKind.EndBeforeStart = 10 -> Rask.Data.ValueProblemKind
 Rask.Data.ValueProblemKind.EndNotAfterStart = 11 -> Rask.Data.ValueProblemKind
 Rask.Data.ValueWords
-Rask.Data.Whole.Whole(long Value, long? Min = null, long? Max = null) -> void
+Rask.Data.Whole.Whole(long Value, long? Min = null, long? Max = null, string? Message = null) -> void
 abstract Rask.Data.Value.<Clone>$() -> Rask.Data.Value!
 override Rask.Data.Day.EqualityContract.get -> System.Type!
 override Rask.Data.Day.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -641,7 +641,7 @@ static Rask.Data.GeneratedValueRules.Loading() -> Rask.Data.ValueLoading
 Rask.Data.Moment
 Rask.Data.Moment.Day.get -> System.DateOnly
 Rask.Data.Moment.Moment(Rask.Data.Moment! original) -> void
-Rask.Data.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false) -> void
+Rask.Data.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false, string? Message = null) -> void
 Rask.Data.Moment.Value.get -> System.DateTime
 override Rask.Data.Moment.Equals(object? obj) -> bool
 override Rask.Data.Moment.GetHashCode() -> int

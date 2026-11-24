@@ -19,10 +19,14 @@ public abstract record Day : Value
     /// <param name="NotBefore">The earliest day it may be, or null.</param>
     /// <param name="NotAfter">The latest day it may be, or null.</param>
     /// <param name="NotAfterToday">Whether a day after today is refused.</param>
+    /// <param name="Message">
+    ///     What a day that breaks a rule declared here is told, said once however many it breaks; or null for the
+    ///     framework's words for each.
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="NotBefore" /> is after <paramref name="NotAfter" />.</exception>
     /// <exception cref="Rask.Cqrs.RaskValidationException">A bound refuses the day.</exception>
 #pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Day(Value, NotAfterToday: true)`
-    protected Day(DateOnly Value, DateOnly? NotBefore = null, DateOnly? NotAfter = null, bool NotAfterToday = false)
+    protected Day(DateOnly Value, DateOnly? NotBefore = null, DateOnly? NotAfter = null, bool NotAfterToday = false, string? Message = null)
 #pragma warning restore IDE1006
         : base(checkNow: false)
     {
@@ -39,7 +43,7 @@ public abstract record Day : Value
         this.Value = Value;
         if (!Loading.IsOn)
         {
-            Check(Problems(Value, NotBefore, NotAfter, NotAfterToday));
+            Check(Problems(Value, NotBefore, NotAfter, NotAfterToday, Message));
         }
     }
 
@@ -50,11 +54,11 @@ public abstract record Day : Value
     /// <returns>The day as text.</returns>
     public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
 
-    private static List<Problem>? Problems(DateOnly day, DateOnly? notBefore, DateOnly? notAfter, bool notAfterToday)
+    private static List<Problem>? Problems(DateOnly day, DateOnly? notBefore, DateOnly? notAfter, bool notAfterToday, string? message)
     {
         if (day < notBefore)
         {
-            return [Say(ValueProblemKind.BeforeEarliest, notBefore)];
+            return [Say(ValueProblemKind.BeforeEarliest, notBefore, message)];
         }
 
         var latest = notAfter;
@@ -63,9 +67,9 @@ public abstract record Day : Value
             latest = today;
         }
 
-        return day > latest ? [Say(ValueProblemKind.AfterLatest, latest)] : null;
+        return day > latest ? [Say(ValueProblemKind.AfterLatest, latest, message)] : null;
     }
 
-    private static Problem Say(ValueProblemKind kind, object? limit) =>
-        Problem.Whole(ValueWords.Say(new ValueProblem(kind, limit)));
+    private static Problem Say(ValueProblemKind kind, object? limit, string? message) =>
+        Problem.Whole(ValueWords.Say(new ValueProblem(kind, limit, message)));
 }

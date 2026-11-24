@@ -113,6 +113,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             ReadFacets(ctx.SemanticModel, node, token),
             ReadShape(ctx.SemanticModel, node, token),
             ctx.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Core.Forms.FieldShape") is not null,
+            IsOrdered(type, node.ParameterList, ctx.SemanticModel, token),
             problem,
             SymbolLocation.From(type));
     }
@@ -275,6 +276,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ColumnFacets Facets,
         ShapeFacets Shape,
         bool HasFieldSeam,
+        bool Ordered,
         string? Problem,
         SymbolLocation? Location)
     {
