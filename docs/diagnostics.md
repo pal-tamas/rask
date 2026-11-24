@@ -3771,7 +3771,7 @@ static Task On(DriverChipsChanged e) => Fueling.UpdateEach(…);   // ✓
 
 It is static because no aggregate is loaded when it runs: it loads — or updates — the ones the event names.
 
-**Fix:** give it that shape, or name a method that is not an event handler something else.
+**Fix:** give it that shape, or name a method that is not an event handler something else. An `On(…)` that takes no event and answers no `Task` — a factory `static Firkin On(string shelf, …)` — is not taken for a handler.
 
 ## RASK180
 

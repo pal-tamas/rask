@@ -92,6 +92,20 @@ public class AggregateEventHandlerGeneratorTests
     }
 
     [Fact]
+    public void A_factory_named_On_that_builds_the_aggregate_is_left_alone()
+    {
+        var run = Run(Fuelings.Replace(
+            "static Task On(DriverChipsChanged e) => Task.CompletedTask;",
+            "public static Fueling On(string chip) => new() { DriverChip = chip };",
+            StringComparison.Ordinal));
+
+        var generated = run.HasGeneratedSource("Fuel.Fueling.On");
+
+        Assert.False(generated);
+        Assert.DoesNotContain(run.Diagnostics, static d => d.Id is "RASK179" or "RASK191");
+    }
+
+    [Fact]
     public void A_method_named_On_outside_an_aggregate_is_left_alone()
     {
         var run = Run(Fuelings.Replace("public sealed partial class Fueling : Aggregate<int>", "public sealed partial class Fueling", StringComparison.Ordinal));

@@ -78,6 +78,13 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
         }
 
         var eventType = method.Parameters.Length == 1 && IsEvent(method.Parameters[0].Type) ? method.Parameters[0].Type : null;
+
+        // Meant as a handler only when it takes an event or answers a Task: an On(…) that builds the aggregate is a factory.
+        if (eventType is null && !ReturnsTask(method))
+        {
+            return null;
+        }
+
         return new Handler(
             aggregate.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             aggregate.Name,
@@ -101,8 +108,7 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
             return "is generic";
         }
 
-        if (method.ReturnType is not INamedTypeSymbol { Name: "Task", Arity: 0 } returned ||
-            !string.Equals(returned.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal))
+        if (!ReturnsTask(method))
         {
             return $"returns '{method.ReturnType.ToDisplayString()}', not Task";
         }
@@ -116,6 +122,10 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
 
         return method.Parameters[0].RefKind == RefKind.None ? null : "takes its event by reference";
     }
+
+    private static bool ReturnsTask(IMethodSymbol method) =>
+        method.ReturnType is INamedTypeSymbol { Name: "Task", Arity: 0 } returned &&
+        string.Equals(returned.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal);
 
     private static bool IsEvent(ITypeSymbol type) =>
         type.AllInterfaces.Any(static i => i is { Name: "IEvent", Arity: 0 } && string.Equals(i.ContainingNamespace.ToDisplayString(), "Rask.Cqrs", System.StringComparison.Ordinal));
