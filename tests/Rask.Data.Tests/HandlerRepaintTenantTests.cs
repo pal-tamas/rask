@@ -1,3 +1,4 @@
+#pragma warning disable RASK014 // the live session under test is handed its root component itself
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;

@@ -25,6 +25,8 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Generators.TestSupport"/>
+    <!-- The value objects' generator ships with the Rask package (Rask.Generators); the suites run it beside these. -->
+    <Using Include="Rask.Generators.ValueObjectFactoryGenerator" Alias="ValueObjectFactoryGenerator"/>
   </ItemGroup>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is read by

@@ -8,8 +8,8 @@ namespace Rask.Mailing.Tests;
 /// </summary>
 public sealed class MailFakeTests
 {
-    private static Email Welcome(string to) =>
-        Email.To(to).Subject("Welcome").Html("<p>hello, and <a href=\"#\">unsubscribe</a></p>");
+    private static Mail.Message Welcome(string to) =>
+        Mail.Message.To(to).Subject("Welcome").Html("<p>hello, and <a href=\"#\">unsubscribe</a></p>");
 
     [Fact]
     public async Task A_fake_takes_every_send_instead_of_the_real_battery()
@@ -49,7 +49,7 @@ public sealed class MailFakeTests
         using var mail = Mail.Fake();
 
         await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken);
-        await Mail.Send(Email.To("bo@x.io").Subject("Receipt").Html("<p>thanks</p>"), TestContext.Current.CancellationToken);
+        await Mail.Send(Mail.Message.To("bo@x.io").Subject("Receipt").Html("<p>thanks</p>"), TestContext.Current.CancellationToken);
 
         mail.Sent().Twice();
         mail.Sent().To("ann@x.io").WithSubject("Welcome").Once();

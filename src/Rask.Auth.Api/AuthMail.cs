@@ -92,7 +92,7 @@ internal sealed partial class AuthMail(
             // and "the email went out" — which matters here more than anywhere: a lost confirmation is
             // an account nobody can use.
             await mail
-                .Send(Email.To(address).Subject(subject).Html(body(link)), cancellationToken)
+                .Send(Mail.Message.To(address).Subject(subject).Html(body(link)), cancellationToken)
                 .ConfigureAwait(false);
 
             return true;

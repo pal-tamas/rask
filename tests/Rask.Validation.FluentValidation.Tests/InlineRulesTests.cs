@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using Rask.Core.Forms;
 using Rask.Values;
@@ -64,6 +65,20 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_matches_rule_states_its_pattern_unless_its_options_read_otherwise()
+    {
+        var plate = StatedRules.FacetsOf(typeof(Supplier), nameof(Supplier.Plate));
+        var tag = StatedRules.FacetsOf(typeof(Supplier), nameof(Supplier.Tag));
+
+        var m = new Supplier();
+        var html = Input.Bind(() => m.Plate).ToHtml();
+
+        Assert.Equal(new StatedFacets(Pattern: "[A-Z]{3}"), plate);
+        Assert.Null(tag.Pattern);
+        Assert.Contains("pattern=\"[A-Z]{3}\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_conditional_rule_states_no_hint()
     {
         var facets = StatedRules.FacetsOf(typeof(Supplier), nameof(Supplier.Note));
@@ -116,6 +131,27 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("A handle has no spaces.", messages);
     }
 
+    [Theory]
+    [InlineData("", "The specified condition was not met.")]
+    [InlineData("hu-HU", "A megadott feltétel nem teljesült.")]
+    public void A_value_objects_own_value_is_not_named_in_a_rules_own_sentence(string culture, string said)
+    {
+        var before = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(culture);
+        try
+        {
+            var refused = Test.Refuses(() => _ = new Slug("Upper"));
+
+            var message = Assert.Single(refused.Failures).Message;
+
+            Assert.Equal(said, message);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = before;
+        }
+    }
+
     [Fact]
     public void A_value_object_its_rules_accept_is_made()
     {
@@ -163,6 +199,10 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
 
         public bool Special { get; set; }
 
+        public string? Plate { get; set; }
+
+        public string? Tag { get; set; }
+
         static void Rules(InlineValidator<Supplier> rules)
         {
             rules.RuleFor(s => s.Name).NotEmpty().WithMessage("Name is required.").Length(2, 200);
@@ -171,6 +211,8 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
             rules.RuleFor(s => s.Price).PrecisionScale(10, 2, false).GreaterThanOrEqualTo(0);
             rules.RuleFor(s => s.Stock).GreaterThan(0);
             rules.RuleFor(s => s.Note).NotEmpty().MaximumLength(10).When(s => s.Special);
+            rules.RuleFor(s => s.Plate).Matches("^[A-Z]{3}$");
+            rules.RuleFor(s => s.Tag).Matches("^[a-z]+$", RegexOptions.IgnoreCase);
         }
     }
 
@@ -203,4 +245,10 @@ public sealed partial record Handle(string Value) : Rask.Values.Text(Value, MaxL
 {
     static void Rules(InlineValidator<Handle> rules) =>
         rules.RuleFor(h => h.Value).MinimumLength(3).Must(static v => !v.Contains(' ', StringComparison.Ordinal)).WithMessage("A handle has no spaces.");
+}
+
+public sealed partial record Slug(string Value) : Rask.Values.Text(Value, MaxLength: 40)
+{
+    static void Rules(InlineValidator<Slug> rules) =>
+        rules.RuleFor(s => s.Value).Must(static v => string.Equals(v, v.ToLowerInvariant(), StringComparison.Ordinal));
 }

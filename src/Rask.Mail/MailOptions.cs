@@ -3,7 +3,7 @@ namespace Rask.Mailing;
 /// <summary>Options for <see cref="MailProcessor{TContext}"/> and the sender it uses.</summary>
 public sealed class MailOptions
 {
-    /// <summary>The default sender address, used when an <see cref="Email"/> doesn't set its own. Required.</summary>
+    /// <summary>The default sender address, used when an <see cref="Mail.Message"/> doesn't set its own. Required.</summary>
     public string From { get; set; } = "";
 
     /// <summary>An optional display name for the default sender.</summary>

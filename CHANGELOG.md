@@ -8,6 +8,31 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
+  a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
+  sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or
+  password input — but only where the browser (a `v`-flag RegExp over the whole text) reads the expression exactly as
+  .NET does, so it never refuses a text the field takes: a lookbehind, a named group, an inline option, `\w`, `\b`,
+  `\S`, a class subtraction, a counted run of anything (`.{2,10}`), a case-insensitive `Matches` or a value object kept
+  `Upper` tells none; `\d` is written `\p{Nd}` and `.` `[^\n]`, as .NET reads them. A `.Pattern(…)` on the control wins.
+  Forms are not `novalidate`, so the browser refuses a submit that breaks it, as it already does a `minlength`.
+- **BREAKING: a `Day` prints `2026-01-31` and a `Moment` `2026-01-31T14:05:00`.** Before: both wrote the invariant
+  culture's default, `01/31/2026` and `01/31/2026 14:05:00`. After: ISO 8601, and the generated `ToString` of a
+  one-member `: Value` record holding a `DateOnly` or a `DateTime` does the same.
+- **The value-object generator ships with the `Rask` package.** Before: `Create`, `TryCreate`, `CreateOptional`,
+  `Check`, `__Problems`, the field shape and the facets were written by Rask.Batteries.Generators, so a component
+  library on `Rask` alone could declare `record Plate(string Value) : Text(Value)` and got no `Create`. After: the
+  generator is Rask.Generators', which every Rask project runs; the column mapping and the read face stay Rask.Data's.
+- **BREAKING: Rask.Mail's builder is `Mail.Message`, not `Email`.** Before: `await Mail.Send(Email.To(address).Subject(s).Html(b))`,
+  and an app on both Rask.Data and Rask.Mail had two `Email`s imported for it — Rask.Mailing's builder and the
+  `Rask.Values.Email` value-object base — so a bare `Email` was CS0104. After: `await Mail.Send(Mail.Message.To(address).Subject(s).Html(b))`
+  (the builder is nested in the static `Mail`, `Rask.Mailing.Mail.Message`), and `Email` is the value-object base alone.
+  `IMail.Add`, `Mail.Send` and `MailOutbox.Add` take a `Mail.Message`. No shim: replace `Email.To(` with `Mail.Message.To(`.
+- **FluentValidation's `GreaterThan`, `LessThan`, `Length(n)` and `PrecisionScale` speak Rask's catalog too.** Before:
+  `RuleFor(x => x.Age).GreaterThan(17)` said "A(z) 'Age' nagyobb kell, hogy legyen, mint '17'." because the catalog had
+  no sentence for it. After: four new `RaskString` keys — `ValidationAbove`, `ValidationBelow`, `ValidationExactLength`,
+  `ValidationDigits` — say "17 feletti értéket adjon meg." and the like, with Rask.Ui's Hungarian and an app's own
+  translation, like the rules that already did.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
@@ -81,6 +106,12 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
+  Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
+  and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses
+  both on exactly the convention's shape, and a value object's own `Value` is named blank, so the sentence reads "The
+  specified condition was not met.". RASK130's quick-fix is no longer offered while an `AbstractValidator<T>` class
+  rules the same property (it would not compile once the property holds a value object).
 - **Kinds of text as value-object bases: `Email`, `Phone`, `Url`, `Password`, `Multiline` (`Rask.Values`).** Before: an
   email, a phone number or a password was a `Text` plus an attribute on the form's `string`, or a hand-written
   `.Type(InputType.Password)` and `.Validate(X.__Problems)` at the call site. After: `record ContactEmail(string Value) :

@@ -945,18 +945,33 @@ public enum RaskString
     /// <summary>What a value object declared from <c>Url</c> says of text that is no absolute http or https address.</summary>
     ValidationWebAddress,
 
-    /// <summary>What the toast says once an editor's form has saved (<c>Ui.Editor</c>).</summary>
+    /// <summary>What a value not greater than a FluentValidation <c>GreaterThan</c> says. <c>{0}</c> is the value it must be greater than.</summary>
+    ValidationAbove,
+
+    /// <summary>What a value not less than a FluentValidation <c>LessThan</c> says. <c>{0}</c> is the value it must be less than.</summary>
+    ValidationBelow,
+
+    /// <summary>What a text not exactly as long as a FluentValidation <c>Length(n)</c> says. <c>{0}</c> is the length.</summary>
+    ValidationExactLength,
+
+    /// <summary>
+    ///     What a number with more digits than a FluentValidation <c>PrecisionScale</c> allows says. <c>{0}</c> is the most
+    ///     digits in total, and <c>{1}</c> the most of them after the decimal point.
+    /// </summary>
+    ValidationDigits,
+
+    /// <summary>What the toast says once an editor dialog's form has saved (<c>Ui.EditorDialog</c>).</summary>
     EditorSaved,
 
-    /// <summary>What the toast says once an editor's record has been deleted (<c>Ui.Editor</c>).</summary>
+    /// <summary>What the toast says once an editor dialog's record has been deleted (<c>Ui.EditorDialog</c>).</summary>
     EditorDeleted,
 
-    /// <summary>What an editor shows for an id no row has any more (<c>Ui.Editor</c>).</summary>
+    /// <summary>What an editor dialog shows for an id no row has any more (<c>Ui.EditorDialog</c>).</summary>
     EditorNotFound,
 
-    /// <summary>The label of an editor's delete button (<c>Ui.Editor.Delete</c>).</summary>
+    /// <summary>The label of an editor dialog's delete button (<c>Ui.EditorDialog.Delete</c>).</summary>
     EditorDelete,
 
-    /// <summary>What an editor asks before it deletes its record (<c>Ui.Editor.Delete</c>).</summary>
+    /// <summary>What an editor dialog asks before it deletes its record (<c>Ui.EditorDialog.Delete</c>).</summary>
     EditorDeleteQuestion,
 }

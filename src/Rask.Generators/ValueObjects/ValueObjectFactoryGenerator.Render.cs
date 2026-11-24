@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace Rask.Batteries.Generators;
+namespace Rask.Generators;
 
 public sealed partial class ValueObjectFactoryGenerator
 {

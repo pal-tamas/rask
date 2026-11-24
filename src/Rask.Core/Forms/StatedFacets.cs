@@ -14,6 +14,10 @@ namespace Rask.Core.Forms;
 /// <param name="Email">Whether it is an e-mail address: an <c>type="email"</c> input.</param>
 /// <param name="Precision">The most digits it may have: its column's precision.</param>
 /// <param name="Scale">The most digits after the point it may have: its input's <c>step</c> and its column's scale.</param>
+/// <param name="Pattern">
+///     A regular expression the whole text must match (<see cref="FieldShape.Pattern" />): its input's <c>pattern</c>,
+///     where the browser reads it the same way.
+/// </param>
 public sealed record StatedFacets(
     bool Required = false,
     int? MaxLength = null,
@@ -22,7 +26,8 @@ public sealed record StatedFacets(
     decimal? Max = null,
     bool Email = false,
     int? Precision = null,
-    int? Scale = null)
+    int? Scale = null,
+    string? Pattern = null)
 {
     /// <summary>Nothing stated.</summary>
     public static StatedFacets None { get; } = new();
@@ -30,7 +35,10 @@ public sealed record StatedFacets(
     /// <summary>Whether these say nothing at all.</summary>
     public bool IsEmpty => this == None;
 
-    /// <summary>What these and <paramref name="other" /> say together: the tightest of both where both say something.</summary>
+    /// <summary>
+    ///     What these and <paramref name="other" /> say together: the tightest of both where both say something, and the
+    ///     first pattern — either is one the text must match.
+    /// </summary>
     /// <param name="other">What another rule states about the same member.</param>
     /// <returns>Both, merged.</returns>
     public StatedFacets With(StatedFacets other)
@@ -51,6 +59,7 @@ public sealed record StatedFacets(
                 Bounds.Least(Max, other.Max),
                 Email || other.Email,
                 Bounds.Least(Precision, other.Precision),
-                Bounds.Least(Scale, other.Scale));
+                Bounds.Least(Scale, other.Scale),
+                Pattern ?? other.Pattern);
     }
 }

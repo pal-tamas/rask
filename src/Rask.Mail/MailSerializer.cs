@@ -4,7 +4,7 @@ using Rask.Data;
 namespace Rask.Mailing;
 
 /// <summary>
-/// Converts between the fluent <see cref="Email"/> / send-ready <see cref="OutgoingMail"/> and the persisted
+/// Converts between the fluent <see cref="Mail.Message"/> / send-ready <see cref="OutgoingMail"/> and the persisted
 /// <see cref="QueuedMail"/> row. Recipient lists and attachments are stored as JSON (attachment bytes as
 /// base64, the default for <see cref="byte"/>[]). Bodies are already HTML by the time they reach here.
 /// </summary>
@@ -12,8 +12,8 @@ internal static class MailSerializer
 {
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Builds a persisted row from a built <see cref="Email"/>, defaulting the sender and stamping times.</summary>
-    internal static QueuedMail ToQueuedMail(Email email, EmailAddress from, DateTime runAt, DateTime createdAt)
+    /// <summary>Builds a persisted row from a built <see cref="Mail.Message"/>, defaulting the sender and stamping times.</summary>
+    internal static QueuedMail ToQueuedMail(Mail.Message email, EmailAddress from, DateTime runAt, DateTime createdAt)
     {
         if (email.ToRecipients.Count == 0)
         {

@@ -156,12 +156,13 @@ attributes):
 | Attribute | `FieldShape` | A bound control |
 | --- | --- | --- |
 | `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `MaxLength`, `MinLength` — the tightest they say, and on a value object's property the tighter of the attribute and the value object's facet | `maxlength`, `minlength` |
+| `[RegularExpression("^[A-Z]{2,3}$")]` | `Pattern` | the input's `pattern` where the browser reads the expression as .NET does — none for a lookbehind, a named group, an inline option, `\w`/`\b`/`\S`, a class subtraction or a counted run of anything (`.{2,10}`); `\d` is written `\p{Nd}` |
 | `[EmailAddress]`, `[Phone]`, `[Url]`, `[DataType(Password \| EmailAddress \| PhoneNumber \| Url \| ImageUrl \| Date \| Time \| DateTime)]` | `Input` | the input's `type`, where it fits what the member holds: any of them on a `string`, `Date` on a `DateTime` too (shown and read back as its day) |
 | `[Editable(false)]` | `ReadOnly` | `readonly` on an input or a textarea, which then wires no write; `Ui.Field.Bind` disables a control that cannot be read-only |
 | `[DisplayFormat(ConvertEmptyStringToNull = false)]` | `KeepEmpty` | an emptied `string?` is written `""`, not `null` |
 | `[UIHint("…")]`, `[DataType(DataType.MultilineText)]` | `Hint` | `Ui.Field.Bind` draws `Ui.Switch` for `FieldHints.Switch` on a `bool`, `Ui.RadioGroup` for `FieldHints.RadioGroup` on an enum, `Ui.Textarea` for `FieldHints.MultilineText` |
 
-A step written on the control wins over each of them — `.Type(…)`, `.MaxLength(…)`, `.MinLength(…)`,
+A step written on the control wins over each of them — `.Type(…)`, `.MaxLength(…)`, `.MinLength(…)`, `.Pattern(…)`,
 `.Autocomplete(…)`, `.InputMode(…)`, `.Min(…)`/`.Max(…)`/`.Step(…)`, `Ui.Field.Bind(…).Multiline(false)` — except
 `[Editable(false)]`, which a control cannot be talked out of.
 
@@ -178,6 +179,7 @@ rule to every place the value is made, and gives its column the length:
 | `[DataType(DataType.Password)]` | `Password(Value, …)`, `New: true` for a chosen one; never trimmed, stored or sent back | `Input = Password`, `AutoComplete = "current-password"` / `"new-password"` | `type="password"`, its value never written |
 | `[DataType(DataType.MultilineText)]`, `[UIHint("MultilineText")]` | `Multiline(Value, …)` | `Hint = FieldHints.MultilineText` | `Ui.Field.Bind` draws a `Ui.Textarea` |
 | `[StringLength(100, MinimumLength = 2)]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `Text(Value, MaxLength: 100, MinLength: 2)` (and every kind above) | `MaxLength`, `MinLength` | `maxlength`, `minlength` |
+| `[RegularExpression("^[A-Z]{2,3}$")]` | `Text(Value, Pattern: "^[A-Z]{2,3}$")` — found anywhere in the trimmed text, so an unanchored one is told as `[\s\S]*(?:…)[\s\S]*`; none with `Upper: true` | `Pattern` | `pattern="[A-Z]{2,3}"` where the browser reads it alike |
 | `[Range]` — checked on submit, tells the input nothing | `Number(Value, Min: 1, Max: 999.5m, Scale: 2)` | `Min`, `Max`, `Scale` | `type="number" min="1" max="999.5" step="0.01"` |
 | `[Range]` — likewise | `Whole(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
 | a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` |
@@ -739,9 +741,11 @@ A built-in rule with no `.WithMessage(…)` says what the equivalent attribute s
 `NotNull()` what `[Required]` says, `MaximumLength`/`MinimumLength`/`Length` what `[StringLength]`/`[MaxLength]`/
 `[MinLength]` say, `EmailAddress()`, `Matches(…)`, `CreditCard()`, `InclusiveBetween`/`ExclusiveBetween` (`[Range]`),
 `GreaterThanOrEqualTo`/`LessThanOrEqualTo` (a value object's least and greatest), `NotEqual` and `IsInEnum` — the
-`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. A rule it has
-no sentence for (`GreaterThan`, `Length(n)` exact, `PrecisionScale`, `Must`), and every language it does not speak,
-keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
+`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. The rules no
+attribute has say sentences of their own: `GreaterThan`/`LessThan` (`ValidationAbove`/`ValidationBelow`, "Enter a
+value greater than 17."), `Length(n)` (`ValidationExactLength`, "Enter exactly 8 characters.") and `PrecisionScale`
+(`ValidationDigits`, "Enter at most 10 digits, at most 2 of them after the decimal point."). A rule the catalog has no
+sentence for (`Must`, `Equal`, `Empty`), and every language it does not speak, keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
 `.WithMessage(…)` always wins, and a language manager the app sets itself replaces Rask's.
 
 An async `MustAsync` rule rides the same wrapper:
@@ -770,6 +774,9 @@ public sealed partial class Supplier : Aggregate<SupplierId, Model>
 
 <!-- demo:validation-fluent-in-type -->
 
+A private `Rules` is called only by the generated registry, so Sonar's S1144 and the IDE's IDE0051 would call it unused:
+Rask's analyzers suppress both on a method of exactly the convention's shape (`RASKSUP002`), and on nothing else.
+
 On a primitive member a rule works **exactly like the DataAnnotations attribute with the same rule**:
 
 - **The form.** A `Form` over `SupplierModel`, the generated form model, asks `Supplier`'s rules of the members that
@@ -782,7 +789,9 @@ On a primitive member a rule works **exactly like the DataAnnotations attribute 
 - **The wire.** A request that carries a generated model is checked by the rules it borrows (400 + field failures).
 - **Hints and columns.** Read off the validator's descriptor once per type: `NotEmpty()`/`NotNull()` is
   `[Required]` (the required badge, `aria-required`, NOT NULL), `MaximumLength`/`Length` is `[MaxLength]`/`[StringLength]`
-  (`maxlength`/`minlength`, the column's length), `EmailAddress()` is `type="email"`, `InclusiveBetween` and
+  (`maxlength`/`minlength`, the column's length), `EmailAddress()` is `type="email"`, `Matches("^[A-Z]+$")` is
+  `[RegularExpression]` (the input's `pattern`, only where the browser reads it alike and the rule has no
+  `RegexOptions` but `CultureInvariant`/`Compiled`), `InclusiveBetween` and
   `GreaterThanOrEqualTo`/`LessThanOrEqualTo` (and `GreaterThan`/`LessThan` of a whole number) are `min`/`max`,
   `PrecisionScale(p, s)` is `step` and `decimal(p, s)`. A rule under `When`/`Unless` gives no hint. An attribute on the
   same property wins for its column ([RASK182](diagnostics.md#rask182) says when they disagree).
@@ -803,7 +812,7 @@ public sealed partial record Handle(string Value) : Text(Value, MaxLength: 30)
 }
 ```
 
-A failure about `Value` is the value's own; one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
+A failure about `Value` is the value's own, and names no field — the field's label says which ("The specified condition was not met."); one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
 is under that member. A record with its own `Rules()` override and a static `Rules` is [RASK183](diagnostics.md#rask183).
 
 ### Three ways to say a rule

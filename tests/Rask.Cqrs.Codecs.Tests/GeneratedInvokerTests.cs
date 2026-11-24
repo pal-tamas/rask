@@ -1,3 +1,4 @@
+#pragma warning disable RASK093 // the invoker's task is asserted on, not awaited: its type is what is tested
 namespace Rask.Cqrs.Codecs.Tests;
 
 // The invoker is the piece that makes "the client is a pure client" possible without reflection. A

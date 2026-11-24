@@ -27,7 +27,7 @@ public sealed class QueueReceipt : IDurableHandler<OrderPlaced>
 public sealed class SendReceiptHandler : ICommandHandler<SendReceipt>
 {
     public async Task Handle(SendReceipt command) =>
-        await Mail.Send(Email.To(command.Customer).Subject("Your receipt").Html("<p>Thank you.</p>"));
+        await Mail.Send(Mail.Message.To(command.Customer).Subject("Your receipt").Html("<p>Thank you.</p>"));
 }
 
 /// <summary>The smallest root a <see cref="RaskApp" /> can serve.</summary>

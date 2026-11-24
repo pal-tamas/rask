@@ -185,7 +185,7 @@ Img.Src(Files.Url(saved.Id)).Alt(product.Name)
 await Jobs.Enqueue(new SendOrderReceipt(order.Id));
 
 // Send mail — queued, retried, and the same line inside a job or a durable handler:
-await Mail.Send(Email.To(order.Email).Subject("Your receipt").Body(Receipt.OrderId(order.Id)));
+await Mail.Send(Mail.Message.To(order.Email).Subject("Your receipt").Body(Receipt.OrderId(order.Id)));
 
 // Say something happened — from a page, a handler, a job or a hosted service:
 await Dispatcher.Publish(new OrderShipped(order.Id));

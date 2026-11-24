@@ -320,6 +320,8 @@ public partial class RequiredFieldTests : global::Rask.Core.RaskMarkup
             Path.Combine("Rask.Core", "Forms", "AsyncAnnotationRules.cs"),
             // A source generator: it copies the attribute's NAME into generated text and reads nothing at run time.
             Path.Combine("Rask.Batteries.Generators", "ModelInputGenerator.Model.cs"),
+            // A code fix: it reads the attribute off the SYNTAX it rewrites into a value object, at design time, never at run time.
+            Path.Combine("Rask.Generators.CodeFixes", "ValueObjectDraftReader.cs"),
         ];
 
         var readers = Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories)

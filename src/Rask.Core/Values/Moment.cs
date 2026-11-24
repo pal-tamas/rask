@@ -62,9 +62,9 @@ public abstract record Moment : Value
     /// <summary>The day of the moment, as the calendar on the wall shows it.</summary>
     public DateOnly Day => DateOnly.FromDateTime(Value);
 
-    /// <summary>The moment it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
+    /// <summary>The moment it holds, written as ISO 8601, culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The moment as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+    public sealed override string ToString() => Value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
 
     // A wall-clock time stays as given; a UTC or machine-local one is moved onto the app's wall clock. The conversion
     // hands back Utc or Local where the zone is one of those, so the kind is set after it.

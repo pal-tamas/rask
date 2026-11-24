@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.RegularExpressions;
 using FluentValidation;
 using FluentValidation.Validators;
 using Rask.Core.Forms;
@@ -40,6 +42,7 @@ internal static class StatedFacetReader
             MinLength = length.Min > 0 ? Bounds.Most(facets.MinLength, length.Min) : facets.MinLength,
         },
         IEmailValidator => facets with { Email = true },
+        RegularExpressionValidator<T> matches => facets with { Pattern = facets.Pattern ?? Pattern(matches) },
         IInclusiveBetweenValidator between when Number(between.From) is { } from && Number(between.To) is { } to =>
             facets with { Min = Bounds.Most(facets.Min, from), Max = Bounds.Least(facets.Max, to) },
         IComparisonValidator { MemberToCompare: null } compared when Number(compared.ValueToCompare) is { } bound =>
@@ -62,6 +65,37 @@ internal static class StatedFacetReader
             Comparison.LessThan when IsWhole(compared.ValueToCompare) => facets with { Max = Bounds.Least(facets.Max, bound - 1) },
             _ => facets,
         };
+
+    // Matches(...) asks for a match anywhere in the text, and only with the options .NET reads as the browser does: one
+    // made case-insensitive or ECMAScript-flavoured tells no pattern. The options sit in the regex the validator makes,
+    // which FluentValidation keeps behind its own field; given a fixed expression it is made without the object, so asking
+    // for it with none is safe, and a FluentValidation that renamed the field tells no pattern.
+    private static string? Pattern<T>(RegularExpressionValidator<T> matches)
+    {
+        if (matches.Expression is not { } expression)
+        {
+            return null;
+        }
+
+#pragma warning disable S3011 // FluentValidation keeps a Matches rule's RegexOptions only in this private field; without them a case-insensitive rule would be told to the browser as a case-sensitive pattern. Read-only, and a missing field tells no pattern.
+        var field = typeof(RegularExpressionValidator<T>).GetField("_regexFunc", BindingFlags.NonPublic | BindingFlags.Instance);
+#pragma warning restore S3011
+        if (field?.GetValue(matches) is not Func<T, Regex> made)
+        {
+            return null;
+        }
+
+        try
+        {
+            return (made(default!).Options & ~(RegexOptions.CultureInvariant | RegexOptions.Compiled)) == RegexOptions.None
+                ? HtmlPattern.Found(expression, trimmed: false)
+                : null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+    }
 
     private static bool IsWhole(object? value) => value is byte or sbyte or short or ushort or int or uint or long or ulong;
 
