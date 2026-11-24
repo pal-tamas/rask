@@ -401,9 +401,7 @@ public static class GeneratedModelWrites
         Tenant.DemandForWrite(typeof(TEntity));
 
         var entity = await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
-                     ?? throw new KeyNotFoundException(
-                         $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has " +
-                         "been deleted since it was read.");
+                     ?? throw Missing<TEntity>(key);
 
         await AggregateChildren
             .LoadChildrenAsync(context, entity, cancellationToken: cancellationToken)
@@ -411,6 +409,11 @@ public static class GeneratedModelWrites
 
         return entity;
     }
+
+    /// <summary>What a write says of a key no row has: one sentence for the writes and the operations.</summary>
+    internal static KeyNotFoundException Missing<TEntity>(object key) =>
+        new($"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has " +
+            "been deleted since it was read.");
 
     // The save's WHERE clause compares against the ORIGINAL value of a concurrency token, and a freshly
     // loaded row's original is whatever the database holds now — which would make every check pass. Pinning
