@@ -41,7 +41,7 @@ An assistant writes every Rask app in one style ([domain modelling](domain.md)),
 - **A refusal is `Refuse`** under its field; a rule over the whole aggregate is its `Validate()`.
 - **The form is the operation's**: `Form.For(Supply.Change, id)`, with no rule repeated on the form.
 - **Another aggregate changes from a domain event** (`Raise` + a one-line handler calling that aggregate's entry);
-  two in one `Db.Transaction` only as [the last resort](domain.md#the-transaction-boundary), with a comment saying why.
+  two in one `Db.Transaction(…, manyAggregates: "why")` only as [the last resort](domain.md#the-transaction-boundary).
 - **No SQL and no provider API** — `InTextOrder()`, `Db.Lock`, `.Covering(…)`, a value object's `Scale`
   ([code written for one database](data.md#code-written-for-one-database)).
 - **Tests run on SQLite in memory**: `TestDatabase.Start<AppDbContext>()`, `Test.Refuses(…).At("Field")`,

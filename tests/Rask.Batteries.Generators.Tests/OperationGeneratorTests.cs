@@ -615,6 +615,69 @@ public class OperationGeneratorTests
             "Rask.Data", "Rask.Wire", "Rask.Cqrs", "Rask.Core", "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.Relational");
 
     // A partial, versioned Tag around the members given.
+    [Fact]
+    public void A_reason_and_a_row_lock_in_Configure_reach_the_entry_that_compiles()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            public void Raise(int level) => Level = level;
+            private static Tag Open() => new() { Id = Guid.NewGuid() };
+            public static void Configure(EntityTypeBuilder<Tag> b)
+            {
+                b.Operation(t => t.Bump, manyAggregates: "A tag is bumped with its board", forUpdate: true);
+                b.Operation(nameof(Open), manyAggregates: "A tag opens its board");
+            }
+            """));
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Run<global::Shop.Tag>(\"Bump\", null, \"A tag is bumped with its board\", static (key, token) => global::Rask.Data.GeneratedLocks.Row<global::Shop.Tag>(key, token), id!,", generated, StringComparison.Ordinal);
+        Assert.Contains("Run<global::Shop.Tag>(\"Raise\", null, id!,", generated, StringComparison.Ordinal);
+        Assert.Contains("(\"Open\", null, \"A tag opens its board\", () =>", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_child_collection_to_lock_given_in_place_is_not_read_as_roles()
+    {
+        var source = """
+            private readonly System.Collections.Generic.List<Peg> _pegs = [];
+            public System.Collections.Generic.IReadOnlyCollection<Peg> Pegs => _pegs;
+            public void Hang(string name) => _pegs.Add(Peg.Named(name));
+            public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(t => t.Hang, t => t.Pegs);
+            }
+
+            public sealed class Peg : Entity<Guid>
+            {
+                public string Name { get; private set; } = "";
+                public static Peg Named(string name) => new() { Id = Guid.NewGuid(), Name = name };
+            """;
+
+        var generated = Run(Tagged(source)).GeneratedSource("Shop.Tag.Operations");
+        var diagnostics = await Analyze(Tagged(source), new UnreadConfigurationAnalyzer());
+
+        Assert.Contains("GeneratedLocks.Children<global::Shop.Tag, global::Shop.Peg>(key, \"Pegs\", token)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain(diagnostics, static d => d.Id == "RASK172");
+    }
+
+    [Fact]
+    public async Task A_reason_that_is_not_a_constant_is_RASK172_and_no_entry_runs_without_it()
+    {
+        var source = """
+            private static readonly string Why = "board";
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(t => t.Bump, manyAggregates: Why);
+            """;
+
+        var run = Run(Tagged(source));
+        var diagnostics = await Analyze(Tagged(source), new UnreadConfigurationAnalyzer());
+
+        Assert.Contains("manyAggregates reason is not a constant", Assert.Single(diagnostics, static d => d.Id == "RASK172").GetMessage(), StringComparison.Ordinal);
+        Assert.False(run.HasGeneratedSource(".Operations"));
+    }
+
     private static string Tagged(string members) => $$"""
         using System;
         using System.Threading.Tasks;
