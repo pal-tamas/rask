@@ -2391,9 +2391,35 @@ a row leaves the next `Create` checking again. Only what the code makes goes thr
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
 MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Value, Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a
 scale alone keeps EF Core's precision of 18). A one-value record is one column; a `Range` or `Value` record is a
-complex type, one column per member. The entity's own `Configure` runs after and still has the last word —
-[RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
-object's, since a value the rule accepts would then not fit.
+complex type, one column per member. An attribute on the property — `[MaxLength]`, `[StringLength]`,
+`[Precision]` — is the app's word for that one column and wins over the value object's, and the entity's own
+`Configure` runs after both and has the last word. [RASK128](diagnostics.md#rask128) warns when either gives the
+column a length or precision other than the value object's, since a value the rule accepts would then not fit.
+The generated model carries the attribute like any other (`[Required]` included, which also makes the column
+`NOT NULL`), so a form and `Create(model)`/`Update(id, model)` ask it beside the value object's rule: the tighter
+of the two refuses.
+
+**An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
+into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
+`NULL`, a report that counts the two apart — keeps them apart with `KeepEmpty` in the aggregate's `Configure`:
+
+```csharp
+public VatNumber? VatNumber { get; private set; }
+public string? Remark { get; private set; }
+
+public static void Configure(EntityTypeBuilder<Company> b)
+{
+    b.KeepEmpty(c => c.VatNumber);   // a string, or a value object of one text
+    b.KeepEmpty(c => c.Remark);
+}
+```
+
+A field left empty, or emptied, then writes `''` — the value object holding it, whose rules are not asked of an
+empty text — and a new row starts with `''`. A row that holds `NULL` there and is saved with the field still empty
+keeps its `NULL`, so a save that changes nothing writes nothing; a filled field still answers to every rule. A
+stored `''` loads as the value object holding it and fills the model with `""`. The writes read the call from the
+aggregate's own static `Configure`, as they read `IsUnique`; on a member not stored as text it throws when the
+model is built.
 
 A generated form model carries a one-value record as its value (`string? Driver`): a form bound to it asks the same
 rules under the field and gives a text input the `MaxLength`/`MinLength` as its `maxlength`/`minlength` (its field

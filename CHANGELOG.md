@@ -31,6 +31,19 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
+  `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
+  so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by
+  hand (reflection over the model before each write). After: a member named by `KeepEmpty` in the aggregate's static
+  `Configure` writes `''` when its field is left empty or emptied (the value object made from `''` past its rules), a
+  new row starts with `''`, and a row holding `NULL` there keeps it while the field stays empty. A filled field
+  still answers to every rule; a member not stored as text throws when the model is built.
+- **An attribute on a value-object property shapes its column, and RASK128 says when it disagrees.** Before: a
+  `[MaxLength]`, `[StringLength]` or `[Precision]` on a property holding a `Text`/`Number` value object was overridden
+  by the value object's own facet without a word. After: the attribute wins for that column (`Configure` still over
+  both), the generated model carries it so a form and `Create(model)`/`Update(id, model)` ask it beside the value
+  object's rule, and [RASK128](docs/diagnostics.md#rask128) warns on the attribute when its literal disagrees with
+  the value object's.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
