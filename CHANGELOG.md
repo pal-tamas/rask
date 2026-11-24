@@ -91,6 +91,11 @@ them until tagged releases begin.
   a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
   hand. Disposing a database clears the process-wide binding only while it is still its own.
 
+- **`X.Check(value)` on every one-value value object.** Before: a hand-written form asked a value object's rules
+  through a lambda over `TryCreate`, or a `static Validate` written beside it. After: the generated, public, sync
+  `DriverName.Check(value)` answers what `DriverName.Create` would refuse with, in the shape of a field's rule —
+  `Ui.Input.Bind(() => m.Name).Validate(DriverName.Check)`; a number gets one for `decimal` and one for `decimal?`. The
+  site's destination demos use it.
 - **`b.LockedBy(n => n.Period, (Period p) => p.Closed, message)`: a row closed by its parent, held by every save.**
   Before: "a closed period's notes stay as they were" was a hand-written save hook per app, reading tables by name
   with provider SQL, blind to a child-only change or a move between parents, and checked outside the save's

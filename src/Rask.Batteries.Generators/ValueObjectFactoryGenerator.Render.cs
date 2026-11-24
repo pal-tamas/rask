@@ -189,6 +189,25 @@ public sealed partial class ValueObjectFactoryGenerator
 
         s.Append("        return ").Append(Rules).AppendLine(".Messages(__problems);");
         s.AppendLine("    }");
+
+        AppendCheck(s, value.Name, held.OptionalType);
+        if (held.IsValueType && !held.Nullable)
+        {
+            AppendCheck(s, value.Name, held.Type);
+        }
+    }
+
+    // The same answer, public, in the shape of a field's rule (Rask.Core.Forms.Validate<T>), so a form over a model of
+    // its own asks it by name: `Ui.Input.Bind(() => m.Name).Validate(DriverName.Check)`. A value type gets it for the
+    // value and for its nullable form, so it fits a field of either.
+    private static void AppendCheck(StringBuilder s, string name, string type)
+    {
+        s.AppendLine();
+        s.Append("    /// <summary>What the rules of <see cref=\"").Append(name)
+            .AppendLine("\" /> say against <paramref name=\"value\" />, as a field's rule: <c>.Validate(X.Check)</c>.</summary>");
+        s.AppendLine("    /// <param name=\"value\">The value as the field holds it.</param>");
+        s.AppendLine("    /// <returns>The messages its rules give, the same its <c>Create</c> refuses with; empty when they accept it.</returns>");
+        s.Append("    public static global::System.Collections.Generic.IEnumerable<string> Check(").Append(type).AppendLine(" value) => __Problems(value);");
     }
 
     // What the column is given — read when the app was compiled, so no instance (and no rule) is asked for it.
