@@ -20255,3 +20255,23 @@ Rask.Core.Globalization.RaskString.EditorDeleted = 300 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.EditorNotFound = 301 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.EditorDelete = 302 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.EditorDeleteQuestion = 303 -> Rask.Core.Globalization.RaskString
+Rask.Values.Change<T>
+Rask.Values.Change<T>.Applied(T? current) -> T?
+Rask.Values.Change<T>.Change() -> void
+Rask.Values.Change<T>.Kind.get -> Rask.Values.ChangeKind
+Rask.Values.Change<T>.Value.get -> T?
+Rask.Values.ChangeKind
+Rask.Values.ChangeKind.Clear = 1 -> Rask.Values.ChangeKind
+Rask.Values.ChangeKind.Keep = 0 -> Rask.Values.ChangeKind
+Rask.Values.ChangeKind.Set = 2 -> Rask.Values.ChangeKind
+static Rask.Values.Change<T>.Clear.get -> Rask.Values.Change<T>
+static Rask.Values.Change<T>.Keep.get -> Rask.Values.Change<T>
+static Rask.Values.Change<T>.Set(T value) -> Rask.Values.Change<T>
+static Rask.Core.Forms.RaskValidation.RegisterClearing(System.Type! modelType, System.Func<string!, string?>! clearedBy) -> void
+Rask.Core.Globalization.RaskString.ChangeClear = 304 -> Rask.Core.Globalization.RaskString
+~override Rask.Values.Change<T>.Equals(object obj) -> bool
+~override Rask.Values.Change<T>.ToString() -> string
+override Rask.Values.Change<T>.GetHashCode() -> int
+Rask.Values.Change<T>.Equals(Rask.Values.Change<T> other) -> bool
+static Rask.Values.Change<T>.operator !=(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
+static Rask.Values.Change<T>.operator ==(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool

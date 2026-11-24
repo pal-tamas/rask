@@ -974,4 +974,7 @@ public enum RaskString
 
     /// <summary>What an editor dialog asks before it deletes its record (<c>Ui.EditorDialog.Delete</c>).</summary>
     EditorDeleteQuestion,
+
+    /// <summary>The Clear beside a field whose value may be taken away rather than kept (<c>Change&lt;T&gt;</c>, <c>Ui.Field.Bind</c>).</summary>
+    ChangeClear,
 }

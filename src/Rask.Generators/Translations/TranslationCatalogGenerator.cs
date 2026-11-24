@@ -348,6 +348,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("EditorNotFound", 0),
         ("EditorDelete", 0),
         ("EditorDeleteQuestion", 0),
+        ("ChangeClear", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

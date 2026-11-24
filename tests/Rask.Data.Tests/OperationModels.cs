@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Values;
 
 namespace Rask.Data.Tests;
 
@@ -17,9 +18,15 @@ public sealed partial class Expedition : Aggregate<Guid, Versioned, Deletable>
 
     public bool Sealed { get; private set; }
 
+    [StringLength(20)]
+    public string? Remark { get; private set; }
+
     public void Book(int seats) => Seats = seats;
 
     public void Seal() => Sealed = true;
+
+    // F-09: kept, cleared or set — a form's empty field keeps it.
+    public void Annotate(Change<string?> remark) => Remark = remark.Applied(Remark);
 
     public async Task Rename(string title)
     {
