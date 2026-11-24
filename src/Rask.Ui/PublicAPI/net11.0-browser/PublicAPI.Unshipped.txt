@@ -9382,3 +9382,76 @@ Rask.UiTableCell.For<T>(System.Linq.Expressions.Expression<System.Func<T>!>! mem
 Rask.UiTableColumn.For<TRow>(System.Linq.Expressions.Expression<System.Func<TRow, object?>!>! member) -> Rask.UiTableColumn!
 Rask.UiEditorDialog.Deleting(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!>! check, System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! delete, System.Func<bool>! may) -> void
 Rask.UiEditorDialog.this[params Rask.Core.Component?[]! children].get -> Rask.UiEditorDialog!
+Rask.RaskSeed_UiFilePicker
+Rask.RaskSeed_UiFilePicker.Bind(System.Linq.Expressions.Expression<System.Func<Rask.Core.Forms.PickedFile?>!>! Bind) -> Rask.UiFilePicker!
+Rask.RaskSeed_UiFilePicker.RaskSeed_UiFilePicker() -> void
+Rask.RaskSeed_UiFilePicker.Value(Rask.Core.Forms.PickedFile? Value) -> Rask.UiFilePicker!
+Rask.UiFilePicker
+Rask.UiFilePicker.Accept.get -> string?
+Rask.UiFilePicker.Accept.set -> void
+Rask.UiFilePicker.AfterBind.get -> Rask.Core.Callback<Rask.Core.Forms.PickedFile?>
+Rask.UiFilePicker.AfterBind.set -> void
+Rask.UiFilePicker.Badge.get -> string?
+Rask.UiFilePicker.Badge.set -> void
+Rask.UiFilePicker.Bind.get -> System.Linq.Expressions.Expression<System.Func<Rask.Core.Forms.PickedFile?>!>?
+Rask.UiFilePicker.Bind.set -> void
+Rask.UiFilePicker.Class.get -> string?
+Rask.UiFilePicker.Class.set -> void
+Rask.UiFilePicker.Description.get -> string?
+Rask.UiFilePicker.Description.set -> void
+Rask.UiFilePicker.Disabled.get -> bool?
+Rask.UiFilePicker.Disabled.set -> void
+Rask.UiFilePicker.Heading.get -> string?
+Rask.UiFilePicker.Heading.set -> void
+Rask.UiFilePicker.Id.get -> string?
+Rask.UiFilePicker.Id.set -> void
+Rask.UiFilePicker.Label.get -> string?
+Rask.UiFilePicker.Label.set -> void
+Rask.UiFilePicker.MaxSize.get -> long?
+Rask.UiFilePicker.MaxSize.set -> void
+Rask.UiFilePicker.OnChange.get -> Rask.Core.Callback<Rask.Core.Forms.PickedFile?>
+Rask.UiFilePicker.OnChange.set -> void
+Rask.UiFilePicker.ShowValidation.get -> bool?
+Rask.UiFilePicker.ShowValidation.set -> void
+Rask.UiFilePicker.Text.get -> string?
+Rask.UiFilePicker.Text.set -> void
+Rask.UiFilePicker.UiFilePicker() -> void
+Rask.UiFilePicker.Validate.get -> Rask.Core.Validator<Rask.Core.Forms.PickedFile?>?
+Rask.UiFilePicker.Validate.set -> void
+Rask.UiFilePicker.Value.get -> Rask.Core.Forms.PickedFile?
+Rask.UiFilePicker.Value.set -> void
+static Rask.Ui.FilePicker.get -> Rask.RaskSeed_UiFilePicker
+static RaskBuilderSettersRask_Ui.Accept(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, Rask.Core.Callback<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Action<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Action? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Func<Rask.Core.Forms.PickedFile?, System.Threading.Tasks.Task!>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Func<Rask.Core.Forms.PickedFile?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFilePicker! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Badge(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiFilePicker! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Description(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiFilePicker! __b) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiFilePicker! __b, bool? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Id(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.MaxSize(this Rask.UiFilePicker! __b, long? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, Rask.Core.Callback<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Action<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Action? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Func<Rask.Core.Forms.PickedFile?, System.Threading.Tasks.Task!>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Func<Rask.Core.Forms.PickedFile?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFilePicker! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiFilePicker! __b) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiFilePicker! __b, bool? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Text(this Rask.UiFilePicker! __b, string? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFilePicker! __b, Rask.Core.Forms.Validate<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFilePicker! __b, Rask.Core.Validator<Rask.Core.Forms.PickedFile?>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFilePicker! __b, System.Func<Rask.Core.Forms.PickedFile?, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiFilePicker!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFilePicker(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFilePicker(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFilePicker(Rask.Core.Component! __c0, ulong __p) -> void

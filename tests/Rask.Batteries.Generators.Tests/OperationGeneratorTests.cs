@@ -488,6 +488,44 @@ public class OperationGeneratorTests
         Assert.Contains(": global::Rask.Values.Change<global::Shop.Secret>.Keep", forms, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_attachment_parameter_is_a_picked_file_field_handed_on_as_an_attachment_of_its_field()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Rask.Data;
+
+            namespace Rask.Storage
+            {
+                // Stands in for Rask.Storage's: the generator knows the type by its name.
+                public sealed class Attachment
+                {
+                    public static Attachment Of(global::Rask.Core.Forms.PickedFile file, string? field = null) => new();
+                }
+            }
+
+            namespace Shop
+            {
+                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                {
+                    public Rask.Storage.Attachment? Registration { get; private set; }
+                    public Rask.Storage.Attachment? Photo { get; private set; }
+
+                    public void Attach(Rask.Storage.Attachment registration, Rask.Storage.Attachment? photo) => (Registration, Photo) = (registration, photo);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Vehicle.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::Rask.Core.Forms.PickedFile? Registration { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public global::Rask.Core.Forms.PickedFile? Photo { get; set; }", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Registration = aggregate", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Registration is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Registration\") : throw", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Photo is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Photo\") : null", forms, StringComparison.Ordinal);
+    }
+
     private const string Cargo = """
         using System;
         using System.Collections.Generic;

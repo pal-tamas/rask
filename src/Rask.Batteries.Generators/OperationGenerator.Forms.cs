@@ -84,6 +84,9 @@ public sealed partial class OperationGenerator
         /// <summary>The rows of a list, or null for a field of one value.</summary>
         public FormRows? Rows { get; init; }
 
+        /// <summary>Whether it is a <c>Rask.Storage.Attachment</c>: a file picked into the field, stored with the row.</summary>
+        public bool Attachment { get; init; }
+
         /// <summary>Whether the aggregate gates the member it writes (<c>b.Gated</c>): hidden, and unread, while shut.</summary>
         public bool Gated { get; init; }
     }
@@ -156,6 +159,14 @@ public sealed partial class OperationGenerator
         return ValueFieldOf(parameter, parameter.Type, aggregate);
     }
 
+    private const string PickedFileFqn = "global::Rask.Core.Forms.PickedFile";
+
+    private const string AttachmentFqn = "global::Rask.Storage.Attachment";
+
+    private static bool IsAttachment(ITypeSymbol type) =>
+        type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol { Name: "Attachment", Arity: 0, ContainingType: null } named &&
+        string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Storage", StringComparison.Ordinal);
+
     private static string Optionally(string type) => type.EndsWith("?", StringComparison.Ordinal) ? type : type + "?";
 
     private static FormField? ValueFieldOf(IParameterSymbol parameter, ITypeSymbol parameterType, INamedTypeSymbol aggregate)
@@ -163,6 +174,12 @@ public sealed partial class OperationGenerator
         var property = Capitalised(parameter.Name);
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
                        parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+        // A file: the field holds what the reader picked, and the operation is given it as an attachment to store.
+        if (IsAttachment(parameterType))
+        {
+            return new FormField(property, PickedFileFqn + "?", null, optional, Required: !optional, Text: false, Fill: null) { Attachment = true };
+        }
+
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
         // A declared default (`int count = 3`) is what the field starts from where nothing is read into it; a null one is empty.
         var field = MemberField(property, parameterType, optional, held, "aggregate", lift: true);
@@ -698,9 +715,16 @@ public sealed partial class OperationGenerator
             ? "input." + field.Property + "Cleared ? " + change + ".Clear : " + change + ".Keep"
             : change + ".Keep";
         var value = field.Text ? given + "!" : "__" + field.Property;
-        var made = field.ValueObject is { } valueObject
-            ? "global::Rask.Data.GeneratedOperations.Given(() => " + valueObject + ".Create(" + value + ", " + name + "), failures)!"
-            : value;
+        var made = value;
+        if (field.ValueObject is { } valueObject)
+        {
+            made = "global::Rask.Data.GeneratedOperations.Given(() => " + valueObject + ".Create(" + value + ", " + name + "), failures)!";
+        }
+        else if (field.Attachment)
+        {
+            made = AttachmentFqn + ".Of(" + value + ", " + name + ")";
+        }
+
         var filled = field.Text ? "!string.IsNullOrWhiteSpace(" + given + ")" : given + " is { } __" + field.Property;
         return filled + " ? " + change + ".Set(" + made + ") : " + rest;
     }

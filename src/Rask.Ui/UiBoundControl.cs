@@ -27,6 +27,7 @@ internal static class UiBoundControl
             FieldKind.Number or FieldKind.Whole => Number(bind, shape!, look),
             _ when bind is Expression<Func<bool>> flag && Hinted(shape, FieldHints.Switch) => Switched(flag, look),
             _ when type == typeof(bool) => Checked(bind, look),
+            _ when bind is Expression<Func<PickedFile?>> file => FilePicked(file, look),
             _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => Moment(bind, shape, look),
             _ => Text(bind, look),
         };
@@ -108,6 +109,15 @@ internal static class UiBoundControl
             .ShowValidation(look.ShowValidation)
             .Disabled(look.Locked)
             .Live(look.Timing.Live);
+
+    // A file the form holds until it is submitted: an operation's Attachment parameter.
+    private static UiFilePicker FilePicked(Expression<Func<PickedFile?>> bind, UiBoundLook look) =>
+        Ui.FilePicker.Bind(bind)
+            .Label(look.Label)
+            .Description(look.Description)
+            .Badge(look.Badge)
+            .ShowValidation(look.ShowValidation)
+            .Disabled(look.Locked);
 
     private static bool Hinted(FieldShape? shape, string hint) => string.Equals(shape?.Hint, hint, StringComparison.Ordinal);
 

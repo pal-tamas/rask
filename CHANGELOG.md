@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
+  carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
+  `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
+  `35.0` (SQLite) or `35.000000000` (SQL Server `decimal(18,9)`) where 35 was stored. Now every bound decimal is
+  written with its trailing zeros dropped, in the invariant spelling and never with an exponent: `35`, `35.5`, `0`,
+  `-1.23`; the field's `step`/`min`/`max` still come from its shape. A money field keeps its decimals up to its
+  precision (`12.50`), as before.
 - **`Current.Tenant` and `Current.User` are held per database, not per key alone.** Before: the rows were cached
   process-wide by the tenant's or user's key, so two tests running in parallel, each on its own
   `TestDatabase.Start<T>()` with a tenant 2, read each other's row for up to 60 seconds — the wrong settings, or a
@@ -77,6 +84,14 @@ them until tagged releases begin.
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
   (`X.Where(…)`) empties a gated member on each row while its gate is shut, and the gated members are declared at
   startup by a generator, so forms and read faces know them before the EF model is built.
+- **`Ui.FilePicker` and `Attachment` in forms**: an operation that takes an `Attachment` gets a form field holding a
+  `PickedFile` (read as it is picked, up to `MaxSize`), drawn by `Ui.Field.Bind` as `Ui.FilePicker` — Flux's upload, then
+  the file with its remove button; the store's refusal (size, type) is told under that field.
+  [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
+- **An `Attachment` anywhere in the row takes part in the save**: on a child row, inside a value object, in a list or a
+  JSON column — stored in the operation's transaction, let go after the commit when replaced or removed, refused at its
+  place (`Filed[2]`).
+- **`Problem.At(() => LocalWells[i].Companies[j].DbId, message)`** names a problem by its evaluated path, as `Refuse` does.
 - **A gated member is left off the generated forms while its gate is shut** (F-35 follow-up). `Ui.Field.Bind` draws
   nothing for a member gated with `b.Gated(…)` on the aggregate's form model and on a `Form.For` over an operation
   whose parameter writes it; the operation's form does not read the hidden field (a `Change<T>` keeps, anything else

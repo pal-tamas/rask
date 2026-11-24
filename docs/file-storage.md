@@ -213,8 +213,18 @@ await Vehicle.Attach(id, version, Attachment.Of(Files.Save(upload.OpenReadStream
   the row says what the file is. Serve it with `Files.Download(vehicle.Registration.Id)` or `Files.Share(…)` behind the
   page's own check. `Attachment.Of(storedFile)` holds a file saved before.
 
-An attachment is followed on the aggregate or entity that holds it; one inside another value object or a list is
-stored as it is, without the save taking part.
+**Anywhere in the row.** An attachment on a child row, inside a value object (`Papers(Note, Attachment? Scan)`), in a
+list or a JSON column (`ValueList<Attachment> Filed`) is stored and let go the same way: the save stores every pending
+one it finds, and lets go of each one the row held when it was read and holds no more. A refusal is told at its
+place — `Pistols[1].Photo`, `Filed[2]`.
+
+**In a form.** An operation that takes an `Attachment` gets a form field for it: `Form.For(Vehicle.Attach, id)` holds
+a `PickedFile` there, and `Ui.Field.Bind(() => f.Registration)` draws a [`Ui.FilePicker`](ui-kit.md) — Flux's upload while
+it is empty, the file and its remove button once one is picked. The file is read into memory as it is picked (up to
+the picker's `MaxSize`, 50 MB by default, refused under the field above it), so the form still has it on submit; the
+submit hands it on as `Attachment.Of(picked, "Registration")`, and a file the store then refuses (too large, a type
+`AllowedTypes` does not name) is told under that field. `Change<Attachment>` gives an empty field that keeps the stored
+file.
 
 ### Size limits along the way
 
