@@ -81,6 +81,22 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
+  "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
+  `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
+  `ExclusiveBetween`, `GreaterThanOrEqualTo`, `LessThanOrEqualTo`, `NotEqual` and `IsInEnum` say the `RaskStrings`
+  sentence the equivalent DataAnnotations attribute says, in the reader's language; a rule with no catalog sentence,
+  or a language the catalog does not speak, keeps FluentValidation's own text, `WithMessage` still wins, and a
+  `ValidatorOptions.Global.LanguageManager` the app sets itself replaces Rask's.
+- **`Children<TEntity, TSpec>`: an aggregate's children as one read-only property, made what a form's rows say by `Sync`.**
+  Before: every aggregate wrote a private `List<T>`, a public view and the same add/change/remove loop by hand (TA's
+  `Supply.Change`, `ChipHolding`, `Tank.Change`…). After: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`
+  and `Parts.Sync(specs, s => s.Id, add: SupplyPart.For, update: (p, s) => p.Hold(s), remove: p => p.Release())`: a spec
+  whose key is a part's `Id` updates it, any other adds one, an unnamed part is let go; the children end in the specs'
+  order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
+  property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
+  insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
+  the ids, are an `ArgumentException` before anything changes. See [Children](docs/data.md#children).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
@@ -132,6 +148,11 @@ them until tagged releases begin.
   built and saved with its rules in one `Db.Transaction`, the id handed back. A factory left public gets none and is
   the warning [RASK173](docs/diagnostics.md#rask173). Each operation and factory also gets `Supply.MayChange` — whether
   the signed-in principal holds one of its roles, `true` when it names none — for a page to hide what it may not do.
+- **An operation can be tried without being done.** Each operation and factory also gets a hidden
+  `Supply.DryRunChange(id, version, …)` / `DryRunRegister(…)`: the method run on a fresh copy, the rules a save asks
+  asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
+  its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
+  engine a form over the operation uses to show the domain's own rules as it is filled in.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

@@ -712,6 +712,15 @@ DataAnnotations messages read ("'Given name' must not be empty."): Rask puts it 
 `ValidatorOptions.Global.DisplayNameResolver`. A rule's `.WithName(…)` still wins, and a resolver the app sets
 itself replaces Rask's.
 
+A built-in rule with no `.WithMessage(…)` says what the equivalent attribute says through Rask: `NotEmpty()` and
+`NotNull()` what `[Required]` says, `MaximumLength`/`MinimumLength`/`Length` what `[StringLength]`/`[MaxLength]`/
+`[MinLength]` say, `EmailAddress()`, `Matches(…)`, `CreditCard()`, `InclusiveBetween`/`ExclusiveBetween` (`[Range]`),
+`GreaterThanOrEqualTo`/`LessThanOrEqualTo` (a value object's least and greatest), `NotEqual` and `IsInEnum` — the
+`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. A rule it has
+no sentence for (`GreaterThan`, `Length(n)` exact, `PrecisionScale`, `Must`), and every language it does not speak,
+keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
+`.WithMessage(…)` always wins, and a language manager the app sets itself replaces Rask's.
+
 An async `MustAsync` rule rides the same wrapper:
 
 <!-- demo:validation-fluent-async -->
