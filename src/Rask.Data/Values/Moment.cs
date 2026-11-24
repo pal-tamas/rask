@@ -40,6 +40,11 @@ public abstract record Moment : Value
             throw new ArgumentOutOfRangeException(nameof(NotBefore), NotBefore, "The earliest moment is after the latest.");
         }
 
+        if (DeclaredRules.IsReading)
+        {
+            DeclaredRules.Note(new MomentRules(NotBefore, NotAfter, NotAfterNow));
+        }
+
         this.Value = OnTheWall(Value);
         if (!Loading.IsOn)
         {

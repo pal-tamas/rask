@@ -55,9 +55,13 @@ internal static class ReadModelShape
     /// </remarks>
     /// <param name="entity">The write model to read.</param>
     /// <param name="relationships">What its <c>Configure</c> declares — see <see cref="ConfiguredRelationships" />.</param>
+    /// <param name="columns">The column patterns its <c>Configure</c> gives value objects — see <see cref="ConfiguredColumns" />.</param>
     /// <param name="cancellationToken">Cancels the walk.</param>
     public static ReadShape? Describe(
-        INamedTypeSymbol entity, IReadOnlyList<ReadRelationship> relationships, CancellationToken cancellationToken = default)
+        INamedTypeSymbol entity,
+        IReadOnlyList<ReadRelationship> relationships,
+        IReadOnlyList<ColumnPattern> columns,
+        CancellationToken cancellationToken = default)
     {
         var members = new List<ReadMember>();
         var references = new List<ReadReference>();
@@ -90,7 +94,8 @@ internal static class ReadModelShape
 
             if (!IsIgnored(property) && !IsCollectionOfEntities(property.Type))
             {
-                AddMember(entity, property, members, references, valueCollections, cancellationToken);
+                var pattern = columns.FirstOrDefault(c => string.Equals(c.Property, property.Name, StringComparison.Ordinal))?.Pattern;
+                AddMember(entity, property, pattern, members, references, valueCollections, cancellationToken);
             }
         }
 
@@ -105,10 +110,12 @@ internal static class ReadModelShape
         return Shape(entity, idType, members, references, children, valueCollections, relationships);
     }
 
-    // A collection of values, the columns of a value object, or one plain column.
+    // A collection of values, the columns of a value object (named after its pattern, when Configure gives one), or one
+    // plain column.
     private static void AddMember(
         INamedTypeSymbol entity,
         IPropertySymbol property,
+        string? pattern,
         List<ReadMember> members,
         List<ReadReference> references,
         List<ReadValueCollection> valueCollections,
@@ -125,7 +132,7 @@ internal static class ReadModelShape
         // A value object is not a member of its own: it is the columns it maps to.
         if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
         {
-            Flatten(property.Type, property.Name, property.Name, property.Name, members, 0, cancellationToken);
+            Flatten(property.Type, new Prefixes(property.Name, property.Name, property.Name, pattern), members, 0, cancellationToken);
             return;
         }
 
@@ -339,12 +346,12 @@ internal static class ReadModelShape
             ? nullable.TypeArguments[0]
             : type;
 
-    // Price_Amount, ShipTo_Country_Code — EF's own complex-property naming, which the write model uses.
+    // Price_Amount, ShipTo_Country_Code — EF's own complex-property naming, which the write model uses — or, under a
+    // pattern its Configure gives (`b.Columns(n => n.Km, "{Member}Km")`), StartKm and EndKm for the member and the column
+    // alike; below the first level EF's naming again, as Rask.Data's Columns names them.
     private static void Flatten(
         ITypeSymbol valueObject,
-        string memberPrefix,
-        string columnPrefix,
-        string pathPrefix,
+        Prefixes prefixes,
         List<ReadMember> members,
         int depth,
         CancellationToken cancellationToken)
@@ -360,9 +367,9 @@ internal static class ReadModelShape
         if (AggregateShape.HoldsOneValue(named))
         {
             members.Add(new ReadMember(
-                memberPrefix,
-                columnPrefix,
-                pathPrefix + "." + stored[0].Name,
+                prefixes.Member,
+                prefixes.Column,
+                prefixes.Path + "." + stored[0].Name,
                 TypeOf(stored[0].Type),
                 IsNullable(valueObject),
                 IsReferenceType(stored[0].Type)));
@@ -378,13 +385,14 @@ internal static class ReadModelShape
                 continue;
             }
 
-            var member = memberPrefix + property.Name;
-            var column = columnPrefix + "_" + property.Name;
-            var path = pathPrefix + "." + property.Name;
+            var (member, column) = prefixes.Pattern is { } pattern
+                ? Patterned(prefixes.Member, pattern, property.Name)
+                : (prefixes.Member + property.Name, prefixes.Column + "_" + property.Name);
+            var path = prefixes.Path + "." + property.Name;
 
             if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
             {
-                Flatten(property.Type, member, column, path, members, depth + 1, cancellationToken);
+                Flatten(property.Type, new Prefixes(member, column, path, null), members, depth + 1, cancellationToken);
                 continue;
             }
 
@@ -398,6 +406,16 @@ internal static class ReadModelShape
                 IsReferenceType(property.Type)));
         }
     }
+
+    // StartKm for both, where the pattern makes a name C# can declare; otherwise the column only, beside KmStart.
+    private static (string Member, string Column) Patterned(string memberPrefix, string pattern, string name)
+    {
+        var column = ConfiguredColumns.Apply(pattern, name);
+        return (Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(column) ? column : memberPrefix + name, column);
+    }
+
+    /// <summary>What a value object's members are named under: the read face's, the column's, the write model's path, and the pattern.</summary>
+    private readonly record struct Prefixes(string Member, string Column, string Path, string? Pattern);
 
     // The framework columns its base names: CreatedAt / UpdatedAt, Version, DeletedAt.
     private static void AddFrameworkColumns(INamedTypeSymbol entity, List<ReadMember> members)

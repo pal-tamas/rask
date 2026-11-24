@@ -497,6 +497,32 @@ dispatch publishes clean under the WASM/AOT trimmer. **RASK053** reports a messa
 has no wire encoding. It reaches no existing code: codecs are generated only for a compilation that
 references one of the two transport packages, so an app using `Rask.Cqrs` in-process is unconstrained.
 
+**A contract carries what the domain holds.** A `record struct` is a member like a record class. A one-value
+[value object](data.md#value-objects) and a typed id travel as the bare value they hold, so the JSON reads like the
+data, not like its wrappers:
+
+```csharp
+public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
+public readonly partial record struct VehicleId(int Value);
+
+public sealed record AssignDriver(VehicleId Vehicle, DriverName Driver, KmRange Km) : ICommand<VehicleId>;
+// {"vehicle":42,"driver":"ABC-123","km":{"start":10,"end":20}}
+```
+
+- **A one-value value object** (declared from `Text`, `Number`, `Whole`, `Day`, or from `Value` with one
+  positional parameter) and **a record struct of one value** (`record struct VehicleId(int Value)`, over a `Guid`,
+  a `string`, a number, an enum, …) are their value. A record struct of several values, a `Range`, and a value
+  object of several members are an object of their members.
+- **A value object is read through its generated `Create`, unchecked** — inside the same loading scope a row read
+  from the database is built in, so a rule tightened on the server never makes an older browser's message, or the
+  server's answer, unreadable. What arrives is what was sent: a handler that must rely on a rule asks it
+  (`DriverName.Create(command.Driver.Value, "Driver")`, refused under the form's field). A typed id is built with
+  its constructor.
+- A one-value record **class** that is not a value object keeps its object shape (`{"text":"…"}`), as before.
+
+The generated API client (`Rask.Api.Client`) does not unwrap: its server reads the same body with
+System.Text.Json, so a record struct there is an object of its members, `{"value":42}`.
+
 ## Diagnostics
 
 The generator validates your handlers at compile time:

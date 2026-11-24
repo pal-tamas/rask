@@ -307,6 +307,7 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
         var refusal = SqlServer(547, $"The DELETE statement conflicted with the REFERENCE constraint \"{name}\".");
 
         var translated = ReferencedDelete.Translate(
+            null,
             new DbUpdateException("The save failed.", refusal, [context.Entry(payee)]));
 
         Assert.Equal(Rask.Data.Tests.Payroll.PayeeInUse, Assert.Single(translated!.Failures).Message);

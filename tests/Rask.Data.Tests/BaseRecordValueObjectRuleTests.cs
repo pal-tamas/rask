@@ -18,6 +18,29 @@ public sealed class BaseRecordValueObjectRuleTests
     }
 
     [Fact]
+    public void A_text_declared_upper_is_kept_in_capitals_after_it_is_trimmed()
+    {
+        var vin = RigVin.Create("  wvwzzz1jzxw000001  ");
+        var hungarian = RigCode.Create("árvíztűrő");
+
+        Assert.Equal("WVWZZZ1JZXW000001", vin.Value);
+        Assert.Equal("ÁRVÍZTŰRŐ", hungarian.Value);
+    }
+
+    [Fact]
+    public void A_text_declared_upper_is_checked_as_it_is_kept()
+    {
+        var lower = "abcdefghijklmnopq";
+
+        var pattern = RigCode.__Problems("őrült");
+        var length = RigVin.__Problems(lower[..16]);
+
+        Assert.Empty(pattern);
+        Assert.Empty(RigVin.__Problems(lower));
+        Assert.Equal(["Enter at least 17 characters."], length);
+    }
+
+    [Fact]
     public void Create_refuses_a_one_value_object_exactly_under_the_field_it_is_given()
     {
         var tooLong = Assert.Throws<RaskValidationException>(() => RigDriver.Create(new string('x', 21), "Driver"));

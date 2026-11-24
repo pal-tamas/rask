@@ -45,6 +45,11 @@ public abstract record Number : Value
                 nameof(Precision), Precision, "A precision is 1 to 38 digits, and at least the scale.");
         }
 
+        if (DeclaredRules.IsReading)
+        {
+            DeclaredRules.Note(new NumberRules(Min, Max, Scale, Precision));
+        }
+
         this.Value = Value;
         if (!Loading.IsOn)
         {
