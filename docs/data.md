@@ -172,6 +172,38 @@ public sealed class OrderLine : Entity<Guid>
 An auto-property works the same: `public IReadOnlyList<OrderLine> Lines { get; private set; } = [];`, refilled
 with `Lines = [.. Lines, line]`. Rask hands EF Core a collection it can add to whenever it loads or saves the lines.
 
+**Children made from a form's rows: `Children<TEntity, TSpec>`.** When the aggregate's children are whatever a list
+of rows says — a delivery's parts, a driver's chips — declare them as one property, with no field and no view, and
+let `Sync` do the add/change/remove loop:
+
+```csharp
+public sealed record SupplyPartSpec(SupplyPartId? Id, TankId Tank, decimal Quantity);   // a row of the form
+
+public sealed class Supply : Aggregate<SupplyId>
+{
+    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+
+    public void Change(IReadOnlyList<SupplyPartSpec> parts)
+    {
+        var sync = Parts.Sync(parts, s => s.Id,
+            add: SupplyPart.For,                    // a spec whose key is null, or names no part of this supply
+            update: (p, s) => p.Hold(s),            // a spec whose key is a part's Id
+            remove: p => p.Release());              // optional: a part no spec names, as it is let go
+        if (sync.Removed.Count > 0) Raise(new PartsReleased(sync.Removed));
+    }
+}
+```
+
+`Parts` is an `IReadOnlyList<SupplyPart>` to everyone, in the specs' order — the order a form posted them, so a
+part's rule fails under `Parts[1].Quantity` as for any child. It is also the collection EF Core maps (through the
+property's own backing field): the part `Sync` adds is inserted, the one it changes is updated, the one it lets go
+is deleted, all by the aggregate's save. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved
+one of its public properties — one its row left as it was is not there), `Removed`, and `Touched` (added or
+changed), which is what a rule over old rows asks so a row stored before the rule was tightened is let be. The key
+is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two rows naming one part, or a key of another
+type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
+carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`.
+
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
 when you want them — listing a thousand orders should not drag in every line each of them holds:

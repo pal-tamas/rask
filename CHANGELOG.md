@@ -77,6 +77,15 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Children<TEntity, TSpec>`: an aggregate's children as one read-only property, made what a form's rows say by `Sync`.**
+  Before: every aggregate wrote a private `List<T>`, a public view and the same add/change/remove loop by hand (TA's
+  `Supply.Change`, `ChipHolding`, `Tank.Change`…). After: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`
+  and `Parts.Sync(specs, s => s.Id, add: SupplyPart.For, update: (p, s) => p.Hold(s), remove: p => p.Release())`: a spec
+  whose key is a part's `Id` updates it, any other adds one, an unnamed part is let go; the children end in the specs'
+  order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
+  property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
+  insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
+  the ids, are an `ArgumentException` before anything changes. See [Children](docs/data.md#children).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
