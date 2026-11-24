@@ -6,22 +6,22 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Rask.Providers.E2E.Tests;
 
-public enum GaugeKind
+public enum MeterKind
 {
     Manual,
     Pump,
 }
 
 /// <summary>A reading whose computed columns each say one thing the C# subset can.</summary>
-public sealed class Gauge
+public sealed class MeterReading
 {
-    public static readonly Expression<Func<Gauge, int>> CountedAtIs = g => g.ModifiedPistol ?? g.Pistol;
-    public static readonly Expression<Func<Gauge, string>> NameIs = g => g.Year + "." + g.Month;
-    public static readonly Expression<Func<Gauge, string>> LabelIs = g => g.Note + "#" + g.ModifiedPistol;
-    public static readonly Expression<Func<Gauge, bool>> MovedIs = g => g.ModifiedPistol != null && g.ModifiedPistol != g.Pistol;
-    public static readonly Expression<Func<Gauge, bool>> SamePistolIs = g => g.ModifiedPistol == g.Pistol;
-    public static readonly Expression<Func<Gauge, int>> SpreadIs = g => Math.Abs(g.Pistol - g.ModifiedPistol.GetValueOrDefault()) % 7;
-    public static readonly Expression<Func<Gauge, string>> SizeIs = g => g.Litres * 2 > 100 ? "big" : g.Kind == GaugeKind.Pump ? "pump" : "small";
+    public static readonly Expression<Func<MeterReading, int>> CountedAtIs = g => g.ModifiedPistol ?? g.Pistol;
+    public static readonly Expression<Func<MeterReading, string>> NameIs = g => g.Year + "." + g.Month;
+    public static readonly Expression<Func<MeterReading, string>> LabelIs = g => g.Note + "#" + g.ModifiedPistol;
+    public static readonly Expression<Func<MeterReading, bool>> MovedIs = g => g.ModifiedPistol != null && g.ModifiedPistol != g.Pistol;
+    public static readonly Expression<Func<MeterReading, bool>> SamePistolIs = g => g.ModifiedPistol == g.Pistol;
+    public static readonly Expression<Func<MeterReading, int>> SpreadIs = g => Math.Abs(g.Pistol - g.ModifiedPistol.GetValueOrDefault()) % 7;
+    public static readonly Expression<Func<MeterReading, string>> SizeIs = g => g.Litres * 2 > 100 ? "big" : g.Kind == MeterKind.Pump ? "pump" : "small";
 
     public Guid Id { get; set; }
 
@@ -37,7 +37,7 @@ public sealed class Gauge
 
     public double Litres { get; set; }
 
-    public GaugeKind Kind { get; set; }
+    public MeterKind Kind { get; set; }
 
     public int CountedAt { get; private set; }
 
@@ -89,16 +89,16 @@ public sealed class NeutralDbContext(DbContextOptions<NeutralDbContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Database.IsSqlite() ? null : Schema);
-        modelBuilder.Entity<Gauge>(b =>
+        modelBuilder.Entity<MeterReading>(b =>
         {
             b.Property(g => g.Note).HasMaxLength(100);
-            b.Computed(g => g.CountedAt, Gauge.CountedAtIs);
-            b.Computed(g => g.Name, Gauge.NameIs).HasMaxLength(50);
-            b.Computed(g => g.Label, Gauge.LabelIs).HasMaxLength(150);
-            b.Computed(g => g.Moved, Gauge.MovedIs);
-            b.Computed(g => g.SamePistol, Gauge.SamePistolIs);
-            b.Computed(g => g.Spread, Gauge.SpreadIs);
-            b.Computed(g => g.Size, Gauge.SizeIs).HasMaxLength(10);
+            b.Computed(g => g.CountedAt, MeterReading.CountedAtIs);
+            b.Computed(g => g.Name, MeterReading.NameIs).HasMaxLength(50);
+            b.Computed(g => g.Label, MeterReading.LabelIs).HasMaxLength(150);
+            b.Computed(g => g.Moved, MeterReading.MovedIs);
+            b.Computed(g => g.SamePistol, MeterReading.SamePistolIs);
+            b.Computed(g => g.Spread, MeterReading.SpreadIs);
+            b.Computed(g => g.Size, MeterReading.SizeIs).HasMaxLength(10);
         });
         modelBuilder.Entity<Licence>(b =>
         {
@@ -118,12 +118,12 @@ public sealed class NeutralDbContext(DbContextOptions<NeutralDbContext> options)
 /// <summary>What every provider is held to: the same rows, the same answers, as the C# gives them.</summary>
 internal static class NeutralModelParity
 {
-    private static readonly Gauge[] Rows =
+    private static readonly MeterReading[] Rows =
     [
-        new() { Pistol = 3, ModifiedPistol = null, Year = 2026, Month = 1, Note = null, Litres = 10, Kind = GaugeKind.Pump },
-        new() { Pistol = 3, ModifiedPistol = 3, Year = 2025, Month = 12, Note = "same", Litres = 60, Kind = GaugeKind.Manual },
-        new() { Pistol = 2, ModifiedPistol = 19, Year = 1999, Month = 7, Note = "", Litres = 49.5, Kind = GaugeKind.Manual },
-        new() { Pistol = -4, ModifiedPistol = 0, Year = 0, Month = -1, Note = "x", Litres = 0, Kind = GaugeKind.Pump },
+        new() { Pistol = 3, ModifiedPistol = null, Year = 2026, Month = 1, Note = null, Litres = 10, Kind = MeterKind.Pump },
+        new() { Pistol = 3, ModifiedPistol = 3, Year = 2025, Month = 12, Note = "same", Litres = 60, Kind = MeterKind.Manual },
+        new() { Pistol = 2, ModifiedPistol = 19, Year = 1999, Month = 7, Note = "", Litres = 49.5, Kind = MeterKind.Manual },
+        new() { Pistol = -4, ModifiedPistol = 0, Year = 0, Month = -1, Note = "x", Litres = 0, Kind = MeterKind.Pump },
     ];
 
     internal static async Task ComputedColumnsAgreeWithCSharp(NeutralDbContext db, CancellationToken cancellationToken)
@@ -132,17 +132,17 @@ internal static class NeutralModelParity
         await db.SaveChangesAsync(cancellationToken);
         db.ChangeTracker.Clear();
 
-        var read = await db.Set<Gauge>().AsNoTracking().ToDictionaryAsync(g => g.Id, cancellationToken);
+        var read = await db.Set<MeterReading>().AsNoTracking().ToDictionaryAsync(g => g.Id, cancellationToken);
         foreach (var row in Rows)
         {
             var stored = read[row.Id];
-            Assert.Equal(Gauge.CountedAtIs.Compile()(row), stored.CountedAt);
-            Assert.Equal(Gauge.NameIs.Compile()(row), stored.Name);
-            Assert.Equal(Gauge.LabelIs.Compile()(row), stored.Label);
-            Assert.Equal(Gauge.MovedIs.Compile()(row), stored.Moved);
-            Assert.Equal(Gauge.SamePistolIs.Compile()(row), stored.SamePistol);
-            Assert.Equal(Gauge.SpreadIs.Compile()(row), stored.Spread);
-            Assert.Equal(Gauge.SizeIs.Compile()(row), stored.Size);
+            Assert.Equal(MeterReading.CountedAtIs.Compile()(row), stored.CountedAt);
+            Assert.Equal(MeterReading.NameIs.Compile()(row), stored.Name);
+            Assert.Equal(MeterReading.LabelIs.Compile()(row), stored.Label);
+            Assert.Equal(MeterReading.MovedIs.Compile()(row), stored.Moved);
+            Assert.Equal(MeterReading.SamePistolIs.Compile()(row), stored.SamePistol);
+            Assert.Equal(MeterReading.SpreadIs.Compile()(row), stored.Spread);
+            Assert.Equal(MeterReading.SizeIs.Compile()(row), stored.Size);
         }
     }
 
