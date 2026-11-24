@@ -209,6 +209,7 @@ Rask.Data.TestDatabase.Context.get -> Rask.Data.RaskDbContext!
 Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
 Rask.Data.TestDatabase.Load<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.Load<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.TestDatabase.Bind() -> System.IDisposable!
 Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
 Rask.Data.Timestamps
 const Rask.Data.GeneratedModelRules.RequiredMessage = "This field is required." -> string!
@@ -312,7 +313,7 @@ static Rask.Data.Tenant.None() -> System.IDisposable!
 static Rask.Data.Tenant.Resolve() -> System.Guid?
 static Rask.Data.Tenant.Use(long tenant) -> System.IDisposable!
 static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
-static Rask.Data.TestDatabase.Start(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
+static Rask.Data.TestDatabase.Start(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!>? services = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
 Rask.Data.CurrentUser
 Rask.Data.CurrentUser.extension(Rask.Current!)
 static Rask.Data.CurrentUser.Claim(string! type) -> string?
@@ -392,7 +393,7 @@ static Rask.Data.ModelConfigurationBuilderExtensions.DeleteBehavior(this Microso
 static Rask.Data.ModelRegistry.UseModel<TModel>() -> void
 Rask.Data.TestDatabase<TContext>
 Rask.Data.TestDatabase<TContext>.Context.get -> TContext!
-static Rask.Data.TestDatabase.Start<TContext>(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
+static Rask.Data.TestDatabase.Start<TContext>(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!>? services = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
 Rask.Data.CurrentRows
 Rask.Data.ITenant
 Rask.Data.IUser

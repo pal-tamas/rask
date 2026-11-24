@@ -57,7 +57,8 @@ indexes, `ORDER BY`), and `instr`/`LIKE` replaced so `Contains`, `StartsWith` an
 
 `await using var database = await TestDatabase.Start<AppDbContext>();` — a SQLite database in memory of the test's
 own, configured through `UseRaskSqlite`, shared by every context it hands out (`Context`, `Factory`, the model
-surface), gone when disposed. Tests that start one each run side by side.
+surface), gone when disposed. Tests that start one each run side by side, and the schema is made once per model and
+copied into each later database through SQLite's backup API.
 
 ## STRICT tables
 

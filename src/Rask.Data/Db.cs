@@ -73,6 +73,25 @@ public static partial class Db
         return bound;
     }
 
+    /// <summary>Binds <paramref name="bound" /> to this flow again, handing back what was bound before — see <c>TestDatabase.Bind</c>.</summary>
+    /// <remarks>As <see cref="BindFlow" />: the caller must not be an async method.</remarks>
+    internal static FlowDatabase? EnterFlow(FlowDatabase bound)
+    {
+        var previous = Flow.Value;
+        Flow.Value = bound;
+        Ambient.DeclineTestApp();
+        return previous;
+    }
+
+    /// <summary>Puts <paramref name="previous" /> back in this flow, if <paramref name="bound" /> is still the one bound there.</summary>
+    internal static void RestoreFlow(FlowDatabase bound, FlowDatabase? previous)
+    {
+        if (ReferenceEquals(Flow.Value, bound))
+        {
+            Flow.Value = previous;
+        }
+    }
+
     /// <summary>
     ///     Forgets the database bound to this flow: a <c>Configure</c> the flow makes after starting one is its say, as
     ///     it was before tests ran side by side.
@@ -170,6 +189,15 @@ public static partial class Db
         _factory = null;
         Interlocked.Increment(ref _generation);
         ReadDb.Reset();
+    }
+
+    /// <summary>Forgets the configured factory, as <see cref="Reset" /> does, if it is still <paramref name="factory" />.</summary>
+    internal static void ResetIf(Func<DbContext> factory)
+    {
+        if (ReferenceEquals(Interlocked.CompareExchange(ref _factory, null, factory), factory))
+        {
+            Interlocked.Increment(ref _generation);
+        }
     }
 
     /// <summary>

@@ -54,6 +54,10 @@ them until tagged releases begin.
   warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
   `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
 ### Performance
+- **`TestDatabase.Start<TContext>()` copies the model's schema instead of creating it per test.** Before: every
+  in-memory database ran `EnsureCreated`, ~74 ms median for a 54-table model (9 ms at best, on a loaded machine).
+  After: the first database over a model creates the schema and keeps an empty copy; every later one is restored
+  from it through SQLite's backup API (tables, indexes, triggers, `HasData` seed) — ~0.7 ms median for the same model.
 - **Saving an aggregate of thousands of changed children is linear, not quadratic.** Before: the save's checks
   (`AuditingInterceptor`'s root walk — touching the root, a child's tenant against its root's — and `ParentTenantCheck`)
   found each child's parent by scanning every tracked row, so a save cost changed children × rows tracked: 3,000 new
@@ -69,6 +73,29 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
+  Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
+  data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
+  durable handler's event was never stored, and the lazy-loading guard did not run. After: the interceptors come from
+  services registered as the host registers them — `AddRaskCqrs()`, `AddRaskData<TContext>()`, and `AddRaskOutbox`
+  when the model maps the outbox table (announced by `Rask.Outbox` itself) — in the app's order, so a save publishes
+  its events to their `IEventHandler`s after the commit and clears them, stores a durable handler's event in the same
+  transaction (or `Outbox.Fake()` records it), and a handler's `IDbContextFactory<TContext>` opens the test's database.
+  Every `Start` overload takes `services:` for what the app's handlers need beyond Rask's registrations. A test that
+  asserted `DomainEvents` after a save asserts it before the save, or on what the handler did.
+  Its contexts' options also say up front what a Rask context configures for itself, so each start builds EF Core's
+  internal services once rather than twice (a test run is refused past twenty).
+- **A database a class or collection fixture started is its test class's own, in parallel.** Before: one started in a
+  fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture classes in parallel read
+  whichever started last. After: Rask.Testing's xUnit v3 hook binds it before each test of the class (a fixture that is
+  a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
+  hand. Disposing a database clears the process-wide binding only while it is still its own.
+
+- **`X.Check(value)` on every one-value value object.** Before: a hand-written form asked a value object's rules
+  through a lambda over `TryCreate`, or a `static Validate` written beside it. After: the generated, public, sync
+  `DriverName.Check(value)` answers what `DriverName.Create` would refuse with, in the shape of a field's rule —
+  `Ui.Input.Bind(() => m.Name).Validate(DriverName.Check)`; a number gets one for `decimal` and one for `decimal?`. The
+  site's destination demos use it.
 - **`b.LockedBy(n => n.Period, (Period p) => p.Closed, message)`: a row closed by its parent, held by every save.**
   Before: "a closed period's notes stay as they were" was a hand-written save hook per app, reading tables by name
   with provider SQL, blind to a child-only change or a move between parents, and checked outside the save's
@@ -761,6 +788,22 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A test project that declares its own context still boots the app on demand.** Before: a `RaskDbContext` subclass
+  in a test project that uses Rask.Testing got a generated design-time factory over `UseRaskDatabase`, so the test
+  assembly referenced `Rask.Server` and Rask.Testing took the TEST project's entry point (the test SDK's `Main`) for the
+  app's — nothing booted, and a read with no database of its own failed with "The read faces have not been pointed at
+  a database". After: an assembly that references a test framework is never taken for the app.
+- **A `DateTimeOffset` orders and compares by its instant on SQLite, as on SQL Server.** Before: EF Core's SQLite
+  provider stored it as text with its offset and refused `OrderBy`, `<`, `>` and `Max` over it, and `==` and a unique
+  index compared the text — so `10:00+01:00` and `09:00+00:00` were two moments, and a query an app ran on SQL Server
+  did not translate in its SQLite tests. After: `UseRaskSqlite` creates every `DateTimeOffset` column
+  `COLLATE "RASK_MOMENT"` (`SqliteCollations.MomentOrder`, registered on every connection), which compares by UTC
+  instant; the stored text is EF Core's own, every tick and the offset kept, and a property with a converter of its own
+  keeps its column. An existing SQLite database with such columns takes one migration (`rask db add MomentOrder`).
+  `DateTimeParityTests` (Providers E2E) pins the date rules on SQL Server, SQLite and PostgreSQL: a tick and
+  `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL —
+  where a `Moment` value object, a wall-clock `DateTime` of `Kind = Unspecified`, is refused on save
+  ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
 - **A value object's generated half is fully documented.** Before: `X.Create(…)` documented only its `field`
   parameter, so an app building its documentation file with warnings as errors failed on CS1573 in a file it never
   wrote (TA had to `NoWarn` CS1573 project-wide). After: `Create`, `TryCreate`, `CreateOptional` and `__Problems`

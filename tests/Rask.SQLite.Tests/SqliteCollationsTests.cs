@@ -105,6 +105,32 @@ public sealed class SqliteCollationsTests : IDisposable
             Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.DecimalOrder}"));
     }
 
+    [Fact]
+    public async Task The_moment_collation_orders_by_the_instant_and_puts_what_is_no_moment_last()
+    {
+        await SeedAsync("2026-03-04 05:00:00-05:00", "soon", "2026-03-04 10:00:00+01:00", "2026-03-04 08:00:00.5+00:00", "");
+        await using var connection = await OpenPlainAsync();
+        SqliteCollations.Apply(connection);
+
+        var ordered = Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.MomentOrder}");
+
+        Assert.Equal(
+            ["2026-03-04 08:00:00.5+00:00", "2026-03-04 10:00:00+01:00", "2026-03-04 05:00:00-05:00", "", "soon"],
+            ordered);
+    }
+
+    [Fact]
+    public async Task The_same_instant_in_two_offsets_is_one_moment()
+    {
+        await SeedAsync("2026-03-04 10:00:00+01:00", "2026-03-04 09:00:00+00:00", "2026-03-04 18:00:00.0000000+09:00");
+        await using var connection = await OpenPlainAsync();
+        SqliteCollations.Apply(connection);
+
+        var distinct = Query(connection, $"SELECT COUNT(DISTINCT v COLLATE {SqliteCollations.MomentOrder}) FROM amounts");
+
+        Assert.Equal(["1"], distinct);
+    }
+
     private async Task<SqliteConnection> OpenPlainAsync()
     {
         var connection = new SqliteConnection($"Data Source={_dbPath}");

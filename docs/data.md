@@ -2226,9 +2226,25 @@ which runs a plain `RaskDbContext`. For a test that needs the real database serv
 takes it from an environment variable and skips the test where it is unset ([testing](testing.md#a-real-database-server-when-the-machine-has-one)).
 
 Either way it maps every entity the build found — so no fixture has to list entities — creates the
-schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
-production, and points the model surface at it. Disposing clears it, so one test cannot leak its
-database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
+schema, and points the model surface at it. Disposing clears it, so one test cannot leak its database into the
+next. It takes a `TimeProvider`, so audit stamps are assertable.
+
+**A save runs what it runs in the app.** The context's interceptors come from services registered as the host
+registers them — `AddRaskCqrs()`, `AddRaskData<AppDbContext>()`, and the outbox when the model maps its table
+(`b.AddRaskOutbox()`, which every Rask app's model does) — so the whole chain runs, in the app's order: the ambient
+transaction, the lazy-loading guard, writable children, soft delete, auditing, **domain-event publication**, data
+changes, the violation sentence, the outbox. A saved aggregate's events reach their `IEventHandler`s after the commit
+and are cleared then, exactly as in production; a durable handler's event is stored in the save's own transaction
+(or recorded by `Outbox.Fake()`, and run by `await outbox.Run()`). A handler is resolved from those services, and the
+`IDbContextFactory<AppDbContext>` it is handed opens this database. What a handler needs beyond Rask's registrations
+the test registers itself:
+
+```csharp
+var receipts = new ReceiptLog();   // what the app's OrderPlaced handler takes
+await using var database = await TestDatabase.Start<AppDbContext>(services: s => s.AddSingleton(receipts));
+```
+
+So assert an event before the save (`order.DomainEvents`), or on what its handler did after it.
 
 **In memory, and side by side.** `TestDatabase.Start<AppDbContext>()` (and `TestDatabase.Start()` over Rask's own
 context) come with `Rask.SQLite.EntityFrameworkCore`, which every server app already has through `Rask.Server`. Each
@@ -2238,17 +2254,22 @@ surface's reads and writes — opens its own connection to the same name and see
 fixture lets the database go. It is configured through `UseRaskSqlite`, so a decimal orders as a number and a model
 that names `c.OrderTextBy("Hungarian_100_CI_AS")` compares text case-insensitively, in Hungarian order, as its SQL
 Server does ([text order](#app-wide-model-rules-one-iraskmodel)); the schema is the model's, so an app whose
-migrations are SQL Server's still gets its tables. **Tests run in parallel**: a database started inside a test binds
-the model surface for that test's own flow, so two tests side by side each read their own rows. One started in a class
-fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow and points the process-wide surface instead —
-those tests take turns, one fixture at a time.
+migrations are SQL Server's still gets its tables — made once per model: the first database over a model runs
+`EnsureCreated`, and every later one is copied from that empty schema through SQLite's backup API (tables, indexes,
+triggers, `HasData` seed), so a start costs well under a millisecond of schema however many tables there are.
+**Tests run in parallel**: a database started inside a test binds the model surface for that test's own flow, so two
+tests side by side each read their own rows — through the read face (`Product.Where(…)`), the aggregate's statics
+(`Product.Find(id)`), a handler, or a factory a test host is handed (`database.Factory`). One started in a class or
+collection fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow — the framework ran it in a flow
+of its own — so on its own it points the process-wide surface, which the last database started anywhere holds. With
+`Rask.Testing` referenced (xUnit v3) its test hook binds it before each test of the class: a fixture that is a
+`TestDatabase`, or holds one as a public property, is the database every test of that class reads and writes, beside
+every other class's fixture. Without the hook, `using var bound = fixture.Database.Bind();` at the top of a test does
+the same by hand.
 
 The options callback is still there for another database: `TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs))`,
 or SQLite over a file. A provider's specifics stay in Rask (the collation, `end - start`, `Db.Lock`, a covering
 index), so the app's tests need no SQL Server of their own to mean what they say.
-
-Domain-event *publication* is deliberately not wired — that needs a service provider to resolve handlers
-through, which is more than a database fixture should invent. Assert on `DomainEvents` instead.
 
 ## Mapping rules the conventions don't cover
 
@@ -2669,6 +2690,31 @@ and a projection of the length itself reads a `TimeSpan` back. `TotalDays`, `Tot
 subtraction is; a nullable date makes a nullable length, which no comparison matches. SQLite stores a date as text and
 reads three fractional digits of it, hence the millisecond. A date column stored through a value converter of the
 app's own (ticks, Unix time) is left untranslated — EF Core says so — rather than measured wrong.
+
+### Dates and moments: what each database keeps
+
+A `DateTime` and a `DateTimeOffset` mapped by EF Core come back, compare and order the same on SQL Server and on SQLite
+through `UseRaskSqlite` — which is what lets an app whose production database is SQL Server test on SQLite in memory.
+PostgreSQL differs in three ways it cannot be made not to. The parity suite (`DateTimeParityTests` in
+`tests/Rask.Providers.E2E.Tests`) pins every row of this table on all three:
+
+| | SQL Server (`datetime2(7)`, `datetimeoffset(7)`) | SQLite (`UseRaskSqlite`) | PostgreSQL (`timestamptz`) |
+|---|---|---|---|
+| Smallest step kept | a tick (100 ns) | a tick (stored as text, seven fractional digits) | a microsecond: the seventh digit is rounded away |
+| A `DateTime` reads back as | `Kind = Unspecified` | `Kind = Unspecified` | `Kind = Utc`, and writing one that is not UTC is refused |
+| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
+| Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
+| A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
+| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | refused: Npgsql writes a `DateTime` only as UTC |
+
+SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
+`OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
+EF Core writes it (`2026-03-04 10:00:00.1234567+01:00`, every tick and the offset) and creates the column
+`COLLATE "RASK_MOMENT"`, which compares two values by their UTC instant: `10:00+01:00` and `09:00+00:00` are one
+moment, as on SQL Server. A property the model gives a converter of its own (`DateTimeOffsetToBinaryConverter`,
+Unix time) keeps that column. A `DateTime` needs nothing: its text, written to the tick in one format, orders as the
+time does. An existing SQLite database with `DateTimeOffset` columns gets the collation through one migration
+(`rask db add MomentOrder`); the stored values do not change.
 
 ## Value objects
 
