@@ -42,6 +42,7 @@ internal sealed class WritableChildrenInterceptor
     {
         RowLoading.Leave();
         WritableChildren.Ensure(materializationData.EntityType, entity);
+        ChildPositions.Read(materializationData, entity);
         StoredAggregates.Mark(entity);
         return entity;
     }
@@ -185,6 +186,7 @@ internal sealed class WritableChildrenInterceptor
         if (context is not null)
         {
             WritableChildren.Ensure(context);
+            ChildPositions.Stamp(context);
             AttemptUndo.Capture(context);          // before MarkTracked and before any interceptor bumps a version
             StoredAggregates.MarkTracked(context);
         }

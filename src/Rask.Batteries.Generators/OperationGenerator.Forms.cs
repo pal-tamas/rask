@@ -62,6 +62,9 @@ public sealed partial class OperationGenerator
         /// <summary>Whether a value type is held as its nullable twin, and so refused as required when left empty.</summary>
         public bool Lifted { get; init; }
 
+        /// <summary>The C# a field nothing fills starts from: the parameter's declared default, or null for none.</summary>
+        public string? Default { get; init; }
+
         /// <summary>The fields of a value object of several values, or null for a field of one value.</summary>
         public FormGroup? Group { get; init; }
 
@@ -92,6 +95,7 @@ public sealed partial class OperationGenerator
                     PropertyType = Optionally(field.PropertyType),
                     Optional = true,
                     Required = false,
+                    Lifted = false,
                     Fill = null,
                     Change = change.ToDisplayString(TypeFormat),
                     Clearable = clearable,
@@ -110,7 +114,11 @@ public sealed partial class OperationGenerator
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
                        parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
-        return MemberField(property, parameterType, optional, held, "aggregate", lift: false);
+        // A declared default (`int count = 3`) is what the field starts from where nothing is read into it; a null one is empty.
+        var field = MemberField(property, parameterType, optional, held, "aggregate", lift: true);
+        return field is { ValueObject: null } && parameter is { HasExplicitDefaultValue: true, ExplicitDefaultValue: not null }
+            ? field with { Default = DefaultOf(parameter) }
+            : field;
     }
 
     // The one value a value object declared from Text, Number, Whole, Day or Moment holds: its positional parameter.
@@ -408,7 +416,11 @@ public sealed partial class OperationGenerator
     {
         s.Append(indent).Append("/// <summary>").Append(summary).AppendLine("</summary>");
         s.Append(indent).Append("public ").Append(field.PropertyType).Append(' ').Append(field.Property).Append(" { get; set; }");
-        if (field.Group is not null)
+        if (field.Default is { } start)
+        {
+            s.Append(" = ").Append(start).Append(';');
+        }
+        else if (field.Group is not null)
         {
             s.Append(" = new();");
         }

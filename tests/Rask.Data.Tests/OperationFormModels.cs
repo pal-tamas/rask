@@ -52,6 +52,11 @@ public sealed partial class Convoy : Aggregate<Guid, Versioned>
 
     public void Measure(RigKm km) => Km = km;
 
+    public int RestDays { get; private set; }
+
+    // Nothing on the convoy is called Days, so its form starts from the declared default.
+    public void Rest(int days = 2, DateOnly? from = null) => RestDays = from is null ? days : days + 1;
+
     // The tests' own way to a stored convoy.
     internal static Convoy Assembled(string name, params ConvoyTruckSpec[] trucks)
     {

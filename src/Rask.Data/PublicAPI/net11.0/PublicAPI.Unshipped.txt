@@ -245,6 +245,7 @@ Rask.Data.Timestamps
 const Rask.Data.GeneratedModelRules.RequiredMessage = "This field is required." -> string!
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
+const Rask.Data.Columns.Position = "Position" -> string!
 const Rask.Data.Columns.TenantId = "TenantId" -> string!
 const Rask.Data.Columns.TenantKey = "TenantKey" -> string!
 const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!

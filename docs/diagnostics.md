@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK177, RASK180–RASK183, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK183, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -171,6 +171,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK175](#rask175) | Error | An aggregate stores a password |
 | [RASK176](#rask176) | Error | A password is sent back |
 | [RASK177](#rask177) | Info | Code written for one database |
+| [RASK178](#rask178) | Info | A transaction writes two aggregates without saying why |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
@@ -3658,6 +3659,41 @@ provider**, `UseSqlServer`, `UseAzureSql`, `UseAzureSynapse`, `UseNpgsql` or `Us
 (`UseRaskDatabase(sp)` names none, and reads it from `Rask:Database:Provider`). Rask's own packages are compiled apart
 from the app, so their provider code is not seen. A suggestion by default; a warning under `<RaskStrict>`, so an error
 at `<RaskStrict>errors</RaskStrict>`. No quick-fix: each replacement is a different shape.
+
+## RASK178
+
+**A transaction writes two aggregates without saying why** · Info (Warning under `<RaskStrict>`)
+
+A [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction) whose work — nested lambdas
+included — writes two different aggregates and states no `manyAggregates:` reason. A write is a generated one: an
+aggregate's `Create`, `Update` or `Delete`, an instance's `Save()` or `Delete()`, or an operation's entry (the static
+`Supply.Change(id, version, …)` beside the method `Change`, or the factory entry `Supply.Register(…)`). Reads (`Find`,
+`Where`, `Count`, `Any`, `Model`, the dry runs) are not writes. An aggregate is the transaction boundary: two
+committed together is a decision, and the reason is written where it is made. At run time
+`RaskDataOptions.OneAggregatePerTransaction` meets the same transaction (a warning in the log, or a
+`ManyAggregatesException` under `AggregatePolicy.Throw`, which a `TestDatabase` runs at).
+
+```csharp
+await Db.Transaction(async () =>                                              // ℹ RASK178
+{
+    await filling.Save();
+    await withdrawal.Save();
+});
+
+await Db.Transaction(async () =>                                              // ✓ the reason, written down
+{
+    await filling.Save();
+    await withdrawal.Save();
+}, manyAggregates: "The IBC filling and its withdrawals are only valid together");
+```
+
+**Fix:** write one aggregate per transaction — the other through a domain event (`static Task On(E e)`) — or state
+why they are only valid together. **Quick-fix:** inserts `manyAggregates: "TODO: why"` right after the work, named in
+its own position, so an isolation passed after it still binds (`Db.Transaction(work, manyAggregates: "TODO: why",
+IsolationLevel.Serializable)`); the placeholder is yours to replace.
+
+**Not reported:** one aggregate type written twice — the analyzer cannot tell two rows apart; the run-time check
+counts them by key — and a write in a method the work calls, which the analyzer does not follow.
 
 ## RASK180
 

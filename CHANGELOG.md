@@ -351,6 +351,16 @@ them until tagged releases begin.
   keeping the value; a value typed in is set through its value object's rules, and over a nullable value
   `Ui.Field.Bind` draws a "Clear" (`RaskString.ChangeClear`, "Törlés") beside the control
   (`RaskValidation.RegisterClearing`). A `Password` value object is never read into a form field.
+- **BREAKING: a `Children<,>` keeps its order across a reload, in a `Position` column.** Before: the children loaded
+  back in whatever order the store read them — two rows saved in the same millisecond could swap, so a form's rows
+  came back reordered. After: Rask adds an `int` shadow property `Position` (`Columns.Position`) to every entity a
+  `Children<,>` holds, each save writes the child's place in the collection, and a load puts each child back where it
+  was. An app gets the column through its next EF migration (existing rows start at 0, in the store's order, until saved).
+- **BREAKING: a number nothing prefills starts empty on a `Form.For`.** Before: a factory's `int`/`decimal`/day/enum/id
+  parameter was held as it is, so its field showed `0` (or the first enum member) and a form left alone saved it.
+  After: it is held empty until one is typed and refused as required when left so, as a row's or a group's member is;
+  an operation's field still starts from what the aggregate holds, and a parameter that declares a default
+  (`int count = 3`) starts from it.
 - **`Form.For` over an operation that takes rows, or a value object of several values.** Before: an operation with a
   list parameter (`Change(IReadOnlyList<SupplyPartSpec> parts)` for a `Children<,>.Sync`) or a `Range` / `: Value`
   record of several members got no `Form.For`. After: a list is `f.Parts`, a row per child the aggregate holds (read
