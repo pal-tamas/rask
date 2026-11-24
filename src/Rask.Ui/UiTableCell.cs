@@ -75,11 +75,16 @@ public sealed partial class UiTableCell : UiElement
     public int? ColSpan { get; set; }
 
     /// <inheritdoc />
-    protected override string TagName => "td";
+    protected override string? TagName => _member is { Listed: false } ? null : "td";
+
+    /// <inheritdoc />
+    /// <remarks>Nothing, for a cell of a <c>[ScaffoldColumn(false)]</c> member: it is no element then, and draws no cell.</remarks>
+    protected override Component? Render() => null;
 
     /// <inheritdoc />
     /// <remarks>What this cell writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
-    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true, Cut is not null, Whole is true), Class);
+    protected override string? ResolveClass() =>
+        UiTableBox.WithClass(List(Variant, Align ?? _member?.Align, Sticky is true, Cut is not null, Whole is true), Class);
 
     /// <inheritdoc />
     /// <remarks>
@@ -117,7 +122,13 @@ public sealed partial class UiTableCell : UiElement
     ///     nothing but <see cref="Cut" /> shows that text.
     /// </remarks>
     protected override IEnumerable<Component?> RenderChildren() =>
-        Children is null && Cut is { } text ? [(Component)text] : base.RenderChildren();
+        (_member, Children, Cut) switch
+        {
+            ({ Listed: false }, _, _) => [],
+            (_, null, { } text) => [(Component)text],
+            ({ }, null, null) => [(Component)(_shown ?? "")],
+            _ => base.RenderChildren(),
+        };
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => (Whole is true ? Kept : Marker).With(Data);
 

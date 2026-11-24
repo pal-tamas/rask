@@ -1936,7 +1936,8 @@ What each one does, where it is read — on the aggregate's property, a generate
 | `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
 | `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
 | `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
-| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[DisplayFormat]` | `ConvertEmptyStringToNull = false`: an emptied `string?` is written `""`, not `null`; `DataFormatString` and `NullDisplayText`: how a `Ui.TableCell.For` writes it | – | – | – |
+| `[ScaffoldColumn(false)]` | no `Ui.TableColumn.For` heading and no `Ui.TableCell.For` cell | – | – | – |
 | `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
 | `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
 
@@ -1949,8 +1950,9 @@ aggregate's rules on its form (live, `MustAsync` included, a row's under `Lines[
 recommended way: see [three ways to say a rule](forms-validation.md#three-ways-to-say-a-rule).
 
 `[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
-the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
-Rask.Ui list or table builds its columns from a model's members.
+the property. The read face (`ProductRead`) carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the
+aggregate's property, so a list's columns are named, written and shown as the property says
+([ui-kit — columns from the row's members](ui-kit.md#columns-from-the-rows-members)).
 
 ## The current user — `Current`
 

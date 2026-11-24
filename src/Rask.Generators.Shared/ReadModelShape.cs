@@ -130,9 +130,20 @@ internal static class ReadModelShape
         }
 
         // A value object is not a member of its own: it is the columns it maps to.
-        if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
+        if (AggregateShape.ValueObjectTypeOf(property.Type) is { } valueObject)
         {
+            var before = members.Count;
             Flatten(property.Type, new Prefixes(property.Name, property.Name, property.Name, pattern), members, 0, cancellationToken);
+
+            // One value is one column under the property's own name: it is shown as the property says, and shaped as
+            // the value object declares.
+            if (members.Count == before + 1 && AggregateShape.HoldsOneValue(valueObject))
+            {
+                members[before] = Shown(members[before], property, AggregateShape.ValueBaseOf(valueObject) is not null
+                    ? valueObject.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ".__Field"
+                    : null);
+            }
+
             return;
         }
 
@@ -165,13 +176,16 @@ internal static class ReadModelShape
     // A primitive column, and — for a {X}Id — the candidate reference it might be.
     private static void AddColumn(IPropertySymbol property, List<ReadMember> members, List<ReadReference> references)
     {
-        members.Add(new ReadMember(
-            property.Name,
-            property.Name,
-            property.Name,
-            TypeOf(property.Type),
-            IsNullable(property.Type),
-            IsReferenceType(property.Type)));
+        members.Add(Shown(
+            new ReadMember(
+                property.Name,
+                property.Name,
+                property.Name,
+                TypeOf(property.Type),
+                IsNullable(property.Type),
+                IsReferenceType(property.Type)),
+            property,
+            null));
 
         if (property.Name.EndsWith("Id", StringComparison.Ordinal) && property.Name.Length > 2)
         {
@@ -182,6 +196,14 @@ internal static class ReadModelShape
                 IsNullable(property.Type)));
         }
     }
+
+    // What the property a member reads says about showing it: its attributes, copied, and its field shape.
+    private static ReadMember Shown(ReadMember member, IPropertySymbol property, string? valueObjectShape) =>
+        member with
+        {
+            Shown = FieldShapeHints.ShownAttributes(property) is { Length: > 0 } shown ? shown : null,
+            Shape = FieldShapeHints.Annotated(property, valueObjectShape),
+        };
 
     private static ReadShape Shape(
         INamedTypeSymbol entity,

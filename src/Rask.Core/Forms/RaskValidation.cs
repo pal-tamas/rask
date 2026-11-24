@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Rask.Core.Forms;
 
@@ -370,16 +371,19 @@ public static class RaskValidation
 
     // The shape of the field a control is bound to: what its model registered, else what the member's DataAnnotations
     // attributes say (a hand-written model), else null.
-    // What rules stated in code (StatedRules) add is merged in last, once per property and kept until they change.
-    internal static FieldShape? ShapeOf(ExpressionAccessor.Accessor bound)
+    internal static FieldShape? ShapeOf(ExpressionAccessor.Accessor bound) => ShapeOf(bound.Target.GetType(), bound.Property);
+
+    // The same for a member of a type with no instance in hand: a list's column, named by `r => r.Plate`. What rules
+    // stated in code (StatedRules) add is merged in last, once per property and kept until they change.
+    internal static FieldShape? ShapeOf(Type owner, PropertyInfo property)
     {
-        var shape = _fieldShapes.ShapeOf(bound.Target.GetType(), bound.PropertyName) ?? AnnotatedShapes.Of(bound.Property);
+        var shape = _fieldShapes.ShapeOf(owner, property.Name) ?? AnnotatedShapes.Of(property);
         return StatedRules.Source is null
             ? shape
             : _statedShapes.GetOrAdd(
-                (bound.Target.GetType(), bound.PropertyName),
+                (owner, property.Name),
                 static (field, given) => StatedRules.Shape(field.Owner, field.Name, given.Property.PropertyType, given.Shape),
-                (bound.Property, Shape: shape));
+                (Property: property, Shape: shape));
     }
 
     // Everything worked out from registrations and stated rules, asked again: a hot reload changed what is stated.

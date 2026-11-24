@@ -261,6 +261,8 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ValidationAboveAndAtMost", 2),
         ("ValidationAtLeastAndBelow", 2),
         ("ValidationAboveAndBelow", 2),
+        ("TableCellYes", 0),
+        ("TableCellNo", 0),
         ("ValidationEmail", 0),
         ("ValidationPhone", 0),
         ("ValidationUrl", 0),

@@ -96,6 +96,16 @@ them until tagged releases begin.
   record's own, never for a value loaded from a row. New seam: `Rask.Core.Forms.StatedRules` / `IStatedRules` /
   `StatedFacets`. BREAKING: `RaskValidators.Replace` takes `ValidatorEntry`s (`RaskValidators.Entry<T>`, `Inline<T>`,
   `Project<TModel, TOwner>`, all generated).
+- **A table's heading and cell can be bound to a row's member.** Before: every `Ui.TableColumn` was given its words and
+  every `Ui.TableCell` its value written out by hand (`Ui.TableCell.End[Format.Number(tank.Size)]`), and
+  `[DisplayFormat(DataFormatString)]`, `NullDisplayText` and `[ScaffoldColumn]` were read by nothing. After:
+  `Ui.TableColumn.For<TRow>(r => r.X)` says the member's `[Display(Name)]`, and `Ui.TableCell.For(() => row.X)` writes
+  the value in the reader's culture — its `DataFormatString`, else by kind (a number with its value object's scale, a
+  day, a moment), an enum's label, a `bool` as Yes/No (new keys `TableCellYes`/`TableCellNo`, Hungarian *Igen*/*Nem*),
+  `NullDisplayText` or "–" for none. Numbers keep to the end in both, and a `[ScaffoldColumn(false)]` member draws
+  neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
+  property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
+  `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
 - **The in-type FluentValidation rules are checked as they are written (RASK139, RASK181–RASK183).** Before: a `Rules` taking an
   `InlineValidator` in the wrong shape, a rule on an aggregate's value-object member, a `MaximumLength(200)` on a
   `[MaxLength(100)]` property, and a value object with both a `Rules()` override and FluentValidation `Rules` all
