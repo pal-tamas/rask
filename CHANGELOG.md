@@ -142,6 +142,15 @@ them until tagged releases begin.
   asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
   its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
   engine a form over the operation uses to show the domain's own rules as it is filled in.
+- **A form straight over an operation: `Form.For(Note.Rename, id)[f => [Ui.Field.Bind(() => f.Title), …]]`.** Before:
+  every edit form was a hand-written model class, its rules repeated beside the domain's and its save wired by hand.
+  After: each operation (and factory) of a `partial` aggregate gets a `Form.For` whose fields are its parameters —
+  filled from the aggregate's properties of the same name, a one-value value object held as its value with its rules
+  told to the control — checked as each field is committed by the operation's dry run, saved through the entry at the
+  version it was read at, and disabled for a principal `MayRename` refuses. `.Missing(…)` and `.OnSaved(…)` round it
+  off. Operations with a list or a several-value value object as a parameter get none yet, and two operations whose
+  entries take the same types get none ([RASK174](docs/diagnostics.md#rask174)). The rask.sh data demo renames the
+  newest note this way. See [a form over an operation](docs/forms.md#a-form-over-an-operation).
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
