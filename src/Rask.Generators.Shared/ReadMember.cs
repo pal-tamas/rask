@@ -12,10 +12,20 @@ namespace Rask.Generators.Shared;
 /// <param name="IsReferenceType">
 ///     Whether the type is a class, so a non-nullable one needs an initializer the compiler accepts.
 /// </param>
+/// <param name="Shown">
+///     The <c>[Display]</c>, <c>[DisplayFormat]</c> and <c>[ScaffoldColumn]</c> of the property it reads, written out, or
+///     null: how a list names, writes and shows the column.
+/// </param>
+/// <param name="Shape">
+///     The C# of its field shape — its value object's <c>__Field</c> and what the property's attributes add — or null
+///     for one whose type says all there is.
+/// </param>
 internal sealed record ReadMember(
     string Name,
     string ColumnName,
     string Path,
     string TypeName,
     bool Nullable,
-    bool IsReferenceType);
+    bool IsReferenceType,
+    string? Shown = null,
+    string? Shape = null);

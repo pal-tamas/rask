@@ -61,6 +61,45 @@ public class ValueObjectFactoryGeneratorTests
             ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore", .. extra]);
 
     [Theory]
+    [InlineData("DriverName")]
+    [InlineData("Litres")]
+    [InlineData("Pieces")]
+    [InlineData("InvoiceDay")]
+    [InlineData("FuelingMoment")]
+    public void A_one_value_record_over_an_ordered_value_orders_like_it(string name)
+    {
+        var run = Run(ValueObjects);
+
+        var generated = run.GeneratedSource(name + ".Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains($"partial record {name} : global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
+        Assert.Contains($"public static bool operator >=({name}? left, {name}? right)", generated, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("KmRange")]
+    [InlineData("Opening")]
+    [InlineData("Sorted")]
+    [InlineData("Unordered")]
+    public void A_record_of_several_values_its_own_order_or_an_unordered_value_is_given_none(string name)
+    {
+        var run = Run(ValueObjects + """
+            public sealed partial record Sorted(int Value) : Value
+            {
+                public int CompareTo(Sorted? other) => 0;
+            }
+            public sealed record Bag;
+            public sealed partial record Unordered(Bag Value) : Value;
+            """);
+
+        var generated = run.GeneratedSource(name + ".Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("IComparable", generated, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("DriverName", "string Value", "string? Value")]
     [InlineData("Litres", "decimal Value", "decimal? Value")]
     [InlineData("Pieces", "long Value", "long? Value")]
@@ -157,9 +196,9 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Theory]
-    [InlineData("DriverName", "__Facets => new(MaxLength: 1000);")]
-    [InlineData("ChipCode", "__Facets => new(MaxLength: 1000);")]
-    [InlineData("Litres", "__Facets => new(Scale: 2);")]
+    [InlineData("DriverName", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(DriverName), \"Value\", new(MaxLength: 1000));")]
+    [InlineData("ChipCode", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(ChipCode), \"Value\", new(MaxLength: 1000));")]
+    [InlineData("Litres", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(Litres), \"Value\", new(Scale: 2));")]
     public void The_column_facets_are_read_from_the_base_arguments_constants_included(string name, string facets)
     {
         var run = Run(ValueObjects);

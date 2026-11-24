@@ -30,27 +30,15 @@ public sealed partial class ValueObjectFactoryGenerator
         string? Start = null,
         string? End = null,
         string? Ends = null,
-        bool Upper = false);
+        bool Upper = false,
+        bool New = false);
 
     private static ShapeFacets ReadShape(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
     {
-        var call = node.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().FirstOrDefault();
         var shape = RangeEnds(model, node, token);
-        if (call is null || model.GetSymbolInfo(call, token).Symbol is not IMethodSymbol constructor)
+        foreach (var (name, value) in BaseArguments(model, node, token))
         {
-            return shape;
-        }
-
-        for (var i = 0; i < call.ArgumentList.Arguments.Count; i++)
-        {
-            var argument = call.ArgumentList.Arguments[i];
-            var name = argument.NameColon?.Name.Identifier.ValueText ??
-                       (i < constructor.Parameters.Length ? constructor.Parameters[i].Name : null);
-            var constant = model.GetConstantValue(argument.Expression, token);
-            if (constant.HasValue && constant.Value is { } value)
-            {
-                shape = WithFacet(shape, name, value);
-            }
+            shape = WithFacet(shape, name, value);
         }
 
         return shape;
@@ -95,6 +83,7 @@ public sealed partial class ValueObjectFactoryGenerator
             ("NotAfterNow", bool notAfter) => shape with { NotAfterNow = notAfter },
             ("Strict", bool strict) => shape with { Strict = strict },
             ("Upper", bool upper) => shape with { Upper = upper },
+            ("New", bool chosen) => shape with { New = chosen },
             ("Min", _) when AsDecimal(value) is { } min => shape with { Min = min },
             ("Max", _) when AsDecimal(value) is { } max => shape with { Max = max },
             _ => shape,
@@ -138,8 +127,35 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>What a control bound to it is told: the kind of value it holds and the rules it declares.</summary>");
         s.AppendLine(Hidden);
-        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => new(").Append(string.Join(", ", named))
-            .AppendLine(facets.Upper ? ") { Upper = true };" : ");");
+        // With what its own static Rules (FluentValidation) state for its value, the tightest of both; a kind of text
+        // adds what its input is told (Told).
+        var init = Told(value.TextKind, facets);
+        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => global::Rask.Core.Forms.StatedRules.Shape(typeof(")
+            .Append(value.Name).Append("), \"Value\", new ").Append(FieldShapeType).Append('(').Append(string.Join(", ", named))
+            .AppendLine(init.Count > 0 ? ") { " + string.Join(", ", init) + " });" : "));");
+    }
+
+    // What a kind of text tells its input, as the attribute it stands for does ([EmailAddress] an email input), and
+    // a text kept in capitals that it is.
+    private static List<string> Told(string? kind, ShapeFacets facets)
+    {
+        const string Input = "Input = global::Rask.Core.InputType.";
+        var init = kind switch
+        {
+            "Email" => new List<string> { Input + "Email", "AutoComplete = \"email\"" },
+            "Phone" => [Input + "Tel", "AutoComplete = \"tel\"", "InputMode = global::Rask.Core.InputMode.Tel"],
+            "Url" => [Input + "Url"],
+            "Password" => [Input + "Password", facets.New ? "AutoComplete = \"new-password\"" : "AutoComplete = \"current-password\""],
+            "Multiline" => ["Hint = global::Rask.Core.Forms.FieldHints.MultilineText"],
+            _ => [],
+        };
+
+        if (facets.Upper)
+        {
+            init.Add("Upper = true");
+        }
+
+        return init;
     }
 
     private static void AddRangeEnds(List<string> named, ShapeFacets facets)

@@ -73,6 +73,7 @@
     <Compile Include="..\Rask.Generators.Shared\ModelValueCollection.cs" Link="Shared\ModelValueCollection.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelShape.cs" Link="Shared\ModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\FluentRules.cs" Link="Shared\FluentRules.cs"/>
     <Compile Include="..\Rask.Generators.Shared\CompositeKeyShape.cs" Link="Shared\CompositeKeyShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\CompositeChildForm.cs" Link="Shared\CompositeChildForm.cs"/>
     <Compile Include="..\Rask.Generators.Shared\CompositeChildKind.cs" Link="Shared\CompositeChildKind.cs"/>

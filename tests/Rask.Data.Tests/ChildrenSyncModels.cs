@@ -21,6 +21,19 @@ public sealed class Cargo : Aggregate<Guid>
 
     public SyncResult<CargoPart> Change(IReadOnlyList<CargoPartSpec> parts) =>
         Parts.Sync(parts, s => s.Id, CargoPart.For, (p, s) => p.Take(s), p => p.LetGo());
+
+    // Matched by the hold each part sits in, not its Id: the import knows holds, never ids.
+    public SyncResult<CargoPart> Restow(IReadOnlyList<CargoPartSpec> parts) =>
+        Parts.Sync(parts, s => s.Hold, p => p.Hold, CargoPart.For, (p, s) => p.Take(s));
+
+    public CargoPart Stow(string hold, decimal tonnes)
+    {
+        var part = CargoPart.For(new CargoPartSpec(null, hold, tonnes));
+        Parts.Add(part);
+        return part;
+    }
+
+    public bool Unload(CargoPart part) => Parts.Remove(part);
 }
 
 public sealed class CargoPart : Entity<Guid>

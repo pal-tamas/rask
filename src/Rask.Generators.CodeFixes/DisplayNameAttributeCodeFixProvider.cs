@@ -60,35 +60,12 @@ public sealed class DisplayNameAttributeCodeFixProvider : RaskCodeFixProvider<At
         }
 
         var replaced = unit.ReplaceNode(node, Display(node));
-        if (!Imported(model, node.SpanStart))
+        if (!UsingDirectives.Binds(model, node.SpanStart, DisplayAttribute, DataAnnotations + "." + DisplayAttribute))
         {
-            replaced = WithUsing(replaced);
+            replaced = UsingDirectives.With(replaced, DataAnnotations);
         }
 
         return await WithoutUnusedComponentModelAsync(document.WithSyntaxRoot(replaced), cancellationToken).ConfigureAwait(false);
-    }
-
-    // Whether the attribute's short name already binds there: through a using of this file, or a global one elsewhere.
-    private static bool Imported(SemanticModel model, int position) =>
-        model.GetSpeculativeSymbolInfo(position, SyntaxFactory.ParseName(DisplayAttribute), SpeculativeBindingOption.BindAsTypeOrNamespace)
-            .Symbol is INamedTypeSymbol found
-        && string.Equals(found.ToDisplayString(), DataAnnotations + "." + DisplayAttribute, StringComparison.Ordinal);
-
-    // The file's usings with System.ComponentModel.DataAnnotations in its ordinal place among them.
-    private static CompilationUnitSyntax WithUsing(CompilationUnitSyntax unit)
-    {
-        var directive = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(DataAnnotations))
-            .WithTrailingTrivia(SyntaxFactory.ElasticCarriageReturnLineFeed)
-            .WithAdditionalAnnotations(Formatter.Annotation);
-        var at = 0;
-        while (at < unit.Usings.Count
-               && string.CompareOrdinal(unit.Usings[at].Name?.ToString(), DataAnnotations) < 0
-               && unit.Usings[at].GlobalKeyword.RawKind == 0)
-        {
-            at++;
-        }
-
-        return unit.WithUsings(unit.Usings.Insert(at, directive));
     }
 
     // [Display(Name = <the argument as written>)], keeping the attribute's trivia.

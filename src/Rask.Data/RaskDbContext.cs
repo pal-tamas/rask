@@ -159,6 +159,9 @@ public class RaskDbContext : DbContext, ITenantScoped
 
         // A BeginTransaction inside Db.Transaction is refused with the reason, before EF Core's own refusal.
         JoinedTransactionGuardOptionsExtension.Add(optionsBuilder);
+
+        // `t.Quantity.Value` in a query reads the value object's column.
+        ValueObjectQueryOptionsExtension.Add(optionsBuilder);
         return optionsBuilder;
     }
 

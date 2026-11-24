@@ -6,7 +6,8 @@ namespace Rask.Core.Forms;
 
 // The shape a member's DataAnnotations attributes give it, for a model that registered none (a hand-written one): its
 // lengths, the input it is typed into, whether it is edited at all, whether an emptied text stays "" and the control it
-// names. A generated model registers the same reading, made at compile time, so its members are not reflected over.
+// names, and how a list shows it. A generated model or read face registers the same reading, made at compile time,
+// so its members are not reflected over.
 internal static class AnnotatedShapes
 {
     // Per property, once. Bounded by the members of the models an app binds.
@@ -49,9 +50,13 @@ internal static class AnnotatedShapes
         var (most, least) = Lengths(attributes);
         var input = InputOf(attributes);
         var readOnly = attributes.OfType<EditableAttribute>().Any(static e => !e.AllowEdit);
-        var keepEmpty = attributes.OfType<DisplayFormatAttribute>().Any(static f => !f.ConvertEmptyStringToNull);
+        var display = attributes.OfType<DisplayFormatAttribute>().FirstOrDefault();
+        var keepEmpty = display is { ConvertEmptyStringToNull: false };
+        var format = display?.DataFormatString is { Length: > 0 } written ? written : null;
+        var nullText = display?.NullDisplayText;
+        var listed = !attributes.OfType<ScaffoldColumnAttribute>().Any(static c => !c.Scaffold);
         var hint = HintOf(attributes);
-        if (most is null && least is null && input is null && !readOnly && !keepEmpty && hint is null)
+        if (most is null && least is null && input is null && !readOnly && !keepEmpty && hint is null && format is null && nullText is null && listed)
         {
             return null;
         }
@@ -62,6 +67,9 @@ internal static class AnnotatedShapes
             ReadOnly = readOnly,
             KeepEmpty = keepEmpty,
             Hint = hint,
+            Format = format,
+            NullText = nullText,
+            Listed = listed,
         };
     }
 

@@ -40,6 +40,11 @@ public sealed partial class UiFieldPage : Component
                        + "one for [Editable(false)], a number, a select over an enum, a textarea for "
                        + "[DataType(DataType.MultilineText)], a switch for [UIHint(FieldHints.Switch)], a checkbox. To pick "
                        + "and tune the control yourself, put it in Ui.Field[…]: the member still labels it."),
+            UiDocsExample.Key("ui-field-kinds").Heading("Value-object fields").File("FieldKindsExample.cs").Demo(FieldKindsExample).Testid("ui-field-kinds")
+                .Blurb("Rask's own: the same fields said by value objects instead of attributes. A value object declared "
+                       + "from Email, Phone, Url, Password or Multiline carries its rule wherever it is made and tells its "
+                       + "input what the matching attribute would: type, autocomplete, the phone keyboard, a textarea. A "
+                       + "password asks for a new one and is never written back into the page."),
             UiFieldBehaviour
         ];
 }

@@ -1,4 +1,7 @@
 #nullable enable
+override Rask.Core.Forms.StatedFacets.Equals(object? obj) -> bool
+override Rask.Core.Forms.StatedFacets.GetHashCode() -> int
+override Rask.Core.Forms.StatedFacets.ToString() -> string!
 override Rask.Core.SetHTMLUnsafeOptions.Equals(object? obj) -> bool
 override Rask.Core.SetHTMLUnsafeOptions.GetHashCode() -> int
 override Rask.Core.SetHTMLUnsafeOptions.ToString() -> string!
@@ -3978,12 +3981,40 @@ Rask.Core.Forms.IFormControl<T>.Validate.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
+Rask.Core.Forms.IStatedRules
+Rask.Core.Forms.IStatedRules.Check(object! instance, System.Collections.Generic.IReadOnlyCollection<string!>? members, System.IServiceProvider? services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
+Rask.Core.Forms.IStatedRules.FacetsOf(System.Type! type, string! member) -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.IStatedRules.States(System.Type! type) -> bool
 Rask.Core.Forms.IStoreRules
 Rask.Core.Forms.IStoreRules.Check(object! model, string? field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.IRaskFile
 Rask.Core.Forms.RaskValidation
+Rask.Core.Forms.StatedFacets
+Rask.Core.Forms.StatedFacets.<Clone>$() -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.StatedFacets.Deconstruct(out bool Required, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out bool Email, out int? Precision, out int? Scale) -> void
+Rask.Core.Forms.StatedFacets.Email.get -> bool
+Rask.Core.Forms.StatedFacets.Email.init -> void
+Rask.Core.Forms.StatedFacets.Equals(Rask.Core.Forms.StatedFacets? other) -> bool
+Rask.Core.Forms.StatedFacets.IsEmpty.get -> bool
+Rask.Core.Forms.StatedFacets.Max.get -> decimal?
+Rask.Core.Forms.StatedFacets.Max.init -> void
+Rask.Core.Forms.StatedFacets.MaxLength.get -> int?
+Rask.Core.Forms.StatedFacets.MaxLength.init -> void
+Rask.Core.Forms.StatedFacets.Min.get -> decimal?
+Rask.Core.Forms.StatedFacets.Min.init -> void
+Rask.Core.Forms.StatedFacets.MinLength.get -> int?
+Rask.Core.Forms.StatedFacets.MinLength.init -> void
+Rask.Core.Forms.StatedFacets.Precision.get -> int?
+Rask.Core.Forms.StatedFacets.Precision.init -> void
+Rask.Core.Forms.StatedFacets.Required.get -> bool
+Rask.Core.Forms.StatedFacets.Required.init -> void
+Rask.Core.Forms.StatedFacets.Scale.get -> int?
+Rask.Core.Forms.StatedFacets.Scale.init -> void
+Rask.Core.Forms.StatedFacets.StatedFacets(bool Required = false, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, bool Email = false, int? Precision = null, int? Scale = null) -> void
+Rask.Core.Forms.StatedFacets.With(Rask.Core.Forms.StatedFacets! other) -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.StatedRules
 Rask.Core.Forms.Validate<T>
 Rask.Core.Forms.ValidationEntry
 Rask.Core.Forms.ValidationEntry.Deconstruct(out string! Field, out string! Message) -> void
@@ -7572,6 +7603,16 @@ static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelT
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?
+static Rask.Core.Forms.StatedFacets.None.get -> Rask.Core.Forms.StatedFacets!
+static Rask.Core.Forms.StatedFacets.operator !=(Rask.Core.Forms.StatedFacets? left, Rask.Core.Forms.StatedFacets? right) -> bool
+static Rask.Core.Forms.StatedFacets.operator ==(Rask.Core.Forms.StatedFacets? left, Rask.Core.Forms.StatedFacets? right) -> bool
+static Rask.Core.Forms.StatedRules.Changed() -> void
+static Rask.Core.Forms.StatedRules.Check(object! instance, System.Collections.Generic.IReadOnlyCollection<string!>? members, System.IServiceProvider? services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
+static Rask.Core.Forms.StatedRules.Facets(System.Type! type, string! member, Rask.Values.ValueFacets declared) -> Rask.Values.ValueFacets
+static Rask.Core.Forms.StatedRules.FacetsOf(System.Type! type, string! member) -> Rask.Core.Forms.StatedFacets!
+static Rask.Core.Forms.StatedRules.Shape(System.Type! type, string! member, Rask.Core.Forms.FieldShape! declared) -> Rask.Core.Forms.FieldShape!
+static Rask.Core.Forms.StatedRules.States(System.Type! type) -> bool
+static Rask.Core.Forms.StatedRules.Use(Rask.Core.Forms.IStatedRules! source) -> void
 static Rask.Core.Forms.ValidationEntry.operator !=(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Forms.ValidationEntry.operator ==(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Globalization.CultureNegotiation.operator !=(Rask.Core.Globalization.CultureNegotiation left, Rask.Core.Globalization.CultureNegotiation right) -> bool
@@ -19993,8 +20034,8 @@ virtual Rask.Values.Day.Equals(Rask.Values.Day? other) -> bool
 virtual Rask.Values.Number.Equals(Rask.Values.Number? other) -> bool
 virtual Rask.Values.Text.Equals(Rask.Values.Text? other) -> bool
 virtual Rask.Values.Whole.Equals(Rask.Values.Whole? other) -> bool
-Rask.Values.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false) -> void
-Rask.Values.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null) -> void
+Rask.Values.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false, string? Message = null) -> void
+Rask.Values.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null, bool Round = false, string? Message = null) -> void
 Rask.Values.Problem
 Rask.Values.Problem.Deconstruct(out string? Field, out string! Message) -> void
 Rask.Values.Problem.Equals(Rask.Values.Problem other) -> bool
@@ -20006,7 +20047,7 @@ Rask.Values.Problem.Problem() -> void
 Rask.Values.Problem.Problem(string? Field, string! Message) -> void
 Rask.Values.Range
 Rask.Values.Range.Range(Rask.Values.Range! original) -> void
-Rask.Values.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string! startMember = "", string! endMember = "") -> void
+Rask.Values.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string? Message = null, string! startMember = "", string! endMember = "") -> void
 Rask.Values.Value
 Rask.Values.Value.Value() -> void
 Rask.Values.Value.Value(Rask.Values.Value! original) -> void
@@ -20025,7 +20066,7 @@ Rask.Values.ValueFacets.Scale.get -> int?
 Rask.Values.ValueFacets.Scale.init -> void
 Rask.Values.ValueFacets.ValueFacets() -> void
 Rask.Values.ValueFacets.ValueFacets(int? MaxLength = null, int? Precision = null, int? Scale = null) -> void
-Rask.Values.Whole.Whole(long Value, long? Min = null, long? Max = null) -> void
+Rask.Values.Whole.Whole(long Value, long? Min = null, long? Max = null, string? Message = null) -> void
 abstract Rask.Values.Value.<Clone>$() -> Rask.Values.Value!
 override Rask.Values.Day.EqualityContract.get -> System.Type!
 override Rask.Values.Day.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -20088,7 +20129,7 @@ static Rask.Values.GeneratedValueRules.Loading() -> Rask.Values.ValueLoading
 Rask.Values.Moment
 Rask.Values.Moment.Day.get -> System.DateOnly
 Rask.Values.Moment.Moment(Rask.Values.Moment! original) -> void
-Rask.Values.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false) -> void
+Rask.Values.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false, string? Message = null) -> void
 Rask.Values.Moment.Value.get -> System.DateTime
 override Rask.Values.Moment.Equals(object? obj) -> bool
 override Rask.Values.Moment.GetHashCode() -> int
@@ -20117,3 +20158,82 @@ const Rask.Core.Forms.FieldHints.Switch = "Switch" -> string!
 Rask.Core.Globalization.RaskString.ValidationAboveAndAtMost = 289 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAtLeastAndBelow = 290 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAboveAndBelow = 291 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.FieldShape.AutoComplete.get -> string?
+Rask.Core.Forms.FieldShape.AutoComplete.init -> void
+Rask.Core.Forms.FieldShape.InputMode.get -> Rask.Core.InputMode?
+Rask.Core.Forms.FieldShape.InputMode.init -> void
+Rask.Core.Globalization.RaskString.ValidationWebAddress = 294 -> Rask.Core.Globalization.RaskString
+Rask.Values.Email
+Rask.Values.Email.Email(Rask.Values.Email! original) -> void
+Rask.Values.Email.Email(string! Value, int MaxLength = 254, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Multiline
+Rask.Values.Multiline.Multiline(Rask.Values.Multiline! original) -> void
+Rask.Values.Multiline.Multiline(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Password
+Rask.Values.Password.Password(Rask.Values.Password! original) -> void
+Rask.Values.Password.Password(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = false, bool Upper = false, bool Required = true, bool New = false) -> void
+Rask.Values.Phone
+Rask.Values.Phone.Phone(Rask.Values.Phone! original) -> void
+Rask.Values.Phone.Phone(string! Value, int MaxLength = 32, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Url
+Rask.Values.Url.Url(Rask.Values.Url! original) -> void
+Rask.Values.Url.Url(string! Value, int MaxLength = 2048, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+override Rask.Values.Email.EqualityContract.get -> System.Type!
+override Rask.Values.Email.Equals(object? obj) -> bool
+override Rask.Values.Email.GetHashCode() -> int
+override Rask.Values.Email.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Multiline.EqualityContract.get -> System.Type!
+override Rask.Values.Multiline.Equals(object? obj) -> bool
+override Rask.Values.Multiline.GetHashCode() -> int
+override Rask.Values.Multiline.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Password.EqualityContract.get -> System.Type!
+override Rask.Values.Password.Equals(object? obj) -> bool
+override Rask.Values.Password.GetHashCode() -> int
+override Rask.Values.Password.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Phone.EqualityContract.get -> System.Type!
+override Rask.Values.Phone.Equals(object? obj) -> bool
+override Rask.Values.Phone.GetHashCode() -> int
+override Rask.Values.Phone.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Url.EqualityContract.get -> System.Type!
+override Rask.Values.Url.Equals(object? obj) -> bool
+override Rask.Values.Url.GetHashCode() -> int
+override Rask.Values.Url.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override abstract Rask.Values.Email.<Clone>$() -> Rask.Values.Email!
+override abstract Rask.Values.Multiline.<Clone>$() -> Rask.Values.Multiline!
+override abstract Rask.Values.Password.<Clone>$() -> Rask.Values.Password!
+override abstract Rask.Values.Phone.<Clone>$() -> Rask.Values.Phone!
+override abstract Rask.Values.Url.<Clone>$() -> Rask.Values.Url!
+override sealed Rask.Values.Email.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Multiline.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Password.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Phone.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Url.Equals(Rask.Values.Text? other) -> bool
+static Rask.Values.Email.operator !=(Rask.Values.Email? left, Rask.Values.Email? right) -> bool
+static Rask.Values.Email.operator ==(Rask.Values.Email? left, Rask.Values.Email? right) -> bool
+static Rask.Values.Multiline.operator !=(Rask.Values.Multiline? left, Rask.Values.Multiline? right) -> bool
+static Rask.Values.Multiline.operator ==(Rask.Values.Multiline? left, Rask.Values.Multiline? right) -> bool
+static Rask.Values.Password.operator !=(Rask.Values.Password? left, Rask.Values.Password? right) -> bool
+static Rask.Values.Password.operator ==(Rask.Values.Password? left, Rask.Values.Password? right) -> bool
+static Rask.Values.Phone.operator !=(Rask.Values.Phone? left, Rask.Values.Phone? right) -> bool
+static Rask.Values.Phone.operator ==(Rask.Values.Phone? left, Rask.Values.Phone? right) -> bool
+static Rask.Values.Url.operator !=(Rask.Values.Url? left, Rask.Values.Url? right) -> bool
+static Rask.Values.Url.operator ==(Rask.Values.Url? left, Rask.Values.Url? right) -> bool
+virtual Rask.Values.Email.Equals(Rask.Values.Email? other) -> bool
+virtual Rask.Values.Multiline.Equals(Rask.Values.Multiline? other) -> bool
+virtual Rask.Values.Password.Equals(Rask.Values.Password? other) -> bool
+virtual Rask.Values.Phone.Equals(Rask.Values.Phone? other) -> bool
+virtual Rask.Values.Url.Equals(Rask.Values.Url? other) -> bool
+Rask.Core.Forms.FieldShape.Format.get -> string?
+Rask.Core.Forms.FieldShape.Format.init -> void
+Rask.Core.Forms.FieldShape.NullText.get -> string?
+Rask.Core.Forms.FieldShape.NullText.init -> void
+Rask.Core.Forms.FieldShape.Listed.get -> bool
+Rask.Core.Forms.FieldShape.Listed.init -> void
+Rask.Core.Globalization.RaskString.TableCellYes = 292 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TableCellNo = 293 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.OperationForm<TInput>
+Rask.Core.Forms.OperationForm<TInput>.this[System.Func<TInput!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! fields].get -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Missing(Rask.Core.Component? missing) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.OnSaved(System.Func<System.Threading.Tasks.Task!>! saved) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForms
+static Rask.Core.Forms.OperationForms.Of<TInput>(object? identity, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TInput?>!>! load, System.Func<TInput!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! submit, System.Func<bool>! may) -> Rask.Core.Forms.OperationForm<TInput!>!

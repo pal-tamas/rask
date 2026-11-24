@@ -54,6 +54,8 @@ public class FieldShapeGeneratorTests
             [DataType(DataType.Date)] public DateTime Started { get; private set; }
             [Phone, Editable(false)] public Fuel Spare { get; private set; }
             public Plate Plate { get; private set; } = Plate.Create("ABC123");
+            [Display(Name = "Distance"), DisplayFormat(DataFormatString = "{0:N1}", NullDisplayText = "n/a"), ScaffoldColumn(false)]
+            public decimal? Distance { get; private set; }
         }
         """;
 
@@ -63,9 +65,15 @@ public class FieldShapeGeneratorTests
             [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
             ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
 
+    private static GeneratorRun RunWithReadFaces() =>
+        GeneratorHarness.Run(
+            Source,
+            [new ValueObjectFactoryGenerator(), new ModelInputGenerator(), new ReadModelGenerator()],
+            ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
+
     [Theory]
     [InlineData("DriverName", Kind + ".Text, MaxLength: 100, MinLength: 2")]
-    [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true };")]
+    [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true });")]
     [InlineData("Litres", Kind + ".Number, Min: 1m, Max: 999.5m, Scale: 2")]
     [InlineData("Pieces", Kind + ".Whole, Min: 0m, Max: 1000m")]
     [InlineData("InvoiceDay", Kind + ".Day, NotAfterToday: true")]
@@ -79,7 +87,7 @@ public class FieldShapeGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("public static global::Rask.Core.Forms.FieldShape __Field => new(" + shape, generated, StringComparison.Ordinal);
+        Assert.Contains("\"Value\", new global::Rask.Core.Forms.FieldShape(" + shape, generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -174,5 +182,27 @@ public class FieldShapeGeneratorTests
         Assert.Contains("\"Spare\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Choice, Options:", model, StringComparison.Ordinal);
         Assert.Contains(" with { Input = global::Rask.Core.InputType.Tel, ReadOnly = true },", model, StringComparison.Ordinal);
         Assert.Contains("private static global::Rask.Core.Forms.FieldShape __Within(", model, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_read_face_carries_how_a_list_shows_each_member_and_registers_its_shape()
+    {
+        var run = RunWithReadFaces();
+
+        var face = run.GeneratedSource("Shop_TripRead.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "[global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Distance\")]"
+            + "[global::System.ComponentModel.DataAnnotations.DisplayFormatAttribute(DataFormatString = \"{0:N1}\", NullDisplayText = \"n/a\")]"
+            + "[global::System.ComponentModel.DataAnnotations.ScaffoldColumnAttribute(false)]",
+            face, StringComparison.Ordinal);
+        Assert.Contains("RegisterFieldShapes(typeof(global::Shop.TripRead), ShapeOf);", face, StringComparison.Ordinal);
+        Assert.Contains("\"Driver\" => global::Shop.DriverName.__Field,", face, StringComparison.Ordinal);
+        Assert.Contains("\"Second\" => __Within(global::Shop.DriverName.__Field, 50, null),", face, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"Distance\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Number) { Format = \"{0:N1}\", NullText = \"n/a\", Listed = false },",
+            face, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Note\" =>", face, StringComparison.Ordinal);
     }
 }

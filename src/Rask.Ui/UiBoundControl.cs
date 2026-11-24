@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -35,7 +34,7 @@ internal static class UiBoundControl
 
     /// <summary>A number input's attributes for a shape: its bounds, and its step from the scale.</summary>
     internal static UiInput<T> Numbered<T>(UiInput<T> input, FieldShape? shape) =>
-        input.Type(InputType.Number).Min(Said(shape?.Min)).Max(Said(shape?.Max)).Step(Step(shape));
+        input.Type(InputType.Number).Min(ShapedNumber.Min(shape)).Max(ShapedNumber.Max(shape)).Step(ShapedNumber.Step(shape));
 
     /// <summary>The field's words and state on an input, plain text or number.</summary>
     internal static UiInput<T> Input<T>(Expression<Func<T>> bind, UiBoundLook look) =>
@@ -176,15 +175,4 @@ internal static class UiBoundControl
         [.. Enum.GetValuesAsUnderlyingType(type).Cast<object>()
             .Select(value => Enum.ToObject(type, value))
             .Select(member => new FieldOption(member, Enum.GetName(type, member) ?? member.ToString() ?? ""))];
-
-    private static string? Said(decimal? bound) => bound?.ToString(CultureInfo.InvariantCulture);
-
-    // 10^-Scale: a whole number steps by one, a number of two decimals by 0.01; no scale leaves the input's own step.
-    private static string? Step(FieldShape? shape) => shape switch
-    {
-        { Kind: FieldKind.Whole } => "1",
-        { Scale: 0 } => "1",
-        { Scale: { } scale } => "0." + new string('0', scale - 1) + "1",
-        _ => null,
-    };
 }

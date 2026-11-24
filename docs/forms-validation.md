@@ -162,7 +162,30 @@ attributes):
 | `[UIHint("…")]`, `[DataType(DataType.MultilineText)]` | `Hint` | `Ui.Field.Bind` draws `Ui.Switch` for `FieldHints.Switch` on a `bool`, `Ui.RadioGroup` for `FieldHints.RadioGroup` on an enum, `Ui.Textarea` for `FieldHints.MultilineText` |
 
 A step written on the control wins over each of them — `.Type(…)`, `.MaxLength(…)`, `.MinLength(…)`,
-`Ui.Field.Bind(…).Multiline(false)` — except `[Editable(false)]`, which a control cannot be talked out of.
+`.Autocomplete(…)`, `.InputMode(…)`, `.Min(…)`/`.Max(…)`/`.Step(…)`, `Ui.Field.Bind(…).Multiline(false)` — except
+`[Editable(false)]`, which a control cannot be talked out of.
+
+**Attribute or value object — the same field either way.** A field's kind can be said with an attribute on a plain
+`string`, or by declaring its value object from the [kind of text](data.md#kinds-of-text-email-phone-url-password-multiline)
+it holds. Both give the identical `FieldShape`, so the bound control is the same; the value object also carries the
+rule to every place the value is made, and gives its column the length:
+
+| DataAnnotations attribute | Value-object base | `FieldShape` | The bound control |
+|---|---|---|---|
+| `[EmailAddress]` | `Email(Value, …)` — at most 254 unless declared | `Input = Email`, `AutoComplete = "email"` | `type="email" autocomplete="email"` |
+| `[Phone]` | `Phone(Value, …)` — at most 32 unless declared | `Input = Tel`, `InputMode = Tel`, `AutoComplete = "tel"` | `type="tel" inputmode="tel" autocomplete="tel"` |
+| `[Url]` | `Url(Value, …)` — at most 2048, absolute `http`/`https` only | `Input = Url` | `type="url"` |
+| `[DataType(DataType.Password)]` | `Password(Value, …)`, `New: true` for a chosen one; never trimmed, stored or sent back | `Input = Password`, `AutoComplete = "current-password"` / `"new-password"` | `type="password"`, its value never written |
+| `[DataType(DataType.MultilineText)]`, `[UIHint("MultilineText")]` | `Multiline(Value, …)` | `Hint = FieldHints.MultilineText` | `Ui.Field.Bind` draws a `Ui.Textarea` |
+| `[StringLength(100, MinimumLength = 2)]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `Text(Value, MaxLength: 100, MinLength: 2)` (and every kind above) | `MaxLength`, `MinLength` | `maxlength`, `minlength` |
+| `[Range]` — checked on submit, tells the input nothing | `Number(Value, Min: 1, Max: 999.5m, Scale: 2)` | `Min`, `Max`, `Scale` | `type="number" min="1" max="999.5" step="0.01"` |
+| `[Range]` — likewise | `Whole(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
+| a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` |
+| a `DateTime` member | `Moment(Value, …)` | `Kind = Moment` | `type="datetime-local"`; `Ui.Field.Bind` a `Ui.DayAndTime` |
+| — | `Range(Start, End, …)` | `Kind = Range`, its ends | `Ui.Field.Bind` draws two controls under one label |
+
+A number's bounds and step, the autocomplete and the keyboard are said by the bound input itself — Core's `Input`,
+and so `Ui.Input.Bind` and `Ui.Field.Bind` alike.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
@@ -724,6 +747,82 @@ keeps FluentValidation's own translation. Rask puts this behind `ValidatorOption
 An async `MustAsync` rule rides the same wrapper:
 
 <!-- demo:validation-fluent-async -->
+
+### Rules inside the type
+
+The rules can live in the type they guard, the way its `Configure` does: a `static void Rules(InlineValidator<T> rules)`
+of any accessibility on an aggregate, an entity, a form model or a value object. It is found at compile time and
+registered like an `AbstractValidator<T>` class — no class to write, no scan, trim-safe.
+
+```csharp
+public sealed partial class Supplier : Aggregate<SupplierId, Model>
+{
+    public string Name { get; private set; } = "";
+    public string? Email { get; private set; }
+
+    static void Rules(InlineValidator<Supplier> rules)
+    {
+        rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200);
+        rules.RuleFor(s => s.Email).EmailAddress().MaximumLength(254);
+    }
+}
+```
+
+<!-- demo:validation-fluent-in-type -->
+
+On a primitive member a rule works **exactly like the DataAnnotations attribute with the same rule**:
+
+- **The form.** A `Form` over `SupplierModel`, the generated form model, asks `Supplier`'s rules of the members that
+  carry them, live, `MustAsync` included; a child row's rules run under its place (`Parts[1].Quantity`). A rule under
+  `When`/`Unless`, a `RuleForEach`, a comparison with another member, or a `Must((s, v) => …)` that reads the
+  aggregate needs the aggregate the form does not have: those run at the save.
+- **The save.** Every save asks a new row every rule and a stored row only the rules of the members it changes
+  (`MustAsync` included), and refuses with one `RaskValidationException` — `Create(model)`, `Update(id, model)` and
+  `Test.Refuses(…)` see the same failures under the same fields.
+- **The wire.** A request that carries a generated model is checked by the rules it borrows (400 + field failures).
+- **Hints and columns.** Read off the validator's descriptor once per type: `NotEmpty()`/`NotNull()` is
+  `[Required]` (the required badge, `aria-required`, NOT NULL), `MaximumLength`/`Length` is `[MaxLength]`/`[StringLength]`
+  (`maxlength`/`minlength`, the column's length), `EmailAddress()` is `type="email"`, `InclusiveBetween` and
+  `GreaterThanOrEqualTo`/`LessThanOrEqualTo` (and `GreaterThan`/`LessThan` of a whole number) are `min`/`max`,
+  `PrecisionScale(p, s)` is `step` and `decimal(p, s)`. A rule under `When`/`Unless` gives no hint. An attribute on the
+  same property wins for its column ([RASK182](diagnostics.md#rask182) says when they disagree).
+- **Messages.** The catalog's sentences, as above; `WithMessage` and `WithName` win.
+
+A separate `AbstractValidator<Supplier>` class does all of the same, so an existing validator moves over unchanged;
+the class and the in-type `Rules` may both be there, and both run. A validator that takes services gets them from the
+render or request scope (`RaskValidators.Service<T>`); it states no hints, because building it needs a scope.
+
+A value object may state its rules the same way — they run as it is made, after its base record's own, and never for a
+value loaded from a row:
+
+```csharp
+public sealed partial record Handle(string Value) : Text(Value, MaxLength: 30)
+{
+    static void Rules(InlineValidator<Handle> rules) =>
+        rules.RuleFor(h => h.Value).Must(v => !v.Contains(' ')).WithMessage("A handle has no spaces.");
+}
+```
+
+A failure about `Value` is the value's own; one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
+is under that member. A record with its own `Rules()` override and a static `Rules` is [RASK183](diagnostics.md#rask183).
+
+### Three ways to say a rule
+
+The **value object is the recommended, DDD way**: the rule lives in the type, once, and holds wherever a value is made.
+DataAnnotations and FluentValidation are the familiar on-ramp — fully supported, so you can start the way you work
+today and move a member to a value object when it earns one ([RASK130](diagnostics.md#rask130)'s quick-fix writes the
+record from the attribute or the rule).
+
+| Rule | DataAnnotations | FluentValidation | Value object (recommended) | Value object + FluentValidation |
+|---|---|---|---|---|
+| Filled | `[Required]` | `RuleFor(s => s.Name).NotEmpty()` | `Text(Value)` (filled by default) | `Text(Value)` |
+| At most 200 characters | `[StringLength(200)]` | `.MaximumLength(200)` | `Text(Value, MaxLength: 200)` | `Text(Value, MaxLength: 200)` |
+| At least 2 characters | `[MinLength(2)]` | `.MinimumLength(2)` | `Text(Value, MinLength: 2)` | `.MinimumLength(2)` in its `Rules` |
+| An e-mail address | `[EmailAddress]` | `.EmailAddress()` | `Email(Value)` | `Email(Value)` + `.Must(…)` |
+| Between 1 and 5 | `[Range(1, 5)]` | `.InclusiveBetween(1, 5)` | `Whole(Value, Min: 1, Max: 5)` | `.InclusiveBetween(1, 5)` in its `Rules` |
+| Two decimals in ten digits | `[Precision(10, 2)]` | `.PrecisionScale(10, 2, false)` | `Number(Value, Precision: 10, Scale: 2)` | `Number(Value, Precision: 10, Scale: 2)` |
+| A pattern | `[RegularExpression("^[A-Z]+$")]` | `.Matches("^[A-Z]+$")` | `Text(Value, Pattern: "^[A-Z]+$")` | `.Matches(…)` in its `Rules` |
+| Anything else | `IValidatableObject` / a custom attribute | `.Must(…)` / `.MustAsync(…)` | `protected override IEnumerable<Problem> Rules()` | `.Must(…)` in its `Rules` |
 
 ### A validator that needs services
 

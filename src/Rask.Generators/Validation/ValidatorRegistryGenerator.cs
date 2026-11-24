@@ -74,7 +74,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         // into the pipeline, so an edit to anything that is not a validator re-reads nothing.
         var validators = context.SyntaxProvider
             .CreateSyntaxProvider(
-                static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 },
+                static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 } || DeclaresRules(node),
                 static (ctx, ct) => Read(ctx, ct))
             .Where(static model => model is not null)
             .Select(static (model, _) => model!)
@@ -91,6 +91,12 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
     }
 
     private const string AbstractValidatorName = "FluentValidation.AbstractValidator`1";
+    private const string RulesName = "Rules";
+
+    // A class or a record that declares a method named Rules: a candidate for the convention, read below.
+    private static bool DeclaresRules(SyntaxNode node) =>
+        node is TypeDeclarationSyntax type and (ClassDeclarationSyntax or RecordDeclarationSyntax) &&
+        type.Members.OfType<MethodDeclarationSyntax>().Any(static m => string.Equals(m.Identifier.ValueText, RulesName, System.StringComparison.Ordinal));
 
     /// <summary>One validator, as the registry needs it.</summary>
     /// <param name="TypeFqn">The validator's fully qualified name.</param>
@@ -99,34 +105,41 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
     /// <param name="ModelName">The model's simple name, for diagnostics.</param>
     /// <param name="Parameters">The chosen constructor's parameter types, or null when there is no constructor to choose.</param>
     /// <param name="At">Where it is declared.</param>
+    /// <param name="Inline">
+    ///     For a type's own <c>static void Rules(InlineValidator&lt;T&gt; rules)</c>: whether it is reached directly
+    ///     (<see langword="true" />) or, being private, through an <c>[UnsafeAccessor]</c> (<see langword="false" />);
+    ///     null for an <c>AbstractValidator&lt;T&gt;</c> class.
+    /// </param>
+    /// <param name="ValueObject">
+    ///     For the <c>Rules</c> of a value object (a record derived from <c>Rask.Values.Value</c>) with no
+    ///     <c>Rules()</c> of its own: its namespace, so its generated half can override <c>Rules()</c> to ask them.
+    /// </param>
     private sealed record ValidatorModel(
         string TypeFqn,
         string Name,
         string ModelKey,
         string ModelName,
         EquatableArray<string>? Parameters,
-        SymbolLocation? At);
+        SymbolLocation? At,
+        bool? Inline = null,
+        string? ValueObject = null);
 
     private static ValidatorModel? Read(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
     {
-        if (ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) is not INamedTypeSymbol type
-            || type.IsAbstract || type.TypeKind != TypeKind.Class || type.IsGenericType)
+        if (ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ct) is not INamedTypeSymbol type || type.IsGenericType || !IsReachable(type))
         {
             return null;
         }
 
-        if (ModelOf(type) is not { } model)
-        {
-            return null;
-        }
+        return InlineRules(type, ctx.SemanticModel.Compilation) ?? ValidatorClass(type, ctx.SemanticModel.Compilation);
+    }
 
-        // A private or protected validator cannot be named by the generated registry, which is a
-        // top-level internal class. Skipping it silently is right rather than lax: declaring a
-        // validator private is itself the statement that nothing outside is to construct it, and
-        // the alternative — emitting `new Outer.PrivateValidator()` — is a CS0122 in generated code
-        // the author never wrote. Test fixtures and hand-registered validators live here; they use
-        // RaskValidators.Register.
-        if (!IsReachable(type))
+    // A private or protected validator cannot be named by the generated registry, which is a top-level internal class, so
+    // Read skips it. Declaring a validator private is itself the statement that nothing outside is to construct it — test
+    // fixtures and hand-registered validators live there, and use RaskValidators.Register.
+    private static ValidatorModel? ValidatorClass(INamedTypeSymbol type, Compilation compilation)
+    {
+        if (type.IsAbstract || type.TypeKind != TypeKind.Class || ModelOf(type) is not { } model)
         {
             return null;
         }
@@ -135,7 +148,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         // it is generated in this same compilation, by a generator this one cannot see, and an error
         // type displays as the bare name its author wrote. That name neither binds from the registry's
         // global namespace nor keys `ProductModel` and `Shop.ProductModel` as the one model they are.
-        var key = GeneratedModelShape.DisplayName(model, SymbolDisplayFormat.FullyQualifiedFormat, ctx.SemanticModel.Compilation);
+        var key = GeneratedModelShape.DisplayName(model, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
         var ctor = ChooseConstructor(type);
         return new ValidatorModel(
             Fqn(type),
@@ -148,6 +161,55 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
             SymbolLocation.From(type.Locations.FirstOrDefault()));
     }
 
+    // The convention: `static void Rules(InlineValidator<T> rules)` on T itself, of any accessibility. Anything else named
+    // Rules is RASK139's to point out, and is not registered.
+    private static ValidatorModel? InlineRules(INamedTypeSymbol type, Compilation compilation)
+    {
+        var rules = type.GetMembers(RulesName).OfType<IMethodSymbol>().FirstOrDefault(m =>
+            m is { IsStatic: true, ReturnsVoid: true, IsGenericMethod: false, Parameters.Length: 1 } &&
+            m.Parameters[0].Type is INamedTypeSymbol { TypeArguments.Length: 1 } parameter &&
+            string.Equals(parameter.OriginalDefinition.ToDisplayString(), "FluentValidation.InlineValidator<T>", System.StringComparison.Ordinal) &&
+            SymbolEqualityComparer.Default.Equals(parameter.TypeArguments[0], type));
+        if (rules is null)
+        {
+            return null;
+        }
+
+        var fqn = Fqn(type);
+        return new ValidatorModel(
+            fqn,
+            type.Name,
+            fqn,
+            type.Name,
+            new EquatableArray<string>([]),
+            SymbolLocation.From(rules.Locations.FirstOrDefault()),
+            Inline: rules.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal,
+            ValueObject: ValueObjectNamespace(type, compilation));
+    }
+
+    // A record derived from Rask.Values.Value, top-level and partial, that does not ask Rules() itself (RASK183).
+    private static string? ValueObjectNamespace(INamedTypeSymbol type, Compilation compilation)
+    {
+        var value = compilation.GetTypeByMetadataName("Rask.Values.Value");
+        if (value is null || type.ContainingType is not null || !type.IsRecord ||
+            type.GetMembers(RulesName).OfType<IMethodSymbol>().Any(static m => m is { IsOverride: true, Parameters.Length: 0 }) ||
+            !type.DeclaringSyntaxReferences.Any(static r => r.GetSyntax() is TypeDeclarationSyntax t &&
+                t.Modifiers.Any(static m => string.Equals(m.ValueText, "partial", System.StringComparison.Ordinal))))
+        {
+            return null;
+        }
+
+        for (var b = type.BaseType; b is not null; b = b.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(b, value))
+            {
+                return type.ContainingNamespace.IsGlobalNamespace ? "" : type.ContainingNamespace.ToDisplayString();
+            }
+        }
+
+        return null;
+    }
+
     private static void Emit(SourceProductionContext spc, ImmutableArray<ValidatorModel> validators)
     {
         var found = FindValidators(spc, validators);
@@ -158,6 +220,11 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         }
 
         spc.AddSource("__RaskValidatorRegistry.g.cs", SourceText.From(Build(found), Encoding.UTF8));
+
+        foreach (var valueObject in found.Where(static v => v.ValueObject is not null))
+        {
+            spc.AddSource(valueObject.Name + ".RaskRules.g.cs", SourceText.From(ValueObjectRules(valueObject), Encoding.UTF8));
+        }
     }
 
     private static List<ValidatorModel> FindValidators(SourceProductionContext spc, ImmutableArray<ValidatorModel> validators)
@@ -174,7 +241,9 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (byModel.TryGetValue(validator.ModelKey, out var existing))
+            // A type's own Rules and one AbstractValidator class run together; two classes are one too many.
+            var key = validator.Inline is null ? validator.ModelKey : "rules:" + validator.ModelKey;
+            if (byModel.TryGetValue(key, out var existing))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
                     RaskVal001,
@@ -191,7 +260,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            byModel[validator.ModelKey] = validator;
+            byModel[key] = validator;
             found.Add(validator);
         }
 
@@ -220,7 +289,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
 
         // Keeps each validator's constructor from being trimmed: it is only ever invoked through the
         // generated factory below, which the trimmer cannot see as a use of the type itself.
-        foreach (var validator in found)
+        foreach (var validator in found.Where(static v => v.Inline is null))
         {
             sb.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(")
                 .Append("global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, ")
@@ -233,12 +302,21 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         sb.AppendLine("    internal static void RefreshAll() =>");
         sb.AppendLine("        global::Rask.RaskValidators.Replace(");
         sb.AppendLine("            typeof(__RaskValidatorRegistry),");
-        sb.AppendLine("            new (global::System.Type, global::System.Func<global::System.IServiceProvider?, object>)[]");
+        sb.AppendLine("            new global::Rask.ValidatorEntry[]");
         sb.AppendLine("            {");
 
-        foreach (var validator in found)
+        for (var i = 0; i < found.Count; i++)
         {
-            sb.Append("                (typeof(").Append(validator.ModelKey).Append("), static __sp => new ")
+            var validator = found[i];
+            if (validator.Inline is { } direct)
+            {
+                sb.Append("                global::Rask.RaskValidators.Inline<").Append(validator.ModelKey).Append(">(static __rules => ")
+                    .Append(direct ? validator.TypeFqn + ".Rules(__rules)" : "Rules_" + Index(i) + "(null, __rules)")
+                    .AppendLine("),");
+                continue;
+            }
+
+            sb.Append("                global::Rask.RaskValidators.Entry<").Append(validator.ModelKey).Append(">(static __sp => new ")
                 .Append(validator.TypeFqn).Append('(');
             sb.Append(string.Join(", ", validator.Parameters!.Value.Select(static p =>
                 "global::Rask.RaskValidators.Service<" + p + ">(__sp)")));
@@ -246,6 +324,45 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("            });");
+
+        // A private Rules is reached the way a private Validate() is: an accessor, so the type needs no change.
+        for (var i = 0; i < found.Count; i++)
+        {
+            if (found[i].Inline is false)
+            {
+                sb.AppendLine();
+                sb.AppendLine("    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Rules\")]");
+                sb.Append("    private static extern void Rules_").Append(Index(i)).Append('(')
+                    .Append(found[i].TypeFqn).Append("? _, global::FluentValidation.InlineValidator<").Append(found[i].TypeFqn).AppendLine("> rules);");
+            }
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    private static string Index(int i) => i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // A value object's half that asks its FluentValidation rules as it is made, after its base's own: what Value's
+    // constructor calls Rules() for.
+    private static string ValueObjectRules(ValidatorModel valueObject)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated />");
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine();
+        if (valueObject.ValueObject is { Length: > 0 } ns)
+        {
+            sb.Append("namespace ").Append(ns).AppendLine(";");
+            sb.AppendLine();
+        }
+
+        sb.Append("partial record ").AppendLine(valueObject.Name);
+        sb.AppendLine("{");
+        sb.AppendLine("    /// <summary>What its <c>static Rules(InlineValidator&lt;T&gt;)</c> says against it.</summary>");
+        sb.AppendLine("    /// <returns>One problem per broken rule.</returns>");
+        sb.AppendLine("    protected override global::System.Collections.Generic.IEnumerable<global::Rask.Values.Problem> Rules() =>");
+        sb.AppendLine("        global::Rask.RaskValidators.Problems(this);");
         sb.AppendLine("}");
         return sb.ToString();
     }

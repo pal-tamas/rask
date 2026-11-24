@@ -20,7 +20,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-actions|ui-table-list")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-actions|ui-table-for|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
@@ -464,6 +464,32 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         {
             await Page.SetViewportSizeAsync(1280, 720);
         }
+    });
+
+    [Fact]
+    public Task A_table_bound_to_the_rows_members_names_writes_aligns_and_drops_its_columns() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+        var table = Page.Locator("#ui-tanks");
+        await table.ScrollIntoViewIfNeededAsync();
+
+        // The headings are the members' [Display] names; the [ScaffoldColumn(false)] code has no column.
+        await Expect(table.Locator("thead th")).ToHaveTextAsync(["Tank", "Fuel", "Size (L)", "In stock (L)", "Inspected", "Shared"]);
+        var first = table.Locator("tbody tr").First.Locator("td");
+        await Expect(first).ToHaveCountAsync(6);
+        // Written for the reader: the enum's label, the number grouped in the reader's culture, "not yet" for no day, Yes or No.
+        var second = table.Locator("tbody tr").Nth(1).Locator("td");
+        await Expect(first.Nth(1)).ToHaveTextAsync("Diesel");
+        await Expect(second.Nth(1)).ToHaveTextAsync("Petrol (95)");
+        await Expect(first.Nth(2)).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^12\D000$"));
+        await Expect(second.Nth(3)).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^1\D200\D0$"));
+        await Expect(second.Nth(4)).ToHaveTextAsync("not yet");
+        await Expect(first.Nth(5)).ToHaveTextAsync("Yes");
+        await Expect(second.Nth(5)).ToHaveTextAsync("No");
+
+        // A number keeps to the end, the text to the start.
+        Assert.Equal("end", await first.Nth(2).EvaluateAsync<string>("td => getComputedStyle(td).textAlign"));
+        Assert.Equal("start", await first.Nth(0).EvaluateAsync<string>("td => getComputedStyle(td).textAlign"));
     });
 
     [Theory]

@@ -31,7 +31,11 @@ public abstract record Text : Value
     /// <param name="MaxLength">The most characters it may hold, and the column's length; 0 for no limit.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
     /// <param name="Pattern">A regular expression the text must match — anchor it (<c>^…$</c>) to cover the whole text — or null.</param>
-    /// <param name="Message">What a text that does not match <paramref name="Pattern" /> is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What a text that breaks a rule declared here — too short, too long, not matching <paramref name="Pattern" /> —
+    ///     is told, said once however many it breaks; or null for the framework's words for each. A text left blank is
+    ///     still told it is required.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks are cut off before the text is checked and kept.</param>
     /// <param name="Upper">
     ///     Whether the text is kept in capitals — <c>"wvwzzz1jzxw000001"</c> becomes <c>"WVWZZZ1JZXW000001"</c>, and
@@ -49,70 +53,84 @@ public abstract record Text : Value
         string Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false,
         bool Required = true)
 #pragma warning restore IDE1006
+        : this(Value, new TextDeclared(MaxLength, MinLength, Pattern, Message, Trim, Upper, Required))
+    {
+    }
+
+    // What the bases of one kind of text (Email, Phone, Url, Password, Multiline) hand on: Text's rules and the kind,
+    // which adds its own format check and tells a bound input what it is typed into.
+    private protected Text(string value, TextDeclared declared)
         : base(checkNow: false)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(MaxLength);
-        ArgumentOutOfRangeException.ThrowIfNegative(MinLength);
-        if (MaxLength > 0)
+        if (declared.MaxLength < 0 || declared.MinLength < 0 || (declared.MaxLength > 0 && declared.MinLength > declared.MaxLength))
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(MinLength, MaxLength);
+            throw new ArgumentOutOfRangeException(
+                nameof(declared), declared, "A length is never negative, and the fewest characters never exceed the most.");
         }
 
         if (DeclaredRules.IsReading)
         {
-            DeclaredRules.Note(new TextRules(MaxLength, MinLength, Pattern, Required));
+            DeclaredRules.Note(new TextRules(declared.MaxLength, declared.MinLength, declared.Pattern, declared.Required, declared.Kind));
         }
 
         if (RowLoading.IsOn)
         {
-            this.Value = Value ?? "";
+            Value = value ?? "";
             return;
         }
 
-        var given = Value ?? "";
-        var trimmed = Trim ? given.Trim() : given;
-        this.Value = Upper ? trimmed.ToUpperInvariant() : trimmed;
-        if (string.IsNullOrWhiteSpace(Value))
+        var given = value ?? "";
+        var trimmed = declared.Trim ? given.Trim() : given;
+        Value = declared.Upper ? trimmed.ToUpperInvariant() : trimmed;
+        if (string.IsNullOrWhiteSpace(value))
         {
-            if (!Required)
+            if (!declared.Required)
             {
-                this.Value = "";
+                Value = "";
             }
 
-            Check(Required ? [Say(ValueProblemKind.Required)] : null);
+            Check(declared.Required ? [Say(ValueProblemKind.Required)] : null);
             return;
         }
 
-        Check(Problems(this.Value, MaxLength, MinLength, Pattern, Message));
+        Check(Problems(Value, declared));
     }
 
     /// <summary>The text it holds.</summary>
     public string Value { get; }
 
-    /// <summary>The text it holds.</summary>
-    /// <returns><see cref="Value" />.</returns>
-    public sealed override string ToString() => Value;
+    /// <summary>The text it holds — a <see cref="Password" />'s masked, so a log line or an interpolation never shows it.</summary>
+    /// <returns><see cref="Value" />, or <c>"••••"</c> for a password.</returns>
+    public sealed override string ToString() => Shown();
 
-    private static List<Problem>? Problems(string text, int maxLength, int minLength, string? pattern, string? message)
+    // What ToString says: the text, or the mask a password puts over it.
+    private protected virtual string Shown() => Value;
+
+    private static List<Problem>? Problems(string text, TextDeclared declared)
     {
         List<Problem>? problems = null;
 
-        if (text.Length < minLength)
+        if (text.Length < declared.MinLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooShort, minLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooShort, declared.MinLength, declared.Message));
         }
 
-        if (maxLength > 0 && text.Length > maxLength)
+        if (declared.MaxLength > 0 && text.Length > declared.MaxLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooLong, maxLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooLong, declared.MaxLength, declared.Message));
         }
 
-        if (pattern is not null && !Matches(pattern, text))
+        if (declared.Pattern is { } pattern && !Matches(pattern, text))
         {
-            (problems ??= []).Add(Say(ValueProblemKind.Pattern, null, message));
+            (problems ??= []).Add(Say(ValueProblemKind.Pattern, null, declared.Message));
         }
 
-        return problems;
+        if (TextFormats.Refusal(declared.Kind, text) is { } format)
+        {
+            (problems ??= []).Add(Say(format, null, declared.Message));
+        }
+
+        return ValueWords.Once(problems, declared.Message);
     }
 
     private static Problem Say(ValueProblemKind kind, object? limit = null, string? message = null) =>

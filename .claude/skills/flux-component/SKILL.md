@@ -76,6 +76,12 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
+- **2026-11-24 — a table's heading and cell bound to a row's member: `Ui.TableColumn.For<TRow>(r => r.X)`,
+  `Ui.TableCell.For(() => row.X)`.** Flux's are written by hand. The heading says the member's `[Display(Name)]`, the cell
+  writes its value for the reader (`[DisplayFormat]`, else its kind's `Format.*`, an enum's label, Yes/No, "–" for none),
+  a number keeps to the end in both, and `[ScaffoldColumn(false)]` draws neither. The look is Flux's heading and cell,
+  unchanged: the step only fills the words and the alignment a page would have written. `UiTableForTests`,
+  `FieldShapeGeneratorTests` (the read face), the site's `ui-table-for` example and its E2E.
 - **2026-11-10 — table, tabs and chart say more to a screen reader and the keyboard.** A sorted `Ui.TableColumn`
   carries `aria-sort`; `Home`/`End` in a `Ui.Tabs` row go to the first/last tab that is not disabled (Flux's leave
   them to the page); a `Ui.Chart`'s SVG is `role="img"` with a generated `aria-label` and `aria-describedby` a table of

@@ -35,6 +35,9 @@ internal sealed class RequiredFields
     internal RequiredFields With(Type modelType, Func<string, bool> isRequired) =>
         new(new Dictionary<Type, Func<string, bool>>(_registered) { [modelType] = isRequired }, _optional, new());
 
+    // The same registrations with nothing answered yet.
+    internal RequiredFields Fresh() => new(_registered, _optional, new());
+
     // The answers kept are about a property on its own type, which this does not change: they are carried over.
     internal RequiredFields WithOptional(Type modelType, Func<string, bool> isOptional) =>
         new(_registered, new Dictionary<Type, Func<string, bool>>(_optional) { [modelType] = isOptional }, _answers);
@@ -117,7 +120,8 @@ internal sealed class RequiredFields
     private bool Answer(Type owner, string name) =>
         _answers.GetOrAdd((owner, name), static (field, fields) => fields.Ask(field.Owner, field.Name), this);
 
-    private bool Ask(Type owner, string name) => Registered(owner, name) || Attributed(owner, name);
+    private bool Ask(Type owner, string name) =>
+        Registered(owner, name) || Attributed(owner, name) || StatedRules.IsRequired(owner, name);
 
     // The type that declares the property speaks for every type derived from it.
     private bool Registered(Type owner, string name)

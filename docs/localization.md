@@ -835,9 +835,12 @@ they say when you set nothing.
 | `ValidationAboveAndAtMost` | Validation — `[Range]` with `MinimumIsExclusive = true` | `Enter a value greater than {0} and at most {1}.` |
 | `ValidationAtLeastAndBelow` | Validation — `[Range]` with `MaximumIsExclusive = true` | `Enter a value at least {0} and less than {1}.` |
 | `ValidationAboveAndBelow` | Validation — `[Range]` exclusive at both ends | `Enter a value greater than {0} and less than {1}.` |
+| `TableCellYes` | Table: a `Ui.TableCell.For` over a `bool` that is true | `Yes` |
+| `TableCellNo` | Table: a `Ui.TableCell.For` over a `bool` that is false | `No` |
 | `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
 | `ValidationPhone` | Validation — `[Phone]` | `Enter a valid phone number.` |
 | `ValidationUrl` | Validation — `[Url]` | `Enter a valid http, https or ftp address.` |
+| `ValidationWebAddress` | Validation — a value object declared from `Url` | `Enter a valid http or https address.` |
 | `ValidationCreditCard` | Validation — `[CreditCard]` | `Enter a valid card number.` |
 | `ValidationPattern` | Validation — `[RegularExpression]` | `Enter a value in the expected format.` |
 | `ValidationMatch` | Validation — `[Compare]`; `{0}` is the other field | `Must match {0}.` |

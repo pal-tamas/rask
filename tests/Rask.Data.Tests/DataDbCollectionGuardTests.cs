@@ -29,6 +29,10 @@ public sealed class DataDbCollectionGuardTests
             nameof(BulkDeleteTests),
             // Refusals thrown from conditions and lambdas; it never builds a context.
             nameof(RefuseTests),
+            // A generated model checked by the rules it borrows, in memory; it never builds a context.
+            nameof(FluentModelFormTests),
+            // A wall-clock time turned into UTC and back; it never builds a context.
+            nameof(WallClockInUtcTests),
             // Builds a context type of its own, in a collection that runs alone after every parallel one.
             nameof(AppModelRulesTests));
 }

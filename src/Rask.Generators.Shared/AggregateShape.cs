@@ -241,8 +241,23 @@ internal static class AggregateShape
     /// </remarks>
     public static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol type) =>
         DeclaredValueBaseOf(type) is "Text" or "Number" or "Day" or "Moment"
-            ? type.BaseType!.GetMembers("Value").OfType<IPropertySymbol>()
+            ? HeldValue(type)
             : OwnStoredProperties(type);
+
+    // The base's `Value`: Text's for a kind of text (Email, Password, …), the base's own for the others.
+    private static List<IPropertySymbol> HeldValue(INamedTypeSymbol type)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            var held = current.GetMembers("Value").OfType<IPropertySymbol>().ToList();
+            if (held.Count > 0)
+            {
+                return held;
+            }
+        }
+
+        return [];
+    }
 
     /// <summary>
     ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
@@ -278,11 +293,38 @@ internal static class AggregateShape
     ///     The Rask.Values base record a value object checked as it is made derives from directly — <c>Value</c>,
     ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
     /// </summary>
-    public static string? DeclaredValueBaseOf(INamedTypeSymbol type) =>
-        type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
-        IsRaskValuesType(valueBase)
+    /// <remarks>
+    ///     A record declared from one of the kinds of text — <c>Email</c>, <c>Phone</c>, <c>Url</c>, <c>Password</c>,
+    ///     <c>Multiline</c> — is declared from <c>Text</c>: it holds a text, made and shaped as one (<see cref="TextKindOf" />
+    ///     names the kind).
+    /// </remarks>
+    public static string? DeclaredValueBaseOf(INamedTypeSymbol type)
+    {
+        if (TextKindOf(type) is not null)
+        {
+            return "Text";
+        }
+
+        return type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
+               IsRaskValuesType(valueBase)
             ? valueBase.Name
             : null;
+    }
+
+    /// <summary>
+    ///     The kind of text a value object is declared from — <c>Email</c>, <c>Phone</c>, <c>Url</c>, <c>Password</c> or
+    ///     <c>Multiline</c> of Rask.Values, each a <c>Text</c> — or null for any other type, <c>Text</c> itself included.
+    /// </summary>
+    public static string? TextKindOf(INamedTypeSymbol type) =>
+        type.BaseType is { Name: "Email" or "Phone" or "Url" or "Password" or "Multiline", Arity: 0, ContainingType: null } kind &&
+        IsRaskValuesType(kind) &&
+        kind.BaseType is { Name: "Text" } text && IsRaskValuesType(text)
+            ? kind.Name
+            : null;
+
+    /// <summary>Whether <paramref name="type" /> is a value object declared from Rask.Values' <c>Password</c>: input only.</summary>
+    public static bool IsPassword(ITypeSymbol type) =>
+        type is INamedTypeSymbol named && string.Equals(TextKindOf(named), "Password", StringComparison.Ordinal);
 
     /// <summary>
     ///     Whether a value object declared from <c>Text</c> says an empty text is a value: <c>Text(Value, Required: false)</c>,

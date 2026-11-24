@@ -81,6 +81,91 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Kinds of text as value-object bases: `Email`, `Phone`, `Url`, `Password`, `Multiline` (`Rask.Values`).** Before: an
+  email, a phone number or a password was a `Text` plus an attribute on the form's `string`, or a hand-written
+  `.Type(InputType.Password)` and `.Validate(X.__Problems)` at the call site. After: `record ContactEmail(string Value) :
+  Email(Value, MaxLength: 200)` checks exactly what `[EmailAddress]` checks (`Phone` what `[Phone]` does, `Url` an
+  absolute http/https address), its column is 254/32/2048 characters unless declared, and a control bound to it on the
+  generated model is `type="email" autocomplete="email"` — `tel` with `inputmode="tel"`, `url`, `password` with
+  `autocomplete="current-password"` (`New: true`: `"new-password"`), and `Ui.Field.Bind` draws a `Ui.Textarea` for
+  `Multiline` — the identical `FieldShape` the attribute gives. `FieldShape` gains `AutoComplete` and `InputMode`, and
+  Core's bound `Input` (so `Ui.Input.Bind` too) now writes them, and a `Number`/`Whole` field's `min`, `max` and `step`
+  (from `Scale`), which only `Ui.Field.Bind` wrote before. A `Password` is not trimmed, prints `••••` from `ToString()`
+  and the debugger, and is input only: RASK175 (error) refuses one stored on an aggregate or entity, RASK176 (error) one in
+  a query's or a command's result, a subscription's item or an event; the read face leaves it out. `Test.Make` builds
+  an address, a number or a URL in the format its kind checks. Both paths — attribute and value object — are tabled
+  side by side in docs/forms-validation.md and docs/data.md, with a site example.
+- **FluentValidation rules inside the type, asked exactly where a DataAnnotations attribute is.** Before: an
+  `AbstractValidator<T>` ran only on a form over `T` itself — not on the generated form model of an aggregate, not at
+  the save, and it gave no hint and no column. After: a type may state its rules in its own
+  `static void Rules(InlineValidator<T> rules)` (any accessibility, found at compile time, trim-safe), and those rules —
+  or a separate `AbstractValidator<Supplier>`, which works the same and may sit beside them — run on the generated
+  `SupplierModel`'s form live (`MustAsync` included; a row's under `Parts[1].Quantity`), on a request that carries the
+  model, and at every save (every rule of a new row, only the changed members of a stored one), so `Create(model)`,
+  `Update(id, model)` and `Test.Refuses` refuse under the same fields. Their descriptors give the hints and columns the
+  attribute twin gives: `NotEmpty()` → required + NOT NULL, `MaximumLength`/`Length` → `maxlength`/`minlength` + column
+  length, `EmailAddress()` → `type="email"`, `InclusiveBetween`/`GreaterThanOrEqualTo`… → `min`/`max`,
+  `PrecisionScale` → `step` + `decimal(p, s)`; a rule under `When`/`Unless` gives none, and an attribute on the property
+  wins for its column. A value object may state its rules the same way: they run as it is made, after its base
+  record's own, never for a value loaded from a row. New seam: `Rask.Core.Forms.StatedRules` / `IStatedRules` /
+  `StatedFacets`. BREAKING: `RaskValidators.Replace` takes `ValidatorEntry`s (`RaskValidators.Entry<T>`, `Inline<T>`,
+  `Project<TModel, TOwner>`, all generated).
+- **A table's heading and cell can be bound to a row's member.** Before: every `Ui.TableColumn` was given its words and
+  every `Ui.TableCell` its value written out by hand (`Ui.TableCell.End[Format.Number(tank.Size)]`), and
+  `[DisplayFormat(DataFormatString)]`, `NullDisplayText` and `[ScaffoldColumn]` were read by nothing. After:
+  `Ui.TableColumn.For<TRow>(r => r.X)` says the member's `[Display(Name)]`, and `Ui.TableCell.For(() => row.X)` writes
+  the value in the reader's culture — its `DataFormatString`, else by kind (a number with its value object's scale, a
+  day, a moment), an enum's label, a `bool` as Yes/No (new keys `TableCellYes`/`TableCellNo`, Hungarian *Igen*/*Nem*),
+  `NullDisplayText` or "–" for none. Numbers keep to the end in both, and a `[ScaffoldColumn(false)]` member draws
+  neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
+  property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
+  `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
+- **The in-type FluentValidation rules are checked as they are written (RASK139, RASK181–RASK183).** Before: a `Rules` taking an
+  `InlineValidator` in the wrong shape, a rule on an aggregate's value-object member, a `MaximumLength(200)` on a
+  `[MaxLength(100)]` property, and a value object with both a `Rules()` override and FluentValidation `Rules` all
+  compiled silently. After: RASK139 names why a `Rules` is never registered, RASK181 points a value-object member's
+  rule into the value object, RASK182 says where a rule's length or precision disagrees with the column's, and RASK183
+  refuses a value object that states its rules twice. All four are silent without FluentValidation.
+- **RASK130's quick-fix declares the value object from the rules already written.** Before: RASK130 had no fix.
+  After: "Declare a value object from its rules" turns `[StringLength(200)] public string Name` or
+  `rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200)` into `public SupplierName Name` beside
+  `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);` — `Number`, `Whole` and
+  `Day` likewise — and takes the rules its base arguments now say off the property.
+- **PostgreSQL stores a `Moment` value object.** Before: Npgsql refused to save a wall-clock `DateTime`
+  (`Kind=Unspecified`) to its `timestamptz` column, so a `Moment` could not be kept on PostgreSQL at all. After:
+  `UseRaskPostgres` stores every `Moment` column as the UTC instant the wall-clock time is in `Clock.Zone` and reads it
+  back onto the wall clock — a converter of the app's own on the property is composed with it — so SQL Server, SQLite
+  and PostgreSQL save, read, compare and order the same moment (PostgreSQL to the microsecond); `.Value` in a query is
+  converted the same way. The parity suite runs the moment on all three.
+- **A write-side query reads a value object's value as its column, and orders and compares the value object itself.**
+  Before: `db.Set<Transaction>().Sum(t => t.Quantity.Value)`, `Where(t => t.Quantity.Value > 0)` and
+  `OrderBy(f => f.Moment.Value)` were "could not be translated" on a converter-mapped one-value value object, and a
+  list of them could not be sorted (`fuelings.OrderBy(f => f.Moment)` threw: not `IComparable`). After: `.Value` of a
+  column Rask maps is that column, typed as the value with the column's own store type (no `CAST`), on SQL Server,
+  SQLite and PostgreSQL, inside a complex value object too (`g.Crate.Weight.Value`); and a one-value record over an
+  ordered value (a number, a whole number, a day, a moment, a text) is generated `IComparable` with `<`, `>`, `<=`
+  and `>=` against its own type — `Where(f => f.Moment >= since)`, `OrderBy(f => f.Moment)`, `Max(f => f.Moment)`
+  translate, and `ExecuteUpdate(s => s.SetProperty(f => f.Moment, moment))` sets one. A record that writes its own
+  `CompareTo` or operators keeps them. A column the app maps through a converter of its own is left as it was.
+- **`Number(…, Round: true)` rounds a computed number to its `Scale` instead of refusing its extra digits** — half
+  away from zero, as SQL Server rounds what it stores — before the bounds and the precision are checked. Before: a
+  unit price computed to fourteen decimals was refused where SqlClient used to round it silently, so an app wrote a
+  `Stored(decimal)` helper beside every computed value object. A `Round` with no `Scale` throws as the value is made.
+- **Every value-object base takes a `Message` for every rule it declares.** Before: `Text(Message: …)` worded only
+  the `Pattern` rule, and `Number`, `Whole`, `Day`, `Moment` and `Range` had no `Message` at all, so "A záró km-nek
+  nagyobbnak kell lennie a kezdőnél." could not be said for a `Range`. After: `Message` words each rule the base
+  declares — lengths and pattern, bounds, digits, days, the range's order and bounds (under the end it is about) —
+  said once however many it breaks; a blank text is still told it is required. **BREAKING** for a `Text` with both a
+  `Message` and a length: a text of the wrong length now says the `Message` too.
+- **`Covering(…)` carries a value object of several members.** Before: `HasIndex(l => l.Lane).Covering(l => l.Km)`
+  over a `KmRange` failed the model build (a complex property is not a mapped property), so its `StartKm`/`EndKm`
+  columns could not be INCLUDEd. After: it includes every column of the value object, as they are named
+  (`INCLUDE ([EndKm], [StartKm])` on SQL Server, the same on PostgreSQL), or one member by its path
+  (`Covering(l => l.Km.Start)`, `Covering("Km.Start")`); one stored as JSON is refused with its name.
+- **An enum held as a value object is offered as a choice.** `public sealed partial record FuelKind(Fuel Value) :
+  Value;` was already one column of the enum and `Fuel?` on the generated model; now `.Value` translates in a query
+  and a control bound to the field is offered the enum's members with their `[Display(Name)]` labels, as for a bare
+  enum (before: no field shape, so a bound select listed nothing).
 - **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
   "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
   `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
@@ -96,7 +181,10 @@ them until tagged releases begin.
   order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
   property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
   insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
-  the ids, are an `ArgumentException` before anything changes. See [Children](docs/data.md#children).
+  the ids, are an `ArgumentException` before anything changes. Children matched by a key of their own take
+  `Sync(specs, s => s.TransactionId, f => f.TransactionId, add, update)`; a child made from no row is `Parts.Add(x)` /
+  `Parts.Remove(x)`, callable only from the aggregate that declares the property — elsewhere the new error
+  [RASK180](docs/diagnostics.md#rask180). See [Children](docs/data.md#children).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
@@ -126,9 +214,12 @@ them until tagged releases begin.
   transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
   changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
   holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
-  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`).
-  `forUpdate: true` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL Server,
-  `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none. See
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`),
+  or from the parent and the write (`(p, w) => …`: `w.Kind` is `Add`, `Change`, `Delete` or `Move`, `w.Row` the row).
+  `LockRead.ForUpdate` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL
+  Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none.
+  `.Except(t => t.RefundId, …)` lets a change that touches only those columns through (a claim taking a transaction
+  over); `.Including(p => p.Filings)` loads a parent navigation for the message. See
   [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
@@ -153,6 +244,15 @@ them until tagged releases begin.
   asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
   its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
   engine a form over the operation uses to show the domain's own rules as it is filled in.
+- **A form straight over an operation: `Form.For(Note.Rename, id)[f => [Ui.Field.Bind(() => f.Title), …]]`.** Before:
+  every edit form was a hand-written model class, its rules repeated beside the domain's and its save wired by hand.
+  After: each operation (and factory) of a `partial` aggregate gets a `Form.For` whose fields are its parameters —
+  filled from the aggregate's properties of the same name, a one-value value object held as its value with its rules
+  told to the control — checked as each field is committed by the operation's dry run, saved through the entry at the
+  version it was read at, and disabled for a principal `MayRename` refuses. `.Missing(…)` and `.OnSaved(…)` round it
+  off. Operations with a list or a several-value value object as a parameter get none yet, and two operations whose
+  entries take the same types get none ([RASK174](docs/diagnostics.md#rask174)). The rask.sh data demo renames the
+  newest note this way. See [a form over an operation](docs/forms.md#a-form-over-an-operation).
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

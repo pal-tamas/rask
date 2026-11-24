@@ -5,8 +5,9 @@ using System.Globalization;
 namespace Rask.Data;
 
 /// <summary>
-///     The children an aggregate holds, read-only to everyone, changed only by <see cref="Sync" /> from the rows a form
-///     (or an import, or a message) says there should be.
+///     The children an aggregate holds, read-only to everyone else: the aggregate changes them by <c>Sync</c> from the rows
+///     a form (or an import, or a message) says there should be, or by <see cref="Add" /> and <see cref="Remove" /> —
+///     which only its own type may call (RASK180).
 /// </summary>
 /// <remarks>
 ///     <code>
@@ -21,7 +22,7 @@ namespace Rask.Data;
 ///     <para>
 ///         It is the collection EF Core maps — the property's own backing field — so the aggregate declares no private
 ///         <c>List&lt;T&gt;</c> and no public view of it. EF Core loads into it and tracks it as any collection of children:
-///         a child <see cref="Sync" /> adds is inserted, one it changes is updated, one it lets go is deleted, all in the
+///         a child <c>Sync</c> adds is inserted, one it changes is updated, one it lets go is deleted, all in the
 ///         save of the aggregate, and the save's domain step asks each its rules under its row — <c>Parts[1].Quantity</c>.
 ///     </para>
 /// </remarks>
@@ -40,7 +41,7 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
 
     bool ICollection<TEntity>.IsReadOnly => false;
 
-    /// <summary>The child at <paramref name="index" />, in the order the last <see cref="Sync" /> gave them.</summary>
+    /// <summary>The child at <paramref name="index" />, in the order the last <c>Sync</c> gave them.</summary>
     /// <param name="index">The position.</param>
     public TEntity this[int index] => _held[index];
 
@@ -71,11 +72,10 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
         ArgumentNullException.ThrowIfNull(add);
         ArgumentNullException.ThrowIfNull(update);
 
-        var unmatched = HeldByKey();
-
         // Every key is checked before any child is touched: a refused sync leaves the children as they were.
+        var held = HeldBy(KeyOf);
         var rows = specs.Select(spec => (Spec: spec, Id: key(spec))).ToList();
-        if (ForeignKey(rows, unmatched) is { } foreign)
+        if (ForeignKey(rows, held) is { } foreign)
         {
             throw new ArgumentException(foreign, nameof(key));
         }
@@ -85,7 +85,79 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
             throw new ArgumentException(twice, nameof(specs));
         }
 
-        var (kept, added, changed, touched) = Apply(rows, unmatched, add, update);
+        return Replace(rows, held, add, update, remove);
+    }
+
+    /// <summary>
+    ///     Makes the children what <paramref name="specs" /> say, matched by a key of their own rather than their <c>Id</c>
+    ///     — a fuelling of a delivery note by its transaction: a spec whose key a child holds updates it, any other spec adds
+    ///     one, and a child no spec names is let go.
+    /// </summary>
+    /// <typeparam name="TKey">The key both sides hold.</typeparam>
+    /// <param name="specs">The children there should be.</param>
+    /// <param name="specKey">The key of the child a spec stands for; <see langword="null" /> for a new one.</param>
+    /// <param name="childKey">The key a child holds.</param>
+    /// <param name="add">Makes the child of a spec no child holds the key of.</param>
+    /// <param name="update">Brings a child in line with its spec.</param>
+    /// <param name="remove">What a child does as it is let go; nothing when left out.</param>
+    /// <returns>What changed: the children added, those changed, those let go.</returns>
+    /// <exception cref="ArgumentException">Two specs name the same key, or two children hold one.</exception>
+    public SyncResult<TEntity> Sync<TKey>(
+        IEnumerable<TSpec> specs,
+        Func<TSpec, TKey?> specKey,
+        Func<TEntity, TKey> childKey,
+        Func<TSpec, TEntity> add,
+        Action<TEntity, TSpec> update,
+        Action<TEntity>? remove = null)
+    {
+        ArgumentNullException.ThrowIfNull(specs);
+        ArgumentNullException.ThrowIfNull(specKey);
+        ArgumentNullException.ThrowIfNull(childKey);
+        ArgumentNullException.ThrowIfNull(add);
+        ArgumentNullException.ThrowIfNull(update);
+
+        var rows = specs.Select(spec => (Spec: spec, Id: (object?)specKey(spec))).ToList();
+        if (NamedTwice(rows) is { } twice)
+        {
+            throw new ArgumentException(twice, nameof(specs));
+        }
+
+        var held = new Dictionary<object, TEntity>();
+        foreach (var child in _held)
+        {
+            if ((object?)childKey(child) is { } id && !held.TryAdd(id, child))
+            {
+                throw new ArgumentException(
+                    string.Create(CultureInfo.InvariantCulture, $"Two {typeof(TEntity).Name} children hold the same key, '{id}'."),
+                    nameof(childKey));
+            }
+        }
+
+        return Replace(rows, held, add, update, remove);
+    }
+
+    /// <summary>Adds <paramref name="item" />: from the aggregate that holds these children, and only there (RASK180).</summary>
+    /// <param name="item">The child.</param>
+    public void Add(TEntity item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        _held.Add(item);
+    }
+
+    /// <summary>Lets <paramref name="item" /> go: from the aggregate that holds these children, and only there (RASK180).</summary>
+    /// <param name="item">The child.</param>
+    /// <returns>Whether it was held.</returns>
+    public bool Remove(TEntity item) => _held.Remove(item);
+
+    // The specs' children in their order, and those no spec named let go.
+    private SyncResult<TEntity> Replace(
+        List<(TSpec Spec, object? Id)> rows,
+        Dictionary<object, TEntity> held,
+        Func<TSpec, TEntity> add,
+        Action<TEntity, TSpec> update,
+        Action<TEntity>? remove)
+    {
+        var (kept, added, changed, touched) = Apply(rows, held, add, update);
         var keptSet = new HashSet<TEntity>(kept, ReferenceEqualityComparer.Instance);
         var removed = _held.Where(child => !keptSet.Contains(child)).ToList();
         foreach (var child in removed)
@@ -131,12 +203,12 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
         return (kept, added, changed, touched);
     }
 
-    private Dictionary<object, TEntity> HeldByKey()
+    private Dictionary<object, TEntity> HeldBy(Func<TEntity, object?> key)
     {
         var held = new Dictionary<object, TEntity>();
         foreach (var child in _held)
         {
-            if (KeyOf(child) is { } id)
+            if (key(child) is { } id)
             {
                 held[id] = child;
             }
@@ -167,17 +239,12 @@ public sealed class Children<[DynamicallyAccessedMembers(DynamicallyAccessedMemb
             : null;
     }
 
-
     /// <inheritdoc />
     public IEnumerator<TEntity> GetEnumerator() => _held.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    // What EF Core loads, fixes up and copies the children through: never the domain's way in.
-    void ICollection<TEntity>.Add(TEntity item) => _held.Add(item);
-
-    bool ICollection<TEntity>.Remove(TEntity item) => _held.Remove(item);
-
+    // What EF Core loads, fixes up and copies the children through (Add and Remove are the aggregate's own, above).
     void ICollection<TEntity>.Clear() => _held.Clear();
 
     bool ICollection<TEntity>.Contains(TEntity item) => _held.Contains(item);

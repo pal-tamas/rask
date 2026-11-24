@@ -204,6 +204,18 @@ is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two r
 type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
 carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`.
 
+Children matched by something other than their `Id` — a delivery note's fuellings by their transaction — take a key
+of their own on both sides, with the same refusal of a key named twice:
+
+```csharp
+Fuellings.Sync(fuellings, f => f.TransactionId, f => f.TransactionId,
+    add: DeliveryNoteTransaction.For, update: (f, s) => f.Use(s.Quantity));
+```
+
+A child the aggregate makes itself, from no row, is `Add`ed — `Fuellings.Add(await Transaction.FreeFor(…))` — and
+one it lets go is `Remove`d. Both are the aggregate's alone: called from any other type, or on children held in a
+local, they are [RASK180](diagnostics.md#rask180), an error.
+
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
 when you want them — listing a thousand orders should not drag in every line each of them holds:
@@ -1054,6 +1066,9 @@ For every row the save adds or changes, in this order:
    this save changes. A row stored before a rule was tightened still opens, and still saves for another field; the
    rule is asked again once that field is touched. A one-value value object is checked by the value it holds, as its
    form field is.
+   The rules it states in code — a FluentValidation `RuleFor` in its own `static void Rules(InlineValidator<T> rules)`
+   or in an `AbstractValidator<T>` class ([forms validation](forms-validation.md#rules-inside-the-type)) — are asked the
+   same way, `MustAsync` included: every rule of a new row, only the changed members' of a stored one.
 2. **Its type's attributes, and `IValidatableObject` / `IAsyncValidatableObject`** when it implements one.
 3. **Its `Validate()`** — the root's whenever anything in the aggregate changes, a removed row included, because a
    rule over the rows is the root's.
@@ -1079,7 +1094,7 @@ public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
     b.LockedBy(n => n.Period, (Period p) => p.Closed, Texts.PeriodClosed);
 
 public static void Configure(EntityTypeBuilder<GasClaim> b) =>     // the words made from the parent
-    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", forUpdate: true);
+    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", LockRead.ForUpdate);
 ```
 
 `n => n.Period` is the property holding the parent's key — a typed id, an `int`, a nullable one — and
@@ -1094,7 +1109,7 @@ of the save:
   is refused as the note would be: the aggregate is the unit the lock holds.
 - **Under the parent field, or the whole row.** A new row, or one whose parent the save changes, is refused under
   that field (`Period`); any other write is refused about the row itself — the whole form for a root.
-- **`forUpdate: true`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
+- **`LockRead.ForUpdate`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
   SQL Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite, whose one writer serializes the save already — so a
   "Close period" cannot slip in between the check and the write. The save runs in a transaction of its own when its
   caller opened none (inside `Db.Transaction`, it is that one). A context whose execution strategy retries cannot
@@ -1102,6 +1117,28 @@ of the save:
 
 The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
 same save closes is judged as the database has it, before this save.
+
+**Columns a lock lets through, and words for each write.** A filed return holds its transactions, but a claim may still
+take one over by its refund columns; and "deleted" and "changed" want different sentences, which may name something
+the parent holds:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Transaction> b) =>
+    b.LockedBy(t => t.RefundId, (Refund r) => r.Filings.Any(f => f.UnfiledAt == null),
+            (r, write) => write.Kind == LockedWriteKind.Delete
+                ? $"{r.Name} is filed at {r.Filings[0].Office}: it keeps its transactions."
+                : $"{r.Name} is filed at {r.Filings[0].Office}: {write.Row.Litres} litres stay as filed.")
+        .Except(t => t.RefundId, t => t.ForeignRefundId)    // a change to only these passes, under a filed refund too
+        .Including(r => r.Filings);                         // loaded with each locked parent, for the words
+```
+
+- **`Except(columns)`** lets a change through when every column it touches is one of these — even the parent key, so a
+  claim moves the transaction. An add, a delete, a change to any other column, and a change through a child are
+  still refused.
+- **The message `(parent, write)`** is told the write's `Kind` — `Add`, `Change`, `Delete` or `Move` (a new parent) —
+  and its `Row`, as the save would write it.
+- **`Including(p => p.Navigation)`** loads that navigation of each locked parent before the message reads it; without
+  it the parent comes back as its own columns only.
 
 ### An operation, run as one write
 
@@ -1899,13 +1936,23 @@ What each one does, where it is read — on the aggregate's property, a generate
 | `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
 | `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
 | `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
-| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[DisplayFormat]` | `ConvertEmptyStringToNull = false`: an emptied `string?` is written `""`, not `null`; `DataFormatString` and `NullDisplayText`: how a `Ui.TableCell.For` writes it | – | – | – |
+| `[ScaffoldColumn(false)]` | no `Ui.TableColumn.For` heading and no `Ui.TableCell.For` cell | – | – | – |
 | `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
 | `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
 
+The same rules written with FluentValidation — in the aggregate's own `static void Rules(InlineValidator<T> rules)`, or
+in an `AbstractValidator<T>` class — are read in exactly these places: the generated model's members carry the
+aggregate's rules on its form (live, `MustAsync` included, a row's under `Lines[2].Quantity`), every save asks them, and
+`NotEmpty()`, `MaximumLength`/`Length`, `EmailAddress()`, `InclusiveBetween`/`GreaterThanOrEqualTo`… and
+`PrecisionScale(p, s)` give the hint and the column their attribute twin gives — `NOT NULL`, the length, `decimal(p, s)`
+— which a migration shows. An attribute on the same property wins for its column. The value object stays the
+recommended way: see [three ways to say a rule](forms-validation.md#three-ways-to-say-a-rule).
+
 `[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
-the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
-Rask.Ui list or table builds its columns from a model's members.
+the property. The read face (`ProductRead`) carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the
+aggregate's property, so a list's columns are named, written and shown as the property says
+([ui-kit — columns from the row's members](ui-kit.md#columns-from-the-rows-members)).
 
 ## The current user — `Current`
 
@@ -2566,8 +2613,12 @@ builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // o
   the model or a migration — an app that runs its tests on SQLite carries no SQL Server call into them.
 - The covered columns are carried, not ordered by: they are no part of the index's key, and a unique index stays
   unique over its keys alone.
-- A covered member that is not a mapped property of the entity (a navigation, a complex property, an ignored
-  member), or one that is already a key of the index, fails the model build with its name.
+- A value object of several members stored in columns of its own is covered by each of them:
+  `Covering(l => l.Km)` over a `KmRange(int Start, int End)` named `StartKm` and `EndKm` writes
+  `INCLUDE ([EndKm], [StartKm])` — the columns as they are named, `Columns(…)` patterns included. One member of it
+  is `Covering(l => l.Km.Start)`, or `Covering("Km.Start")`.
+- A covered member that is not a mapped property of the entity (a navigation, a value object stored as JSON, an
+  ignored member), or one that is already a key of the index, fails the model build with its name.
 
 It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
 `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
@@ -2750,7 +2801,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 | A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
-| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | refused: Npgsql writes a `DateTime` only as UTC |
+| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | kept to the microsecond, orders by its time: `UseRaskPostgres` stores it as the UTC instant it is in `Clock.Zone` and reads it back onto the wall clock |
 
 SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
 `OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
@@ -2760,6 +2811,13 @@ moment, as on SQL Server. A property the model gives a converter of its own (`Da
 Unix time) keeps that column. A `DateTime` needs nothing: its text, written to the tick in one format, orders as the
 time does. An existing SQLite database with `DateTimeOffset` columns gets the collation through one migration
 (`rask db add MomentOrder`); the stored values do not change.
+
+A `Moment` value object is the same moment on all three. Npgsql writes a `DateTime` to `timestamptz` only as UTC, so
+`UseRaskPostgres` gives every column of one a conversion: the wall-clock time is turned into its UTC instant through
+`Clock.Zone` as it is written, and back onto the wall clock as it is read — the value object and every query see the
+wall-clock time (`Where(f => f.Moment.Value > since)` included), the column holds UTC. A wall time the clock skips
+when summer time begins is stored as the instant just after the jump; one it shows twice in autumn, as its
+standard-time instant. A bare `DateTime` property is left as Npgsql maps it.
 
 ## Value objects
 
@@ -2781,12 +2839,15 @@ public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 100
 public sealed partial record Vin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
 public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
+public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Scale: 9, Round: true);   // computed: rounded, not refused
 public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
 public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
 public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
 public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);       // no end: open
 public sealed partial record RefundMonths(int From, int To) : Range(From, To, Min: 1, Max: 12);
+public sealed partial record KmReading(int StartKm, int EndKm) : Range(StartKm, EndKm, Strict: true,
+    Message: "A záró km-nek nagyobbnak kell lennie a kezdőnél.");                              // its own words
 
 public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
 {
@@ -2813,13 +2874,55 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
-| `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
+| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern`, `Trim` (on by default), `Upper` (kept in capitals) |
+| `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits), `Round` (to the scale instead of refusing) |
 | `Whole` | its own `int` or `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
 | `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)`; with ONE member it is a one-value value object: one column, asked on its field, refused under it |
+
+**Every base but `Value` takes a `Message`**: what a value that breaks any rule declared there is told, in the app's
+own words, said once however many rules it breaks (a `Range` says it under each end it is about) — instead of the
+framework's sentence for each, from Rask's strings catalog. A text left blank is still told it is required.
+
+#### Kinds of text: Email, Phone, Url, Password, Multiline
+
+Five bases are a `Text` that also knows what kind of text it holds — its format rule and the input it is typed into.
+Each takes `Text`'s arguments (`MaxLength`, `MinLength`, `Message`, `Trim`, `Upper`, `Required`; `Password` and
+`Multiline` a `Pattern` too), is made, stored and asked exactly as a `Text`, and gives the control bound to it on the
+generated model what the matching DataAnnotations attribute would give a plain `string`:
+
+```csharp
+public sealed partial record ContactEmail(string Value) : Email(Value, MaxLength: 200);
+public sealed partial record ContactPhone(string Value) : Phone(Value);
+public sealed partial record Homepage(string Value) : Url(Value, Required: false);
+public sealed partial record SignInPassword(string Value) : Password(Value, MinLength: 8);
+public sealed partial record ChosenPassword(string Value) : Password(Value, MinLength: 12, New: true);
+public sealed partial record Remark(string Value) : Multiline(Value, MaxLength: 4000);
+
+Ui.Field.Bind(() => m.Email)    // <input type="email" maxlength="200" autocomplete="email">, the email rule on change, on submit, on save
+```
+
+| Base | Its rule | Column | A bound control | Attribute path |
+|---|---|---|---|---|
+| `Email` | `[EmailAddress]`'s own check: one `@`, neither first nor last | 254 unless declared | `type="email"`, `autocomplete="email"` | `[EmailAddress]` |
+| `Phone` | `[Phone]`'s own check | 32 unless declared | `type="tel"`, `inputmode="tel"`, `autocomplete="tel"` | `[Phone]` |
+| `Url` | an absolute `http` or `https` address (`[Url]` also lets `ftp` and anything that only starts like one through) | 2048 unless declared | `type="url"` | `[Url]` |
+| `Password` | its lengths, its pattern and its `Rules()`; not trimmed unless `Trim: true` | — never stored | `type="password"`, `autocomplete="current-password"` (`New: true`: `"new-password"`), its value never written by the server | `[DataType(DataType.Password)]` |
+| `Multiline` | as `Text` | as declared | `Ui.Field.Bind` draws a `Ui.Textarea` | `[DataType(DataType.MultilineText)]`, `[UIHint("MultilineText")]` |
+
+The two paths give the identical `FieldShape` (`Input`, `AutoComplete`, `InputMode`, `Hint`, the lengths), so a
+control cannot tell them apart; the value-object path also checks the rule wherever the value is made — a command,
+a job, an import — not only where a form posts it. The format messages are the strings catalog's
+(`ValidationEmail`, `ValidationPhone`, `ValidationWebAddress`), or the record's own `Message`.
+
+**A password is input only.** Its `ToString()` and its debugger view say `••••`, so a log line or `$"{password}"`
+never shows it; read `.Value` where it is checked or hashed. An aggregate or entity that stores one — directly, in a
+value object or in a list — is [RASK175](diagnostics.md#rask175) (store the hash), and the generated read face leaves
+it out; a query's or a command's result, a subscription's item or an event that carries one is
+[RASK176](diagnostics.md#rask176). A command that takes one in — `record SignIn(ContactEmail Email, SignInPassword
+Password) : ICommand<Token>` — is what it is for.
 
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
 compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a
@@ -2852,6 +2955,23 @@ refused nor announced as required when left empty, and saves `""`; `CreateOption
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
+
+**`Round: true` rounds a number to its `Scale` instead of refusing its extra digits** — half away from zero, as SQL
+Server rounds what it stores — before the bounds and the precision are checked. It is for a number nobody typed: a
+unit price or a share of a total computed in the domain, which used to be rounded silently by the column and would
+otherwise be refused for its fourteenth decimal. `UnitPrice.Create(1.0000000005m)` holds `1.000000001m`. A `Round`
+with no `Scale` throws as the value is made.
+
+**A one-value record of an ordered value orders like it.** Over a number, a whole number, a day, a moment or a
+text (any value that is `IComparable` of itself) the generated half makes the record `IComparable` and gives it `<`,
+`>`, `<=` and `>=` against its own type: `fuelings.OrderBy(f => f.Moment)` sorts a list as the database sorts the
+column, and `f.Moment >= since` reads as it means — and translates on the write model, see
+[value objects of any shape](#value-objects-of-any-shape). A record that writes its own `CompareTo` or operators keeps them.
+
+**An enum is a one-value record over `Value`**: `public sealed partial record FuelKind(Fuel Value) : Value;`, with
+any rule of its own in `Rules()`. It is one column of the enum's own type — EF Core's enum-to-number, or whatever
+`HasConversion` the app gives the enum — the generated model carries `Fuel? Fuel`, and a control bound to it is
+offered the enum's members, labelled by their `[Display(Name)]`, as for a bare enum.
 
 **A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
@@ -3042,21 +3162,30 @@ The unique rule's failure names the field `Email` — the form's own name for it
 object is rebuilt through the constructor that takes its value, or, for the private shape, a parameterless
 constructor and its property; both may be private.
 
-**What it costs: a query on the aggregate cannot reach inside the value.**
+**A query on the aggregate reads the value as its column.** `.Value` is the column itself, typed as the value — on
+SQL Server, SQLite and PostgreSQL alike, with the column's own store type and no `CAST` — so a write-side query
+filters, sums and sorts by it; and a value object of one ordered value (a number, a whole number, a day, a moment,
+a text) is generated `IComparable` with `<`, `>`, `<=` and `>=` against its own type, so the whole value compares and
+sorts too, in the database and in a list:
 
 ```csharp
-// on the read face — where queries belong — the value IS the primitive, and everything translates
+// on the read face the value IS the primitive
 await Customer.Where(c => c.Email.StartsWith("ada@")).OrderBy(c => c.Email);
 
-// on the write model (plain EF Core over the aggregate): comparing the whole value translates…
-await db.Set<Customer>().Where(c => c.Email == new Email("ada@example.com")).ToListAsync(ct);
+// on the write model (plain EF Core over the aggregate) the value inside translates…
+await db.Set<Transaction>().Where(t => t.Quantity.Value > 0).SumAsync(t => t.Quantity.Value, ct);
 
-// …and member access does not: "could not be translated"
-await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(ct);
+// …and so does the whole value: compared, ordered, set by ExecuteUpdate
+await db.Set<Fueling>().Where(f => f.Moment >= since).OrderBy(f => f.Moment).ThenBy(f => f.Id).ToListAsync(ct);
+await db.Set<Fueling>().Where(f => f.Id == id).ExecuteUpdateAsync(s => s.SetProperty(f => f.Moment, moment), ct);
+
+// …and outside the database it orders the way the column does
+fuelings.OrderBy(f => f.Moment);
 ```
 
-Before, when a one-value value object was a complex type, the last line translated and no index could name the
-column. Filter and sort on the read face, or compare whole values.
+Only Rask's own conversion is read through: a column the app maps with a converter of its own stores what that
+converter writes, which need not be the value, and `.Value` there is still "could not be translated". Two value
+objects of different types are never compared — the operators take the one type.
 
 **The same holds inside another value object.** `Currency` in `record Money(decimal Amount, Currency Currency)`
 is a converted scalar column of `Money` — `Price_Currency`, the column it always was — which is what lets EF Core

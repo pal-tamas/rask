@@ -17,6 +17,11 @@ to add.
   their attributes say; a rule the catalog has no sentence for keeps FluentValidation's own translation, and
   `WithMessage(…)` always wins.
 - Validating one root-model field, when its value arrives, runs only that property's rules; submit runs every rule.
+- **Rules inside the type.** `static void Rules(InlineValidator<T> rules)` on an aggregate, an entity, a form model or a
+  value object is registered like a validator class. On a Rask.Data aggregate the rules — written there or in an
+  `AbstractValidator<T>` — work exactly like a DataAnnotations attribute: the generated form model's fields ask them
+  live, every save asks them, and they give the field its hints (`maxlength`, `type="email"`, `min`/`max`, the required
+  badge) and the column its length, `NOT NULL` and `decimal(p, s)`.
 - A validator in a referenced class library is registered explicitly:
   `RaskValidators.Register(typeof(Order), _ => new OrderValidator());`
 
@@ -47,6 +52,16 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
     Validation.Message.Template(errors => Span.Class("error")[errors[0]]).For(() => _model.Quantity),
     Button.Type(ButtonType.Submit)["Order"]
 ]
+```
+
+```csharp
+public sealed partial class Supplier : Aggregate<SupplierId, Model>
+{
+    public string Name { get; private set; } = "";
+
+    static void Rules(InlineValidator<Supplier> rules) =>
+        rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200);
+}
 ```
 
 Depends on FluentValidation 12.x.

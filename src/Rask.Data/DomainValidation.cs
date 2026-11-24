@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Rask.Core.Forms;
 using Rask.Cqrs;
 using Rask.Wire;
 
@@ -39,7 +40,7 @@ internal static class DomainValidation
     /// <exception cref="RaskValidationException">A rule refused what the save would write.</exception>
     internal static async Task CheckAsync(DbContext context, CancellationToken cancellationToken)
     {
-        if (!GeneratedDomainRules.Any && !ParentLocks.Any)
+        if (!GeneratedDomainRules.Any && !ParentLocks.Any && StatedRules.Source is null)
         {
             return;
         }
@@ -86,12 +87,23 @@ internal static class DomainValidation
             }
 
             var rules = GeneratedDomainRules.Of(entry.Entity.GetType());
-            if (entry.State == EntityState.Deleted || rules is null)
+            var stated = StatedRules.States(entry.Entity.GetType());
+            if (entry.State == EntityState.Deleted || (rules is null && !stated))
             {
                 return;
             }
 
             var path = root is null || ReferenceEquals(root.Entity, entry.Entity) ? "" : PathOf(root, entry.Entity);
+            if (stated)
+            {
+                await Stated(entry, path).ConfigureAwait(false);
+            }
+
+            if (rules is null)
+            {
+                return;
+            }
+
             await Properties(entry, rules, path).ConfigureAwait(false);
 
             // A root's own rules are asked once, below, however many of its rows changed; a child's are its own.
@@ -143,7 +155,7 @@ internal static class DomainValidation
                     continue;
                 }
 
-                var writes = type.Select(e => new LockedWrite(e, PlaceOf(e))).ToList();
+                var writes = type.Select(e => new LockTarget(e, PlaceOf(e))).ToList();
                 foreach (var rule in locks)
                 {
                     Failures.AddRange(await rule.Check(context, writes, cancellationToken).ConfigureAwait(false));
@@ -170,6 +182,20 @@ internal static class DomainValidation
             }
 
             return paths.Of(row);
+        }
+
+        // The rules a validation library states for the row (FluentValidation's RuleFor), asked as its attributes are:
+        // every one of a new row, and of a stored one only those of the members this save changes.
+        private async Task Stated(EntityEntry entry, string path)
+        {
+            IReadOnlyCollection<string>? members = entry.State == EntityState.Added
+                ? null
+                : [.. entry.Members.Where(static m => m.IsModified).Select(static m => m.Metadata.Name)];
+
+            foreach (var failure in await StatedRules.Check(entry.Entity, members, services, cancellationToken).ConfigureAwait(false))
+            {
+                Failures.Add(failure with { Fields = failure.Fields.Count > 0 ? [.. failure.Fields.Select(f => path + f)] : Row(path) });
+            }
         }
 
         // Every property of a new row; of a stored one, only what this save changes.

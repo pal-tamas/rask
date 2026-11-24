@@ -24,6 +24,18 @@ public sealed class MakeTests
     }
 
     [Fact]
+    public void An_email_a_phone_number_and_a_web_address_are_made_in_the_format_their_kind_checks()
+    {
+        var mail = Test.Make<MailAddress>();
+        var mobile = Test.Make<Mobile>();
+        var homepage = Test.Make<Homepage>();
+
+        Assert.Equal("sampleabcdef@example.com", mail.Value);
+        Assert.Equal("+36 1 234 567", mobile.Value);
+        Assert.Equal("https://example.com/", homepage.Value);
+    }
+
+    [Fact]
     public void A_pattern_beyond_a_simple_sample_names_the_value_object_and_the_way_out()
     {
         var make = () => Test.Make<Password>();

@@ -66,6 +66,35 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
     }
 
     [Fact]
+    public async Task The_newest_note_is_renamed_through_a_form_over_its_operation_that_says_what_the_domain_refuses_as_it_is_typed()
+    {
+        var context = await playwright.Browser.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenAsync(page);
+        var newest = page.Locator("#notes li .note-title").First;
+        var title = page.Locator("#f-title");
+        var seeded = await newest.InnerTextAsync();
+
+        // Form.For(Note.Rename, id): the field is Rename's parameter, filled from the note it renames.
+        await Expect(title).ToHaveValueAsync(seeded, new() { Timeout = 15_000 });
+
+        // Emptied and left: the operation's dry run says what Rename's Refuse says, before any save is tried.
+        await page.ClickAsync("#f-title");
+        await page.Keyboard.PressAsync("ControlOrMeta+A");
+        await page.Keyboard.PressAsync("Backspace");
+        await page.Keyboard.PressAsync("Tab");
+        await Expect(page.Locator("#f-title-error")).ToContainTextAsync("A note needs a title.", Text);
+
+        // Filled and submitted: saved through Note.Rename(id, version, title), and the list follows.
+        await page.ClickAsync("#f-title");
+        await page.Keyboard.TypeAsync("Renamed through its operation");
+        await page.ClickAsync("#rename-note");
+        await Expect(newest).ToHaveTextAsync("Renamed through its operation", Text);
+
+        await context.CloseAsync();
+    }
+
+    [Fact]
     public async Task A_search_that_matches_nothing_says_so()
     {
         var context = await playwright.Browser.NewContextAsync();

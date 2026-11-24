@@ -48,6 +48,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- The FluentValidation rules an aggregate states (FluentDomainValidationTests) reach the save through it. -->
+    <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <!-- Rask.Data's browser wiring (src/Rask.Data/Browser) compiles only into its browser build, and this project
          builds for the server one, so BrowserDataTests links those files in and supplies what they reference. -->
     <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>

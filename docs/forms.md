@@ -986,3 +986,45 @@ If you build your own control from the core `Input`/`Validation.Message` primiti
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
 the control to the message `id`, and `role="alert"` on the message container. See
 [accessibility.md](accessibility.md#form-validation).
+
+## A form over an operation
+
+An operation of a `partial` aggregate ([an operation, run as one write](data.md#an-operation-run-as-one-write)) is a
+form of its own, its fields its parameters — no model class to write, no rule to repeat:
+
+```csharp
+public sealed partial class Note : Aggregate<Guid, Versioned>
+{
+    public string Title { get; private set; } = "";
+
+    public void Rename(string title)
+    {
+        Refuse.When(string.IsNullOrWhiteSpace(title), () => Title, "A note needs a title.");
+        Title = title.Trim();
+    }
+}
+
+Form.For(Note.Rename, id)[f => [
+    Ui.Field.Bind(() => f.Title).Label("New title"),
+    Ui.Button.Primary.Submit["Rename"],
+]]
+```
+
+- **The fields are the parameters**, each named as the parameter, capitalised — `title` is `f.Title` — and filled from
+  the aggregate's property of that name and type when it has one. A value object of one value (`DriverName(string
+  Value) : Text(…)`) is its value on the form, with its rules told to the control (`maxlength`, `min`, …) and made
+  through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text,
+  a number, a day, a bool, an enum or an id is taken as it is.
+- **The domain's rules are the form's.** As each field is committed the operation is tried
+  (`Note.DryRunRename(…)`, [nothing written](data.md#an-operation-run-as-one-write)) and what it would be refused for —
+  a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
+  entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is
+  refused at the top of the form.
+- **Who may.** A principal the operation's roles do not admit (`Note.MayRename` is false) sees the form with every
+  control disabled, the submit among them.
+- **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.
+- `.Missing(component)` is drawn for an id no row has, `.OnSaved(async () => …)` runs after a save — closing a dialog,
+  say. A form handed another id reads that aggregate afresh.
+- An operation with a parameter no field holds — a list, a value object of several values — gets no `Form.For` yet,
+  and two operations whose entries take the same types get none either
+  ([RASK174](diagnostics.md#rask174)): a method group carries no name a call could tell them apart by.

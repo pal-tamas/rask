@@ -46,6 +46,47 @@ public sealed class CoveringItsKeyContext(DbContextOptions<CoveringItsKeyContext
     }
 }
 
+/// <summary>A leg's odometer: a value object of two members.</summary>
+public sealed record CoveredKm(int Start, int End);
+
+/// <summary>A leg of a route, read by its driver with its kilometres.</summary>
+public sealed class CoveredLeg
+{
+    public Guid Id { get; set; }
+
+    public Guid DriverId { get; set; }
+
+    public CoveredKm Km { get; set; } = new(0, 0);
+}
+
+/// <summary>An index covering a value object of several members, stored in columns of its own.</summary>
+public sealed class CoveringComplexContext(DbContextOptions<CoveringComplexContext> options) : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<CoveredLeg>(b =>
+        {
+            b.ComplexProperty(l => l.Km);
+            b.HasIndex(l => l.DriverId).Covering(l => l.Km);
+        });
+    }
+}
+
+/// <summary>An index covering a value object stored as JSON: one column no index includes by its members.</summary>
+public sealed class CoveringJsonContext(DbContextOptions<CoveringJsonContext> options) : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<CoveredLeg>(b =>
+        {
+            b.ComplexProperty(l => l.Km, km => km.ToJson());
+            b.HasIndex(l => l.DriverId).Covering(l => l.Km);
+        });
+    }
+}
+
 /// <summary><c>Covering(…)</c> on SQLite, which has no included columns: the index is its keys, and nothing else is said.</summary>
 [Collection(DataDbCollection.Name)]
 public sealed class CoveringIndexTests
@@ -103,6 +144,27 @@ public sealed class CoveringIndexTests
         var refused = Assert.Throws<ArgumentException>(() => ((Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder)builder).Covering());
 
         Assert.Equal("propertyNames", refused.ParamName);
+    }
+
+    [Fact]
+    public void A_value_object_of_several_members_is_covered_by_its_columns()
+    {
+        using var context = new CoveringComplexContext(Options<CoveringComplexContext>());
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("ON \"CoveredLeg\" (\"DriverId\");", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_covered_value_object_stored_as_json_fails_the_model_with_its_name()
+    {
+        using var context = new CoveringJsonContext(Options<CoveringJsonContext>());
+
+        var refused = Assert.Throws<InvalidOperationException>(() => context.Model);
+
+        Assert.Contains("covers Km, which is not one of its mapped properties", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("a value object stored as JSON", refused.Message, StringComparison.Ordinal);
     }
 
     private static DbContextOptions<TContext> Options<TContext>()

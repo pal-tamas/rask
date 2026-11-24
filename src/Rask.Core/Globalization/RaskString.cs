@@ -935,4 +935,13 @@ public enum RaskString
     ///     greater than, and <c>{1}</c> the greatest, which it must be less than.
     /// </summary>
     ValidationAboveAndBelow,
+
+    /// <summary>What a table cell bound to a <c>bool</c> that is true says (<c>Ui.TableCell.For</c>).</summary>
+    TableCellYes,
+
+    /// <summary>What a table cell bound to a <c>bool</c> that is false says (<c>Ui.TableCell.For</c>).</summary>
+    TableCellNo,
+
+    /// <summary>What a value object declared from <c>Url</c> says of text that is no absolute http or https address.</summary>
+    ValidationWebAddress,
 }

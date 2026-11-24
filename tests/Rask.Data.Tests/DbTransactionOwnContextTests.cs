@@ -248,10 +248,11 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
     public async Task Migrate_on_a_joined_context_is_refused_as_schema_work()
     {
         // The app's own options, with EF Core 11's MigrationsNotFound (an error by default) let through: this model
-        // has no migrations, and Migrate must reach its first command for Rask to refuse it.
+        // has no migrations, and Migrate must reach its first command for Rask to refuse it. Its new options build one
+        // more EF service provider, which late in the run passes the twenty EF warns about.
         await using var app = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
         var options = new DbContextOptionsBuilder<RaskDbContext>((DbContextOptions<RaskDbContext>)app.GetService<IDbContextOptions>())
-            .ConfigureWarnings(w => w.Ignore(RelationalEventId.MigrationsNotFound))
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.MigrationsNotFound, CoreEventId.ManyServiceProvidersCreatedWarning))
             .Options;
         await using var db = new RaskDbContext(options);
 

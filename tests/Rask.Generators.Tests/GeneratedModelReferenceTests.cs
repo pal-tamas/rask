@@ -70,7 +70,7 @@ public class GeneratedModelReferenceTests
 
         var registry = run.GeneratedSource("__RaskValidatorRegistry");
         Assert.Contains(
-            "(typeof(global::Shop.ProductModel), static __sp => new global::Shop.Validation.ProductValidator()),",
+            "global::Rask.RaskValidators.Entry<global::Shop.ProductModel>(static __sp => new global::Shop.Validation.ProductValidator()),",
             registry,
             StringComparison.Ordinal);
         Assert.DoesNotContain("typeof(ProductModel)", registry, StringComparison.Ordinal);

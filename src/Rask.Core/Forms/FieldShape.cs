@@ -9,7 +9,8 @@ namespace Rask.Core.Forms;
 /// </summary>
 /// <remarks>
 ///     Beyond the rules, the hints the member's attributes give a control — <see cref="Input" />, <see cref="ReadOnly" />,
-///     <see cref="KeepEmpty" />, <see cref="Hint" /> — and the way a value object keeps its text (<see cref="Upper" />).
+///     <see cref="KeepEmpty" />, <see cref="Hint" /> — the way a value object keeps its text (<see cref="Upper" />), and how
+///     a list shows the member (<see cref="Format" />, <see cref="NullText" />, <see cref="Listed" />).
 /// </remarks>
 /// <param name="Kind">What the field holds.</param>
 /// <param name="MaxLength">The most characters a <see cref="FieldKind.Text" /> may hold, or null for no limit.</param>
@@ -46,9 +47,23 @@ public sealed record FieldShape(
     ///     The input a text is typed into, where the member's attributes ask for one: <c>[EmailAddress]</c> an
     ///     <see cref="InputType.Email" />, <c>[Phone]</c> a <see cref="InputType.Tel" />, <c>[Url]</c> a
     ///     <see cref="InputType.Url" />, <c>[DataType(DataType.Password)]</c> a <see cref="InputType.Password" />,
-    ///     <c>[DataType(DataType.Date)]</c> a <see cref="InputType.Date" />. Null for the input the member's type calls for.
+    ///     <c>[DataType(DataType.Date)]</c> a <see cref="InputType.Date" /> — or its value object's kind of text, the same
+    ///     way: <c>Email</c>, <c>Phone</c>, <c>Url</c>, <c>Password</c>. Null for the input the member's type calls for.
     /// </summary>
     public InputType? Input { get; init; }
+
+    /// <summary>
+    ///     What the browser may fill the input with — its <c>autocomplete</c>: <c>"email"</c> for a value object declared
+    ///     from <c>Email</c>, <c>"tel"</c> from <c>Phone</c>, <c>"current-password"</c> or <c>"new-password"</c> from
+    ///     <c>Password</c>. Null for none; an <c>Autocomplete</c> the author sets wins.
+    /// </summary>
+    public string? AutoComplete { get; init; }
+
+    /// <summary>
+    ///     The keyboard a touch screen shows for the input — its <c>inputmode</c>: <see cref="Core.InputMode.Tel" /> for a
+    ///     value object declared from <c>Phone</c>. Null for the keyboard its type calls for; an <c>InputMode</c> the author sets wins.
+    /// </summary>
+    public InputMode? InputMode { get; init; }
 
     /// <summary>Whether the member is <c>[Editable(false)]</c>: shown, never changed by the reader.</summary>
     public bool ReadOnly { get; init; }
@@ -66,9 +81,25 @@ public sealed record FieldShape(
     public bool Upper { get; init; }
 
     /// <summary>
-    ///     The control the member names — its <c>[UIHint]</c>, or <c>"MultilineText"</c> for
+    ///     The control the member names — its <c>[UIHint]</c>, or <c>"MultilineText"</c> for a value object declared from
+    ///     <c>Multiline</c> and for
     ///     <c>[DataType(DataType.MultilineText)]</c> — or null. A bound field draws the kit control of that name where
     ///     one fits what the member holds (<see cref="FieldHints" />), and its usual control otherwise.
     /// </summary>
     public string? Hint { get; init; }
+
+    /// <summary>
+    ///     How the value is written where it is shown — <c>[DisplayFormat(DataFormatString = "{0:N2}")]</c> — in the
+    ///     reader's culture, or null for the way its kind is shown (<c>Ui.TableCell.For</c>).
+    /// </summary>
+    public string? Format { get; init; }
+
+    /// <summary>What is shown for no value — <c>[DisplayFormat(NullDisplayText = "n/a")]</c> — or null for the kit's "–".</summary>
+    public string? NullText { get; init; }
+
+    /// <summary>
+    ///     Whether the member is a column of a list: false for <c>[ScaffoldColumn(false)]</c>, which drops its
+    ///     <c>Ui.TableColumn.For</c> and every <c>Ui.TableCell.For</c> of it.
+    /// </summary>
+    public bool Listed { get; init; } = true;
 }
