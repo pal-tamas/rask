@@ -109,10 +109,46 @@ internal sealed class WireCodecEmitter
                 EmitDictionary(type, write, read);
                 break;
 
+            case WireKind.OneValue:
+                EmitOneValue(type, write, read);
+                break;
+
             case WireKind.Object:
                 EmitObject(type, write, read);
                 break;
         }
+    }
+
+    // The value it holds, bare: "ABC-123", not {"value":"ABC-123"}.
+    private void EmitOneValue(WireType type, StringBuilder write, StringBuilder read)
+    {
+        var inner = Ensure(type.Inner!);
+
+        if (type.IsReferenceType)
+        {
+            write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
+            read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
+        }
+
+        write.AppendLine($"        W{inner}(writer, value.{type.Members[0].ClrName}, files);");
+
+        read.AppendLine($"        var held = R{inner}(ref reader, files, property);");
+        EmitBuild(type, "held", read);
+    }
+
+    // A value object is made through its generated Create, inside a loading scope: what arrives is not checked here,
+    // as a row loaded from the database is not (a rule tightened on one end must not make the other unable to read).
+    // Anything else is made through its constructor.
+    private static void EmitBuild(WireType type, string arguments, StringBuilder read)
+    {
+        if (!type.ValueObject)
+        {
+            read.AppendLine($"        return new {type.Fqn}({arguments});");
+            return;
+        }
+
+        read.AppendLine($"        using var __loading = {Rules}.Loading();");
+        read.AppendLine($"        return {type.Fqn}.Create({arguments});");
     }
 
     // Base64 in the JSON, unless the sender asked for binary: a transport that can carry the bytes beside the
@@ -306,8 +342,13 @@ internal sealed class WireCodecEmitter
                 return match is null ? "default" : $"v_{match.ClrName}";
             });
 
-            read.AppendLine($"        return new {type.Fqn}({string.Join(", ", arguments)});");
+            EmitBuild(type, string.Join(", ", arguments), read);
             return;
+        }
+
+        if (type.ValueObject)
+        {
+            read.AppendLine($"        using var __loading = {Rules}.Loading();");
         }
 
         read.AppendLine($"        return new {type.Fqn}");
@@ -331,6 +372,7 @@ internal sealed class WireCodecEmitter
     private static string Literal(string value) =>
         Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
+    private const string Rules = "global::Rask.Data.GeneratedValueRules";
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";
     private const string TokenType = "global::System.Text.Json.JsonTokenType";

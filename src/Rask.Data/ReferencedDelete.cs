@@ -21,8 +21,14 @@ namespace Rask.Data;
 ///         the command that failed was deleting a row.
 ///     </para>
 ///     <para>
-///         PostgreSQL and SQL Server name the constraint; SQLite names nothing. Where the answer would be a
-///         guess between two sentences, the provider's exception stays as it is.
+///         PostgreSQL and SQL Server name the constraint; SQLite names nothing, so the database is asked which
+///         relationship still holds a row onto the deleted ones (<see cref="ReferenceProbe" />) and the answer is the
+///         one the other two give. Where the answer would still be a guess between two sentences, the provider's
+///         exception stays as it is.
+///     </para>
+///     <para>
+///         A save's delete and an <c>ExecuteDelete</c> are answered alike: the first by the entries it deleted, the
+///         second by the statement that failed.
 ///     </para>
 /// </remarks>
 internal static class ReferencedDelete
@@ -47,7 +53,7 @@ internal static class ReferencedDelete
     ///     refused because of a reference the model has a sentence for; otherwise null, and the failure stays
     ///     as it is.
     /// </summary>
-    internal static RaskValidationException? Translate(Exception? failure)
+    internal static RaskValidationException? Translate(DbContext? context, Exception? failure)
     {
         if (failure is not DbUpdateException { InnerException: DbException provider } update ||
             !IsForeignKeyViolation(provider))
@@ -57,15 +63,57 @@ internal static class ReferencedDelete
 
         // The entries of the command that failed, not of the whole save: a row inserted with a dangling key
         // beside an unrelated delete is not a refused delete.
-        var deleted = update.Entries
-            .Where(static entry => entry.State == EntityState.Deleted)
-            .Select(static entry => entry.Metadata)
-            .Distinct()
-            .ToList();
+        var entries = update.Entries.Where(static entry => entry.State == EntityState.Deleted).ToList();
+        var deleted = entries.Select(static entry => entry.Metadata).Distinct().ToList();
+        Func<List<IForeignKey>, (bool Asked, IForeignKey? Key)>? ask =
+            context is null ? null : keys => Asking(() => ReferenceProbe.Ask(context, keys, entries));
 
-        return deleted.Count > 0 && Refusal(provider, deleted) is { } refusal
+        return deleted.Count > 0 && Refusal(provider, deleted, ask) is { } refusal
             ? new RaskValidationException([refusal], failure)
             : null;
+    }
+
+    /// <summary>
+    ///     The same for an <c>ExecuteDelete</c> the database refused: <paramref name="command" /> is the statement that
+    ///     failed, and says which table it was deleting from.
+    /// </summary>
+    internal static RaskValidationException? Translate(DbContext? context, DbCommand command, Exception? failure)
+    {
+        if (context is null ||
+            failure is not DbException provider ||
+            !IsForeignKeyViolation(provider) ||
+            BulkDelete.Parse(command.CommandText) is not { } delete)
+        {
+            return null;
+        }
+
+        var deleted = delete.TypesIn(context.Model);
+
+        return deleted.Count > 0 &&
+               Refusal(provider, deleted, keys => Asking(() => ReferenceProbe.Ask(context, keys, command, delete))) is { } refusal
+            ? new RaskValidationException([refusal], failure)
+            : null;
+    }
+
+    // A question that fails leaves the refusal as it would have been without it: never a second error over the first.
+    private static (bool Asked, IForeignKey? Key) Asking(Func<(bool Asked, IForeignKey? Key)> ask)
+    {
+        try
+        {
+            return ask();
+        }
+        catch (DbException)
+        {
+            return (false, null);
+        }
+        catch (InvalidOperationException)
+        {
+            return (false, null);
+        }
+        catch (ArgumentException)
+        {
+            return (false, null);
+        }
     }
 
     internal static bool IsForeignKeyViolation(DbException provider) =>
@@ -74,30 +122,46 @@ internal static class ReferencedDelete
         string.Equals(provider.Data[SqlServerErrorNumber]?.ToString(), SqlServerConstraintConflict, StringComparison.Ordinal) ||
         provider.Message.Contains(SqliteMarker, StringComparison.Ordinal);
 
-    private static FieldFailure? Refusal(DbException provider, List<IEntityType> deleted)
+    private static FieldFailure? Refusal(
+        DbException provider, List<IEntityType> deleted, Func<List<IForeignKey>, (bool Asked, IForeignKey? Key)>? ask)
     {
         var referencing = deleted.SelectMany(static type => type.GetReferencingForeignKeys()).Distinct().ToList();
         var reported = provider.Data[PostgresConstraintName] as string;
 
         if (Violated(provider, reported, referencing) is { } violated)
         {
-            // The database said which relationship: its sentence, or the general one — never another's.
-            var principals = deleted.Where(type => violated.PrincipalEntityType.IsAssignableFrom(type)).ToList();
-            var message = SentenceOf(violated) ?? OnlySentenceOf(principals)?.Message;
-
-            return message is null ? null : About(message, violated.GetConstraintName());
+            return Answer(violated, deleted);
         }
 
         // A constraint was named and the model does not know it — a table that is not mapped — so no
-        // relationship's sentence is borrowed for it. Only where nothing is named (SQLite) is the one
-        // relationship that has a sentence taken to be the one that refused.
-        if (!NamesItsConstraint(provider) &&
-            referencing.Where(static key => SentenceOf(key) is not null).ToList() is [var only])
+        // relationship's sentence is borrowed for it. Where nothing is named (SQLite) the database is asked which
+        // relationship still holds a row, so the answer is the one SQL Server and PostgreSQL give; none of them is a
+        // table the model does not map. Only when it cannot be asked is the one relationship that has a sentence
+        // taken to be the one that refused.
+        if (!NamesItsConstraint(provider))
         {
-            return About(SentenceOf(only)!, only.GetConstraintName());
+            var (asked, holding) = ask?.Invoke(ReferenceProbe.Refusing(deleted)) ?? (false, null);
+            if (holding is not null)
+            {
+                return Answer(holding, deleted);
+            }
+
+            if (!asked && referencing.Where(static key => SentenceOf(key) is not null).ToList() is [var only])
+            {
+                return About(SentenceOf(only)!, only.GetConstraintName());
+            }
         }
 
         return OnlySentenceOf(deleted) is var (sentence, type) ? About(sentence, reported ?? type.ShortName()) : null;
+    }
+
+    // The database said — or was asked — which relationship: its sentence, or the general one, never another's.
+    private static FieldFailure? Answer(IForeignKey violated, List<IEntityType> deleted)
+    {
+        var principals = deleted.Where(type => violated.PrincipalEntityType.IsAssignableFrom(type)).ToList();
+        var message = SentenceOf(violated) ?? OnlySentenceOf(principals)?.Message;
+
+        return message is null ? null : About(message, violated.GetConstraintName());
     }
 
     private static bool NamesItsConstraint(DbException provider) =>

@@ -195,3 +195,4 @@ Rask.Testing.Page.ElementActions.Submit(string? form = null) -> System.Threading
 Rask.Testing.Page.Invoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.Shows(System.Func<string!, bool>! condition) -> void
 Rask.Testing.Page.TryInvoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<bool>!
+static Rask.Testing.Test.Make<T>() -> T!

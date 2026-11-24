@@ -44,6 +44,8 @@
          resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time
          (and its InternalsVisibleTo grants the live-render/handler-dispatch access this wraps). -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <!-- Test.Make<T>(): a valid value object from the rules it hands its base (Rask.Data's DeclaredRules). -->
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"

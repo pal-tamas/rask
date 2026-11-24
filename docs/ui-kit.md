@@ -1609,7 +1609,7 @@ owner (2026-11-23), made of Flux's parts: the label, help text and placeholder a
 Prompt)]`, the badge the automatic *Required*, and the control what the member's [field shape](forms-validation.md)
 (else its type) says it holds. Text is a `Ui.Input` (`email`, `tel`, `url`, `password` from the member's attributes;
 `.Multiline()` a `Ui.Textarea`); a number or whole number an input with its `min`, `max` and a step of 10^-scale; a day
-a `Ui.DatePicker` (ending today for `NotAfterToday`); a moment a `Ui.DayAndTime`; a `bool` a `Ui.Checkbox`; an enum a
+a `Ui.DatePicker` (ending today for `NotAfterToday`); a moment a `Ui.DayAndTime` (ending now for a `Moment` value object's `NotAfterNow`); a `bool` a `Ui.Checkbox`; an enum a
 `Ui.Select` over its options in their order, with an empty one for a nullable member; another row's id a `Ui.Select`
 over the `.Choices(…)` you give (the shapes `Ui.Select.Choices` takes — without them it throws, naming the member); a
 range two controls of its ends' kind under one label, `Km.Start` and `Km.End` each with its own message.
