@@ -4,7 +4,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     What the domain analyzers (RASK140, RASK141) treat as domain code: the members of an aggregate, an entity or a
+///     What the domain analyzers (RASK140, RASK141, RASK184) treat as domain code: the members of an aggregate, an entity or a
 ///     value object declared from a Rask.Data base record — and of any type nested in one.
 /// </summary>
 /// <remarks>
@@ -21,6 +21,20 @@ internal static class DomainCode
         for (var container = where as INamedTypeSymbol ?? where?.ContainingType; container is not null; container = container.ContainingType)
         {
             if (AggregateShape.IsEntity(container) || AggregateShape.IsValueRecord(container))
+            {
+                return container;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The nearest aggregate or entity <paramref name="where" /> is written in, or null outside one.</summary>
+    public static INamedTypeSymbol? EntityOf(ISymbol? where)
+    {
+        for (var container = where as INamedTypeSymbol ?? where?.ContainingType; container is not null; container = container.ContainingType)
+        {
+            if (AggregateShape.IsEntity(container))
             {
                 return container;
             }

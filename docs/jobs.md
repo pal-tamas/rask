@@ -109,6 +109,25 @@ await Jobs.Enqueue(new AskStatus(other.Id)).InLane(other.Id); // runs now, besid
 A recurring job has no lane of its own; let it enqueue the laned jobs (`foreach pump -> InLane(pump.Id)`).
 Upgrading adds the `Lane` column: `rask db add AddJobLane && rask db update`.
 
+### One tenant at a time: `.InTenantLane()`
+
+A partner's loads must not run two at once — one may read what the other is writing — but another partner's loads
+should not wait for them. Before, an app kept its own per-partner turn beside the queue. Now it is one step:
+
+```csharp
+await Jobs.Enqueue(new ImportFile(file.Id)).InTenantLane("loads");   // this tenant's loads, one at a time
+await Jobs.Enqueue(new Redistribute(company)).InTenantLane();        // this tenant's one lane
+var loads = await Jobs.Lane(Jobs.TenantLane("loads"));               // what runs and waits in it
+```
+
+- The lane is named after the **tenant in flight** where the job is enqueued — `loads/{tenant}` (`tenant/{tenant}`
+  without a name) — so it is an ordinary lane: one at a time on every host, in the order due, beside every other lane.
+- It is on `Enqueue`, a batch (`Jobs.Enqueue(jobs).InTenantLane("loads")`) and `Jobs.Run`. `Jobs.TenantLane("loads")`
+  names the same lane for `Jobs.Lane(…)` and `Jobs.Lanes(…)`.
+- **With no tenant in flight the step throws**, naming the call — there would be no tenant to take turns for. Name a
+  lane of your own with `.InLane(…)` there.
+- A job runs in one lane: `.InTenantLane(…)` and `.InLane(…)` replace each other, the last one written wins.
+
 ### Unless the same work already waits
 
 A round that asks every pump for its status should not pile a second question behind one that has not been
@@ -137,6 +156,20 @@ var asked = await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id).UnlessWai
   `false` and the rest of the transaction still commits — on SQL Server too, where `XACT_ABORT` would doom the
   whole transaction on a refused insert: there the key is locked for the transaction (`sp_getapplock` on
   `rask-job:{key}`) before the look, so the insert never meets the index.
+
+#### Named by a key: `.UnlessWaiting(key)`
+
+A job that carries who asked, or when, is never byte-for-byte the same as the one already waiting — yet two presses of
+"redistribute" for one company are one piece of work. Name the work yourself:
+
+```csharp
+var queued = await Jobs.Enqueue(new Redistribute(company, Current.UserId)).UnlessWaiting(company.ToString());
+```
+
+- **The same work** is then the same lane, tenant, job kind and **key** — the payload no longer counts. Two kinds of
+  job never share a key, and a keyed job is never the same as an unkeyed copy of itself.
+- Everything else is `.UnlessWaiting()`'s: only an unclaimed copy counts, the unique index decides across hosts, and
+  `Jobs.Fake()` keeps the same promise. A key is at most 1,024 characters; it is hashed, so it costs the row nothing.
 
 Upgrading adds the `WaitingKey` column and its unique index: `rask db add AddJobWaitingKey && rask db update`.
 The column is nullable and every existing row leaves it empty, so adding it rewrites nothing; on SQL Server the
@@ -482,6 +515,23 @@ picks the same job up a second time, however long it runs.
 > job runs, and hands it back when it stops, which is why an interrupted job is immediately eligible again
 > rather than waiting out its lease after a redeploy; a processor that dies mid-job releases it when the lease
 > runs out.
+
+### A job its host died with on its last attempt
+
+The claim counts an attempt before the handler runs, so a job that takes its host down every time still reaches
+`MaxAttempts` instead of looping for ever. But the host that died on the **last** attempt wrote nothing, and nobody
+claims the job again — before, it read as running for ever: in the bell, on the dashboard, and to a `Jobs.Run`
+awaiting it.
+
+Now every processor sweeps, at most once a minute, for exactly those rows — claimed, out of lease, no attempt left,
+never ended — and makes each the dead letter it is: its `Error` says the host stopped while it ran, its claim is let
+go, the bell says *Failed*, an awaiting `Jobs.Run` throws `JobFailedException`, and the dashboard's Retry runs it
+again. The processor logs `Job {Id} ({Type}) is a dead letter: …` and counts it in `rask.jobs.deadlettered`.
+
+- **Nothing else is swept.** A job with an attempt left is simply claimed again when its lease runs out, and a job
+  whose lease is renewed is running, however long.
+- **Two hosts sweeping at once** end each row once: the sweep marks the rows with its own token before it reads them.
+- Plain conditional writes on the existing columns — the same on SQLite, SQL Server and PostgreSQL, and no migration.
 
 ## Notes
 

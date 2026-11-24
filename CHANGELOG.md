@@ -28,6 +28,33 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Allocation.Split` splits a total into shares whose sum is the total exactly.** Before: an app rounded each share
+  on its own and lost or invented a cent (TA's `StockChanges.Shares`, Eszaf's per-category rounding). After:
+  `Allocation.Split(total, receivers.Count, step: 0.01m)` for equal parts, `Allocation.Split(total, weights, step,
+  remainder: Remainder.ToLargest)` for weighted ones — each share a whole number of steps and within one of its exact
+  part, the remainder to the first, the last or the largest-remainder parts (`Rask.Values`, docs/data.md).
+- **Rask.Jobs runs a tenant's work one at a time, names "the same work" by a key, and ends a job its host died with.**
+  `Jobs.Enqueue(job).InTenantLane("loads")` (a batch and `Jobs.Run` too; `Jobs.TenantLane("loads")` for `Jobs.Lane`)
+  is a lane per tenant in flight. `.UnlessWaiting(key)` skips the enqueue while a job of the same kind and key waits,
+  whatever else its payload carries. And a job whose host died on its LAST attempt — before: never claimed again and
+  read as running for ever, in the bell and to an awaiting `Jobs.Run` — is swept once a minute into a dead letter
+  that says why, so the bell says Failed, `Jobs.Run` throws `JobFailedException` and the dashboard can retry it. No
+  migration (docs/jobs.md).
+- **Three aggregate-write analyzers, each with a quick-fix (RASK184–RASK186).** Suggestions by default, warnings under
+  `<RaskStrict>` (errors at `errors`), like RASK140–144. RASK184: `throw new InvalidOperationException(m)` or
+  `ArgumentException(m)` inside an aggregate or an entity — a failed request where a form would show a sentence; the
+  fix turns `if (c) throw …;` into `Refuse.When(c, m);` (`Refuse.Unless` for `if (!c)`, `() => x` as the field for an
+  `ArgumentException(m, nameof(x))`) and any other throw into `throw new RaskValidationException(m)`. RASK185: an
+  aggregate held in a local declared before `Db.Transaction` and used inside its work — a read the transaction does not
+  cover and a retry repeats on the same copy; the fix moves the load to the top of the block. RASK186:
+  `X.Update(id, x => x.M(…), version: v)` where `M` has a generated operation entry — the fix calls `X.M(id, v, …)`,
+  which asks the operation's roles as its form does.
+- **`Db.Lock(names)` takes several named locks at once, in an order no two callers can deadlock on.** Before: a save
+  that touched three chip codes locked them one by one in the order it met them, and two saves sharing codes in
+  opposite orders could each hold one the other waited for. After: `await Db.Lock(codes.Select(c => "chip:" + c)).For(30.Seconds)`
+  takes every name in ordinal order (on PostgreSQL in the order of their `hashtext`, the locks it really takes), a
+  duplicate once and none for an empty list, within the one wait — and all or none: a name not granted lets go of the
+  ones already taken before the `TimeoutException`. On SQLite, SQL Server and PostgreSQL, proven by the providers suite.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):

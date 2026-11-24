@@ -30,6 +30,10 @@ public sealed partial class JobProcessor<TContext>(
     private static TimeSpan PurgeInterval => TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
+    private static TimeSpan SweepInterval => TimeSpan.FromMinutes(1);
+    private DateTime _lastSweep;
+    private readonly JobSweep<TContext> _sweep = new(contextFactory, timeProvider, options);
+
     /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
     private readonly Guid _instanceId = Guid.NewGuid();
 
@@ -369,6 +373,7 @@ public sealed partial class JobProcessor<TContext>(
         {
             await EnqueueDueRecurringAsync(cancellationToken).ConfigureAwait(false);
             await DrainAsync(cancellationToken).ConfigureAwait(false);
+            await SweepAsync(cancellationToken).ConfigureAwait(false);
             await PurgeAsync(cancellationToken).ConfigureAwait(false);
             await SampleQueueDepthAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -1098,6 +1103,32 @@ public sealed partial class JobProcessor<TContext>(
         IsMissingColumn(exception, "." + column)
         || IsMissingColumn(exception, $"'{column}'")
         || IsMissingColumn(exception, $"\"{column}\"");
+
+    // A job whose host died on its last attempt is ended once a minute at most: it can only appear when a lease runs out.
+    private async Task SweepAsync(CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (now - _lastSweep < SweepInterval)
+        {
+            return;
+        }
+
+        _lastSweep = now;
+        foreach (var job in await _sweep.Sweep(cancellationToken).ConfigureAwait(false))
+        {
+            JobAbandoned(logger, job.Id, job.Type, job.Attempts);
+            metrics.DeadLettered(job.Type);
+            if (JobWork.IsNoticed(job))
+            {
+                _feed.Say(JobWork.Of(job, JobWork.StateOf(job, options.MaxAttempts, now), now));
+            }
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Job {Id} ({Type}) is a dead letter: its host stopped while it ran its last attempt ({Attempts}), and its lease ran out.")]
+    private static partial void JobAbandoned(ILogger logger, long id, string type, int attempts);
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
