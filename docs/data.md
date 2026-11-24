@@ -2530,7 +2530,8 @@ await Destination.Named(model.Name).Save();   // nothing else at the call site
 A save that violates the index then fails the way a [validator's rule](validation.md#a-rejected-request) does — a
 `RaskValidationException` whose `Errors` carry the message — instead of as the provider's `DbUpdateException`,
 whose text names tables and holds the conflicting value. Every save through the context does this:
-`Save()`, `Create`, `Update`, and plain `SaveChangesAsync`.
+`Save()`, `Create`, `Update`, and plain `SaveChangesAsync` — and an `ExecuteUpdateAsync` that writes a duplicate,
+whose rows are no form's, so its failure is the root's: over the index's fields.
 
 It carries ONE failure for the index (`Failures`, the shape a form reads): the message, over every property the
 index names in index order — `TenantId` aside, which is never a field — and the index's name as its source.
@@ -2825,6 +2826,34 @@ A `Moment` value object is the same moment on all three. Npgsql writes a `DateTi
 wall-clock time (`Where(f => f.Moment.Value > since)` included), the column holds UTC. A wall time the clock skips
 when summer time begins is stored as the instant just after the jump; one it shows twice in autumn, as its
 standard-time instant. A bare `DateTime` property is left as Npgsql maps it.
+
+### Decimals: what each database keeps
+
+A `decimal` with a declared precision (`HasPrecision(18, 2)`, a value object's `Scale`/`Precision`) is held alike on
+all three — `DecimalParityTests` in `tests/Rask.Providers.E2E.Tests` pins it:
+
+| | SQL Server (`decimal(p, s)`) | SQLite (`UseRaskSqlite`) | PostgreSQL (`numeric(p, s)`) |
+|---|---|---|---|
+| Digits kept | to the scale | to the scale (stored as text) | to the scale |
+| More places than the scale | rounded half away from zero (`1.005` → `1.01`) | rounded the same, as it is written | rounded the same |
+| More whole digits than `p - s` | the save fails (`DbUpdateException`) | the save fails (`DbUpdateException`) | the save fails (`DbUpdateException`) |
+| `Sum`, `Min`/`Max`, `+`, `*`, `<`, order | exact | exact | exact |
+
+SQLite has no decimal type, and EF Core's provider keeps every digit of the text it writes; `UseRaskSqlite` gives such
+a column a converter that rounds the number to its scale and refuses one too large, so a test on SQLite holds the
+number production would. A column with no precision, a store type of its own (`HasColumnType`) or a converter of its
+own is left as EF Core maps it.
+
+### The conformance suite
+
+`tests/Rask.Providers.E2E.Tests` holds one suite per behaviour, written once and run on SQLite, SQL Server and
+PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): text order and case-insensitive matching
+(`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
+(`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
+indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
+(`ParentLockParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
+`ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
+is what lets an app run its own tests on SQLite in memory alone.
 
 ## Value objects
 

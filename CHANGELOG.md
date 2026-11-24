@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **SQLite holds a `decimal` to its declared precision and scale, as SQL Server and PostgreSQL do.** Before: a column
+  declared `HasPrecision(18, 2)` kept every digit on SQLite (`1.005m` came back `1.005m`, a server's `1.01m`) and took
+  a number too large for it, so a test on SQLite passed on a value production never holds. After: `UseRaskSqlite`
+  rounds it half away from zero to the scale as it is written, and a number with more whole digits than `p - s` fails
+  the save with a `DbUpdateException`, as on the servers. A column with no precision, a `HasColumnType` or a converter
+  of its own is left alone.
+- **An `ExecuteDelete` refused by a reference answers with the relationship's sentence on SQL Server too.** Before:
+  SQL Server's statement opens with `SET NOCOUNT OFF;`, the delete was not recognised, and the `SqlException` came
+  through where SQLite and PostgreSQL gave the `RaskValidationException`.
+- **The `providers` release gate runs its SQL Server tests in a process of their own.** Before: with all three servers
+  up, the one test process built more than EF Core's twenty internal service providers and every SQL Server test after
+  that failed with `ManyServiceProvidersCreatedWarning`. After: `scripts/run-providers-local.sh` runs SQLite,
+  PostgreSQL and Redis in one process and SQL Server in a second.
+
+### Added
+- **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
+  provider — as a save's duplicate does. Before: the provider's own exception.
+- **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
+  decimals (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`, now executed on SQL Server and SQLite
+  too), unique-index sentences (`UniqueViolationParityTests`, with a SQLite leg) and a parent read
+  `LockRead.ForUpdate` (`ParentLockParityTests`: the lock rewrite runs on each server, and a close of the parent waits
+  for the save that read it), beside the text, date, duration, neutral-model, `Db.Lock` and referenced-delete suites.
+  `docs/data.md` lists them.
+
 ### Changed
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was

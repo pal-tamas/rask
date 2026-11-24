@@ -31,7 +31,7 @@ public sealed class SubscriberDbContext(DbContextOptions<SubscriberDbContext> op
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.Entity<Subscriber>(b =>
         {
-            b.ToTable("Subscriber", Schema);
+            b.ToTable("Subscriber", Database.IsSqlite() ? null : Schema);
             b.HasIndex(s => s.Email).IsUnique(Subscriber.EmailTaken);
             b.HasIndex(s => new { s.Room, s.Seat }).IsUnique(Subscriber.SeatTaken);
             b.HasIndex(s => s.Nickname).IsUnique();
@@ -39,83 +39,9 @@ public sealed class SubscriberDbContext(DbContextOptions<SubscriberDbContext> op
 }
 
 /// <summary>
-/// A unique index's message on PostgreSQL: the violated index is the constraint SQLSTATE 23505 names.
-/// </summary>
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresViolationMessageTests
-{
-    [Fact]
-    public async Task A_duplicate_in_a_single_column_index_fails_with_the_message_under_that_field()
-    {
-        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
-        await using var app = App();
-        await using var db = await ResetAsync(app);
-        db.Add(new Subscriber { Email = "ada@example.com", Room = "A", Seat = 1, Nickname = "ada" });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        db.Add(new Subscriber { Email = "ada@example.com", Room = "A", Seat = 2, Nickname = "ada2" });
-        var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
-
-        Assert.Equal([Subscriber.EmailTaken], refused.Errors["Email"]);
-        Assert.Single(refused.Errors);
-    }
-
-    [Fact]
-    public async Task A_duplicate_in_a_composite_index_fails_once_with_the_message_over_both_fields()
-    {
-        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
-        await using var app = App();
-        await using var db = await ResetAsync(app);
-        db.Add(new Subscriber { Email = "ada@example.com", Room = "A", Seat = 1, Nickname = "ada" });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        db.Add(new Subscriber { Email = "bob@example.com", Room = "A", Seat = 1, Nickname = "bob" });
-        var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
-
-        Assert.Equal(["Room", "Seat"], Assert.Single(refused.Failures).Fields);
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Room"]);
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Seat"]);
-    }
-
-    [Fact]
-    public async Task An_index_with_no_message_keeps_the_providers_own_error()
-    {
-        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
-        await using var app = App();
-        await using var db = await ResetAsync(app);
-        db.Add(new Subscriber { Email = "ada@example.com", Room = "A", Seat = 1, Nickname = "ada" });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        db.Add(new Subscriber { Email = "bob@example.com", Room = "A", Seat = 2, Nickname = "ada" });
-
-        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
-    }
-
-    private static async Task<SubscriberDbContext> ResetAsync(ServiceProvider app)
-    {
-        var db = await app.GetRequiredService<IDbContextFactory<SubscriberDbContext>>()
-            .CreateDbContextAsync(TestContext.Current.CancellationToken);
-        await Postgres.ResetSchemaAsync(db, SubscriberDbContext.Schema);
-        return db;
-    }
-
-    // Wired the way an application wires it: AddRaskData registers the interceptors and the context adds them.
-    private static ServiceProvider App()
-    {
-        var services = new ServiceCollection();
-        services.AddRaskData();
-        services.AddDbContextFactory<SubscriberDbContext>((sp, o) => o
-            .UseRaskPostgresAt(Postgres.Required)
-            .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        return services.BuildServiceProvider();
-    }
-}
-
-/// <summary>
 /// A unique index's message on SQL Server, on a plain entity in a database of its own: the violated index is
-/// the one error 2601 names.
+/// the one error 2601 names. What every provider answers alike is <see cref="UniqueViolationParityTests" />; these are
+/// SQL Server's own shapes of the same failure.
 /// </summary>
 [Collection(SqlServerCollection.Name)]
 public sealed class SqlServerViolationMessageTests : IAsyncLifetime
@@ -192,23 +118,6 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_duplicate_in_a_composite_index_fails_once_with_the_message_over_both_fields()
-    {
-        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
-        await using var app = App();
-        await using var db = await app.GetRequiredService<IDbContextFactory<SubscriberDbContext>>()
-            .CreateDbContextAsync(TestContext.Current.CancellationToken);
-
-        db.Add(new Subscriber { Email = "bob@example.com", Room = "A", Seat = 1, Nickname = "bob" });
-        var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
-
-        Assert.Equal(["Room", "Seat"], Assert.Single(refused.Failures).Fields);
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Room"]);
-        Assert.Equal([Subscriber.SeatTaken], refused.Errors["Seat"]);
-    }
-
-    [Fact]
     public async Task A_value_that_spells_another_indexs_name_does_not_change_which_message_is_given()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
@@ -225,19 +134,6 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         Assert.Equal([Subscriber.EmailTaken], refused.Errors["Email"]);
-    }
-
-    [Fact]
-    public async Task An_index_with_no_message_keeps_the_providers_own_error()
-    {
-        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
-        await using var app = App();
-        await using var db = await app.GetRequiredService<IDbContextFactory<SubscriberDbContext>>()
-            .CreateDbContextAsync(TestContext.Current.CancellationToken);
-
-        db.Add(new Subscriber { Email = "bob@example.com", Room = "A", Seat = 3, Nickname = "ada" });
-
-        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     // The number SQL Server gave the failure Rask translated: DbUpdateException, then the provider's own.

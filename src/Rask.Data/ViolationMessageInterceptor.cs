@@ -17,7 +17,8 @@ namespace Rask.Data;
 ///         It also tells the context's <see cref="ViolationLogging" /> when a save starts and ends, and — as a
 ///         command interceptor too, the same instance in both roles — which exception a failed command threw: that
 ///         is what keeps EF Core's own errors for exactly the refusal it translated out of the log. A refused
-///         <c>ExecuteDelete</c>, which no save surrounds, is answered there too, with the same sentence a save's delete gets.
+///         <c>ExecuteDelete</c> or <c>ExecuteUpdate</c>, which no save surrounds, is answered there too, with the same
+///         sentence a save's delete or a save's duplicate gets.
 ///     </para>
 ///     <para>
 ///         Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and an interceptor after it
@@ -109,17 +110,20 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
         DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default) =>
         Failed(command, eventData) is { } refused ? Task.FromException(refused) : Task.CompletedTask;
 
-    // A save's failed command is only named here, and translated when the save fails. An ExecuteDelete has no save
-    // around it, so a refused one is answered here, in its place.
+    // A save's failed command is only named here, and translated when the save fails. An ExecuteDelete or an
+    // ExecuteUpdate has no save around it, so a refused one is answered here, in its place.
     private static RaskValidationException? Failed(DbCommand command, CommandErrorEventData eventData)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(eventData);
         ViolationLogging.Of(eventData.Context)?.CommandFailed(eventData.Exception);
 
-        return eventData.CommandSource == CommandSource.ExecuteDelete
-            ? ReferencedDelete.Translate(eventData.Context, command, eventData.Exception)
-            : null;
+        return eventData.CommandSource switch
+        {
+            CommandSource.ExecuteDelete => ReferencedDelete.Translate(eventData.Context, command, eventData.Exception),
+            CommandSource.ExecuteUpdate => UniqueViolation.TranslateCommand(eventData.Context, eventData.Exception),
+            _ => null,
+        };
     }
 
     private static void Starting(DbContextEventData eventData)

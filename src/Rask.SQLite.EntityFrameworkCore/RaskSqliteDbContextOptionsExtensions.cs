@@ -123,8 +123,9 @@ public static class RaskSqliteDbContextOptionsExtensions
         TextCollationOptionsExtension.Add(optionsBuilder);
 
         // A DateTimeOffset compares, orders and indexes by its instant, as SQL Server's datetimeoffset does — through the
-        // RASK_MOMENT collation the connection interceptor below registers.
-        MomentOrderOptionsExtension.Add(optionsBuilder);
+        // RASK_MOMENT collation the connection interceptor below registers — and a decimal is held to its precision and
+        // scale, as a server's decimal(p, s) holds it.
+        SqliteColumnOptionsExtension.Add(optionsBuilder);
 
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.

@@ -7,15 +7,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.SQLite;
 
 /// <summary>
-///     The options extension <c>UseRaskSqlite</c> adds so a <see cref="DateTimeOffset" /> compares by its instant: it
-///     registers <see cref="MomentOrderConventionSetPlugin" /> in EF Core's internal service provider.
+///     The options extension <c>UseRaskSqlite</c> adds so a <see cref="DateTimeOffset" /> compares by its instant and a
+///     <see cref="decimal" /> is kept at its scale: it registers <see cref="SqliteColumnConventionSetPlugin" /> in EF
+///     Core's internal service provider.
 /// </summary>
 /// <remarks>
 ///     A service rather than a call on the model, so a second <c>UseRaskSqlite</c> registers nothing twice; a plain
-///     <c>UseSqlite</c> (a browser app's) has neither the extension nor the collation on its connections, and its
+///     <c>UseSqlite</c> (a browser app's) has neither the extension nor the moment collation on its connections, and its
 ///     columns stay as EF Core makes them.
 /// </remarks>
-internal sealed class MomentOrderOptionsExtension : IDbContextOptionsExtension
+internal sealed class SqliteColumnOptionsExtension : IDbContextOptionsExtension
 {
     private DbContextOptionsExtensionInfo? _info;
 
@@ -24,14 +25,14 @@ internal sealed class MomentOrderOptionsExtension : IDbContextOptionsExtension
     /// <summary>Adds the extension to <paramref name="optionsBuilder" />, once.</summary>
     internal static void Add(DbContextOptionsBuilder optionsBuilder) =>
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
-            optionsBuilder.Options.FindExtension<MomentOrderOptionsExtension>() ?? new MomentOrderOptionsExtension());
+            optionsBuilder.Options.FindExtension<SqliteColumnOptionsExtension>() ?? new SqliteColumnOptionsExtension());
 
     // EF Core's services builder activates the plugin by reflection without a trimming annotation, so its constructor
     // is kept here.
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentOrderConventionSetPlugin))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqliteColumnConventionSetPlugin))]
     public void ApplyServices(IServiceCollection services) =>
         new EntityFrameworkRelationalServicesBuilder(services)
-            .TryAdd<IConventionSetPlugin, MomentOrderConventionSetPlugin>();
+            .TryAdd<IConventionSetPlugin, SqliteColumnConventionSetPlugin>();
 
     public void Validate(IDbContextOptions options)
     {
@@ -41,7 +42,7 @@ internal sealed class MomentOrderOptionsExtension : IDbContextOptionsExtension
     {
         public override bool IsDatabaseProvider => false;
 
-        public override string LogFragment => "using Rask SQLite moment order ";
+        public override string LogFragment => "using Rask SQLite column conventions ";
 
         // Every instance registers the same thing, so they can share an internal service provider.
         public override int GetServiceProviderHashCode() => 0;
@@ -49,6 +50,6 @@ internal sealed class MomentOrderOptionsExtension : IDbContextOptionsExtension
         public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) => other is ExtensionInfo;
 
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo) =>
-            debugInfo["Rask:SqliteMomentOrder"] = "1";
+            debugInfo["Rask:SqliteColumns"] = "1";
     }
 }

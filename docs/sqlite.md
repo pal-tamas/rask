@@ -1024,7 +1024,12 @@ not just asserted in prose.
   invariant one](data-access.md#does-sqlite-support-decimal), changing nothing in the file. Correct is
   not free, though: each comparison is a managed callback, so sorting 100k decimals costs ~156 ms and
   125 MB against ~4.5 ms and 768 B for an indexed `INTEGER` column — [index the collation, or count
-  minor units](data-access.md#does-sqlite-support-decimal). EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
+  minor units](data-access.md#does-sqlite-support-decimal). The text also keeps every digit it was given, where a
+  server's `decimal(p, s)` rounds to its scale and refuses a number too large for it, so `UseRaskSqlite` holds a
+  column with a declared precision (`HasPrecision(18, 2)`, a value object's `Scale`) the same way: `1.005m` is
+  stored `1.01m` (half away from zero, as SQL Server and PostgreSQL round), and a number with more whole digits
+  than `p - s` fails the save with a `DbUpdateException`, as the servers' saves do.
+  EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
   mind text-sort ordering.
 - **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
   constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
