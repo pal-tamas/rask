@@ -106,6 +106,7 @@ public sealed class SnakeContext(DbContextOptions options) : LegacyContext(optio
 }
 
 /// <summary><c>ColumnNames</c> and <c>TableNames</c> name what the model left unnamed, and nothing it named itself.</summary>
+[Collection(DataDbCollection.Name)]
 public sealed class NamingConventionTests : IDisposable
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
