@@ -517,7 +517,9 @@ public sealed record AssignDriver(VehicleId Vehicle, DriverName Driver, KmRange 
   untrusted, so the server reads every value object in a command, query, event or subscription through its rules:
   one they refuse never reaches the handler — the request is answered `400` ("Validation failed") with every
   refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`), which a form shows
-  where it belongs. A handler is never given a value its rules refuse, so it need not ask them again. The
+  where it belongs. A member declared without `?` — a value object, a record, a `string`, a list — that the
+  message leaves out or sends as `null` is refused the same way, with the sentence a form's required field says;
+  a member declared `?` stays null. A handler is never given a value its rules refuse, so it need not ask them again. The
   **browser** reads what the server answers — a result, an event it pushes — inside the loading scope a row read
   from the database is built in: a value stored before a rule was tightened still reaches the page. A typed id is
   built with its constructor.

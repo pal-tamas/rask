@@ -534,3 +534,4 @@ Rask.Wire.WireRefusals.EnterItem(int index) -> void
 Rask.Wire.WireRefusals.EnterItem(string! key) -> void
 Rask.Wire.WireRefusals.Leave() -> void
 Rask.Wire.WireRefusals.Refuse(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures) -> void
+Rask.Wire.WireRefusals.Require(string! member, string! message) -> void
