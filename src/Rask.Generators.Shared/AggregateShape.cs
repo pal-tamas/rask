@@ -247,18 +247,18 @@ internal static class AggregateShape
                                (p.SetMethod is not null || HasBackingField(p)));
 
     /// <summary>
-    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c> or
-    ///     <c>Day</c> of Rask.Data, derived from directly — or null for any other type.
+    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
+    ///     <c>Day</c> or <c>Moment</c> of Rask.Data, derived from directly — or null for any other type.
     /// </summary>
     public static string? ValueBaseOf(INamedTypeSymbol type) =>
-        DeclaredValueBaseOf(type) is ("Text" or "Number" or "Whole" or "Day") and var valueBase ? valueBase : null;
+        DeclaredValueBaseOf(type) is ("Text" or "Number" or "Whole" or "Day" or "Moment") and var valueBase ? valueBase : null;
 
     /// <summary>
     ///     The Rask.Data base record a value object checked as it is made derives from directly — <c>Value</c>,
-    ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c> or <c>Range</c> — or null for any other type.
+    ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
     /// </summary>
     public static string? DeclaredValueBaseOf(INamedTypeSymbol type) =>
-        type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Range", Arity: 0, ContainingType: null } valueBase &&
+        type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
         IsRaskDataType(valueBase)
             ? valueBase.Name
             : null;
