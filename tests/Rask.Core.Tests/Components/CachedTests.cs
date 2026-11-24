@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Authentication;
 using Rask.Core.Caching;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 #pragma warning disable RASK014 // StubComponent has no generated factory
@@ -291,33 +292,28 @@ public sealed partial class CachedTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_component_still_loading_is_not_stored_until_its_data_has_painted()
     {
+        QuiescenceScope.ResetSyncForTests();
         var gate = new TaskCompletionSource();
         var visit = Visitor();
         var page = new StubComponent(() => Cached.Name("slow")[CachedSlowProbe.Gate(gate.Task)]);
+        var waves = new List<(string Html, int Stored)>();
 
-        var placeholder = page.RenderAsLiveRoot(visit);
-        var storedWhileLoading = _store.Count;
-        gate.SetResult();
-        var loaded = await RenderOnceSettled(page, visit, "<p>loaded</p>");
+        // The first GET's wave loop: it waits for the hook's own paint, then draws again — no clock involved.
+        var result = await QuiescentRender.Run(
+            publishOnly =>
+            {
+                var html = page.RenderAsLiveRoot(visit, publishOnly);
+                waves.Add((html, _store.Count));
+                gate.TrySetResult();
+                return html;
+            },
+            WaitFor.HangCeiling, cancellationToken: TestContext.Current.CancellationToken);
         var later = Render(() => Cached.Name("slow")[CachedSlowProbe.Gate(gate.Task)], visit);
 
-        Assert.Equal("<p>loading</p>", placeholder);
-        Assert.Equal(0, storedWhileLoading);
-        Assert.Equal("<p>loaded</p>", loaded);
+        Assert.False(result.TimedOut);
+        Assert.Equal(("<p>loading</p>", 0), waves[0]);
+        Assert.Equal("<p>loaded</p>", result.Html);
         Assert.Equal("<p>loaded</p>", later);
-    }
-
-    // The hook's continuation comes back through its context on the pool; render until it has painted, or give up.
-    private static async Task<string> RenderOnceSettled(StubComponent page, IServiceProvider services, string expected)
-    {
-        var html = page.RenderAsLiveRoot(services);
-        for (var attempt = 0; attempt < 200 && html != expected; attempt++)
-        {
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-            html = page.RenderAsLiveRoot(services);
-        }
-
-        return html;
     }
 
     [Fact]
