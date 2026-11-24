@@ -5,7 +5,7 @@ using System.Reflection;
 namespace Rask.Core.Forms;
 
 // The shape a member's DataAnnotations attributes give it, for a model that registered none (a hand-written one): its
-// lengths, the input it is typed into, whether it is edited at all, whether an emptied text stays "" and the control it
+// lengths, the input it is typed into, the pattern it must match, whether it is edited at all, whether an emptied text stays "" and the control it
 // names, and how a list shows it. A generated model or read face registers the same reading, made at compile time,
 // so its members are not reflected over.
 internal static class AnnotatedShapes
@@ -56,7 +56,8 @@ internal static class AnnotatedShapes
         var nullText = display?.NullDisplayText;
         var listed = !attributes.OfType<ScaffoldColumnAttribute>().Any(static c => !c.Scaffold);
         var hint = HintOf(attributes);
-        if (most is null && least is null && input is null && !readOnly && !keepEmpty && hint is null && format is null && nullText is null && listed)
+        var pattern = attributes.OfType<RegularExpressionAttribute>().FirstOrDefault()?.Pattern;
+        if (most is null && least is null && input is null && pattern is null && !readOnly && !keepEmpty && hint is null && format is null && nullText is null && listed)
         {
             return null;
         }
@@ -64,6 +65,7 @@ internal static class AnnotatedShapes
         return new FieldShape(KindOf(property.PropertyType), MaxLength: most, MinLength: least)
         {
             Input = input,
+            Pattern = pattern,
             ReadOnly = readOnly,
             KeepEmpty = keepEmpty,
             Hint = hint,

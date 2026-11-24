@@ -154,17 +154,20 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidUpper;
     private bool _saidAutocomplete;
     private bool _saidInputMode;
+    private bool _saidPattern;
     private bool _saidMin;
     private bool _saidMax;
     private string? _shapedStep;
 
     // What the bound field's shape tells the input beyond its lengths: a text its autocomplete and its keyboard (a
-    // value object declared from Email, Phone or Password), a number its bounds and its step (from Number's Scale).
+    // value object declared from Email, Phone or Password) and its pattern where the browser reads it as .NET does
+    // (HtmlPattern), a number its bounds and its step (from Number's Scale).
     // Each is the author's when set; the framework's goes again once the shape stops saying it.
     private void SayShaped(FieldShape? shape, string? resolvedType, bool takesText)
     {
         Autocomplete = SaidByShape.Text(takesText ? shape?.AutoComplete : null, Autocomplete, ref _saidAutocomplete);
         InputMode = SaidByShape.Value(takesText ? shape?.InputMode : null, InputMode, ref _saidInputMode);
+        Pattern = SaidByShape.Text(takesText ? HtmlPattern.From(shape?.Pattern) : null, Pattern, ref _saidPattern);
         var numbered = resolvedType is "number" or "range" ? shape : null;
         Min = SaidByShape.Text(ShapedNumber.Min(numbered), Min, ref _saidMin);
         Max = SaidByShape.Text(ShapedNumber.Max(numbered), Max, ref _saidMax);

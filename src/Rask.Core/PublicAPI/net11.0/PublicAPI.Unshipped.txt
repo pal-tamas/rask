@@ -3955,6 +3955,9 @@ Rask.Core.Forms.FieldIdentifier.FieldIdentifier() -> void
 Rask.Core.Forms.FieldIdentifier.FieldIdentifier(object! model, string! fieldName) -> void
 Rask.Core.Forms.FieldIdentifier.FieldName.get -> string!
 Rask.Core.Forms.FieldIdentifier.Model.get -> object!
+Rask.Core.Forms.FieldShape.Pattern.get -> string?
+Rask.Core.Forms.FieldShape.Pattern.init -> void
+Rask.Core.Forms.HtmlPattern
 Rask.Core.Forms.IAsyncFieldValidator
 Rask.Core.Forms.IAsyncFieldValidator.Validate(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.Core.Forms.IAsyncFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -3993,7 +3996,7 @@ Rask.Core.Forms.IRaskFile
 Rask.Core.Forms.RaskValidation
 Rask.Core.Forms.StatedFacets
 Rask.Core.Forms.StatedFacets.<Clone>$() -> Rask.Core.Forms.StatedFacets!
-Rask.Core.Forms.StatedFacets.Deconstruct(out bool Required, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out bool Email, out int? Precision, out int? Scale) -> void
+Rask.Core.Forms.StatedFacets.Deconstruct(out bool Required, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out bool Email, out int? Precision, out int? Scale, out string? Pattern) -> void
 Rask.Core.Forms.StatedFacets.Email.get -> bool
 Rask.Core.Forms.StatedFacets.Email.init -> void
 Rask.Core.Forms.StatedFacets.Equals(Rask.Core.Forms.StatedFacets? other) -> bool
@@ -4006,13 +4009,15 @@ Rask.Core.Forms.StatedFacets.Min.get -> decimal?
 Rask.Core.Forms.StatedFacets.Min.init -> void
 Rask.Core.Forms.StatedFacets.MinLength.get -> int?
 Rask.Core.Forms.StatedFacets.MinLength.init -> void
+Rask.Core.Forms.StatedFacets.Pattern.get -> string?
+Rask.Core.Forms.StatedFacets.Pattern.init -> void
 Rask.Core.Forms.StatedFacets.Precision.get -> int?
 Rask.Core.Forms.StatedFacets.Precision.init -> void
 Rask.Core.Forms.StatedFacets.Required.get -> bool
 Rask.Core.Forms.StatedFacets.Required.init -> void
 Rask.Core.Forms.StatedFacets.Scale.get -> int?
 Rask.Core.Forms.StatedFacets.Scale.init -> void
-Rask.Core.Forms.StatedFacets.StatedFacets(bool Required = false, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, bool Email = false, int? Precision = null, int? Scale = null) -> void
+Rask.Core.Forms.StatedFacets.StatedFacets(bool Required = false, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, bool Email = false, int? Precision = null, int? Scale = null, string? Pattern = null) -> void
 Rask.Core.Forms.StatedFacets.With(Rask.Core.Forms.StatedFacets! other) -> Rask.Core.Forms.StatedFacets!
 Rask.Core.Forms.StatedRules
 Rask.Core.Forms.Validate<T>
@@ -7589,6 +7594,7 @@ static Rask.Core.Forms.ExpressionAccessor.Accessor.operator ==(Rask.Core.Forms.E
 static Rask.Core.Forms.ExpressionAccessor.AsCollection<TCollection, T>(System.Linq.Expressions.Expression<System.Func<TCollection>!>! bind) -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>!
 static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
 static Rask.Core.Forms.ExpressionAccessor.Parse(System.Linq.Expressions.LambdaExpression! expression) -> Rask.Core.Forms.ExpressionAccessor.Accessor!
+static Rask.Core.Forms.HtmlPattern.Found(string! pattern, bool trimmed) -> string?
 static Rask.Core.Forms.ModelGraphWalker.Resolve(object! root, string! path) -> (object! Owner, string! Property)?
 static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections.Generic.IEnumerable<object!>!
 static Rask.Core.Forms.RaskBinding.RegisterParsable<T>() -> void

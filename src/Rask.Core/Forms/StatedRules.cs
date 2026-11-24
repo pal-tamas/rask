@@ -123,7 +123,7 @@ public static class StatedRules
     internal static FieldShape? Shape(Type type, string member, Type memberType, FieldShape? declared)
     {
         var stated = FacetsOf(type, member);
-        if (stated.IsEmpty || stated is { MaxLength: null, MinLength: null, Min: null, Max: null, Email: false, Scale: null })
+        if (stated.IsEmpty || stated is { MaxLength: null, MinLength: null, Min: null, Max: null, Email: false, Scale: null, Pattern: null })
         {
             return declared;
         }
@@ -147,6 +147,7 @@ public static class StatedRules
             Scale = Bounds.Least(declared.Scale, stated.Scale),
             Input = declared.Input ?? (stated.Email ? InputType.Email : null),
             AutoComplete = declared.AutoComplete ?? (stated.Email ? "email" : null),
+            Pattern = declared.Pattern ?? stated.Pattern,
         };
     }
 }

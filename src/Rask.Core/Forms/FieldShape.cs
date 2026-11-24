@@ -8,7 +8,7 @@ namespace Rask.Core.Forms;
 ///     a member of a model that registered nothing is read off its DataAnnotations attributes instead.
 /// </summary>
 /// <remarks>
-///     Beyond the rules, the hints the member's attributes give a control — <see cref="Input" />, <see cref="ReadOnly" />,
+///     Beyond the rules, the hints the member's attributes give a control — <see cref="Input" />, <see cref="Pattern" />, <see cref="ReadOnly" />,
 ///     <see cref="KeepEmpty" />, <see cref="Hint" /> — the way a value object keeps its text (<see cref="Upper" />), and how
 ///     a list shows the member (<see cref="Format" />, <see cref="NullText" />, <see cref="Listed" />).
 /// </remarks>
@@ -64,6 +64,14 @@ public sealed record FieldShape(
     ///     value object declared from <c>Phone</c>. Null for the keyboard its type calls for; an <c>InputMode</c> the author sets wins.
     /// </summary>
     public InputMode? InputMode { get; init; }
+
+    /// <summary>
+    ///     A .NET regular expression the whole text must match — <c>[RegularExpression]</c>'s, a value object's
+    ///     <c>Text(Value, Pattern: …)</c>, FluentValidation's <c>Matches</c> — told to a text input as its <c>pattern</c>
+    ///     where the browser reads it the same way, and to none where it would not. Null for none; a <c>Pattern</c> the
+    ///     author sets wins.
+    /// </summary>
+    public string? Pattern { get; init; }
 
     /// <summary>Whether the member is <c>[Editable(false)]</c>: shown, never changed by the reader.</summary>
     public bool ReadOnly { get; init; }
