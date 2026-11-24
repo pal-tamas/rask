@@ -31,4 +31,6 @@ public sealed record SeatCrew(List<Seat> Seats, Dictionary<string, DriverName> R
 
 public sealed record GetDriver(VehicleId Vehicle) : IQuery<DriverName>;
 
+public sealed record GetCrew(VehicleId Vehicle) : IQuery<SeatCrew>;
+
 public sealed record DriverRenamed(DriverName Name) : IEvent;

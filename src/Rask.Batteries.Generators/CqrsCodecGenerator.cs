@@ -180,7 +180,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             return;
         }
 
-        spc.AddSource("__RaskCqrsCodecs.g.cs", SourceText.From(Build(contracts), Encoding.UTF8));
+        spc.AddSource("__RaskCqrsCodecs.g.cs", SourceText.From(Build(contracts, RequiredSentence(compilation)), Encoding.UTF8));
     }
 
     private static void ApplyAuthorization(
@@ -668,9 +668,24 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static bool IsFileDownload(ITypeSymbol type) =>
         type.Name is "FileDownload" && type.ContainingNamespace?.ToDisplayString() is WireNamespace;
 
-    private static string Build(List<ContractModel> contracts)
+    // The sentence a missing required member is refused with: the one a form's required field says (Rask.Rules, from the
+    // app's catalog), else the value objects' own (Rask.Data, worded by the same catalog once the app wires it), else
+    // the English both of them fall back to.
+    private static string RequiredSentence(Compilation compilation)
     {
-        var emitter = new WireCodecEmitter(checksValues: true);
+        if (compilation.GetTypeByMetadataName("Rask.Rules") is { DeclaredAccessibility: Accessibility.Public })
+        {
+            return "global::Rask.Rules.Required";
+        }
+
+        return compilation.GetTypeByMetadataName("Rask.Data.GeneratedValueRules") is { DeclaredAccessibility: Accessibility.Public }
+            ? "global::Rask.Data.GeneratedValueRules.Required()[0]"
+            : WireCodecEmitter.EnglishRequired;
+    }
+
+    private static string Build(List<ContractModel> contracts, string required)
+    {
+        var emitter = new WireCodecEmitter(checksValues: true, required);
         var registrations = new List<(string Field, string Declaration)>();
 
         foreach (var contract in contracts.OrderBy(c => c.WireName, System.StringComparer.Ordinal))

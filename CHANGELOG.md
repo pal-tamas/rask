@@ -15,6 +15,9 @@ them until tagged releases begin.
   server reads a command, query, event or subscription with every value object made through its rules; one they
   refuse leaves the message unbuilt and the handler uncalled, and the request is answered `400` ("Validation
   failed") with every refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`).
+  A member declared without `?` (a value object, a record, a `string`, a list) that the message leaves out or sends
+  as `null` is refused the same way, with the sentence a form's required field says (`Rules.Required`); a `?` member
+  stays null.
   Only the browser's read of what the server answers — a result, a pushed event (`RemoteContract.LoadMessage`) —
   keeps the loading scope, so a value stored before a rule was tightened still reaches the page. A handler that
   re-checked with `X.Create` may drop it. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
@@ -171,6 +174,9 @@ them until tagged releases begin.
   not `{"value":…}`; a `Range` or a value object of several members as an object of its members. A value object is
   rebuilt through its generated `Create`: checked by the server, loaded as sent by the browser (see Security above).
   The generated API client is unchanged, since its server reads with System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+- **A column pattern that makes a C# keyword names only the column.** `b.Columns(n => n.Door, "{Member}")` over a
+  `Gate(int @in, int @out)` named the read face's members `in` and `out`, which do not compile; the face now keeps
+  its own `Doorin`/`Doorout` beside the `in`/`out` columns, as for any pattern that makes no C# name.
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
