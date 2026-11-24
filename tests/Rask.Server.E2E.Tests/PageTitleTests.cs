@@ -88,14 +88,25 @@ public sealed class PageTitleTests(PlaywrightFixture playwright) : IClassFixture
         Assert.Empty(session.PageErrors);
     }
 
-    // The crumb and the tab title, noted after every mutation once the served document has been parsed —
-    // while it is still arriving the layout is there before its crumb, which is the parser and no frame.
+    // The crumb and the tab title, noted after every mutation of the page once the served document has been
+    // parsed — while it is still arriving the layout is there before its crumb, which is the parser and no frame.
+    // What the runtime keeps beside the page (data-rask-managed) is no frame either: on a loaded runner the press
+    // waits past the progress bar's delay, and the bar going in is a mutation made while the list is still drawn.
     private static Task WatchCrumbsAsync(IPage page) =>
         page.AddInitScriptAsync(
             """
             window.__seen = [];
-            new MutationObserver(() => {
+            const managed = node => {
+                const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+                return !!element && !!element.closest('[data-rask-managed]');
+            };
+            const ofThePage = record => {
+                const nodes = [...record.addedNodes, ...record.removedNodes];
+                return !managed(record.target) && (nodes.length === 0 || !nodes.every(managed));
+            };
+            new MutationObserver(records => {
                 if (document.readyState === 'loading' || !document.getElementById('crumbs')) return;
+                if (!records.some(ofThePage)) return;
                 const crumb = document.getElementById('crumb');
                 window.__seen.push((crumb ? crumb.textContent : '(none)') + ' ~ ' + document.title);
             }).observe(document, { subtree: true, childList: true, characterData: true });

@@ -41,6 +41,13 @@ them until tagged releases begin.
   keyed by the `Id` it inherits. [RASK144](docs/diagnostics.md#rask144): `[Compare("X")]` naming no property of its
   model, which refuses every submit. Under `<RaskStrict>errors</RaskStrict>` they are errors like every other
   warning; none of them fires in a scaffolded app.
+- **`UseRaskSqlServer` writes SQL for the compatibility level the server reports.** Before: EF Core assumed its own
+  default level whatever the server ran, so an app on SQL Server 2025 pinned 170 by hand (`UseCompatibilityLevel`, a
+  helper of its own) and one on Azure SQL Edge got SQL its 150 database may not run. After: the first options build
+  for a connection string reads the database's level (`sys.databases`, or the server version's — 17 → 170, 16 → 160,
+  15 → 150 — before the database exists) on one unpooled connection, and every later build is a lookup; an
+  unreachable server (an offline `dotnet ef`) keeps EF Core's default, warns once and is asked again after 30 s. The
+  new `SqlServerOptions.CompatibilityLevel` (`Rask:SqlServer:CompatibilityLevel`) pins a level and asks nothing.
 - **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
   `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
   own constructor to upper-case it. After: `public sealed partial record Vin(string Value) : Text(Value, MinLength: 17,
@@ -561,6 +568,10 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
+  fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
+  continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —
+  served, but not stored, so the next request drew it again. After: it asks the paint itself whether it is done.
 - **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
   `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
   `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
