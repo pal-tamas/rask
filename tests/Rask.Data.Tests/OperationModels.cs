@@ -28,6 +28,18 @@ public sealed partial class Expedition : Aggregate<Guid, Versioned, Deletable>
         Title = title;
     }
 
+    // Every save takes the expeditions' lock without waiting, so a test that holds it sees whether a run took it.
+    private async IAsyncEnumerable<Problem> Validate()
+    {
+        await using var turn = await Db.Lock(Lock).For(TimeSpan.Zero);
+        if (Sealed && Seats > 50)
+        {
+            yield return Problem.At(Seats, "A sealed expedition takes at most 50.");
+        }
+    }
+
+    internal const string Lock = "expeditions";
+
     public static void Configure(EntityTypeBuilder<Expedition> b)
     {
         b.Operation(e => e.Seal, roles: "Captain,Admiral");

@@ -201,6 +201,24 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void Each_operation_and_factory_gets_a_hidden_dry_run_that_compiles()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            private static Tag Open(int level) => new() { Id = Guid.CreateVersion7(), Level = level };
+            """));
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("DryRunBump(global::System.Guid id, int version, int level, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.Try<global::Shop.Tag>(id!, version, aggregate => { aggregate.Bump(level); return", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.TryBuild<global::Shop.Tag>(() => global::System.Threading.Tasks.Task.FromResult(Open(level)), cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("EditorBrowsableState.Never", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_public_factory_is_RASK173_and_gets_no_entry()
     {
         var run = Run(Tagged("""
