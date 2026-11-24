@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -30,6 +30,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK127** | rewrites `new KmRange(a, b)` into `KmRange.Create(a, b)`, and `km with { End = 5 }` into `KmRange.Create(km.Start, 5)` |
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
+| **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -149,6 +150,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
+| [RASK140](#rask140) | Info | Domain code reads the machine's clock |
+| [RASK141](#rask141) | Info | Domain code looks up a service |
+| [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
+| [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
+| [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3194,3 +3200,112 @@ not a value object held by an aggregate — so a static method a hand-written fo
 (`.Validate(DestinationName.Validate)`) is left alone.
 
 RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
+
+## RASK140
+
+**Domain code reads the machine's clock** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+`DateTime.Now`, `DateTime.Today`, `DateTime.UtcNow`, `DateTimeOffset.Now`, `DateTimeOffset.UtcNow` or `.ToLocalTime()`
+inside an aggregate, an entity or a value object declared from a [base record](data.md#declared-from-a-base-record)
+(and any type nested in one). The machine's clock is not the app's: a test's `Clock.Fake(at: …)` does not freeze it,
+and its zone is the server's — a container's is UTC — not the one the app named with `AddRask(timeZone: …)` or
+`c.TimeZone`. Rask's [`Clock`](data.md#time-in-the-domain) is both.
+
+```csharp
+public sealed class Delivery : Aggregate<Guid>
+{
+    public DateTime Stamped { get; private set; }
+
+    public void Stamp() => Stamped = DateTime.Now;        // ℹ RASK140
+    public void Stamp2() => Stamped = Clock.Wall;         // ✓ the wall clock in the app's zone, frozen by Clock.Fake
+}
+```
+
+**Fix:** read `Clock` (**quick-fix available** — every replacement keeps the expression's type: `DateTime.Now` →
+`Clock.Wall`, `DateTime.Today` → `Clock.Wall.Date` (and `DateOnly.FromDateTime(DateTime.Today)` → `Clock.Today`),
+`DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `DateTimeOffset.Now`/`UtcNow` → `Clock.Now`, `x.ToLocalTime()` →
+`TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` and, on a `DateTimeOffset`, `TimeZoneInfo.ConvertTime(x, Clock.Zone)`;
+`Clock` is written `global::Rask.Clock` where `using Rask;` is missing; a conditional `x?.ToLocalTime()` gets no fix).
+`Clock.Wall` is the wall-clock time with `DateTimeKind.Unspecified`, where `DateTime.Now` said `Local`. Code outside
+the domain — a page, a handler, a job — is not reported. A suggestion by default; a warning under `<RaskStrict>`.
+
+## RASK141
+
+**Domain code looks up a service** · Info (Warning under `<RaskStrict>`)
+
+`Current.Service<T>()` inside an aggregate, an entity or a value object declared from a base record. The domain
+decides from the state it holds and what its caller hands it: a service it reaches for itself is a dependency no
+caller can see, one a test has to stand a whole scope up for, and one that throws outside a scope.
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public void Price(Sku sku) => Total = Current.Service<IPrices>().Of(sku);   // ℹ RASK141
+    public void Price(Sku sku, Money price) => Total = price;                   // ✓ the caller looked it up
+}
+```
+
+**Fix:** hand what the operation needs in as a parameter — the caller (a page, a handler) has the service — or
+raise a domain event and let its handler use the service. No quick-fix: which of the two is the app's call.
+
+## RASK142
+
+**Database work run side by side inside a transaction** · Info (Warning under `<RaskStrict>`)
+
+`Task.WhenAll` inside the work of a [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction)
+over database work: an entity's generated reads and writes (`Order.Find`, `Tank.Count`, `order.Save()` …), a
+Rask.Data call or an EF Core one — in the `WhenAll`'s arguments, a method handed on (`ids.Select(Tank.Find)`), or the
+initializer of a local it names. The transaction's work runs on its one connection, which takes one command at a
+time, so EF Core refuses the second command at run time ("a second operation was started on this context").
+A `WhenAll` over anything else — HTTP calls, say — is not reported, nor one outside a transaction.
+
+```csharp
+await Db.Transaction(async () =>
+{
+    await Task.WhenAll(Tank.Count(), Pistol.Count());      // ℹ RASK142
+    var tanks = await Tank.Count();                         // ✓ one after the other
+    var pistols = await Pistol.Count();
+});
+```
+
+**Fix:** await the reads one after the other. No quick-fix: what the code does with the results decides the shape.
+
+## RASK143
+
+**`[Key]` on an aggregate or an entity** · Info (Warning under `<RaskStrict>`)
+
+`System.ComponentModel.DataAnnotations.KeyAttribute` on a member of a type that derives from `Entity<TId>` (an
+aggregate included). Its key is the `Id` it inherits, and every generated read, write and route finds a row by it;
+EF Core honours the attribute and keys the table on the marked member too.
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    [Key] public OrderNumber Number { get; private set; } = null!;   // ℹ RASK143
+}
+```
+
+**Fix:** remove the attribute. A value that may not repeat is a unique index with a message in the aggregate's own
+`Configure` (`builder.HasIndex(o => o.Number).IsUnique("…")`, see
+[what a unique index's violation says](data.md#what-a-unique-indexs-violation-says)); a child keyed by the pair of
+aggregates it joins is [a key of several columns](data.md#a-key-of-several-columns).
+
+## RASK144
+
+**`[Compare]` names a property the model does not have** · Info (Warning under `<RaskStrict>`)
+
+`[Compare("X")]` on a property, where neither the type it is written on nor its bases has a property named exactly
+`X`. `CompareAttribute` looks the other property up by name when it validates, and a name it does not find refuses
+every value ("Could not find a property named X") — a form nobody can send. It matches properties only, by exact
+case, as the attribute does at run time. Reported on any type.
+
+```csharp
+public sealed class SignUp
+{
+    public string Password { get; set; } = "";
+    [Compare("password")] public string Again { get; set; } = "";          // ℹ RASK144 — the case differs
+    [Compare(nameof(Password))] public string Again2 { get; set; } = "";   // ✓
+}
+```
+
+**Fix:** name the property with `nameof(…)`, which the compiler checks.

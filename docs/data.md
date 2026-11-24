@@ -104,7 +104,7 @@ framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
-| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. |
+| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
 | `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
@@ -1096,7 +1096,8 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   so an aggregate loaded or made before the block is saved by the retry as if the failed attempt had never run.
 - **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
-- **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
+- **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it — [RASK142](diagnostics.md#rask142)
+  says so where it sees one.
 - **What does not join:** the cache does not take part — `Cache.Remember` and `Cache.Forget` act at once and
   are not undone by a rollback. Nor does a context built without Rask's interceptors and never handed to a Rask call.
 
@@ -1430,6 +1431,29 @@ When a page shows the order between loading and changing it, the same rules run 
 - **No `Deletable` means no `Delete`.** `Order.Delete(id)` is then a compile error, and
   the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
   the row, its history and everything that refers to it.
+
+### Time in the domain
+
+An aggregate, an entity and a value object read the time from Rask's `Clock`, never the machine's: `Clock.Now` is
+now in UTC, `Clock.Wall` the wall clock in the app's zone (`AddRask(timeZone: "Europe/Budapest")`, `c.TimeZone` on a
+`RaskApp`), `Clock.Today` its day and `Clock.Zone` the zone itself. A test's `Clock.Fake(at: …)` freezes all of
+them, together with the audit stamps and `3.Days.Ago`; it freezes nothing that reads `DateTime.Now`.
+
+```csharp
+public void Stamp() => ModifiedAt = Clock.Wall;                                   // not DateTime.Now
+public DateTime OnTheWall(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(utc, Clock.Zone);  // not utc.ToLocalTime()
+```
+
+`DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` and `.ToLocalTime()` in domain code are
+[RASK140](diagnostics.md#rask140), whose quick-fix writes the `Clock` read of the same type.
+
+### Services stay outside the domain
+
+The domain decides from the state it holds and what its caller hands it. A service it would need — a price list, an
+exchange rate, the mail sender — is the caller's to use: pass what it answered into the operation
+(`order.Price(sku, prices.Of(sku))`), or raise a [domain event](#keeping-state-inside-the-aggregate) and let its
+handler use the service. `Current.Service<T>()` inside an aggregate, an entity or a value object is
+[RASK141](diagnostics.md#rask141).
 
 ### How a form save writes
 
@@ -2095,6 +2119,33 @@ public sealed class AppModel : IRaskModel
   Server — column default the model did not name itself. `n.Table`, `n.Columns` (as the database names them) and
   `n.Joined` (`Name_TenantId`) describe it; return `null` to keep EF Core's name. A name longer than the database
   allows is cut to its limit: 128 characters on SQL Server, 63 on PostgreSQL.
+- **`ColumnNames`** and **`TableNames`** name every column and table the model did not name itself — what a schema
+  another tool made needs, instead of a `HasColumnName` on every property:
+
+  ```csharp
+  c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class);   // a Prisma schema: countedAt, kmStart; Fueling
+  c.ColumnNames(n => n.SnakeCase).TableNames(t => t.SnakeCase); // a PostgreSQL one: counted_at, km_start; delivery_note
+  ```
+
+  A column's `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and
+  `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`), `n.SnakeCase` (`km_start`) and `n.AsDeclared` (EF Core's
+  `Km_Start`) are its ready names; `n.Table` is the table it is in. A table's are `t.Class` (the class name, whatever
+  its `DbSet` is called), `t.CamelCase`, `t.SnakeCase` and `t.AsDeclared` (EF Core's: the `DbSet`'s name). Return an
+  empty string to keep EF Core's. What they leave alone:
+
+  | | named? |
+  |---|---|
+  | a `HasColumnName`, a [`Columns(n => n.Km, "{Member}Km")` pattern](#declared-from-a-base-record), `ToTable`, `[Column]` or `[Table]` in `Configure` | **no** — it wins |
+  | a value object's columns (`Km_Start` → `kmStart`) | yes, after the whole path |
+  | a JSON column (`ToJson()`, a value-object collection) | the column yes, the properties inside it no |
+  | an owned type in its owner's table | yes, after its navigation (`depotStreet`); its key stays its owner's column |
+  | a hierarchy in one table, its discriminator | the table once, after its root; `discriminator` too |
+  | an owned type's own table, a view's name | no |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — they keep the names their migrations have |
+
+  Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
+  unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work
+  on every provider.
 - **`DeleteBehavior(children:, others:)`** says what a delete does: `children` for an aggregate's
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
@@ -3371,6 +3422,19 @@ loads several included collections as one statement each rather than one join �
 the section, the generated read faces among them; a single query still picks with `AsSplitQuery()`. Each is
 `Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
 `UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
+
+**The compatibility level is the server's.** EF Core writes its SQL for a compatibility level, and its own default
+is a guess at the newest server — wrong for a database still at 150 on SQL Server 2019 or Azure SQL Edge, and behind
+one at 170 on SQL Server 2025. `UseRaskSqlServer` asks the server instead, the first time it sees a connection string:
+the database's own level (`sys.databases` for `DB_NAME()`), or, before the database exists, the level the server's
+version gives a new one (2025 → 170, 2022 → 160, 2019 and Azure SQL Edge → 150). The answer is kept for the process,
+so a context is never a round trip; two contexts starting together send one probe, on an unpooled connection with a
+5-second connect timeout. A server it cannot reach — an offline `dotnet ef`, a host starting before its database —
+leaves EF Core's default, is logged once as a warning, and is asked again 30 seconds later; a context built
+meanwhile keeps the default, so `AddDbContextFactory`'s options, built once, keep it until the app restarts. Pin it
+with `Rask:SqlServer:CompatibilityLevel` (`"CompatibilityLevel": 170`, or `s => s.CompatibilityLevel = 170`), which
+asks nothing — the one choice for Azure SQL Database before its database exists, since it reports no version to map.
+An app needs no `UseCompatibilityLevel` of its own.
 
 Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
 on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on
