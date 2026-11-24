@@ -123,17 +123,12 @@ public sealed class RefusedContext(DbContextOptions<RefusedContext> options, Act
     public static RefusedContext Declaring(Action<ModelBuilder> declare) =>
         new(new DbContextOptionsBuilder<RefusedContext>()
             .UseSqlite("Data Source=:memory:")
-            .ReplaceService<IModelCacheKeyFactory, EachItsOwnModel>()
+            .ReplaceService<IModelCacheKeyFactory, EachContextItsOwnModel>()
             .Options, declare);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         declare(modelBuilder);
-    }
-
-    private sealed class EachItsOwnModel : IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime) => (context, designTime);
     }
 }
