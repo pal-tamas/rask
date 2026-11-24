@@ -95,6 +95,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         var reportedStale = new HashSet<StaleRule>();
         var reach = RuleReachOf(entities);
         var typedIds = TypedIdsOf(entities);
+        var loadable = LoadableIdsOf(entities, typedIds);
 
         foreach (var candidate in entities)
         {
@@ -134,6 +135,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             ReportShapeProblems(context, entity);
             ReportStaleRules(context, entity, reportedStale);
             entity = InThisCompilation(entity, seams, reach, typedIds);
+            entity = entity with { LoadsById = entity.IdTypeName is { } id && loadable.Contains(id.TrimEnd('?')) };
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
@@ -238,7 +240,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<IdListShape> IdLists = default,
         bool KeyedByParts = false,
         ModelOwnRules? OwnRules = null,
-        bool BorrowsStatedRules = false)
+        bool BorrowsStatedRules = false,
+        bool LoadsById = false)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,

@@ -72,6 +72,7 @@ Rask.Data.FullTextSearchBuilderExtensions
 Rask.Data.FullTextTokenizer
 Rask.Data.FullTextTokenizer.English = 1 -> Rask.Data.FullTextTokenizer
 Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
+Rask.Data.GeneratedLocks
 Rask.Data.GeneratedModelRules
 Rask.Data.GeneratedModelWrites
 Rask.Data.GeneratedReadQuery
@@ -303,6 +304,8 @@ static Rask.Data.FullText.Highlight(string? property) -> string?
 static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
 static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
 static Rask.Data.FullTextSearchBuilderExtensions.HasFullTextSearch<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! properties, Rask.Data.FullTextTokenizer tokenizer = Rask.Data.FullTextTokenizer.Unicode) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.GeneratedLocks.Children<TAggregate, TChild>(object! key, string! navigation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedLocks.Row<TAggregate>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedModelRules.OrRequired(System.Collections.Generic.IEnumerable<string!>? said) -> System.Collections.Generic.IEnumerable<string!>!
 static Rask.Data.GeneratedModelRules.OrRequired(System.Collections.Generic.IEnumerable<string!>? said, string! sentence) -> System.Collections.Generic.IEnumerable<string!>!
 static Rask.Data.GeneratedModelRules.Refused(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>! failures) -> Rask.Cqrs.RaskValidationException!
@@ -313,8 +316,11 @@ static Rask.Data.GeneratedModelRules.Told(System.Collections.Generic.IList<Rask.
 static Rask.Data.GeneratedModelWrites.Create<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.Delete<TEntity>(object! key, int? version, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedModelWrites.Delete<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedModelWrites.Load<TEntity>(object! key, int? version = null, bool forUpdate = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.ModelSource<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, string? roles, string? manyAggregates, System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TId>!
+static Rask.Data.GeneratedOperations.Run<TAggregate>(string! operation, string? roles, string? manyAggregates, System.Func<object!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? forUpdate, object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
 static Rask.Data.GeneratedStoreRules.CanAsk(System.IServiceProvider? services) -> bool
 static Rask.Data.GeneratedStoreRules.Check<TEntity, TModel>(System.IServiceProvider? services, TModel! model, string? field, System.Func<TModel!, string!, object?>! valueOf, System.Func<TModel!, object?>! keyOf, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
@@ -329,6 +335,9 @@ static Rask.Data.ModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ModelRegistry.Replace(System.Type! group, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! mapEntities, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! applyConfigurations, System.Action<Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!>! configureConventions) -> void
 static Rask.Data.ModelSet.Create<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).Create(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, string! operation, string? roles = null, string? manyAggregates = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, string? roles = null, string? manyAggregates = null, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Collections.Generic.IEnumerable<object!>!>!>! forUpdate, string? roles = null, string? manyAggregates = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 static Rask.Data.RangeExclusionBuilderExtensions.HasNonOverlappingRange<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! lo, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! hi, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>? partitionBy = null, bool? ignoreSoftDeleted = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.RangeExclusionSpec.TryParse(object? value, out Rask.Data.RangeExclusionSpec! spec) -> bool
 static Rask.Data.RangeExclusionSpec.operator !=(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
@@ -513,7 +522,6 @@ static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, int version, Sy
 Rask.Data.GeneratedOperations
 Rask.Data.OperationBuilderExtensions
 static Rask.Data.GeneratedOperations.Run<TAggregate>(string! operation, string? roles, object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, string? roles = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 Rask.Data.Children<TEntity, TSpec>
 Rask.Data.Children<TEntity, TSpec>.Children() -> void
 Rask.Data.Children<TEntity, TSpec>.Count.get -> int
@@ -527,7 +535,6 @@ Rask.Data.SyncResult<TEntity>.Removed.get -> System.Collections.Generic.IReadOnl
 Rask.Data.SyncResult<TEntity>.Touched.get -> System.Collections.Generic.IReadOnlyList<TEntity>!
 static Rask.Data.GeneratedOperations.Admits(string? roles) -> bool
 static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, string? roles, System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TId>!
-static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, string! operation, string? roles = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 static Rask.Data.GeneratedOperations.Try<TAggregate>(object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.TryBuild<TAggregate>(System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.Given<T>(System.Func<T>! make, System.Collections.Generic.ICollection<Rask.Wire.FieldFailure!>! failures) -> T?

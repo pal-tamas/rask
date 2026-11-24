@@ -356,6 +356,40 @@ public static class GeneratedModelWrites
         return found;
     }
 
+    /// <summary>
+    ///     Loads the aggregate with <paramref name="key" /> whole, and refuses it when it is missing — what a typed id's
+    ///     <c>await id.Load(version, forUpdate: true)</c> does inside a static operation that writes it.
+    /// </summary>
+    /// <param name="key">The primary key of the row to load.</param>
+    /// <param name="version">The <see cref="Columns.Version" /> the caller read, or <see langword="null" /> to ask none.</param>
+    /// <param name="forUpdate">
+    ///     Locks its row first, to the end of the <c>Db.Transaction</c> it is loaded in, so nobody changes it before this
+    ///     transaction has.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
+    /// <returns>The aggregate and its children.</returns>
+    /// <exception cref="KeyNotFoundException">No row has <paramref name="key" />, or it is soft-deleted.</exception>
+    /// <exception cref="RaskValidationException">Somebody saved it since <paramref name="version" />.</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="forUpdate" /> outside a <c>Db.Transaction</c>.</exception>
+    public static async Task<TEntity> Load<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        object key,
+        int? version = null,
+        bool forUpdate = false,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (forUpdate)
+        {
+            await GeneratedLocks.Row<TEntity>(key, cancellationToken).ConfigureAwait(false);
+        }
+
+        return (version is { } read
+                   ? await Find<TEntity>(key, read, cancellationToken).ConfigureAwait(false)
+                   : await Find<TEntity>(key, cancellationToken).ConfigureAwait(false))
+               ?? throw Missing<TEntity>(key);
+    }
+
     // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
     private static void RefuseUndeletable<TEntity>()
     {

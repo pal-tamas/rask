@@ -49,6 +49,46 @@ public static class GeneratedOperations
         int? version,
         Func<TAggregate, Task> apply,
         CancellationToken cancellationToken = default)
+        where TAggregate : class, IAggregate =>
+        Run(operation, roles, manyAggregates: null, forUpdate: null, key, version, apply, cancellationToken);
+
+    /// <summary>
+    ///     Runs one operation of <typeparamref name="TAggregate" /> as one write, as
+    ///     <see cref="Run{TAggregate}(string, string?, object, int?, Func{TAggregate, Task}, CancellationToken)" /> does —
+    ///     with the reason its <c>Configure</c> gives for writing more than one aggregate
+    ///     (<c>b.Operation(x =&gt; x.M, manyAggregates: "…")</c>), and the rows it locks before the load
+    ///     (<c>forUpdate: true</c>, <c>forUpdate: x =&gt; x.Parts</c>).
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the operation belongs to.</typeparam>
+    /// <param name="operation">The method's name, for the refusal a missing role gets.</param>
+    /// <param name="roles">The roles that admit, comma-separated, or <see langword="null" /> for none asked.</param>
+    /// <param name="manyAggregates">
+    ///     Why the operation writes more than one aggregate, for <c>Db.Transaction(…, manyAggregates: …)</c>, or
+    ///     <see langword="null" /> for one that writes its own alone.
+    /// </param>
+    /// <param name="forUpdate">
+    ///     Locks the rows the operation reads before it changes them, given the id (<see cref="GeneratedLocks" />), or
+    ///     <see langword="null" /> for none.
+    /// </param>
+    /// <param name="key">The id of the aggregate.</param>
+    /// <param name="version">The version the caller read, or <see langword="null" /> for an aggregate with none.</param>
+    /// <param name="apply">Calls the method on the loaded aggregate.</param>
+    /// <param name="cancellationToken">Cancels the operation; unset, the work this call belongs to does.</param>
+    /// <returns>A task that completes once the operation has committed.</returns>
+    /// <exception cref="ForbiddenException">The principal holds none of <paramref name="roles" />.</exception>
+    /// <exception cref="KeyNotFoundException">No aggregate has <paramref name="key" />, or it is soft-deleted.</exception>
+    /// <exception cref="RaskValidationException">
+    ///     It was saved by someone else since <paramref name="version" />, or a rule refused the change.
+    /// </exception>
+    public static Task Run<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        string operation,
+        string? roles,
+        string? manyAggregates,
+        Func<object, CancellationToken, Task>? forUpdate,
+        object key,
+        int? version,
+        Func<TAggregate, Task> apply,
+        CancellationToken cancellationToken = default)
         where TAggregate : class, IAggregate
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operation);
@@ -58,16 +98,18 @@ public static class GeneratedOperations
 
         Demand<TAggregate>(operation, roles);
 
-        return Db.Transaction(async () =>
+        return InTransaction(manyAggregates, async () =>
         {
-            var aggregate = (version is { } read
-                                ? await GeneratedModelWrites.Find<TAggregate>(key, read, cancellationToken).ConfigureAwait(false)
-                                : await GeneratedModelWrites.Find<TAggregate>(key, cancellationToken).ConfigureAwait(false))
-                            ?? throw GeneratedModelWrites.Missing<TAggregate>(key);
+            if (forUpdate is not null)
+            {
+                await forUpdate(key, cancellationToken).ConfigureAwait(false);
+            }
 
+            var aggregate = await Found<TAggregate>(key, version, cancellationToken).ConfigureAwait(false);
             await apply(aggregate).ConfigureAwait(false);
             await GeneratedModelWrites.Save(aggregate, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }, cancellationToken: cancellationToken);
+            return true;
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -88,6 +130,30 @@ public static class GeneratedOperations
         string? roles,
         Func<Task<TAggregate>> build,
         CancellationToken cancellationToken = default)
+        where TAggregate : Entity<TId>, IAggregate =>
+        await Build<TAggregate, TId>(operation, roles, manyAggregates: null, build, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    ///     Builds a new <typeparamref name="TAggregate" /> and saves it as one write, as
+    ///     <see cref="Build{TAggregate, TId}(string, string?, Func{Task{TAggregate}}, CancellationToken)" /> does — with
+    ///     the reason its <c>Configure</c> gives for writing more than one aggregate.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the factory builds.</typeparam>
+    /// <typeparam name="TId">Its key type.</typeparam>
+    /// <param name="operation">The factory's name, for the refusal a missing role gets.</param>
+    /// <param name="roles">The roles its <c>Configure</c> names, comma-separated, or <see langword="null" /> for none.</param>
+    /// <param name="manyAggregates">Why the factory writes more than one aggregate, or <see langword="null" />.</param>
+    /// <param name="build">Calls the factory.</param>
+    /// <param name="cancellationToken">Cancels the operation; unset, the work this call belongs to does.</param>
+    /// <returns>The id of the saved aggregate, once committed.</returns>
+    /// <exception cref="ForbiddenException">The principal holds none of <paramref name="roles" />.</exception>
+    /// <exception cref="RaskValidationException">A rule refused what the factory built.</exception>
+    public static async Task<TId> Build<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate, TId>(
+        string operation,
+        string? roles,
+        string? manyAggregates,
+        Func<Task<TAggregate>> build,
+        CancellationToken cancellationToken = default)
         where TAggregate : Entity<TId>, IAggregate
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operation);
@@ -96,13 +162,19 @@ public static class GeneratedOperations
 
         Demand<TAggregate>(operation, roles);
 
-        return await Db.Transaction(async () =>
+        return await InTransaction(manyAggregates, async () =>
         {
             var aggregate = await build().ConfigureAwait(false);
             await GeneratedModelWrites.Save(aggregate, cancellationToken: cancellationToken).ConfigureAwait(false);
             return aggregate.Id;
-        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
+
+    // The operation's one transaction, stating the reason its Configure gave for a second aggregate.
+    private static Task<T> InTransaction<T>(string? manyAggregates, Func<Task<T>> work, CancellationToken cancellationToken) =>
+        manyAggregates is null
+            ? Db.Transaction(work, cancellationToken: cancellationToken)
+            : Db.Transaction(work, manyAggregates, cancellationToken: cancellationToken);
 
     /// <summary>
     ///     Deletes one aggregate as one write — what a generated <c>await Supply.Delete(id, version)</c> does: the roles of
