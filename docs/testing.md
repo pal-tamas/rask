@@ -251,6 +251,199 @@ The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSuppo
 
 ---
 
+## Testing the domain
+
+An aggregate's rules are tested where they live, on a database of the test's own: SQLite in memory, made from the
+app's own context, so a save runs exactly what it runs in production — the value objects' rules, `Validate()`, the
+interceptors, the version check, the domain events. Nothing is mocked: not the context, not a read face, not
+`X.Find`, which would step around the provider's translation and the tenant and soft-delete filters.
+
+```csharp
+[Fact]
+public async Task An_unpaid_order_does_not_ship()
+{
+    await using var database = await TestDatabase.Start<AppDbContext>();
+    var order = (await Order.Find(await Order.Place(Test.Make<OrderReference>())))!;
+
+    Test.Refuses(() => order.Ship(Test.Make<TrackingNumber>())).Whole();
+}
+```
+
+```csharp
+[Fact]
+public async Task A_company_that_still_has_contacts_is_not_removed()
+{
+    using var clock = Clock.Fake(at: monday9am);
+    await using var database = await TestDatabase.Start<CrmContext>();   // SQLite in memory, its own
+    var company = await Company.Register(Test.Make<CompanyName>());
+    await Contact.Add(company, Test.Make<ContactName>());
+
+    (await Test.Refuses(() => Company.Delete(company))).Whole();   // its ValidateDelete() says why
+}
+```
+
+`TestDatabase.Start<CrmContext>()` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
+go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
+(with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start()`.
+
+**In memory is the way to test a model** — and the only database an app's tests need. With nothing to configure, `Start` makes a SQLite database in memory for
+the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFrameworkCore`, which `Rask.Server` brings):
+
+- every context it hands out — `database.Context`, `database.Factory`, `database.Load<T>`, `Company.Where(…)` and the
+  rest of the model surface — opens its own connection to the same named database, so they all see the same rows;
+- tests run **in parallel**: a database started inside the test binds the model surface for that test alone, so two
+  tests side by side never read each other's rows — not through the read face, the aggregate's statics, a handler,
+  nor `database.Factory` handed to a test host. One started in a class or collection fixture's `InitializeAsync`
+  reaches no test's flow by itself (xUnit ran it in its own), so the test hook binds it before each test of the
+  class — a fixture that is a `TestDatabase` or holds one as a public property — and two fixture classes run side by
+  side, each on its own (`using var bound = fixture.Database.Bind();` does it by hand where the hook is off);
+- a save runs the app's whole interceptor chain, **domain-event publication and the outbox included**: a saved
+  aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
+  handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
+  goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
+- the schema is made once per model and copied into each later database through SQLite's backup API — a start over
+  a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
+- a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
+  text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
+  unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));
+- disposing it lets the database go.
+
+`Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
+The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
+app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
+
+### A valid value object: `Test.Make`
+
+A test that needs a value object its rules accept, and does not care which, asks for one instead of writing a
+literal that a tightened rule would one day refuse:
+
+```csharp
+var vin = Test.Make<Vin>();        // Text(Value, MinLength: 17, MaxLength: 17, Upper: true) → "ABCDEFGHIJKLMNOPQ"
+var tax = Test.Make<TaxNumber>();  // Text(Value, Pattern: @"^\d{8}-\d-\d{2}$")            → "11111111-1-11"
+var km  = Test.Make<KmRange>();    // Range(Start, End, Strict: true)                       → 1 to 2
+```
+
+It reads the rules the record hands its base and makes the value through the generated `Create`, so the base's rules
+and the record's own `Rules()` both accept it, and every call makes the same one:
+
+| Base | The sample |
+|---|---|
+| `Text` | letters to its `MinLength` (or a few, within its `MaxLength`); a simple `Pattern` — literals, `.`, `\d`, `\w`, `\s`, character classes, groups (the first alternative), counted repeats — is met |
+| `Number`, `Whole` | its `Min` (at its `Scale`), or 1 within its `Max` |
+| `Day`, `Moment` | its `NotBefore`, or `Clock.Today` (`Clock.Wall`) within its latest |
+| `Range` | from its `Min` (or 1, or today) one step on — a day for dates, an hour for times — within its `Max` |
+| `Value` | a sample of each member: a text, 1, today, an enum's first member, `true`, or another value object made the same way |
+
+A value object it cannot build — a pattern with a lookahead, a member of a type it has no sample for, or a sample
+its own `Rules()` refuse — is an `InvalidOperationException` naming it and saying to make it by hand with
+`X.Create(…)`. A value object has no `with` outside its type ([RASK127](diagnostics.md#rask127)), so there is
+nothing to tweak a made one with: a test that cares about the value writes `Vin.Create("…")`.
+
+### Asserting a refusal: `Test.Refuses`
+
+```csharp
+Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End");
+(await Test.Refuses(() => Dispatcher.Send(new AddSupply(form)))).At("Parts[2].Quantity");
+(await Test.Refuses(() => Dispatcher.Send(new Register("")))).Only("Number");
+Test.Refuses(() => order.Ship("1Z")).Whole();
+```
+
+A refusal is any exception that names its fields — a failed rule, `Refuse.When(…)`, a value object's `Create`, a
+unique index. `.At(field)` asserts a failure under that field among any others, `.Only(field)` that every failure
+is under that field alone, `.Whole()` that one is about the form as a whole; each hands back the same refusal, so
+they chain, and `.Failures` holds them all. An operation that goes through, or throws anything else, fails with a
+`RefusalAssertionException` saying what happened instead. A lambda that returns a `Task` is awaited; any other runs
+as it is.
+
+### Two at once: `Test.Concurrently`
+
+```csharp
+var version = supply.Version;                        // both forms were filled from the same version
+
+(await Test.Concurrently(
+    () => Supply.Change(id, version, details, partsA),
+    () => Supply.Change(id, version, details, partsB))).Whole();   // one kept, the other refused as stale
+```
+
+`Test.Concurrently(first, second)` starts both at the same moment, each on a thread of its own and both in the test's
+flow — so on the database the test started — and checks that **exactly one went through and the other was
+refused**, handing back that refusal to assert on as `Test.Refuses` does. Both going through, both refused, any other
+exception, or the two still running after 30 seconds (two operations waiting on each other) fails the test with a
+`RefusalAssertionException` that says which. It is how a test proves a version check, a unique index, a
+`ForUpdate()` read or a `Db.Lock` keeps two writers apart, on the SQLite in memory the tests run on.
+
+### Asserting what was published: `Events.Fake()`
+
+```csharp
+using var events = Events.Fake();
+
+await Dispatcher.Send(new ChangeDriverChips(driver.Id, chips));
+
+events.Published<DriverChipsChanged>().Once();
+events.Published<DriverChipsChanged>().Where(e => e.DriverId == driver.Id).Once();
+events.Published<DriverRetired>().None();
+var changed = events.Published<DriverChipsChanged>().Only();   // the event itself; .All for every one
+```
+
+It records every event handed to `Dispatcher.Publish` or an injected `IDispatcher` in the test's own flow —
+and so the domain events an aggregate raises, which its save publishes once the change commits (with
+`AddRaskCqrs()` registered, as a `RaskApp` has it). As with `Jobs.Fake()`, **nothing hears a recorded event**:
+no handler, no subscription, no open page. `await events.Run()` publishes every recorded event for real, and
+what its handlers publish in turn. A durable handler the outbox stored in the save's transaction stays the
+outbox's to run (`Outbox.Fake()`). `.Twice()`, `.None()` and `.Exactly(n)` count as every fake does; a failed count names every event that was
+published instead.
+
+### A real database server, when the machine has one
+
+An app's tests run on SQLite in memory: what the app writes is neutral
+([code written for one database](data.md#code-written-for-one-database)), and Rask's conformance suite proves it
+behaves the same on SQL Server and PostgreSQL. A test of the database itself — a migration against the production
+engine, a schema another tool made — is the exception, and not every machine has the server. Name it with an environment variable, and the tests run where it is set and are **skipped**
+(not failed) where it is not:
+
+```csharp
+[Fact]
+public async Task An_invoice_number_is_never_handed_out_twice()
+{
+    await using var database = await TestDatabase.FromEnvironment<ShopContext>("SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs));
+    var first = await Invoice.Issue(Test.Make<InvoiceDetails>());
+    var second = await Invoice.Issue(Test.Make<InvoiceDetails>());
+
+    Assert.NotEqual((await Invoice.Find(first))!.Number, (await Invoice.Find(second))!.Number);
+}
+```
+
+```bash
+SHOP_TEST_DB="Server=localhost;Initial Catalog=Shop;User ID=sa;Password=…;TrustServerCertificate=true" dotnet test
+```
+
+Without `SHOP_TEST_DB` the test reports *skipped — SHOP_TEST_DB is not set, so this test has no database to run on*
+(xUnit v3's dynamic skip). With it, `database` is the same fixture `TestDatabase.Start` hands out — `Context`,
+`Load<T>`, the model surface (`Product.Where(…)`) pointed at it — plus **`database.Factory`**, an
+`IDbContextFactory<ShopContext>` over the same database for the code under test that takes one.
+
+- **A database per test, by default.** The test gets the named database with a unique suffix (`Shop_3f9c…`; on
+  SQLite, `shop-3f9c….db` beside the named file) — created, migrated (the app's migrations when it has any,
+  otherwise its model), and dropped when `database` is disposed.
+- **One standing database, shared.** `o => o.Shared = true` runs on the named database itself: it is migrated if it
+  is behind and never created or dropped, and each test holds a lock file for as long as it runs, so test runs on
+  one machine — in one process or in several — take turns at it. The default lock is one per connection string in
+  the temporary directory; `o.LockFile = "/tmp/shop-test-db.lock"` names it, and since it is the lock `lockf` and
+  `flock` take, another script that runs under `lockf /tmp/shop-test-db.lock …` (a reseed, a restore) and these
+  tests wait for each other. **Never wrap the test run itself in that lock** (`lockf /tmp/shop-test-db.lock dotnet
+  test …`): the test process takes the file on its own, so it would wait for its own parent until the timeout.
+  Drop such a wrapper when the tests move to `Shared = true`.
+
+```csharp
+await using var database = await TestDatabase.FromEnvironment<ShopContext>(
+    "SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs), o => (o.Shared, o.LockFile) = (true, "/tmp/shop-test-db.lock"));
+```
+
+Either way a process holds one at a time — a database started this way points the process-wide model surface, so a
+second `FromEnvironment` waits until the first is disposed. (An in-memory `Start` binds the test's own flow instead,
+which is why those run side by side.) The provider is the callback's: `(o, cs) => o.UseSqlite(cs)` works the same, which is
+how Rask tests it.
+
 ## 1. Driving the app the way a person does
 
 `Page.Render` gives you one component and its handler ids. For a test about a **feature** — fill this in,
@@ -299,54 +492,30 @@ public void A_visitor_is_sent_to_sign_in()
 
 A component library has no app to run; there `Page.Visit(url, services)` routes over the services you pass.
 
+Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
+its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and
+the reason a test written this way fails when the *screen* breaks rather than when the markup is
+rearranged.
+
+- **`page.Type(text).Into(field)`** / **`page.Pick(option).From(field)`** — type into an input, choose an
+  option of a select by its visible text.
+- **`page.Check(label)`** / **`page.Uncheck(label)`** — tick or clear a checkbox.
+- **`await page.Click(text)`** — press the button or link with that text. `await page.Click("Delete").In("Tea")`
+  narrows to one row, section or form when several say the same word.
+- **`page.Shows(text)`** — asserts the text is on screen, **waiting** for work still in flight (up to
+  `page.Patience`, 5 s) rather than failing on a race. `page.Shows("Saved").In("Toasts")` narrows it.
+  **`page.DoesNotShow(text)`** waits for it to go if it is still there.
+- **`page.IsAt(path)`** — asserts where the app navigated to.
+
+The handler-id API in section 0 is still there underneath, and the two mix freely: reach for
+`page.HandlerId`/`page.Invoke` when what you are testing genuinely is the wiring.
+
+
 **Referencing `Rask.Testing` boots nothing a test did not ask for.** On xUnit v3 every test gets its own app, but
 it waits: only a call with nothing else to go on boots it — `Page.Visit`, a battery's static (`Accounts.Create`,
 `Jobs.Enqueue`), a read with no database configured. A lookup that has another answer (`Ambient.Services`, an
-`IsOn` check) never does, and a test that sets up its own database never boots the app at all:
-
-```csharp
-[Fact]
-public async Task A_company_that_still_has_contacts_is_not_removed()
-{
-    using var clock = Clock.Fake(at: monday9am);   // the only Rask.Testing call in this test
-    await using var database = await TestDatabase.Start<CrmContext>();   // SQLite in memory, its own
-    var company = Company.Named("Acme");
-    database.Context.AddRange(company, Contact.At(company));
-    await database.Context.SaveChangesAsync();
-
-    await Assert.ThrowsAsync<RaskValidationException>(() => company.Remove(database.Context));
-}
-```
-
-`TestDatabase.Start<CrmContext>()` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
-go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
-(with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start()`.
-
-**In memory is the way to test a model.** With nothing to configure, `Start` makes a SQLite database in memory for
-the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFrameworkCore`, which `Rask.Server` brings):
-
-- every context it hands out — `database.Context`, `database.Factory`, `database.Load<T>`, `Company.Where(…)` and the
-  rest of the model surface — opens its own connection to the same named database, so they all see the same rows;
-- tests run **in parallel**: a database started inside the test binds the model surface for that test alone, so two
-  tests side by side never read each other's rows — not through the read face, the aggregate's statics, a handler,
-  nor `database.Factory` handed to a test host. One started in a class or collection fixture's `InitializeAsync`
-  reaches no test's flow by itself (xUnit ran it in its own), so the test hook binds it before each test of the
-  class — a fixture that is a `TestDatabase` or holds one as a public property — and two fixture classes run side by
-  side, each on its own (`using var bound = fixture.Database.Bind();` does it by hand where the hook is off);
-- a save runs the app's whole interceptor chain, **domain-event publication and the outbox included**: a saved
-  aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
-  handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
-  goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
-- the schema is made once per model and copied into each later database through SQLite's backup API — a start over
-  a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
-- a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
-  text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
-  unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));
-- disposing it lets the database go.
-
-`Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
-The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
-app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
+`IsOn` check) never does, and a test that sets up its own database never boots the app at all
+([testing the domain](#testing-the-domain)).
 
 **The fake clock is a `TimeProvider`.** Hand it to a type of the app's that takes one, and that type and `Clock.Now`
 tell the same time, which `Advance` moves for both:
@@ -367,101 +536,6 @@ the tenant (its `rask:tenant` claim) all read it, the way they read a request's 
 using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity(
     [new Claim(ClaimTypes.NameIdentifier, ada.ToString()), new Claim(Tenant.ClaimType, acme.ToString())], "Test")));
 ```
-
-### A valid value object: `Test.Make`
-
-A test that needs a value object its rules accept, and does not care which, asks for one instead of writing a
-literal that a tightened rule would one day refuse:
-
-```csharp
-var vin = Test.Make<Vin>();        // Text(Value, MinLength: 17, MaxLength: 17, Upper: true) → "ABCDEFGHIJKLMNOPQ"
-var tax = Test.Make<TaxNumber>();  // Text(Value, Pattern: @"^\d{8}-\d-\d{2}$")            → "11111111-1-11"
-var km  = Test.Make<KmRange>();    // Range(Start, End, Strict: true)                       → 1 to 2
-```
-
-It reads the rules the record hands its base and makes the value through the generated `Create`, so the base's rules
-and the record's own `Rules()` both accept it, and every call makes the same one:
-
-| Base | The sample |
-|---|---|
-| `Text` | letters to its `MinLength` (or a few, within its `MaxLength`); a simple `Pattern` — literals, `.`, `\d`, `\w`, `\s`, character classes, groups (the first alternative), counted repeats — is met |
-| `Number`, `Whole` | its `Min` (at its `Scale`), or 1 within its `Max` |
-| `Day`, `Moment` | its `NotBefore`, or `Clock.Today` (`Clock.Wall`) within its latest |
-| `Range` | from its `Min` (or 1, or today) one step on — a day for dates, an hour for times — within its `Max` |
-| `Value` | a sample of each member: a text, 1, today, an enum's first member, `true`, or another value object made the same way |
-
-A value object it cannot build — a pattern with a lookahead, a member of a type it has no sample for, or a sample
-its own `Rules()` refuse — is an `InvalidOperationException` naming it and saying to make it by hand with
-`X.Create(…)`. A value object has no `with` outside its type ([RASK127](diagnostics.md#rask127)), so there is
-nothing to tweak a made one with: a test that cares about the value writes `Vin.Create("…")`.
-
-### A real database server, when the machine has one
-
-Some tests need the database the app runs on — SQL Server's locking, a stored procedure, a migration — and not
-every machine has one. Name it with an environment variable, and the tests run where it is set and are **skipped**
-(not failed) where it is not:
-
-```csharp
-[Fact]
-public async Task An_invoice_number_is_never_handed_out_twice()
-{
-    await using var database = await TestDatabase.FromEnvironment<ShopContext>("SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs));
-    var invoices = new InvoiceNumbers(database.Factory);   // anything that takes an IDbContextFactory<ShopContext>
-
-    var numbers = await Task.WhenAll(invoices.Next(), invoices.Next());
-
-    Assert.NotEqual(numbers[0], numbers[1]);
-}
-```
-
-```bash
-SHOP_TEST_DB="Server=localhost;Initial Catalog=Shop;User ID=sa;Password=…;TrustServerCertificate=true" dotnet test
-```
-
-Without `SHOP_TEST_DB` the test reports *skipped — SHOP_TEST_DB is not set, so this test has no database to run on*
-(xUnit v3's dynamic skip). With it, `database` is the same fixture `TestDatabase.Start` hands out — `Context`,
-`Load<T>`, the model surface (`Product.Where(…)`) pointed at it — plus **`database.Factory`**, an
-`IDbContextFactory<ShopContext>` over the same database for the code under test that takes one.
-
-- **A database per test, by default.** The test gets the named database with a unique suffix (`Shop_3f9c…`; on
-  SQLite, `shop-3f9c….db` beside the named file) — created, migrated (the app's migrations when it has any,
-  otherwise its model), and dropped when `database` is disposed.
-- **One standing database, shared.** `o => o.Shared = true` runs on the named database itself: it is migrated if it
-  is behind and never created or dropped, and each test holds a lock file for as long as it runs, so test runs on
-  one machine — in one process or in several — take turns at it. The default lock is one per connection string in
-  the temporary directory; `o.LockFile = "/tmp/shop-test-db.lock"` names it, and since it is the lock `lockf` and
-  `flock` take, another script that runs under `lockf /tmp/shop-test-db.lock …` (a reseed, a restore) and these
-  tests wait for each other. **Never wrap the test run itself in that lock** (`lockf /tmp/shop-test-db.lock dotnet
-  test …`): the test process takes the file on its own, so it would wait for its own parent until the timeout.
-  Drop such a wrapper when the tests move to `Shared = true`.
-
-```csharp
-await using var database = await TestDatabase.FromEnvironment<ShopContext>(
-    "SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs), o => (o.Shared, o.LockFile) = (true, "/tmp/shop-test-db.lock"));
-```
-
-Either way a process holds one at a time — a database started this way points the process-wide model surface, so a
-second `FromEnvironment` waits until the first is disposed. (An in-memory `Start` binds the test's own flow instead,
-which is why those run side by side.) The provider is the callback's: `(o, cs) => o.UseSqlite(cs)` works the same, which is
-how Rask tests it.
-
-Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
-its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and
-the reason a test written this way fails when the *screen* breaks rather than when the markup is
-rearranged.
-
-- **`page.Type(text).Into(field)`** / **`page.Pick(option).From(field)`** — type into an input, choose an
-  option of a select by its visible text.
-- **`page.Check(label)`** / **`page.Uncheck(label)`** — tick or clear a checkbox.
-- **`await page.Click(text)`** — press the button or link with that text. `await page.Click("Delete").In("Tea")`
-  narrows to one row, section or form when several say the same word.
-- **`page.Shows(text)`** — asserts the text is on screen, **waiting** for work still in flight (up to
-  `page.Patience`, 5 s) rather than failing on a race. `page.Shows("Saved").In("Toasts")` narrows it.
-  **`page.DoesNotShow(text)`** waits for it to go if it is still there.
-- **`page.IsAt(path)`** — asserts where the app navigated to.
-
-The handler-id API in section 0 is still there underneath, and the two mix freely: reach for
-`page.HandlerId`/`page.Invoke` when what you are testing genuinely is the wiring.
 
 ### A flow across batteries
 
@@ -492,60 +566,6 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
 `Run()` executes each recorded piece of work as the tenant and user who started it, includes work a running
 handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
 where the outbox is on; without it a durable handler already runs in line.
-
-### Asserting what was published: `Events.Fake()`
-
-```csharp
-using var events = Events.Fake();
-
-await Dispatcher.Send(new ChangeDriverChips(driver.Id, chips));
-
-events.Published<DriverChipsChanged>().Once();
-events.Published<DriverChipsChanged>().Where(e => e.DriverId == driver.Id).Once();
-events.Published<DriverRetired>().None();
-var changed = events.Published<DriverChipsChanged>().Only();   // the event itself; .All for every one
-```
-
-It records every event handed to `Dispatcher.Publish` or an injected `IDispatcher` in the test's own flow —
-and so the domain events an aggregate raises, which its save publishes once the change commits (with
-`AddRaskCqrs()` registered, as a `RaskApp` has it). As with `Jobs.Fake()`, **nothing hears a recorded event**:
-no handler, no subscription, no open page. `await events.Run()` publishes every recorded event for real, and
-what its handlers publish in turn. A durable handler the outbox stored in the save's transaction stays the
-outbox's to run (`Outbox.Fake()`). `.Twice()`, `.None()` and `.Exactly(n)` count as every fake does; a failed count names every event that was
-published instead.
-
-### Asserting a refusal: `Test.Refuses`
-
-```csharp
-Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End");
-(await Test.Refuses(() => Dispatcher.Send(new AddSupply(form)))).At("Parts[2].Quantity");
-(await Test.Refuses(() => Dispatcher.Send(new Register("")))).Only("Number");
-Test.Refuses(() => order.Ship("1Z")).Whole();
-```
-
-A refusal is any exception that names its fields — a failed rule, `Refuse.When(…)`, a value object's `Create`, a
-unique index. `.At(field)` asserts a failure under that field among any others, `.Only(field)` that every failure
-is under that field alone, `.Whole()` that one is about the form as a whole; each hands back the same refusal, so
-they chain, and `.Failures` holds them all. An operation that goes through, or throws anything else, fails with a
-`RefusalAssertionException` saying what happened instead. A lambda that returns a `Task` is awaited; any other runs
-as it is.
-
-### Two at once: `Test.Concurrently`
-
-```csharp
-var version = supply.Version;                        // both forms were filled from the same version
-
-(await Test.Concurrently(
-    () => Supply.Change(id, version, details, partsA),
-    () => Supply.Change(id, version, details, partsB))).Whole();   // one kept, the other refused as stale
-```
-
-`Test.Concurrently(first, second)` starts both at the same moment, each on a thread of its own and both in the test's
-flow — so on the database the test started — and checks that **exactly one went through and the other was
-refused**, handing back that refusal to assert on as `Test.Refuses` does. Both going through, both refused, any other
-exception, or the two still running after 30 seconds (two operations waiting on each other) fails the test with a
-`RefusalAssertionException` that says which. It is how a test proves a version check, a unique index, a
-`ForUpdate()` read or a `Db.Lock` keeps two writers apart, on the SQLite in memory the tests run on.
 
 ---
 

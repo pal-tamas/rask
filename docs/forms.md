@@ -1,12 +1,16 @@
 # Forms & validation
 
-Rask binds inputs two-way with a strongly-typed `Bind` expression, validates each field by the rule
-written beside it — `.Validate(…)` — and tracks per-field state (touched / modified / messages /
-in-flight validation) on an `EditContext`. The same component code runs server-rendered or on WASM.
+Rask binds inputs two-way with a strongly-typed `Bind` expression and tracks per-field state (touched / modified /
+messages / in-flight validation) on an `EditContext`. The same component code runs server-rendered or on WASM.
 
-This guide builds up in layers: binding → forms → inline validation, sync and async → nested models →
-radio/checkbox groups. DataAnnotations and FluentValidation are supported too, for a model that already
-carries them.
+**A form that writes is the operation's.** `Form.For(Supply.Change, id)` is a form over an aggregate's own method:
+its fields are the method's parameters, each value object's rule and the method's `Refuse` are shown under their
+field as it is typed, and the submit runs the operation's entry — one aggregate, one transaction
+([a form over an operation](#a-form-over-an-operation), [domain modelling](domain.md)). The rules live in the domain,
+so the form repeats none of them.
+
+This guide builds up in layers: binding → forms → the form over an operation → inline validation for a form that
+writes nothing (a search box, a filter) → nested models → radio/checkbox groups.
 
 For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostics.md](diagnostics.md).
 
@@ -329,7 +333,7 @@ that fits — see [what a number field says when it cannot read what was typed](
 **Controls over a value type bind its nullable too.** `Ui.Checkbox` and `Ui.Switch` are over `bool`,
 `Ui.Slider` over a number and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
 form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
-[generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
+[generated form model](domain.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
 (unchecked, no day picked, a slider at its lowest value), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
 date controls go one further: `Ui.Calendar` binds a `DateOnly`, and behind Flux's mode steps a collection of days
 (`Ui.Calendar.Multiple.Bind(…)`) or a `UiDateRange` (`Ui.Calendar.Range.Bind(…)`); `Ui.DatePicker` a `DateOnly` or,
@@ -746,32 +750,25 @@ Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
 
 ### Binding a data model
 
-A [`Rask.Data`](data.md) entity gets a form shape generated beside it: `ProductModel` beside `Product`, every
-mapped property settable and the entity's DataAnnotations copied onto it. Bind one and the form validates by
-the entity's own rules, with nothing declared here:
+The form that changes an aggregate is the [form over its operation](#a-form-over-an-operation). An aggregate with no
+steps of its own — a category, a setting — may name the `Model` trait instead, and gets a form model generated beside
+it: `CategoryModel` beside `Category`, every mapped property settable, its value objects' rules and unique indexes
+asked by the form with nothing declared here:
 
 ```csharp
-private readonly ProductModel _product = new();
+private readonly CategoryModel _category = new();
 
-Form.Model(_product).OnSubmit(Create)[
-    Input.Bind(() => _product.Name),
-    Input.Bind(() => _product.Price),
-    Button.Type(ButtonType.Submit)["Create"]
+Form.Model(_category).OnSubmit(c => Category.Create(c))[
+    Ui.Field.Bind(() => _category.Name),
+    Ui.Button.Primary.Submit["Create"]
 ]
-
-private async Task Create(ProductModel product)
-{
-    await using var db = await contexts.CreateDbContextAsync(CancellationToken);
-    db.Add(Product.Create(product.Name, product.Price));
-    await db.SaveChangesAsync(CancellationToken);
-}
 ```
 
-The model is what the writes on the type take — `Product.Create(model)`, `Product.Update(id, model)` —
-or what a command carries to a handler. It carries no id, so the row an edit saves is the one the page's own route
-names, and it carries the row's `Version` back, so `Update` refuses a save that lost a race rather than
-overwriting the other one — a `RaskValidationException` about the whole form, shown at its top. See
-[a create and an edit form](data.md#a-create-and-an-edit-form).
+The model is what the generated writes take — `Category.Create(model)`, `Category.Update(id, model)` — and each asks
+the aggregate's rules again on the server before anything is written. It carries no id, so the row an edit saves is
+the one the page's own route names, and it carries the row's `Version` back, so `Update` refuses a save that lost a
+race rather than overwriting the other one — a `RaskValidationException` about the whole form, shown at its top. See
+[a create and an edit form](domain.md#a-create-and-an-edit-form).
 
 ### An edit page that reads its record
 
@@ -989,7 +986,7 @@ the control to the message `id`, and `role="alert"` on the message container. Se
 
 ## A form over an operation
 
-An operation of a `partial` aggregate ([an operation, run as one write](data.md#an-operation-run-as-one-write)) is a
+An operation of a `partial` aggregate ([an operation, run as one write](domain.md#an-operation-run-as-one-write)) is a
 form of its own, its fields its parameters — no model class to write, no rule to repeat:
 
 ```csharp
@@ -1020,7 +1017,7 @@ Form.For(Note.Rename, id)[f => [
   (`int count = 3` shows 3) — or empty, when it declares none or a null one.
 - **The domain's rules are the form's.** As each field is committed — with the next action, or as it is left with
   `.Blur()` ([bind timing](#bind-timing)) — the operation is tried
-  (`Note.DryRunRename(…)`, [nothing written](data.md#an-operation-run-as-one-write)) and what it would be refused for —
+  (`Note.DryRunRename(…)`, [nothing written](domain.md#an-operation-run-as-one-write)) and what it would be refused for —
   a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
   entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is
   refused at the top of the form.
@@ -1037,7 +1034,7 @@ Form.For(Note.Rename, id)[f => [
 - `.Missing(component)` is drawn for an id no row has, `.OnSaved(async () => …)` runs after a save — closing a dialog,
   say. A form handed another id reads that aggregate afresh.
 - **Rows: a list parameter.** An operation that takes a list of rows — the `Children<TEntity, TSpec>.Sync` of
-  [children made from a form's rows](data.md) — is an editable list: `f.Parts`, a row per child the aggregate holds
+  [children made from a form's rows](domain.md#children) — is an editable list: `f.Parts`, a row per child the aggregate holds
   (read off the child by the spec's member names, its `Id` among them, so `Sync` matches it), each row's fields the
   spec's members. Write the rows with the kit's table, a row added with `f.Parts.Add(new())` and taken away with
   `f.Parts.Remove(row)`:
