@@ -6,7 +6,8 @@ using System.Runtime.CompilerServices;
 namespace Rask.Data;
 
 // Reads the field a Refuse names out of its lambda, as a FieldFailure names it: `Km.Start`, `Parts[2].Quantity`.
-// Walked from the last member back to the root, so the segments are gathered in reverse.
+// Walked from the last member back to the root, so the segments are gathered in reverse. The format is RowPath's (a row by
+// its place, `Pistols[1].Number`, invariant); RowPath reads it off tracked rows, this off a lambda, so neither can be the other.
 internal static class RefusedField
 {
     // The compiler's name for a captured `this` inside a closure, and its suffix for a captured primary-constructor parameter.
