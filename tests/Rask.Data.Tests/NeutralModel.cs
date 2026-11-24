@@ -120,14 +120,9 @@ public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : R
 public sealed class RefusedContext(DbContextOptions<RefusedContext> options, Action<ModelBuilder> declare) : RaskDbContext(options)
 {
     /// <summary>On SQLite, with a model cache that never hands one context's model to the next.</summary>
-    /// <remarks>
-    ///     Late in a run the process has built more than twenty EF service providers (each test database is one), and
-    ///     EF's warning about it would be thrown in place of the refusal these tests read.
-    /// </remarks>
     public static RefusedContext Declaring(Action<ModelBuilder> declare) =>
         new(OptionsLayout.LikeAddDbContext<RefusedContext>()
             .UseSqlite("Data Source=:memory:")
-            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.ManyServiceProvidersCreatedWarning))
             .ReplaceService<IModelCacheKeyFactory, EachContextItsOwnModel>()
             .Options, declare);
 

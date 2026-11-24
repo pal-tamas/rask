@@ -29,7 +29,6 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
             .UseSqlite($"Data Source={_dbPath}")
-            .OneOfManyShapes()
             .ReplaceService<ISqlGenerationHelper, BracketSqlGenerationHelper>()
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
