@@ -44,7 +44,8 @@ them until tagged releases begin.
 - **`Events.Fake()` records what a test published.** `using var events = Events.Fake();` (`Rask.Cqrs`) records every
   event published in the test's flow — `Dispatcher.Publish`, an injected `IDispatcher`, and the domain events a save
   publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
-  `events.Published<DriverChipsChanged>().Once()`, `.Never()`, `.Times(n)`, `.Where(e => …)`, `.Only()`, `.All`
+  `events.Published<DriverChipsChanged>().Once()`, `.Twice()`, `.None()`, `.Exactly(n)` (the words of every other fake),
+  `.Where(e => …)`, `.Only()`, `.All`
   ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
 - **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
   `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —

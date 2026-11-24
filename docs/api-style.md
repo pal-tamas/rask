@@ -216,7 +216,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |
 | Is the battery running | every static | `IsOn` |
 | Battery settings | `JobsOptions`, `LogsOptions`, `PushOptions`, `OpsOptions`… | `Retention`, `SweepInterval`, `PollInterval`, `ShutdownGracePeriod`, `DefaultLifetime` |
-| Test fakes | `Jobs.Fake()`, `Mail.Fake()`, `Outbox.Fake()`, `Events.Fake()`… | `Run()`, `Enqueued<T>()`, `Sent()`, `Stored<T>()`, `Published<T>()`; `.Once()`, `.Never()` |
+| Test fakes | `Jobs.Fake()`, `Mail.Fake()`, `Outbox.Fake()`, `Events.Fake()`… | `Run()`, `Enqueued<T>()`, `Sent()`, `Stored<T>()`, `Published<T>()`; `.Once()`, `.Twice()`, `.None()`, `.Exactly(n)` |
 
 The browser subscribes through MDN's own `PushManager` from `Rask.Web`; `Push.Subscribe` keeps what its
 `ToJSON()` answers.
