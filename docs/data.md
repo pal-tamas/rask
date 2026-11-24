@@ -2896,13 +2896,19 @@ gets it too):
 | Member | Does |
 |---|---|
 | `VehicleId.New()` | a new version-7 `Guid` — an id over a `Guid` only; the others come from the store or the caller |
-| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too |
+| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
 | `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
 | JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
 | routing | `[RouteParam] public VehicleId Id { get; set; }` binds `/vehicles/42`, and `Routes.VehiclePage(id)` writes `42` back |
 
 A member you write yourself — your own `ToString`, `Parse` or `[JsonConverter]` — is kept, and only the rest is
 generated.
+
+The JSON converter is a `[JsonConverter]` attribute, which `JsonSerializer` finds by reflection. A
+`JsonSerializerContext` of your own (System.Text.Json's source generation) cannot see what another generator added, so
+register it there: `[JsonSourceGenerationOptions(Converters = [typeof(VehicleId.__JsonConverter)])]` — or, simpler, keep
+the reflection serializer for types that hold typed ids. Rask's own wire (commands, events, jobs) carries a typed id as
+its bare value without either.
 
 **In the model.** Use one as the aggregate's key and it is converted to its underlying value automatically. The
 converter is registered once for the type, in `ConfigureConventions`, so **every** property of that type is
@@ -2916,14 +2922,17 @@ Who produces the key follows the value it holds:
   inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
   `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
 - **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
-  `Create(model)` does the same.
+  `Create(model)` calls `VehicleId.New()` too.
 - **Over a `string`** the caller names it: `Create(id, model)`.
 
 **A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
 existing schema's `nvarchar` key (`HasColumnType("nvarchar(1000)")`) — the id is written as `ToString()` prints it,
 `3e18ad13-d95e-4808-97bd-918b457c006b`, rather than the provider's own spelling (SQLite's is upper case). A row an
-older tool wrote in upper case still loads; a `Where` matches the stored text exactly, so such a column is
-lower-cased once. A column that stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
+older tool wrote in upper case still loads. Whether a `Where` still finds it is the column's comparison: under
+[`OrderTextBy`](sqlite.md#text-that-compares-as-sql-server-does) with a case-insensitive collation (`Hungarian_100_CI_AS` — on SQLite through `UseRaskSqlite`,
+every text column is `RASK_TEXT`) and on SQL Server's usual `_CI_` collations it does; a column that compares as
+written (SQLite's default `BINARY`, PostgreSQL's `text`) does not, so lower-case such a column once. A column that
+stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
 
 ## Using EF Core the usual way
 

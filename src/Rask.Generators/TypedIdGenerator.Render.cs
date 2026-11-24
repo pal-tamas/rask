@@ -7,6 +7,8 @@ public sealed partial class TypedIdGenerator
 {
     private const string Culture = "global::System.Globalization.CultureInfo.InvariantCulture";
     private const string Integer = "global::System.Globalization.NumberStyles.Integer";
+    // An empty string names nothing; whitespace is left to the id's own rules, as it may be a real key.
+    private const string EmptyId = "\"An empty string spells no id.\"";
     private const string NotNullWhenTrue = "[global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] ";
 
     private static string Render(TypedId id)
@@ -115,7 +117,7 @@ public sealed partial class TypedIdGenerator
         TypedIdValue.Int32 => "int.Parse(s, " + Integer + ", " + Culture + ")",
         TypedIdValue.Int64 => "long.Parse(s, " + Integer + ", " + Culture + ")",
         TypedIdValue.Guid => "global::System.Guid.Parse(s)",
-        _ => "s ?? throw new global::System.ArgumentNullException(nameof(s))",
+        _ => "s switch { null => throw new global::System.ArgumentNullException(nameof(s)), \"\" => throw new global::System.FormatException(" + EmptyId + "), _ => s }",
     };
 
     private static string SpanParseText(TypedIdValue value) => value switch
@@ -123,7 +125,7 @@ public sealed partial class TypedIdGenerator
         TypedIdValue.Int32 => "int.Parse(s, " + Integer + ", " + Culture + ")",
         TypedIdValue.Int64 => "long.Parse(s, " + Integer + ", " + Culture + ")",
         TypedIdValue.Guid => "global::System.Guid.Parse(s)",
-        _ => "s.ToString()",
+        _ => "s.IsEmpty ? throw new global::System.FormatException(" + EmptyId + ") : s.ToString()",
     };
 
     private static void AppendTryParseBody(StringBuilder sb, TypedIdValue value, string s, bool span = false)
@@ -146,13 +148,13 @@ public sealed partial class TypedIdGenerator
             default:
                 if (span)
                 {
-                    sb.Append("        result = new(").Append(s).AppendLine(".ToString());");
-                    sb.AppendLine("        return true;");
+                    sb.Append("        result = ").Append(s).Append(".IsEmpty ? default : new(").Append(s).AppendLine(".ToString());");
+                    sb.Append("        return !").Append(s).AppendLine(".IsEmpty;");
                     break;
                 }
 
-                sb.Append("        result = ").Append(s).Append(" is null ? default : new(").Append(s).AppendLine(");");
-                sb.Append("        return ").Append(s).AppendLine(" is not null;");
+                sb.Append("        result = ").Append(s).Append(" is { Length: > 0 } ? new(").Append(s).AppendLine(") : default;");
+                sb.Append("        return ").Append(s).AppendLine(" is { Length: > 0 };");
                 break;
         }
     }
