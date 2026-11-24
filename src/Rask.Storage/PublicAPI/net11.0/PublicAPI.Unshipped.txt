@@ -268,4 +268,6 @@ static Rask.Storage.Attachment.Of(Rask.Storage.StoredFile! file) -> Rask.Storage
 static Rask.Storage.Attachment.operator !=(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
 static Rask.Storage.Attachment.operator ==(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
 static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
