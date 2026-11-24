@@ -92,7 +92,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
         var childrenWithAForm = ChildrenWithAForm(entities);
 
-        var reportedMisses = new HashSet<RuleMiss>();
+        var reportedStale = new HashSet<StaleRule>();
         var reach = RuleReachOf(entities);
         var typedIds = TypedIdsOf(entities);
 
@@ -132,7 +132,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             ReportFormsOverCompositeChildren(context, entity);
 
             ReportShapeProblems(context, entity);
-            ReportRuleMisses(context, entity, reportedMisses);
+            ReportStaleRules(context, entity, reportedStale);
             entity = InThisCompilation(entity, seams, reach, typedIds);
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
@@ -178,7 +178,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             TypedIds = typedIds,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
-            AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
         };
 
     // ---- the incremental model ------------------------------------------------------------------
@@ -234,7 +233,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool AnnouncesFieldShapes = false,
         EquatableArray<string> TypedIds = default,
         EquatableArray<string> ValidatingChildren = default,
-        EquatableArray<string> AwaitingChildren = default,
         EquatableArray<string> CompositeChildren = default,
         EquatableArray<IdListShape> IdLists = default,
         bool KeyedByParts = false,
@@ -325,11 +323,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool KeyPart = false,
         string? DeclaredOn = null,
         string? Named = null,
-        string? Shape = null)
-    {
-        /// <summary>The awaited attributes (<c>AsyncValidationAttribute</c>), asked once the others let the value through.</summary>
-        public EquatableArray<string> AwaitedChecks { get; init; } = new([]);
-    }
+        string? Shape = null);
 
     private sealed record Write(
         ModelWriteKind Kind,
@@ -351,8 +345,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool IsValueType,
         bool SingleValue,
         EquatableArray<ValueObjectMember> Members,
-        ValueRule Rule = ValueRule.None,
-        EquatableArray<RuleMiss> RuleMisses = default,
+        bool HasRule = false,
+        EquatableArray<StaleRule> StaleRules = default,
         bool Checked = false,
         string? ValueBase = null);
 

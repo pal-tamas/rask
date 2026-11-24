@@ -4,7 +4,8 @@ using Rask.Testing.Fixture.UnsetApp;
 
 namespace Rask.Testing.Database.Tests;
 
-// One class, so its tests run one at a time: TestDatabase points the process-wide model surface at its database.
+// One collection, so its tests run one at a time: TestDatabase points the process-wide model surface at its database.
+[Collection(nameof(TestDatabase))]
 public sealed class NothingBootsUnaskedTests : IDisposable
 {
     private static readonly DateTimeOffset Monday = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);

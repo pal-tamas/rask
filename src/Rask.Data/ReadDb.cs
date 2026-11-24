@@ -25,7 +25,7 @@ public static class ReadDb
     private static Func<DbContext>? _factory;
 
     /// <summary>Whether the read side has been pointed at a database.</summary>
-    public static bool IsOn => _factory is not null;
+    public static bool IsOn => Db.InFlow is not null || _factory is not null;
 
     /// <summary>Points the read faces at the read context the host registered.</summary>
     /// <remarks>
@@ -64,11 +64,13 @@ public static class ReadDb
     {
         ArgumentNullException.ThrowIfNull(createContext);
         _factory = createContext;
+        Db.LeaveFlow();
         Ambient.DeclineTestApp();
     }
 
     /// <summary>Forgets the configured factory. Test seam, like <see cref="Db.Reset" />.</summary>
     public static void Reset() => _factory = null;
+
 
     /// <summary>
     ///     A fresh context for whichever side <typeparamref name="TEntity" /> belongs to.
@@ -100,7 +102,7 @@ public static class ReadDb
             return scoped.CreateDbContext();
         }
 
-        return (_factory ?? throw new InvalidOperationException(
+        return (Db.InFlow?.Read ?? _factory ?? throw new InvalidOperationException(
             "The read faces have not been pointed at a database. A Rask app gets this from the host, beside "
             + "Db.Configure(app.Services); elsewhere call ReadDb.Configure(app.Services) once after building "
             + "the container."))();

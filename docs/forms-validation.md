@@ -48,8 +48,14 @@ Form.Model(_model)
 
 ### Rules in a value object
 
-A field's simple rules — required, length, format — belong to the value, not to one form. Put them in
-a value object and name them from the field:
+A field's simple rules — required, length, format — belong to the value, not to one form. With
+[Rask.Data](data.md#declared-from-a-base-record), declare the value object from a base record and its constructor
+checks them — `public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);`
+— and a form bound to the aggregate's generated model asks the same rules
+[by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
+
+A form over a model of your own, with no data layer behind it, names a shared rule from the field instead —
+any static method that takes the value and returns the messages:
 
 ```csharp
 public readonly record struct DestinationName(string Value)
@@ -73,21 +79,18 @@ Ui.Input.Bind(() => _model.Name)
 ```
 
 `Validate` takes the method by name, because it has the shape of a rule: the value in, the messages
-out. Every form that edits a destination's name asks the same question, the constant sets the input's
-`maxlength` too, and the domain can call the same method before it saves.
+out. Every form that edits a destination's name asks the same question, and the constant sets the input's
+`maxlength` too. Nothing asks such a method by itself: on a value object an aggregate holds it is never run
+([RASK132](diagnostics.md#rask132)) — declare that one from a base record.
 
 <!-- demo:validation-value-object -->
 
 **The framework's own sentences, for the common rules.** `Rules` answers in the reader's language from the
 [strings catalog](localization.md#translating-the-frameworks-own-text) — the kit carries the Hungarian — so a
-value object that only needs "filled, and not too long" writes no words of its own:
+rule that only needs "filled, and not too long" writes no words of its own:
 
 ```csharp
-public readonly record struct DriverName(string Value)
-{
-    public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);
-}
-
+Ui.Input.Bind(() => _model.Driver).Validate(name => Rules.Text(name, 100))
 Ui.Input.Bind(() => _model.Note).Validate(note => Rules.Optional(note, 500))
 Ui.Input.Bind(() => _model.Litres).Validate(Rules.Given)   // a decimal? that must be given
 ```
@@ -108,7 +111,7 @@ value it accepted. It runs when a written step would — whenever the field's va
 model, and on submit.
 
 ```csharp
-Input.Bind(() => _model.Name)             // DestinationName.Validate runs, on this field's own timing
+Input.Bind(() => _model.Name)             // DestinationName's rules run, on this field's own timing
     .Validate(NotOnTheBlocklist)          // then this, for a name the first rule accepted
 ```
 
@@ -116,17 +119,14 @@ This belongs to the form and the bound field, so a plain `Input`, `Select` or `T
 as `Ui.Input` does.
 
 **A [Rask.Data](data.md#what-a-form-over-the-model-asks-by-itself) aggregate's model is such a model.**
-A value object that holds one value and has a public static `Validate` taking that value — the
-`DestinationName` above — is asked by every field bound to it on the aggregate's generated model
-(`DestinationModel.Name`), with nothing written on the field. A property the aggregate declares non-nullable
-is required by its type: the rule is asked about the empty value too, so the words for "required" are the value
-object's own, with no `[Required]` and with the automatic validators on or off. A plain property that cannot be
-null (`int Weight`, `string Plate`) is required the same way, in the framework's one sentence — *This field is
-required.*, in the reader's language.
+A property the aggregate declares non-nullable is required by its type, with no `[Required]` and with the
+automatic validators on or off; a plain property that cannot be null (`int Weight`, `string Plate`) is required
+the same way, in the framework's one sentence — *This field is required.*, in the reader's language.
 
 A value object declared from one of Rask.Data's [base records](data.md#declared-from-a-base-record) —
-`public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000)` — is asked the same way: its
-rules are the base's arguments, checked by its constructor, and the field runs its generated `DriverName.__Problems`,
+`public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000)` — is asked by every field
+bound to it on the aggregate's generated model (`DeliveryModel.Driver`), with nothing written on the field: its
+rules are the base's arguments and its own `Rules()`, checked by its constructor, and the field runs its generated `DriverName.__Problems`,
 which makes the value through that constructor and answers without an exception. The messages (*Enter at most 1000
 characters.*, *Enter 1 or more.*, *Choose a date on or before …*) come from the strings catalog in the reader's
 language. A nullable one left blank says nothing. A `Range` or `Value` record is a nested model, and a refusal its
@@ -548,7 +548,7 @@ A message's `{0}` — "The **Work email** field is required." — is the field's
 way Rask names a field — on the form, on a dispatched request, in an async pass, in a FluentValidation message and in
 a Rask.Data model's generated server checks (the generator copies `[Display]` onto `<Entity>Model`).
 `System.ComponentModel.DisplayNameAttribute` is read nowhere; [RASK131](diagnostics.md#rask131) warns on one and its
-quick-fix rewrites it as `[Display(Name = …)]`. A bound kit control given no `.Label(…)` is labelled by the same name — see [Labels](forms.md#controls-at-a-glance).
+quick-fix rewrites it as `[Display(Name = …)]`. A field around a bound kit control — `Ui.Field[…]` with no `Ui.Label`, or `Ui.Field.Bind` — is labelled by the same name; a bare control is not — see [Labels](forms.md#controls-at-a-glance).
 
 ```csharp
 public sealed class SignUp

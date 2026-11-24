@@ -157,21 +157,15 @@ public sealed class DomainValidationTests : IDisposable
     }
 
     [Fact]
-    public async Task Create_of_the_model_awaits_an_async_attribute_and_a_save_does_too()
+    public async Task An_async_attribute_refuses_Create_of_the_model_through_its_save_and_writes_nothing()
     {
         await using var database = await StartDatabaseAsync();
         var taken = new CharterModel { Name = "Endeavour", Guests = 2 };
-        var free = new CharterModel { Name = "Beagle", Guests = 2 };
-        var built = false;
 
-        var fromModel = await Assert.ThrowsAsync<RaskValidationException>(
-            () => Charter.Create(taken, apply: _ => built = true, cancellationToken: Token));
-        var fromSave = await Assert.ThrowsAsync<RaskValidationException>(
-            () => Charter.Create(free, apply: c => c.Rename("Endeavour"), cancellationToken: Token));
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => Charter.Create(taken, cancellationToken: Token));
 
-        Assert.False(built);
-        Assert.Equal("Name is taken.", Assert.Single(fromModel.Errors["Name"]));
-        Assert.Equal("Name is taken.", Assert.Single(fromSave.Errors["Name"]));
+        Assert.Equal("Name is taken.", Assert.Single(refused.Errors["Name"]));
+        Assert.Empty(await database.Context.Set<Charter>().ToListAsync(Token));
     }
 
     [Fact]

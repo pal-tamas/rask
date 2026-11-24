@@ -106,6 +106,11 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
 
     string? IUiFormControl.Badge => null;
 
+    // Flux's inline field, the box before its label.
+    Ui.FieldVariant IUiFieldControl.FieldVariant => Ui.FieldVariant.Inline;
+
+    bool IUiFieldControl.ControlFirst => true;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -131,8 +136,8 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
             ],
             _ => field.Wrap(
                 Mark(UiOptionLook.Checkbox, "ui-checkbox", field, on, mixed)[input, Ui.CheckboxIndicator],
-                Ui.FieldVariant.Inline,
-                controlFirst: true),
+                ((IUiFieldControl)this).FieldVariant,
+                ((IUiFieldControl)this).ControlFirst),
         };
     }
 

@@ -17,12 +17,15 @@ public sealed partial class FieldAutoExample : Component
                     Ui.Field.Bind(() => _booking.Plan).Live()
                 ],
                 Div.Class("mt-4 space-y-4")[
+                    // The control picked and tuned by hand: the field still labels it from the member.
+                    Ui.Field[Ui.Input.Bind(() => _booking.Plate).InputClass("uppercase").Live(), Ui.Error],
                     Ui.Field.Bind(() => _booking.Note).Multiline().Live(),
                     Ui.Field.Bind(() => _booking.Agreed).Label("I agree to the terms").Live()
                 ]
             ],
             Ui.Text.Data("testid", "ui-field-auto-state")[
                 $"{_booking.Name} · {_booking.Email} · {_booking.Seats.ToString(System.Globalization.CultureInfo.InvariantCulture)} seats"
+                + $" · plate {_booking.Plate}"
                 + $" · {_booking.Plan} · agreed {(_booking.Agreed ? "yes" : "no")}"
             ]
         ];
@@ -50,6 +53,10 @@ public sealed partial class FieldAutoExample : Component
 
         [Display(Name = "Plan")]
         public Plan Plan { get; set; } = Plan.Team;
+
+        [Required]
+        [Display(Name = "Licence plate", Description = "Shown in capitals.")]
+        public string Plate { get; set; } = "";
 
         [Display(Name = "Note", Description = "Anything we should know.")]
         public string? Note { get; set; }

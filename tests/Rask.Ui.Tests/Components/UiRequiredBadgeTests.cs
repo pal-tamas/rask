@@ -58,7 +58,7 @@ public partial class UiRequiredBadgeTests : global::Rask.Core.RaskMarkup
     {
         var model = new Signup();
 
-        var html = Form.Model(model)[Ui.Input.Bind(() => model.Email)].ToHtml();
+        var html = Form.Model(model)[Ui.Field[Ui.Input.Bind(() => model.Email)]].ToHtml();
 
         Assert.Contains(">Work email", html, StringComparison.Ordinal);
         Assert.Contains(">Required</span>", html, StringComparison.Ordinal);

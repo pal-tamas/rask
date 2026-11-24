@@ -19,4 +19,10 @@ internal interface IUiFieldControl
     ///     plain <c>group</c> cannot: ARIA has no such state for their roles.
     /// </summary>
     bool TakesAriaRequired => true;
+
+    /// <summary>How the field the control draws around itself lays out: Flux's inline field for a checkbox or a switch.</summary>
+    Ui.FieldVariant FieldVariant => Ui.FieldVariant.Block;
+
+    /// <summary>Inline only: the control before its label rather than after.</summary>
+    bool ControlFirst => false;
 }

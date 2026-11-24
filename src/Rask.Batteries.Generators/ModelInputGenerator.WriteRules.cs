@@ -19,28 +19,22 @@ public sealed partial class ModelInputGenerator
 
     private const string FailureList = "global::System.Collections.Generic.IList<" + FieldFailure + ">?";
 
-    /// <summary>Whether a model has anything to be asked before a write, and whether any of it is awaited.</summary>
-    private readonly record struct RuleReach(bool Checked, bool Awaited);
+    /// <summary>Whether a model has anything to be asked before a write.</summary>
+    private readonly record struct RuleReach(bool Checked);
 
     private static string ExtensionsType(Entity entity) => FormModelType(entity) + "Extensions";
 
     private static string RuleMethod(string modelKey, string property) => "__Rule_" + modelKey + property;
-
-    private static bool Awaits(Entity entity) =>
-        entity.AwaitingChildren.Count > 0 || AwaitsOwnRules(entity) ||
-        RuledModels(entity).Any(static m => m.Rules.Any(static r => r.Kind == ValueRule.Async));
 
     private static bool Validates(Entity entity) =>
         entity.ValidatingChildren.Count > 0 || OwnReach(entity).Checked;
 
     private static RuleReach OwnReach(Entity entity)
     {
-        var rules = RuledModels(entity).SelectMany(static m => m.Rules).ToList();
-
         return new RuleReach(
-            rules.Count > 0 || CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable, ValueRule.Sync)) ||
-            entity.Children.Any(static c => c.ByParts) || entity.OwnRules is { Sync: true },
-            rules.Exists(static r => r.Kind == ValueRule.Async) || AwaitsOwnRules(entity));
+            RuledModels(entity).Any(static m => m.Rules.Count > 0) || CheckedMembers(entity).Any() ||
+            HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable)) ||
+            entity.Children.Any(static c => c.ByParts) || entity.OwnRules is not null);
     }
 
     // The root's value objects of several values: each is a nested model that is there or is not.
@@ -83,7 +77,7 @@ public sealed partial class ModelInputGenerator
         foreach (var child in entity.Children)
         {
             var theirs = Reach(child.ChildTypeName, byName, reach, walking);
-            all = new RuleReach(all.Checked || theirs.Checked, all.Awaited || theirs.Awaited);
+            all = new RuleReach(all.Checked || theirs.Checked);
         }
 
         walking.Remove(name);
@@ -96,13 +90,10 @@ public sealed partial class ModelInputGenerator
             .Where(c => reach.TryGetValue(c.ChildTypeName, out var theirs) && wanted(theirs))
             .Select(static c => c.Name);
 
-    private static void AppendValidateCall(StringBuilder s, Entity entity) =>
-        s.AppendLine(Awaits(entity)
-            ? "            await __ValidateAwaited(model).ConfigureAwait(false);"
-            : "            __Validate(model);");
+    private static void AppendValidateCall(StringBuilder s) => s.AppendLine("            __Validate(model);");
 
-    private static void AppendReturn(StringBuilder s, Entity entity, string write) =>
-        s.Append("            return ").Append(Awaits(entity) ? "await " + write + ".ConfigureAwait(false)" : write).AppendLine(";");
+    private static void AppendReturn(StringBuilder s, string write) =>
+        s.Append("            return ").Append(write).AppendLine(";");
 
     // The server's own check of what a model holds, before anything is written. A model with no rule and no
     // attribute gets an empty method: nothing is built and nothing is asked.
@@ -124,24 +115,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("    }");
         s.AppendLine();
 
-        if (Awaits(entity))
-        {
-            s.Append("    internal static async global::System.Threading.Tasks.Task __ValidateAwaited(").Append(modelType).AppendLine(" model)");
-            s.AppendLine("    {");
-            s.AppendLine("        var failures = await __CollectAwaited(model, \"\", __Collect(model, \"\", null)).ConfigureAwait(false);");
-            s.AppendLine("        if (failures is not null)");
-            s.AppendLine("        {");
-            s.Append("            throw ").Append(ModelRules).AppendLine(".Refused(failures);");
-            s.AppendLine("        }");
-            s.AppendLine("    }");
-            s.AppendLine();
-        }
-
-        AppendCollect(s, entity, awaited: false);
-        if (Awaits(entity))
-        {
-            AppendCollect(s, entity, awaited: true);
-        }
+        AppendCollect(s, entity);
 
         AppendRuleMethods(s, entity);
         AppendOwnMethods(s, entity);
@@ -154,12 +128,9 @@ public sealed partial class ModelInputGenerator
 
     // Every failure of this model and what it holds, each under the path a form names the field by. `path` is
     // what leads here from the root — "" for the root itself, "Lines[2]." for a row.
-    private static void AppendCollect(StringBuilder s, Entity entity, bool awaited)
+    private static void AppendCollect(StringBuilder s, Entity entity)
     {
-        var kind = awaited ? ValueRule.Async : ValueRule.Sync;
-
-        s.Append("    internal static ")
-            .Append(awaited ? "async global::System.Threading.Tasks.Task<" + FailureList + "> __CollectAwaited(" : FailureList + " __Collect(")
+        s.Append("    internal static ").Append(FailureList).Append(" __Collect(")
             .Append(FormModelType(entity)).Append(" model, string path, ").Append(FailureList).AppendLine(" failures)");
         s.AppendLine("    {");
 
@@ -168,46 +139,35 @@ public sealed partial class ModelInputGenerator
         {
             if (member.RequiredByType)
             {
-                if (!awaited)
-                {
-                    s.Append("        failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(member.Name)
-                        .Append("\", ").Append(RuleMethod("Root_", member.Name)).Append("(model.").Append(member.Name).AppendLine("));");
-                }
+                s.Append("        failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(member.Name)
+                    .Append("\", ").Append(RuleMethod("Root_", member.Name)).Append("(model.").Append(member.Name).AppendLine("));");
             }
             else if (member.ValueObject is { } valueObject)
             {
-                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, member.Nullable, kind, ref held);
+                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, member.Nullable, ref held);
             }
         }
 
-        foreach (var child in entity.Children.Where(c => (awaited ? entity.AwaitingChildren : entity.ValidatingChildren).Contains(c.Name, StringComparer.Ordinal)))
+        foreach (var child in entity.Children.Where(c => entity.ValidatingChildren.Contains(c.Name, StringComparer.Ordinal)))
         {
-            AppendAskRows(s, child, awaited);
+            AppendAskRows(s, child);
         }
 
-        if (!awaited)
+        foreach (var child in entity.Children.Where(static c => c.ByParts))
         {
-            foreach (var child in entity.Children.Where(static c => c.ByParts))
+            AppendTwiceGiven(s, child, entity.DuplicateRowFromCatalog);
+        }
+
+        foreach (var member in CheckedMembers(entity))
+        {
+            foreach (var check in member.Checks)
             {
-                AppendTwiceGiven(s, child, entity.DuplicateRowFromCatalog);
+                s.Append("        failures = __Check(").Append(check).Append(", model.").Append(member.Name).Append(", \"")
+                    .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).AppendLine(", model, path, failures);");
             }
-
-            foreach (var member in CheckedMembers(entity))
-            {
-                foreach (var check in member.Checks)
-                {
-                    s.Append("        failures = __Check(").Append(check).Append(", model.").Append(member.Name).Append(", \"")
-                        .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).AppendLine(", model, path, failures);");
-                }
-            }
-
-            AppendOwnCall(s, entity);
-        }
-        else
-        {
-            AppendOwnAwaitedCalls(s, entity);
         }
 
+        AppendOwnCall(s, entity);
         s.AppendLine("        return failures;");
         s.AppendLine("    }");
         s.AppendLine();
@@ -219,26 +179,26 @@ public sealed partial class ModelInputGenerator
     // must not share a name.
     private static void AppendAsk(
         StringBuilder s, string indent, string access, string field, string modelKey, ValueObjectShape valueObject, bool nullable,
-        ValueRule kind, ref int local)
+        ref int local)
     {
         if (valueObject.SingleValue)
         {
-            if (valueObject.Rule == kind)
+            if (valueObject.HasRule)
             {
-                AppendAskRule(s, indent, access, field, modelKey, kind);
+                AppendAskRule(s, indent, access, field, modelKey);
             }
 
             return;
         }
 
-        if (!Asks(valueObject, nullable, kind))
+        if (!Asks(valueObject, nullable))
         {
             return;
         }
 
         var missing = indent + "    failures = " + ModelRules + ".Told(failures, path, \"" + field + "\", " + ModelRules + ".Required(__RequiredText()));";
 
-        if (!valueObject.Members.Any(m => AsksMember(m, kind)))
+        if (!valueObject.Members.Any(AsksMember))
         {
             s.Append(indent).Append("if (").Append(access).AppendLine(" is null)");
             s.Append(indent).AppendLine("{");
@@ -253,12 +213,12 @@ public sealed partial class ModelInputGenerator
         s.Append(indent).AppendLine("{");
         foreach (var member in valueObject.Members)
         {
-            AppendAskMember(s, indent + "    ", held, field, valueObject, member, kind, ref local);
+            AppendAskMember(s, indent + "    ", held, field, valueObject, member, ref local);
         }
 
         s.Append(indent).AppendLine("}");
 
-        if (kind == ValueRule.Sync && !nullable)
+        if (!nullable)
         {
             s.Append(indent).AppendLine("else");
             s.Append(indent).AppendLine("{");
@@ -270,8 +230,7 @@ public sealed partial class ModelInputGenerator
     // One member of a nested model, under the path that reaches it: required by its type, or asked what the value
     // object it holds says, and then the validation attributes the value object's property carries.
     private static void AppendAskMember(
-        StringBuilder s, string indent, string held, string field, ValueObjectShape owner, ValueObjectMember member, ValueRule kind,
-        ref int local)
+        StringBuilder s, string indent, string held, string field, ValueObjectShape owner, ValueObjectMember member, ref int local)
     {
         var access = held + "." + member.Name;
         var path = field + "." + member.Name;
@@ -279,43 +238,34 @@ public sealed partial class ModelInputGenerator
 
         if (member.RequiredByType)
         {
-            if (kind == ValueRule.Sync)
-            {
-                AppendAskRule(s, indent, access, path, modelKey, kind);
-            }
+            AppendAskRule(s, indent, access, path, modelKey);
         }
         else if (member.ValueObject is { } inner)
         {
-            AppendAsk(s, indent, access, path, modelKey, inner, member.Nullable, kind, ref local);
+            AppendAsk(s, indent, access, path, modelKey, inner, member.Nullable, ref local);
         }
 
-        if (kind == ValueRule.Sync)
+        foreach (var check in member.Checks)
         {
-            foreach (var check in member.Checks)
-            {
-                s.Append(indent).Append("failures = __Check(").Append(check).Append(", ").Append(access).Append(", \"")
-                    .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).Append(", ").Append(held).Append(", path + \"").Append(field).AppendLine(".\", failures);");
-            }
+            s.Append(indent).Append("failures = __Check(").Append(check).Append(", ").Append(access).Append(", \"")
+                .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).Append(", ").Append(held).Append(", path + \"").Append(field).AppendLine(".\", failures);");
         }
     }
 
-    private static void AppendAskRule(StringBuilder s, string indent, string access, string field, string modelKey, ValueRule kind)
-    {
-        var asked = RuleMethod(modelKey, field.Substring(field.LastIndexOf('.') + 1)) + "(" + access + ")";
+    private static void AppendAskRule(StringBuilder s, string indent, string access, string field, string modelKey) =>
         s.Append(indent).Append("failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(field).Append("\", ")
-            .Append(kind == ValueRule.Async ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(");");
-    }
+            .Append(RuleMethod(modelKey, field.Substring(field.LastIndexOf('.') + 1))).Append('(').Append(access).AppendLine("));");
 
-    // Whether asking a value object says anything in this pass. One of several values that may not be absent is
-    // asked for in the synchronous pass even when nothing inside it has a rule.
-    private static bool Asks(ValueObjectShape valueObject, bool nullable, ValueRule kind) =>
+    // Whether asking a value object says anything. One of several values that may not be absent is asked for even
+    // when nothing inside it has a rule.
+    private static bool Asks(ValueObjectShape valueObject, bool nullable) =>
         valueObject.SingleValue
-            ? valueObject.Rule == kind
-            : (kind == ValueRule.Sync && !nullable) || valueObject.Members.Any(m => AsksMember(m, kind));
+            ? valueObject.HasRule
+            : !nullable || valueObject.Members.Any(AsksMember);
 
-    private static bool AsksMember(ValueObjectMember member, ValueRule kind) =>
-        (kind == ValueRule.Sync && (member.RequiredByType || member.Checks.Count > 0)) ||
-        (member.ValueObject is { } inner && Asks(inner, member.Nullable, kind));
+    private static bool AsksMember(ValueObjectMember member) =>
+        member.RequiredByType || member.Checks.Count > 0 ||
+        (member.ValueObject is { } inner && Asks(inner, member.Nullable));
 
     // Whether the one sentence is said for a value object itself, here or anywhere inside it.
     private static bool RequiresHeld(ValueObjectShape valueObject, bool nullable) =>
@@ -326,9 +276,9 @@ public sealed partial class ModelInputGenerator
         !valueObject.SingleValue &&
         valueObject.Members.Any(static m => m.Checks.Count > 0 || (m.ValueObject is { } inner && HasNestedChecks(inner)));
 
-    private static void AppendAskRows(StringBuilder s, ChildShape child, bool awaited)
+    private static void AppendAskRows(StringBuilder s, ChildShape child)
     {
-        var collect = child.ChildModelName + "Extensions." + (awaited ? "__CollectAwaited" : "__Collect");
+        var collect = child.ChildModelName + "Extensions.__Collect";
         var asked = collect + "(row, path + \"" + child.Name
                     + "[\" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \"].\", failures)";
 
@@ -342,7 +292,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("            {");
         s.Append("                if (").Append(rows).AppendLine("[i] is { } row)");
         s.AppendLine("                {");
-        s.Append("                    failures = ").Append(awaited ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(";");
+        s.Append("                    failures = ").Append(asked).AppendLine(";");
         s.AppendLine("                }");
         s.AppendLine("            }");
         s.AppendLine("        }");
@@ -389,12 +339,9 @@ public sealed partial class ModelInputGenerator
 
         foreach (var (key, rule) in rules)
         {
-            var awaited = rule.Kind == ValueRule.Async;
-
-            s.Append("    internal static ")
-                .Append(awaited ? "async global::System.Threading.Tasks.ValueTask<" + StringSequence + "> " : StringSequence + " ")
+            s.Append("    internal static ").Append(StringSequence).Append(' ')
                 .Append(RuleMethod(key, rule.Property)).Append('(').Append(rule.ModelType).AppendLine(" value) =>");
-            s.Append("        ").Append(RuleBody(rule, awaited)).AppendLine(";");
+            s.Append("        ").Append(RuleBody(rule)).AppendLine(";");
             s.AppendLine();
         }
 
@@ -407,7 +354,7 @@ public sealed partial class ModelInputGenerator
         }
     }
 
-    private static string RuleBody(FieldRule rule, bool awaited)
+    private static string RuleBody(FieldRule rule)
     {
         var required = ModelRules + ".Required(__RequiredText())";
 
@@ -417,10 +364,10 @@ public sealed partial class ModelInputGenerator
             return (IsText(rule) ? "string.IsNullOrWhiteSpace(value)" : "value is null") + " ? " + required + " : " + NoMessages;
         }
 
-        string Ask(string value) => (awaited ? "await " : "") + valueObject + "." + rule.Asked + "(" + value + ")";
+        string Ask(string value) => valueObject + ".__Problems(" + value + ")";
 
         // A base record calls blank text no value: a field that may be empty is not asked about it.
-        if (rule.FromBase && IsText(rule) && !rule.Required)
+        if (IsText(rule) && !rule.Required)
         {
             return "string.IsNullOrWhiteSpace(value) ? " + NoMessages + " : " + Ask("value");
         }

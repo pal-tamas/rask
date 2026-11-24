@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
 
@@ -102,6 +104,10 @@ public static class ModelRegistry
     public static ModelConfigurationBuilder ApplyConventions(ModelConfigurationBuilder configurationBuilder)
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);
+
+        // An index's Covering(…) becomes the provider's own included columns as the model is finalized.
+        configurationBuilder.Conventions.Add(static services =>
+            new CoveringIndexConvention(services.GetService<IDatabaseProvider>()?.Name));
 
         foreach (var contribution in Contributions.Values)
         {

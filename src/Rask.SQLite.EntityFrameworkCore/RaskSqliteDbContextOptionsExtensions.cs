@@ -75,12 +75,25 @@ public static class RaskSqliteDbContextOptionsExtensions
         var options = RaskOptionsRegistration.BindNow<SqliteOptions>(
             services, "Rask:Sqlite", static (section, o) => section.Bind(o), configure);
 
-        var retry = options.Retry;
         Validate(options);
 
         // A fresh container has no /tmp/rask yet, and SQLite makes the file but not its directory — so the first
         // MigrateOnStart would fail with "unable to open database file".
         SqliteDatabaseDirectory.EnsureFor(connectionString);
+
+        return UseRaskSqlite(optionsBuilder, connectionString, options);
+    }
+
+    /// <summary>
+    /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, IServiceProvider, Action{SqliteOptions}?)"/> over a connection
+    /// string and settings already in hand — validated, and with the database's directory there.
+    /// </summary>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictRangeExclusionSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
+    internal static DbContextOptionsBuilder UseRaskSqlite(
+        DbContextOptionsBuilder optionsBuilder, string connectionString, SqliteOptions options)
+    {
+        var retry = options.Retry;
 
         // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
         // replacements: registering a strict generator and a range-exclusion generator separately would keep
@@ -100,8 +113,14 @@ public static class RaskSqliteDbContextOptionsExtensions
         // DDL; this adds the model and query halves.
         AddFullTextSearchModelAndQuery(optionsBuilder);
 
+        // `end - start` between two dates in a query, which SQLite's own provider does not translate.
+        SqliteDurationOptionsExtension.Add(optionsBuilder);
+
         // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
         RaskDbContext.WithSharedWarnings(optionsBuilder);
+
+        // The connection interceptor below registers the collation OrderTextBy names, so the model may use it.
+        TextCollationOptionsExtension.Add(optionsBuilder);
 
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.
@@ -183,7 +202,7 @@ public static class RaskSqliteDbContextOptionsExtensions
         where TContext : DbContext
         => (DbContextOptionsBuilder<TContext>)UseRaskFullTextSearch((DbContextOptionsBuilder)optionsBuilder);
 
-    private static void Validate(SqliteOptions options)
+    internal static void Validate(SqliteOptions options)
     {
         try
         {

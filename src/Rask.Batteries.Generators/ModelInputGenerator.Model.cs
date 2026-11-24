@@ -402,11 +402,7 @@ public sealed partial class ModelInputGenerator
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: ShapeOf(property.Type, valueObject))
-        {
-            AwaitedChecks = new EquatableArray<string>(
-                property.GetAttributes().Where(ValidationAttributeSource.IsAsync).Select(ValidationAttributeSource.Construction)),
-        };
+            Shape: ShapeOf(property.Type, valueObject));
     }
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
@@ -418,7 +414,7 @@ public sealed partial class ModelInputGenerator
     // A column the aggregate declares non-nullable cannot be emptied: the form model's value is nullable only so a
     // form can start blank, so a null there is a field the user cleared — an error, never a silent 0 on create or a
     // silently kept old value on update. The TYPE says so, as a generated rule with the framework's sentence, and
-    // no attribute is written. A value object that states its own rule says it in its own words instead, and a
+    // no attribute is written. A value object declared from a base record says it through its base instead, and a
     // property the app marked [Required] itself keeps that attribute and its message.
     private static bool IsRequiredByType(ModelMember member, ValueObjectShape? valueObject, IPropertySymbol property) =>
         member.Role == ModelMemberRole.Value && member.Write is not null &&
@@ -427,7 +423,7 @@ public sealed partial class ModelInputGenerator
     // The same for a member of a value object of several values, which is a field of its own on the nested model.
     private static bool IsRequiredByType(bool nullable, ValueObjectShape? valueObject, IPropertySymbol property) =>
         !nullable &&
-        valueObject is null or { SingleValue: true, Rule: ValueRule.None } &&
+        valueObject is null or { SingleValue: true, HasRule: false } &&
         !property.GetAttributes().Any(static a =>
             string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal));
 
@@ -502,8 +498,8 @@ public sealed partial class ModelInputGenerator
             valueObject.Type.IsValueType,
             valueObject.SingleValue,
             new EquatableArray<ValueObjectMember>(members),
-            RuleOf(valueObject),
-            new EquatableArray<RuleMiss>(RuleMissesOf(valueObject)),
+            DeclaresRules(valueObject),
+            new EquatableArray<StaleRule>(StaleRulesOf(valueObject)),
             Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null,
             ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type));
 
@@ -551,7 +547,8 @@ public sealed partial class ModelInputGenerator
         return ValidationAttributeSource.IsValidation(attribute);
     }
 
-    // What a write asks synchronously. An awaited attribute is never asked that way: .NET's own Validator awaits it.
+    // What a write asks of the model. An awaited attribute is never asked synchronously — .NET's own Validator awaits
+    // it — so the form awaits it, and on the server the save asks it of the aggregate (DomainRulesGenerator).
     private static bool IsSyncValidation(AttributeData attribute) =>
         ValidationAttributeSource.IsValidation(attribute) && !ValidationAttributeSource.IsAsync(attribute);
 

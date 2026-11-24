@@ -14,10 +14,7 @@ public class OptionalStructValueObjectTests
         using Rask.Cqrs;
         using Rask.Data;
         namespace Shop;
-        public readonly record struct Percent(decimal Value)
-        {
-            public static IEnumerable<string> Validate(decimal value) => value < 0 ? ["Negative."] : [];
-        }
+        public readonly record struct Percent(decimal Value);
         public readonly record struct Money(decimal Amount, string Currency);
 
         """;
@@ -52,21 +49,17 @@ public class OptionalStructValueObjectTests
     }
 
     [Fact]
-    public void Its_rule_is_asked_when_the_field_is_filled_and_an_empty_field_is_neither_asked_nor_required()
+    public void The_one_held_as_nullable_is_never_required_and_the_one_held_plainly_has_to_be_filled()
     {
         var run = Run(Norm);
 
         var model = run.GeneratedSource("Shop.NormModel").ReplaceLineEndings("\n");
 
+        Assert.DoesNotContain("__Rule_Root_Discount", model, StringComparison.Ordinal);
         Assert.Contains(
-            "__Rule_Root_Discount(decimal? value) =>\n        value is { } held ? global::Shop.Percent.Validate(held) : global::System.Array.Empty<string>();",
+            "__Rule_Root_Rate(decimal? value) =>\n        value is null ? global::Rask.Data.GeneratedModelRules.Required(__RequiredText()) : global::System.Array.Empty<string>();",
             model,
             StringComparison.Ordinal);
-        Assert.Contains(
-            "__Rule_Root_Rate(decimal? value) =>\n        value is { } held ? global::Shop.Percent.Validate(held) : global::Rask.Data.GeneratedModelRules.Required(__RequiredText());",
-            model,
-            StringComparison.Ordinal);
-        Assert.Contains("Told(failures, path, \"Discount\", __Rule_Root_Discount(model.Discount));", model, StringComparison.Ordinal);
         Assert.Contains("Root_IsRequired(string property) =>\n        property is \"Rate\";", model, StringComparison.Ordinal);
     }
 
@@ -121,10 +114,7 @@ public class OptionalStructValueObjectTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public decimal? Tolerance { get; set; }", model, StringComparison.Ordinal);
-        Assert.Contains(
-            "__Rule_SizeModel_Tolerance(decimal? value) =>\n        value is { } held ? global::Shop.Percent.Validate(held) : global::System.Array.Empty<string>();",
-            model,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_SizeModel_Tolerance", model, StringComparison.Ordinal);
         Assert.Contains(
             "global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Tolerance), (global::Shop.Percent v) => v.Value).HasColumnName(\"Size_Tolerance\");",
             registry,

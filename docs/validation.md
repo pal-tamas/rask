@@ -51,7 +51,7 @@ that input.
 | --- | --- | --- |
 | A `Form.Model(m)` | The inline `.Validate(…)` rules, then the model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
-| `Create(model)` / `Update(id, model)` | The model's attributes (async ones awaited), its own `IValidatableObject`, then the save's | [data](data.md#what-the-model-carries) |
+| `Create(model)` / `Update(id, model)` | The model's attributes, its own `IValidatableObject`, then everything the save asks (async attributes included) | [data](data.md#what-the-model-carries) |
 | Any save of an aggregate — `Save()`, `Update(id, apply)`, `Delete`, a `db:` context | The changed properties' attributes, `IValidatableObject`, `Validate()` — or `ValidateDelete()` for a delete | [data](data.md#what-every-save-asks) |
 | A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 

@@ -350,8 +350,10 @@ var rows  = rows.OrderBy(r => r.Name, TextOrder.In("hu"));          // a named o
 ```
 
 A query orders in the database's order instead: the model names the collation once — `c.OrderTextBy("Hungarian_100_CI_AS")`
-in its `IRaskModel` — and a query asks for it with `OrderBy(d => d.Name.InTextOrder())`. Only that `ORDER BY` changes;
-the columns and every `Where` stay as they were (see [Data](data.md#app-wide-model-rules-one-iraskmodel)).
+in its `IRaskModel` — and a query asks for it with `OrderBy(d => d.Name.InTextOrder())`. On SQL Server only that
+`ORDER BY` changes; on SQLite the columns compare by the same collation, case-insensitively, so a test there behaves as
+the server does; PostgreSQL orders by the language's ICU collation (see
+[Data](data.md#app-wide-model-rules-one-iraskmodel)).
 
 ## What stays culture-neutral, on purpose
 

@@ -1155,6 +1155,28 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.
 
+### One holder at a time, across hosts: `Db.Lock`
+
+Some work must never run twice at once however many hosts the app runs on — talking to one pump, closing one
+month. `Db.Lock(name)` takes a lock the **database** keeps, held until you dispose it:
+
+```csharp
+await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+await pump.Talk();
+```
+
+- **`wait`** is how long to wait for the current holder: omitted, as long as it takes; `TimeSpan.Zero`, not at all.
+  A wait that runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
+  again". The call's cancellation token (or the work it runs in) cancels the wait.
+- **It is its own connection's**, kept open while the lock is held and never the one of a `Db.Transaction` in
+  progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
+  with its connection. Disposing twice lets go once.
+- **SQL Server** takes it with `sp_getapplock` (owned by the session, names up to 255 characters), released with
+  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtext(name))` — a 32-bit hash, so two names that hash
+  alike share one lock — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
+  connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
+  name. Any other provider throws `NotSupportedException`.
+
 ### Named sets: `db.Orders`
 
 Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:
@@ -1539,8 +1561,8 @@ model type, and a control bound to `Shipping.Street` announces `aria-required` a
 before anything is saved, as ever. One bound to `Billing.Street` announces nothing and lets an empty street
 through: a field's rule sees its own value and not the fields beside it, so it cannot tell an address nobody
 gave from one that lacks a street. The write can, and says *This field is required.* under `Billing.Street`,
-[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip.Validate`)
-is still asked there about a value that was typed. Nothing is written for this: the generated model registers
+[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip`, declared
+`: Text(Value, MinLength: 4)`) is still asked there about a value that was typed. Nothing is written for this: the generated model registers
 which of its properties may be left empty
 ([`RaskValidation.RegisterOptionalFields`](forms-validation.md#how-a-control-knows-a-field-is-required)).
 
@@ -1579,11 +1601,7 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 A form bound to an aggregate's generated model runs two kinds of rule with nothing written on the form:
 
 ```csharp
-public sealed record DestinationName(string Value)
-{
-    public static IEnumerable<string> Validate(string value) =>       // found by its shape
-        value.Trim().Length < 2 ? ["A name has at least two characters."] : [];
-}
+public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);
 
 builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique("A destination with this name already exists.");
 
@@ -1593,36 +1611,29 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 ]
 ```
 
-**The value object's own rule.** A value object that holds ONE value and has a `public static Validate` taking
-exactly that value and returning the messages — `IEnumerable<string>`, or a `ValueTask`/`Task` of it — is asked by
-the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
-accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
-says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
-object of several values is left alone. Over a number, a date or an id, declare the parameter `decimal`, not
-`decimal?` — RASK102 says so: an unfilled field is never put to the rule.
+**The value object's own rules.** A value object that holds ONE value and is
+[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole` or `Day`, its base's
+arguments and any `Rules()` of its own — is asked by the field that holds it, before any `.Validate(…)` written on
+the field, which then runs only for a value it accepted. The form asks exactly what its constructor checks, through
+the generated `X.__Problems`, so the two cannot drift. A value object not declared from a base record has no rule
+of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
+([RASK132](diagnostics.md#rask132)) rather than let it look like a rule that passed.
 
-**A non-nullable value-object property is required: its rule is asked with the empty value.** So "required" is
-said by the type, in its own words, and no attribute is needed:
+**A non-nullable value-object property is required, and its base says so.** No attribute is needed:
 
 ```csharp
 // before                                               // after
 [Required(ErrorMessage = "A destination needs a name.")]
-public DestinationName Name { get; private set; }       public DestinationName Name { get; private set; }
-
-public static IEnumerable<string> Validate(string value)
-{
-    if (string.IsNullOrWhiteSpace(value)) yield return "A destination needs a name.";   // asked for an empty field too
-    else if (value.Length > MaxLength) yield return $"A name is at most {MaxLength} characters.";
-}
+public DestinationName Name { get; private set; }       public DestinationName Name { get; private set; } = null!;
 ```
 
-- a **text** value object is asked about `""` when the field holds nothing, and what it answers is shown. If it
-  accepts `""`, an empty text field is stored as that; a field that holds nothing at all (`null`, from a caller
-  with no form) still says *This field is required.*
-- a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
+- a **text** value object is asked about `""` when the field holds nothing, and `Text` answers that it is
+  required — in the reader's language, from the strings catalog
+- a value object over a **number or a date** has no empty value to be asked about, so an unfilled field
   says the one sentence *This field is required.* and the rule is asked once there is a value
-- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule — and
-  so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the `decimal?` it holds
+- a **nullable** property (`DestinationName? Alias`) is optional: an empty field (text: only blanks) is not put
+  to the rule — and so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the
+  `decimal?` it holds
 - a **plain** non-nullable property — `int Weight`, `decimal Price`, `DateOnly Built`, `Guid OwnerId`, `bool`,
   `string Plate` — and a value object with no rule are required the same way: an unfilled field says the one
   sentence. For text, unfilled means `null`, `""` or only white space; for everything else, no value
@@ -1671,16 +1682,18 @@ The message shows under the field, or under each field of an index over several:
 It is a courtesy, never the rule: two people can pass it at the same moment, and the save — the index itself,
 or the declared rule asked again in the save's transaction — still refuses the second, shown the same way.
 
-Both belong to the **generated** model. A model you write by hand gets neither — name the rule on the field
-(`.Validate(DestinationName.Validate)`) and let the save report the index. An index declared somewhere other
+Both belong to the **generated** model. A model you write by hand gets neither — write the rule on the field
+(`.Validate(…)`) and let the save report the index. An index declared somewhere other
 than the aggregate's own `Configure`, and one on a row inside an aggregate, are enforced by the save and not
 asked beforehand.
 
 A `partial class ProductModel` of your own merges into the generated one, which is the way to add members,
-`IValidatableObject` or display helpers. `Create(model)` and `Update(id, model)` run what the form runs: the fields'
-attributes — an `AsyncValidationAttribute` awaited once the field's other rules pass — then the model's own
-`IValidatableObject` (or `IAsyncValidatableObject`, in its place) and the validation attributes on your half of it,
-with the services of the work in progress in every `ValidationContext`. The build says when it cannot generate: a **hand-written, non-`partial`
+`IValidatableObject` or display helpers. `Create(model)` and `Update(id, model)` run the fields' attributes, then the
+model's own `IValidatableObject` and the validation attributes on your half of it, with the services of the work in
+progress in every `ValidationContext`. An `AsyncValidationAttribute` is awaited by the form, and on the server by the
+save, which asks it of the aggregate's property ([what every save asks](#what-every-save-asks)); an
+`IAsyncValidatableObject` on the model is the form's alone — put a rule that must hold on the server in the aggregate's
+`Validate()`. The build says when it cannot generate: a **hand-written, non-`partial`
 `ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and an aggregate **declared
 inside another class** is a warning and gets no model ([RASK083](diagnostics.md#rask083)).
 
@@ -1722,6 +1735,7 @@ public sealed class Product : Aggregate<Guid>
 | `Current.User` / `Current.RequiredUser` | the signed-in user's own row — your `User`'s read face — once it says `IUser` (below) |
 | `Current.Tenant` / `Current.RequiredTenant` | the tenant's own row, once your tenant aggregate says `ITenant` — see [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant) |
 | `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
+| `Current.UsePrincipal(principal)` | a scope signed in as `principal` — its claims, roles, user and tenant answer everything above; a test with no session around it |
 
 **Where it is set.** For a live session's work (rendering, event handlers), for every HTTP request (a minimal API,
 a controller, a CQRS endpoint), and for a background job — which runs for the user who enqueued it, because the
@@ -2019,11 +2033,12 @@ public void A_shipped_order_refuses_to_be_cancelled()
 ```
 
 Behaviour that touches the database gets a real one in a line, rather than a mocked `DbContext` — and
-it is the app's OWN context, so the test runs the model and the save the app runs in production. Save
-through `database.Context`, then read through the model surface exactly as the app does:
+it is the app's OWN context, so the test runs the model and the save the app runs in production. With nothing to
+configure it is SQLite in memory, a database of the test's own; save through `database.Context`, then read through
+the model surface exactly as the app does:
 
 ```csharp
-await using var database = await TestDatabase.Start<AppDbContext>(o => o.UseSqlite($"Data Source={path}"));
+await using var database = await TestDatabase.Start<AppDbContext>();
 
 var anvil = Product.Create("Anvil", 9.99m);
 database.Context.Add(anvil);
@@ -2056,9 +2071,22 @@ schema, wires the auditing and soft-delete interceptors so the conventions behav
 production, and points the model surface at it. Disposing clears it, so one test cannot leak its
 database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
 
-It is provider-agnostic on purpose: the options callback is yours, so `Rask.Data` gains no provider
-dependency and a test runs against the database the app actually uses. SQLite over a temporary file is
-the usual choice; `:memory:` lives only as long as its connection, and every read opens its own.
+**In memory, and side by side.** `TestDatabase.Start<AppDbContext>()` (and `TestDatabase.Start()` over Rask's own
+context) come with `Rask.SQLite.EntityFrameworkCore`, which every server app already has through `Rask.Server`. Each
+is a named, shared-cache SQLite database in memory (`Data Source=rask-test-…;Mode=Memory;Cache=Shared`), kept alive
+by one connection the fixture holds: every context it hands out — `Context`, `Factory`, `Load<T>`, the model
+surface's reads and writes — opens its own connection to the same name and sees the same rows, and disposing the
+fixture lets the database go. It is configured through `UseRaskSqlite`, so a decimal orders as a number and a model
+that names `c.OrderTextBy("Hungarian_100_CI_AS")` compares text case-insensitively, in Hungarian order, as its SQL
+Server does ([text order](#app-wide-model-rules-one-iraskmodel)); the schema is the model's, so an app whose
+migrations are SQL Server's still gets its tables. **Tests run in parallel**: a database started inside a test binds
+the model surface for that test's own flow, so two tests side by side each read their own rows. One started in a class
+fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow and points the process-wide surface instead —
+those tests take turns, one fixture at a time.
+
+The options callback is still there for another database: `TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs))`,
+or SQLite over a file. A provider's specifics stay in Rask (the collation, `end - start`, `Db.Lock`, a covering
+index), so the app's tests need no SQL Server of their own to mean what they say.
 
 Domain-event *publication* is deliberately not wired — that needs a service provider to resolve handlers
 through, which is more than a database fixture should invent. Assert on `DomainEvents` instead.
@@ -2130,14 +2158,29 @@ public sealed class AppModel : IRaskModel
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
   usually has.
-- **`OrderTextBy(collation)`** names the order the database puts text in when a query asks for it with
-  `InTextOrder()`. On SQL Server `OrderBy(x => x.Name.InTextOrder())` is written
-  `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` — in the `ORDER BY` only: no column is given the collation, so the
-  schema needs no migration, and a `Where` on the same column compares as it always did (under the Hungarian
-  collation `c` would stop finding `Csaba`). The name is SQL Server's, so on every other database `InTextOrder()`
-  orders by the column as it is, and an app on SQLite in development keeps working. It runs in the database — through
-  `ToList`, `Count` and a grid's paging alike; a list already in memory orders the same way with `TextOrder.In("hu")`
-  (see [Localization](localization.md#dates-numbers-and-text-order)).
+- **`OrderTextBy(collation)`** names, once, how the app's database compares text — by its SQL Server collation — and
+  a query asks for that order with `InTextOrder()`. It runs in the database, through `ToList`, `Count` and a grid's
+  paging alike; a list already in memory orders the same way with `TextOrder.In("hu")`
+  (see [Localization](localization.md#dates-numbers-and-text-order)). What each database does with it:
+
+  | | `OrderBy(x => x.Name.InTextOrder())` | `Where(x => x.Name == "csaba")`, a unique index, `Contains`/`StartsWith`/`EndsWith` |
+  |---|---|---|
+  | **SQL Server** | `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` | as the database's own collation says — no column is given one, so no migration |
+  | **SQLite** (`UseRaskSqlite`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
+  | **PostgreSQL** | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is — **the gap** |
+  | a plain `UseSqlite` (a browser app) | by the column as it is | as SQLite compares |
+
+  On SQLite every connection `UseRaskSqlite` opens registers the collation's language and sensitivities (Hungarian →
+  `hu-HU`; `CI` ignores case; `AS` keeps `á` apart from `a`; no `KS`/`WS` ignores kana and width) as
+  [`RASK_TEXT`](sqlite.md#text-that-compares-as-sql-server-does), every text column of the model is created with it,
+  and `instr` and `LIKE` — what EF writes `Contains`, `StartsWith` and `EndsWith` as — compare the same way. So a test
+  on SQLite finds `Csaba` for `"csaba"`, `Árvíztűrő` for `Contains("árv")`, and a unique index refuses `CSABA` beside
+  `Csaba` — what the app's SQL Server does. A column given a collation of its own (`UseCollation`) keeps it. A
+  collation name Rask cannot read (an unknown language) is refused as the model is built, off SQL Server.
+
+  PostgreSQL orders by the language's ICU collation, which every server built with ICU (the official images are)
+  imports. Comparing case-insensitively there takes a *nondeterministic* collation on each column, and those refuse
+  `LIKE` before PostgreSQL 18 — so Rask leaves PostgreSQL's equality and `LIKE` as they are.
 
   ```csharp
   // before — the collation repeated in every query
@@ -2225,6 +2268,28 @@ pass it, and only a real unique index closes that. Where the index does exist th
 word, reported the same way. An index declared with plain `IsUnique()` has no message to fail with and is not
 checked.
 
+### An index that answers the query by itself
+
+A query that finds rows by one column and reads a few others can be answered from the index alone, if the index
+carries them. Say which, on the index — once, for every database:
+
+```csharp
+builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // or Covering(p => p.Amount)
+```
+
+- **SQL Server** writes `CREATE INDEX … ([PayeeId]) INCLUDE ([Amount], [Note])` — EF Core's own
+  `IncludeProperties`, so the model snapshot and the migration read exactly as if you had written that.
+- **PostgreSQL** writes `… ("PayeeId") INCLUDE ("Amount", "Note")`.
+- **SQLite** has no included columns: the index is its key columns alone, and nothing of the declaration reaches
+  the model or a migration — an app that runs its tests on SQLite carries no SQL Server call into them.
+- The covered columns are carried, not ordered by: they are no part of the index's key, and a unique index stays
+  unique over its keys alone.
+- A covered member that is not a mapped property of the entity (a navigation, a complex property, an ignored
+  member), or one that is already a key of the index, fails the model build with its name.
+
+It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
+`ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
+
 ### What deleting a referenced row says
 
 A row that other rows still point at cannot go, and only the database knows. Say what that means once, on the
@@ -2277,6 +2342,37 @@ Which sentence, in this order:
   found; under any other name the entity's `WhenReferenced` answers.
 - **A soft delete is never refused.** An aggregate that names `SoftDelete` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
+
+### How long between two dates, in a query
+
+`end - start` between two `DateTime`s or two `DateTimeOffset`s is a `TimeSpan` in C#, and a query can order by it,
+compare it with a `TimeSpan` and read its `TotalHours` the same way on every database:
+
+```csharp
+// before — SQL Server's own function, which SQLite and PostgreSQL do not have
+.OrderBy(n => EF.Functions.DateDiffSecond(n.StartDate, n.EndDate))
+// after — the length of the trip, on every provider
+.OrderBy(n => n.EndDate - n.StartDate)
+
+var slow = await DeliveryNote.Where(n => n.EndDate - n.StartDate > 90.Minutes);
+var hours = await DeliveryNote.AsQueryable().Select(n => (n.EndDate - n.StartDate).TotalHours).ToListAsync();
+```
+
+PostgreSQL's provider translates all of it itself. SQL Server's and SQLite's translate none of it, so
+`UseRaskSqlServer` and `UseRaskSqlite` add the translation (a plain `UseSqlServer`/`UseSqlite` does not):
+
+| Database | `n.EndDate - n.StartDate` is written | Exact to |
+|---|---|---|
+| SQL Server | `DATEDIFF_BIG(microsecond, [StartDate], [EndDate])` | the microsecond |
+| SQLite | `CAST(round((unixepoch([EndDate], 'subsec') - unixepoch([StartDate], 'subsec')) * 1000000.0) AS INTEGER)` | the millisecond |
+| PostgreSQL | `"EndDate" - "StartDate"` (an `interval`) | the microsecond |
+
+The length is a count of microseconds, so a `TimeSpan` on the other side of a comparison is sent as the same count,
+and a projection of the length itself reads a `TimeSpan` back. `TotalDays`, `TotalHours`, `TotalMinutes`,
+`TotalSeconds` and `TotalMilliseconds` divide it down in the database. A `DateTimeOffset` is measured in UTC, as its
+subtraction is; a nullable date makes a nullable length, which no comparison matches. SQLite stores a date as text and
+reads three fractional digits of it, hence the millisecond. A date column stored through a value converter of the
+app's own (ticks, Unix time) is left untranslated — EF Core says so — rather than measured wrong.
 
 ## Value objects
 
@@ -2367,7 +2463,8 @@ from Rask's strings catalog. A property that is not nullable is required; a null
 An aggregate that stores a bare `string`, number, moment or `Guid` gets [RASK130](diagnostics.md#rask130) — a
 suggestion, and a warning under `<RaskStrict>` — pointing at the value object that would carry its rules.
 
-The shape below — a `record` holding one value with a `public static Validate` — still works for now.
+A value object of any other shape — below — holds no rule of its own: a `public static Validate` beside its
+value is never asked ([RASK132](diagnostics.md#rask132)).
 
 ### Value objects of any shape
 
@@ -2431,17 +2528,17 @@ property, and a form model carries it as a nested model.
 **Declare it nullable and it is optional** — a class or a struct alike:
 
 ```csharp
-public readonly record struct Percent(decimal Value)
-{
-    public static IEnumerable<string> Validate(decimal value) => value is < 0 or > 100 ? ["0 to 100."] : [];
-}
+public sealed partial record Percent(decimal Value) : Number(Value, Min: 0, Max: 100);
+public readonly record struct Grade(int Value);
 
 public Email? Backup { get; private set; }        // nullable column Backup,   form field string?  Backup
 public Percent? Discount { get; private set; }    // nullable column Discount, form field decimal? Discount
+public Grade? Rank { get; private set; }          // nullable column Rank,     form field int?     Rank
 ```
 
-An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent.Validate` by the
-form and by `Create`/`Update`, and the read face shows `decimal? Discount`. A nullable struct of **several**
+An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent`'s rules by the form
+and by `Create`/`Update`, and the read face shows `decimal? Discount`. A value object that checks a rule is a
+`sealed record`: a struct has a `default` that no constructor checked, so `Grade` holds no rule. A nullable struct of **several**
 values (`Money?` over a `record struct`) is not unwrapped: the form model carries the struct as it is, and its
 mapping is yours to write in `Configure`.
 
@@ -2622,7 +2719,8 @@ app.Use(async (context, next) =>
 ```
 
 Outside any scope — a hosted service's loop, a test — say who the work is for with `Current.UseUser(id)` and
-`Tenant.Use(id)`, or clear the tenant with `Tenant.None()`.
+`Tenant.Use(id)`, or clear the tenant with `Tenant.None()`; `Current.UsePrincipal(principal)` signs a whole principal in
+instead — claims, roles, user and tenant read from it as from a request's.
 
 **In a WebAssembly app none of this is yours to write.** Rask.Data's browser build does it from
 `AddRaskData<AppDbContext>()`: it points the model surface at the context before the first render, and the browser

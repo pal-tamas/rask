@@ -6,12 +6,18 @@ using Rask.Cqrs;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A one-value value object that is a class, with a rule.</summary>
-public sealed record GondolaCode(string Value)
+/// <summary>A one-value text declared from its base record, with a rule of its own in its own words.</summary>
+public sealed partial record GondolaCode(string Value) : Text(Value)
 {
     public const string TooShort = "A code has at least two characters.";
 
-    public static IEnumerable<string> Validate(string value) => value.Trim().Length < 2 ? [TooShort] : [];
+    protected override IEnumerable<Problem> Rules()
+    {
+        if (Value.Length is > 0 and < 2)
+        {
+            yield return Problem.Whole(TooShort);
+        }
+    }
 }
 
 /// <summary>A one-value value object that is a struct.</summary>
@@ -25,7 +31,7 @@ public sealed record GondolaCrate
 {
     private GondolaCrate() { }
 
-    public GondolaCode Code { get; private set; } = new("");
+    public GondolaCode Code { get; private set; } = GondolaCode.Create("--");
 
     public GondolaCode? Alias { get; private set; }
 
@@ -38,8 +44,8 @@ public sealed record GondolaCrate
     public static GondolaCrate Of(string code, string? alias, int weight, int? tare) =>
         new()
         {
-            Code = new GondolaCode(code),
-            Alias = alias is null ? null : new GondolaCode(alias),
+            Code = GondolaCode.Create(code),
+            Alias = alias is null ? null : GondolaCode.Create(alias),
             Weight = new GondolaWeight(weight),
             Tare = tare is { } value ? new GondolaWeight(value) : null,
             Units = 1,
@@ -57,7 +63,7 @@ public sealed record GondolaRoute
 {
     private GondolaRoute() { }
 
-    public GondolaLabel Label { get; private set; } = new(new(""), null, default, null, 0);
+    public GondolaLabel Label { get; private set; } = new(GondolaCode.Create("--"), null, default, null, 0);
 
     public string Carrier { get; private set; } = "";
 
@@ -69,19 +75,19 @@ public sealed class Gondola : Aggregate<int, Model, Deletable>
 {
     private Gondola() { }
 
-    public GondolaLabel Label { get; private set; } = new(new(""), null, default, null, 0);
+    public GondolaLabel Label { get; private set; } = new(GondolaCode.Create("--"), null, default, null, 0);
 
-    public GondolaCrate Crate { get; private set; } = GondolaCrate.Of("", null, 0, null);
+    public GondolaCrate Crate { get; private set; } = GondolaCrate.Of("--", null, 0, null);
 
-    public GondolaSpot Spot { get; private set; } = new(new(""), 0);
+    public GondolaSpot Spot { get; private set; } = new(GondolaCode.Create("--"), 0);
 
-    public GondolaRoute Route { get; private set; } = GondolaRoute.Of(new(new(""), null, default, null, 0), "");
+    public GondolaRoute Route { get; private set; } = GondolaRoute.Of(new(GondolaCode.Create("--"), null, default, null, 0), "");
 
     public static Gondola Packed(string code, string? alias = null, int weight = 1, int? tare = null)
     {
         var label = new GondolaLabel(
-            new GondolaCode(code),
-            alias is null ? null : new GondolaCode(alias),
+            GondolaCode.Create(code),
+            alias is null ? null : GondolaCode.Create(alias),
             new GondolaWeight(weight),
             tare is { } value ? new GondolaWeight(value) : null,
             2);
@@ -90,7 +96,7 @@ public sealed class Gondola : Aggregate<int, Model, Deletable>
         {
             Label = label,
             Crate = GondolaCrate.Of(code, alias, weight, tare),
-            Spot = new GondolaSpot(new GondolaCode(code), 7),
+            Spot = new GondolaSpot(GondolaCode.Create(code), 7),
             Route = GondolaRoute.Of(label, "DHL"),
         };
     }
@@ -107,7 +113,7 @@ public sealed class ComplexGondola
 {
     public int Id { get; set; }
 
-    public GondolaCrate Crate { get; set; } = GondolaCrate.Of("", null, 0, null);
+    public GondolaCrate Crate { get; set; } = GondolaCrate.Of("--", null, 0, null);
 }
 
 public sealed class ComplexGondolaContext(DbContextOptions<ComplexGondolaContext> options) : DbContext(options)
@@ -147,10 +153,10 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
         var storedFull = (await database.Load<Gondola>(full, TestContext.Current.CancellationToken))!;
         var storedBare = (await database.Load<Gondola>(bare, TestContext.Current.CancellationToken))!;
 
-        Assert.Equal(new GondolaLabel(new("AB-1"), new("ALT"), new(12), new(3), 2), storedFull.Label);
-        Assert.Equal(new GondolaSpot(new("AB-1"), 7), storedFull.Spot);
+        Assert.Equal(new GondolaLabel(GondolaCode.Create("AB-1"), GondolaCode.Create("ALT"), new(12), new(3), 2), storedFull.Label);
+        Assert.Equal(new GondolaSpot(GondolaCode.Create("AB-1"), 7), storedFull.Spot);
         Assert.Equal(("AB-1", "ALT", 12, 3), (storedFull.Crate.Code.Value, storedFull.Crate.Alias!.Value, storedFull.Crate.Weight.Value, storedFull.Crate.Tare!.Value.Value));
-        Assert.Equal(new GondolaLabel(new("CD-2"), null, new(1), null, 2), storedBare.Label);
+        Assert.Equal(new GondolaLabel(GondolaCode.Create("CD-2"), null, new(1), null, 2), storedBare.Label);
         Assert.Null(storedBare.Crate.Alias);
         Assert.Null(storedBare.Crate.Tare);
     }
@@ -180,7 +186,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
         var stored = (await database.Load<Gondola>(id, TestContext.Current.CancellationToken))!;
         var faces = await Gondola.Where(s => s.RouteLabelCode == "AB-1" && s.RouteLabelWeight > 10).Select(s => s.RouteLabelAlias);
 
-        Assert.Equal((new GondolaLabel(new("AB-1"), new("ALT"), new(12), null, 2), "DHL"), (stored.Route.Label, stored.Route.Carrier));
+        Assert.Equal((new GondolaLabel(GondolaCode.Create("AB-1"), GondolaCode.Create("ALT"), new(12), null, 2), "DHL"), (stored.Route.Label, stored.Route.Carrier));
         Assert.Equal(["ALT"], faces);
     }
 
@@ -285,7 +291,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
 
         Assert.Equal(("AB-1", "ALT", 12, 3, "AB-1", "AB-1"), carried);
         // The nested model is the whole value object: the member it leaves empty is stored empty, not kept.
-        Assert.Equal(new GondolaLabel(new("ZZ-9"), new("NEW"), new(12), null, 2), stored.Label);
+        Assert.Equal(new GondolaLabel(GondolaCode.Create("ZZ-9"), GondolaCode.Create("NEW"), new(12), null, 2), stored.Label);
         Assert.Equal(new GondolaWeight(8), stored.Crate.Tare);
     }
 

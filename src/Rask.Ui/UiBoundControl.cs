@@ -9,15 +9,15 @@ namespace Rask;
 internal static class UiBoundControl
 {
     internal static Component Draw<T>(
-        Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look, Action<UiSelect<T>>? choices, Action<Component> tune)
+        Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look, Action<UiSelect<T>>? choices)
     {
         var type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
         if (choices is not null)
         {
-            return Tuned(Picked(bind, look, choices), tune);
+            return Picked(bind, look, choices);
         }
 
-        Component control = (shape?.Kind ?? KindOf(type)) switch
+        return (shape?.Kind ?? KindOf(type)) switch
         {
             FieldKind.Id => throw UiBoundMember.NoChoices(bind),
             FieldKind.Choice => Chosen(bind, look, shape?.Options ?? OptionsOf(type)),
@@ -27,8 +27,6 @@ internal static class UiBoundControl
             _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => Moment(bind, look),
             _ => Text(bind, look),
         };
-
-        return Tuned(control, tune);
     }
 
     /// <summary>A number input's attributes for a shape: its bounds, and its step from the scale.</summary>
@@ -57,12 +55,6 @@ internal static class UiBoundControl
             Expression<Func<DateOnly?>> maybe => Ui.DatePicker.Bind(maybe),
             _ => throw UiBoundMember.NoControlFor(bind, bind.ReturnType),
         }).Max(shape?.NotAfterToday == true ? Clock.Today : null);
-
-    private static Component Tuned(Component control, Action<Component> tune)
-    {
-        tune(control);
-        return control;
-    }
 
     // What a member says by its type alone, where no shape was registered for it.
     private static FieldKind? KindOf(Type type)

@@ -137,13 +137,6 @@ public static class GeneratedModelRules
         return failures;
     }
 
-    /// <summary>Whether <paramref name="failures" /> already name <paramref name="field" />.</summary>
-    /// <param name="failures">The failures so far, or <see langword="null" /> for none yet.</param>
-    /// <param name="field">The field, with its path.</param>
-    /// <returns><see langword="true" /> when a failure is under it.</returns>
-    public static bool Names(IList<FieldFailure>? failures, string field) =>
-        failures is not null && failures.Any(f => f.Fields.Contains(field, StringComparer.Ordinal));
-
     /// <summary>The exception a write throws for a model its rules refused, before anything is written.</summary>
     /// <param name="failures">What was wrong, each under the field a form names it by.</param>
     /// <returns>The exception to throw.</returns>

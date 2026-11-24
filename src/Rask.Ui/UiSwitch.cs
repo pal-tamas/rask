@@ -104,6 +104,11 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
 
     string? IUiFormControl.Badge => null;
 
+    // Flux's inline field: the label first, the track at the far end, unless it is aligned left.
+    Ui.FieldVariant IUiFieldControl.FieldVariant => Ui.FieldVariant.Inline;
+
+    bool IUiFieldControl.ControlFirst => Align == Ui.SwitchAlign.Left;
+
     bool? IUiFormControl.Invalid => null;
 
     /// <inheritdoc />
@@ -121,7 +126,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
         // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.
         var track = RaskMarkup.Label.Class(Track, Class).Attributes(Marks(on))[input, Span.Class(Thumb)];
 
-        return field.Wrap(track, Ui.FieldVariant.Inline, controlFirst: Align == Ui.SwitchAlign.Left);
+        return field.Wrap(track, ((IUiFieldControl)this).FieldVariant, ((IUiFieldControl)this).ControlFirst);
     }
 
     private HTMLInputElement<T> Finish<T>(HTMLInputElement<T> input, UiWithField field) =>

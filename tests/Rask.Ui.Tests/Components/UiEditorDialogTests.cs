@@ -68,6 +68,16 @@ public sealed partial class UiEditorDialogTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_link_that_opens_a_new_one_over_a_bare_list_has_its_key_as_the_only_query()
+    {
+        var page = Page.Visit("/ui-editor-dialog/drivers");
+
+        var href = page.Find("#new").Attribute("href");
+
+        Assert.Equal("/ui-editor-dialog/drivers?edit=new", href);
+    }
+
+    [Fact]
     public async Task A_move_of_the_address_to_a_record_opens_it_with_that_record()
     {
         var page = Page.Visit("/ui-editor-dialog/drivers?q=ada");

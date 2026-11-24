@@ -172,7 +172,7 @@ public class ValueObjectFactoryGeneratorTests
         var model = run.GeneratedSource("DeliveryModel");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK102");
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK132");
         Assert.Contains("global::Shop.DriverName.__Problems(held)", model, StringComparison.Ordinal);
         Assert.Contains("string.IsNullOrWhiteSpace(value) ? global::System.Array.Empty<string>() : global::Shop.DriverName.__Problems(value)", model, StringComparison.Ordinal);
         Assert.Contains("global::Shop.Litres.__Problems(held)", model, StringComparison.Ordinal);
