@@ -47,10 +47,22 @@ public static class Dispatcher
 
     /// <summary>Publishes <paramref name="e" />: every subscription watching it is told, and every handler of it runs.</summary>
     public static Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
-        where TEvent : IEvent =>
-        Ambient.Needed is { } work
+        where TEvent : IEvent
+    {
+        ArgumentNullException.ThrowIfNull(e);
+
+        // A test's Events.Fake() records it here even with no app to reach, as Jobs.Fake() takes an enqueue.
+        var work = Ambient.Needed;
+        // Outside any work it keeps no services: the root may be gone by its Run(), which then reaches the app as this would.
+        if (Events.Recorded(e, work))
+        {
+            return Task.CompletedTask;
+        }
+
+        return work is not null
             ? Of(work).Publish(e, cancellationToken)
             : Alone(e, static (d, published, ct) => d.Publish(published, ct), cancellationToken);
+    }
 
     /// <summary>Remembers the app's root provider, which a call outside any work opens its scope from.</summary>
     internal static void Start(IServiceProvider root) => _root = root;
