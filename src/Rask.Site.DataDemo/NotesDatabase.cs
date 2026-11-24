@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.Hosting;
 using Rask.Data;
 
@@ -21,27 +22,28 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
             var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             await using var dbScope = db.ConfigureAwait(false);
 
-            // A database restored from IndexedDB already has it all.
-            var exists = await db.Database
-                .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'Note'")
-                .SingleAsync(cancellationToken)
-                .ConfigureAwait(false);
+            // The schema the way a migration builds it — the model differ, then the migrations SQL generator — because
+            // that is the path that creates the full-text index; EnsureCreated builds the table only.
+            var model = db.GetService<IDesignTimeModel>().Model;
+            var items = model.FindEntityType(typeof(NoteItem))!.GetTableName()!;
+            var operations = db.GetService<IMigrationsModelDiffer>().GetDifferences(null, model.GetRelationalModel());
 
-            if (exists == 0)
+            // A database restored from IndexedDB already has it all — or, kept from before the checklist, all but its table.
+            if (!await HasTable(db, "Note", cancellationToken).ConfigureAwait(false))
             {
-                // The schema the way a migration builds it — the model differ, then the migrations SQL generator —
-                // because that is the path that creates the full-text index; EnsureCreated builds the table only.
-                var model = db.GetService<IDesignTimeModel>().Model;
-                var operations = db.GetService<IMigrationsModelDiffer>().GetDifferences(null, model.GetRelationalModel());
-                foreach (var command in db.GetService<IMigrationsSqlGenerator>().Generate(operations, model))
-                {
-                    await db.Database.ExecuteSqlRawAsync(command.CommandText, cancellationToken).ConfigureAwait(false);
-                }
-
+                await Run(db, model, operations, cancellationToken).ConfigureAwait(false);
                 foreach (var (title, body) in Seed)
                 {
                     await Note.Create(Note.Write(title, body), cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
+            }
+            else if (!await HasTable(db, items, cancellationToken).ConfigureAwait(false))
+            {
+                var checklist = operations
+                    .Where(o => o is CreateTableOperation { Name: var table } && string.Equals(table, items, StringComparison.Ordinal) ||
+                                o is CreateIndexOperation { Table: var indexed } && string.Equals(indexed, items, StringComparison.Ordinal))
+                    .ToList();
+                await Run(db, model, checklist, cancellationToken).ConfigureAwait(false);
             }
 
             ready.Set();
@@ -54,6 +56,21 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private static async Task<bool> HasTable(NotesDb db, string table, CancellationToken cancellationToken) =>
+        await db.Database
+            .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = {table}")
+            .SingleAsync(cancellationToken)
+            .ConfigureAwait(false) > 0;
+
+    private static async Task Run(
+        NotesDb db, IModel model, IReadOnlyList<MigrationOperation> operations, CancellationToken cancellationToken)
+    {
+        foreach (var command in db.GetService<IMigrationsSqlGenerator>().Generate(operations, model))
+        {
+            await db.Database.ExecuteSqlRawAsync(command.CommandText, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     private static readonly (string Title, string Body)[] Seed =
     [

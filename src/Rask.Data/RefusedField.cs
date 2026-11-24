@@ -68,6 +68,17 @@ internal static class RefusedField
 
                 return null;
 
+            // A local captured by an outer closure, reached through the inner one's link to it — a loop's `i` is captured
+            // apart from `parts`, so `() => parts[i].Quantity` reads `<closure>.CS$<>8__locals1.parts`: named as the
+            // closure's own field is, and the links behind it left out.
+            case MemberExpression { Member.DeclaringType: { } closure } member when IsClosureType(closure):
+                if (!string.Equals(member.Member.Name, CapturedThis, StringComparison.Ordinal))
+                {
+                    segments.Add(FormName(member.Member.Name));
+                }
+
+                return null;
+
             case MemberExpression { Expression: { } owner } member:
                 segments.Add(MemberName(member.Member));
                 return Unwrap(owner);
@@ -111,8 +122,9 @@ internal static class RefusedField
     private static string FormName(string local) =>
         local.Length == 0 || char.IsUpper(local[0]) ? local : char.ToUpperInvariant(local[0]) + local[1..];
 
-    private static bool IsClosure(object? value) =>
-        value is not null && value.GetType().IsDefined(typeof(CompilerGeneratedAttribute), inherit: false);
+    private static bool IsClosure(object? value) => value is not null && IsClosureType(value.GetType());
+
+    private static bool IsClosureType(Type type) => type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false);
 
     private static Expression Unwrap(Expression node)
     {

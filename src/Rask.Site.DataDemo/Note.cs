@@ -18,6 +18,23 @@ public sealed partial class Note : Aggregate<Guid, Timestamps, Versioned, Model,
     [MaxLength(2000)]
     public string? Body { get; private set; }
 
+    /// <summary>The note's checklist, in the order its form lists the items.</summary>
+    public Children<NoteItem, NoteItemSpec> Items { get; } = new();
+
+    /// <summary>
+    ///     An operation over the checklist: <c>Form.For(Note.Checklist, id)</c> is an editable list of its rows, a row
+    ///     per item, and an item left blank is refused under its own row (<c>Items[1].Text</c>) as it is typed in.
+    /// </summary>
+    public void Checklist(IReadOnlyList<NoteItemSpec> items)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            Refuse.When(string.IsNullOrWhiteSpace(items[i].Text), () => items[i].Text, "An item says something.");
+        }
+
+        _ = Items.Sync(items, s => s.Id, NoteItem.For, static (item, spec) => item.Take(spec));
+    }
+
     /// <summary>A note written by code rather than by the form — the seed rows.</summary>
     internal static Note Write(string title, string body) =>
         new() { Id = Guid.CreateVersion7(), Title = title, Body = body };

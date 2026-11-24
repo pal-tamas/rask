@@ -55,9 +55,27 @@ public sealed partial class OperationGenerator
 
         /// <summary>Whether its value may be taken away: a "Clear" beside the field (<c>{Property}Cleared</c>).</summary>
         public bool Clearable { get; init; }
+
+        /// <summary>The C# of what a control bound to it is told (<c>DriverName.__Field</c>), or null for nothing.</summary>
+        public string? Shape { get; init; }
+
+        /// <summary>Whether a value type is held as its nullable twin, and so refused as required when left empty.</summary>
+        public bool Lifted { get; init; }
+
+        /// <summary>The fields of a value object of several values, or null for a field of one value.</summary>
+        public FormGroup? Group { get; init; }
+
+        /// <summary>The rows of a list, or null for a field of one value.</summary>
+        public FormRows? Rows { get; init; }
     }
 
     private static FormField? FieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate)
+    {
+        var input = InputName(aggregate.Name, parameter.ContainingSymbol.Name);
+        return ParameterFieldOf(parameter, aggregate) ?? GroupFieldOf(parameter, aggregate, input) ?? RowsFieldOf(parameter, aggregate, input);
+    }
+
+    private static FormField? ParameterFieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate)
     {
         // Change<T>: an empty field keeps the value, so nothing is read into it; a nullable T may be cleared too.
         if (parameter.Type is INamedTypeSymbol { Name: "Change", TypeArguments.Length: 1, ContainingNamespace: { Name: "Values", ContainingNamespace.Name: "Rask" } } change)
@@ -91,34 +109,8 @@ public sealed partial class OperationGenerator
         var property = Capitalised(parameter.Name);
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
                        parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
-        var held = aggregate.GetMembers(property).OfType<IPropertySymbol>()
-            .FirstOrDefault(p => !p.IsStatic && SymbolEqualityComparer.Default.Equals(p.Type.WithNullableAnnotation(NullableAnnotation.None), parameterType.WithNullableAnnotation(NullableAnnotation.None)));
-
-        if (parameterType is INamedTypeSymbol named && OneValueOf(named) is { } inner)
-        {
-            var text = inner.SpecialType == SpecialType.System_String;
-            var innerType = inner.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString(TypeFormat);
-            var access = held?.NullableAnnotation == NullableAnnotation.Annotated ? "?.Value" : ".Value";
-            var fill = held is null || AggregateShape.IsPassword(named) ? null : "aggregate." + property + access;
-            return new FormField(
-                property,
-                text ? "string?" : innerType + "?",
-                named.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                optional,
-                !optional && !(text && AggregateShape.AllowsEmptyText(named)),
-                text,
-                fill);
-        }
-
-        if (!IsFormValue(parameterType))
-        {
-            return null;
-        }
-
-        var type = parameterType.ToDisplayString(TypeFormat);
-        var isString = parameterType.SpecialType == SpecialType.System_String;
-        // A plain text is the domain's to refuse (its Refuse, its attributes), told by the dry run: no required rule of the form's own.
-        return new FormField(property, type, null, optional, Required: false, isString, held is null ? null : "aggregate." + property);
+        var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
+        return MemberField(property, parameterType, optional, held, "aggregate", lift: false);
     }
 
     // The one value a value object declared from Text, Number, Whole, Day or Moment holds: its positional parameter.
@@ -229,6 +221,7 @@ public sealed partial class OperationGenerator
             AppendRules(s, aggregate, operation);
         }
 
+        AppendShapeHelpers(s, formed);
         s.AppendLine("}");
         return s.ToString();
     }
@@ -257,9 +250,35 @@ public sealed partial class OperationGenerator
         return formed;
     }
 
+    // The helpers a shape above is written with, once each: a range's end, a value object's lengths its attributes tighten.
+    private static void AppendShapeHelpers(StringBuilder s, List<(Operation Operation, string Entry)> formed)
+    {
+        var shapes = formed
+            .SelectMany(static f => f.Operation.Parameters.Select(static p => p.Field!))
+            .SelectMany(static f => (f.Group?.Members ?? f.Rows?.Members ?? new EquatableArray<FormField>([])).Append(f))
+            .Select(static f => f.Shape)
+            .OfType<string>()
+            .ToList();
+        if (shapes.Exists(static shape => shape.StartsWith(EndOf, StringComparison.Ordinal)))
+        {
+            AppendEndOf(s);
+        }
+
+        if (FieldShapeHints.UseWithin(shapes))
+        {
+            FieldShapeHints.AppendWithin(s);
+        }
+    }
+
     private static void AppendRegistrations(StringBuilder s, OperatedAggregate aggregate, List<(Operation Operation, string Entry)> formed)
     {
         s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
+        foreach (var (_, type) in formed.SelectMany(f => NestedModels(aggregate, f.Operation)))
+        {
+            s.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties, typeof(")
+                .Append(type).AppendLine("))]");
+        }
+
         s.AppendLine("    internal static void Register()");
         s.AppendLine("    {");
         foreach (var (operation, _) in formed)
@@ -267,6 +286,20 @@ public sealed partial class OperationGenerator
             var input = InputName(aggregate, operation);
             s.Append("        ").Append(ValidationFqn).Append(".RegisterFieldShapes(typeof(").Append(input).Append("), ").Append(operation.Name).AppendLine("ShapeOf);");
             s.Append("        ").Append(ValidationFqn).Append(".RegisterRequiredFields(typeof(").Append(input).Append("), ").Append(operation.Name).AppendLine("Required);");
+            foreach (var (key, type) in NestedModels(aggregate, operation))
+            {
+                s.Append("        ").Append(ValidationFqn).Append(".RegisterFieldShapes(typeof(").Append(type).Append("), ").Append(key).AppendLine("ShapeOf);");
+                s.Append("        ").Append(ValidationFqn).Append(".RegisterRequiredFields(typeof(").Append(type).Append("), ").Append(key).AppendLine("Required);");
+            }
+
+            // A value object of several values that may be absent: nothing in its group is required until one is filled.
+            var optional = operation.Parameters.Select(static p => p.Field!).Where(static f => f is { Group: not null, Optional: true }).ToList();
+            if (optional.Count > 0)
+            {
+                s.Append("        ").Append(ValidationFqn).Append(".RegisterOptionalFields(typeof(").Append(input).Append("), static property => property is ")
+                    .Append(string.Join(" or ", optional.Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)))).AppendLine(");");
+            }
+
             s.Append("        ").Append(ValidationFqn).Append(".RegisterStoreRules(typeof(").Append(input).Append("), static _ => new ").Append(operation.Name).AppendLine("Rules());");
             var clearable = operation.Parameters.Select(static p => p.Field!).Where(static f => f.Clearable).ToList();
             if (clearable.Count > 0)
@@ -316,7 +349,9 @@ public sealed partial class OperationGenerator
         s.AppendLine();
     }
 
-    private static string InputName(OperatedAggregate aggregate, Operation operation) => aggregate.Name + operation.Name + "Input";
+    private static string InputName(OperatedAggregate aggregate, Operation operation) => InputName(aggregate.Name, operation.Name);
+
+    private static string InputName(string aggregate, string operation) => aggregate + operation + "Input";
 
     private static void AppendInput(StringBuilder s, OperatedAggregate aggregate, Operation operation)
     {
@@ -344,16 +379,7 @@ public sealed partial class OperationGenerator
         foreach (var parameter in operation.Parameters)
         {
             var field = parameter.Field!;
-            s.Append("    /// <summary>What <c>").Append(operation.Name).Append("</c> is given as <c>").Append(parameter.Name.TrimStart('@'))
-                .AppendLine("</c>.</summary>");
-            s.Append("    public ").Append(field.PropertyType).Append(' ').Append(field.Property).Append(" { get; set; }");
-            if (field.Text && !field.PropertyType.EndsWith("?", StringComparison.Ordinal))
-            {
-                s.Append(" = \"\";");
-            }
-
-            s.AppendLine();
-            s.AppendLine();
+            AppendProperty(s, "    ", field, "What <c>" + operation.Name + "</c> is given as <c>" + parameter.Name.TrimStart('@') + "</c>.");
             if (field.Clearable)
             {
                 s.Append("    /// <summary>Whether <c>").Append(field.Property).AppendLine("</c> is to be cleared rather than kept: the Clear beside its field.</summary>");
@@ -362,7 +388,54 @@ public sealed partial class OperationGenerator
             }
         }
 
+        foreach (var field in operation.Parameters.Select(static p => p.Field!))
+        {
+            if (field.Group is { } group)
+            {
+                AppendNested(s, group.Model, "The fields of <c>" + field.Property + "</c>: one per member of the value object.", group.Members);
+            }
+            else if (field.Rows is { } rows)
+            {
+                AppendNested(s, rows.Model, "One row of <c>" + field.Property + "</c>: add one with <c>" + field.Property + ".Add(new())</c>.", rows.Members);
+            }
+        }
+
         s.AppendLine("}");
+        s.AppendLine();
+    }
+
+    private static void AppendProperty(StringBuilder s, string indent, FormField field, string summary)
+    {
+        s.Append(indent).Append("/// <summary>").Append(summary).AppendLine("</summary>");
+        s.Append(indent).Append("public ").Append(field.PropertyType).Append(' ').Append(field.Property).Append(" { get; set; }");
+        if (field.Group is not null)
+        {
+            s.Append(" = new();");
+        }
+        else if (field.Rows is not null)
+        {
+            s.Append(" = [];");
+        }
+        else if (field.Text && !field.PropertyType.EndsWith("?", StringComparison.Ordinal))
+        {
+            s.Append(" = \"\";");
+        }
+
+        s.AppendLine();
+        s.AppendLine();
+    }
+
+    private static void AppendNested(StringBuilder s, string model, string summary, EquatableArray<FormField> members)
+    {
+        s.Append("    /// <summary>").Append(summary).AppendLine("</summary>");
+        s.Append("    public sealed class ").AppendLine(model);
+        s.AppendLine("    {");
+        foreach (var member in members)
+        {
+            AppendProperty(s, "        ", member, "Its <c>" + member.Property + "</c>.");
+        }
+
+        s.AppendLine("    }");
         s.AppendLine();
     }
 
@@ -462,43 +535,40 @@ public sealed partial class OperationGenerator
         foreach (var parameter in operation.Parameters)
         {
             var field = parameter.Field!;
-            s.Append("        ").Append(parameter.Name).Append(" = ").Append(Made(field)).AppendLine(";");
+            s.Append("        ").Append(parameter.Name).Append(" = ").Append(Made(operation, field)).AppendLine(";");
         }
 
         s.AppendLine("        return failures.Count == 0;");
         s.AppendLine("    }");
+
+        foreach (var field in operation.Parameters.Select(static p => p.Field!))
+        {
+            if (field.Group is not null)
+            {
+                AppendGroupMade(s, input, operation, field);
+            }
+            else if (field.Rows is not null)
+            {
+                AppendRowsMade(s, input, operation, field);
+            }
+        }
     }
 
-    private static string Made(FormField field)
+    private static string Made(Operation operation, FormField field)
     {
-        if (field.Change is { } change)
-        {
-            return ChangeMade(field, change);
-        }
-
-        var given = "input." + field.Property;
-        if (field.ValueObject is not { } valueObject)
-        {
-            return given;
-        }
-
         var name = SymbolDisplay.FormatLiteral(field.Property, quote: true);
-        string make;
-        if (field.Optional)
+        var given = "input." + field.Property;
+        if (field.Group is not null)
         {
-            make = valueObject + ".CreateOptional(" + given + ", " + name + ")";
-        }
-        else if (field.Text)
-        {
-            make = valueObject + ".Create(" + given + " ?? \"\", " + name + ")";
-        }
-        else
-        {
-            make = given + " is { } __given ? " + valueObject + ".Create(__given, " + name + ") : throw new global::Rask.Cqrs.RaskValidationException(new " +
-                   FailureFqn + "[] { new " + FailureFqn + "(global::Rask.Rules.Required, new[] { " + name + " }) })";
+            return operation.Name + field.Property + "Made(" + given + ", " + name + ", failures)" + (field.Optional ? "" : "!");
         }
 
-        return "global::Rask.Data.GeneratedOperations.Given(() => " + make + ", failures)" + (field.Optional ? "" : "!");
+        if (field.Rows is not null)
+        {
+            return "[.. " + operation.Name + field.Property + "Made(" + given + ", " + name + ", failures)]";
+        }
+
+        return field.Change is { } change ? ChangeMade(field, change) : MadeFrom(field, given, name);
     }
 
     // An empty field keeps; a ticked Clear clears; a value typed in is set, made through its value object's rules.
@@ -517,23 +587,50 @@ public sealed partial class OperationGenerator
         return filled + " ? " + change + ".Set(" + made + ") : " + rest;
     }
 
+    // Per model — the form's own, and each group's and each row's — what each field is told and which must be filled.
     private static void AppendShapesAndRequired(StringBuilder s, Operation operation)
     {
+        var fields = operation.Parameters.Select(static p => p.Field!).ToList();
+        AppendShapesAndRequired(s, operation.Name, fields);
+        foreach (var field in fields)
+        {
+            if ((field.Group?.Members ?? field.Rows?.Members) is { } members)
+            {
+                AppendShapesAndRequired(s, operation.Name + field.Property, [.. members]);
+            }
+        }
+    }
+
+    private static void AppendShapesAndRequired(StringBuilder s, string key, List<FormField> fields)
+    {
         s.AppendLine();
-        s.Append("    private static global::Rask.Core.Forms.FieldShape? ").Append(operation.Name).AppendLine("ShapeOf(string property) =>");
+        s.Append("    private static ").Append(FieldShapeFqn).Append("? ").Append(key).AppendLine("ShapeOf(string property) =>");
         s.AppendLine("        property switch");
         s.AppendLine("        {");
-        foreach (var field in operation.Parameters.Select(static p => p.Field!).Where(static f => f.ValueObject is not null))
+        foreach (var field in fields.Where(static f => f.Shape is not null))
         {
-            s.Append("            ").Append(SymbolDisplay.FormatLiteral(field.Property, quote: true)).Append(" => ").Append(field.ValueObject).AppendLine(".__Field,");
+            s.Append("            ").Append(SymbolDisplay.FormatLiteral(field.Property, quote: true)).Append(" => ").Append(field.Shape).AppendLine(",");
         }
 
         s.AppendLine("            _ => null,");
         s.AppendLine("        };");
         s.AppendLine();
-        s.Append("    private static bool ").Append(operation.Name).AppendLine("Required(string property) =>");
-        var required = operation.Parameters.Select(static p => p.Field!).Where(static f => f.Required).Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)).ToList();
+        s.Append("    private static bool ").Append(key).AppendLine("Required(string property) =>");
+        var required = fields.Where(static f => f.Required).Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)).ToList();
         s.Append("        ").Append(required.Count == 0 ? "false" : "property is " + string.Join(" or ", required)).AppendLine(";");
+    }
+
+    // Each nested model's type, as `typeof(…)`; the form walks their properties to name a row's field (`Parts[1].Quantity`).
+    private static IEnumerable<(string Key, string Type)> NestedModels(OperatedAggregate aggregate, Operation operation)
+    {
+        var input = InputName(aggregate, operation);
+        foreach (var field in operation.Parameters.Select(static p => p.Field!))
+        {
+            if ((field.Group?.Model ?? field.Rows?.Model) is { } model)
+            {
+                yield return (operation.Name + field.Property, input + "." + model);
+            }
+        }
     }
 
     // The operation's dry run, asked as the store's rules are: as each field is committed and once more on submit.

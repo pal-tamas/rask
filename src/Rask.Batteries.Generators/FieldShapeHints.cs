@@ -102,7 +102,13 @@ internal static class FieldShapeHints
     }
 
     // What a property of no value object and no enum holds, as Core's AnnotatedShapes.KindOf reads it.
-    private static string PlainKindOf(ITypeSymbol type)
+    private static string PlainKindOf(ITypeSymbol type) => KnownKindOf(type) ?? "Text";
+
+    /// <summary>
+    ///     The <c>FieldKind</c> a plain value is — <c>Whole</c>, <c>Number</c>, <c>Day</c>, <c>Moment</c> or <c>Text</c> —
+    ///     or null for one of no kind a control is told about (a <c>bool</c>, an enum, an id).
+    /// </summary>
+    internal static string? KnownKindOf(ITypeSymbol type)
     {
         var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
             ? nullable.TypeArguments[0]
@@ -114,11 +120,12 @@ internal static class FieldShapeHints
                 SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 => "Whole",
             SpecialType.System_Decimal or SpecialType.System_Double or SpecialType.System_Single => "Number",
             SpecialType.System_DateTime => "Moment",
+            SpecialType.System_String => "Text",
             _ => held.ToDisplayString() switch
             {
                 "System.DateOnly" => "Day",
                 "System.DateTimeOffset" => "Moment",
-                _ => "Text",
+                _ => null,
             },
         };
     }

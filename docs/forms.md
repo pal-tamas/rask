@@ -1032,6 +1032,47 @@ Form.For(Note.Rename, id)[f => [
 - **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.
 - `.Missing(component)` is drawn for an id no row has, `.OnSaved(async () => …)` runs after a save — closing a dialog,
   say. A form handed another id reads that aggregate afresh.
-- An operation with a parameter no field holds — a list, a value object of several values — gets no `Form.For` yet,
-  and two operations whose entries take the same types get none either
-  ([RASK174](diagnostics.md#rask174)): a method group carries no name a call could tell them apart by.
+- **Rows: a list parameter.** An operation that takes a list of rows — the `Children<TEntity, TSpec>.Sync` of
+  [children made from a form's rows](data.md) — is an editable list: `f.Parts`, a row per child the aggregate holds
+  (read off the child by the spec's member names, its `Id` among them, so `Sync` matches it), each row's fields the
+  spec's members. Write the rows with the kit's table, a row added with `f.Parts.Add(new())` and taken away with
+  `f.Parts.Remove(row)`:
+
+  ```csharp
+  public sealed record SupplyPartSpec(SupplyPartId? Id, TankId Tank, Quantity Quantity);
+
+  public void Change(IReadOnlyList<SupplyPartSpec> parts) =>
+      _ = Parts.Sync(parts, s => s.Id, SupplyPart.For, (p, s) => p.Hold(s));
+
+  Form.For(Supply.Change, id)[f => [
+      Ui.Table[
+          Ui.TableColumns[Ui.TableColumn["Quantity"], Ui.TableColumn.End[""]],
+          Ui.TableRows[f.Parts.Select((row, i) => Ui.TableRow.Key(i)[
+              Ui.TableCell[Ui.Input.Bind(() => row.Quantity), Ui.Error.For(() => row.Quantity)],
+              Ui.TableCell.End[Ui.Button.Ghost.Sm.OnClick(() => f.Parts.Remove(row))["Remove"]]
+          ])]
+      ],
+      Ui.Button.OnClick(() => f.Parts.Add(new()))["Add a part"],
+      Ui.Button.Primary.Submit["Save"],
+  ]]
+  ```
+
+  A member is held as a field is: a one-value value object as its value, made through its `Create`; a number, a day,
+  an enum or an id held empty until one is typed, and refused as required when left so; a `bool` as it is. Each row
+  is made into its spec, and every refusal is shown under that row — what a value object says, what the operation's
+  `Refuse` says (`() => parts[i].Quantity`), what the child's own rules say as the dry run saves it — as
+  `Parts[1].Quantity`, the row's place. The child's attributes and the rules stated for it (`[MaxLength]`,
+  FluentValidation's `RuleFor`) tell the row's controls (`maxlength`, `min`). A spec is built through a public
+  constructor naming every member (a positional record), else a public parameterless one and setters.
+- **A value object of several values** — `Range`, `record Opening(DateOnly? Date, decimal? Quantity) : Value` — is a
+  group of fields, one per member: `Ui.Field.Bind(() => f.Opening.Date)`. It is made through its `Create`, so its
+  `Rules()` refuse under `Opening.Quantity` as the field is left, a member it may not lack is required under its own
+  name, and a nullable one (`Opening? opening`) left wholly empty is handed over as null, nothing in it required until
+  one is filled. A range is one field, as on a generated model: `Ui.Field.Bind(() => f.Km)` draws both ends under one
+  label, each told the range's kind and bounds.
+- **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
+  is matched by the id it was given, not added twice. A factory's form starts empty again.
+- An operation whose parameter no field holds — a row whose member is itself a list or a value object of several
+  values — gets no `Form.For`, and two operations whose entries take the same types get none either
+  ([RASK174](diagnostics.md#rask174)): `Form.For` picks the form by the delegate the method group converts to, and two
+  entries of one signature convert to the same delegate, whatever their names.

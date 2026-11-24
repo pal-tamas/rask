@@ -73,6 +73,25 @@ public sealed class RefuseTests
     }
 
     [Fact]
+    public void A_list_refused_inside_a_loop_is_named_by_the_list_not_the_closures_between()
+    {
+        List<Part> parts = [new(1), new(2), new(3)];
+
+        var refused = Assert.Throws<RaskValidationException>(() => RefuseEach(parts));
+
+        Assert.Equal(["Parts[2].Quantity"], Assert.Single(refused.Failures).Fields);
+    }
+
+    // The loop an operation over its rows writes: `parts` and the loop's `i` are captured by two closures.
+    private static void RefuseEach(List<Part> parts)
+    {
+        for (var i = 0; i < parts.Count; i++)
+        {
+            Refuse.When(parts[i].Quantity > 2, () => parts[i].Quantity, "Too many.");
+        }
+    }
+
+    [Fact]
     public void An_array_element_and_an_index_computed_in_place_are_both_evaluated()
     {
         Part[] parts = [new(1), new(2), new(3)];

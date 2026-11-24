@@ -307,6 +307,19 @@ them until tagged releases begin.
   keeping the value; a value typed in is set through its value object's rules, and over a nullable value
   `Ui.Field.Bind` draws a "Clear" (`RaskString.ChangeClear`, "Törlés") beside the control
   (`RaskValidation.RegisterClearing`). A `Password` value object is never read into a form field.
+- **`Form.For` over an operation that takes rows, or a value object of several values.** Before: an operation with a
+  list parameter (`Change(IReadOnlyList<SupplyPartSpec> parts)` for a `Children<,>.Sync`) or a `Range` / `: Value`
+  record of several members got no `Form.For`. After: a list is `f.Parts`, a row per child the aggregate holds (read
+  by the spec's member names, the child's `Id` among them), each row's fields the spec's members — a one-value value
+  object held as its value, a number or a day held empty until typed — added with `f.Parts.Add(new())` and taken away
+  with `f.Parts.Remove(row)` beside the kit's `Ui.TableCell[Ui.Input.Bind(() => row.Quantity), Ui.Error.For(…)]`;
+  each row is made into its spec, and what its value objects, the operation's `Refuse` and the child's own rules
+  refuse is shown under that row (`Parts[1].Quantity`), the child's attributes and stated rules telling its controls
+  (`maxlength`, `min`). A value object of several values is a group, `f.Opening.Date`, made through its `Create` —
+  refused under `Opening.Quantity`, a member it may not lack under its own name, a nullable one left wholly empty
+  handed over as null — and a range is still one field, `Ui.Field.Bind(() => f.Km)`. A saved form reads the aggregate
+  afresh, so its next submit is at the new version and a row it added is not added twice. The rask.sh data demo edits
+  the newest note's checklist this way.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
@@ -971,6 +984,9 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `Refuse` inside a loop names the row, not the compiler's closure.** Before: `for (var i = 0; …) Refuse.When(…,
+  () => parts[i].Quantity, …)` refused under `CS$<>8__locals1.parts[2].Quantity`, since the loop's `i` is captured
+  apart from `parts`, and a form showed it under no field. After: `Parts[2].Quantity`, as outside a loop.
 - **A `RaskDbContext` or `RaskReadDbContext` built from options of its own builds EF Core's internal services once.**
   Before: EF Core builds a context's services in its constructor from the options it is handed, and again from the
   ones `OnConfiguring` leaves, so a context given plain options (`new DbContextOptionsBuilder<T>().UseSqlite(…)`,

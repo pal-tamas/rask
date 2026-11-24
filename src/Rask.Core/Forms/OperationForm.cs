@@ -12,8 +12,8 @@ namespace Rask.Core.Forms;
 ///     <para>
 ///         Made by the generated <c>Form.For</c> of each operation, never by hand. Until the aggregate is read it draws
 ///         nothing; an id no row has draws <see cref="Missing" />. A submit the entry refuses — a rule, a <c>Refuse</c>,
-///         a stale version — shows each failure under its field as any form does, and one it accepts runs
-///         <see cref="OnSaved" />. The operation's dry run is asked as each field is committed, so what the save would
+///         a stale version — shows each failure under its field as any form does, and one it accepts reads the
+///         aggregate afresh (its new version, a new row's id) and runs <see cref="OnSaved" />. The operation's dry run is asked as each field is committed, so what the save would
 ///         refuse is told before it is tried.
 ///     </para>
 ///     <para>
@@ -92,6 +92,12 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         _missing = null;
     }
 
+    // What the generated Form.For wired, asked without a render: the tests that drive a generated form read and save
+    // through these, as OnMount and a submit do.
+    internal Task<TInput?> Read(CancellationToken cancellationToken) => _load(cancellationToken);
+
+    internal Task Submit(TInput input, CancellationToken cancellationToken) => _submit(input, cancellationToken);
+
     /// <inheritdoc />
     protected override async Task OnMount()
     {
@@ -132,6 +138,10 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     private async Task Save(TInput input)
     {
         await _submit(input, CancellationToken).ConfigureAwait(false);
+
+        // Read again: the save moved the version on and gave a new row its id, so the next submit of this form is
+        // neither refused as stale nor adds that row twice. A factory's form starts empty again.
+        _input = await _load(CancellationToken).ConfigureAwait(false);
         if (_saved is { } saved)
         {
             await saved().ConfigureAwait(false);
