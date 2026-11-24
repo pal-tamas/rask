@@ -53,6 +53,7 @@ public sealed class ProviderSpecificCodeAnalyzerTests
     [InlineData("await db.Database.ExecuteSqlAsync($\"DELETE FROM Notes\");", "'ExecuteSqlAsync'", "ExecuteUpdate/ExecuteDelete")]
     [InlineData("_ = db.Database.SqlQueryRaw<int>(\"SELECT 1\");", "'SqlQueryRaw'", "a LINQ query")]
     [InlineData("b.Property(n => n.Price).HasColumnType(\"decimal(18, 9)\");", "'HasColumnType'", "Scale: 2")]
+    [InlineData("b.Metadata.SetContainerColumnType(\"nvarchar(max)\");", "'SetContainerColumnType'", "leave the JSON column's type to Rask")]
     [InlineData("model.UseCollation(\"Hungarian_100_CI_AS\");", "'UseCollation'", "OrderTextBy")]
     [InlineData("b.Property(n => n.Title).UseCollation(\"Hungarian_100_CI_AS\");", "'UseCollation'", "OrderTextBy")]
     [InlineData("b.Property(n => n.At).HasDefaultValueSql(\"SYSUTCDATETIME()\");", "'HasDefaultValueSql'", "b.Default(")]

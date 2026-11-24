@@ -150,7 +150,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             ChildFieldsOf(symbol),
             AggregateShape.IsAggregate(symbol),
             unbuildable,
-            referenceValues);
+            referenceValues,
+            SecretsHeldBy(symbol));
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
@@ -850,6 +851,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             }
         }
 
+        EmitSecretConversions(source, entities);
         source.AppendLine("    }");
         source.AppendLine();
 
@@ -1029,5 +1031,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         EquatableArray<ChildFieldSpec> ChildFields,
         bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders,
-        EquatableArray<ReferenceValue> ReferenceValues);
+        EquatableArray<ReferenceValue> ReferenceValues,
+        EquatableArray<string> Secrets);
 }

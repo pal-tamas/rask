@@ -45,9 +45,14 @@ internal static class RuleAudit
     /// <summary>Asks every stored aggregate of the app's model — or only those named — every rule it declares.</summary>
     /// <param name="aggregates">The aggregates to ask, by type name (any case); empty for every one.</param>
     /// <param name="cancellationToken">Cancels the audit.</param>
+    /// <param name="uniqueCandidates">
+    ///     Ask the model's unique indexes instead of the rules: the groups of stored rows that would stop a migration adding
+    ///     one (<see cref="UniqueCandidates" />).
+    /// </param>
     /// <returns>The rows read and every rule broken.</returns>
     /// <exception cref="ArgumentException">A name is no aggregate of the model; the message lists those that are.</exception>
-    internal static async Task<RuleAuditReport> RunAsync(IReadOnlyCollection<string> aggregates, CancellationToken cancellationToken)
+    internal static async Task<RuleAuditReport> RunAsync(
+        IReadOnlyCollection<string> aggregates, CancellationToken cancellationToken, bool uniqueCandidates = false)
     {
         var context = Db.CreateOwnContext();
         await using (context.ConfigureAwait(false))
@@ -61,7 +66,14 @@ internal static class RuleAudit
             using var everyTenant = Tenant.Across();
             using var dryRun = DryRun.Begin();
 
-            await StoredIdChecks.Check(context, roots.SelectMany(RowTypes).Distinct(), findings, cancellationToken).ConfigureAwait(false);
+            var types = roots.SelectMany(RowTypes).Distinct().ToList();
+            if (uniqueCandidates)
+            {
+                await UniqueCandidates.Check(context, types, findings, cancellationToken).ConfigureAwait(false);
+                return findings.Report();
+            }
+
+            await StoredIdChecks.Check(context, types, findings, cancellationToken).ConfigureAwait(false);
             foreach (var root in roots)
             {
                 await AuditRoots(context, root, findings, cancellationToken).ConfigureAwait(false);

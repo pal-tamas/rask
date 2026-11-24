@@ -3425,6 +3425,9 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 **Fix:** initialize it with `null!` and set it where the aggregate is made (its factory, or the generated
 `Delivery.Create(model)`); the form then starts the field empty, and required. The quick-fix writes the `null!`.
+A placeholder that stands for "none" — `Opening Start = Opening.None` over `Opening(DateTime? Date, decimal? Quantity)`
+— is an optional value: declare it `Opening? Start` with no initializer. A row with every one of its columns `NULL`
+loads it as `null` ([domain.md](domain.md#declared-from-a-base-record)).
 
 ## RASK165
 
@@ -3432,7 +3435,8 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 The generated model, writes and read face exist before any EF model is built, so three calls are read from the
 source of the entity's own static `Configure`, as written there: `KeepEmpty(c => c.Member)` (an empty text kept as
-`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members) and
+`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members), `Json(c => c.Member)`
+(a value object kept whole in one JSON column, which the read face then leaves out) and
 `IsUnique("message")` on an aggregate's index (a form asks the store before it saves). Written anywhere else — a
 helper method, another class, `OnModelCreating`, an `IEntityTypeConfiguration` — or called as a static method, with
 the member in a variable rather than a lambda, or with a pattern that is not a constant, the call still configures
@@ -3673,7 +3677,7 @@ public sealed record FindLogin(Guid Id) : IQuery<Login>;                        
 App code that only one database understands: an API of the SQL Server, PostgreSQL or SQLite provider or of its
 driver (`IncludeProperties`, `IsClustered`, `SqlException`, `PostgresException`, `SqliteConnection`, …),
 `EF.Functions.*`, raw SQL (`FromSql`/`FromSqlRaw`/`FromSqlInterpolated`, `ExecuteSql*`, `SqlQuery`/`SqlQueryRaw`,
-`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `UseCollation`,
+`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `SetContainerColumnType`, `UseCollation`,
 `HasDefaultValueSql`, `HasComputedColumnSql` and `HasFilter` given SQL, `ToSqlQuery`). An app's tests run on SQLite
 in memory ([testing](testing.md)), and Rask proves what it translates behaves the same on SQLite, SQL Server and
 PostgreSQL; code written for one of them is outside that proof — green on the database the tests run on, different
@@ -3693,10 +3697,10 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
 `EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
-`ForUpdate()` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
+`X.Where(…).ForUpdate()` inside `Db.Transaction` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
 message on `OnDelete(…)`, which every database turns into the same `RaskValidationException`.
 
 **Not reported:** a migration — a type derived from `Migration` or `ModelSnapshot`, or any file under a `Migrations`

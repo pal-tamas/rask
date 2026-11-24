@@ -222,6 +222,7 @@ index is turned on, ask the stored rows instead:
 rask audit                          # in the project: runs `dotnet run -- rask audit`
 rask audit --aggregate Driver       # one aggregate (repeat, or Driver,Vehicle)
 rask audit --json > audit.json      # every id, for a script
+rask audit --unique-candidates      # the rows each unique index would refuse, before it is migrated
 dotnet App.dll rask audit           # on the server, from the published app
 ```
 
@@ -255,4 +256,27 @@ never what a row holds, so the report can leave a machine whose data cannot. A c
 (`Chips[*]`). A rule that throws on an old row is reported against that row (*"A rule threw: …"*) and the audit goes
 on. The exit code says the answer: `0` every row passes, `1` some do not, `2` the command line was wrong — so a
 release step can stop before a migration whose rule the stored data would break.
+
+**Before a unique index goes in — `--unique-candidates`.** Declare the index in the model
+(`b.HasIndex(d => new { d.TenantId, d.CardNumber }).IsUnique()`, with `.Where(…)` for a filtered one), and before its
+migration runs ask the stored rows instead of the rules:
+
+```bash
+rask audit --unique-candidates --aggregate Driver
+```
+
+```text
+Driver — 412 read:
+  TenantId, CardNumber: Would break the unique index on (TenantId, CardNumber): rows that hold the same values. — 1
+    3f2c… = 9a41…
+```
+
+The audit reads the model, not the database, so an index that exists only in code is asked as if it were there; one the
+database already holds answers clean. For every unique index of every row type of the aggregates (children included)
+it reads each row's key and id in LINQ — every row, a deleted one and every tenant's included, as the index will count
+them, narrowed by the index's `.Where(…)` — and reports each group of rows holding the same key by their ids alone
+(`id = id`), never the values. A row with a NULL in its key collides with nothing, as the index's filter on SQL Server
+and the NULL rules of PostgreSQL and SQLite have it. Texts that differ only in letter case are reported apart (*"under a
+case-insensitive collation (SQL Server's default)"*): they collide there and nowhere else. An index whose filter is
+hand-written SQL (`HasFilter`) cannot be asked in LINQ; the report names it under a note instead.
 

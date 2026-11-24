@@ -62,6 +62,20 @@ public class PasswordExposureAnalyzerTests
     }
 
     [Fact]
+    public async Task A_password_kept_as_a_secret_is_stored_as_its_ciphertext_and_not_reported()
+    {
+        var diagnostics = await Run("""
+            public sealed class Partner : Aggregate<Guid>
+            {
+                private Partner() { }
+                public Secret<SignInPassword>? ApiKey { get; private set; }
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public async Task A_computed_property_and_a_plain_class_holding_a_password_are_not_reported()
     {
         var diagnostics = await Run("""

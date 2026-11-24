@@ -69,6 +69,15 @@ public readonly struct Saving
         new(_files, _openRead, _content, _name, _size, _isPublic, MediaType.Stated(contentType, nameof(contentType)),
             _cancellationToken);
 
+    /// <summary>The display name it was worded with.</summary>
+    internal string Name => _name;
+
+    /// <summary>The same save, cancelled by <paramref name="cancellationToken" /> where it was worded with none.</summary>
+    internal Saving In(CancellationToken cancellationToken) =>
+        _cancellationToken.CanBeCanceled
+            ? this
+            : new(_files, _openRead, _content, _name, _size, _isPublic, _contentType, cancellationToken);
+
     /// <summary>Runs it.</summary>
     public TaskAwaiter<StoredFile> GetAwaiter() => AsTask().GetAwaiter();
 

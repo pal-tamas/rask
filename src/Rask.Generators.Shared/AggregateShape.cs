@@ -346,6 +346,38 @@ internal static class AggregateShape
         type is INamedTypeSymbol named && string.Equals(TextKindOf(named), "Password", StringComparison.Ordinal);
 
     /// <summary>
+    ///     The <c>T</c> of a <c>Rask.Values.Secret&lt;T&gt;</c>, or null for any other type: a value stored as its
+    ///     ciphertext and never read back to a page.
+    /// </summary>
+    public static ITypeSymbol? SecretValueOf(ITypeSymbol type) =>
+        type is INamedTypeSymbol { Name: "Secret", Arity: 1, ContainingType: null } named &&
+        string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Values", StringComparison.Ordinal)
+            ? named.TypeArguments[0]
+            : null;
+
+    /// <summary>Whether <paramref name="type" /> is a <c>Rask.Values.Secret&lt;T&gt;</c>: stored, never shown.</summary>
+    public static bool IsSecret(ITypeSymbol type) => SecretValueOf(type) is not null;
+
+    /// <summary>
+    ///     Whether <paramref name="type" /> is a <c>Secret&lt;T&gt;</c> or holds one — a member of a value object, however
+    ///     deep — so whatever is read for a page leaves it out.
+    /// </summary>
+    public static bool HoldsSecret(ITypeSymbol type) => HoldsSecret(type, 0);
+
+    private static bool HoldsSecret(ITypeSymbol type, int depth)
+    {
+        if (IsSecret(type))
+        {
+            return true;
+        }
+
+        return depth < MaxValueObjectDepth &&
+               type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol named &&
+               IsValueObjectType(named) &&
+               StoredProperties(named).Any(p => HoldsSecret(p.Type, depth + 1));
+    }
+
+    /// <summary>
     ///     Whether a value object declared from <c>Text</c> says an empty text is a value: <c>Text(Value, Required: false)</c>,
     ///     read from its base call as written (a constant <c>false</c>).
     /// </summary>
