@@ -34,6 +34,26 @@ public sealed class OutboxOptions
     /// </summary>
     public TimeSpan Retention { get; set; } = TimeSpan.FromDays(7);
 
+    /// <summary>
+    /// Whether a durable handler runs inside one <c>Db.Transaction</c> with the mark that says its row is done, so what
+    /// it writes to the database and the mark commit together — or neither does. Default <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Off, the handler's writes commit on their own and the mark follows: a crash between the two runs the handler
+    /// again, so its writes must be safe to make twice. On, that window is gone — a handler that throws, a mark that
+    /// fails, a lease lost to another instance: each rolls the handler's writes back with the mark, and the next run
+    /// starts from where the last one was — exactly once, for what goes to the database. A call outside it (a mail, a
+    /// partner's API) is still at-least-once; give it <c>DurableEvent.Current.MessageId</c> as its idempotency key.
+    /// </para>
+    /// <para>
+    /// The transaction is the handler's own, one per row — an aggregate's <c>static Task On(E e)</c> writes its aggregate
+    /// in it, never in the transaction that raised the event. It stays open while the handler runs, so keep a slow call
+    /// outside the database (or hand it to a job) rather than holding the write open across it.
+    /// </para>
+    /// </remarks>
+    public bool HandlerInTransaction { get; set; }
+
     /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="OutboxOptionsValidator"/> for why there is one.</summary>
     internal const int MaxBatchSize = 1000;
 

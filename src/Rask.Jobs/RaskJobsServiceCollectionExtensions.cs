@@ -45,6 +45,10 @@ public static class RaskJobsServiceCollectionExtensions
         // And for a browser half (a wasm-hosted app's): its bell reads the same rows, and opens the same watch, here.
         OwnWorkWire.Install();
 
+        // An aggregate's On(E) its Configure declared b.Job<E>() for: the outbox's row enqueues it, and this job runs it.
+        AggregateEventJob.Install();
+        services.TryAddSingleton<IAggregateEventRoute, AggregateEventJobRoute>();
+
         // Before the processor, so an app whose model never mapped Job fails the boot with the line to
         // type rather than on the first enqueue. The processor itself tolerates a missing table — it has
         // to, because a freshly scaffolded app boots before its first migration has run — so it is the

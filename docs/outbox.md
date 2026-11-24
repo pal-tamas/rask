@@ -46,6 +46,59 @@ because there is none:
 await dispatcher.Publish(new OrderPlaced(id));   // SendReceipt → outbox row, RefreshDashboard → now
 ```
 
+### A handler on the aggregate
+
+When what an event does is change **another aggregate** — a fuel card was used, so the vehicle takes the company it
+was used for — the handler belongs on the aggregate it changes, as one line:
+
+```csharp
+public sealed partial class Vehicle : Aggregate<int, …>
+{
+    static Task On(VehicleUsed e) => Vehicle.Update(e.Vehicle, v => v.TakeCompany(e.Company));
+}
+```
+
+- **It is a durable handler**, exactly as an `IDurableHandler<DriverChipsChanged>` class would be: an outbox row in the
+  transaction that raised the event, run from there after the commit, retried alone. No class, no DI registration —
+  the generator registers it from the aggregate's own partial class, so `On` stays private.
+- **It runs in a transaction of its own**, never in the one that raised the event: one aggregate per transaction,
+  and the event is how a change reaches the next one (D4 — redraw the boundary first, then an event, and only then
+  `manyAggregates:`).
+- **Its stored name is `{Aggregate}:{Event}`** (full names), so its rows stay its own across rebuilds; renaming the
+  aggregate or the event renames it, as renaming a handler class does.
+- **The shape is checked at build:** `static`, returning `Task`, one `IEvent` parameter
+  ([RASK179](diagnostics.md#rask179)), on a `partial` aggregate declared in a namespace
+  ([RASK188](diagnostics.md#rask188)). One `On` per event; an aggregate may handle several.
+- A long one — an import, a pull from a partner — runs as a job instead: [`b.Job<E>()`](jobs.md#an-aggregates-handler-as-a-job).
+
+### Exactly once for the database: `HandlerInTransaction`
+
+By default a durable handler's own writes commit on their own, and the mark that says its row is done follows. A crash
+between the two runs the handler again, so its writes must be safe to make twice. Turn the window off:
+
+```csharp
+app.Configure(c => c.Outbox.Configure(o => o.HandlerInTransaction = true));
+```
+
+- The handler runs inside one `Db.Transaction` **with the mark**: they commit together, or neither does. A handler
+  that throws, a mark that fails, a lease another instance took over — each rolls the handler's writes back with the
+  mark, and the next run starts from where the last one was. For what goes to the database, that is exactly once.
+- Everything the handler writes joins — `X.Update`, `Save`, a context of the app's own, even one from
+  `IDbContextFactory` — as it does inside any [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction).
+  It needs the model database the app registers (`AddRaskData<AppDbContext>()`, which `RaskApp` does).
+- The transaction stays open while the handler runs: keep a slow call outside the database out of it — or make the
+  handler a [job](jobs.md#an-aggregates-handler-as-a-job).
+
+**A call outside the database** (a mail, a payment, a partner's API) is still at-least-once. `DurableEvent.Current`
+names the stored row the handler runs for — the same `MessageId` on every attempt, and which `Attempt` this is — so
+the other side can do it once:
+
+```csharp
+await partner.Charge(e.Order, idempotencyKey: $"charge-{DurableEvent.Current?.MessageId}");
+```
+
+It is `null` outside a durable handler run by the outbox (an `IEventHandler`, or an app with no outbox).
+
 ## Configure
 
 Every key has a default; set only what you change:

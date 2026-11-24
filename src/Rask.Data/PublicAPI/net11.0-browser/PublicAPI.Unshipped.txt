@@ -572,3 +572,8 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+Rask.Data.AfterCommitFailure
+Rask.Data.AfterCommitFailure.Log = 0 -> Rask.Data.AfterCommitFailure
+Rask.Data.AfterCommitFailure.Throw = 1 -> Rask.Data.AfterCommitFailure
+Rask.Data.RaskDataOptions.AfterCommitFailures.get -> Rask.Data.AfterCommitFailure
+Rask.Data.RaskDataOptions.AfterCommitFailures.set -> void

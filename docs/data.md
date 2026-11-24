@@ -1383,6 +1383,24 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
   saves.EachWroteOneAggregate();
   ```
 
+#### After the commit: `AfterCommitFailures`
+
+What a `Db.Transaction` announces runs once it has committed: its in-memory `IEventHandler`s, the data-changed notice
+to the live pages, the outbox's wake-up. The work has happened by then, so a step that throws there does not make the
+call fail:
+
+```csharp
+builder.Services.AddRaskData(o => o.AfterCommitFailures = AfterCommitFailure.Throw);   // Log (default) | Throw
+```
+
+- **`Log`** (the default): the error is logged, every step after it still runs, and the caller sees the committed
+  work succeed — which it did.
+- **`Throw`**: every step still runs, then the caller gets the failure — the exception itself, or an
+  `AggregateException` when several threw. The work is committed all the same; for a test or an app that would rather
+  hear it.
+- Before, the first step that threw skipped the ones behind it and failed a call whose work was already committed.
+- A durable handler is not such a step: it runs from the outbox, retried until it succeeds.
+
 ### One holder at a time, across hosts: `Db.Lock`
 
 Some work must never run twice at once however many hosts the app runs on — talking to one pump, closing one

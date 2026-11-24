@@ -171,10 +171,9 @@ public static partial class Db
             verifySucceeded: null,
             cancellationToken).ConfigureAwait(false);
 
-        foreach (var after in afterCommit)
-        {
-            await after().ConfigureAwait(false);
-        }
+        // Committed: what waited for it runs, each step whatever the one before did, and a failure is met as
+        // RaskDataOptions.AfterCommitFailures says — logged by default, since the work it would report has happened.
+        await AfterCommitSteps.Run(afterCommit).ConfigureAwait(false);
 
         return result;
     }

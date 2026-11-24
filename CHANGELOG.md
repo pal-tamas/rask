@@ -28,6 +28,21 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **An aggregate handles an event in one line: `static Task On(E e)`.** Before: a change that reaches another aggregate
+  through an event needed an `IDurableHandler<E>` class of its own, registered in DI (TA's `RematchDriverFuelings`). After:
+  `static Task On(DriverChipsChanged e) => …;` on the `partial` aggregate it changes is that durable handler — generated
+  registration, stored as `{Aggregate}:{Event}`, run by the outbox in a transaction of its own. RASK179 refuses an `On`
+  of another shape, RASK188 an aggregate the registration cannot be added to (not partial, nested, generic).
+- **`OutboxOptions.HandlerInTransaction`: a durable handler's writes and its processed-mark commit together.** Before: the
+  handler's writes committed, then the mark — a crash between the two ran it again. After: with the option on, a handler
+  that throws, a failed mark or a lost lease rolls the handler's writes back with the mark: exactly once for the database.
+  Off by default.
+- **`DurableEvent.Current` names the outbox row a handler runs for** — `MessageId` (the same on every attempt) and
+  `Attempt` — the idempotency key for a call outside the database. Null outside a handler the outbox runs.
+- **`b.Job<E>()` runs an aggregate's `On(E)` as a job.** In the aggregate's `Configure`:
+  `b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString())` (or `.InLane(e => …)`); the outbox's
+  row then only enqueues a job that runs `On`, with the job's lane, renewed lease, sweep and retry — what Eszaf's
+  `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
@@ -98,6 +113,11 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
+  Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
+  throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
+  `RaskDataOptions.AfterCommitFailures = AfterCommitFailure.Throw` hands it to the caller once all have run (the
+  exception, or an `AggregateException` of several).
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
   sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or

@@ -170,3 +170,5 @@ Rask.Cqrs.OutboxFakes
 Rask.Cqrs.OutboxFakes.extension(Rask.Cqrs.Outbox!)
 static Rask.Cqrs.OutboxFakes.Fake() -> Rask.Cqrs.OutboxFake!
 static Rask.Cqrs.OutboxFakes.extension(Rask.Cqrs.Outbox!).Fake() -> Rask.Cqrs.OutboxFake!
+Rask.Outbox.OutboxOptions.HandlerInTransaction.get -> bool
+Rask.Outbox.OutboxOptions.HandlerInTransaction.set -> void

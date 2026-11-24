@@ -6,6 +6,10 @@ durably, on the app's own database, with no broker or Redis.
 - Give a handler **`IDurableHandler<T>`** and the event is written to an `OutboxMessage` table **in the same
   transaction** as the change that raised it. It is never lost, and it never fires for a change that rolled back.
   Plain `IEventHandler<T>`s of the same event keep running in memory; each handler chooses.
+- An aggregate's **`static Task On(E e)`** is a durable handler too — one line on the aggregate the event changes, no
+  class to write — run in a transaction of its own.
+- **`HandlerInTransaction = true`** commits a handler's writes and its processed-mark together, so a retry never
+  meets half its work; `DurableEvent.Current.MessageId` keys a call outside the database.
 - A background **`OutboxProcessor`** is woken by every save that wrote rows and runs each row's handler, **at
   least once**, with retries and an attempt count. Each durable handler is its own row, retried on its own.
 - Published messages are **purged after `Retention`** (default 7 days) so the table doesn't grow

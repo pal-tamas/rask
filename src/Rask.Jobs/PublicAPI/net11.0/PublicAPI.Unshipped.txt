@@ -529,3 +529,8 @@ Rask.Background.Enqueuing<TJob>.InTenantLane(string? lane = null) -> Rask.Backgr
 Rask.Background.Running.InTenantLane(string? lane = null) -> Rask.Background.Running
 Rask.Background.Running<TResult>.InTenantLane(string? lane = null) -> Rask.Background.Running<TResult>
 static Rask.Background.Jobs.TenantLane(string? lane = null) -> string!
+Rask.Background.EventJob<TEvent>
+Rask.Background.EventJob<TEvent>.InLane(System.Func<TEvent!, string!>! lane) -> Rask.Background.EventJob<TEvent!>!
+Rask.Background.EventJob<TEvent>.InTenantLane(string? lane = null) -> Rask.Background.EventJob<TEvent!>!
+Rask.Background.EventJob<TEvent>.UnlessWaiting(System.Func<TEvent!, string!>! key) -> Rask.Background.EventJob<TEvent!>!
+static Rask.Background.JobsModelBuilderExtensions.Job<TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder! builder) -> Rask.Background.EventJob<TEvent!>!

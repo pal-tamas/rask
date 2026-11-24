@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK186, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK186, RASK188–RASK189, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -175,10 +175,13 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK176](#rask176) | Error | A password is sent back |
 | [RASK177](#rask177) | Info | Code written for one database |
 | [RASK178](#rask178) | Info | A transaction writes two aggregates without saying why |
+| [RASK179](#rask179) | Error | An aggregate's `On` is not an event handler |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASK184](#rask184) | Info | An aggregate refuses with an exception no form can show |
 | [RASK185](#rask185) | Info | An aggregate is loaded outside the transaction that changes it |
 | [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
+| [RASK188](#rask188) | Error | An aggregate's event handler cannot be registered |
+| [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3701,6 +3704,26 @@ IsolationLevel.Serializable)`); the placeholder is yours to replace.
 **Not reported:** one aggregate type written twice — the analyzer cannot tell two rows apart; the run-time check
 counts them by key — and a write in a method the work calls, which the analyzer does not follow.
 
+## RASK179
+
+**An aggregate's `On` is not an event handler** · Error
+
+A method named `On` on an aggregate is its [durable handler](outbox.md#a-handler-on-the-aggregate) of the event
+it takes: Rask stores an outbox row for it in the transaction that raised the event and runs it from there, in a
+transaction of its own. So it has one shape — `static`, returning `Task`, taking one parameter whose type is an
+`IEvent`:
+
+```csharp
+Task On(DriverChipsChanged e) => …;              // ✗ RASK179: is not static
+static void On(DriverChipsChanged e) { … }       // ✗ RASK179: returns 'void', not Task
+static Task On(string code) => …;                // ✗ RASK179: takes 'string', which is not an IEvent
+static Task On(DriverChipsChanged e) => Fueling.UpdateEach(…);   // ✓
+```
+
+It is static because no aggregate is loaded when it runs: it loads — or updates — the ones the event names.
+
+**Fix:** give it that shape, or name a method that is not an event handler something else.
+
 ## RASK180
 
 **Children are added or removed outside their aggregate** · Error
@@ -3804,3 +3827,34 @@ entry takes no `null`); and the updated aggregate the update hands back is not u
 
 **Fix:** call the entry (**quick-fix available** — the id, the version, the operation's arguments and a
 `cancellationToken:` in that order). A suggestion by default; a warning under `<RaskStrict>`.
+
+## RASK188
+
+**An aggregate's event handler cannot be registered** · Error
+
+Rask registers an aggregate's `static Task On(E e)` from a generated part of the aggregate's own class, which is what
+lets the method stay private. That needs a `partial`, non-generic aggregate declared directly in a namespace.
+
+```csharp
+public sealed class Fueling : Aggregate<int>              // ✗ RASK188: it is not partial
+{
+    static Task On(DriverChipsChanged e) => …;
+}
+```
+
+**Fix:** declare the aggregate `partial` (and at namespace level, not generic).
+
+## RASK189
+
+**A job is declared for an event the aggregate does not handle** · Warning
+
+[`b.Job<E>()`](jobs.md#an-aggregates-handler-as-a-job) in an aggregate's `Configure` runs the aggregate's own
+`static Task On(E e)` as a job. With no such `On`, nothing ever enqueues that job: the line says something that never
+happens.
+
+```csharp
+public static void Configure(EntityTypeBuilder<QueuedFile> b) =>
+    b.Job<FileQueued>().InTenantLane("loads");    // ⚠ RASK189 — QueuedFile has no On(FileQueued)
+```
+
+**Fix:** declare `static Task On(FileQueued e)` on the aggregate, or remove the line.
