@@ -6,8 +6,8 @@ namespace Rask.Mailing.Tests;
 [Collection(MailDbCollection.Name)]
 public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
 {
-    private static Email SampleEmail() =>
-        Email.To("ada@example.com", "Ada").Subject("Welcome").Html("<p>hi</p>");
+    private static Mail.Message SampleEmail() =>
+        Mail.Message.To("ada@example.com", "Ada").Subject("Welcome").Html("<p>hi</p>");
 
     [Fact]
     public async Task Send_delivers_the_email_and_marks_it_processed()
@@ -57,7 +57,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(Email.To("ada@example.com").Subject("Hi").Body(GreetingEmail.Name("Ada")), TestContext.Current.CancellationToken);
+            await harness.Queue.Send(Mail.Message.To("ada@example.com").Subject("Hi").Body(GreetingEmail.Name("Ada")), TestContext.Current.CancellationToken);
             await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 1);
 
             var sent = Assert.Single(harness.Sender.Sent);
@@ -80,7 +80,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         {
             for (var i = 0; i < 5; i++)
             {
-                await harness.Queue.Send(Email.To($"user{i}@example.com").Subject($"#{i}").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
+                await harness.Queue.Send(Mail.Message.To($"user{i}@example.com").Subject($"#{i}").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
             }
 
             // Wait for the ROWS, not for the sends: the processor marks a row after its sender returns, so waiting

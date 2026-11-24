@@ -2830,9 +2830,10 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 A value object is declared from the base record of what it holds, with its rules as the base's arguments, and is
 checked as it is made — no instance exists that its rules refuse. Rask writes the rest. The bases — `Value`, `Text`,
-`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), so a browser app
-with no data layer declares its values the same way with a `using Rask.Values;`; Rask.Data maps them to columns and
-imports the namespace for you, with `Range` aliased over `System.Range`:
+`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), and so is the
+generator that writes `Create`, `TryCreate`, `CreateOptional` and `Check`: a browser app or a component library on
+`Rask` alone, with no data layer, declares its values the same way with a `using Rask.Values;`. Rask.Data maps them to
+columns and imports the namespace for you, with `Range` aliased over `System.Range`:
 
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
@@ -2942,8 +2943,8 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
-`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number`, `Whole`, `Day` and `Moment` too
-(`1234.5` on every machine, never `1234,5`): it is the value's text, and showing it to a reader is the UI's and
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number` and `Whole` as
+`1234.5` on every machine, never `1234,5`, a `Day` as ISO 8601 `2026-01-31` and a `Moment` as `2026-01-31T14:05:00`: it is the value's text, and showing it to a reader is the UI's and
 `Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
 way; a `ToString` the record declares itself is kept.
 

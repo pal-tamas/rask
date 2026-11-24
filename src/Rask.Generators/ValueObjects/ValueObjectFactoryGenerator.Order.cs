@@ -4,7 +4,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Rask.Batteries.Generators;
+namespace Rask.Generators;
 
 // A value object of one value whose value has an order — a number, a day, a moment, a text — takes that order: it is
 // IComparable, so `fuelings.OrderBy(f => f.Moment)` sorts a list the way the database sorts the column, and it has <,

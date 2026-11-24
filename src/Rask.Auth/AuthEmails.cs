@@ -4,7 +4,7 @@ namespace Rask.Auth;
 /// The bodies of the two emails the account lifecycle sends.
 /// </summary>
 /// <remarks>
-/// Rask components, because <c>Email.Body</c> takes one — an email here is written the same way a page
+/// Rask components, because <c>Mail.Message.Body</c> takes one — an email here is written the same way a page
 /// is, rather than in a second templating language that only emails use.
 /// <para>
 /// Deliberately plain. These are transactional messages read once, often in a client that strips most

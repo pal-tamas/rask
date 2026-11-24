@@ -43,5 +43,5 @@ public sealed class MailDbTransactionTests : IDisposable
         Assert.Equal(0, await harness.CountMailAsync());
     }
 
-    private static Email Welcome() => Email.To("ada@example.com").Subject("Welcome").Html("<p>hi</p>");
+    private static Mail.Message Welcome() => Mail.Message.To("ada@example.com").Subject("Welcome").Html("<p>hi</p>");
 }

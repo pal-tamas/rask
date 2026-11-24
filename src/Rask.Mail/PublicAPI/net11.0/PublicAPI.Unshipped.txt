@@ -1,15 +1,4 @@
 #nullable enable
-Rask.Mailing.Email
-Rask.Mailing.Email.AndTo(string! address, string? name = null) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Attach(string! fileName, string! contentType, byte[]! content) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Bcc(string! address, string? name = null) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Body(Rask.Core.Component! component) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Cc(string! address, string? name = null) -> Rask.Mailing.Email!
-Rask.Mailing.Email.From(string! address, string? name = null) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Html(string! html) -> Rask.Mailing.Email!
-Rask.Mailing.Email.PlainText(string! text) -> Rask.Mailing.Email!
-Rask.Mailing.Email.ReplyTo(string! address, string? name = null) -> Rask.Mailing.Email!
-Rask.Mailing.Email.Subject(string! subject) -> Rask.Mailing.Email!
 Rask.Mailing.EmailAddress
 Rask.Mailing.EmailAddress.<Clone>$() -> Rask.Mailing.EmailAddress!
 Rask.Mailing.EmailAddress.Address.get -> string!
@@ -192,19 +181,15 @@ override Rask.Mailing.EmailAttachment.Equals(object? obj) -> bool
 override Rask.Mailing.EmailAttachment.GetHashCode() -> int
 override Rask.Mailing.EmailAttachment.ToString() -> string!
 override Rask.Mailing.MailProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-static Rask.Mailing.Email.To(string! address, string? name = null) -> Rask.Mailing.Email!
 static Rask.Mailing.EmailAddress.operator !=(Rask.Mailing.EmailAddress? left, Rask.Mailing.EmailAddress? right) -> bool
 static Rask.Mailing.EmailAddress.operator ==(Rask.Mailing.EmailAddress? left, Rask.Mailing.EmailAddress? right) -> bool
 static Rask.Mailing.EmailAttachment.operator !=(Rask.Mailing.EmailAttachment? left, Rask.Mailing.EmailAttachment? right) -> bool
 static Rask.Mailing.EmailAttachment.operator ==(Rask.Mailing.EmailAttachment? left, Rask.Mailing.EmailAttachment? right) -> bool
 static Rask.Mailing.MailModelBuilderExtensions.AddRaskMail(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Mailing.RaskMailServiceCollectionExtensions.AddRaskMail<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Mailing.MailOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-Rask.Mailing.IMail.Add(Rask.Mailing.Email! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mailing.Mail
 Rask.Mailing.MailExtensions
 Rask.Mailing.MailExtensions.extension(Rask.Mailing.IMail!)
-Rask.Mailing.MailExtensions.extension(Rask.Mailing.IMail!).Send(Rask.Mailing.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
-Rask.Mailing.MailOutbox<TContext>.Add(Rask.Mailing.Email! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mailing.Sending
 Rask.Mailing.Sending.AsTask() -> System.Threading.Tasks.Task!
 Rask.Mailing.Sending.At(System.DateTimeOffset moment) -> Rask.Mailing.Sending
@@ -212,8 +197,6 @@ Rask.Mailing.Sending.ConfigureAwait(bool continueOnCapturedContext) -> System.Ru
 Rask.Mailing.Sending.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
 Rask.Mailing.Sending.In(System.TimeSpan delay) -> Rask.Mailing.Sending
 Rask.Mailing.Sending.Sending() -> void
-static Rask.Mailing.Mail.Send(Rask.Mailing.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
-static Rask.Mailing.MailExtensions.Send(this Rask.Mailing.IMail! mail, Rask.Mailing.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
 Rask.Batteries.Counting<T>
 Rask.Batteries.Counting<T>.Count.get -> int
 Rask.Batteries.Counting<T>.Counting() -> void
@@ -326,3 +309,20 @@ static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Sin
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
 static Rask.Mailing.QueuedMailReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+Rask.Mailing.IMail.Add(Rask.Mailing.Mail.Message! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mailing.Mail.Message
+Rask.Mailing.Mail.Message.AndTo(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Attach(string! fileName, string! contentType, byte[]! content) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Bcc(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Body(Rask.Core.Component! component) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Cc(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.From(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Html(string! html) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.PlainText(string! text) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.ReplyTo(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.Mail.Message.Subject(string! subject) -> Rask.Mailing.Mail.Message!
+Rask.Mailing.MailExtensions.extension(Rask.Mailing.IMail!).Send(Rask.Mailing.Mail.Message! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
+Rask.Mailing.MailOutbox<TContext>.Add(Rask.Mailing.Mail.Message! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Mailing.Mail.Message.To(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
+static Rask.Mailing.Mail.Send(Rask.Mailing.Mail.Message! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
+static Rask.Mailing.MailExtensions.Send(this Rask.Mailing.IMail! mail, Rask.Mailing.Mail.Message! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending

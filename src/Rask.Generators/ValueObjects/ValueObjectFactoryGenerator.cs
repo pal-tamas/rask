@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
 
-namespace Rask.Batteries.Generators;
+namespace Rask.Generators;
 
 /// <summary>
 /// Writes the generated half of a value object declared from a Rask.Values base record —
@@ -67,6 +67,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         var node = (RecordDeclarationSyntax)ctx.Node;
         if (ctx.SemanticModel.GetDeclaredSymbol(node, token) is not INamedTypeSymbol type ||
             AggregateShape.DeclaredValueBaseOf(type) is not { } valueBase ||
+            IsFrameworkBase(type) ||
             !IsPrimaryDeclaration(type, node))
         {
             return null;
@@ -102,6 +103,12 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             SymbolLocation.From(type));
     }
 
+    // The bases themselves — Text, Email, Range in Rask.Values — are declared from Value too, and are abstract on
+    // purpose: this generator runs on Rask.Core as well, and writes nothing for them.
+    private static bool IsFrameworkBase(INamedTypeSymbol type) =>
+        type.IsAbstract &&
+        string.Equals(type.ContainingNamespace?.ToDisplayString(), "Rask.Values", System.StringComparison.Ordinal);
+
     // One declaration speaks for a partial record: the one with the primary constructor, else the first.
     private static bool IsPrimaryDeclaration(INamedTypeSymbol type, RecordDeclarationSyntax node)
     {
@@ -135,7 +142,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
                 declared.SpecialType == SpecialType.System_String,
                 declared.IsValueType,
                 nullable,
-                IsFormattable(declared)));
+                IsFormattable(declared),
+                IsoFormat(declared)));
         }
 
         return new EquatableArray<Parameter>([.. parameters]);
@@ -279,7 +287,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
 
     /// <summary>One primary-constructor parameter, as the generated members take it.</summary>
     private sealed record Parameter(
-        string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable, bool Formattable);
+        string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable, bool Formattable, string? Iso = null);
 
     /// <summary>The column facets a value object declares, as constants; null where it declares none.</summary>
     private sealed record ColumnFacets(int? MaxLength, int? Precision, int? Scale);

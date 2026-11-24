@@ -83,7 +83,7 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
         await page.Keyboard.PressAsync("ControlOrMeta+A");
         await page.Keyboard.PressAsync("Backspace");
         await page.Keyboard.PressAsync("Tab");
-        await Expect(page.Locator("#f-title-error")).ToContainTextAsync("A note needs a title.", Text);
+        await Expect(page.Locator("#f-title-error")).ToContainTextAsync("A note needs a title.", new() { Timeout = 15_000 });
 
         // Filled and submitted: saved through Note.Rename(id, version, title), and the list follows.
         await page.ClickAsync("#f-title");

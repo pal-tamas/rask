@@ -38,14 +38,14 @@ public sealed class MailUnitTests
     [Fact]
     public void Builder_rejects_a_malformed_address_at_the_call_site()
     {
-        Assert.Throws<ArgumentException>(() => Email.To("not a valid address"));
-        Assert.Throws<ArgumentException>(() => Email.To("ada@example.com").Cc("also bad"));
+        Assert.Throws<ArgumentException>(() => Mail.Message.To("not a valid address"));
+        Assert.Throws<ArgumentException>(() => Mail.Message.To("ada@example.com").Cc("also bad"));
     }
 
     [Fact]
     public void ToQueuedMail_requires_a_body()
     {
-        var email = Email.To("ada@example.com").Subject("No body");
+        var email = Mail.Message.To("ada@example.com").Subject("No body");
 
         Assert.Throws<ArgumentException>(() =>
             MailSerializer.ToQueuedMail(email, new EmailAddress("from@example.com"), DateTime.UtcNow, DateTime.UtcNow));
@@ -54,7 +54,7 @@ public sealed class MailUnitTests
     [Fact]
     public void Serializer_round_trips_the_full_envelope()
     {
-        var email = Email
+        var email = Mail.Message
             .To("ada@example.com", "Ada")
             .AndTo("grace@example.com")
             .Cc("carol@example.com")

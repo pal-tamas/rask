@@ -50,9 +50,9 @@ public abstract record Day : Value
     /// <summary>The day it holds.</summary>
     public DateOnly Value { get; }
 
-    /// <summary>The day it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
+    /// <summary>The day it holds, written as ISO 8601, culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The day as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+    public sealed override string ToString() => Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static List<Problem>? Problems(DateOnly day, DateOnly? notBefore, DateOnly? notAfter, bool notAfterToday, string? message)
     {

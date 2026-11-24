@@ -363,6 +363,9 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationRangeNotBefore), nameof(RaskString.ValidationRangeAfter),
         // A value object declared from Url: Core's value words say it.
         nameof(RaskString.ValidationWebAddress),
+        // FluentValidation's GreaterThan, LessThan, Length(n) and PrecisionScale: Rask.Validation.FluentValidation words them.
+        nameof(RaskString.ValidationAbove), nameof(RaskString.ValidationBelow), nameof(RaskString.ValidationExactLength),
+        nameof(RaskString.ValidationDigits),
         // A form's .ConfirmLeave() with no question of its own: Core's chain step asks it.
         nameof(RaskString.ConfirmLeaveQuestion),
     ];

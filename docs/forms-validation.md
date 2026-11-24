@@ -741,9 +741,11 @@ A built-in rule with no `.WithMessage(…)` says what the equivalent attribute s
 `NotNull()` what `[Required]` says, `MaximumLength`/`MinimumLength`/`Length` what `[StringLength]`/`[MaxLength]`/
 `[MinLength]` say, `EmailAddress()`, `Matches(…)`, `CreditCard()`, `InclusiveBetween`/`ExclusiveBetween` (`[Range]`),
 `GreaterThanOrEqualTo`/`LessThanOrEqualTo` (a value object's least and greatest), `NotEqual` and `IsInEnum` — the
-`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. A rule it has
-no sentence for (`GreaterThan`, `Length(n)` exact, `PrecisionScale`, `Must`), and every language it does not speak,
-keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
+`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. The rules no
+attribute has say sentences of their own: `GreaterThan`/`LessThan` (`ValidationAbove`/`ValidationBelow`, "Enter a
+value greater than 17."), `Length(n)` (`ValidationExactLength`, "Enter exactly 8 characters.") and `PrecisionScale`
+(`ValidationDigits`, "Enter at most 10 digits, at most 2 of them after the decimal point."). A rule the catalog has no
+sentence for (`Must`, `Equal`, `Empty`), and every language it does not speak, keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
 `.WithMessage(…)` always wins, and a language manager the app sets itself replaces Rask's.
 
 An async `MustAsync` rule rides the same wrapper:
@@ -771,6 +773,9 @@ public sealed partial class Supplier : Aggregate<SupplierId, Model>
 ```
 
 <!-- demo:validation-fluent-in-type -->
+
+A private `Rules` is called only by the generated registry, so Sonar's S1144 and the IDE's IDE0051 would call it unused:
+Rask's analyzers suppress both on a method of exactly the convention's shape (`RASKSUP002`), and on nothing else.
 
 On a primitive member a rule works **exactly like the DataAnnotations attribute with the same rule**:
 
@@ -807,7 +812,7 @@ public sealed partial record Handle(string Value) : Text(Value, MaxLength: 30)
 }
 ```
 
-A failure about `Value` is the value's own; one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
+A failure about `Value` is the value's own, and names no field — the field's label says which ("The specified condition was not met."); one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
 is under that member. A record with its own `Rules()` override and a static `Rules` is [RASK183](diagnostics.md#rask183).
 
 ### Three ways to say a rule
