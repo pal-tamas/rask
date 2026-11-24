@@ -2760,9 +2760,13 @@ public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
 
 public sealed class Delivery : Aggregate<Guid, Model>
 {
-    public DriverName Driver { get; private set; } = DriverName.Create("Unknown");
-    public Litres Fuel { get; private set; } = Litres.Create(1);
-    public KmRange Km { get; private set; } = KmRange.Create(0, 1);
+    private Delivery() { }
+
+    public DriverName Driver { get; private set; } = null!;   // no made-up value: a new form starts it empty (RASK150)
+    public Litres Fuel { get; private set; } = null!;
+    public KmRange Km { get; private set; } = null!;
+
+    public static Delivery Start(string driver) => new() { Driver = DriverName.Create(driver, nameof(Driver)), Fuel = Litres.Create(1), Km = KmRange.Create(0, 1) };
 
     public void Fill(decimal litres) => Fuel = Litres.Create(litres, nameof(Fuel));
     public void Drive(int start, int end) => Km = KmRange.Create(start, end, nameof(Km));
@@ -2884,7 +2888,7 @@ A table whose columns were already `StartKm` and `EndKm` — read by reports and
 the entity's `Configure`:
 
 ```csharp
-public KmRange Km { get; private set; } = KmRange.Create(0, 1);
+public KmRange Km { get; private set; } = null!;
 
 public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
     b.Columns(n => n.Km, "{Member}Km").Columns(n => n.Trip, "{Member}Date");   // StartKm, EndKm; StartDate, EndDate

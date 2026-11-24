@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
+  `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
+  over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
+  warning names the property, and its quick-fix writes `= null!` (docs/data.md's `Delivery` example now does).
 - **A value object of several values is asked as the form is filled.** Before: only a `Range`'s ends were checked
   live; a `: Value` record of several members — `Opening(DateOnly? Date, decimal? Quantity)` with its own `Rules()` —
   spoke only on save. After: every member of its nested model asks the record's generated `TryCreate` beside the
