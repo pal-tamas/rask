@@ -168,7 +168,7 @@ them until tagged releases begin.
   `Min`/`Max`/`Scale`, `Day` and `Moment` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
   makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
   member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
-  at `X.Create(…)`. Rask.Testing now references Rask.Data.
+  at `X.Create(…)`. It reads the rules Rask.Core's bases were handed, so Rask.Testing still needs no Rask.Data or EF Core.
 - **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
   several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
   `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the

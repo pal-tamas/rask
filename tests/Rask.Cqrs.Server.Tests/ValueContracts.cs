@@ -1,3 +1,5 @@
+using Rask.Values;
+
 namespace Rask.Cqrs.Server.Tests;
 
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 10);
