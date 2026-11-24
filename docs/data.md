@@ -1357,6 +1357,18 @@ await pump.Talk();
   connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
   name. Any other provider throws `NotSupportedException`.
 
+**Several names at once** — the chip codes a driver's save touches, say — go in one call, never in a loop:
+
+```csharp
+await using var chips = await Db.Lock(driver.Chips.Touched.Select(c => "chip:" + c.Code)).For(30.Seconds);
+```
+
+Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtext`, the locks it
+really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
+waits for. A name given twice is taken once, and an empty list takes nothing. `.For(wait)` is the whole call's wait,
+not each name's. All or none: when one is not granted, the ones already taken are let go before the
+`TimeoutException`. Disposing the handle lets go of every one.
+
 ### Named sets: `db.Orders`
 
 Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:

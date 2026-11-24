@@ -1,7 +1,7 @@
 namespace Rask.Data;
 
 /// <summary>
-///     The one spelling of SQL Server's application lock, <c>sp_getapplock</c>: <see cref="Db.Lock" /> takes it for a
+///     The one spelling of SQL Server's application lock, <c>sp_getapplock</c>: <see cref="Db.Lock(string, CancellationToken)" /> takes it for a
 ///     session, and the jobs battery for a transaction.
 /// </summary>
 internal static class SqlServerAppLock

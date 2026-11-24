@@ -15,13 +15,13 @@ namespace Rask.Data;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct Locking
 {
-    private readonly string _name;
+    private readonly string[] _names;
     private readonly TimeSpan? _wait;
     private readonly CancellationToken _cancellationToken;
 
-    internal Locking(string name, TimeSpan? wait, CancellationToken cancellationToken)
+    internal Locking(string[] names, TimeSpan? wait, CancellationToken cancellationToken)
     {
-        _name = name;
+        _names = names;
         _wait = wait;
         _cancellationToken = cancellationToken;
     }
@@ -34,7 +34,7 @@ public readonly struct Locking
     public Locking For(TimeSpan wait)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(wait, TimeSpan.Zero);
-        return new Locking(_name, wait, _cancellationToken);
+        return new Locking(_names, wait, _cancellationToken);
     }
 
     /// <summary>Takes it.</summary>
@@ -47,5 +47,5 @@ public readonly struct Locking
     /// <summary>Takes it, as a <see cref="Task{TResult}" />.</summary>
     /// <remarks>Inside an operation's dry run (what a form asks while it is filled in) nothing is taken.</remarks>
     public Task<IAsyncDisposable> AsTask() =>
-        DryRun.IsRunning ? Task.FromResult(DryRun.NoLock) : NamedLock.Take(_name ?? throw new InvalidOperationException("Start a lock with Db.Lock(name)."), _wait, Ambient.Or(_cancellationToken));
+        DryRun.IsRunning ? Task.FromResult(DryRun.NoLock) : NamedLock.Take(_names ?? throw new InvalidOperationException("Start a lock with Db.Lock(name)."), _wait, Ambient.Or(_cancellationToken));
 }
