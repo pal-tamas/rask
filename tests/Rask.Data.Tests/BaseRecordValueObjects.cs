@@ -146,3 +146,38 @@ public sealed class Sealed : Aggregate<int>
 
     public static Sealed Of(int count) => new() { Seal = RigSeal.Create(count, "A") };
 }
+
+/// <summary>A quantity stored to sixteen decimal places, as a tank's opening stock is.</summary>
+public sealed partial record RigQuantity(decimal Value) : Number(Value, Precision: 32, Scale: 16);
+
+/// <summary>A complex value of required members, one a one-value value object of its own: a tank's opening stock.</summary>
+public sealed partial record RigStart(DateTime Date, RigQuantity Quantity) : Value;
+
+/// <summary>An aggregate whose complex values are optional: a row may have none.</summary>
+public sealed class Tankyard : Aggregate<int, Model>
+{
+    private Tankyard() { }
+
+    public string Name { get; private set; } = "";
+
+    public RigStart? Start { get; private set; }
+
+    public static Tankyard Of(string name) => new() { Name = name };
+
+    public void Open(DateTime date, decimal quantity)
+    {
+        Start = RigStart.Create(date, RigQuantity.Create(quantity), nameof(Start));
+    }
+}
+
+/// <summary>A text declared straight from Value, with no base of its own: a chip as the reader hands it over.</summary>
+public sealed partial record RigTag(string Value) : Value;
+
+/// <summary>A decimal declared straight from Value.</summary>
+public sealed partial record RigReading(decimal Value) : Value;
+
+/// <summary>A value declared straight from Value that says how it prints.</summary>
+public sealed partial record RigSign(int Value) : Value
+{
+    public override string ToString() => "#" + Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+}

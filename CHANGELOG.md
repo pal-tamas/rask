@@ -656,6 +656,21 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A value object's generated half is fully documented.** Before: `X.Create(…)` documented only its `field`
+  parameter, so an app building its documentation file with warnings as errors failed on CS1573 in a file it never
+  wrote (TA had to `NoWarn` CS1573 project-wide). After: `Create`, `TryCreate`, `CreateOptional` and `__Problems`
+  document every parameter and their result; a generator test compiles the output with documentation on.
+- **An optional complex value object reads back as `null` on the read face.** Before: `public Opening? Start` over
+  `Opening(DateTime Date, Amount Quantity) : Value` gave the read face a non-nullable `StartQuantity` (a nested value
+  object lost the outer `?`) and mapped every column under `Start` as required, so reading any row with no opening
+  threw `SqlNullValueException` (SQLite: "The data is NULL at ordinal …"). After: every column under an optional value
+  object is nullable on the read face, however deep, and is mapped as EF Core stores it; the aggregate and the
+  generated `Create(model)`/`Update(id, model)` store and clear it as before. See
+  [data.md](docs/data.md#declared-from-a-base-record).
+- **A one-member value object declared straight from `Value` prints its value.** Before: `FuelingChip(string Value) :
+  Value` printed `FuelingChip { Value = C-17 }` in `$"{chip}"`. After: the generated half gives it `ToString()` — the
+  value, a number or a date culture-invariant, empty for none — unless the record declares its own. Text, Number,
+  Whole, Day and Moment already printed their value.
 - **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
   fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
   continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —

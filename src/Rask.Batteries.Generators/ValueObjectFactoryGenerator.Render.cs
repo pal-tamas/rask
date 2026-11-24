@@ -38,6 +38,7 @@ public sealed partial class ValueObjectFactoryGenerator
 
         AppendFacets(s, value);
         AppendField(s, value);
+        AppendToString(s, value);
         s.AppendLine("}");
 
         foreach (var _ in value.Containers)
@@ -57,7 +58,9 @@ public sealed partial class ValueObjectFactoryGenerator
     {
         var name = value.Name;
         s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" />, once its rules accept it.</summary>");
-        s.AppendLine("    /// <param name=\"field\">The field it came from, as a form names it: a refusal is shown under it, a member's under <c>field.Member</c>.</param>");
+        AppendParameters(s, value);
+        AppendFieldParameter(s);
+        s.AppendLine("    /// <returns>The value, its rules met.</returns>");
         s.AppendLine("    /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">A rule refuses it.</exception>");
         s.Append("    public static ").Append(name).Append(" Create(").Append(Declared(value)).AppendLine(", string? field = null) =>");
         s.Append("        TryCreate(").Append(Names(value)).Append(", out var __made, out var __problems) ? __made : throw ")
@@ -69,6 +72,10 @@ public sealed partial class ValueObjectFactoryGenerator
     {
         var name = value.Name;
         s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" />, or what its rules say against it — never an exception for a refusal.</summary>");
+        AppendParameters(s, value);
+        s.AppendLine("    /// <param name=\"result\">The value when its rules accept it; otherwise null.</param>");
+        s.AppendLine("    /// <param name=\"problems\">What its rules say against it; empty when they accept it.</param>");
+        s.AppendLine("    /// <returns>Whether its rules accept it.</returns>");
         s.Append("    public static bool TryCreate(").Append(Declared(value))
             .Append(", [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ").Append(name).Append("? result, out ")
             .Append(ProblemList).AppendLine(" problems)");
@@ -92,6 +99,9 @@ public sealed partial class ValueObjectFactoryGenerator
 
         s.Append("    /// <summary>Nothing for a value left ").Append(value.Parameters.Any(static p => p.IsText) ? "blank" : "empty")
             .AppendLine("; otherwise <see cref=\"Create\" />.</summary>");
+        AppendParameters(s, value);
+        AppendFieldParameter(s);
+        s.AppendLine("    /// <returns>The value, or null when nothing was given.</returns>");
         s.AppendLine("    /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">Only some of it is given, or a rule refuses it.</exception>");
         s.Append("    public static ").Append(name).Append("? CreateOptional(").Append(optional).AppendLine(", string? field = null)");
         s.AppendLine("    {");
@@ -125,6 +135,20 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine("    }");
     }
 
+    // Every parameter a generated member takes is documented, or an app building its documentation file with warnings as
+    // errors fails on CS1573 in a file it never wrote.
+    private static void AppendParameters(StringBuilder s, ValueObject value)
+    {
+        foreach (var name in value.Parameters.Select(static p => p.Name))
+        {
+            s.Append("    /// <param name=\"").Append(name).Append("\">Its <c>").Append(name)
+                .AppendLine("</c>, as its constructor takes it.</param>");
+        }
+    }
+
+    private static void AppendFieldParameter(StringBuilder s) =>
+        s.AppendLine("    /// <param name=\"field\">The field it came from, as a form names it: a refusal is shown under it, a member's under <c>field.Member</c>.</param>");
+
     private static string Empty(Parameter parameter) =>
         parameter.IsText ? "string.IsNullOrWhiteSpace(" + parameter.Name + ")" : parameter.Name + " is null";
 
@@ -144,6 +168,8 @@ public sealed partial class ValueObjectFactoryGenerator
         var held = value.Parameters[0];
         s.AppendLine();
         s.AppendLine("    /// <summary>What the rules say against <paramref name=\"value\" />: what a form and a generated write ask.</summary>");
+        s.AppendLine("    /// <param name=\"value\">The value as a form holds it; null when it is empty.</param>");
+        s.AppendLine("    /// <returns>The messages its rules give; empty when they accept it.</returns>");
         s.AppendLine(Hidden);
         s.Append("    public static ").Append(Messages).Append(" __Problems(").Append(held.OptionalType).AppendLine(" value)");
         s.AppendLine("    {");

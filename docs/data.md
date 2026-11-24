@@ -2622,7 +2622,10 @@ over the primary constructor's parameters:
 [RASK127](diagnostics.md#rask127) refuses both outside the type, tests included, and its quick-fix writes the
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
-same type and hold the same values; a one-value record's `ToString()` is its value.
+same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
+`FuelingChip { Value = C-17 }`. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it
+generated, a number or a date written culture-invariant (`1234.5` on every machine); a `ToString` the record
+declares itself is kept.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
@@ -2662,6 +2665,18 @@ column a length or precision other than the value object's, since a value the ru
 The generated model carries the attribute like any other (`[Required]` included, which also makes the column
 `NOT NULL`), so a form and `Create(model)`/`Update(id, model)` ask it beside the value object's rule: the tighter
 of the two refuses.
+
+**A value object held inside another keeps its own column shape.** `Opening(DateTime Date, Amount Quantity) : Value`
+with `Amount : Number(Value, Scale: 16, Precision: 32)` stores `Start_Quantity` as `decimal(32,16)` — the `Amount`
+says so, and no `HasPrecision` in `Configure` is needed; a plain `decimal Quantity` member has no rules to read, so
+it keeps EF Core's default.
+
+**An optional complex value is null when its row has none.** `public Opening? Start { get; private set; }` is an EF
+Core optional complex property: every column under it is nullable, a row with no opening holds `NULL` in all of
+them and loads `Start` as `null`, and the read face's `StartDate` and `StartQuantity` are `DateTime?` and
+`decimal?` however `Opening`'s own members are declared. EF Core needs one member that is not nullable to tell
+"none" from "all empty" — an `Opening(DateTime? Date, decimal? Quantity)` held as `Opening?` is refused when the
+model is built; declare a member required, or hold it as `Opening` and let its members be empty.
 
 **An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
 into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
