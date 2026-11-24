@@ -34,8 +34,8 @@ internal static class WireShape
     ///     Whether a value that holds one value — a one-value <c>Rask.Data</c> value object
     ///     (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>) or a record struct id
     ///     (<c>record struct VehicleId(int Value)</c>) — travels as that value (<c>"ABC-123"</c>, <c>42</c>), and
-    ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> unchecked, as a
-    ///     row is loaded. True for the CQRS codecs, whose two ends are both generated from this walk; false for
+    ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> — checked where a
+    ///     server reads it, loaded as sent where a browser does (<see cref="WireCodecEmitter" />). True for the CQRS codecs, whose two ends are both generated from this walk; false for
     ///     the API client, whose server reads the same body with System.Text.Json, which knows neither rule.
     /// </param>
     public static WireType Classify(

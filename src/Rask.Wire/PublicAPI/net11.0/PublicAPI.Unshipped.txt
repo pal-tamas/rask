@@ -525,3 +525,12 @@ override Rask.Wire.ActInTenantRequest.GetHashCode() -> int
 override Rask.Wire.ActInTenantRequest.ToString() -> string!
 static Rask.Wire.ActInTenantRequest.operator !=(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool
 static Rask.Wire.ActInTenantRequest.operator ==(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool
+Rask.Wire.WireRefusals
+Rask.Wire.WireRefusals.WireRefusals() -> void
+Rask.Wire.WireRefusals.Count.get -> int
+Rask.Wire.WireRefusals.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
+Rask.Wire.WireRefusals.Enter(string! member) -> void
+Rask.Wire.WireRefusals.EnterItem(int index) -> void
+Rask.Wire.WireRefusals.EnterItem(string! key) -> void
+Rask.Wire.WireRefusals.Leave() -> void
+Rask.Wire.WireRefusals.Refuse(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures) -> void
