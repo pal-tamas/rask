@@ -16,12 +16,13 @@ public readonly struct Enqueuing
     private readonly TimeSpan? _delay;
     private readonly string? _lane;
     private readonly bool _unlessWaiting;
+    private readonly string? _sameWork;
     private readonly string? _notice;
     private readonly bool _shared;
     private readonly CancellationToken _cancellationToken;
 
     internal Enqueuing(IJobs? jobs, IJob job, DateTimeOffset? runAt, TimeSpan? delay, string? lane, CancellationToken cancellationToken)
-        : this(jobs, job, runAt, delay, lane, unlessWaiting: false, notice: null, shared: false, cancellationToken)
+        : this(jobs, job, runAt, delay, lane, unlessWaiting: false, sameWork: null, notice: null, shared: false, cancellationToken)
     {
     }
 
@@ -32,6 +33,7 @@ public readonly struct Enqueuing
         TimeSpan? delay,
         string? lane,
         bool unlessWaiting,
+        string? sameWork,
         string? notice,
         bool shared,
         CancellationToken cancellationToken)
@@ -42,6 +44,7 @@ public readonly struct Enqueuing
         _delay = delay;
         _lane = lane;
         _unlessWaiting = unlessWaiting;
+        _sameWork = sameWork;
         _notice = notice;
         _shared = shared;
         _cancellationToken = cancellationToken;
@@ -55,11 +58,11 @@ public readonly struct Enqueuing
             throw new ArgumentOutOfRangeException(nameof(delay), delay, "In cannot be negative — a job cannot run in the past.");
         }
 
-        return new Enqueuing(_jobs, _job, null, delay, _lane, _unlessWaiting, _notice, _shared, _cancellationToken);
+        return new Enqueuing(_jobs, _job, null, delay, _lane, _unlessWaiting, _sameWork, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>Runs it no earlier than <paramref name="moment"/>: <c>.At(midnight)</c>.</summary>
-    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _lane, _unlessWaiting, _notice, _shared, _cancellationToken);
+    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _lane, _unlessWaiting, _sameWork, _notice, _shared, _cancellationToken);
 
     /// <summary>
     ///     Runs the job in a lane: jobs of one lane run one at a time, in the order they are due,
@@ -68,7 +71,7 @@ public readonly struct Enqueuing
     public Enqueuing InLane(string lane)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(lane);
-        return new Enqueuing(_jobs, _job, _runAt, _delay, lane, _unlessWaiting, _notice, _shared, _cancellationToken);
+        return new Enqueuing(_jobs, _job, _runAt, _delay, lane, _unlessWaiting, _sameWork, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>
@@ -81,7 +84,30 @@ public readonly struct Enqueuing
     ///     running, or waiting for a retry — does not count, so a new round can wait behind a running one. The job
     ///     table decides, through a unique index, so two hosts enqueueing at once still leave one waiting row.
     /// </remarks>
-    public Enqueuing UnlessWaiting() => new(_jobs, _job, _runAt, _delay, _lane, unlessWaiting: true, _notice, _shared, _cancellationToken);
+    public Enqueuing UnlessWaiting() => new(_jobs, _job, _runAt, _delay, _lane, unlessWaiting: true, sameWork: null, _notice, _shared, _cancellationToken);
+
+    /// <summary>
+    ///     Writes nothing when work of the same <paramref name="key" /> already waits in this lane, unclaimed:
+    ///     <c>await Jobs.Enqueue(new Redistribute(company, Current.UserId)).UnlessWaiting(company.ToString());</c> — what
+    ///     <see cref="UnlessWaiting()" /> does, with the key naming the work in place of the whole payload.
+    /// </summary>
+    /// <remarks>
+    ///     "The same work" is then the same lane, tenant, job kind and key: a job that carries who asked, or when, is still
+    ///     the same as the one already waiting for the same company. Two kinds of job never share a key.
+    /// </remarks>
+    /// <param name="key">What names the work — at most 1,024 characters.</param>
+    public Enqueuing UnlessWaiting(string key) =>
+        new(_jobs, _job, _runAt, _delay, _lane, unlessWaiting: true, JobSameWork.Checked(key), _notice, _shared, _cancellationToken);
+
+    /// <summary>
+    ///     Runs the job in its tenant's lane: one at a time with the tenant's other work of <paramref name="lane" />, while
+    ///     every other tenant's runs beside it — <c>await Jobs.Enqueue(new ImportFile(file.Id)).InTenantLane("loads");</c>.
+    ///     <c>Jobs.Lane(Jobs.TenantLane("loads"))</c> reads it.
+    /// </summary>
+    /// <param name="lane">Which of the tenant's lanes, or null for its one lane.</param>
+    /// <exception cref="InvalidOperationException">No tenant is in flight.</exception>
+    public Enqueuing InTenantLane(string? lane = null) =>
+        new(_jobs, _job, _runAt, _delay, TenantLanes.Of(lane, "Jobs.Enqueue(job).InTenantLane()"), _unlessWaiting, _sameWork, _notice, _shared, _cancellationToken);
 
     /// <summary>
     ///     Shows the job to whoever enqueues it, under <paramref name="title" />:
@@ -92,7 +118,7 @@ public readonly struct Enqueuing
     /// </summary>
     /// <param name="title">What the work is, in words for the person who started it — at most 256 characters.</param>
     public Enqueuing Noticed(string title) =>
-        new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, JobNotice.Checked(title), _shared, _cancellationToken);
+        new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, _sameWork, JobNotice.Checked(title), _shared, _cancellationToken);
 
     /// <summary>
     ///     Shows the noticed job to its tenant's other users too — <c>.Noticed($"Import of {file.Name}").ByTenant()</c> — those who
@@ -103,7 +129,7 @@ public readonly struct Enqueuing
     ///     Awaiting it throws when there is nothing to share or nobody to share it with: no <c>.Noticed(…)</c>, or no tenant in
     ///     flight where it is enqueued.
     /// </remarks>
-    public Enqueuing ByTenant() => new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, _notice, shared: true, _cancellationToken);
+    public Enqueuing ByTenant() => new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, _sameWork, _notice, shared: true, _cancellationToken);
 
     /// <summary>Runs it: <see langword="true" /> when a row was written, <see langword="false" /> when <c>UnlessWaiting</c> skipped it.</summary>
     public TaskAwaiter<bool> GetAwaiter() => AsTask().GetAwaiter();
@@ -125,6 +151,7 @@ public readonly struct Enqueuing
 
         // Ambient while the write starts: the write's own awaits carry it on to where the row is built, and it ends here.
         var notice = JobNotice.Use(_notice, _shared);
+        var sameWork = JobSameWork.Use(_sameWork);
         try
         {
             return _unlessWaiting
@@ -133,6 +160,7 @@ public readonly struct Enqueuing
         }
         finally
         {
+            sameWork.Dispose();
             notice.Dispose();
         }
     }

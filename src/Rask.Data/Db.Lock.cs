@@ -40,6 +40,45 @@ public static partial class Db
     public static Locking Lock(string name, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return new Locking(name, wait: null, cancellationToken);
+        return new Locking([name], wait: null, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Every lock <paramref name="names" /> names, taken together when awaited and held until the returned handle is
+    ///     disposed: <c>await using var chips = await Db.Lock(codes.Select(c =&gt; "chip:" + c)).For(30.Seconds);</c>
+    /// </summary>
+    /// <param name="names">What is locked; a name given twice is taken once, and none at all takes nothing.</param>
+    /// <param name="cancellationToken">Cancels the wait; unset, the work this call belongs to does.</param>
+    /// <returns>
+    ///     The locks still being worded, as <see cref="Lock(string, CancellationToken)" /> hands back one: <c>.For(…)</c>
+    ///     bounds the whole wait, not each name's.
+    /// </returns>
+    /// <exception cref="ArgumentException">A name is blank, or too long for SQL Server.</exception>
+    /// <remarks>
+    ///     <para>
+    ///         The names are taken one after another in ordinal order, whatever order they were given in — so two callers
+    ///         that share some of them can never each hold one the other waits for. On PostgreSQL the order is that of
+    ///         the names' <c>hashtext</c>, the locks it actually takes.
+    ///     </para>
+    ///     <para>
+    ///         All or none: when one is not granted before the wait runs out, or the wait is cancelled, the ones already
+    ///         taken are let go before the call throws. Disposing the handle lets go of every one.
+    ///     </para>
+    /// </remarks>
+    public static Locking Lock(IEnumerable<string> names, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(names);
+        var sorted = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var name in names)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("A lock's name is blank.", nameof(names));
+            }
+
+            sorted.Add(name);
+        }
+
+        return new Locking([.. sorted], wait: null, cancellationToken);
     }
 }

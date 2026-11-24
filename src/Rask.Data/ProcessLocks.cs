@@ -1,7 +1,7 @@
 namespace Rask.Data;
 
 /// <summary>
-///     <see cref="Db.Lock" /> where the database has no lock across connections (SQLite): one holder per key in this
+///     <see cref="Db.Lock(string, CancellationToken)" /> where the database has no lock across connections (SQLite): one holder per key in this
 ///     process, which is the one host a SQLite app runs on.
 /// </summary>
 internal static class ProcessLocks
@@ -9,7 +9,32 @@ internal static class ProcessLocks
     private static readonly Dictionary<string, Entry> Entries = new(StringComparer.Ordinal);
     private static readonly Lock Gate = new();
 
-    internal static async Task<IAsyncDisposable> Take(string key, string name, TimeSpan? wait, CancellationToken cancellationToken)
+    /// <summary>
+    ///     Takes each of <paramref name="names" /> — distinct, in ordinal order — in <paramref name="database" />, within one
+    ///     wait; all or none.
+    /// </summary>
+    internal static async Task<IAsyncDisposable> Take(
+        string database, IReadOnlyList<string> names, TimeSpan? wait, CancellationToken cancellationToken)
+    {
+        var deadline = NamedLock.Deadline.Of(wait);
+        var held = new List<Held>(names.Count);
+        try
+        {
+            foreach (var name in names)
+            {
+                held.Add(await TakeOne(database + name, name, deadline, cancellationToken).ConfigureAwait(false));
+            }
+        }
+        catch
+        {
+            await Release(held).ConfigureAwait(false);
+            throw;
+        }
+
+        return held.Count == 1 ? held[0] : new All(held);
+    }
+
+    private static async Task<Held> TakeOne(string key, string name, NamedLock.Deadline deadline, CancellationToken cancellationToken)
     {
         Entry entry;
         lock (Gate)
@@ -26,7 +51,7 @@ internal static class ProcessLocks
         var taken = false;
         try
         {
-            taken = await entry.Turn.WaitAsync(wait ?? Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            taken = await entry.Turn.WaitAsync(deadline.Left ?? Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -36,7 +61,15 @@ internal static class ProcessLocks
             }
         }
 
-        return taken ? new Held(key, entry) : throw NamedLock.TimedOut(name, wait);
+        return taken ? new Held(key, entry) : throw NamedLock.TimedOut(name, deadline.Wait);
+    }
+
+    private static async ValueTask Release(List<Held> held)
+    {
+        for (var i = held.Count - 1; i >= 0; i--)
+        {
+            await held[i].DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     private static void Leave(string key, Entry entry)
@@ -73,5 +106,13 @@ internal static class ProcessLocks
 
             return ValueTask.CompletedTask;
         }
+    }
+
+    /// <summary>Several names held at once, let go of the last taken first.</summary>
+    private sealed class All(List<Held> held) : IAsyncDisposable
+    {
+        private int _released;
+
+        public ValueTask DisposeAsync() => Interlocked.Exchange(ref _released, 1) == 0 ? Release(held) : ValueTask.CompletedTask;
     }
 }

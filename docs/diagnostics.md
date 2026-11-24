@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK183, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK186, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -33,6 +33,9 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
+| **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
+| **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
+| **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -173,6 +176,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK177](#rask177) | Info | Code written for one database |
 | [RASK178](#rask178) | Info | A transaction writes two aggregates without saying why |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
+| [RASK184](#rask184) | Info | An aggregate refuses with an exception no form can show |
+| [RASK185](#rask185) | Info | An aggregate is loaded outside the transaction that changes it |
+| [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3718,3 +3724,83 @@ supply.Take(part);                                           // ✓
 ```
 
 **Fix:** call the aggregate's method that adds or removes the child, or write one.
+
+## RASK184
+
+**An aggregate refuses with an exception no form can show** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+`throw new InvalidOperationException(…)` or `throw new ArgumentException(…)` inside an aggregate or an entity (and any
+type nested in one). A rule that says no is a sentence for the person at the screen, and a form shows a
+[`Refuse`](data.md#refusing-an-operation-refuse) under the field it names or above the form; those two exceptions are a
+failed request instead — an error toast that says nothing useful, or an error page. Only those two exact types are
+reported: `ArgumentNullException`, `ArgumentOutOfRangeException` and the other subclasses guard against a caller's
+mistake, not a rule.
+
+```csharp
+public void Ship()
+{
+    if (Lines.Count == 0) throw new InvalidOperationException("Nothing to ship.");   // ℹ RASK184
+    Refuse.When(Lines.Count == 0, "Nothing to ship.");                              // ✓ shown above the form
+}
+```
+
+**Fix:** refuse (**quick-fix available**): `if (c) throw new InvalidOperationException(m);` — alone, or alone in a
+block, with no `else` — becomes `Refuse.When(c, m);`, `if (!c) …` becomes `Refuse.Unless(c, m);`, and
+`if (c) throw new ArgumentException(m, nameof(x));` becomes `Refuse.When(c, () => x, m);`, shown under the field `x`
+fills. Any other throw of one — a throw expression, an `if` with an `else` — becomes
+`throw new RaskValidationException(m)` (an inner exception is kept). `using Rask.Data;` / `using Rask.Wire;` is added
+where it is missing. An exception built with no message has no sentence to show and gets no fix. A suggestion by
+default; a warning under `<RaskStrict>`.
+
+## RASK185
+
+**An aggregate is loaded outside the transaction that changes it** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+The work of a [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction) uses an aggregate held
+in a local declared before the block. That read was not part of the transaction: the isolation the block asks for
+does not cover it, so a check the work makes on the copy is a check on what was there before the transaction began —
+and on a retrying context the work runs again on the same copy, which on a `Versioned` aggregate is a conflict no
+retry gets past. Loaded inside the block, every attempt reads what it changes. A local the work assigns itself is not
+reported, nor an aggregate a parameter hands in, nor a nested block's (it joins the outer one).
+
+```csharp
+var supply = (await Supply.Find(id))!;                     // ℹ RASK185 where the block uses it
+await Db.Transaction(async () =>
+{
+    supply.Distribute(rows);
+    await supply.Save();
+});
+
+await Db.Transaction(async () =>
+{
+    var supply = (await Supply.Find(id))!;                 // ✓ read inside the transaction
+    supply.Distribute(rows);
+    await supply.Save();
+});
+```
+
+**Fix:** load it inside the block (**quick-fix available** — the declaration moves to the top of the work, and an
+expression-bodied work becomes a block, a `return` when it returns a value). The fix is offered when the declaration
+declares only that local, sits before the transaction in the same block, and nothing outside the work reads the local;
+a load that awaits needs an `async` work. A suggestion by default; a warning under `<RaskStrict>`.
+
+## RASK186
+
+**An update runs an operation that has a generated entry** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+`X.Update(id, x => x.M(…))` where `M` is an [operation](data.md#an-operation-run-as-one-write) of a `partial`
+aggregate, which has a generated entry `X.M(id, version, …)`. The entry loads, runs and saves in one transaction just
+as the update does — and also asks the roles the aggregate's `Configure` names for the operation, which the update
+does not. It is the call the operation's form makes, so code and form go through the same door.
+
+```csharp
+await Supply.Update(id, s => s.Change(details), version: read);   // ℹ RASK186
+await Supply.Change(id, read, details);                           // ✓ its roles asked
+```
+
+Reported only when the rewrite means the same: the lambda does nothing but call the operation on the aggregate it is
+handed, with arguments that do not read it; no `db:` is given; a `Versioned` aggregate is given an `int` version (the
+entry takes no `null`); and the updated aggregate the update hands back is not used.
+
+**Fix:** call the entry (**quick-fix available** — the id, the version, the operation's arguments and a
+`cancellationToken:` in that order). A suggestion by default; a warning under `<RaskStrict>`.

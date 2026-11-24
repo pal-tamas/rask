@@ -287,6 +287,7 @@ static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Record() -> Rask.Data.TransactionRecording!
 static Rask.Data.Db.Reset() -> void
 static Rask.Data.Db.Lock(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
+static Rask.Data.Db.Lock(System.Collections.Generic.IEnumerable<string!>! names, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
 Rask.Data.Locking
 Rask.Data.Locking.Locking() -> void
 Rask.Data.Locking.For(System.TimeSpan wait) -> Rask.Data.Locking

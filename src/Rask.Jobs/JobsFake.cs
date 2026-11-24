@@ -134,17 +134,18 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
     {
         ArgumentNullException.ThrowIfNull(job);
         var tenant = Tenant.Key;
+        var key = JobSameWork.Pending;
         lock (_gate)
         {
             foreach (var waiting in _enqueued.Where(e => !e.Ran))
             {
-                if (string.Equals(waiting.Lane, lane, StringComparison.Ordinal) && waiting.Tenant == tenant && Equals(waiting.Job, job))
+                if (string.Equals(waiting.Lane, lane, StringComparison.Ordinal) && waiting.Tenant == tenant && IsSameWork(waiting, job, key))
                 {
                     return Task.FromResult(false);
                 }
             }
 
-            _enqueued.Add(Recorded(job, after, at, tenant, lane));
+            _enqueued.Add(Recorded(job, after, at, tenant, lane) with { SameWork = key });
         }
 
         return Task.FromResult(true);
@@ -242,6 +243,12 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         }
     }
 
+    // The same work as the queue's key says it: a named key against the same kind's named key, else an equal payload.
+    private static bool IsSameWork(EnqueuedJob waiting, IJob job, string? key) =>
+        key is null
+            ? waiting.SameWork is null && Equals(waiting.Job, job)
+            : string.Equals(waiting.SameWork, key, StringComparison.Ordinal) && waiting.Job.GetType() == job.GetType();
+
     // A job as the queue would write its row: for the user in flight, with the notice its enqueue is worded with.
     private static EnqueuedJob Recorded(IJob job, TimeSpan? after, DateTimeOffset? at, Guid? tenant, string? lane) =>
         new(job, after, at, tenant, CurrentUser.Id, lane, JobNotice.Pending)
@@ -269,5 +276,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         public Guid? Batch { get; init; }
 
         public bool Awaited { get; init; }
+
+        public string? SameWork { get; init; }
     }
 }

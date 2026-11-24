@@ -54,6 +54,47 @@ public sealed class JobUnlessWaitingTests
     }
 
     [Fact]
+    public async Task Jobs_of_one_key_are_the_same_work_whatever_else_they_carry()
+    {
+        await using var h = new JobsHarness();
+
+        var first = await h.Queue.Enqueue(new RecordJob("asked by alice"), TestContext.Current.CancellationToken).UnlessWaiting("company-7");
+        var second = await h.Queue.Enqueue(new RecordJob("asked by bob"), TestContext.Current.CancellationToken).UnlessWaiting("company-7");
+        var other = await h.Queue.Enqueue(new RecordJob("asked by bob"), TestContext.Current.CancellationToken).UnlessWaiting("company-8");
+
+        Assert.Equal((true, false, true), (first, second, other));
+        Assert.Equal(2, await h.CountJobsAsync());
+    }
+
+    [Fact]
+    public async Task A_key_never_names_the_same_work_as_a_payload_nor_as_another_kind()
+    {
+        await using var h = new JobsHarness();
+
+        var byPayload = await h.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken).UnlessWaiting();
+        var byKey = await h.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken).UnlessWaiting("x");
+        var otherKind = await h.Queue.Enqueue(new TickJob(), TestContext.Current.CancellationToken).UnlessWaiting("x");
+
+        Assert.Equal((true, true, true), (byPayload, byKey, otherKind));
+        Assert.Equal(3, await h.CountJobsAsync());
+    }
+
+    [Fact]
+    public async Task A_keyed_job_once_claimed_lets_the_same_key_wait_behind_it()
+    {
+        await using var h = new JobsHarness();
+        await h.Queue.Enqueue(new RecordJob("a"), TestContext.Current.CancellationToken).UnlessWaiting("company-7");
+        await using (var db = h.NewContext())
+        {
+            Assert.Single(await h.Jobs.ClaimAsync(db, h.Clock.GetUtcNow().UtcDateTime, TestContext.Current.CancellationToken));
+        }
+
+        var again = await h.Queue.Enqueue(new RecordJob("b"), TestContext.Current.CancellationToken).UnlessWaiting("company-7");
+
+        Assert.True(again);
+    }
+
+    [Fact]
     public async Task A_different_payload_is_different_work()
     {
         await using var h = new JobsHarness();

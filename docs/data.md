@@ -1406,6 +1406,18 @@ await pump.Talk();
   connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
   name. Any other provider throws `NotSupportedException`.
 
+**Several names at once** — the chip codes a driver's save touches, say — go in one call, never in a loop:
+
+```csharp
+await using var chips = await Db.Lock(driver.Chips.Touched.Select(c => "chip:" + c.Code)).For(30.Seconds);
+```
+
+Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtext`, the locks it
+really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
+waits for. A name given twice is taken once, and an empty list takes nothing. `.For(wait)` is the whole call's wait,
+not each name's. All or none: when one is not granted, the ones already taken are let go before the
+`TimeoutException`. Disposing the handle lets go of every one.
+
 ### Named sets: `db.Orders`
 
 Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:
@@ -3323,6 +3335,29 @@ public sealed class Packaging
 
 A *collection* of value objects is not mapped automatically; configure it in the aggregate's own
 `Configure`.
+
+### Splitting a total: `Allocation.Split`
+
+A delivery shared among the vehicles that took fuel, a cost spread over categories: each share is rounded to what the
+column keeps, and the shares must still add up to the total — rounding each one on its own loses or invents a cent.
+`Allocation.Split` (namespace `Rask.Values`, in the `Rask` package) does it in one call:
+
+```csharp
+IReadOnlyList<decimal> shares = Allocation.Split(100m, 3, step: 0.01m);              // [33.34, 33.33, 33.33]
+var byWeight = Allocation.Split(total, litres, step: 0.01m, remainder: Remainder.ToLargest);
+```
+
+- **The sum is the total, exactly.** Each share is its exact part rounded toward zero to a whole number of `step`s;
+  what that leaves over goes out a step at a time to the parts `Remainder` names — `ToFirst` (the default: the first
+  parts, in the order given), `ToLast`, or `ToLargest` (the parts that lost most to the rounding, the earlier one first
+  on a tie). No share is more than one step from its exact part.
+- **Equal parts** take a count (`Split(total, receivers.Count, step: 0.01m)`); **weighted** parts take the weights. A
+  weight of zero gets zero and none of the remainder; a negative weight, or none above zero, is refused.
+- **A total off the step's grid** (`10.005m` by `0.01m`) keeps its last fraction on the part that takes the first step
+  of the remainder (`[5.005, 5.00]`), so the sum still is the total. A negative total splits into negative shares.
+- **Pure and deterministic** — no database, no clock, no culture — so it belongs inside an aggregate's method, and the
+  same arguments give the same shares on every host. Give the order a meaning (by moment, then number, then id) and the
+  remainder lands on the same rows every time.
 
 ## Strongly-typed ids
 
