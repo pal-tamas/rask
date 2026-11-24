@@ -19,7 +19,8 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var inspected = new DateOnly(2024, 5, 1);
-        var lorry = Rig.Of("  Ada  ", "ABC-123", 120.5m, 3, chip: " C1 ", inspected: inspected);
+        var fueled = new DateTime(2024, 5, 1, 14, 35, 12);
+        var lorry = Rig.Of("  Ada  ", "ABC-123", 120.5m, 3, chip: " C1 ", inspected: inspected, fueled: fueled);
         await lorry.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         var stored = await database.Load<Rig>(lorry.Id, TestContext.Current.CancellationToken);
@@ -30,6 +31,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal(120.5m, stored.Tank.Value);
         Assert.Equal(3, stored.Axles.Value);
         Assert.Equal(inspected, stored.Inspected!.Value);
+        Assert.Equal((fueled, DateTimeKind.Unspecified), (stored.Fueled!.Value, stored.Fueled.Value.Kind));
         var type = database.Context.Model.FindEntityType(typeof(Rig))!;
         Assert.Equal(typeof(string), type.FindProperty(nameof(Rig.Driver))!.GetValueConverter()!.ProviderClrType);
         Assert.DoesNotContain(type.GetComplexProperties(), p => p.Name == nameof(Rig.Driver));
@@ -195,6 +197,18 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Number, Min: 1, Scale: 2), tank);
         Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Whole, Min: 2, Max: 9), axles);
         Assert.True(inspected!.NotAfterToday);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Moment, NotAfterNow: true), shapeOf("Fueled"));
+    }
+
+    [Fact]
+    public async Task A_moment_is_stored_as_one_date_and_time_column()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var fueled = database.Context.Model.FindEntityType(typeof(Rig))!.FindProperty(nameof(Rig.Fueled))!;
+
+        Assert.Equal(typeof(DateTime), fueled.GetValueConverter()!.ProviderClrType);
+        Assert.Equal("TEXT", fueled.GetColumnType());
     }
 
     [Fact]

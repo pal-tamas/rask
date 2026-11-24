@@ -41,6 +41,57 @@ them until tagged releases begin.
   keyed by the `Id` it inherits. [RASK144](docs/diagnostics.md#rask144): `[Compare("X")]` naming no property of its
   model, which refuses every submit. Under `<RaskStrict>errors</RaskStrict>` they are errors like every other
   warning; none of them fires in a scaffolded app.
+- **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
+  `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
+  own constructor to upper-case it. After: `public sealed partial record Vin(string Value) : Text(Value, MinLength: 17,
+  MaxLength: 17, Upper: true);` keeps it culture-invariant in capitals (Hungarian `ő` → `Ő` included), after the trim
+  and before the lengths and the pattern are checked. A stored value still loads as stored; the bound input is not
+  drawn in capitals yet.
+- **`Test.Make<T>()` (Rask.Testing) is a value object its rules accept.** Before: a test that needed a `Vin`, a
+  `KmRange` or a `TaxNumber` wrote a literal that matched today's rules, and broke when a rule was tightened. After:
+  `Test.Make<Vin>()` reads the rules the record hands its base — `Text` lengths and a simple `Pattern`, `Number`/`Whole`
+  `Min`/`Max`/`Scale`, `Day` and `Moment` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
+  makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
+  member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
+  at `X.Create(…)`. Rask.Testing now references Rask.Data.
+- **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
+  several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
+  `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the
+  read face named them `KmStart`/`KmEnd`, so every list filter and sort changed. After: one call in `Configure` names
+  each column after the pattern (`{Member}` is the value object's member; nested value objects keep `_` below it), and
+  the generator reads the same call, so the read face is `StartKm`/`EndKm` too (`DeliveryNote.Where(n => n.StartKm
+  >= 100)`). A pattern without `{Member}` throws `ArgumentException`; a member that is not a complex value object
+  throws `InvalidOperationException`.
+- **A unique index's violation lands under the field the form shows.** Before: the failure named the index's bare
+  property names — `Start` for a member of a complex property, `Number` for a child row of an aggregate, which no
+  form field matched, so the message became a toast. After: a complex member is `Km.Start`, a child row is named by
+  its place in the aggregate's collection (`Pistols[1].Number`), as a form's list names its rows, and
+  `.IsUnique("…").Field("Plate")` names the field outright for an index over a normalised or computed column.
+- **A refused delete says the same sentence on SQLite as on SQL Server and PostgreSQL, and `ExecuteDelete` says it
+  too.** Before: SQLite names no constraint, so a delete onto an entity with two relationships with a sentence fell
+  back to `WhenReferenced`'s general one, and an `ExecuteDelete` the database refused threw the provider's raw
+  exception on every provider. After: on SQLite Rask asks — one statement, a cheap `EXISTS` per relationship, on the
+  same connection and transaction — which relationship still holds a row, and answers with that relationship's
+  sentence and constraint name; an `ExecuteDelete` is a `RaskValidationException` with the same sentence.
+- **A CQRS contract carries what the domain holds: record structs, value objects and typed ids.** Before: a
+  `record struct` member was RASK053 ("not supported as contract members yet"), and a value object declared from
+  `Text`/`Number`/`Whole`/`Day` had no wire encoding at all. After: a command, query, event or result crossing
+  between the browser and the server may hold a `record struct`; a one-value value object
+  (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id
+  (`record struct VehicleId(int Value)`, over a `Guid`, a `string`, …) travel as the bare value — `"ABC-123"`, `42`,
+  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. The receiving end
+  rebuilds a value object through its generated `Create` inside the loading scope a row is read in, so it is not
+  checked on arrival (a rule tightened on one end never makes the other unable to read); a handler that relies on
+  a rule asks it with `X.Create`. The generated API client is unchanged, since its server reads with
+  System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+- **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
+  fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
+  out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
+  Moment(Value, NotAfterNow: true);` holds the moment as `Clock.Wall` shows it in `Clock.Zone`, always
+  `DateTimeKind.Unspecified` (a UTC or machine-local `DateTime` is converted as it is made), takes `NotBefore`,
+  `NotAfter` and `NotAfterNow` (now is `Clock.Wall`), and gives its `.Day`. It gets `Create`/`TryCreate`/
+  `CreateOptional` like the other bases, is stored as one `datetime2`/`TEXT` column, and a bound `Ui.Field.Bind`
+  draws a `Ui.DayAndTime` ending now for `NotAfterNow` (`FieldKind.Moment`, `FieldShape.NotAfterNow`).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database

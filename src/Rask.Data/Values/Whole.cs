@@ -29,6 +29,11 @@ public abstract record Whole : Value
             throw new ArgumentOutOfRangeException(nameof(Min), Min, "The least a number may be is above the greatest.");
         }
 
+        if (DeclaredRules.IsReading)
+        {
+            DeclaredRules.Note(new WholeRules(Min, Max));
+        }
+
         this.Value = Value;
         if (Loading.IsOn)
         {

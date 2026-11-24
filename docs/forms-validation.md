@@ -138,8 +138,8 @@ before the save does.
 
 **Field shapes.** The generated model also tells every control bound to it what its field is — a
 `Rask.Core.Forms.FieldShape`, registered per model type through `RaskValidation.RegisterFieldShapes`: the kind
-(`FieldKind.Text`, `Number`, `Whole`, `Day`, `Range`, `Id`, `Choice`) and the rules the value object's base call
-states as constants (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`, `NotAfterToday`; a range's `Strict`, the
+(`FieldKind.Text`, `Number`, `Whole`, `Day`, `Moment`, `Range`, `Id`, `Choice`) and the rules the value object's base call
+states as constants (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`, `NotAfterToday`, `NotAfterNow`; a range's `Strict`, the
 names of its two ends and their kind). Each value object answers its own generated `X.__Field`; a member holding
 another aggregate's typed id is `FieldKind.Id`; an enum is `FieldKind.Choice` with its members and their labels
 (`[Display(Name = …)]`, else the member's name), written out at compile time so nothing reflects over the enum. A
