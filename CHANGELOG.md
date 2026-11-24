@@ -28,6 +28,15 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Three aggregate-write analyzers, each with a quick-fix (RASK184–RASK186).** Suggestions by default, warnings under
+  `<RaskStrict>` (errors at `errors`), like RASK140–144. RASK184: `throw new InvalidOperationException(m)` or
+  `ArgumentException(m)` inside an aggregate or an entity — a failed request where a form would show a sentence; the
+  fix turns `if (c) throw …;` into `Refuse.When(c, m);` (`Refuse.Unless` for `if (!c)`, `() => x` as the field for an
+  `ArgumentException(m, nameof(x))`) and any other throw into `throw new RaskValidationException(m)`. RASK185: an
+  aggregate held in a local declared before `Db.Transaction` and used inside its work — a read the transaction does not
+  cover and a retry repeats on the same copy; the fix moves the load to the top of the block. RASK186:
+  `X.Update(id, x => x.M(…), version: v)` where `M` has a generated operation entry — the fix calls `X.M(id, v, …)`,
+  which asks the operation's roles as its form does.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
