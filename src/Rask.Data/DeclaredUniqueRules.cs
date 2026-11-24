@@ -27,6 +27,7 @@ namespace Rask.Data;
 ///     <list type="bullet">
 ///         <item>a NULL in any of the index's columns is not checked — NULLs do not collide;</item>
 ///         <item>an index filter that only says its own columns are NOT NULL counts as no filter, because of the line above;</item>
+///         <item>an index filtered with <c>Where(…)</c> is asked over the rows its C# keeps, and a row it leaves out is not checked;</item>
 ///         <item>an index with any other filter is skipped: its condition is SQL, and guessing at it would refuse rows the database accepts.</item>
 ///     </list>
 ///     <para>
@@ -53,6 +54,7 @@ internal static class DeclaredUniqueRules
     /// <param name="valueOf">The row's value for a property of that entity, by name.</param>
     /// <param name="selfKey">The row's own primary key, so it does not collide with itself; null for a new row.</param>
     /// <param name="cancellationToken">Cancels the queries.</param>
+    /// <remarks><paramref name="valueOf" /> answers for every property, so a filtered rule's own row is read through it too.</remarks>
     internal static async Task<IReadOnlyList<FieldFailure>> CheckAsync(
         DbContext context,
         IEntityType entityType,
@@ -64,7 +66,7 @@ internal static class DeclaredUniqueRules
 
         foreach (var index in Rules(entityType))
         {
-            if (await TakenAsync(context, entityType, index, valueOf, selfKey, cancellationToken).ConfigureAwait(false))
+            if (await TakenAsync(context, entityType, index, valueOf, selfKey, cancellationToken, rowValueOf: valueOf).ConfigureAwait(false))
             {
                 (failures ??= []).Add(UniqueViolation.FailureOf(index));
             }
@@ -75,15 +77,22 @@ internal static class DeclaredUniqueRules
 
     /// <summary>
     ///     Whether another row already holds what <paramref name="valueOf" /> gives for <paramref name="rule" />'s
-    ///     columns. False without a query when any of them is NULL.
+    ///     columns. False without a query when any of them is NULL, or when <paramref name="rowValueOf" /> says the row is one
+    ///     a filtered rule leaves out.
     /// </summary>
+    /// <remarks>
+    ///     <c>rowValueOf</c> is the row's value for ANY property, when it is known: a <c>Where(…)</c> rule then asks
+    ///     whether the row is one it keeps. Null when only the index's own columns are known — the row is then taken as kept.
+    /// </remarks>
     internal static async Task<bool> TakenAsync(
         DbContext context,
         IEntityType entityType,
         IIndex rule,
         Func<string, object?> valueOf,
         IReadOnlyList<object?>? selfKey,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        Func<string, object?>? rowValueOf = null) =>
+        Kept(rule, rowValueOf) &&
         Predicate(entityType, rule, valueOf, selfKey) is { } taken &&
         await ExistsAsync(context, entityType.ClrType, taken, cancellationToken)
             .ConfigureAwait(false);
@@ -94,7 +103,13 @@ internal static class DeclaredUniqueRules
             index.IsUnique &&
             index.FindAnnotation(UniqueViolation.Annotation)?.Value is string &&
             IndexProperties.Scalars<IProperty>(index.Properties) is not null &&
-            OnlyRulesOutItsOwnNulls(index));
+            (FilteredRows.Of(index) is not null || OnlyRulesOutItsOwnNulls(index)));
+
+    /// <summary>Whether a row <paramref name="valueOf" /> describes is one <paramref name="rule" /> holds.</summary>
+    /// <param name="rule">The rule.</param>
+    /// <param name="valueOf">The row's value for any property, or null when it is not known — then it is.</param>
+    internal static bool Kept(IIndex rule, Func<string, object?>? valueOf) =>
+        valueOf is null || FilteredRows.Of(rule) is not { } rows || FilteredRows.Keeps(rows, valueOf);
 
     // "[TenantId] IS NOT NULL", "(\"Name\" IS NOT NULL AND \"TenantId\" IS NOT NULL)" — and nothing else.
     private static bool OnlyRulesOutItsOwnNulls(IIndex index)
@@ -147,6 +162,12 @@ internal static class DeclaredUniqueRules
         if (same is null)
         {
             return null;
+        }
+
+        // Another row counts only when the filtered index holds it.
+        if (FilteredRows.Of(index) is { } rows)
+        {
+            same = Expression.AndAlso(same, FilteredRows.On(rows, row));
         }
 
         if (selfKey is not null && entityType.FindPrimaryKey() is { } key && key.Properties.Count == selfKey.Count)

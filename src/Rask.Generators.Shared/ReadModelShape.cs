@@ -363,6 +363,10 @@ internal static class ReadModelShape
 
         var stored = AggregateShape.StoredProperties(named).ToList();
 
+        // An optional value object makes every column under it nullable, however deep: EF Core reads a row that has
+        // none as NULLs in all of them.
+        var optional = prefixes.Optional || IsNullable(valueObject);
+
         // A value object holding one value takes the owner's own column name rather than a compound one.
         if (AggregateShape.HoldsOneValue(named))
         {
@@ -371,7 +375,7 @@ internal static class ReadModelShape
                 prefixes.Column,
                 prefixes.Path + "." + stored[0].Name,
                 TypeOf(stored[0].Type),
-                IsNullable(valueObject),
+                optional,
                 IsReferenceType(stored[0].Type)));
             return;
         }
@@ -392,17 +396,16 @@ internal static class ReadModelShape
 
             if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
             {
-                Flatten(property.Type, new Prefixes(member, column, path, null), members, depth + 1, cancellationToken);
+                Flatten(property.Type, new Prefixes(member, column, path, null, optional), members, depth + 1, cancellationToken);
                 continue;
             }
 
-            // A value object the owner declared nullable makes every column under it nullable.
             members.Add(new ReadMember(
                 member,
                 column,
                 path,
                 TypeOf(property.Type),
-                IsNullable(property.Type) || IsNullable(valueObject),
+                IsNullable(property.Type) || optional,
                 IsReferenceType(property.Type)));
         }
     }
@@ -420,8 +423,11 @@ internal static class ReadModelShape
         Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(name)
         && Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(name) == Microsoft.CodeAnalysis.CSharp.SyntaxKind.None;
 
-    /// <summary>What a value object's members are named under: the read face's, the column's, the write model's path, and the pattern.</summary>
-    private readonly record struct Prefixes(string Member, string Column, string Path, string? Pattern);
+    /// <summary>
+    ///     What a value object's members are named under — the read face's, the column's, the write model's path, and the
+    ///     pattern — and whether a value object holding them is optional.
+    /// </summary>
+    private readonly record struct Prefixes(string Member, string Column, string Path, string? Pattern, bool Optional = false);
 
     // The framework columns its base names: CreatedAt / UpdatedAt, Version, DeletedAt.
     private static void AddFrameworkColumns(INamedTypeSymbol entity, List<ReadMember> members)

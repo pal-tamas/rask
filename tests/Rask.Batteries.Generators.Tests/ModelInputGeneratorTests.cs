@@ -435,6 +435,25 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void An_id_less_create_keys_a_typed_Guid_id_with_its_own_New()
+    {
+        // TypedIdGenerator (the Rask package's) completes the one line with New(); this generator cannot see it, so the
+        // rule is asked instead. Only the text is checked: that generator is not part of this run.
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public readonly partial record struct ProductId(Guid Value);
+            public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable> { private Product() { } }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+
+        Assert.Contains("__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, global::Shop.ProductId.New());", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateVersion7", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Value_objects_become_nested_models_rebuilt_by_constructor_or_initializer()
     {
         var run = Run("""

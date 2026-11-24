@@ -352,7 +352,7 @@ var rows  = rows.OrderBy(r => r.Name, TextOrder.In("hu"));          // a named o
 A query orders in the database's order instead: the model names the collation once — `c.OrderTextBy("Hungarian_100_CI_AS")`
 in its `IRaskModel` — and a query asks for it with `OrderBy(d => d.Name.InTextOrder())`. On SQL Server only that
 `ORDER BY` changes; on SQLite the columns compare by the same collation, case-insensitively, so a test there behaves as
-the server does; PostgreSQL orders by the language's ICU collation (see
+the server does, and on PostgreSQL 18+ through `UseRaskPostgres` too (see
 [Data](data.md#app-wide-model-rules-one-iraskmodel)).
 
 ## What stays culture-neutral, on purpose
@@ -890,6 +890,7 @@ they say when you set nothing.
 | `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |
 | `ValidationRangeNotBefore` | Validation — a range's end before its start (`Range(Start, End)`) | `It cannot be before the start, {0}.` |
 | `ValidationRangeAfter` | Validation — a strict range's end not after its start (`Range(Start, End, Strict: true)`) | `It must be after the start, {0}.` |
+| `ValidationChangedSince` | Validation — a save over an aggregate somebody else saved since it was read, about the whole form (`Find(id, version)`, `Update`, `Save()`; Rask.Data) | `Someone else changed this in the meantime. Reload it and try again.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

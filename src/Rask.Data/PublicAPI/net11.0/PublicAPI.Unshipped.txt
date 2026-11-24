@@ -252,7 +252,13 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
-static Rask.Data.Db.Lock(string! name, System.TimeSpan? wait = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
+static Rask.Data.Db.Lock(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
+Rask.Data.Locking
+Rask.Data.Locking.Locking() -> void
+Rask.Data.Locking.For(System.TimeSpan wait) -> Rask.Data.Locking
+Rask.Data.Locking.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<System.IAsyncDisposable!>
+Rask.Data.Locking.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.IAsyncDisposable!>
+Rask.Data.Locking.AsTask() -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
 static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
@@ -643,3 +649,5 @@ static Rask.Data.ValueObjectColumn.Held(Microsoft.EntityFrameworkCore.Metadata.B
 Rask.Data.LockedByBuilderExtensions
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, string! message, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
+static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Func<TEntity!, System.Threading.Tasks.Task!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, int version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!

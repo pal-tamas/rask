@@ -22,8 +22,8 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         Nothing is read again to write it. The <c>Version</c> compared is the one the caller READ, so a save built
-///         on a stale copy — or of a row soft-deleted since, which bumps it — is a
-///         <see cref="DbUpdateConcurrencyException" />, and so is one whose row (or a changed child's) is gone. An
+///         on a stale copy — or of a row soft-deleted since, which bumps it — is refused with the whole-form
+///         <c>RaskValidationException</c> of <see cref="StaleWrite" />, and so is one whose row (or a changed child's) is gone. An
 ///         aggregate with no <c>Version</c> that soft-deletes is asked first, by its key alone, whether it is still
 ///         there.
 ///     </para>
@@ -98,7 +98,7 @@ internal static class AggregateSave
         await using var contextScope = context.ConfigureAwait(false);
 
         await StageAsync(context, aggregate, cancellationToken).ConfigureAwait(false);
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await StaleWrite.SaveAsync(context, cancellationToken).ConfigureAwait(false);
 
         // Already done by the interceptor of a context that has Rask's; this one may not.
         if (!AsRead.TryGetValue(aggregate, out _))

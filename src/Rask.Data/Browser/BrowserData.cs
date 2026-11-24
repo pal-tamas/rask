@@ -22,6 +22,8 @@ internal static class BrowserData
         // A refused id says it in the reader's language, through the strings catalog the browser build references.
         HeldRowReference.Sentence = static () =>
             Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString.ValidationNotFound, HeldRowReference.Message);
+        StaleWrite.Sentence = static () =>
+            Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString.ValidationChangedSince, StaleWrite.Message);
 
         // The tenant the resolver named is the page's answer, asked again at each event, not a new question per event.
         EventScopeCatalog.KeepForSession(services, typeof(ResolvedTenant));
