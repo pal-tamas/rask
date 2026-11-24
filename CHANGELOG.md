@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A `: Value` record of one member is a one-value value object, and `Whole` holds an `int` too.** Before:
+  `record Rank(int Value) : Value { … Rules() … }` was built with `new` by the generated model, its rules ran only
+  on save and a refusal named no field; `Whole` took only a `long Value`. After: it gets `__Problems`, the form asks it
+  under its field as it does a `Text`, and a refusal on save carries the field (`Rank`); `record Seats(int Value) :
+  Whole(Value, Min: 1)` keeps its own `int`. BREAKING: `Whole` no longer declares `Value` — the derived record does.
 - **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
   `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
   runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value

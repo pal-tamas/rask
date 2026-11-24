@@ -95,6 +95,25 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void A_record_of_one_member_declared_from_Value_gets_the_rule_a_form_asks_and_one_of_two_does_not()
+    {
+        var run = Run("""
+            public sealed partial record Rank(int Value) : Value;
+            public sealed partial record Pair(int A, int B) : Value;
+            public sealed partial record Seats(int Value) : Whole(Value, Min: 1);
+            """);
+
+        var rank = run.GeneratedSource("Rank.Value.g.cs");
+        var pair = run.GeneratedSource("Pair.Value.g.cs");
+        var seats = run.GeneratedSource("Seats.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("__Problems(int? value)", rank, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Problems", pair, StringComparison.Ordinal);
+        Assert.Contains("__Problems(int? value)", seats, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CreateOptional_refuses_only_the_members_that_may_not_be_empty()
     {
         var run = Run(ValueObjects);

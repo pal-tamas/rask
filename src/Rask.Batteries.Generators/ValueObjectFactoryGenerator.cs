@@ -264,7 +264,10 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         string? Problem,
         SymbolLocation? Location)
     {
-        /// <summary>Holds one value — Text, Number, Whole, Day or Moment over one parameter — which forms ask directly.</summary>
-        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" or "Moment" && Parameters.Count == 1;
+        /// <summary>
+        ///     Holds one value — Text, Number, Whole, Day or Moment over one parameter, or Value over one member — which
+        ///     forms ask directly.
+        /// </summary>
+        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" or "Moment" or "Value" && Parameters.Count == 1;
     }
 }
