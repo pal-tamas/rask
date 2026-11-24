@@ -361,6 +361,10 @@ using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity
 
 ### A valid value object: `Test.Make`
 
+`Test.Make` lives in **`Rask.Testing.Data`**, the half of the testing package that needs `Rask.Data` — so a test
+project that only renders components never pulls in EF Core. The `server` template's test project references both;
+add it yourself with `dotnet add package Rask.Testing.Data`.
+
 A test that needs a value object its rules accept, and does not care which, asks for one instead of writing a
 literal that a tightened rule would one day refuse:
 

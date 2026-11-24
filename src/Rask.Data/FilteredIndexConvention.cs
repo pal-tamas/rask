@@ -34,7 +34,9 @@ internal sealed class FilteredIndexConvention(ModelSql? sql) : IModelFinalizingC
 
                 sql.Supported(filter.Declaration);
                 var rows = ModelExpressionSql.Filter(sql, entityType, filter.Lambda, filter.Declaration);
-                index.SetFilter(string.Join(" AND ", [.. KeysNotNull(sql, index, rows), rows]), fromDataAnnotation: true);
+                var written = string.Join(" AND ", [.. KeysNotNull(sql, index, rows), rows]);
+                index.SetFilter(written, fromDataAnnotation: true);
+                FilteredRows.Remember(entityType.ClrType, written, filter.Lambda);
             }
         }
     }

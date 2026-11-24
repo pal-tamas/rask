@@ -1169,12 +1169,13 @@ Some work must never run twice at once however many hosts the app runs on — ta
 month. `Db.Lock(name)` takes a lock the **database** keeps, held until you dispose it:
 
 ```csharp
-await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+await using var turn = await Db.Lock("pump:" + pumpId).For(2.Minutes);
 await pump.Talk();
 ```
 
-- **`wait`** is how long to wait for the current holder: omitted, as long as it takes; `TimeSpan.Zero`, not at all.
-  A wait that runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
+- **`.For(wait)`** is the most it waits for the current holder — a step at the end, as every timing in Rask is. With no
+  step, `await Db.Lock("pump:7")` waits as long as it takes; `.For(TimeSpan.Zero)` does not wait at all. A wait that
+  runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
   again". The call's cancellation token (or the work it runs in) cancels the wait.
 - **It is its own connection's**, kept open while the lock is held and never the one of a `Db.Transaction` in
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
@@ -2248,9 +2249,10 @@ public sealed class AppModel : IRaskModel
   | | `OrderBy(x => x.Name.InTextOrder())` | `Where(x => x.Name == "csaba")`, a unique index, `Contains`/`StartsWith`/`EndsWith` |
   |---|---|---|
   | **SQL Server** | `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` | as the database's own collation says — no column is given one, so no migration |
-  | **SQLite** (`UseRaskSqlite`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
-  | **PostgreSQL** | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is — **the gap** |
-  | a plain `UseSqlite` (a browser app) | by the column as it is | as SQLite compares |
+  | **SQLite** (`UseRaskSqlite`, or a browser's `UseSqlite(…).UseRaskFullTextSearch()`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
+  | **PostgreSQL 18+** (`UseRaskPostgres`) | `ORDER BY "Name" COLLATE rask_text` | as SQL Server would, through a nondeterministic ICU collation |
+  | a plain `UseNpgsql` | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is |
+  | a plain `UseSqlite` with nothing of Rask's | by the column as it is | as SQLite compares |
 
   On SQLite every connection `UseRaskSqlite` opens registers the collation's language and sensitivities (Hungarian →
   `hu-HU`; `CI` ignores case; `AS` keeps `á` apart from `a`; no `KS`/`WS` ignores kana and width) as
@@ -2260,9 +2262,16 @@ public sealed class AppModel : IRaskModel
   `Csaba` — what the app's SQL Server does. A column given a collation of its own (`UseCollation`) keeps it. A
   collation name Rask cannot read (an unknown language) is refused as the model is built, off SQL Server.
 
-  PostgreSQL orders by the language's ICU collation, which every server built with ICU (the official images are)
-  imports. Comparing case-insensitively there takes a *nondeterministic* collation on each column, and those refuse
-  `LIKE` before PostgreSQL 18 — so Rask leaves PostgreSQL's equality and `LIKE` as they are.
+  On PostgreSQL through `UseRaskPostgres`, a collation that ignores case or accents becomes a *nondeterministic* ICU
+  collation, `rask_text` (`CREATE COLLATION rask_text (PROVIDER = icu, LOCALE = 'hu-HU-u-ks-level2', DETERMINISTIC =
+  false)` — `ks-level2` ignores case, `ks-level1` accents too), which the migration (or `EnsureCreated`) creates before
+  the first table that uses it, and every text column is created with it: `=`, a unique index, `ORDER BY` and `LIKE`
+  (`Contains`, `StartsWith`, `EndsWith`) compare as SQL Server's do. **It needs PostgreSQL 18 or later**: `LIKE` refuses
+  a nondeterministic collation before 18, so on an older server the migration stops at that statement and says so,
+  rather than every search failing later. The collation is made `IF NOT EXISTS` — a database whose collation was made
+  under another locale keeps it until it is dropped. A collation that tells case and accents apart
+  (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
+  does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
   ```csharp
   // before — the collation repeated in every query
@@ -2356,8 +2365,10 @@ before each save, and refuses the save with the same failure:
 - over exactly the index's columns: the row's tenant for an index that names `TenantId`, every tenant's rows for
   one that does not ([an index is what you write](multi-tenancy.md#an-index-is-what-you-write))
 - a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
-- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
-  filter is skipped, because its condition is SQL that Rask will not guess at
+- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index filtered with
+  [`Where(…)`](#computed-columns-defaults-and-filtered-indexes-in-c) is asked over exactly the rows its C# keeps, and
+  a row it leaves out (a revoked grant) is not checked at all; an index with any other filter is skipped, because its
+  condition is SQL that Rask will not guess at
 - two rows of one save that break a rule between them are refused too
 - the row being saved does not collide with itself
 
@@ -2433,7 +2444,10 @@ a `double` or a date joined into text (each database writes it its own way), and
 script, another app — and the rows a migration finds when it adds the column. **Rask always writes the value the
 entity holds**: a `Size` of `0` is saved as `0`, where EF Core's own `HasDefaultValue` would leave a column holding
 its type's default to the database and save `1000`. The entity's own starting value is its initializer or its
-factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key.
+factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key. On SQL
+Server, where a default is a named constraint, an app's
+[`ConstraintNames`](#app-wide-model-rules-one-iraskmodel) rule names it (`ConstraintKind.Default`, the clock's too), so
+`{table}_{column}_df` needs no `HasDefaultConstraintName`; PostgreSQL and SQLite defaults have no name.
 
 `Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
 clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
@@ -2627,7 +2641,7 @@ same type and hold the same values; a one-value record's `ToString()` is its val
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
 
-**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
+**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing.Data): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
 **A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in
@@ -2894,13 +2908,19 @@ gets it too):
 | Member | Does |
 |---|---|
 | `VehicleId.New()` | a new version-7 `Guid` — an id over a `Guid` only; the others come from the store or the caller |
-| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too |
+| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
 | `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
 | JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
 | routing | `[RouteParam] public VehicleId Id { get; set; }` binds `/vehicles/42`, and `Routes.VehiclePage(id)` writes `42` back |
 
 A member you write yourself — your own `ToString`, `Parse` or `[JsonConverter]` — is kept, and only the rest is
 generated.
+
+The JSON converter is a `[JsonConverter]` attribute, which `JsonSerializer` finds by reflection. A
+`JsonSerializerContext` of your own (System.Text.Json's source generation) cannot see what another generator added, so
+register it there: `[JsonSourceGenerationOptions(Converters = [typeof(VehicleId.__JsonConverter)])]` — or, simpler, keep
+the reflection serializer for types that hold typed ids. Rask's own wire (commands, events, jobs) carries a typed id as
+its bare value without either.
 
 **In the model.** Use one as the aggregate's key and it is converted to its underlying value automatically. The
 converter is registered once for the type, in `ConfigureConventions`, so **every** property of that type is
@@ -2914,14 +2934,17 @@ Who produces the key follows the value it holds:
   inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
   `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
 - **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
-  `Create(model)` does the same.
+  `Create(model)` calls `VehicleId.New()` too.
 - **Over a `string`** the caller names it: `Create(id, model)`.
 
 **A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
 existing schema's `nvarchar` key (`HasColumnType("nvarchar(1000)")`) — the id is written as `ToString()` prints it,
 `3e18ad13-d95e-4808-97bd-918b457c006b`, rather than the provider's own spelling (SQLite's is upper case). A row an
-older tool wrote in upper case still loads; a `Where` matches the stored text exactly, so such a column is
-lower-cased once. A column that stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
+older tool wrote in upper case still loads. Whether a `Where` still finds it is the column's comparison: under
+[`OrderTextBy`](sqlite.md#text-that-compares-as-sql-server-does) with a case-insensitive collation (`Hungarian_100_CI_AS` — on SQLite through `UseRaskSqlite`,
+every text column is `RASK_TEXT`) and on SQL Server's usual `_CI_` collations it does; a column that compares as
+written (SQLite's default `BINARY`, PostgreSQL's `text`) does not, so lower-case such a column once. A column that
+stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
 
 ## Using EF Core the usual way
 
