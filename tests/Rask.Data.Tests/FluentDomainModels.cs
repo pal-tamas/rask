@@ -85,7 +85,10 @@ public sealed partial record HarbourCode(string Value) : Text(Value, MaxLength: 
         rules.RuleFor(c => c.Value).Must(static v => v.ToUpperInvariant() == v).WithMessage("A sign is in capitals.");
 }
 
-// What the validator registry's generator writes into an app; this suite does not run that generator.
+// The value object's Stated rules, registered as the value-object generator's output would be (HarbourCode above is a
+// hand-written stand-in for it). Harbour's and Quay's own Rules are registered by the validator registry's generator,
+// which this suite runs since the value-object generator moved into Rask.Generators — listing them here too asked
+// every rule twice.
 internal static class FluentDomainRegistration
 {
 #pragma warning disable CA2255 // the registration a generated module initializer makes in an app
@@ -95,8 +98,6 @@ internal static class FluentDomainRegistration
         RaskValidators.Replace(
             typeof(FluentDomainRegistration),
             [
-                RaskValidators.Inline<Harbour>(Harbour.Rules),
-                RaskValidators.Inline<Quay>(Quay.Rules),
                 RaskValidators.Inline<HarbourCode>(HarbourCode.Stated),
             ]);
 }

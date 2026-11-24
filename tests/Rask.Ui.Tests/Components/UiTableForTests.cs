@@ -57,8 +57,15 @@ public partial class UiTableForTests : global::Rask.Core.RaskMarkup
     {
         var row = new TankRow
         {
-            Name = "Kút 1", Size = 12000, Litres = 1234.5m, Ratio = 0.25m, Kind = Fuel.Petrol, Opened = new DateOnly(2026, 3, 14),
-            Active = true, Shut = false, Spare = Fuel.Diesel,
+            Name = "Kút 1",
+            Size = 12000,
+            Litres = 1234.5m,
+            Ratio = 0.25m,
+            Kind = Fuel.Petrol,
+            Opened = new DateOnly(2026, 3, 14),
+            Active = true,
+            Shut = false,
+            Spare = Fuel.Diesel,
         };
 
         var cells = InHungary(() => Page.Render(() => Ui.TableRow[
