@@ -111,6 +111,33 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 }
 
 /// <summary>An aggregate holding value objects of several members, stored as complex values.</summary>
+/// <summary>A value of one member with a rule of its own: a one-value value object, like a base record's.</summary>
+public sealed partial record RigRank(int Value) : Value
+{
+    public const string AtLeastOne = "A rank is 1 or more.";
+
+    protected override IEnumerable<Problem> Rules()
+    {
+        if (Value < 1)
+        {
+            yield return Problem.Whole(AtLeastOne);
+        }
+    }
+}
+
+/// <summary>A whole number held as an int.</summary>
+public sealed partial record RigSeats(int Value) : Whole(Value, Min: 1, Max: 9);
+
+/// <summary>An aggregate holding one-value value objects of an int, written through its generated model.</summary>
+public sealed class Ladder : Aggregate<int, Model>
+{
+    private Ladder() { }
+
+    public RigRank Rank { get; private set; } = null!;
+
+    public RigSeats Seats { get; private set; } = null!;
+}
+
 /// <summary>An aggregate holding a text that may be left empty, written through its generated model.</summary>
 public sealed class Notebook : Aggregate<int, Model>
 {
