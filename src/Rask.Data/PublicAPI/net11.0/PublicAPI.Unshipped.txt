@@ -252,7 +252,13 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
-static Rask.Data.Db.Lock(string! name, System.TimeSpan? wait = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
+static Rask.Data.Db.Lock(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
+Rask.Data.Locking
+Rask.Data.Locking.Locking() -> void
+Rask.Data.Locking.For(System.TimeSpan wait) -> Rask.Data.Locking
+Rask.Data.Locking.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<System.IAsyncDisposable!>
+Rask.Data.Locking.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.IAsyncDisposable!>
+Rask.Data.Locking.AsTask() -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
 static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
@@ -417,8 +423,49 @@ static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading(this Micro
 static Rask.Data.LazyLoadingOptionsBuilderExtensions.AllowLazyLoading<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value, Rask.Values.ValueFacets facets) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value, Rask.Values.ValueFacets facets) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
+Rask.Data.CheckedProperty
+Rask.Data.CheckedProperty.CheckedProperty(string! name, System.Func<string!>! displayName, System.Func<object?, object?>? valueOf, params System.ComponentModel.DataAnnotations.ValidationAttribute![]! checks) -> void
+Rask.Data.CheckedProperty.Checks.get -> System.Collections.Generic.IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationAttribute!>!
+Rask.Data.CheckedProperty.DisplayName.get -> System.Func<string!>!
+Rask.Data.CheckedProperty.Name.get -> string!
+Rask.Data.CheckedProperty.ValueOf.get -> System.Func<object?, object?>?
+Rask.Data.GeneratedDomainRules
+static Rask.Data.GeneratedDomainRules.Add<TEntity>(System.Collections.Generic.IReadOnlyList<Rask.Data.CheckedProperty!>! properties, System.Collections.Generic.IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationAttribute!>! typeChecks, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Values.Problem>!>? validate, System.Func<TEntity!, System.Collections.Generic.IAsyncEnumerable<Rask.Values.Problem>!>? validateDelete, System.Func<System.ComponentModel.DataAnnotations.ValidationAttribute!, object?, string!, string!>? words) -> void
+static Rask.Data.GeneratedModelRules.Said(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>? failures, string! path, System.ComponentModel.DataAnnotations.ValidationResult? result) -> System.Collections.Generic.IList<Rask.Wire.FieldFailure!>?
 Rask.Data.CoveringIndexBuilderExtensions
 static Rask.Data.CoveringIndexBuilderExtensions.Covering(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, params string![]! propertyNames) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.CoveringIndexBuilderExtensions.Covering<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, object?>!>! columns) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.ComputedColumnBuilderExtensions
+static Rask.Data.ComputedColumnBuilderExtensions.Computed<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+Rask.Data.DefaultValueBuilderExtensions
+static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TProperty value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+Rask.Data.FilteredIndexBuilderExtensions
+static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.Refuse
+static Rask.Data.Refuse.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.Unless(bool condition, string! message) -> void
+static Rask.Data.Refuse.Unless<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.When(bool condition, string! message) -> void
+static Rask.Data.Refuse.When<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+Rask.Data.KeepEmptyBuilderExtensions
+Rask.Data.GeneratedEmptyTexts
+static Rask.Data.GeneratedEmptyTexts.Of<TValue>(System.Func<TValue>! make) -> TValue
+static Rask.Data.KeepEmptyBuilderExtensions.KeepEmpty<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+Rask.Data.ColumnName
+Rask.Data.ColumnName.AsDeclared.get -> string!
+Rask.Data.ColumnName.CamelCase.get -> string!
+Rask.Data.ColumnName.Path.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.ColumnName.SnakeCase.get -> string!
+Rask.Data.ColumnName.Table.get -> string!
+Rask.Data.NamingConventionExtensions
+Rask.Data.TableName
+Rask.Data.TableName.AsDeclared.get -> string!
+Rask.Data.TableName.CamelCase.get -> string!
+Rask.Data.TableName.Class.get -> string!
+Rask.Data.TableName.SnakeCase.get -> string!
+static Rask.Data.NamingConventionExtensions.ColumnNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.ColumnName!, string!>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.NamingConventionExtensions.TableNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.TableName!, string!>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.ValueObjectColumnsBuilderExtensions
 static Rask.Data.ValueObjectColumnsBuilderExtensions.Columns<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue>!>! member, string! pattern) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.ValueObjectColumn.Held(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, string! column) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!

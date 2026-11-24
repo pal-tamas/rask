@@ -84,9 +84,4 @@ public sealed class DurationQueryTests
     {
         public DbSet<Trip> Trips => Set<Trip>();
     }
-
-    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
-    }
 }

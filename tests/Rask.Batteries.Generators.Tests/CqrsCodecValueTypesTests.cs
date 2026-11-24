@@ -3,7 +3,8 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Tests;
 
 // A contract may carry what the domain holds: a record struct, a one-value value object and a typed id, the last two
-// as the bare value they hold ("ABC-123", 42), rebuilt unchecked through the value object's generated Create.
+// as the bare value they hold ("ABC-123", 42), rebuilt through the value object's generated Create — checked where a
+// server reads what a client sent, loaded unchecked where a browser reads what the server answered.
 public class CqrsCodecValueTypesTests
 {
     private const string Contracts = """
@@ -70,14 +71,27 @@ public class CqrsCodecValueTypesTests
     }
 
     [Fact]
-    public void A_value_object_is_read_through_its_create_inside_a_loading_scope()
+    public void A_value_object_read_with_no_collector_is_made_through_its_create_inside_a_loading_scope()
     {
         var codec = Run(Contracts).GeneratedSource("__RaskCqrsCodecs");
 
+        Assert.Contains("if (refusals is null)", codec, StringComparison.Ordinal);
         Assert.Contains("using var __loading = global::Rask.Values.GeneratedValueRules.Loading();", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.DriverName.Create(held);", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.Litres.Create(held);", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.KmRange.Create(v_Start, v_End);", codec, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_message_is_read_with_a_collector_its_value_objects_record_their_refusals_in()
+    {
+        var codec = Run(Contracts).GeneratedSource("__RaskCqrsCodecs");
+
+        Assert.Contains("var __refusals = new global::Rask.Wire.WireRefusals();", codec, StringComparison.Ordinal);
+        Assert.Contains("return __refusals.Count == 0 ? __message : throw Refused(__refusals);", codec, StringComparison.Ordinal);
+        Assert.Contains("catch (global::Rask.Cqrs.RaskValidationException __refusal)", codec, StringComparison.Ordinal);
+        Assert.Contains("refusals?.Enter(\"Driver\");", codec, StringComparison.Ordinal);
+        Assert.Contains("(ref reader, NoFiles, \"result\", null)", codec, StringComparison.Ordinal);
     }
 
     [Fact]

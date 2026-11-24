@@ -399,9 +399,9 @@ public class ModelInputGeneratorTests
             Assert.Contains($"Create({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
         }
 
-        // A store-generated integer gets no create that takes a key: an explicit identity value fails on SQL Server
-        // and leaves PostgreSQL's sequence behind.
-        foreach (var (name, id) in new[] { ("Note", "int"), ("Entry", "long") })
+        // A store-generated integer — or a typed id over one — gets no create that takes a key: an explicit identity
+        // value fails on SQL Server and leaves PostgreSQL's sequence behind.
+        foreach (var (name, id) in new[] { ("Note", "int"), ("Entry", "long"), ("Order", "global::Shop.OrderNumber") })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
             Assert.Contains($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
@@ -410,7 +410,7 @@ public class ModelInputGeneratorTests
 
         foreach (var (name, id) in new[]
                  {
-                     ("Order", "global::Shop.OrderNumber"), ("Item", "global::Shop.Sku"), ("Country", "string"),
+                     ("Item", "global::Shop.Sku"), ("Country", "string"),
                  })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
@@ -432,6 +432,25 @@ public class ModelInputGeneratorTests
         Assert.Contains("__SetterKey_Id<global::System.Guid>.Invoke(entity, id);", run.GeneratedSource("Shop.TagModel"), StringComparison.Ordinal);
         Assert.Contains("global::System.ArgumentNullException.ThrowIfNull(id);", run.GeneratedSource("Shop.CountryModel"), StringComparison.Ordinal);
         Assert.DoesNotContain("ThrowIfNull(id)", run.GeneratedSource("Shop.TagModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_id_less_create_keys_a_typed_Guid_id_with_its_own_New()
+    {
+        // TypedIdGenerator (the Rask package's) completes the one line with New(); this generator cannot see it, so the
+        // rule is asked instead. Only the text is checked: that generator is not part of this run.
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public readonly partial record struct ProductId(Guid Value);
+            public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable> { private Product() { } }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+
+        Assert.Contains("__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, global::Shop.ProductId.New());", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateVersion7", source, StringComparison.Ordinal);
     }
 
     [Fact]

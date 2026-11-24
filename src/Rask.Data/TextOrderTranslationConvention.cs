@@ -16,14 +16,15 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         On SQL Server the collation reaches the <c>ORDER BY</c> that asks for it and nothing else: the database's own
-///         default collation already compares every column the way the name says. On PostgreSQL the <c>ORDER BY</c> names
-///         the language's ICU collation. Neither touches a column.
+///         default collation already compares every column the way the name says.
 ///     </para>
 ///     <para>
 ///         SQLite has no such default, so where the provider registers the collation on each connection
 ///         (<see cref="ITextCollationEnforcer" />, which <c>UseRaskSqlite</c> adds) every text column is created with it:
-///         equality, a unique index, <c>GROUP BY</c> and <c>ORDER BY</c> then compare as SQL Server does. Read once, as the
-///         model is built.
+///         equality, a unique index, <c>GROUP BY</c> and <c>ORDER BY</c> then compare as SQL Server does. PostgreSQL through
+///         <c>UseRaskPostgres</c> does the same with a nondeterministic ICU collation its migrations create; a plain
+///         <c>UseNpgsql</c> orders by the language's ICU collation and leaves the columns alone. Read once, as the model is
+///         built.
 ///     </para>
 /// </remarks>
 internal sealed class TextOrderTranslationConvention : IModelInitializedConvention, IModelFinalizingConvention
@@ -55,13 +56,17 @@ internal sealed class TextOrderTranslationConvention : IModelInitializedConventi
 
         if (string.Equals(provider, ProviderNames.Postgres, StringComparison.Ordinal))
         {
-            return new TextOrderTranslationConvention(TextCollation.Parse(collation).IcuCollation, columns: null, annotated: null);
+            // Through UseRaskPostgres, a comparison that ignores case or accents is a nondeterministic collation its
+            // migrations create; anywhere else — or for one that tells them apart — the language's ICU order is enough.
+            var parsed = TextCollation.Parse(collation);
+            return Enforcer(services) is { } postgres && parsed.NondeterministicIcuLocale is not null
+                ? new TextOrderTranslationConvention(postgres.Collation, postgres.Collation, collation)
+                : new TextOrderTranslationConvention(parsed.IcuCollation, columns: null, annotated: null);
         }
 
         // A plain UseSqlite — a browser app's — registers nothing on its connections, so there a column named with the
         // collation could not be read back: it keeps ordering by the column as it is.
-        if (string.Equals(provider, ProviderNames.Sqlite, StringComparison.Ordinal)
-            && services.GetService<IDbContextOptions>()?.Extensions.OfType<ITextCollationEnforcer>().FirstOrDefault() is { } enforcer)
+        if (string.Equals(provider, ProviderNames.Sqlite, StringComparison.Ordinal) && Enforcer(services) is { } enforcer)
         {
             _ = TextCollation.Parse(collation);
             return new TextOrderTranslationConvention(enforcer.Collation, enforcer.Collation, collation);
@@ -69,6 +74,9 @@ internal sealed class TextOrderTranslationConvention : IModelInitializedConventi
 
         return new TextOrderTranslationConvention(orderedBy: null, columns: null, annotated: null);
     }
+
+    private static ITextCollationEnforcer? Enforcer(IServiceProvider services) =>
+        services.GetService<IDbContextOptions>()?.Extensions.OfType<ITextCollationEnforcer>().FirstOrDefault();
 
     public void ProcessModelInitialized(IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)
     {

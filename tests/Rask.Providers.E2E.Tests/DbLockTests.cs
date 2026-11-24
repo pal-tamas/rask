@@ -30,9 +30,9 @@ internal static class LockRun
 
     internal static async Task A_second_holder_waits_until_the_first_lets_go()
     {
-        var first = await Db.Lock("rask-lock-parity", cancellationToken: TestContext.Current.CancellationToken);
+        var first = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken);
 
-        var second = Db.Lock("rask-lock-parity", TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        var second = Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.FromSeconds(30)).AsTask();
         await Task.Delay(300, TestContext.Current.CancellationToken);
         var waitedWhileHeld = !second.IsCompleted;
         await first.DisposeAsync();
@@ -43,25 +43,25 @@ internal static class LockRun
 
     internal static async Task A_held_name_times_out_after_its_wait_and_with_none()
     {
-        await using var held = await Db.Lock("rask-lock-parity", cancellationToken: TestContext.Current.CancellationToken);
+        await using var held = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken);
 
         var waited = await Assert.ThrowsAsync<TimeoutException>(
-            () => Db.Lock("rask-lock-parity", TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken));
+            () => Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.FromMilliseconds(200)).AsTask());
         await Assert.ThrowsAsync<TimeoutException>(
-            () => Db.Lock("rask-lock-parity", TimeSpan.Zero, TestContext.Current.CancellationToken));
+            () => Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.Zero).AsTask());
 
         Assert.Contains("rask-lock-parity", waited.Message, StringComparison.Ordinal);
     }
 
     internal static async Task A_cancelled_wait_ends_and_leaves_the_name_to_the_next_holder()
     {
-        var held = await Db.Lock("rask-lock-parity", cancellationToken: TestContext.Current.CancellationToken);
+        var held = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken);
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Db.Lock("rask-lock-parity", cancellationToken: cancel.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Db.Lock("rask-lock-parity", cancel.Token).AsTask());
         await held.DisposeAsync();
 
-        await using var next = await Db.Lock("rask-lock-parity", TimeSpan.Zero, TestContext.Current.CancellationToken);
+        await using var next = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.Zero);
     }
 
     internal static async Task A_lock_taken_inside_a_rolled_back_transaction_is_held_until_it_is_let_go()
@@ -70,14 +70,14 @@ internal static class LockRun
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
-            inside = await Db.Lock("rask-lock-parity", cancellationToken: TestContext.Current.CancellationToken);
+            inside = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken);
             throw new InvalidOperationException("roll back");
         }, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<TimeoutException>(
-            () => Db.Lock("rask-lock-parity", TimeSpan.Zero, TestContext.Current.CancellationToken));
+            () => Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.Zero).AsTask());
         await inside!.DisposeAsync();
 
-        await using var after = await Db.Lock("rask-lock-parity", TimeSpan.Zero, TestContext.Current.CancellationToken);
+        await using var after = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.Zero);
     }
 }
 
@@ -131,7 +131,7 @@ public sealed class SqlServerDbLockTests
         var name = new string('n', 256);
 
         var refused = LockRun.Run(Server, () => Assert.ThrowsAsync<ArgumentException>(
-            () => Db.Lock(name, cancellationToken: TestContext.Current.CancellationToken)));
+            () => Db.Lock(name, TestContext.Current.CancellationToken).AsTask()));
 
         await refused;
     }
@@ -199,9 +199,9 @@ public sealed class PostgresDbLockTests
         await LockRun.Run(Server, async () =>
         {
             seen.Add(await Timeout(context));
-            await using var held = await Db.Lock("rask-lock-parity", cancellationToken: TestContext.Current.CancellationToken);
+            await using var held = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken);
             await Assert.ThrowsAsync<TimeoutException>(
-                () => Db.Lock("rask-lock-parity", TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken));
+                () => Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.FromMilliseconds(100)).AsTask());
         });
         seen.Add(await Timeout(context));
         return seen;

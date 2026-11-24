@@ -16,11 +16,15 @@ namespace Rask.Data;
 /// </remarks>
 internal static class ChildWrites
 {
-    // A row a save of its aggregate let go, staged for deletion as a detached copy whose parent key nobody kept.
+    // A row a save of its aggregate let go, staged for deletion as a detached copy whose parent key nobody kept, and
+    // the aggregate that let it go.
     private static readonly ConditionalWeakTable<object, object> LetGoByTheirRoot = [];
 
-    /// <summary>Marks <paramref name="child" /> as deleted by a save of its own aggregate.</summary>
-    internal static void LetGoByItsRoot(object child) => LetGoByTheirRoot.AddOrUpdate(child, child);
+    /// <summary>Marks <paramref name="child" /> as deleted by a save of <paramref name="root" />, its own aggregate.</summary>
+    internal static void LetGoByItsRoot(object child, object root) => LetGoByTheirRoot.AddOrUpdate(child, root);
+
+    /// <summary>The aggregate whose save let <paramref name="child" /> go, or null for a row no save let go.</summary>
+    internal static object? RootThatLetGo(object child) => LetGoByTheirRoot.TryGetValue(child, out var root) ? root : null;
 
     /// <summary>Throws for the first child changed in this save whose aggregate root the context does not hold.</summary>
     internal static void RefuseOutsideTheirAggregate(DbContext context)

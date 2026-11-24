@@ -25,9 +25,32 @@ namespace Rask.Generators.Shared;
 /// </remarks>
 internal sealed class WireCodecEmitter
 {
+    private readonly bool _checksValues;
+    private readonly string _required;
     private readonly StringBuilder _methods = new();
     private readonly Dictionary<string, string> _emitted = new(StringComparer.Ordinal);
     private int _next;
+
+    /// <summary>Creates an emitter.</summary>
+    /// <param name="checksValues">
+    ///     Whether every reader takes a <c>refusals</c> collector beside its reader: given one — a server reading what a
+    ///     client sent — a value object is made through its <c>Create</c> with its rules asked, and each refusal is
+    ///     recorded under the field it was read at; given null — a browser reading what the server answered — it is made
+    ///     inside a loading scope, as a row is loaded. The CQRS codecs check; the API client, whose values are no
+    ///     value objects, does not.
+    /// </param>
+    /// <param name="required">
+    ///     The C# expression a checking reader words a missing required member with — the sentence a form's required
+    ///     field says, from the app's catalog where the compilation has one.
+    /// </param>
+    public WireCodecEmitter(bool checksValues = false, string required = EnglishRequired)
+    {
+        _checksValues = checksValues;
+        _required = required;
+    }
+
+    /// <summary>The required sentence as a literal, for a compilation with no catalog to read it from.</summary>
+    public const string EnglishRequired = "\"This field is required.\"";
 
     /// <summary>The generated methods, ready to drop into the codec class.</summary>
     public string Methods => _methods.ToString();
@@ -60,7 +83,7 @@ internal sealed class WireCodecEmitter
         _methods.Append(write);
         _methods.AppendLine("    }");
         _methods.AppendLine();
-        _methods.AppendLine($"    private static {type.Fqn} R{id}(ref {Reader} reader, {FileListRead} files, string property)");
+        _methods.AppendLine($"    private static {type.Fqn} R{id}(ref {Reader} reader, {FileListRead} files, string property{(_checksValues ? $", {Refusals} refusals" : "")})");
         _methods.AppendLine("    {");
         _methods.Append(read);
         _methods.AppendLine("    }");
@@ -97,7 +120,7 @@ internal sealed class WireCodecEmitter
                 write.AppendLine("        if (!value.HasValue) { writer.WriteNullValue(); return; }");
                 write.AppendLine($"        W{inner}(writer, value.Value, files);");
                 read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
-                read.AppendLine($"        return R{inner}(ref reader, files, property);");
+                read.AppendLine($"        return {Read(inner, "property")};");
                 break;
             }
 
@@ -132,23 +155,63 @@ internal sealed class WireCodecEmitter
 
         write.AppendLine($"        W{inner}(writer, value.{type.Members[0].ClrName}, files);");
 
-        read.AppendLine($"        var held = R{inner}(ref reader, files, property);");
-        EmitBuild(type, "held", read);
+        read.AppendLine($"        var held = {Read(inner, "property")};");
+        EmitBuild(type, type.ValueObject ? $"{type.Fqn}.Create(held)" : $"new {type.Fqn}(held)", read);
     }
 
-    // A value object is made through its generated Create, inside a loading scope: what arrives is not checked here,
-    // as a row loaded from the database is not (a rule tightened on one end must not make the other unable to read).
-    // Anything else is made through its constructor.
-    private static void EmitBuild(WireType type, string arguments, StringBuilder read)
+    // A value object is made through its generated Create. Read by the server from what a client sent, its rules are
+    // asked — no handler is ever given a value they refuse — and a refusal is recorded under the field it was read at,
+    // so the read goes on and one 400 names every field. Read by a browser from what the server answered (no
+    // collector), it is made inside a loading scope, as a row loaded from the database is: a rule tightened since the
+    // value was stored must not make the answer unreadable. Anything else is returned as `made` makes it.
+    private void EmitBuild(WireType type, string made, StringBuilder read)
     {
         if (!type.ValueObject)
         {
-            read.AppendLine($"        return new {type.Fqn}({arguments});");
+            read.AppendLine($"        return {made};");
             return;
         }
 
-        read.AppendLine($"        using var __loading = {Rules}.Loading();");
-        read.AppendLine($"        return {type.Fqn}.Create({arguments});");
+        if (!_checksValues)
+        {
+            read.AppendLine($"        using var __loading = {Rules}.Loading();");
+            read.AppendLine($"        return {made};");
+            return;
+        }
+
+        read.AppendLine("        if (refusals is null)");
+        read.AppendLine("        {");
+        read.AppendLine($"            using var __loading = {Rules}.Loading();");
+        read.AppendLine($"            return {made};");
+        read.AppendLine("        }");
+        read.AppendLine();
+        read.AppendLine("        try");
+        read.AppendLine("        {");
+        read.AppendLine($"            return {made};");
+        read.AppendLine("        }");
+        read.AppendLine("        catch (global::Rask.Cqrs.RaskValidationException __refusal)");
+        read.AppendLine("        {");
+        read.AppendLine("            refusals.Refuse(__refusal.Failures);");
+        read.AppendLine("            return default;");
+        read.AppendLine("        }");
+    }
+
+    // The call that reads one part, handing on the collector when there is one.
+    private string Read(string id, string property) =>
+        $"R{id}(ref reader, files, {property}{(_checksValues ? ", refusals" : "")})";
+
+    // The read of one part, with the collector stepped into it, so a refusal inside is recorded under its field.
+    private void Into(StringBuilder read, string indent, string step, string call)
+    {
+        if (!_checksValues)
+        {
+            read.AppendLine($"{indent}{call}");
+            return;
+        }
+
+        read.AppendLine($"{indent}refusals?.{step};");
+        read.AppendLine($"{indent}{call}");
+        read.AppendLine($"{indent}refusals?.Leave();");
     }
 
     // Base64 in the JSON, unless the sender asked for binary: a transport that can carry the bytes beside the
@@ -236,7 +299,7 @@ internal sealed class WireCodecEmitter
         read.AppendLine($"        var items = new global::System.Collections.Generic.List<{type.Inner!.Fqn}>();");
         read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndArray)");
         read.AppendLine("        {");
-        read.AppendLine($"            items.Add(R{element}(ref reader, files, property));");
+        Into(read, "            ", "EnterItem(items.Count)", $"items.Add({Read(element, "property")});");
         read.AppendLine("        }");
         read.AppendLine();
         read.AppendLine(type.Sequence == SequenceShape.Array
@@ -266,7 +329,7 @@ internal sealed class WireCodecEmitter
         read.AppendLine("        {");
         read.AppendLine("            var key = reader.GetString();");
         read.AppendLine("            reader.Read();");
-        read.AppendLine($"            map[key] = R{value}(ref reader, files, key);");
+        Into(read, "            ", "EnterItem(key)", $"map[key] = {Read(value, "key")};");
         read.AppendLine("        }");
         read.AppendLine();
         read.AppendLine("        return map;");
@@ -293,7 +356,7 @@ internal sealed class WireCodecEmitter
         EmitObjectRead(type, members, read);
     }
 
-    private static void EmitObjectRead(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
+    private void EmitObjectRead(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
     {
         if (type.IsReferenceType)
         {
@@ -301,9 +364,18 @@ internal sealed class WireCodecEmitter
         }
 
         read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartObject(ref reader, property);");
+        if (_checksValues)
+        {
+            read.AppendLine("        var __refusedBefore = refusals?.Count ?? 0;");
+        }
+
         foreach (var (member, _) in members)
         {
             read.AppendLine($"        {member.Type.Fqn} v_{member.ClrName} = default;");
+            if (Checks(member))
+            {
+                read.AppendLine($"        var r_{member.ClrName} = false;");
+            }
         }
 
         read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndObject)");
@@ -314,9 +386,7 @@ internal sealed class WireCodecEmitter
         read.AppendLine("            {");
         foreach (var (member, id) in members)
         {
-            read.AppendLine($"                case {Literal(member.WireName)}:");
-            read.AppendLine($"                    v_{member.ClrName} = R{id}(ref reader, files, {Literal(member.WireName)});");
-            read.AppendLine("                    break;");
+            EmitMemberCase(member, id, read);
         }
 
         // An unknown property is skipped rather than rejected: that is what lets a sender add a field
@@ -328,10 +398,58 @@ internal sealed class WireCodecEmitter
         read.AppendLine("        }");
         read.AppendLine();
 
+        // A part refused leaves its whole unbuilt: the message is answered with the refusals, never handed on, and no
+        // constructor meets the null a refused part was read as. A required member left out or sent null is one.
+        if (_checksValues)
+        {
+            EmitRequired(members, read);
+            read.AppendLine("        if (refusals is not null && refusals.Count > __refusedBefore) return default;");
+        }
+
         EmitConstruction(type, members, read);
     }
 
-    private static void EmitConstruction(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
+    // Each member declared without `?` that is still null once the object is read — absent, or sent as null — is
+    // refused as a form's empty required field is, under its own name. Only where a collector checks the read.
+    private void EmitRequired(List<(WireMember Member, string Id)> members, StringBuilder read)
+    {
+        var required = members.Where(static m => m.Member.Required).ToList();
+        if (required.Count == 0)
+        {
+            return;
+        }
+
+        read.AppendLine("        if (refusals is not null)");
+        read.AppendLine("        {");
+        foreach (var (member, _) in required)
+        {
+            read.AppendLine($"            if (v_{member.ClrName} is null && !r_{member.ClrName}) refusals.Require({Literal(member.ClrName)}, {_required});");
+        }
+
+        read.AppendLine("        }");
+        read.AppendLine();
+    }
+
+    private void EmitMemberCase(WireMember member, string id, StringBuilder read)
+    {
+        read.AppendLine($"                case {Literal(member.WireName)}:");
+        var call = $"v_{member.ClrName} = {Read(id, Literal(member.WireName))};";
+        if (Checks(member))
+        {
+            // Refused inside is said there: a required member read as null because its own parts were refused is not
+            // also "required".
+            call = $"var __n_{member.ClrName} = refusals?.Count ?? 0; {call} "
+                   + $"r_{member.ClrName} = refusals is not null && refusals.Count > __n_{member.ClrName};";
+        }
+
+        Into(read, "                    ", $"Enter({Literal(member.ClrName)})", call);
+        read.AppendLine("                    break;");
+    }
+
+    // A required member a checking reader tracks: whether its own read was refused.
+    private bool Checks(WireMember member) => _checksValues && member.Required;
+
+    private void EmitConstruction(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
     {
         if (type.ConstructorParameters is { Count: > 0 } parameters)
         {
@@ -342,23 +460,21 @@ internal sealed class WireCodecEmitter
                 return match is null ? "default" : $"v_{match.ClrName}";
             });
 
-            EmitBuild(type, string.Join(", ", arguments), read);
+            var list = string.Join(", ", arguments);
+            EmitBuild(type, type.ValueObject ? $"{type.Fqn}.Create({list})" : $"new {type.Fqn}({list})", read);
             return;
         }
 
-        if (type.ValueObject)
-        {
-            read.AppendLine($"        using var __loading = {Rules}.Loading();");
-        }
-
-        read.AppendLine($"        return new {type.Fqn}");
-        read.AppendLine("        {");
+        var made = new StringBuilder();
+        made.AppendLine($"new {type.Fqn}");
+        made.AppendLine("        {");
         foreach (var (member, _) in members)
         {
-            read.AppendLine($"            {member.ClrName} = v_{member.ClrName},");
+            made.AppendLine($"            {member.ClrName} = v_{member.ClrName},");
         }
 
-        read.AppendLine("        };");
+        made.Append("        }");
+        EmitBuild(type, made.ToString(), read);
     }
 
     // The shape's identity for reuse. Two properties of the same type share one pair; the kind is in the
@@ -373,6 +489,7 @@ internal sealed class WireCodecEmitter
         Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
     private const string Rules = "global::Rask.Values.GeneratedValueRules";
+    private const string Refusals = "global::Rask.Wire.WireRefusals";
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";
     private const string TokenType = "global::System.Text.Json.JsonTokenType";

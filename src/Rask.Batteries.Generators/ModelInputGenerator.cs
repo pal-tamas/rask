@@ -50,8 +50,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
     internal const int AllWrites = CreateWrite | UpdateWrite;
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
-    private const string DisplayAttribute = "System.ComponentModel.DataAnnotations.DisplayAttribute";
-    private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
     private const string UnsafeAccessor = "global::System.Runtime.CompilerServices.UnsafeAccessor";
     private const string UnsafeAccessorKind = "global::System.Runtime.CompilerServices.UnsafeAccessorKind";
 
@@ -237,7 +235,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> CompositeChildren = default,
         EquatableArray<IdListShape> IdLists = default,
-        bool KeyedByParts = false)
+        bool KeyedByParts = false,
+        ModelOwnRules? OwnRules = null)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
@@ -324,7 +323,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool KeyPart = false,
         string? DeclaredOn = null,
         string? Named = null,
-        string? Shape = null);
+        string? Shape = null,
+        bool KeepsEmpty = false);
 
     private sealed record Write(
         ModelWriteKind Kind,

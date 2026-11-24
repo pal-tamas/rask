@@ -23,3 +23,14 @@ public sealed record AssignDriver(
     KmRange Km,
     Odometer Reading,
     List<VehicleId> Fleet) : ICommand<VehicleId>;
+
+public sealed record Seat(DriverName Driver);
+
+// A crew read field by field: a refusal deep inside is named by where it sits, Seats[1].Driver.
+public sealed record SeatCrew(List<Seat> Seats, Dictionary<string, DriverName> Reserves) : ICommand;
+
+public sealed record GetDriver(VehicleId Vehicle) : IQuery<DriverName>;
+
+public sealed record GetCrew(VehicleId Vehicle) : IQuery<SeatCrew>;
+
+public sealed record DriverRenamed(DriverName Name) : IEvent;

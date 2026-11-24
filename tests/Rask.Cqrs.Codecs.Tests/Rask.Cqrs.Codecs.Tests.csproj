@@ -26,7 +26,8 @@
     <Using Include="Rask.Wire"/>
     <Using Include="Rask.Core.Forms"/>
     <Using Include="Rask.Data"/>
-    <Using Include="Rask.Data.Range" Alias="Range"/>
+    <Using Include="Rask.Values"/>
+    <Using Include="Rask.Values.Range" Alias="Range"/>
   </ItemGroup>
 
   <!--

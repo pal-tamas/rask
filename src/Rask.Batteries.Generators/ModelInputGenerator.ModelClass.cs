@@ -358,19 +358,12 @@ public sealed partial class ModelInputGenerator
         foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.Write is not null))
         {
             var given = "__v" + (local++).ToString(CultureInfo.InvariantCulture);
-            var value = member.ValueObject switch
-            {
-                null => given,
-                { SingleValue: true } single => BuildExpression(single, _ => given, member.Nullable),
-                { } valueObject => FromModelExpression(
-                    given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
-            };
+            var value = AppliedValue(member, given, ref local);
 
-            // A value object that checks itself as it is made (Range, Value) refuses under its own members: `End`
-            // becomes `Km.End`, the field the form shows it under.
-            if (member.ValueObject is { SingleValue: false, Checked: true })
+            if (member.KeepsEmpty)
             {
-                value = "global::Rask.Values.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")";
+                AppendKeptEmpty(s, member, given, value);
+                continue;
             }
 
             s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)
@@ -407,6 +400,24 @@ public sealed partial class ModelInputGenerator
 
         s.AppendLine("    }");
         s.AppendLine();
+    }
+
+    // What the model's value for one member is written to the entity as.
+    private static string AppliedValue(Member member, string given, ref int local)
+    {
+        var value = member.ValueObject switch
+        {
+            null => given,
+            { SingleValue: true } single => BuildExpression(single, _ => given, member.Nullable),
+            { } valueObject => FromModelExpression(
+                given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
+        };
+
+        // A value object that checks itself as it is made (Range, Value) refuses under its own members: `End`
+        // becomes `Km.End`, the field the form shows it under.
+        return member.ValueObject is { SingleValue: false, Checked: true }
+            ? "global::Rask.Values.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")"
+            : value;
     }
 
     private static void AppendFill(StringBuilder s, Entity entity)
@@ -633,6 +644,7 @@ public sealed partial class ModelInputGenerator
         }
 
         s.AppendLine("            var entity = __New();");
+        AppendEmptyTexts(s, entity);
 
         if (withId)
         {

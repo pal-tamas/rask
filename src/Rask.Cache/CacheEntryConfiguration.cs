@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Data;
 
 namespace Rask.Caching;
 
@@ -10,6 +11,9 @@ public sealed class CacheEntryConfiguration : IEntityTypeConfiguration<CacheEntr
     public void Configure(EntityTypeBuilder<CacheEntry> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
+        KeptNames.Keep(builder.Metadata.ClrType);
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);

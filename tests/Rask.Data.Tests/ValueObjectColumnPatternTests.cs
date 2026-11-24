@@ -105,7 +105,9 @@ public sealed class ValueObjectColumnPatternTests : IAsyncLifetime
     {
         var builder = new ModelBuilder().Entity<OdometerNote>();
 
+#pragma warning disable RASK165 // the run-time refusal is what is tested, on a builder outside Configure on purpose
         var refused = Record.Exception(() => builder.Columns(n => n.Km, "Km"));
+#pragma warning restore RASK165
 
         Assert.IsType<ArgumentException>(refused);
         Assert.Contains("{Member}", refused.Message, StringComparison.Ordinal);

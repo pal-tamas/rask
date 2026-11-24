@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Rask.Data;
 
 namespace Rask.Postgres.Tests;
@@ -19,13 +20,63 @@ public sealed class HungarianPayees(DbContextOptions<HungarianPayees> options) :
         configurationBuilder.OrderTextBy("Hungarian_100_CI_AS");
 }
 
-// OrderTextBy on PostgreSQL: the ORDER BY a query asks for names the language's ICU collation; no column changes.
+/// <summary>The same model under a collation that tells case and accents apart.</summary>
+public sealed class CaseSensitivePayees(DbContextOptions<CaseSensitivePayees> options) : DbContext(options)
+{
+    public DbSet<Payee> Payees => Set<Payee>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        configurationBuilder.OrderTextBy("Hungarian_100_CS_AS");
+}
+
+// OrderTextBy on PostgreSQL: through UseRaskPostgres a case-insensitive collation is a nondeterministic ICU one its
+// migrations create; a plain UseNpgsql orders by the language's ICU collation and changes no column.
 public sealed class TextOrderTests
 {
+    private static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
+        .AddInMemoryCollection([new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", "Host=localhost;Database=rask")])
+        .Build());
+
     [Fact]
-    public void Text_in_the_app_s_order_is_ordered_by_the_language_s_ICU_collation()
+    public void Through_UseRaskPostgres_every_text_column_is_created_with_the_case_insensitive_collation()
     {
-        using var context = Payees();
+        using var context = new HungarianPayees(new DbContextOptionsBuilder<HungarianPayees>().UseRaskPostgres(Services).Options);
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("CREATE COLLATION IF NOT EXISTS rask_text (PROVIDER = icu, LOCALE = 'hu-HU-u-ks-level2', DETERMINISTIC = false);", script, StringComparison.Ordinal);
+        Assert.Contains("server_version_num", script, StringComparison.Ordinal);
+        Assert.Contains("\"Name\" text COLLATE rask_text NOT NULL", script, StringComparison.Ordinal);
+        Assert.True(
+            script.IndexOf("CREATE COLLATION", StringComparison.Ordinal) < script.IndexOf("CREATE TABLE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Through_UseRaskPostgres_text_in_the_app_s_order_is_ordered_by_that_collation()
+    {
+        using var context = new HungarianPayees(new DbContextOptionsBuilder<HungarianPayees>().UseRaskPostgres(Services).Options);
+
+        var sql = context.Payees.OrderBy(p => p.Name.InTextOrder()).ToQueryString();
+
+        Assert.Contains("ORDER BY p.\"Name\" COLLATE rask_text", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_case_and_accent_sensitive_collation_needs_no_collation_of_its_own()
+    {
+        using var context = new CaseSensitivePayees(new DbContextOptionsBuilder<CaseSensitivePayees>().UseRaskPostgres(Services).Options);
+
+        var script = context.Database.GenerateCreateScript();
+        var sql = context.Payees.OrderBy(p => p.Name.InTextOrder()).ToQueryString();
+
+        Assert.DoesNotContain("COLLATE", script, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY p.\"Name\" COLLATE \"hu-HU-x-icu\"", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Through_a_plain_UseNpgsql_text_in_the_app_s_order_is_ordered_by_the_language_s_ICU_collation()
+    {
+        using var context = Plain();
 
         var sql = context.Payees.Where(p => p.Name == "Csaba").OrderBy(p => p.Name.InTextOrder()).ToQueryString();
 
@@ -34,15 +85,21 @@ public sealed class TextOrderTests
     }
 
     [Fact]
-    public void No_column_is_given_a_collation()
+    public void Through_a_plain_UseNpgsql_no_column_is_given_a_collation()
     {
-        using var context = Payees();
+        using var context = Plain();
 
         var script = context.Database.GenerateCreateScript();
 
         Assert.DoesNotContain("COLLATE", script, StringComparison.Ordinal);
     }
 
-    private static HungarianPayees Payees() =>
+    private static HungarianPayees Plain() =>
         new(new DbContextOptionsBuilder<HungarianPayees>().UseNpgsql("Host=localhost;Database=rask").Options);
+
+    // Just the configuration: that is all UseRaskPostgres asks the provider for.
+    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
+    }
 }

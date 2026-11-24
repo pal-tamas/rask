@@ -116,7 +116,7 @@ public class OptionalStructValueObjectTests
         Assert.Contains("public decimal? Tolerance { get; set; }", model, StringComparison.Ordinal);
         Assert.DoesNotContain("__Rule_SizeModel_Tolerance", model, StringComparison.Ordinal);
         Assert.Contains(
-            "global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Tolerance), (global::Shop.Percent v) => v.Value).HasColumnName(\"Size_Tolerance\");",
+            "ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Tolerance), (global::Shop.Percent v) => v.Value), \"Size_Tolerance\");",
             registry,
             StringComparison.Ordinal);
     }
