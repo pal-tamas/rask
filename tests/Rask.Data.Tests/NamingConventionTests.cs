@@ -24,6 +24,8 @@ public sealed class Refuel
 
     public Odometer Km { get; set; } = new(0, 0);
 
+    public Odometer Trip { get; set; } = new(0, 0);
+
     public List<Stop> Stops { get; set; } = [];
 
     public string? TankerId { get; set; }
@@ -89,6 +91,8 @@ public class LegacyContext(DbContextOptions options) : DbContext(options)
         builder.ToTable("Transaction");
         builder.Property(r => r.Moment).HasColumnName("dateTime");
         builder.ComplexProperty(r => r.Km);
+        builder.ComplexProperty(r => r.Trip);
+        builder.Columns(r => r.Trip, "{Member}Trip");
         builder.ComplexCollection(r => r.Stops, stops => stops.ToJson());
         builder.HasIndex(r => r.CountedAt);
     }
@@ -163,6 +167,18 @@ public sealed class NamingConventionTests : IDisposable
     }
 
     [Fact]
+    public void A_value_object_named_by_a_columns_pattern_keeps_the_patterns_names()
+    {
+        var refuel = Model(Camel()).FindEntityType(typeof(Refuel))!;
+        var store = StoreObjectIdentifier.Table("Transaction");
+
+        var trip = refuel.FindComplexProperty(nameof(Refuel.Trip))!.ComplexType;
+        var columns = new[] { "Start", "End" }.Select(p => trip.FindProperty(p)!.GetColumnName(store));
+
+        Assert.Equal(["StartTrip", "EndTrip"], columns);
+    }
+
+    [Fact]
     public void A_json_column_is_named_and_what_it_holds_is_not()
     {
         var refuel = Model(Camel()).FindEntityType(typeof(Refuel))!;
@@ -231,7 +247,9 @@ public sealed class NamingConventionTests : IDisposable
         var columns = await TableColumns("Transaction");
         var read = await db.Refuels.SingleAsync(r => r.Km.End == 42, TestContext.Current.CancellationToken);
 
-        Assert.Equal(["countedAt", "dateTime", "id", "kmEnd", "kmStart", "stops", "tankerId", "tenantId", "vatNumber"], columns);
+        Assert.Equal(
+            ["EndTrip", "StartTrip", "countedAt", "dateTime", "id", "kmEnd", "kmStart", "stops", "tankerId", "tenantId", "vatNumber"],
+            columns);
         Assert.Equal("Győr", read.Stops.Single().Place);
     }
 

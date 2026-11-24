@@ -533,10 +533,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed record Zip(string Value)
-            {
-                public static IEnumerable<string> Validate(string value) => value.Length < 4 ? ["Short."] : [];
-            }
+            public sealed record Zip(string Value);
             public sealed record Geo(decimal Lat, decimal? Alt);
             public sealed record Yard(string Name, int Bays);
             public sealed class Address

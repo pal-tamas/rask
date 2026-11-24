@@ -1,8 +1,8 @@
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// The rules <see cref="ModelInputGenerator"/> announces for a form model: a one-value value object's own
-/// <c>Validate</c>, and the unique rules the aggregate declares, asked of the store.
+/// The rules <see cref="ModelInputGenerator"/> announces for a form model: the rules of a one-value value object
+/// declared from a base record, and the unique rules the aggregate declares, asked of the store.
 /// </summary>
 public class ModelRulesGeneratorTests
 {
@@ -14,19 +14,11 @@ public class ModelRulesGeneratorTests
         using Microsoft.EntityFrameworkCore.Metadata.Builders;
         using Rask.Data;
         namespace Shop;
-        public sealed record Sku(string Value)
-        {
-            public static IEnumerable<string> Validate(string value) => value.Length < 3 ? ["Too short."] : [];
-        }
-        public readonly record struct Stock(int Value)
-        {
-            public static ValueTask<IEnumerable<string>> Validate(int value) => new(value < 0 ? ["Negative."] : []);
-        }
+        public sealed partial record Sku(string Value) : Text(Value, MinLength: 3);
+        public sealed partial record Stock(long Value) : Whole(Value, Min: 0);
         public sealed record Barcode(string Value)
         {
-            public static IEnumerable<string> Validate(int value) => [];
-            public static string Validate(string value) => "";
-            internal static IEnumerable<string> Validate(string value, bool strict) => [];
+            public static IEnumerable<string> Validate(string value) => value.Length < 3 ? ["Too short."] : [];
         }
         public sealed record Money(decimal Amount, string Currency)
         {
@@ -38,11 +30,16 @@ public class ModelRulesGeneratorTests
     // The harness compiles against everything the test project references, forms included.
     private static GeneratorRun RunWithForms(string source) =>
         GeneratorHarness.Run(
-            Shop + source, new ModelInputGenerator(), "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+            Shop + source,
+            [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
+            ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
 
     private static GeneratorRun RunWithoutForms(string source) =>
         GeneratorHarness.RunWithout(
-            Shop + source, new ModelInputGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+            Shop + source,
+            [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
+            ["Rask.Core"],
+            "Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore");
 
     private const string Required = "global::Rask.Data.GeneratedModelRules.Required(__RequiredText())";
 
@@ -50,11 +47,11 @@ public class ModelRulesGeneratorTests
         public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
         {
             private Product() { }
-            public Sku Sku { get; private set; } = new("");
-            public Stock Stock { get; private set; }
+            public Sku Sku { get; private set; } = Sku.Create("A-1");
+            public Stock Stock { get; private set; } = Stock.Create(0);
             public Barcode Barcode { get; private set; } = new("");
             public Money Price { get; private set; } = new(0, "EUR");
-            public Size Size { get; private set; } = new(new(""), 0);
+            public Size Size { get; private set; } = new(Sku.Create("A-1"), 0);
             public string Title { get; private set; } = "";
             public static void Configure(EntityTypeBuilder<Product> builder) =>
                 builder.HasIndex(p => p.Sku).IsUnique("This SKU is taken.");
@@ -62,7 +59,7 @@ public class ModelRulesGeneratorTests
         """;
 
     [Fact]
-    public void A_one_value_value_objects_Validate_becomes_one_kept_rule_of_the_fields_own_type()
+    public void A_value_object_declared_from_a_base_record_becomes_one_kept_rule_of_the_fields_own_type()
     {
         var run = RunWithForms(Product);
 
@@ -78,7 +75,7 @@ public class ModelRulesGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static readonly global::System.Func<int?, global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> Root_Stock =\n        global::Shop.ProductModelExtensions.__Rule_Root_Stock;",
+            "private static readonly global::Rask.Core.Forms.Validate<long?> Root_Stock =\n        global::Shop.ProductModelExtensions.__Rule_Root_Stock;",
             source,
             StringComparison.Ordinal);
         Assert.Contains("\"Sku\" => Root_Sku,\n            \"Stock\" => Root_Stock,\n            \"Barcode\" => Root_Barcode,\n            \"Title\" => Root_Title,\n            _ => null,", source, StringComparison.Ordinal);
@@ -93,11 +90,11 @@ public class ModelRulesGeneratorTests
 
         // Text has an empty value the type can be asked about; a number has none, so the one sentence stands in.
         Assert.Contains(
-            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Sku.Validate(\"\"), __RequiredText());",
+            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.__Problems(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Sku.__Problems(\"\"), __RequiredText());",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "internal static async global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> __Rule_Root_Stock(int? value) =>\n        value is { } held ? await global::Shop.Stock.Validate(held) : global::Rask.Data.GeneratedModelRules.Required(__RequiredText());",
+            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Stock(long? value) =>\n        value is { } held ? global::Shop.Stock.__Problems(held) : global::Rask.Data.GeneratedModelRules.Required(__RequiredText());",
             source,
             StringComparison.Ordinal);
         Assert.Contains("\n    public string? Sku { get; set; }", source.Replace("    /// <summary>The form value of <see cref=\"global::Shop.Product.Sku\" />.</summary>\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
@@ -122,7 +119,7 @@ public class ModelRulesGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            "__Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::System.Array.Empty<string>();",
+            "__Rule_Root_Sku(string? value) =>\n        string.IsNullOrWhiteSpace(value) ? global::System.Array.Empty<string>() : global::Shop.Sku.__Problems(value);",
             source,
             StringComparison.Ordinal);
 
@@ -141,9 +138,10 @@ public class ModelRulesGeneratorTests
 
         var source = run.GeneratedSource("Shop.ProductModel").ReplaceLineEndings("\n");
 
-        // Stock's rule is awaited, so the writes are; the rest is asked first, and in one place.
+        // Every rule is asked in one place, synchronously: a value object's rules are its constructor's.
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Equal(3, source.Split("await __ValidateAwaited(model).ConfigureAwait(false);").Length - 1);
+        Assert.Equal(3, source.Split("            __Validate(model);").Length - 1);
+        Assert.DoesNotContain("Awaited", source, StringComparison.Ordinal);
         Assert.Contains(
             "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Sku\", __Rule_Root_Sku(model.Sku));",
             source,
@@ -155,7 +153,7 @@ public class ModelRulesGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Stock\", await __Rule_Root_Stock(model.Stock).ConfigureAwait(false));",
+            "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Stock\", __Rule_Root_Stock(model.Stock));",
             source,
             StringComparison.Ordinal);
         Assert.Contains("throw global::Rask.Data.GeneratedModelRules.Refused(failures);", source, StringComparison.Ordinal);
@@ -209,18 +207,18 @@ public class ModelRulesGeneratorTests
             {
                 private readonly List<OrderLine> _lines = [];
                 private Order() { }
-                public Sku Sku { get; private set; } = new("");
+                public Sku Sku { get; private set; } = Sku.Create("A-1");
                 public Sku? Alias { get; private set; }
                 public int Weight { get; private set; }
                 public int? Axles { get; private set; }
-                public Size Size { get; private set; } = new(new(""), 0);
+                public Size Size { get; private set; } = new(Sku.Create("A-1"), 0);
                 [System.ComponentModel.DataAnnotations.Required] public string Owner { get; private set; } = "";
                 public IReadOnlyList<OrderLine> Lines => _lines;
             }
             public sealed class OrderLine : Entity<Guid>
             {
                 private OrderLine() { }
-                public Sku Sku { get; private set; } = new("");
+                public Sku Sku { get; private set; } = Sku.Create("A-1");
                 public string? Note { get; private set; }
             }
             """);
@@ -313,7 +311,6 @@ public class ModelRulesGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("internal static void __Validate(global::Shop.NoteModel model)\n    {\n    }", source, StringComparison.Ordinal);
         Assert.DoesNotContain("__Check", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("__ValidateAwaited", source, StringComparison.Ordinal);
         Assert.Contains("__Collect(global::Shop.NoteModel model, string path, global::System.Collections.Generic.IList<global::Rask.Wire.FieldFailure>? failures)\n    {\n        return failures;\n    }", source, StringComparison.Ordinal);
     }
 
@@ -332,7 +329,7 @@ public class ModelRulesGeneratorTests
             public sealed class OrderLine : Entity<Guid>
             {
                 private OrderLine() { }
-                public Sku Sku { get; private set; } = new("");
+                public Sku Sku { get; private set; } = Sku.Create("A-1");
             }
             public sealed class OrderNote : Entity<Guid>
             {
@@ -354,17 +351,14 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
-    public void A_text_rule_with_a_nullable_parameter_is_asked_with_the_empty_string_and_never_null()
+    public void A_text_value_object_is_asked_about_the_empty_string_when_required_and_not_at_all_when_left_blank_and_optional()
     {
         var run = RunWithForms("""
-            public sealed record Label(string Value)
-            {
-                public static IEnumerable<string> Validate(string? value) => string.IsNullOrEmpty(value) ? ["Name it."] : [];
-            }
+            public sealed partial record Label(string Value) : Text(Value, MaxLength: 40);
             public sealed class Shelf : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Shelf() { }
-                public Label Label { get; private set; } = new("");
+                public Label Label { get; private set; } = Label.Create("Top");
                 public Label? Note { get; private set; }
             }
             """);
@@ -373,15 +367,14 @@ public class ModelRulesGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            "__Rule_Root_Label(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Label.Validate(\"\"), __RequiredText());",
+            "__Rule_Root_Label(string? value) =>\n        value is { } held ? global::Shop.Label.__Problems(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Label.__Problems(\"\"), __RequiredText());",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "__Rule_Root_Note(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::System.Array.Empty<string>();",
+            "__Rule_Root_Note(string? value) =>\n        string.IsNullOrWhiteSpace(value) ? global::System.Array.Empty<string>() : global::Shop.Label.__Problems(value);",
             source,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("Label.Validate(null", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("Label.Validate(value)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Label.__Problems(null", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -393,9 +386,9 @@ public class ModelRulesGeneratorTests
             public sealed class Pallet : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Pallet() { }
-                public Size Size { get; private set; } = new(new(""), 0);
-                public Box Box { get; private set; } = new(new(""), 0);
-                public Crate Crate { get; private set; } = new(new(new(""), 0), new(""));
+                public Size Size { get; private set; } = new(Sku.Create("A-1"), 0);
+                public Box Box { get; private set; } = new(Sku.Create("A-1"), 0);
+                public Crate Crate { get; private set; } = new(new(Sku.Create("A-1"), 0), Sku.Create("A-1"));
             }
             """);
 
@@ -408,13 +401,15 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
-    public void A_Validate_of_any_other_shape_is_not_a_rule_and_neither_is_one_on_a_value_object_of_several_values()
+    public void A_value_objects_own_Validate_is_never_asked_and_says_so_while_one_of_several_values_is_left_alone()
     {
         var run = RunWithForms(Product);
 
         var source = run.GeneratedSource("Shop.ProductModel");
 
-        // Barcode's Validate overloads are not rules, so the field only has to be filled; Money holds two values.
+        // Barcode is not declared from a base record, so its Validate is not a rule: the field only has to be
+        // filled, and RASK132 points at the method. Money holds two values, so its Validate is nobody's business.
+        Assert.Equal("'Barcode.Validate(string)'", Assert.Single(run.Diagnostics, d => d.Id == "RASK132").GetMessage().Split(" on ")[0]);
         Assert.DoesNotContain("Barcode.Validate(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Root_Price", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Money.Validate(", source, StringComparison.Ordinal);
@@ -494,7 +489,7 @@ public class ModelRulesGeneratorTests
             public sealed class OrderLine : Entity<Guid>
             {
                 private OrderLine() { }
-                public Sku Sku { get; private set; } = new("");
+                public Sku Sku { get; private set; } = Sku.Create("A-1");
                 public static void Configure(EntityTypeBuilder<OrderLine> builder) =>
                     builder.HasIndex(l => l.Sku).IsUnique("Twice on one order.");
             }
