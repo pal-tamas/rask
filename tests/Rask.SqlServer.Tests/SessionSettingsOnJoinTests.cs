@@ -63,11 +63,6 @@ public sealed class SessionSettingsOnJoinTests
                 .Build()), s => s.LockTimeout = TimeSpan.FromSeconds(1))
             .Options;
 
-    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
-    }
-
     private sealed class PlainContext(DbContextOptions<PlainContext> options) : DbContext(options);
 
     // The transaction's connection, already open: joining opens nothing.

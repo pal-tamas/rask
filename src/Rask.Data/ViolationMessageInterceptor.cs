@@ -16,7 +16,8 @@ namespace Rask.Data;
 ///     <para>
 ///         It also tells the context's <see cref="ViolationLogging" /> when a save starts and ends, and — as a
 ///         command interceptor too, the same instance in both roles — which exception a failed command threw: that
-///         is what keeps EF Core's own errors for exactly the refusal it translated out of the log.
+///         is what keeps EF Core's own errors for exactly the refusal it translated out of the log. A refused
+///         <c>ExecuteDelete</c>, which no save surrounds, is answered there too, with the same sentence a save's delete gets.
 ///     </para>
 ///     <para>
 ///         Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and an interceptor after it
@@ -31,7 +32,7 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
     /// </summary>
     internal static RaskValidationException? Translation(DbContext? context, Exception? failure) =>
         UniqueViolation.Translate(context, failure)
-        ?? ReferencedDelete.Translate(failure)
+        ?? ReferencedDelete.Translate(context, failure)
         ?? HeldRowReference.Translate(failure);
 
     /// <inheritdoc />
@@ -95,20 +96,30 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
     }
 
     /// <inheritdoc />
-    public void CommandFailed(DbCommand command, CommandErrorEventData eventData) => Failed(eventData);
+    public void CommandFailed(DbCommand command, CommandErrorEventData eventData)
+    {
+        if (Failed(command, eventData) is { } refused)
+        {
+            throw refused;
+        }
+    }
 
     /// <inheritdoc />
     public Task CommandFailedAsync(
-        DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default)
-    {
-        Failed(eventData);
-        return Task.CompletedTask;
-    }
+        DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default) =>
+        Failed(command, eventData) is { } refused ? Task.FromException(refused) : Task.CompletedTask;
 
-    private static void Failed(CommandErrorEventData eventData)
+    // A save's failed command is only named here, and translated when the save fails. An ExecuteDelete has no save
+    // around it, so a refused one is answered here, in its place.
+    private static RaskValidationException? Failed(DbCommand command, CommandErrorEventData eventData)
     {
+        ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(eventData);
         ViolationLogging.Of(eventData.Context)?.CommandFailed(eventData.Exception);
+
+        return eventData.CommandSource == CommandSource.ExecuteDelete
+            ? ReferencedDelete.Translate(eventData.Context, command, eventData.Exception)
+            : null;
     }
 
     private static void Starting(DbContextEventData eventData)

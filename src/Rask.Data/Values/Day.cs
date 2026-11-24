@@ -31,6 +31,11 @@ public abstract record Day : Value
             throw new ArgumentOutOfRangeException(nameof(NotBefore), NotBefore, "The earliest day is after the latest.");
         }
 
+        if (DeclaredRules.IsReading)
+        {
+            DeclaredRules.Note(new DayRules(NotBefore, NotAfter, NotAfterToday));
+        }
+
         this.Value = Value;
         if (!Loading.IsOn)
         {

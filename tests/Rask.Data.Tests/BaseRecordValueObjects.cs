@@ -12,6 +12,12 @@ public sealed partial record RigDriver(string Value) : Text(Value, MaxLength: 20
 /// <summary>A text kept as typed, its length named by a constant.</summary>
 public sealed partial record RigChip(string Value) : Text(Value, MaxLength: RigLimits.Chip, Trim: false);
 
+/// <summary>A text kept in capitals, of exactly 17 characters.</summary>
+public sealed partial record RigVin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
+
+/// <summary>A text kept in capitals that the pattern checks as kept.</summary>
+public sealed partial record RigCode(string Value) : Text(Value, Pattern: "^[A-ZÁÉÍÓÖŐÚÜŰ]+$", Upper: true);
+
 /// <summary>A text with a pattern and its own words for it.</summary>
 public sealed partial record RigPlate(string Value) : Text(Value, Pattern: @"^[A-Z]{3}-\d{3}$", Message: RigPlate.Form)
 {
@@ -26,6 +32,9 @@ public sealed partial record RigAxles(long Value) : Whole(Value, Min: 2, Max: 9)
 
 /// <summary>A day that cannot be in the future.</summary>
 public sealed partial record RigInspected(DateOnly Value) : Day(Value, NotAfterToday: true);
+
+/// <summary>A moment on the wall clock that cannot be in the future.</summary>
+public sealed partial record RigFueled(DateTime Value) : Moment(Value, NotAfterNow: true);
 
 /// <summary>A strict range: the end after the start.</summary>
 public sealed partial record RigKm(int Start, int End) : Range(Start, End, Strict: true);
@@ -82,7 +91,10 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 
     public RigInspected? Inspected { get; private set; }
 
-    public static Rig Of(string driver, string plate, decimal tank, long axles, string? chip = null, DateOnly? inspected = null) =>
+    public RigFueled? Fueled { get; private set; }
+
+    public static Rig Of(
+        string driver, string plate, decimal tank, long axles, string? chip = null, DateOnly? inspected = null, DateTime? fueled = null) =>
         new()
         {
             Driver = RigDriver.Create(driver, nameof(Driver)),
@@ -91,6 +103,7 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
             Axles = RigAxles.Create(axles, nameof(Axles)),
             Chip = RigChip.CreateOptional(chip, nameof(Chip)),
             Inspected = RigInspected.CreateOptional(inspected, nameof(Inspected)),
+            Fueled = RigFueled.CreateOptional(fueled, nameof(Fueled)),
         };
 }
 
