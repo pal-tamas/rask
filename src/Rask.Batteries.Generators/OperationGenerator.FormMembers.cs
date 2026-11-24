@@ -20,8 +20,9 @@ public sealed partial class OperationGenerator
     /// <param name="held">The owner's property of that name, read to fill the field; null for none.</param>
     /// <param name="owner">The C# the owner is read off: <c>aggregate</c>, a row's child, a value object.</param>
     /// <param name="lift">
-    ///     Whether a value type other than a <c>bool</c> is held as its nullable twin, so a new row or an empty group starts
-    ///     empty and a field left so is refused as required rather than taken as zero.
+    ///     Whether a value type other than a <c>bool</c> is held as its nullable twin, so it starts
+    ///     empty — a new row, an empty group, a parameter nothing prefills — and a field left so is refused as required
+    ///     rather than taken as zero.
     /// </param>
     private static FormField? MemberField(string property, ITypeSymbol type, bool optional, IPropertySymbol? held, string owner, bool lift)
     {

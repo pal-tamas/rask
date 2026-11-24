@@ -1013,8 +1013,10 @@ Form.For(Note.Rename, id)[f => [
 - **The fields are the parameters**, each named as the parameter, capitalised — `title` is `f.Title` — and filled from
   the aggregate's property of that name and type when it has one. A value object of one value (`DriverName(string
   Value) : Text(…)`) is its value on the form, with its rules told to the control (`maxlength`, `min`, …) and made
-  through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text,
-  a number, a day, a bool, an enum or an id is taken as it is.
+  through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text or a
+  bool is taken as it is; a number, a day, an enum or an id is held empty until one is typed — never a `0` nobody
+  chose — and refused as required when left so. An operation's form still starts from what the aggregate holds; only
+  a factory's, or a parameter the aggregate has nothing alike for, starts empty.
 - **The domain's rules are the form's.** As each field is committed the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](data.md#an-operation-run-as-one-write)) and what it would be refused for —
   a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the

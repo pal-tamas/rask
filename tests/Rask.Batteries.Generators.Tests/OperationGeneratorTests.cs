@@ -289,11 +289,12 @@ public class OperationGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public sealed class DriverChangeInput", forms, StringComparison.Ordinal);
         Assert.Contains("public string? Name { get; set; }", forms, StringComparison.Ordinal);
-        Assert.Contains("public int Seats { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public int? Seats { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("seats = global::Rask.Data.GeneratedOperations.Given(() => input.Seats is { } __given ? __given : throw", forms, StringComparison.Ordinal);
         Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::System.Guid, int, global::Shop.DriverName, global::Shop.Nickname?, int, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operation, global::System.Guid id)", forms, StringComparison.Ordinal);
         Assert.Contains("Name = aggregate.Name.Value, Nick = aggregate.Nick?.Value, Seats = aggregate.Seats", forms, StringComparison.Ordinal);
         Assert.Contains("\"Name\" => global::Shop.DriverName.__Field,", forms, StringComparison.Ordinal);
-        Assert.Contains("property is \"Name\";", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Name\" or \"Seats\";", forms, StringComparison.Ordinal);
         Assert.Contains("global::Shop.Nickname.CreateOptional(input.Nick, \"Nick\")", forms, StringComparison.Ordinal);
         Assert.Contains("DryRunChange(input.Id, input.Version, name, nick, seats, cancellationToken)", forms, StringComparison.Ordinal);
         Assert.Contains("static () => global::Shop.Driver.MayChange", forms, StringComparison.Ordinal);
@@ -308,6 +309,23 @@ public class OperationGeneratorTests
 
         Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::Shop.DriverName, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<global::System.Guid>> operation)", forms, StringComparison.Ordinal);
         Assert.Contains("Task.FromResult<DriverHireInput?>(new DriverHireInput())", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_number_nothing_prefills_starts_empty_and_is_required_and_a_bool_is_held_as_it_is()
+    {
+        var run = RunWithForms(Tagged("""
+            public int Level { get; private set; }
+            public bool Pinned { get; private set; }
+            private static Tag Make(int level, bool pinned) => new() { Id = Guid.CreateVersion7(), Level = level, Pinned = pinned };
+            """));
+
+        var forms = run.GeneratedSource("Shop.Tag.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public int? Level { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public bool Pinned { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Level\";", forms, StringComparison.Ordinal);
     }
 
     [Fact]

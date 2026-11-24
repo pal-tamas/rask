@@ -92,6 +92,7 @@ public sealed partial class OperationGenerator
                     PropertyType = Optionally(field.PropertyType),
                     Optional = true,
                     Required = false,
+                    Lifted = false,
                     Fill = null,
                     Change = change.ToDisplayString(TypeFormat),
                     Clearable = clearable,
@@ -110,7 +111,7 @@ public sealed partial class OperationGenerator
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
                        parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
-        return MemberField(property, parameterType, optional, held, "aggregate", lift: false);
+        return MemberField(property, parameterType, optional, held, "aggregate", lift: true);
     }
 
     // The one value a value object declared from Text, Number, Whole, Day or Moment holds: its positional parameter.
