@@ -51,6 +51,8 @@
     <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
     <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdShape.cs" Link="Shared\TypedIdShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdValue.cs" Link="Shared\TypedIdValue.cs"/>
     <Compile Include="..\Rask.Generators.Shared\Identifiers.cs" Link="Shared\Identifiers.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireKind.cs" Link="Shared\WireKind.cs"/>
     <Compile Include="..\Rask.Generators.Shared\SequenceShape.cs" Link="Shared\SequenceShape.cs"/>
