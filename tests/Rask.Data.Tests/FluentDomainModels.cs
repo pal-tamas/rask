@@ -55,7 +55,9 @@ public sealed class Harbour : Aggregate<Guid, Versioned, Model, Deletable>
                 await Task.Yield();
                 return !string.Equals(code, "TAKEN", StringComparison.Ordinal);
             }).WithMessage("That code is taken.");
+#pragma warning disable RASK182 // on purpose: the attribute wins for the column (An_attribute_on_the_property_wins_over_the_rule_for_its_column)
         rules.RuleFor(h => h.Region).MaximumLength(80);
+#pragma warning restore RASK182
         rules.RuleFor(h => h.Depth).PrecisionScale(8, 2, false);
     }
 }

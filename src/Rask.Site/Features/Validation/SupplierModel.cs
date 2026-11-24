@@ -9,7 +9,7 @@ public sealed class SupplierModel
     public int? Rating { get; set; }
 
     // The rules live in the type, like its Configure: found at compile time, no validator class to write.
-    static void Rules(InlineValidator<SupplierModel> rules)
+    internal static void Rules(InlineValidator<SupplierModel> rules)
     {
         rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(40);
         rules.RuleFor(s => s.Email).EmailAddress().WithMessage("That is not an e-mail address.");

@@ -162,7 +162,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
     }
 
     // The convention: `static void Rules(InlineValidator<T> rules)` on T itself, of any accessibility. Anything else named
-    // Rules is RASK180's to point out, and is not registered.
+    // Rules is RASK139's to point out, and is not registered.
     private static ValidatorModel? InlineRules(INamedTypeSymbol type, Compilation compilation)
     {
         var rules = type.GetMembers(RulesName).OfType<IMethodSymbol>().FirstOrDefault(m =>
