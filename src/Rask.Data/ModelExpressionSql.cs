@@ -196,6 +196,11 @@ internal sealed class ModelExpressionSql
         while (path.Count > 1)
         {
             var name = path.Pop().Name;
+            if (path.Count == 1 && type.FindProperty(name) is { } stored && HeldValue(stored, path.Peek(), member) is { } held)
+            {
+                return held with { Nullable = nullable || held.Nullable };
+            }
+
             var complex = type.FindComplexProperty(name)
                           ?? throw Refused(member, $"reads {name}, which is not a value object {type.DisplayName()} maps");
             nullable |= complex.IsNullable;
@@ -205,8 +210,26 @@ internal sealed class ModelExpressionSql
         var last = path.Pop().Name;
         var property = type.FindProperty(last)
                        ?? throw Refused(member, $"reads {last}, which is not a property {type.DisplayName()} maps");
-        var mapping = (RelationalTypeMapping?)property.FindTypeMapping();
-        return new Fragment(_sql.Column(property.GetColumnName()), nullable || property.IsNullable, mapping, property.ClrType);
+        return new Fragment(_sql.Column(property.GetColumnName()), nullable || property.IsNullable, _sql.Mapping(property), property.ClrType);
+    }
+
+    // `x.Number.Value` of a one-value value object stored in one column: that column, holding the value itself — so a
+    // constant beside it is the value, written as the column stores it (through the provider's own conversion, a
+    // wall-clock moment as UTC where only UTC is kept).
+    private Fragment? HeldValue(IReadOnlyProperty property, MemberInfo member, MemberExpression node)
+    {
+        var converter = property.GetValueConverter() ?? property.FindTypeMapping()?.Converter;
+        if (!OneValueConverters.StoresAs(converter, member))
+        {
+            return null;
+        }
+
+        var held = Nullable.GetUnderlyingType(node.Type) ?? node.Type;
+        return new Fragment(
+            _sql.Column(property.GetColumnName()),
+            property.IsNullable,
+            _sql.Held(held, property.GetColumnType(), OneValueConverters.StoredAs(converter)),
+            node.Type);
     }
 
     // ---- predicates ------------------------------------------------------------------------------------------------
