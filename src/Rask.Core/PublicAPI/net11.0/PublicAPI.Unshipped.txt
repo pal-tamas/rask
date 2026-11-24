@@ -19970,3 +19970,6 @@ Rask.Core.Forms.FieldHints
 const Rask.Core.Forms.FieldHints.MultilineText = "MultilineText" -> string!
 const Rask.Core.Forms.FieldHints.RadioGroup = "RadioGroup" -> string!
 const Rask.Core.Forms.FieldHints.Switch = "Switch" -> string!
+Rask.Core.Globalization.RaskString.ValidationAboveAndAtMost = 288 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationAtLeastAndBelow = 289 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationAboveAndBelow = 290 -> Rask.Core.Globalization.RaskString

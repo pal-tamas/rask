@@ -624,7 +624,9 @@ public sealed class UniqueEmailAttribute() : AsyncValidationAttribute("{0} is al
 An attribute with no `ErrorMessage` of its own speaks the reader's language: .NET ships its attributes' English
 only, so Rask words every built-in one — `[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`,
 `[Compare]`, … — from the [strings catalog](localization.md#a-models-validation-attributes), with the attribute's
-numbers filled in. A `[Compare("X")]` naming no property of its model refuses every value, and is
+numbers filled in. A `[Range]` with an exclusive end says so: `[Range(0, 10, MinimumIsExclusive = true)]` is
+*0 feletti, legfeljebb 10 értéket adjon meg.* (`ValidationAboveAndAtMost`; `ValidationAtLeastAndBelow` and
+`ValidationAboveAndBelow` for the other two). A `[Compare("X")]` naming no property of its model refuses every value, and is
 [RASK144](diagnostics.md#rask144): name it with `nameof(…)`. Under `AddRask(culture: "hu")` a bare `[StringLength(100)]` says *Maximum 100 karakter
 hosszúnak kell lennie.*; an English reader still reads .NET's own text, word for word. An `ErrorMessage`, an
 `ErrorMessageResourceType` and an attribute class of your own always say what they say. It holds on the Server

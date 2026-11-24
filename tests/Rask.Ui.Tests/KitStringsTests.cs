@@ -351,7 +351,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         // A DataAnnotations attribute with no message of its own, and Rules: Core's validation words them.
         nameof(RaskString.ValidationTooLong), nameof(RaskString.ValidationTooShort), nameof(RaskString.ValidationLength),
         nameof(RaskString.ValidationTooMany), nameof(RaskString.ValidationTooFew), nameof(RaskString.ValidationCount),
-        nameof(RaskString.ValidationBetween), nameof(RaskString.ValidationEmail), nameof(RaskString.ValidationPhone),
+        nameof(RaskString.ValidationBetween), nameof(RaskString.ValidationAboveAndAtMost), nameof(RaskString.ValidationAtLeastAndBelow),
+        nameof(RaskString.ValidationAboveAndBelow), nameof(RaskString.ValidationEmail), nameof(RaskString.ValidationPhone),
         nameof(RaskString.ValidationUrl), nameof(RaskString.ValidationCreditCard), nameof(RaskString.ValidationPattern),
         nameof(RaskString.ValidationMatch), nameof(RaskString.ValidationFileType), nameof(RaskString.ValidationNotAllowed),
         nameof(RaskString.ValidationBase64), nameof(RaskString.ValidationInvalid),

@@ -60,6 +60,10 @@ them until tagged releases begin.
   whole answer for a property it answers (add `ReadOnly = true` where it relied on `[Editable(false)]` beside it).
   See [forms validation — what a member's attributes tell its control](docs/forms-validation.md) and the per-attribute
   table in [data](docs/data.md).
+- **An exclusive `[Range]` is worded in the reader's language.** Before: a `[Range]` with `MinimumIsExclusive` or
+  `MaximumIsExclusive` kept .NET's English text in every language. After: three catalog keys say it —
+  `ValidationAboveAndAtMost`, `ValidationAtLeastAndBelow`, `ValidationAboveAndBelow` — with Hungarian in Rask.Ui
+  (*0 feletti, legfeljebb 10 értéket adjon meg.*). See [localization](docs/localization.md).
 - **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
   Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
   aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)

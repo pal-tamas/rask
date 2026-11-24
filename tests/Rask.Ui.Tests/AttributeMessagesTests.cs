@@ -22,6 +22,9 @@ public class AttributeMessagesTests
     [InlineData(nameof(Everything.Iso), "Legalább 2, legfeljebb 3 karakter hosszúnak kell lennie.")]
     [InlineData(nameof(Everything.Tags), "Legalább 1, legfeljebb 2 elemet adjon meg.")]
     [InlineData(nameof(Everything.Ratio), "Az értéknek 1,5 és 10 között kell lennie.")]
+    [InlineData(nameof(Everything.Above), "0 feletti, legfeljebb 10 értéket adjon meg.")]
+    [InlineData(nameof(Everything.Below), "Legalább 1, de 5 alatti értéket adjon meg.")]
+    [InlineData(nameof(Everything.Within), "0 feletti és 5 alatti értéket adjon meg.")]
     [InlineData(nameof(Everything.Email), "Érvényes e-mail-címet adjon meg.")]
     [InlineData(nameof(Everything.Phone), "Érvényes telefonszámot adjon meg.")]
     [InlineData(nameof(Everything.Site), "Érvényes webcímet adjon meg (http, https vagy ftp).")]
@@ -159,6 +162,12 @@ public class AttributeMessagesTests
         [Length(1, 2)] public List<string> Tags { get; set; } = [];
 
         [Range(1.5, 10)] public double Ratio { get; set; } = 20;
+
+        [Range(0, 10, MinimumIsExclusive = true)] public int Above { get; set; }
+
+        [Range(1, 5, MaximumIsExclusive = true)] public int Below { get; set; } = 5;
+
+        [Range(0, 5, MinimumIsExclusive = true, MaximumIsExclusive = true)] public int Within { get; set; } = 5;
 
         [EmailAddress] public string Email { get; set; } = "nope";
 

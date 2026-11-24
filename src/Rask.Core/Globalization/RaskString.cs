@@ -914,4 +914,22 @@ public enum RaskString
 
     /// <summary>The badge beside the label of a field that must be filled (<c>Ui.Field</c>, a control's <c>Label</c>).</summary>
     FieldRequired,
+
+    /// <summary>
+    ///     What a value outside a <c>[Range]</c> whose least is exclusive (<c>MinimumIsExclusive = true</c>) says. <c>{0}</c>
+    ///     is the least, which it must be greater than, and <c>{1}</c> the greatest it may be.
+    /// </summary>
+    ValidationAboveAndAtMost,
+
+    /// <summary>
+    ///     What a value outside a <c>[Range]</c> whose greatest is exclusive (<c>MaximumIsExclusive = true</c>) says.
+    ///     <c>{0}</c> is the least it may be, and <c>{1}</c> the greatest, which it must be less than.
+    /// </summary>
+    ValidationAtLeastAndBelow,
+
+    /// <summary>
+    ///     What a value outside a <c>[Range]</c> exclusive at both ends says. <c>{0}</c> is the least, which it must be
+    ///     greater than, and <c>{1}</c> the greatest, which it must be less than.
+    /// </summary>
+    ValidationAboveAndBelow,
 }
