@@ -139,6 +139,25 @@ public sealed class UniqueViolationFieldTests : IDisposable
     }
 
     [Fact]
+    public async Task A_collision_an_execute_update_makes_is_shown_under_the_indexs_field()
+    {
+        await using var db = new LogsheetContext(OptionsLayout.LikeAddDbContext<LogsheetContext>()
+            .UseSqlite($"Data Source={_dbPath}")
+            .AddInterceptors(new ViolationMessageInterceptor())
+            .Options);
+        await db.Database.EnsureCreatedAsync(Cancellation);
+        db.AddRange(new Logsheet { Km = new OdometerSpan { Start = 100, End = 200 } }, new Logsheet { Km = new OdometerSpan { Start = 300, End = 400 } });
+        await db.SaveChangesAsync(Cancellation);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => db.Set<Logsheet>()
+            .Where(w => w.Km.Start == 300)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.Km.Start, 100), Cancellation));
+
+        Assert.Equal(Logsheet.StartTaken, Assert.Single(refused.Failures).Message);
+        Assert.Equal(["Km.Start"], refused.Failures[0].Fields);
+    }
+
+    [Fact]
     public void The_field_is_recorded_on_the_index_and_its_failure_names_only_it()
     {
         var index = new ModelBuilder().Entity<Shelf>().HasIndex(s => new { s.Aisle, s.Label });

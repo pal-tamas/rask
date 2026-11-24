@@ -26,6 +26,17 @@ public sealed class BulkDeleteTests
     }
 
     [Fact]
+    public void Sql_servers_delete_is_read_past_the_row_count_setting_it_opens_with()
+    {
+        const string Sql = "SET NOCOUNT OFF;\r\nDELETE FROM [q]\r\nFROM [Quay] AS [q]\r\nWHERE [q].[Id] = @id";
+
+        var delete = BulkDelete.Parse(Sql)!;
+
+        Assert.Equal((null, "Quay", "[q]"), (delete.Schema, delete.Table, delete.Qualifier));
+        Assert.StartsWith("FROM [Quay] AS [q]", delete.From, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Postgresqls_unquoted_alias_is_kept_as_written()
     {
         const string Sql = "DELETE FROM referenced.\"Truck\" AS t\nWHERE t.\"Id\" = @p;";

@@ -14,10 +14,11 @@ internal static class ModelStateAnalyzerHarness
     /// <param name="analyzer">The analyzer to run.</param>
     /// <param name="source">The snippet, which must compile.</param>
     /// <param name="options">Changes the compilation's options — a severity an editorconfig would set, say — or null.</param>
+    /// <param name="path">The file the snippet is compiled as, for a rule that reads where code is written.</param>
     public static async Task<IReadOnlyList<Diagnostic>> RunAsync(
-        DiagnosticAnalyzer analyzer, string source, Func<CSharpCompilationOptions, CSharpCompilationOptions>? options = null)
+        DiagnosticAnalyzer analyzer, string source, Func<CSharpCompilationOptions, CSharpCompilationOptions>? options = null, string path = "Source.cs")
     {
-        var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest), path: "Source.cs");
+        var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest), path: path);
         var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
         var compilation = CSharpCompilation.Create(
             "TestAssembly",

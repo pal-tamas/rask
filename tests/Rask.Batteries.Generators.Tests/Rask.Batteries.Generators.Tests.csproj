@@ -62,6 +62,10 @@
     <ProjectReference Include="..\..\src\Rask.Outbox\Rask.Outbox.csproj"/>
     <!-- Its account events must stay [LocalOnly]; a test reads them off the assembly. -->
     <ProjectReference Include="..\..\src\Rask.Auth.Api\Rask.Auth.Api.csproj"/>
+    <!-- The three providers and their drivers, whose APIs RASK177 reports in app code (ProviderSpecificCodeAnalyzerTests). -->
+    <ProjectReference Include="..\..\src\Rask.SqlServer\Rask.SqlServer.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Postgres\Rask.Postgres.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
   </ItemGroup>
 
 </Project>

@@ -31,12 +31,14 @@ public sealed class Trip : Aggregate<Guid, Timestamps, Versioned, Model, Deletab
 
 public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbContext(options)
 {
+    public const string Schema = "value_collections";
+
     public DbSet<Trip> Trips => Set<Trip>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Its own schema, because these tests share one PostgreSQL database with every other class here.
-        modelBuilder.Entity<Trip>().ToTable("Trip", "value_collections");
+        modelBuilder.Entity<Trip>().ToTable("Trip", Database.IsSqlite() ? null : Schema);
         modelBuilder.ApplyRaskConventions();
     }
 }
@@ -47,75 +49,89 @@ public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbC
 /// <c>json_each</c> has nothing to do with SQL Server's <c>OPENJSON</c> or PostgreSQL's <c>jsonb</c>.
 /// </summary>
 /// <remarks>
-/// SQLite's own round trip lives in <c>Rask.Data.Tests</c>, which runs in the unit gate. SQL Server cannot be
-/// run on every host (its image is amd64-only and segfaults under emulation on Apple Silicon), so its fact here
-/// proves the model builds and the query translates — which is what would break — without needing a server.
+/// Every filter runs in the database: since EF Core 3 a <c>Where</c> it cannot translate THROWS rather than falling back
+/// to the client, so awaiting one at all proves the translation, and its answer proves the translation is right.
+/// PostgreSQL maps the primitive collection to a native <c>text[]</c> (<c>'urgent' = ANY (t."Tags")</c>) and the value
+/// objects to <c>jsonb</c> read through <c>jsonb_to_recordset</c>; SQLite uses <c>json_each</c> for both; SQL Server
+/// <c>OPENJSON</c>.
 /// </remarks>
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresValueCollectionTests
+public abstract class ValueCollectionParityTests(ProviderLeg leg) : ParityTests<TripDbContext>(leg)
 {
-    private const string Schema = "value_collections";
-
     [Fact]
-    public async Task Both_value_collections_round_trip_and_are_queried_in_sql()
+    public async Task Both_value_collections_come_back_as_the_domain_methods_left_them()
     {
-        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        RequireServer();
+        await SeedAsync();
 
-        await using (var db = NewContext())
-        {
-            await Postgres.ResetSchemaAsync(db, Schema);
+        await using var db = Open();
+        var loaded = await db.Trips.SingleAsync(t => t.Name == "grand tour", Ct);
 
-            var trip = Trip.Called("grand tour");
-            trip.Tag("urgent");
-            trip.StopAt("Vienna", 1);
-            trip.StopAt("Prague", 2);
-
-            var other = Trip.Called("weekend");
-            other.Tag("calm");
-            other.StopAt("Rome", 1);
-
-            db.AddRange(trip, other);
-            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        await using (var db = NewContext())
-        {
-            // The round trip: what the domain methods added is still there, in order.
-            var loaded = await db.Trips.SingleAsync(t => t.Name == "grand tour", cancellationToken: TestContext.Current.CancellationToken);
-            Assert.Equal(["urgent"], loaded.Tags);
-            Assert.Equal([("Vienna", 1), ("Prague", 2)], loaded.Stops.Select(s => (s.City, s.Day)));
-
-            // Both filters run in the database: since EF Core 3 a Where it cannot translate THROWS rather
-            // than falling back to the client, so awaiting these at all is the proof, and the result is the
-            // proof that the translation is also correct.
-            //
-            // What they translate to differs per engine, which is why this test exists: PostgreSQL maps the
-            // primitive collection to a native text[] and filters with `'urgent' = ANY (t."Tags")`, and the
-            // value objects to jsonb read back through `jsonb_to_recordset(t."Stops") ... WITH ORDINALITY`.
-            // SQLite uses json_each for both; SQL Server uses OPENJSON.
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Tags.Contains("urgent")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
-            Assert.Equal("weekend", (await db.Trips.Where(t => t.Tags.Contains("calm")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.City == "Vienna")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
-
-            // A non-string member of the document, so the comparison is typed rather than textual.
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.Day >= 2)).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
-        }
-
-        await using (var db = NewContext())
-        {
-            await Postgres.DropSchemaAsync(db, Schema);
-        }
+        Assert.Equal(["urgent"], loaded.Tags);
+        Assert.Equal([("Vienna", 1), ("Prague", 2)], loaded.Stops.Select(s => (s.City, s.Day)));
     }
 
-    private static TripDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<TripDbContext>().UseRaskPostgresAt(Postgres.Required).Options);
+    [Fact]
+    public async Task A_primitive_collection_is_searched_in_the_database()
+    {
+        RequireServer();
+        await SeedAsync();
+
+        await using var db = Open();
+        var urgent = await db.Trips.Where(t => t.Tags.Contains("urgent")).Select(t => t.Name).SingleAsync(Ct);
+        var calm = await db.Trips.Where(t => t.Tags.Contains("calm")).Select(t => t.Name).SingleAsync(Ct);
+
+        Assert.Equal("grand tour", urgent);
+        Assert.Equal("weekend", calm);
+    }
+
+    [Fact]
+    public async Task A_document_of_value_objects_is_searched_by_its_members_in_the_database()
+    {
+        RequireServer();
+        await SeedAsync();
+
+        await using var db = Open();
+        var byText = await db.Trips.Where(t => t.Stops.Any(s => s.City == "Vienna")).Select(t => t.Name).SingleAsync(Ct);
+        var byNumber = await db.Trips.Where(t => t.Stops.Any(s => s.Day >= 2)).Select(t => t.Name).SingleAsync(Ct);
+        var counted = await db.Trips.OrderBy(t => t.Name).Select(t => t.Stops.Count).ToListAsync(Ct);
+
+        Assert.Equal("grand tour", byText);
+        Assert.Equal("grand tour", byNumber);
+        Assert.Equal([2, 1], counted);
+    }
+
+    private protected override TripDbContext Open() => Leg.Open<TripDbContext>(o => new TripDbContext(o));
+
+    private async Task SeedAsync()
+    {
+        var trip = Trip.Called("grand tour");
+        trip.Tag("urgent");
+        trip.StopAt("Vienna", 1);
+        trip.StopAt("Prague", 2);
+
+        var other = Trip.Called("weekend");
+        other.Tag("calm");
+        other.StopAt("Rome", 1);
+
+        await using var db = Open();
+        db.AddRange(trip, other);
+        await db.SaveChangesAsync(Ct);
+    }
 }
 
+public sealed class SqliteValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.Sqlite("value-collections"));
+
+[Collection(SqlServerCollection.Name)]
+public sealed class SqlServerValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.SqlServer("rask_e2e_value_collections"));
+
+[Collection(PostgresCollection.Name)]
+public sealed class PostgresValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.Postgres(TripDbContext.Schema));
+
 /// <summary>
-/// SQL Server, proved without a server: the model builds and both filters translate. Execution is covered by
-/// <c>scripts/run-providers-local.sh</c> on a host that can run the image.
+/// SQL Server, proved without a server: the model builds and both filters translate — what a host that cannot run its
+/// image (Apple Silicon) still checks while <see cref="SqlServerValueCollectionTests" /> is skipped.
 /// </summary>
-public sealed class SqlServerValueCollectionTests
+public sealed class SqlServerValueCollectionTranslationTests
 {
     private const string Offline = "Server=(local);Database=rask_translation_only;Trusted_Connection=True";
 

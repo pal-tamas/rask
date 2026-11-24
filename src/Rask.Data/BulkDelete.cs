@@ -9,7 +9,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     EF Core writes the table it deletes from with an alias — <c>DELETE FROM "Trailer" AS "t" WHERE …</c> on SQLite
-///     and PostgreSQL, <c>DELETE FROM [t] FROM [Trailer] AS [t] WHERE …</c> on SQL Server — so the first
+///     and PostgreSQL, <c>SET NOCOUNT OFF; DELETE FROM [t] FROM [Trailer] AS [t] WHERE …</c> on SQL Server — so the first
 ///     <c>FROM table AS alias</c> is the one; a subquery's comes after it.
 /// </remarks>
 /// <param name="Schema">The table's schema, unquoted; null when the statement names none.</param>
@@ -20,11 +20,13 @@ internal sealed record BulkDelete(string? Schema, string Table, string Qualifier
 {
     private const string FromWord = "FROM ";
     private const string AsWord = "AS ";
+    private const string NoCountOff = "SET NOCOUNT OFF;";
 
     /// <summary>The delete <paramref name="sql" /> is, or <see langword="null" /> when it is not one EF Core wrote.</summary>
     internal static BulkDelete? Parse(string sql)
     {
-        if (!sql.TrimStart().StartsWith("DELETE ", StringComparison.OrdinalIgnoreCase))
+        sql = WithoutRowCountSetting(sql);
+        if (!sql.StartsWith("DELETE ", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -70,6 +72,16 @@ internal sealed record BulkDelete(string? Schema, string Table, string Qualifier
 
     private static BulkDelete Of(List<string> table, string qualifier, string from) =>
         new(table.Count > 1 ? table[^2] : null, table[^1], qualifier, from.TrimEnd().TrimEnd(';'));
+
+    // SQL Server's provider opens the statement with `SET NOCOUNT OFF;`, so the row count comes back: the delete is
+    // what follows it.
+    private static string WithoutRowCountSetting(string sql)
+    {
+        var statement = sql.TrimStart();
+        return statement.StartsWith(NoCountOff, StringComparison.OrdinalIgnoreCase)
+            ? statement[NoCountOff.Length..].TrimStart()
+            : statement;
+    }
 
     private static bool Starts(string sql, int at, string word) =>
         string.Compare(sql, at, word, 0, word.Length, StringComparison.OrdinalIgnoreCase) == 0;

@@ -145,8 +145,21 @@ else
   docker logs "$redis_container" 2>&1 | tail -5 >&2 || true
 fi
 
-echo "==> Provider tests"
-dotnet test tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj -c Release \
+# Two processes, not one: EF Core refuses a process its twenty-first internal service provider
+# (ManyServiceProvidersCreatedWarning), each distinct options shape is one, and SQLite, PostgreSQL and SQL Server
+# together are past twenty. So the SQL Server tests (a SqlServer class, or a sql_server fact) run in a process of their
+# own, told only SQL Server's connection string, and everything else in the other, told every other server's. Serial,
+# because the second build would fight the first over obj/.
+suite=tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj
+sql_server_tests="FullyQualifiedName~SqlServer|FullyQualifiedName~sql_server"
+other_tests="FullyQualifiedName!~SqlServer&FullyQualifiedName!~sql_server"
+
+echo "==> Provider tests: SQLite, PostgreSQL, Redis"
+env -u RASK_MSSQL_TEST_DB dotnet test "$suite" -c Release --filter "$other_tests" \
+  --logger "console;verbosity=normal"
+
+echo "==> Provider tests: SQL Server"
+env -u RASK_PG_TEST_DB -u RASK_REDIS_TEST dotnet test "$suite" -c Release --no-build --filter "$sql_server_tests" \
   --logger "console;verbosity=normal"
 
 if [ "$pg_ready" != "1" ]; then

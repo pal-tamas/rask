@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **SQLite holds a `decimal` to its declared precision and scale, as SQL Server and PostgreSQL do.** Before: a column
+  declared `HasPrecision(18, 2)` kept every digit on SQLite (`1.005m` came back `1.005m`, a server's `1.01m`) and took
+  a number too large for it, so a test on SQLite passed on a value production never holds. After: `UseRaskSqlite`
+  rounds it half away from zero to the scale as it is written, and a number with more whole digits than `p - s` fails
+  the save with a `DbUpdateException`, as on the servers. A column with no precision, a `HasColumnType` or a converter
+  of its own is left alone.
+- **An `ExecuteDelete` refused by a reference answers with the relationship's sentence on SQL Server too.** Before:
+  SQL Server's statement opens with `SET NOCOUNT OFF;`, the delete was not recognised, and the `SqlException` came
+  through where SQLite and PostgreSQL gave the `RaskValidationException`.
+- **The `providers` release gate runs its SQL Server tests in a process of their own.** Before: with all three servers
+  up, the one test process built more than EF Core's twenty internal service providers and every SQL Server test after
+  that failed with `ManyServiceProvidersCreatedWarning`. After: `scripts/run-providers-local.sh` runs SQLite,
+  PostgreSQL and Redis in one process and SQL Server in a second.
+
+### Added
+- **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
+  provider — as a save's duplicate does. Before: the provider's own exception.
+- **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
+  decimals (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`, now executed on SQL Server and SQLite
+  too), unique-index sentences (`UniqueViolationParityTests`, with a SQLite leg) and a parent read
+  `LockRead.ForUpdate` (`ParentLockParityTests`: the lock rewrite runs on each server, and a close of the parent waits
+  for the save that read it), beside the text, date, duration, neutral-model, `Db.Lock` and referenced-delete suites.
+  `docs/data.md` lists them.
+
 ### Changed
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
@@ -112,6 +137,20 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Test.Concurrently(first, second)`: a race in one line.** It starts both operations at the same moment, in the
+  test's flow and so on the database the test started, and passes only when exactly one goes through and the other is
+  refused, handing back the refusal (`.Whole()`, `.At(…)`). Both through, both refused, any other exception, or the two
+  still running after 30 seconds — a deadlock — fail the test saying which. Two saves of one version side by side on
+  SQLite in memory keep one and refuse the other ([testing](docs/testing.md#two-at-once-testconcurrently)).
+- **[RASK177](docs/diagnostics.md#rask177): code written for one database.** An app's tests run on SQLite in memory,
+  and Rask proves only what it translates on SQLite, SQL Server and PostgreSQL alike — so app code naming a provider's
+  or a driver's API (`IncludeProperties`, `SqlException`, `SqliteConnection`), `EF.Functions.*`, raw SQL (`FromSql*`,
+  `ExecuteSql*`, `SqlQuery*`) or SQL in the model (`HasColumnType`, `UseCollation`, `HasDefaultValueSql`,
+  `HasComputedColumnSql`, `HasFilter`, `ToSqlQuery`) is now reported, the message naming the neutral form
+  (`Contains`, `InTextOrder()`, `end - start`, the value object's `Scale`, `b.Default`/`b.Computed`,
+  `HasIndex(…).Where`, `.Covering`, `Db.Lock`, `ForUpdate()`, `IsUnique("…")`). A suggestion by default, a warning
+  under `<RaskStrict>` and an error at errors. Migrations, generated code and the call that selects the provider
+  (`UseSqlServer`/`UseNpgsql`/`UseSqlite` and its options) are not reported.
 - **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
   Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
   and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses

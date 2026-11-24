@@ -530,6 +530,23 @@ they chain, and `.Failures` holds them all. An operation that goes through, or t
 `RefusalAssertionException` saying what happened instead. A lambda that returns a `Task` is awaited; any other runs
 as it is.
 
+### Two at once: `Test.Concurrently`
+
+```csharp
+var version = supply.Version;                        // both forms were filled from the same version
+
+(await Test.Concurrently(
+    () => Supply.Change(id, version, details, partsA),
+    () => Supply.Change(id, version, details, partsB))).Whole();   // one kept, the other refused as stale
+```
+
+`Test.Concurrently(first, second)` starts both at the same moment, each on a thread of its own and both in the test's
+flow — so on the database the test started — and checks that **exactly one went through and the other was
+refused**, handing back that refusal to assert on as `Test.Refuses` does. Both going through, both refused, any other
+exception, or the two still running after 30 seconds (two operations waiting on each other) fails the test with a
+`RefusalAssertionException` that says which. It is how a test proves a version check, a unique index, a
+`ForUpdate()` read or a `Db.Lock` keeps two writers apart, on the SQLite in memory the tests run on.
+
 ---
 
 ## 2. The test stack

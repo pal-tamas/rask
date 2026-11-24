@@ -52,15 +52,27 @@ internal static class UniqueViolation
             return null;
         }
 
-        var candidates = context.Model.GetEntityTypes()
-            .SelectMany(static type => type.GetIndexes())
-            .Where(static index => index.IsUnique && index.FindAnnotation(Annotation)?.Value is string)
-            .ToList();
-
-        return Violated(provider, candidates) is { } index
+        return Violated(provider, Candidates(context)) is { } index
             ? new RaskValidationException([FailureOf(index, RowsOf(context, update, index))], failure)
             : null;
     }
+
+    /// <summary>
+    ///     The same for an <c>ExecuteUpdate</c> the database refused, which no save surrounds: the failure is the
+    ///     provider's own, and the rows it wrote are no entries, so the message is the root's — under the index's fields.
+    /// </summary>
+    internal static RaskValidationException? TranslateCommand(DbContext? context, Exception? failure) =>
+        context is not null &&
+        failure is DbException provider &&
+        IsUniqueViolation(provider) &&
+        Violated(provider, Candidates(context)) is { } index
+            ? new RaskValidationException([FailureOf(index)], failure)
+            : null;
+
+    private static List<IIndex> Candidates(DbContext context) =>
+        [.. context.Model.GetEntityTypes()
+            .SelectMany(static type => type.GetIndexes())
+            .Where(static index => index.IsUnique && index.FindAnnotation(Annotation)?.Value is string)];
 
     // Where the rows the failed command wrote sit on their aggregate's form: "" for a root, "Pistols[2]." for a child.
     // Only an added or changed row can collide; several of them, and the error does not say which, take one each.
