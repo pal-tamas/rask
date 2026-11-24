@@ -78,8 +78,11 @@ internal static class EventWire
     {
         var reader = new Utf8JsonReader(payload);
         reader.Read();
-        return (IEvent)(contract.Kind == RemoteMessageKind.Subscription
-            ? contract.ReadResult!(ref reader)!
-            : contract.ReadMessage(ref reader, []));
+        if (contract.Kind == RemoteMessageKind.Subscription)
+        {
+            return (IEvent)contract.ReadResult!(ref reader)!;
+        }
+
+        return (IEvent)(contract.LoadMessage is { } load ? load(ref reader)! : contract.ReadMessage(ref reader, []));
     }
 }

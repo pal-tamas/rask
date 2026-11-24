@@ -2435,9 +2435,10 @@ a row leaves the next `Create` checking again. Only what the code makes goes thr
 **Over remote dispatch it travels as what it holds.** A command, query, event or result crossing between the
 browser and the server (`Rask.Cqrs.Client`/`Rask.Cqrs.Server`) may carry one: a one-value record is its bare value
 on the wire — `"ABC-123"`, `12.5`, never `{"value":"ABC-123"}` — and a `Range` or `Value` record an object of its
-members. The receiving end rebuilds it through the generated `Create` **unchecked**, as a loaded row is, so a rule
-tightened on one end never makes the other unable to read; a handler that must rely on the rules asks them
-(`DriverName.Create(command.Driver.Value, "Driver")`). See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
+members. The server rebuilds what a browser sent through the generated `Create` **with its rules asked**, so no handler is
+given a value they refuse: the request is answered `400` with each refusal under its field (`Driver.Name`). The
+browser rebuilds what the server answers as a loaded row is, unchecked, so a value stored before a rule was
+tightened still reaches the page. See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
 **The column takes what the value object declares**, read from its base arguments when the app is compiled —
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,

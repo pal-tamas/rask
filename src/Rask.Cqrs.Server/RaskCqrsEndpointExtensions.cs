@@ -265,6 +265,13 @@ public static partial class RaskCqrsEndpointExtensions
                 faults.ShowsDetail ? ex.Message : null).ConfigureAwait(false);
             return;
         }
+        catch (RaskValidationException ex)
+        {
+            // A value object the client sent that its rules refuse: the codec checked every one as it read the
+            // message, so the handler is never given it, and the caller is told each field at once.
+            await ValidationFailedAsync(context, ex).ConfigureAwait(false);
+            return;
+        }
 
         var (completed, result) = await InvokeAsync(context, invoker, message, faults, RunsUntil(context, contract))
             .ConfigureAwait(false);
@@ -358,13 +365,7 @@ public static partial class RaskCqrsEndpointExtensions
         {
             // Before the blanket catch below, or a rejected request would read as a server fault: a 500
             // saying "Handler failed" for a request the handler was deliberately never given.
-            await ProblemAsync(
-                context,
-                StatusCodes.Status400BadRequest,
-                "Validation failed",
-                detail: null,
-                ValidationProblemType,
-                ex.Errors).ConfigureAwait(false);
+            await ValidationFailedAsync(context, ex).ConfigureAwait(false);
             return (false, null);
         }
         catch (ForbiddenException ex)
@@ -396,6 +397,16 @@ public static partial class RaskCqrsEndpointExtensions
             return (false, null);
         }
     }
+
+    // The 400 a request that failed validation is answered with: its errors, under the fields a client's form shows them.
+    internal static Task ValidationFailedAsync(HttpContext context, RaskValidationException refusal) =>
+        ProblemAsync(
+            context,
+            StatusCodes.Status400BadRequest,
+            "Validation failed",
+            detail: null,
+            ValidationProblemType,
+            refusal.Errors);
 
     private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
         AuthorizedAsync(
