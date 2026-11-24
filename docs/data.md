@@ -1162,12 +1162,13 @@ Some work must never run twice at once however many hosts the app runs on — ta
 month. `Db.Lock(name)` takes a lock the **database** keeps, held until you dispose it:
 
 ```csharp
-await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+await using var turn = await Db.Lock("pump:" + pumpId).For(2.Minutes);
 await pump.Talk();
 ```
 
-- **`wait`** is how long to wait for the current holder: omitted, as long as it takes; `TimeSpan.Zero`, not at all.
-  A wait that runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
+- **`.For(wait)`** is the most it waits for the current holder — a step at the end, as every timing in Rask is. With no
+  step, `await Db.Lock("pump:7")` waits as long as it takes; `.For(TimeSpan.Zero)` does not wait at all. A wait that
+  runs out throws a `TimeoutException` naming the lock and the wait — catch it to answer "busy, try
   again". The call's cancellation token (or the work it runs in) cancels the wait.
 - **It is its own connection's**, kept open while the lock is held and never the one of a `Db.Transaction` in
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
@@ -2250,9 +2251,10 @@ public sealed class AppModel : IRaskModel
   | | `OrderBy(x => x.Name.InTextOrder())` | `Where(x => x.Name == "csaba")`, a unique index, `Contains`/`StartsWith`/`EndsWith` |
   |---|---|---|
   | **SQL Server** | `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` | as the database's own collation says — no column is given one, so no migration |
-  | **SQLite** (`UseRaskSqlite`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
-  | **PostgreSQL** | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is — **the gap** |
-  | a plain `UseSqlite` (a browser app) | by the column as it is | as SQLite compares |
+  | **SQLite** (`UseRaskSqlite`, or a browser's `UseSqlite(…).UseRaskFullTextSearch()`) | `ORDER BY "Name" COLLATE "RASK_TEXT"` | as SQL Server would: case-insensitive, accent-sensitive, Hungarian |
+  | **PostgreSQL 18+** (`UseRaskPostgres`) | `ORDER BY "Name" COLLATE rask_text` | as SQL Server would, through a nondeterministic ICU collation |
+  | a plain `UseNpgsql` | `ORDER BY "Name" COLLATE "hu-HU-x-icu"` | case-sensitive, as the column is |
+  | a plain `UseSqlite` with nothing of Rask's | by the column as it is | as SQLite compares |
 
   On SQLite every connection `UseRaskSqlite` opens registers the collation's language and sensitivities (Hungarian →
   `hu-HU`; `CI` ignores case; `AS` keeps `á` apart from `a`; no `KS`/`WS` ignores kana and width) as
@@ -2262,9 +2264,16 @@ public sealed class AppModel : IRaskModel
   `Csaba` — what the app's SQL Server does. A column given a collation of its own (`UseCollation`) keeps it. A
   collation name Rask cannot read (an unknown language) is refused as the model is built, off SQL Server.
 
-  PostgreSQL orders by the language's ICU collation, which every server built with ICU (the official images are)
-  imports. Comparing case-insensitively there takes a *nondeterministic* collation on each column, and those refuse
-  `LIKE` before PostgreSQL 18 — so Rask leaves PostgreSQL's equality and `LIKE` as they are.
+  On PostgreSQL through `UseRaskPostgres`, a collation that ignores case or accents becomes a *nondeterministic* ICU
+  collation, `rask_text` (`CREATE COLLATION rask_text (PROVIDER = icu, LOCALE = 'hu-HU-u-ks-level2', DETERMINISTIC =
+  false)` — `ks-level2` ignores case, `ks-level1` accents too), which the migration (or `EnsureCreated`) creates before
+  the first table that uses it, and every text column is created with it: `=`, a unique index, `ORDER BY` and `LIKE`
+  (`Contains`, `StartsWith`, `EndsWith`) compare as SQL Server's do. **It needs PostgreSQL 18 or later**: `LIKE` refuses
+  a nondeterministic collation before 18, so on an older server the migration stops at that statement and says so,
+  rather than every search failing later. The collation is made `IF NOT EXISTS` — a database whose collation was made
+  under another locale keeps it until it is dropped. A collation that tells case and accents apart
+  (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
+  does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
   ```csharp
   // before — the collation repeated in every query
