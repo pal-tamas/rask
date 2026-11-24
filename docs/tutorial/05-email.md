@@ -90,7 +90,7 @@ public sealed partial class SendOrderReceiptHandler : IJobHandler<SendOrderRecei
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
         await Mail.Send(
-            Email.To("customer@example.com")
+            Mail.Message.To("customer@example.com")
                  .Subject($"Your order {order.Id}")
                  .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)));
     }
@@ -106,7 +106,7 @@ reference is required*, because outside a markup host `OrderReceipt` is just the
 `FirstOrDefault` returns `null` for an order that has been deleted since the job was queued, which is why the
 handler checks before sending (`First` would throw instead, and the job would be retried).
 
-`Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
+`Mail.Message.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
 which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the
 component with its **chain**, not `new OrderReceipt(...)` — every Rask component is built that way (the
 framework enforces it, [RASK014](../diagnostics.md#rask014)), and each public property is one step. `Mail.Send`

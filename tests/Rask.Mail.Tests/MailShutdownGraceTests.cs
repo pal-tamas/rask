@@ -19,7 +19,7 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5), sender);
-        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
+        await h.Queue.Send(Mail.Message.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
         await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
@@ -44,8 +44,8 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.LeaseDuration = TimeSpan.FromMilliseconds(300), sender);
-        await h.Queue.Send(Email.To("ada@example.com").Subject("First").Html("<p>1</p>"), TestContext.Current.CancellationToken);
-        await h.Queue.Send(Email.To("bob@example.com").Subject("Second").Html("<p>2</p>"), TestContext.Current.CancellationToken);
+        await h.Queue.Send(Mail.Message.To("ada@example.com").Subject("First").Html("<p>1</p>"), TestContext.Current.CancellationToken);
+        await h.Queue.Send(Mail.Message.To("bob@example.com").Subject("Second").Html("<p>2</p>"), TestContext.Current.CancellationToken);
         await h.Processor.StartAsync(CancellationToken.None);
         await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
@@ -74,7 +74,7 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromMilliseconds(50), sender);
-        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
+        await h.Queue.Send(Mail.Message.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
         await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);

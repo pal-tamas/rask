@@ -2282,7 +2282,7 @@ Rask's timing steps are built this way, so nothing is queued, stored or written 
 ```csharp
 void Register(User user)
 {
-    Mail.Send(Email.To(user.Email).Subject("Welcome"));   // ❌ RASK093: does nothing
+    Mail.Send(Mail.Message.To(user.Email).Subject("Welcome"));   // ❌ RASK093: does nothing
     Jobs.Enqueue(new SendOnboardingTips(user.Id)).In(24.Hours);   // ❌ RASK093: does nothing
 }
 ```
@@ -2317,7 +2317,7 @@ exception and takes the process down with it:
 ```csharp
 async Task Register(User user)
 {
-    await Mail.Send(Email.To(user.Email).Subject("Welcome"));
+    await Mail.Send(Mail.Message.To(user.Email).Subject("Welcome"));
     await Jobs.Enqueue(new SendOnboardingTips(user.Id)).In(24.Hours);
 }
 ```

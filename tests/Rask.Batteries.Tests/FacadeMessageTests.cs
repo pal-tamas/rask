@@ -15,7 +15,7 @@ public sealed class FacadeMessageTests
     public static TheoryData<string, Func<Task>> Facades => new()
     {
         { "Cache", () => Cache.Get<string>("k") },
-        { "Mail", async () => await Mail.Send(Email.To("ann@example.com").Subject("Hi").Html("<p>hi</p>")) },
+        { "Mail", async () => await Mail.Send(Mail.Message.To("ann@example.com").Subject("Hi").Html("<p>hi</p>")) },
         { "Jobs", async () => await Jobs.Enqueue(new SendReceipt("ann@example.com")) },
         { "Files", () => Files.Get(Guid.NewGuid()) },
         { "Push", () => Push.Unsubscribe("https://push.example/1") },

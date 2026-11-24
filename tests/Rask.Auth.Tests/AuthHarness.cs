@@ -66,14 +66,14 @@ public sealed class MailSpy : IMail
     /// <summary>The last message sent to an address, or null when there is none.</summary>
     public SentMail? LastTo(string address) => _sent.FindLast(m => m.To == address);
 
-    public Task Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
+    public Task Add(Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
     {
         if (Throws)
         {
             throw new InvalidOperationException("mail battery is misconfigured");
         }
 
-        // Email.Body(Component) has already rendered to HTML by the time it is queued, so this is the
+        // Mail.Message.Body(Component) has already rendered to HTML by the time it is queued, so this is the
         // same string a real send would hand to the SMTP transport.
         _sent.Add(new SentMail(
             email.ToRecipients[0].Address,

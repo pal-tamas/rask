@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING: Rask.Mail's builder is `Mail.Message`, not `Email`.** Before: `await Mail.Send(Email.To(address).Subject(s).Html(b))`,
+  and an app on both Rask.Data and Rask.Mail had two `Email`s imported for it — Rask.Mailing's builder and the
+  `Rask.Values.Email` value-object base — so a bare `Email` was CS0104. After: `await Mail.Send(Mail.Message.To(address).Subject(s).Html(b))`
+  (the builder is nested in the static `Mail`, `Rask.Mailing.Mail.Message`), and `Email` is the value-object base alone.
+  `IMail.Add`, `Mail.Send` and `MailOutbox.Add` take a `Mail.Message`. No shim: replace `Email.To(` with `Mail.Message.To(`.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
