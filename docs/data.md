@@ -2242,6 +2242,74 @@ builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // o
 It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
 `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
 
+### Computed columns, defaults and filtered indexes, in C#
+
+A model that says `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` or
+`HasFilter("[TeaorId] IS NOT NULL")` is written in one database's SQL, and the SQLite the tests run on reads it
+differently or not at all. Say the same three things in C#, and Rask writes each provider's own SQL as the model is
+finalized:
+
+```csharp
+static void Configure(EntityTypeBuilder<Fueling> b)
+{
+    b.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol);   // a column the database computes
+    b.Computed(f => f.Period, f => f.Year + "." + f.Month);
+    b.Default(f => f.Size, 1000);                                       // what a row written without it gets
+    b.Default(f => f.CreatedAt, () => Clock.Now);                       // the database's clock, UTC
+    b.HasIndex(f => f.Partner).IsUnique("This partner has a live grant.").Where(f => f.RevokedAt == null);
+}
+```
+
+**`Computed(property, value)`** is a stored computed column: `PERSISTED` on SQL Server, `GENERATED ALWAYS AS (…)
+STORED` on PostgreSQL and SQLite. The database keeps it with the row, it can be indexed, and a save reads it back
+into the entity (give the property a `private set`). The value is a closed subset, chosen because it means the same
+on all three databases as it does in C#:
+
+| Takes | Written as |
+|---|---|
+| the entity's mapped members, a value object's too (`f.Amount.Value`) | the column |
+| constants, captured fields, enums, strongly-typed ids | a literal, as the column stores it |
+| `a ?? b`, `x.GetValueOrDefault()`, `x.GetValueOrDefault(v)` | `COALESCE` |
+| `+ - * / %` and unary `-` on whole numbers and doubles; `Math.Abs` | the same operators; `ABS` |
+| text joined with `+` (or `string.Concat`), whole numbers among it | `+` on SQL Server, `\|\|` elsewhere; a number `CAST` to text, a null as no text — as C# joins it |
+| `== != < <= > >=`, `&&`, `\|\|`, `!`, `x.HasValue` | a condition that is true or false, never unknown: `a == b` is true for two nulls and `a != 5` for a null, as in C# |
+| `c ? a : b`, and a condition in a value's place | `CASE WHEN … END` |
+
+Anything else fails the model build, naming the node and the declaration: a method call (`ToUpper()`), `.Value` off a
+nullable (C# throws on a null, SQL does not — write `??`), arithmetic on a `decimal` (SQLite computes it as a double),
+a `double` or a date joined into text (each database writes it its own way), and a property outside the row
+(`DateTime.Now` would be read once, as the model is built). Text compares as the column's collation does
+([`OrderTextBy`](#app-wide-model-rules-one-iraskmodel)); integer overflow and division by zero are the database's.
+
+**`Default(property, value)`** is the database's default: it fills a row written by something other than Rask — a
+script, another app — and the rows a migration finds when it adds the column. **Rask always writes the value the
+entity holds**: a `Size` of `0` is saved as `0`, where EF Core's own `HasDefaultValue` would leave a column holding
+its type's default to the database and save `1000`. The entity's own starting value is its initializer or its
+factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key.
+
+`Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
+clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
+PostgreSQL, `strftime('%Y-%m-%d %H:%M:%f', 'now')` on SQLite — the text a `DateTime` is stored as there. It is the
+moment the database writes the row, on the database server; `Clock.Fake` does not move it. A row Rask writes takes
+its moment from the entity, which reads `Clock.Now` — an aggregate's `Timestamps` are stamped that way. Any other
+lambda is refused where it is written; `Clock.Wall` and `Clock.Today` too, since the database does not know the
+app's time zone.
+
+**`HasIndex(…).Where(rows)`** is a filtered index on SQL Server and a partial one on PostgreSQL and SQLite; a unique
+one holds among the rows the filter keeps — one live grant per partner, however many revoked. The filter is the
+plainest condition, because SQL Server's filtered index takes no other:
+
+- columns compared with constants or `null`, joined by `&&`; a boolean column as itself (`x => x.Active`) or with `!`
+- `||`, two columns compared, and a `!=` on a nullable column fail the model build — C# keeps the nulls for
+  `x.Level != 3`, a filtered index leaves them out, so say it in both: `x.Level != null && x.Level != 3`
+- on SQL Server a unique index also leaves out the rows with a NULL in a nullable key column, as EF Core's own unique
+  index there does, so NULLs never collide on any of the three
+
+All three are read as the model is finalized by every `RaskDbContext` (a plain `DbContext` calls
+`ModelRegistry.ApplyConventions`), and the model a migration is made from carries the provider's SQL alone —
+`HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` — as if you had written it. A provider other than the
+three refuses the model; say it in that provider's own SQL there.
+
 ### What deleting a referenced row says
 
 A row that other rows still point at cannot go, and only the database knows. Say what that means once, on the

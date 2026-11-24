@@ -66,6 +66,15 @@ them until tagged releases begin.
   comparing it with a `TimeSpan` (`> 90.Minutes`) and its `TotalDays`…`TotalMilliseconds` run in the database, a
   `DateTimeOffset` measured in UTC — the answers PostgreSQL's provider already gave
   ([Data](docs/data.md#how-long-between-two-dates-in-a-query)).
+- **Computed columns, database defaults and filtered indexes, declared in C# for every database.** Before: a model
+  said `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` and
+  `HasFilter("[TeaorId] IS NOT NULL")` — SQL Server's SQL, which the SQLite the tests run on reads differently or
+  refuses. After: `b.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol)` is a stored computed column on SQL
+  Server, PostgreSQL and SQLite, from a closed C# subset that keeps C#'s null rules (anything outside it fails the model
+  build, naming the node); `b.Default(x => x.Size, 1000)` and `b.Default(x => x.CreatedAt, () => Clock.Now)` are the
+  database's default — the latter its UTC clock — for rows Rask does not write, while Rask always writes the value the
+  entity holds (a `Size` of 0 stays 0); and `HasIndex(…).IsUnique("…").Where(x => x.RevokedAt == null)` is a filtered
+  index on SQL Server and a partial one elsewhere ([Data](docs/data.md#computed-columns-defaults-and-filtered-indexes-in-c)).
 - **`HasIndex(…).Covering(p => new { p.Amount })`: a covering index in one sentence for every database.** Before: a
   SQL Server app wrote `IncludeProperties(…)` — a SQL Server call that breaks a model built for SQLite tests — and a
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and
