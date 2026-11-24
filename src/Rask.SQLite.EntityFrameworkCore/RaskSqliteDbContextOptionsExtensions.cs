@@ -122,6 +122,10 @@ public static class RaskSqliteDbContextOptionsExtensions
         // The connection interceptor below registers the collation OrderTextBy names, so the model may use it.
         TextCollationOptionsExtension.Add(optionsBuilder);
 
+        // A DateTimeOffset compares, orders and indexes by its instant, as SQL Server's datetimeoffset does — through the
+        // RASK_MOMENT collation the connection interceptor below registers.
+        MomentOrderOptionsExtension.Add(optionsBuilder);
+
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.
             .AddInterceptors(new RaskSqliteRangeExclusionInterceptor())

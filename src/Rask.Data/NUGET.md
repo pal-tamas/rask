@@ -40,7 +40,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **`TestDatabase.Start<AppDbContext>`**: a real database for a test in one line, through the app's own context, so
   behaviour on an aggregate is tested against the database, model and `SaveChangesAsync` it ships on rather than
   a mocked `DbContext`. With nothing to configure (and `Rask.SQLite.EntityFrameworkCore` referenced) it is a SQLite
-  database in memory of the test's own, shared by every context it hands out, and tests run side by side.
+  database in memory of the test's own, shared by every context it hands out, and tests run side by side. A save
+  runs the app's whole interceptor chain — domain events reach their handlers after the commit, the outbox stores
+  a durable handler's event — as it does in production.
   `TestDatabase.FromEnvironment<AppDbContext>("APP_TEST_DB", (o, cs) => o.UseSqlServer(cs))` takes the real database
   server from an environment variable — a database per test, or a shared standing one taken in turns — and skips the
   test where the variable is unset.

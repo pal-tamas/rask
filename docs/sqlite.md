@@ -215,6 +215,17 @@ without registering it — the `sqlite3` shell, a viewer — answers `no such co
 columns. Rask's own connections always register it; a plain `UseSqlite` (a browser app's) does not, so there
 `OrderTextBy` leaves the columns as they are and `InTextOrder()` orders by the column as it is.
 
+## Moments that compare as SQL Server does
+
+EF Core stores a `DateTimeOffset` as text with its offset and then refuses to order or compare it: text order is not
+time order across offsets. Through `UseRaskSqlite(...)` every `DateTimeOffset` column is created
+`COLLATE "RASK_MOMENT"` (`SqliteCollations.MomentOrder`), registered on every connection: two values compare by their
+UTC instant, so `OrderBy`, `=`, `<`, `Min`/`Max`, `GROUP BY` and a unique index answer as SQL Server's
+`datetimeoffset` does — `10:00+01:00` equals `09:00+00:00`. The stored text is EF Core's own, every tick and the offset
+kept; a property with a converter of the app's own keeps its column. Like `RASK_TEXT`, the name is in the schema, a
+tool without it answers `no such collation sequence: RASK_MOMENT`, and a plain `UseSqlite` leaves the columns as they
+are. What each database keeps of a date: [Dates and moments](data.md#dates-and-moments-what-each-database-keeps).
+
 ## Full-text search — FTS5 through EF Core
 
 SQLite ships a real full-text engine, [FTS5](https://sqlite.org/fts5.html) — compiled into the SQLite build

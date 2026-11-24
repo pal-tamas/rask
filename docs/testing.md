@@ -328,8 +328,16 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
 - every context it hands out — `database.Context`, `database.Factory`, `database.Load<T>`, `Company.Where(…)` and the
   rest of the model surface — opens its own connection to the same named database, so they all see the same rows;
 - tests run **in parallel**: a database started inside the test binds the model surface for that test alone, so two
-  tests side by side never read each other's rows (one started in a class fixture's `InitializeAsync` is
-  process-wide instead, and those tests take turns);
+  tests side by side never read each other's rows — not through the read face, the aggregate's statics, a handler,
+  nor `database.Factory` handed to a test host. One started in a class fixture's `InitializeAsync` reaches no test's
+  flow (xUnit ran it in its own) and is process-wide; `private readonly IDisposable _bound = fixture.Database.Bind();`
+  in the test class (disposed in its `Dispose`) binds it for that class's tests, beside every other class's;
+- a save runs the app's whole interceptor chain, **domain-event publication and the outbox included**: a saved
+  aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
+  handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
+  goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
+- the schema is made once per model and copied into each later database through SQLite's backup API — a start over
+  a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
   text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
   unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));

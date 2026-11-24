@@ -16,6 +16,10 @@ them until tagged releases begin.
   warning [RASK124](docs/diagnostics.md#rask124). An event that was publishable anonymously through one handler's
   `[AllowAnonymous]` now asks what its other handlers ask; give them the same attributes to keep it open.
 ### Performance
+- **`TestDatabase.Start<TContext>()` copies the model's schema instead of creating it per test.** Before: every
+  in-memory database ran `EnsureCreated`, ~74 ms median for a 54-table model (9 ms at best, on a loaded machine).
+  After: the first database over a model creates the schema and keeps an empty copy; every later one is restored
+  from it through SQLite's backup API (tables, indexes, triggers, `HasData` seed) — ~0.7 ms median for the same model.
 - **Saving an aggregate of thousands of changed children is linear, not quadratic.** Before: the save's checks
   (`AuditingInterceptor`'s root walk — touching the root, a child's tenant against its root's — and `ParentTenantCheck`)
   found each child's parent by scanning every tracked row, so a save cost changed children × rows tracked: 3,000 new
@@ -31,6 +35,22 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
+  Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
+  data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
+  durable handler's event was never stored, and the lazy-loading guard did not run. After: the interceptors come from
+  services registered as the host registers them — `AddRaskCqrs()`, `AddRaskData<TContext>()`, and `AddRaskOutbox`
+  when the model maps the outbox table (announced by `Rask.Outbox` itself) — in the app's order, so a save publishes
+  its events to their `IEventHandler`s after the commit and clears them, stores a durable handler's event in the same
+  transaction (or `Outbox.Fake()` records it), and a handler's `IDbContextFactory<TContext>` opens the test's database.
+  Every `Start` overload takes `services:` for what the app's handlers need beyond Rask's registrations. A test that
+  asserted `DomainEvents` after a save asserts it before the save, or on what the handler did.
+- **`TestDatabase.Bind()` points the model surface at a fixture's database for the test class that binds it.** A
+  database started in a class fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture
+  classes in parallel read whichever started last. `private readonly IDisposable _bound = fixture.Database.Bind();` in
+  the test class binds it for that class's tests; disposing a database now clears the process-wide binding only while
+  it is still its own.
+
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
@@ -500,6 +520,16 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `DateTimeOffset` orders and compares by its instant on SQLite, as on SQL Server.** Before: EF Core's SQLite
+  provider stored it as text with its offset and refused `OrderBy`, `<`, `>` and `Max` over it, and `==` and a unique
+  index compared the text — so `10:00+01:00` and `09:00+00:00` were two moments, and a query an app ran on SQL Server
+  did not translate in its SQLite tests. After: `UseRaskSqlite` creates every `DateTimeOffset` column
+  `COLLATE "RASK_MOMENT"` (`SqliteCollations.MomentOrder`, registered on every connection), which compares by UTC
+  instant; the stored text is EF Core's own, every tick and the offset kept, and a property with a converter of its own
+  keeps its column. An existing SQLite database with such columns takes one migration (`rask db add MomentOrder`).
+  `DateTimeParityTests` (Providers E2E) pins the date rules on SQL Server, SQLite and PostgreSQL: a tick and
+  `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL
+  ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
 - **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
   `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
   `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
