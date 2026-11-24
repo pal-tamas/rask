@@ -715,3 +715,4 @@ Rask.Data.Numbering<TEntity>.Same<TRow>(System.Linq.Expressions.Expression<Syste
 Rask.Data.Numbering<TEntity>.SkipWhen<TOther, TRow>(System.Linq.Expressions.Expression<System.Func<TEntity!, System.Linq.IQueryable<TOther!>!, bool>!>! when, System.Linq.Expressions.Expression<System.Func<TOther!, TRow>!>! row) -> Rask.Data.Numbering<TEntity!>!
 Rask.Data.GeneratedGates
 static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> bool
+static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void

@@ -49,7 +49,7 @@ internal static class BulkSetWrite
             RefuseRowByRowRules(type);
 
             var rows = context.Set<T>().Where(where);
-            await RefuseLocked(context, type, rows, LockedWriteKind.Delete, cancellationToken).ConfigureAwait(false);
+            await RefuseLocked(context, type, rows, LockedWriteKind.Delete, touched: null, cancellationToken).ConfigureAwait(false);
 
             // A soft delete is a stamp, as SoftDeleteInterceptor makes it: DeletedAt alone, and the rows stay.
             var written = type.FindProperty(Columns.DeletedAt) is not null
@@ -82,9 +82,11 @@ internal static class BulkSetWrite
             // A row locked where it is now is refused before the statement; one the statement moved into a locked parent
             // after it, by the keys read first — still inside the transaction, so the refusal rolls the statement back.
             List<object>? keys = null;
+            IReadOnlyCollection<string>? touched = null;
             if (!ParentLocks.Of(typeof(T)).IsEmpty)
             {
-                await RefuseLocked(context, type, rows, LockedWriteKind.Change, cancellationToken).ConfigureAwait(false);
+                touched = BulkSetters.Touched(set);
+                await RefuseLocked(context, type, rows, LockedWriteKind.Change, touched, cancellationToken).ConfigureAwait(false);
                 keys = await BulkKeys.Read(rows, BulkKeys.Of<T>(context, "UpdateWhere")).ToListAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -100,7 +102,7 @@ internal static class BulkSetWrite
                 var key = type.FindPrimaryKey()!.Properties[0];
                 foreach (var chunk in keys.Chunk(500))
                 {
-                    await RefuseLocked(context, type, ParentRead<T>.Touched(context, key, chunk), LockedWriteKind.Move, cancellationToken)
+                    await RefuseLocked(context, type, ParentRead<T>.Touched(context, key, chunk), LockedWriteKind.Move, touched, cancellationToken)
                         .ConfigureAwait(false);
                 }
             }
@@ -180,13 +182,14 @@ internal static class BulkSetWrite
     }
 
     private static async Task RefuseLocked<T>(
-        DbContext context, IEntityType type, IQueryable<T> rows, LockedWriteKind kind, CancellationToken cancellationToken)
+        DbContext context, IEntityType type, IQueryable<T> rows, LockedWriteKind kind, IReadOnlyCollection<string>? touched,
+        CancellationToken cancellationToken)
         where T : class
     {
         var failures = new List<FieldFailure>();
         foreach (var rule in ParentLocks.Of(typeof(T)))
         {
-            if (await rule.CheckSet(context, type, rows, kind, cancellationToken).ConfigureAwait(false) is { } failure)
+            if (await rule.CheckSet(context, type, rows, kind, touched, cancellationToken).ConfigureAwait(false) is { } failure)
             {
                 failures.Add(failure);
             }

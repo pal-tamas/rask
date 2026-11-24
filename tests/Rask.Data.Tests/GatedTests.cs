@@ -100,6 +100,29 @@ public sealed class GatedTests : IDisposable
         Assert.False(GeneratedGates.IsShut(typeof(Trucker), nameof(Trucker.Name)));
     }
 
+    [Fact]
+    public async Task A_read_face_hands_back_no_gated_member_while_its_gate_is_shut()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SeedAsync("C-1");
+
+        var open = await Trucker.Where(t => t.Name == "Ada").Single(Token);
+        _open = false;
+        var shut = await Trucker.Where(t => t.Name == "Ada");
+
+        Assert.Equal("C-1", open.Card);
+        Assert.Null(Assert.Single(shut).Card);
+        Assert.Equal("Ada", shut[0].Name);
+    }
+
+    [Fact]
+    public void The_gated_member_is_declared_at_startup_before_any_model_is_built()
+    {
+        var declared = GatedMembers.Of(typeof(Trucker)).Select(static m => m.Key);
+
+        Assert.Contains(nameof(Trucker.Card), declared);
+    }
+
     private static async Task<Guid> SeedAsync(string card)
     {
         var trucker = Trucker.Named("Ada", card);

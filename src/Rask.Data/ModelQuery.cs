@@ -460,6 +460,14 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         using var loading = RowLoading.Read();
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        return await run(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
+        var result = await run(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
+
+        // What the aggregate gates, emptied on the rows a read face hands back while its gate is shut.
+        if (GatedMembers.Any && typeof(IReadModel).IsAssignableFrom(typeof(TEntity)))
+        {
+            GatedReads.Hide<TEntity>(context, result);
+        }
+
+        return result;
     }
 }

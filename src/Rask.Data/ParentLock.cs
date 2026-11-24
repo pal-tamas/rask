@@ -23,7 +23,8 @@ internal abstract class ParentLock(string property)
     ///     them holds a locked parent; <see langword="null" /> when none does. One query: the rows that have a locked parent.
     /// </summary>
     internal abstract Task<FieldFailure?> CheckSet(
-        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, CancellationToken cancellationToken);
+        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, IReadOnlyCollection<string>? touched,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>A lock on a <typeparamref name="T" /> whose parent is a <typeparamref name="TParent" />.</summary>
@@ -94,8 +95,15 @@ internal sealed class ParentLock<T, [DynamicallyAccessedMembers(DataTrimming.Ent
     }
 
     internal override async Task<FieldFailure?> CheckSet(
-        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, CancellationToken cancellationToken)
+        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, IReadOnlyCollection<string>? touched,
+        CancellationToken cancellationToken)
     {
+        // A set update of nothing but the excepted columns passes, as a save of them alone does.
+        if (kind != LockedWriteKind.Delete && Excepted.Count > 0 && touched is { Count: > 0 } && touched.All(Excepted.Contains))
+        {
+            return null;
+        }
+
         if (rowType.FindProperty(Property) is not { } held)
         {
             throw new InvalidOperationException(
@@ -115,6 +123,9 @@ internal sealed class ParentLock<T, [DynamicallyAccessedMembers(DataTrimming.Ent
             .ToList();
         foreach (var chunk in parents.Chunk(PerQuery))
         {
+            // Every parent the rows hold, under an update lock to the end of the statement's transaction, so a close of
+            // one cannot slip in between this check and the statement — as a save's LockRead.ForUpdate holds it.
+            await ParentRead<TParent>.ForUpdate(context, key, chunk).ToListAsync(cancellationToken).ConfigureAwait(false);
             var lockedParents = await IncludedLocked(context, key, chunk, cancellationToken).ConfigureAwait(false);
             if (lockedParents.Count == 0)
             {

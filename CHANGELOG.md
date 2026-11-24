@@ -72,6 +72,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
+  and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
+  `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
+  (`X.Where(…)`) empties a gated member on each row while its gate is shut, and the gated members are declared at
+  startup by a generator, so forms and read faces know them before the EF model is built.
 - **A gated member is left off the generated forms while its gate is shut** (F-35 follow-up). `Ui.Field.Bind` draws
   nothing for a member gated with `b.Gated(…)` on the aggregate's form model and on a `Form.For` over an operation
   whose parameter writes it; the operation's form does not read the hidden field (a `Change<T>` keeps, anything else

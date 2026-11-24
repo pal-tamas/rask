@@ -29,6 +29,10 @@ public static class ReadModelRegistry
 {
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<ReadEntityMapping>> Contributions = new();
 
+    /// <summary>The mapping of the read face <paramref name="read" />, or null when no assembly contributed one.</summary>
+    internal static ReadEntityMapping? MappingOf(Type read) =>
+        Contributions.Values.SelectMany(static e => e).FirstOrDefault(m => m.ReadType == read);
+
     /// <summary>Whether any assembly has contributed a read face.</summary>
     public static bool IsEmpty => Contributions.IsEmpty;
 

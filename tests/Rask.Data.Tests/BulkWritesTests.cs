@@ -102,6 +102,28 @@ public sealed class BulkWritesTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateWhere_of_only_the_excepted_columns_passes_under_a_locked_parent_and_any_other_is_refused()
+    {
+        await using var database = await StartAsync();
+        var refund = TallyRefund.Named("Gas 2026");
+        var transaction = TallyTransaction.Of(30);
+        transaction.ClaimFor(refund.Id);
+        database.Context.AddRange(refund, transaction);
+        await database.Context.SaveChangesAsync(Token);
+        refund.FileAt("Budapest");
+        await database.Context.SaveChangesAsync(Token);
+        var foreign = Guid.CreateVersion7();
+
+        await TallyTransaction.UpdateWhere(t => t.Id == transaction.Id, s => s.SetProperty(t => t.ForeignRefundId, foreign), Token);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() =>
+            TallyTransaction.UpdateWhere(t => t.Id == transaction.Id, s => s.SetProperty(t => t.Litres, 40m), Token));
+
+        var stored = (await database.Load<TallyTransaction>(transaction.Id, Token))!;
+        Assert.Equal((foreign, 30m), (stored.ForeignRefundId, stored.Litres));
+        Assert.Contains("holds these", Assert.Single(refused.Failures).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_set_write_counts_as_one_aggregate_so_a_second_one_beside_it_is_refused()
     {
         await using var database = await StartAsync();

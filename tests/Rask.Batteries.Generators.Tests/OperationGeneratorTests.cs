@@ -719,6 +719,35 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_gated_member_is_declared_at_startup_from_its_Configure()
+    {
+        var run = GeneratorHarness.Run(
+            """
+            using System;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public enum Module { Fleet, Tachograph }
+
+                public sealed class Driver : Aggregate<Guid, Versioned>
+                {
+                    public string? Card { get; private set; }
+                    public static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+                }
+            }
+            """,
+            [new GatedMembersGenerator()],
+            "Rask.Data", "Rask.Wire", "Rask.Cqrs", "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.Relational");
+
+        var generated = run.GeneratedSource("__RaskGatedMembers");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("global::Rask.Data.GeneratedGates.Declare(typeof(global::Shop.Driver), \"Card\", (global::Shop.Module)(1));", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_password_is_never_read_from_the_aggregate_into_its_form()
     {
         var run = RunWithForms("""

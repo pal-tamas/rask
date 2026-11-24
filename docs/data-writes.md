@@ -31,7 +31,10 @@ session, a pairing a pump re-sends). What a save keeps it still keeps:
 - the tenant and soft-delete filters (a `SoftDelete` aggregate's `DeleteWhere` stamps `DeletedAt` instead);
 - `UpdatedAt` stamped and `Version` bumped by `UpdateWhere`, so a form read before it is refused as stale;
 - the declared locks ([`LockedBy`](domain.md#a-row-closed-by-its-parent-lockedby)): a row whose parent is locked is refused — the old parent
-  before the statement, the one `UpdateWhere` moved it to after it, still inside the transaction it rolls back;
+  before the statement, the one `UpdateWhere` moved it to after it, still inside the transaction it rolls back —
+  every parent the rows hold read under an update lock first (`UPDLOCK, HOLDLOCK` / `FOR UPDATE`), so a close cannot
+  slip in between the check and the statement; an `UpdateWhere` that sets only the lock's `Except(…)` columns passes,
+  as a save of them alone does;
 - the unique and still-referenced messages, under the field a form shows;
 - the data-changed notices a live page repaints on, after the commit;
 - the [one-aggregate rule](domain.md#one-aggregate-per-transaction-manyaggregates), counted as one write of the type.
