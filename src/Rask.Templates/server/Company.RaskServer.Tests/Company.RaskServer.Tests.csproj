@@ -14,6 +14,8 @@
   <ItemGroup>
     <!-- Renders a page in-process and drives it the way a person would. No browser, no server. -->
     <PackageReference Include="Rask.Testing" Version="{{RaskVersion}}"/>
+    <!-- await Test.Make<Note>(): a stored aggregate its rules accept. The half of the testing package that needs Rask.Data. -->
+    <PackageReference Include="Rask.Testing.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0"/>
     <PackageReference Include="xunit.v3" Version="4.0.3"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" PrivateAssets="all"/>

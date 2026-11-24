@@ -36,7 +36,8 @@ them until tagged releases begin.
   named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
   `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
   it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
-  aggregates and every reference by hand.
+  aggregates and every reference by hand. A new `server` app's `<Name>.Tests` project references `Rask.Testing.Data` beside
+  `Rask.Testing`; a `wasm` one stays on `Rask.Testing`.
 - **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
   field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
   validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
