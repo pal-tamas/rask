@@ -178,6 +178,65 @@ public sealed class LockedByTests : IDisposable
         Assert.Empty(await database.Context.Set<TallyClaim>().AsNoTracking().ToListAsync(Token));
     }
 
+    [Fact]
+    public async Task A_change_to_only_the_excepted_claim_columns_passes_under_a_filed_refund()
+    {
+        await using var database = await StartDatabaseAsync();
+        var (filed, transaction) = await FiledAsync(database);
+        var other = TallyRefund.Named("Foreign 2026");
+        database.Context.Add(other);
+        await database.Context.SaveChangesAsync(Token);
+
+        transaction.ClaimForeign(other.Id);
+        transaction.ClaimFor(null);
+        await database.Context.SaveChangesAsync(Token);
+
+        var stored = (await database.Load<TallyTransaction>(transaction.Id, Token))!;
+        Assert.Equal((null, other.Id), (stored.RefundId, stored.ForeignRefundId));
+        Assert.NotEqual(Guid.Empty, filed.Id);
+    }
+
+    [Fact]
+    public async Task Any_other_change_under_a_filed_refund_is_refused_with_the_change_sentence_from_its_filing()
+    {
+        await using var database = await StartDatabaseAsync();
+        var (_, transaction) = await FiledAsync(database);
+
+        transaction.Measure(40);
+        transaction.ClaimForeign(Guid.CreateVersion7());
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => database.Context.SaveChangesAsync(Token));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal("Gas 2026, filed at Budapest, holds these 40 litres as filed.", failure.Message);
+        Assert.Empty(failure.Fields);
+    }
+
+    [Fact]
+    public async Task A_delete_under_a_filed_refund_is_refused_with_the_delete_sentence()
+    {
+        await using var database = await StartDatabaseAsync();
+        var (_, transaction) = await FiledAsync(database);
+
+        database.Context.Remove(transaction);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => database.Context.SaveChangesAsync(Token));
+
+        Assert.Equal("Gas 2026, filed at Budapest, keeps its transactions.", Assert.Single(refused.Failures).Message);
+        Assert.NotNull(await database.Load<TallyTransaction>(transaction.Id, Token));
+    }
+
+    // A transaction claimed by a refund that is then filed.
+    private static async Task<(TallyRefund Refund, TallyTransaction Transaction)> FiledAsync(TestDatabase database)
+    {
+        var refund = TallyRefund.Named("Gas 2026");
+        var transaction = TallyTransaction.Of(30);
+        transaction.ClaimFor(refund.Id);
+        database.Context.AddRange(refund, transaction);
+        await database.Context.SaveChangesAsync(Token);
+        refund.FileAt("Budapest");
+        await database.Context.SaveChangesAsync(Token);
+        return (refund, transaction);
+    }
+
     private static async Task<TallyPeriod> PeriodAsync(TestDatabase database, string name, bool close)
     {
         var period = TallyPeriod.Open(name);

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK150, RASK165, RASK170–RASK173, RASK180–RASK183, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK174, RASK180–RASK183, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -152,6 +152,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
+| [RASK139](#rask139) | Warning | A `Rules` method is not the in-type FluentValidation convention |
 | [RASK140](#rask140) | Info | Domain code reads the machine's clock |
 | [RASK141](#rask141) | Info | Domain code looks up a service |
 | [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
@@ -163,10 +164,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
 | [RASK173](#rask173) | Warning | A factory is public, so its generated entry cannot be called |
-| [RASK180](#rask180) | Warning | A `Rules` method is not the in-type FluentValidation convention |
 | [RASK181](#rask181) | Warning | A FluentValidation rule rules a value object |
 | [RASK182](#rask182) | Warning | A FluentValidation rule disagrees with its column |
 | [RASK183](#rask183) | Error | A value object declares its rules twice |
+| [RASK174](#rask174) | Info | Two operations take the same parameters, so neither gets a `Form.For` |
+| [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3475,7 +3477,7 @@ private static Supply Register(CompanyId company, SupplyDetails details) => …;
 **Fix:** make the factory `private` or `internal`. Code that only wants the aggregate built, not saved, calls it from
 inside the aggregate (or the assembly, when it is `internal`).
 
-## RASK180
+## RASK139
 
 **A `Rules` method is not the in-type FluentValidation convention** · Warning
 
@@ -3488,8 +3490,8 @@ only when the app references FluentValidation.
 ```csharp
 public sealed partial class Supplier : Aggregate<SupplierId>
 {
-    void Rules(InlineValidator<Supplier> rules) { … }                     // ⚠ RASK180 — not static
-    static void Rules(InlineValidator<Order> rules) { … }                 // ⚠ RASK180 — validates another type
+    void Rules(InlineValidator<Supplier> rules) { … }                     // ⚠ RASK139 — not static
+    static void Rules(InlineValidator<Order> rules) { … }                 // ⚠ RASK139 — validates another type
     static void Rules(InlineValidator<Supplier> rules) =>                 // ✓
         rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200);
 }
@@ -3560,3 +3562,42 @@ public sealed partial record SupplierName(string Value) : Text(Value, MaxLength:
 ```
 
 **Fix:** keep one. A hand-written `Rules()` is first-class; FluentValidation needs `Rask.Validation.FluentValidation`.
+
+## RASK174
+
+**Two operations take the same parameters, so neither gets a `Form.For`** · Info
+
+`Form.For(Driver.Rename, id)` picks the operation by the parameters of its generated entry, since a method group
+carries no name a call can be told by. Two operations whose entries take the same types would make every such call
+ambiguous, so neither gets a form.
+
+```csharp
+public void Rename(DriverName name) { … }        // ℹ RASK174
+public void SetFullName(DriverName name) { … }   // ℹ RASK174
+```
+
+**Fix:** give one of them a value object of its own for what it takes (`FullName`), which is also the clearer domain.
+
+## RASK180
+
+**Children are added or removed outside their aggregate** · Error
+
+`Children<TEntity, TSpec>` is read by everyone and changed only by the aggregate that declares it: through `Sync`, or
+through `Add` and `Remove` in its own methods, where its rules are. C# has no access level for "only my holder", so
+`Add` and `Remove` are public and this error says it instead. A call is allowed when its receiver is the property (or
+field) of the type the call is written in — or of a type it is nested in: `Parts.Add(part)`, `this.Parts.Remove(p)`,
+`other.Parts.Add(p)` between two of the same aggregate, and `Parts.Add` handed over as a delegate. Children held in a
+local or returned from a method cannot be traced to their aggregate, so they are refused even inside it.
+
+```csharp
+public sealed class Supply : Aggregate<SupplyId>
+{
+    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+    public void Take(SupplyPart part) => Parts.Add(part);   // ✓ the aggregate's own method
+}
+
+supply.Parts.Add(part);                                      // ✗ RASK180, from a page or a handler
+supply.Take(part);                                           // ✓
+```
+
+**Fix:** call the aggregate's method that adds or removes the child, or write one.

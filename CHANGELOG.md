@@ -81,10 +81,10 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
-- **The in-type FluentValidation rules are checked as they are written (RASK180–RASK183).** Before: a `Rules` taking an
+- **The in-type FluentValidation rules are checked as they are written (RASK139, RASK181–RASK183).** Before: a `Rules` taking an
   `InlineValidator` in the wrong shape, a rule on an aggregate's value-object member, a `MaximumLength(200)` on a
   `[MaxLength(100)]` property, and a value object with both a `Rules()` override and FluentValidation `Rules` all
-  compiled silently. After: RASK180 names why a `Rules` is never registered, RASK181 points a value-object member's
+  compiled silently. After: RASK139 names why a `Rules` is never registered, RASK181 points a value-object member's
   rule into the value object, RASK182 says where a rule's length or precision disagrees with the column's, and RASK183
   refuses a value object that states its rules twice. All four are silent without FluentValidation.
 - **RASK130's quick-fix declares the value object from the rules already written.** Before: RASK130 had no fix.
@@ -107,7 +107,10 @@ them until tagged releases begin.
   order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
   property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
   insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
-  the ids, are an `ArgumentException` before anything changes. See [Children](docs/data.md#children).
+  the ids, are an `ArgumentException` before anything changes. Children matched by a key of their own take
+  `Sync(specs, s => s.TransactionId, f => f.TransactionId, add, update)`; a child made from no row is `Parts.Add(x)` /
+  `Parts.Remove(x)`, callable only from the aggregate that declares the property — elsewhere the new error
+  [RASK180](docs/diagnostics.md#rask180). See [Children](docs/data.md#children).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
@@ -137,9 +140,12 @@ them until tagged releases begin.
   transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
   changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
   holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
-  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`).
-  `forUpdate: true` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL Server,
-  `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none. See
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`),
+  or from the parent and the write (`(p, w) => …`: `w.Kind` is `Add`, `Change`, `Delete` or `Move`, `w.Row` the row).
+  `LockRead.ForUpdate` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL
+  Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none.
+  `.Except(t => t.RefundId, …)` lets a change that touches only those columns through (a claim taking a transaction
+  over); `.Including(p => p.Filings)` loads a parent navigation for the message. See
   [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
@@ -164,6 +170,15 @@ them until tagged releases begin.
   asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
   its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
   engine a form over the operation uses to show the domain's own rules as it is filled in.
+- **A form straight over an operation: `Form.For(Note.Rename, id)[f => [Ui.Field.Bind(() => f.Title), …]]`.** Before:
+  every edit form was a hand-written model class, its rules repeated beside the domain's and its save wired by hand.
+  After: each operation (and factory) of a `partial` aggregate gets a `Form.For` whose fields are its parameters —
+  filled from the aggregate's properties of the same name, a one-value value object held as its value with its rules
+  told to the control — checked as each field is committed by the operation's dry run, saved through the entry at the
+  version it was read at, and disabled for a principal `MayRename` refuses. `.Missing(…)` and `.OnSaved(…)` round it
+  off. Operations with a list or a several-value value object as a parameter get none yet, and two operations whose
+  entries take the same types get none ([RASK174](docs/diagnostics.md#rask174)). The rask.sh data demo renames the
+  newest note this way. See [a form over an operation](docs/forms.md#a-form-over-an-operation).
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

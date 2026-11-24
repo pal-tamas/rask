@@ -7,7 +7,7 @@ using Rask.Generators.Shared;
 namespace Rask.Generators.Validation;
 
 /// <summary>
-///     RASK180 — a method named <c>Rules</c> takes an <c>InlineValidator&lt;X&gt;</c> but is not the in-type convention
+///     RASK139 — a method named <c>Rules</c> takes an <c>InlineValidator&lt;X&gt;</c> but is not the in-type convention
 ///     <c>static void Rules(InlineValidator&lt;T&gt; rules)</c>, so its rules are never registered.
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace Rask.Generators.Validation;
 public sealed class InlineRulesShapeAnalyzer : DiagnosticAnalyzer
 {
     private static readonly DiagnosticDescriptor Rask180 = new(
-        "RASK180",
+        "RASK139",
         "A Rules method is not the in-type FluentValidation convention",
         "'{0}.Rules' is never registered — {1}: the in-type rules are 'static void Rules(InlineValidator<{0}> rules)' on a non-generic type",
         DiagnosticHelp.Category,
@@ -31,7 +31,7 @@ public sealed class InlineRulesShapeAnalyzer : DiagnosticAnalyzer
                      + "declared in and neither is generic. A Rules method taking an InlineValidator in any other shape — "
                      + "an instance method, one returning a value, taking more parameters, generic, validating another "
                      + "type, or declared in a generic type — is not registered, so its rules never run.",
-        helpLinkUri: DiagnosticHelp.Link("RASK180"));
+        helpLinkUri: DiagnosticHelp.Link("RASK139"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask180);
 

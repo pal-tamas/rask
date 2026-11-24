@@ -7,7 +7,7 @@ using Rask.Generators.Validation;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     RASK180 (a <c>Rules</c> taking an <c>InlineValidator</c> that is not the in-type convention) and RASK183 (a value
+///     RASK139 (a <c>Rules</c> taking an <c>InlineValidator</c> that is not the in-type convention) and RASK183 (a value
 ///     object with both a hand-written <c>Rules()</c> override and the in-type FluentValidation <c>Rules</c>).
 /// </summary>
 public class InlineRulesAnalyzerTests
@@ -19,14 +19,14 @@ public class InlineRulesAnalyzerTests
     [InlineData("public sealed class Supplier { static void Rules<T>(InlineValidator<Supplier> rules) { } }", "it is generic")]
     [InlineData("public sealed class Order { } public sealed class Supplier { static void Rules(InlineValidator<Order> rules) { } }", "it validates 'Order', not 'Supplier'")]
     [InlineData("public sealed class Supplier<T> { static void Rules(InlineValidator<Supplier<T>> rules) { } }", "'Supplier' is generic, so the registration cannot name it")]
-    public async Task A_Rules_taking_an_InlineValidator_in_another_shape_is_RASK180(string declaration, string why)
+    public async Task A_Rules_taking_an_InlineValidator_in_another_shape_is_RASK139(string declaration, string why)
     {
         var source = "using FluentValidation;\nnamespace Shop;\n" + declaration;
 
         var diagnostics = await RunAsync(new InlineRulesShapeAnalyzer(), source, withFluentValidation: true);
 
         var d = Assert.Single(diagnostics);
-        Assert.Equal("RASK180", d.Id);
+        Assert.Equal("RASK139", d.Id);
         Assert.Equal(DiagnosticSeverity.Warning, d.Severity);
         Assert.Contains("'Supplier.Rules' is never registered — " + why, d.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("'static void Rules(InlineValidator<Supplier> rules)'", d.GetMessage(), StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public class InlineRulesAnalyzerTests
     [InlineData("public sealed class Supplier { private static void Rules(InlineValidator<Supplier> rules) => rules.RuleFor(s => s.ToString()).NotEmpty(); }")]
     [InlineData("public sealed class Supplier { public static void Rules(InlineValidator<Supplier> rules) { } }")]
     [InlineData("public sealed class Supplier { void Rules(int limit) { } void Check(InlineValidator<Supplier> rules) { } }")]
-    public async Task The_convention_or_a_method_that_takes_no_InlineValidator_is_not_RASK180(string declaration)
+    public async Task The_convention_or_a_method_that_takes_no_InlineValidator_is_not_RASK139(string declaration)
     {
         var source = "using FluentValidation;\nnamespace Shop;\n" + declaration;
 
