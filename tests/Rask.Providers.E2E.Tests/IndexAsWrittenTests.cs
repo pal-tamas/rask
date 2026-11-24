@@ -38,8 +38,10 @@ public sealed class LoginDbContext(DbContextOptions<LoginDbContext> options) : D
             b.Property(l => l.TenantId).HasConversion<string>().HasMaxLength(64);
             b.Property(l => l.Username).HasMaxLength(255);
             b.Property(l => l.Badge).HasMaxLength(32);
+#pragma warning disable RASK165 // written in OnModelCreating as TA writes it: the save's violation message is what is tested, not a form's pre-check
             b.HasIndex(l => l.Username).HasDatabaseName(Login.UsernameKey).IsUnique(Login.UsernameTaken);
             b.HasIndex(l => new { l.TenantId, l.Badge }).HasDatabaseName(Login.BadgeKey).IsUnique(Login.BadgeTaken);
+#pragma warning restore RASK165
         });
 
         modelBuilder.ApplyRaskConventions(this);

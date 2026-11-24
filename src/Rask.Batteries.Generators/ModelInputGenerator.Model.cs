@@ -52,7 +52,10 @@ public sealed partial class ModelInputGenerator
                 : Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
         }
 
-        return Accepted(symbol, name, location, cancellationToken);
+        return Accepted(symbol, name, location, cancellationToken) with
+        {
+            OwnRules = OwnRulesOf(ctx.SemanticModel.Compilation, symbol),
+        };
     }
 
     // A row matched by its key's parts rather than an Id: the parts its holder does not give lead the model, each one
@@ -287,7 +290,8 @@ public sealed partial class ModelInputGenerator
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
     //    and marks every other Entity<TId> key never-generated, so EF produces nothing else — unless the
     //    aggregate's own Configure says the key is never generated, and then it is the caller's like any other.
-    //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
+    //  * A strongly-typed id over an int or a long — VehicleId(int Value) — is the store's identity too, the same way.
+    //  * Anything else — a string, a strongly-typed id over a string — has no value the row could
     //    be keyed by that the caller did not choose, so only Create(id, model) is generated for it.
     private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType, bool neverGenerated)
     {
@@ -314,14 +318,13 @@ public sealed partial class ModelInputGenerator
             return (KeySource.Guid, "global::System.Guid.CreateVersion7()");
         }
 
-        return ModelRegistryGenerator.StronglyTypedId.For(idType) is
+        return ModelRegistryGenerator.StronglyTypedId.For(idType) switch
         {
-            Problem: null,
-            TypeName: { } typeName,
-            ValueTypeName: "global::System.Guid",
-        }
-            ? (KeySource.Guid, "new " + typeName + "(global::System.Guid.CreateVersion7())")
-            : (KeySource.Caller, null);
+            { Problem: null, TypeName: { } typeName, ValueTypeName: "global::System.Guid" } =>
+                (KeySource.Guid, "new " + typeName + "(global::System.Guid.CreateVersion7())"),
+            { Problem: null, ValueTypeName: "int" or "long" } => (neverGenerated ? KeySource.Caller : KeySource.Store, null),
+            _ => (KeySource.Caller, null),
+        };
     }
 
     /// <summary>
@@ -396,10 +399,10 @@ public sealed partial class ModelInputGenerator
                 ? WriteOf(property, kind, "__" + kind + index.ToString(CultureInfo.InvariantCulture) + "_" + property.Name, byRef: false)
                 : null,
             new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
-            new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+            new EquatableArray<string>(property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
-            Named: NamedOf(property),
+            Named: ValidationAttributeSource.NameOf(property),
             Shape: ShapeOf(property.Type, valueObject));
     }
 
@@ -478,9 +481,9 @@ public sealed partial class ModelInputGenerator
                 m.Write is { } kind
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
                     : null,
-                new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+                new EquatableArray<string>(m.Property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
-                NamedOf(m.Property),
+                ValidationAttributeSource.NameOf(m.Property),
                 ShapeOf(m.Property.Type, nested));
         }).ToList();
 
@@ -542,78 +545,20 @@ public sealed partial class ModelInputGenerator
             return type.Name is not ("KeyAttribute" or "ConcurrencyCheckAttribute" or "TimestampAttribute");
         }
 
-        for (var current = type.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current.ToDisplayString() is ValidationAttribute)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return ValidationAttributeSource.IsValidation(attribute);
     }
 
-    // What the server can run: [Display], [UIHint] and the other DataAnnotations that describe a field are copied
-    // to the form but validate nothing.
-    private static bool IsValidation(AttributeData attribute)
-    {
-        for (var current = attribute.AttributeClass?.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current.ToDisplayString() is ValidationAttribute)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // What a write asks of the model. An awaited attribute is never asked synchronously — .NET's own Validator awaits
+    // it — so the form awaits it, and on the server the save asks it of the aggregate (DomainRulesGenerator).
+    private static bool IsSyncValidation(AttributeData attribute) =>
+        ValidationAttributeSource.IsValidation(attribute) && !ValidationAttributeSource.IsAsync(attribute);
 
     private static string RenderAttribute(AttributeData attribute)
     {
-        var arguments = attribute.ConstructorArguments.Select(Argument)
-            .Concat(attribute.NamedArguments.Select(static n => n.Key + " = " + Argument(n.Value)));
+        var arguments = attribute.ConstructorArguments.Select(ValidationAttributeSource.Argument)
+            .Concat(attribute.NamedArguments.Select(static n => n.Key + " = " + ValidationAttributeSource.Argument(n.Value)));
 
         return "[" + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
                "(" + string.Join(", ", arguments) + ")]";
     }
-
-    // What a failed check calls the field, as C# the server runs: [Display]'s name — through its resources, at run time,
-    // where it names a ResourceType — else the member's own.
-    private static string NamedOf(ISymbol property)
-    {
-        var attributes = property.GetAttributes();
-        var fallback = Quoted(property.Name);
-
-        if (attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayAttribute) is not { } display)
-        {
-            return fallback;
-        }
-
-        if (display.NamedArguments.Any(static n => n.Key is "ResourceType" && !n.Value.IsNull))
-        {
-            return "(" + RenderConstruction(display) + ").GetName() ?? " + fallback;
-        }
-
-        return display.NamedArguments.FirstOrDefault(static n => n.Key is "Name").Value is { Value: string { Length: > 0 } } name
-            ? name.ToCSharpString()
-            : fallback;
-    }
-
-    // The same attribute as an object the server validates with — named arguments become an initializer.
-    private static string RenderConstruction(AttributeData attribute)
-    {
-        var named = attribute.NamedArguments.Select(static n => n.Key + " = " + Argument(n.Value)).ToList();
-        return "new " + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
-               "(" + string.Join(", ", attribute.ConstructorArguments.Select(Argument)) + ")" +
-               (named.Count == 0 ? "" : " { " + string.Join(", ", named) + " }");
-    }
-
-    // TypedConstant.ToCSharpString renders an array as a bare `{ a, b }`, which is not an expression and so not
-    // an attribute argument: [AllowedValues("draft", "live")] was copied as a syntax error. An array is
-    // written as the array creation a params argument is shorthand for.
-    private static string Argument(TypedConstant constant) =>
-        constant.Kind == TypedConstantKind.Array && !constant.IsNull
-            ? "new " + constant.Type!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + " { " +
-              string.Join(", ", constant.Values.Select(Argument)) + " }"
-            : constant.ToCSharpString();
 }
