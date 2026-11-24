@@ -17,6 +17,13 @@ public static class GeneratedValueRules
     /// <returns>The attempt, to dispose once the value is made.</returns>
     public static ValueAttempt Attempt() => ValueAttempt.Begin();
 
+    /// <summary>
+    ///     Opens a loading scope: a value made while it is open is kept as given, its rules not asked — what a generated
+    ///     wire codec rebuilds a value it read inside, as a row is loaded.
+    /// </summary>
+    /// <returns>The scope, to dispose on this thread once the value is made.</returns>
+    public static ValueLoading Loading() => ValueLoading.Begin();
+
     /// <summary>The exception <c>X.Create(…, field)</c> throws for a value its rules refused.</summary>
     /// <param name="problems">What the rules said.</param>
     /// <param name="field">The field the value came from, as a form names it, put in front of each problem's own; or null.</param>

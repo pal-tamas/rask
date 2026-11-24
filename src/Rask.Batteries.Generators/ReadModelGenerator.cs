@@ -143,7 +143,11 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         ctx.Node is ClassDeclarationSyntax declaration &&
         ctx.SemanticModel.GetDeclaredSymbol(declaration, token) is INamedTypeSymbol symbol &&
         ReadModelShape.IsCandidate(symbol)
-            ? ReadModelShape.Describe(symbol, ConfiguredRelationships.Of(symbol, ctx.SemanticModel.Compilation, token), token)
+            ? ReadModelShape.Describe(
+                symbol,
+                ConfiguredRelationships.Of(symbol, ctx.SemanticModel.Compilation, token),
+                ConfiguredColumns.Of(symbol, ctx.SemanticModel.Compilation, token),
+                token)
             : null;
 
     private static void Emit(SourceProductionContext context, ImmutableArray<ReadShape> candidates)

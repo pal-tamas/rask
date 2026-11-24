@@ -1115,9 +1115,11 @@ public sealed record Search(TextFilter Filter) : IQuery<Hit[]>;
 `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan`, `Uri`, enums (encoded as their number, so
 renaming a member does not break the wire), `byte[]` (base64), `Nullable<T>` of any of those, arrays
 and `List`/`IReadOnlyList`/`IEnumerable`/`ICollection`/`IList` of them, `Dictionary` keyed by `string`,
-and records or classes composed of the same. A composite needs either a public constructor whose
+and records, record structs or classes composed of the same. A composite needs either a public constructor whose
 parameters all match properties — which every positional record has — or a public parameterless
-constructor with settable properties.
+constructor with settable properties. A one-value [value object](data.md#value-objects)
+(`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a record struct of one value
+(`record struct VehicleId(int Value)`) travel as that value — see [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
 **Not supported, and why.** An interface or abstract type names no single thing to construct.
 `object` has no shape at all. An open generic has no single wire shape. A type that refers back to

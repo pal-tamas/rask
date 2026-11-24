@@ -1,5 +1,5 @@
-using System.Text;
 using System.Text.Json;
+using static Rask.Cqrs.Codecs.Tests.CodecWire;
 
 namespace Rask.Cqrs.Codecs.Tests;
 
@@ -230,13 +230,6 @@ public sealed class GeneratedCodecTests
         Counts: new Dictionary<string, int>(),
         Filter: new Filter());
 
-    private static RemoteContract Contract<TMessage>()
-    {
-        Assert.True(RemoteContractRegistry.TryGet(typeof(TMessage), out var contract),
-            $"No contract was generated for {typeof(TMessage)}.");
-        return contract!;
-    }
-
     /// <summary>An IRaskFile over bytes already in memory — what a picked file looks like to a message.</summary>
     private sealed class FakeRaskFile(string name, string contentType, byte[] bytes) : IRaskFile
     {
@@ -254,32 +247,5 @@ public sealed class GeneratedCodecTests
             bytes.Length > maxAllowedSize
                 ? throw new IOException($"'{name}' is {bytes.Length} bytes, over the {maxAllowedSize} ceiling.")
                 : new MemoryStream(bytes, writable: false);
-    }
-
-    private static string Write<TMessage>(TMessage message, List<RemoteFile>? files = null)
-        where TMessage : notnull
-    {
-        using var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            Contract<TMessage>().WriteMessage(writer, message, files ?? []);
-        }
-
-        return Encoding.UTF8.GetString(buffer.ToArray());
-    }
-
-    private static object Read(RemoteContract contract, string json, IReadOnlyList<RemoteFile> files)
-    {
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
-        reader.Read();
-        return contract.ReadMessage(ref reader, files);
-    }
-
-    private static TMessage RoundTrip<TMessage>(TMessage message)
-        where TMessage : notnull
-    {
-        var files = new List<RemoteFile>();
-        var json = Write(message, files);
-        return (TMessage)Read(Contract<TMessage>(), json, files);
     }
 }
