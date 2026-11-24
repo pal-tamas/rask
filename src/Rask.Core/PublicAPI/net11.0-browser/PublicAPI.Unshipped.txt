@@ -20118,3 +20118,11 @@ const Rask.Core.Forms.FieldHints.Switch = "Switch" -> string!
 Rask.Core.Globalization.RaskString.ValidationAboveAndAtMost = 289 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAtLeastAndBelow = 290 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAboveAndBelow = 291 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.FieldShape.Format.get -> string?
+Rask.Core.Forms.FieldShape.Format.init -> void
+Rask.Core.Forms.FieldShape.NullText.get -> string?
+Rask.Core.Forms.FieldShape.NullText.init -> void
+Rask.Core.Forms.FieldShape.Listed.get -> bool
+Rask.Core.Forms.FieldShape.Listed.init -> void
+Rask.Core.Globalization.RaskString.TableCellYes = 292 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TableCellNo = 293 -> Rask.Core.Globalization.RaskString

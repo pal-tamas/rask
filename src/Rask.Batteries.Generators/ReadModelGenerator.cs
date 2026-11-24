@@ -487,8 +487,46 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         s.AppendLine("}");
         s.AppendLine();
         AppendReadAccess(s, shape);
+        AppendFieldShapes(s, shape);
 
         return s.ToString();
+    }
+
+    // The field shape of each member a list shows by more than its type — a value object's kind and scale, what its
+    // property's attributes say — registered for the face, so `Ui.TableColumn.For<OrderRead>(o => o.Total)` reads it
+    // without reflection.
+    private static void AppendFieldShapes(StringBuilder s, ReadShape shape)
+    {
+        var shaped = shape.Members.Where(static m => m.Shape is not null).ToList();
+        if (shaped.Count == 0)
+        {
+            return;
+        }
+
+        s.AppendLine();
+        s.Append("file static class __").Append(shape.Name).AppendLine("Shapes");
+        s.AppendLine("{");
+        s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
+        s.AppendLine("    internal static void Register() =>");
+        s.Append("        global::Rask.Core.Forms.RaskValidation.RegisterFieldShapes(typeof(").Append(shape.FullyQualifiedName)
+            .AppendLine("), ShapeOf);");
+        s.AppendLine();
+        s.AppendLine("    private static global::Rask.Core.Forms.FieldShape? ShapeOf(string property) =>");
+        s.AppendLine("        property switch");
+        s.AppendLine("        {");
+        foreach (var member in shaped)
+        {
+            s.Append("            ").Append(Literal(member.Name)).Append(" => ").Append(member.Shape).AppendLine(",");
+        }
+
+        s.AppendLine("            _ => null,");
+        s.AppendLine("        };");
+        if (FieldShapeHints.UseWithin(shaped.Select(static m => m.Shape!)))
+        {
+            FieldShapeHints.AppendWithin(s);
+        }
+
+        s.AppendLine("}");
     }
 
     private static void AppendFaceMembers(
@@ -500,6 +538,11 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         foreach (var member in shape.Members)
         {
             s.Append("    /// <summary>The <c>").Append(member.ColumnName).AppendLine("</c> column.</summary>");
+            if (member.Shown is { } shown)
+            {
+                s.Append("    ").AppendLine(shown);
+            }
+
             s.Append("    public ").Append(member.TypeName).Append(member.Nullable ? "? " : " ")
                 .Append(member.Name).Append(" { get; init; }")
                 .AppendLine(member is { Nullable: false, IsReferenceType: true } ? " = null!;" : string.Empty);

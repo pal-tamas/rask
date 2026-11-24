@@ -64,6 +64,16 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A table's heading and cell can be bound to a row's member.** Before: every `Ui.TableColumn` was given its words and
+  every `Ui.TableCell` its value written out by hand (`Ui.TableCell.End[Format.Number(tank.Size)]`), and
+  `[DisplayFormat(DataFormatString)]`, `NullDisplayText` and `[ScaffoldColumn]` were read by nothing. After:
+  `Ui.TableColumn.For<TRow>(r => r.X)` says the member's `[Display(Name)]`, and `Ui.TableCell.For(() => row.X)` writes
+  the value in the reader's culture — its `DataFormatString`, else by kind (a number with its value object's scale, a
+  day, a moment), an enum's label, a `bool` as Yes/No (new keys `TableCellYes`/`TableCellNo`, Hungarian *Igen*/*Nem*),
+  `NullDisplayText` or "–" for none. Numbers keep to the end in both, and a `[ScaffoldColumn(false)]` member draws
+  neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
+  property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
+  `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
   hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods

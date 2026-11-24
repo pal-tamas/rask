@@ -9378,3 +9378,5 @@ Rask.UiBoundFieldChoices
 static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Collections.Generic.IEnumerable<Rask.Ui.Choice<T>>! choices) -> Rask.UiBoundField<T?>!
 static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiBoundField<T?>!
 static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiBoundField<T?>!
+Rask.UiTableCell.For<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member) -> Rask.UiTableCell!
+Rask.UiTableColumn.For<TRow>(System.Linq.Expressions.Expression<System.Func<TRow, object?>!>! member) -> Rask.UiTableColumn!

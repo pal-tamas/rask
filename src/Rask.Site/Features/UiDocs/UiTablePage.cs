@@ -53,6 +53,12 @@ public sealed partial class UiTablePage : Component
                        + "measured on Flux's buttons: a pencil and a bin fit, at the column's end, and the heading says "
                        + "\"Actions\" to a screen reader. More than two, or a worded one, take Buttons; all of a row's "
                        + "actions behind one ⋯ take RowMenu. Not Flux's: the kit's own."),
+            UiDocsExample.Key("ui-table-for").Heading("Columns from the row's members").File("TableForMembersExample.cs").Demo(TableForMembersExample).Testid("ui-table-for")
+                .Blurb("Ui.TableColumn.For<Tank>(t => t.Stock) names the heading by the member's [Display(Name)], and "
+                       + "Ui.TableCell.For(() => tank.Stock) writes the value for the reader: its [DisplayFormat], else what it "
+                       + "holds — a number in the reader's grouping, a day, an enum's label, Yes or No — and \"–\" or its "
+                       + "NullDisplayText for none. Numbers keep to the end, and a [ScaffoldColumn(false)] member draws no "
+                       + "column at all. Not Flux's: the kit's own."),
             UiDocsExample.Key("ui-table-list").Heading("A list page").File("TableListPageExample.cs").Demo(TableListPageExample).Testid("ui-table-list")
                 .Blurb("SortIn and PageIn keep the sort and the page in the address: sort, page, then copy the URL. Delete "
                        + "the last row of the last page and the list steps back a page. Empty says \"nothing yet\" of an "
