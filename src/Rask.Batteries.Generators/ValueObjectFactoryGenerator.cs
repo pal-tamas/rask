@@ -96,6 +96,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             ReadShape(ctx.SemanticModel, node, token),
             ctx.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Core.Forms.FieldShape") is not null,
             DeclaresToString(type),
+            IsOrdered(type, node.ParameterList, ctx.SemanticModel, token),
             problem,
             SymbolLocation.From(type));
     }
@@ -261,6 +262,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ShapeFacets Shape,
         bool HasFieldSeam,
         bool OwnToString,
+        bool Ordered,
         string? Problem,
         SymbolLocation? Location)
     {

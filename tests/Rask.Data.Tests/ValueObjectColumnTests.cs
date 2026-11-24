@@ -248,7 +248,7 @@ public sealed class ValueObjectColumnTests : IDisposable
     }
 
     [Fact]
-    public async Task On_the_write_model_the_whole_value_compares_in_sql_and_reaching_inside_it_does_not_translate()
+    public async Task On_the_write_model_the_whole_value_and_the_value_inside_it_both_compare_in_sql()
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Contact.Named("Ada"));
@@ -258,11 +258,11 @@ public sealed class ValueObjectColumnTests : IDisposable
         {
             var whole = await database.Context.Set<Contact>().AsNoTracking()
                 .Where(c => c.Name == wanted).ToListAsync(TestContext.Current.CancellationToken);
-            var inside = await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.Set<Contact>()
-                .Where(c => c.Name.Value.Contains("d")).ToListAsync(TestContext.Current.CancellationToken));
+            var inside = await database.Context.Set<Contact>().AsNoTracking()
+                .Where(c => c.Name.Value.Contains("d")).ToListAsync(TestContext.Current.CancellationToken);
 
             Assert.Single(whole);
-            Assert.Contains("could not be translated", inside.Message, StringComparison.Ordinal);
+            Assert.Single(inside);
         }
     }
 

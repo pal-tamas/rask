@@ -184,8 +184,6 @@ Same shape, and the list page in the next step links to both — so write them n
 `Features/Products/EditProductPage.cs` loads the row as a `ProductModel` and saves it back:
 
 ```csharp
-using Microsoft.EntityFrameworkCore;
-
 namespace Shop.Features.Products;
 
 [Route("/products/{id:guid}/edit")]

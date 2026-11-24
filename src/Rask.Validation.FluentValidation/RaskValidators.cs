@@ -240,14 +240,16 @@ public static class RaskValidators
     // CA2255 warns off module initializers in libraries because a surprise on load is hard to trace.
     // This is the case the rule names as the exception: it hands a delegate to a host that cannot
     // reference back, and the alternative is asking every app to write a line of startup whose only
-    // purpose is to say "yes, really". The one other thing it touches is FluentValidation's display-name
-    // resolver, the hook FluentValidation documents for exactly this, and only behind the app's own.
+    // purpose is to say "yes, really". The other things it touches are FluentValidation's display-name
+    // resolver and its language manager, the hooks FluentValidation documents for exactly this, and an
+    // app that sets either itself replaces Rask's.
 #pragma warning disable CA2255
     [ModuleInitializer]
 #pragma warning restore CA2255
     internal static void Install()
     {
         FluentDisplayNames.Install();
+        CatalogLanguageManager.Install();
         StatedRules.Use(FluentStatedRules.Instance);
         RaskValidation.RegisterSource(
             static modelType => Find(modelType) is not null,

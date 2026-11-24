@@ -30,6 +30,41 @@ public sealed partial record RigPlate(string Value) : Text(Value, Pattern: @"^[A
 /// <summary>A decimal with a least and a scale.</summary>
 public sealed partial record RigLitres(decimal Value) : Number(Value, Min: 1, Scale: 2, Precision: 9);
 
+/// <summary>A computed price, rounded to its scale instead of refused for its extra digits.</summary>
+public sealed partial record RigUnitPrice(decimal Value) : Number(Value, Min: 0, Scale: 2, Precision: 6, Round: true);
+
+/// <summary>A number asked to round with no scale to round to: a programming error.</summary>
+public sealed partial record RigUnscaled(decimal Value) : Number(Value, Round: true);
+
+/// <summary>The words every rule of each base is told in, when it states its own.</summary>
+public static class RigWords
+{
+    public const string Serial = "A serial is three to five capital letters.";
+    public const string Count = "Count at least one.";
+    public const string Share = "A share is a whole percent, at most 100.";
+    public const string Due = "The due day cannot be in the future.";
+    public const string Read = "The reading cannot be in the future.";
+    public const string Odometer = "A záró km-nek nagyobbnak kell lennie a kezdőnél.";
+}
+
+/// <summary>A text with every rule, said in its own words.</summary>
+public sealed partial record RigSerial(string Value) : Text(Value, MinLength: 3, MaxLength: 5, Pattern: "^[A-Z]+$", Message: RigWords.Serial);
+
+/// <summary>A whole number said in its own words.</summary>
+public sealed partial record RigCount(long Value) : Whole(Value, Min: 1, Message: RigWords.Count);
+
+/// <summary>A number said in its own words.</summary>
+public sealed partial record RigShare(decimal Value) : Number(Value, Max: 100, Scale: 0, Message: RigWords.Share);
+
+/// <summary>A day said in its own words.</summary>
+public sealed partial record RigDue(DateOnly Value) : Day(Value, NotAfterToday: true, Message: RigWords.Due);
+
+/// <summary>A moment said in its own words.</summary>
+public sealed partial record RigMeterRead(DateTime Value) : Moment(Value, NotAfterNow: true, Message: RigWords.Read);
+
+/// <summary>A range said in its own words.</summary>
+public sealed partial record RigOdometer(int StartKm, int EndKm) : Range(StartKm, EndKm, Strict: true, Min: 0, Message: RigWords.Odometer);
+
 /// <summary>A whole number in a range.</summary>
 public sealed partial record RigAxles(long Value) : Whole(Value, Min: 2, Max: 9);
 
@@ -82,15 +117,15 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 {
     private Rig() { }
 
-    public RigDriver Driver { get; private set; } = RigDriver.Create("Nobody");
+    public RigDriver Driver { get; private set; } = null!;
 
     public RigChip? Chip { get; private set; }
 
-    public RigPlate Plate { get; private set; } = RigPlate.Create("AAA-000");
+    public RigPlate Plate { get; private set; } = null!;
 
-    public RigLitres Tank { get; private set; } = RigLitres.Create(1);
+    public RigLitres Tank { get; private set; } = null!;
 
-    public RigAxles Axles { get; private set; } = RigAxles.Create(2);
+    public RigAxles Axles { get; private set; } = null!;
 
     public RigInspected? Inspected { get; private set; }
 
@@ -151,7 +186,7 @@ public sealed class Notebook : Aggregate<int, Model>
 {
     private Notebook() { }
 
-    public RigNote Note { get; private set; } = RigNote.Create("");
+    public RigNote Note { get; private set; } = null!;
 }
 
 /// <summary>An aggregate written through its generated model, holding a range that checks itself.</summary>
@@ -159,7 +194,7 @@ public sealed class Leg : Aggregate<int, Model>
 {
     private Leg() { }
 
-    public RigKm Km { get; private set; } = RigKm.Create(0, 1);
+    public RigKm Km { get; private set; } = null!;
 }
 
 public sealed class Haul : Aggregate<int>

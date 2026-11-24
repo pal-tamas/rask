@@ -412,9 +412,14 @@ public sealed partial class ModelInputGenerator
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: AnnotatedShapeOf(property, valueObject),
+            Shape: AnnotatedShapeOf(property, HeldType(member.ValueObject, property.Type), valueObject),
             Stated: valueObject is null && member.Role == ModelMemberRole.Value ? StatedStep(property.Type) : null);
     }
+
+    // What a control is bound to: the one value a value object of one value holds — the enum of `FuelKind(Fuel Value)` —
+    // else the property's own type.
+    private static ITypeSymbol HeldType(ModelValueObject? valueObject, ITypeSymbol type) =>
+        valueObject is { SingleValue: true } single ? single.Members[0].Property.Type : type;
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
     // member (`User.Version`, declared on Aggregate<TId>, is CS1574 in an app that writes a documentation file), so it
@@ -494,7 +499,7 @@ public sealed partial class ModelInputGenerator
                 new EquatableArray<string>(m.Property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
                 ValidationAttributeSource.NameOf(m.Property),
-                AnnotatedShapeOf(m.Property, nested));
+                AnnotatedShapeOf(m.Property, HeldType(m.ValueObject, m.Property.Type), nested));
         }).ToList();
 
         var shape = new ValueObjectShape(

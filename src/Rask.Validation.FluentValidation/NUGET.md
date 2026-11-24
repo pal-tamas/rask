@@ -12,6 +12,10 @@ to add.
 - **Async rules work like sync ones.** Each validator is wrapped as an `IAsyncFieldValidator`, so a
   `MustAsync` uniqueness check runs per field; a validator with constructor dependencies is resolved from
   the scope.
+- **Built-in rules speak Rask's catalog, Hungarian included.** `NotEmpty()` says what `[Required]` says,
+  `MaximumLength(200)` what `[StringLength(200)]` says, `EmailAddress()`, `InclusiveBetween` and `Matches` what
+  their attributes say; a rule the catalog has no sentence for keeps FluentValidation's own translation, and
+  `WithMessage(…)` always wins.
 - Validating one root-model field, when its value arrives, runs only that property's rules; submit runs every rule.
 - **Rules inside the type.** `static void Rules(InlineValidator<T> rules)` on an aggregate, an entity, a form model or a
   value object is registered like a validator class. On a Rask.Data aggregate the rules — written there or in an
