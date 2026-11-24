@@ -112,6 +112,15 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **[RASK177](docs/diagnostics.md#rask177): code written for one database.** An app's tests run on SQLite in memory,
+  and Rask proves only what it translates on SQLite, SQL Server and PostgreSQL alike — so app code naming a provider's
+  or a driver's API (`IncludeProperties`, `SqlException`, `SqliteConnection`), `EF.Functions.*`, raw SQL (`FromSql*`,
+  `ExecuteSql*`, `SqlQuery*`) or SQL in the model (`HasColumnType`, `UseCollation`, `HasDefaultValueSql`,
+  `HasComputedColumnSql`, `HasFilter`, `ToSqlQuery`) is now reported, the message naming the neutral form
+  (`Contains`, `InTextOrder()`, `end - start`, the value object's `Scale`, `b.Default`/`b.Computed`,
+  `HasIndex(…).Where`, `.Covering`, `Db.Lock`, `ForUpdate()`, `IsUnique("…")`). A suggestion by default, a warning
+  under `<RaskStrict>` and an error at errors. Migrations, generated code and the call that selects the provider
+  (`UseSqlServer`/`UseNpgsql`/`UseSqlite` and its options) are not reported.
 - **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
   Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
   and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses

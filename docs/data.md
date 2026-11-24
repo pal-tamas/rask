@@ -2634,8 +2634,9 @@ It is read as the model is finalized by every `RaskDbContext`. A plain `DbContex
 
 A model that says `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` or
 `HasFilter("[TeaorId] IS NOT NULL")` is written in one database's SQL, and the SQLite the tests run on reads it
-differently or not at all. Say the same three things in C#, and Rask writes each provider's own SQL as the model is
-finalized:
+differently or not at all ([RASK177](diagnostics.md#rask177) says so under `<RaskStrict>`, as it does for every other
+API only one database understands). Say the same three things in C#, and Rask writes each provider's own SQL as the
+model is finalized:
 
 ```csharp
 static void Configure(EntityTypeBuilder<Fueling> b)

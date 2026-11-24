@@ -22,3 +22,10 @@ dotnet_diagnostic.RASK141.severity = warning
 dotnet_diagnostic.RASK142.severity = warning
 dotnet_diagnostic.RASK143.severity = warning
 dotnet_diagnostic.RASK144.severity = warning
+
+# Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,
+# ExecuteSql*, SqlQuery*), SQL in the model (HasColumnType, UseCollation, HasDefaultValueSql, HasComputedColumnSql,
+# HasFilter, ToSqlQuery). The app's tests run on SQLite in memory; Rask proves only what it translates on all three
+# databases. A suggestion everywhere else; a warning under <RaskStrict>, and an error at errors. Migrations, generated
+# code and the call that selects the provider are not reported.
+dotnet_diagnostic.RASK177.severity = warning
