@@ -28,6 +28,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **RASK133: an aggregate written on a `DbContext` around its own operations.** `db.Products.Add(p)`,
+  `db.Update(order)`, `db.Remove(supply)` (and their `Range`/`Async` forms) in a method that also calls
+  `SaveChanges(Async)` skip the aggregate's factory, its operations, their roles and the rules every save asks. The
+  message names the generated entry to call instead (`X.Register(…)`, `X.M(id, version, …)`, `X.Delete(id, version)`)
+  or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
+  reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
+  `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection

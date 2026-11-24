@@ -1187,6 +1187,10 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
 - **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
   to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
   whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
+- **Outside the aggregate, call the entry, not a context.** `db.Products.Add(Product.Place(…))` or `db.Update(product)`
+  followed by `SaveChangesAsync()` writes the aggregate past its roles and its rules
+  ([RASK133](diagnostics.md#rask133)); `await Product.Place(…)` and `await Product.Reprice(id, version, …)` are the
+  same write through the aggregate, and a check that must go with it is a `Db.Transaction` around the operation.
 
 ### Refusing an operation: `Refuse`
 
@@ -2084,7 +2088,10 @@ aggregate's property, so a list's columns are named, written and shown as the pr
 
 **One aggregate, one transaction.** An operation's entry, `Save()` and every generated write load one aggregate
 whole, change it and save it in one transaction — its children, its version check and its events with it. That is
-the boundary the aggregate was drawn for, and a change that seems to need two aggregates is decided in this order:
+the boundary the aggregate was drawn for — so app code does not write an aggregate on a `DbContext` of its own
+(`db.Products.Add(p)`, `db.Update(order)`, `db.Remove(supply)`, then `SaveChangesAsync()`), which goes around the
+factory, the operations, their roles and the save's rules; [RASK133](diagnostics.md#rask133) points at it, outside seeds,
+migrations and tests. A change that seems to need two aggregates is decided in this order:
 
 1. **Draw the boundary again.** Two things that must always change together are usually one aggregate: a part that
    never stands on its own is a [child](#children), not an aggregate of its own.
