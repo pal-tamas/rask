@@ -431,7 +431,8 @@ internal static class WireShape
                 property.Name,
                 WireName(property),
                 member,
-                IsNullable(property.Type, compilation)));
+                IsNullable(property.Type, compilation),
+                IsRequired(property.Type, compilation)));
         }
 
         return result;
@@ -573,7 +574,8 @@ internal static class WireShape
                 property.Name,
                 WireName(property),
                 wire,
-                IsNullable(property.Type, compilation)));
+                IsNullable(property.Type, compilation),
+                IsRequired(property.Type, compilation)));
         }
 
         return result;
@@ -708,6 +710,13 @@ internal static class WireShape
     public static bool IsNullable(ITypeSymbol type, Compilation? compilation) =>
         type.NullableAnnotation == NullableAnnotation.Annotated ||
         (compilation is not null && GeneratedModelShape.NullableUnresolvedModel(type, compilation) is not null);
+
+    /// <summary>
+    ///     Whether a property of <paramref name="type" /> must be given: a reference declared without <c>?</c> in a
+    ///     nullable context (<see cref="WireMember.Required" />).
+    /// </summary>
+    public static bool IsRequired(ITypeSymbol type, Compilation? compilation) =>
+        type.IsReferenceType && type.NullableAnnotation == NullableAnnotation.NotAnnotated && !IsNullable(type, compilation);
 
     // The file type a MESSAGE declares is Rask.Core's IRaskFile - the same one a file input hands a
     // component, on every host. Matched by name because a generator reads symbols: recognising it here

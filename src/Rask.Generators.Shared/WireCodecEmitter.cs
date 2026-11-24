@@ -26,6 +26,7 @@ namespace Rask.Generators.Shared;
 internal sealed class WireCodecEmitter
 {
     private readonly bool _checksValues;
+    private readonly string _required;
     private readonly StringBuilder _methods = new();
     private readonly Dictionary<string, string> _emitted = new(StringComparer.Ordinal);
     private int _next;
@@ -38,7 +39,18 @@ internal sealed class WireCodecEmitter
     ///     inside a loading scope, as a row is loaded. The CQRS codecs check; the API client, whose values are no
     ///     value objects, does not.
     /// </param>
-    public WireCodecEmitter(bool checksValues = false) => _checksValues = checksValues;
+    /// <param name="required">
+    ///     The C# expression a checking reader words a missing required member with — the sentence a form's required
+    ///     field says, from the app's catalog where the compilation has one.
+    /// </param>
+    public WireCodecEmitter(bool checksValues = false, string required = EnglishRequired)
+    {
+        _checksValues = checksValues;
+        _required = required;
+    }
+
+    /// <summary>The required sentence as a literal, for a compilation with no catalog to read it from.</summary>
+    public const string EnglishRequired = "\"This field is required.\"";
 
     /// <summary>The generated methods, ready to drop into the codec class.</summary>
     public string Methods => _methods.ToString();
@@ -360,6 +372,10 @@ internal sealed class WireCodecEmitter
         foreach (var (member, _) in members)
         {
             read.AppendLine($"        {member.Type.Fqn} v_{member.ClrName} = default;");
+            if (Checks(member))
+            {
+                read.AppendLine($"        var r_{member.ClrName} = false;");
+            }
         }
 
         read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndObject)");
@@ -370,9 +386,7 @@ internal sealed class WireCodecEmitter
         read.AppendLine("            {");
         foreach (var (member, id) in members)
         {
-            read.AppendLine($"                case {Literal(member.WireName)}:");
-            Into(read, "                    ", $"Enter({Literal(member.ClrName)})", $"v_{member.ClrName} = {Read(id, Literal(member.WireName))};");
-            read.AppendLine("                    break;");
+            EmitMemberCase(member, id, read);
         }
 
         // An unknown property is skipped rather than rejected: that is what lets a sender add a field
@@ -385,14 +399,55 @@ internal sealed class WireCodecEmitter
         read.AppendLine();
 
         // A part refused leaves its whole unbuilt: the message is answered with the refusals, never handed on, and no
-        // constructor meets the null a refused part was read as.
+        // constructor meets the null a refused part was read as. A required member left out or sent null is one.
         if (_checksValues)
         {
+            EmitRequired(members, read);
             read.AppendLine("        if (refusals is not null && refusals.Count > __refusedBefore) return default;");
         }
 
         EmitConstruction(type, members, read);
     }
+
+    // Each member declared without `?` that is still null once the object is read — absent, or sent as null — is
+    // refused as a form's empty required field is, under its own name. Only where a collector checks the read.
+    private void EmitRequired(List<(WireMember Member, string Id)> members, StringBuilder read)
+    {
+        var required = members.Where(static m => m.Member.Required).ToList();
+        if (required.Count == 0)
+        {
+            return;
+        }
+
+        read.AppendLine("        if (refusals is not null)");
+        read.AppendLine("        {");
+        foreach (var (member, _) in required)
+        {
+            read.AppendLine($"            if (v_{member.ClrName} is null && !r_{member.ClrName}) refusals.Require({Literal(member.ClrName)}, {_required});");
+        }
+
+        read.AppendLine("        }");
+        read.AppendLine();
+    }
+
+    private void EmitMemberCase(WireMember member, string id, StringBuilder read)
+    {
+        read.AppendLine($"                case {Literal(member.WireName)}:");
+        var call = $"v_{member.ClrName} = {Read(id, Literal(member.WireName))};";
+        if (Checks(member))
+        {
+            // Refused inside is said there: a required member read as null because its own parts were refused is not
+            // also "required".
+            call = $"var __n_{member.ClrName} = refusals?.Count ?? 0; {call} "
+                   + $"r_{member.ClrName} = refusals is not null && refusals.Count > __n_{member.ClrName};";
+        }
+
+        Into(read, "                    ", $"Enter({Literal(member.ClrName)})", call);
+        read.AppendLine("                    break;");
+    }
+
+    // A required member a checking reader tracks: whether its own read was refused.
+    private bool Checks(WireMember member) => _checksValues && member.Required;
 
     private void EmitConstruction(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
     {

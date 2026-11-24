@@ -74,6 +74,35 @@ public sealed class ValueCodecTests
     }
 
     [Fact]
+    public void A_message_leaving_out_a_member_declared_without_a_question_mark_is_refused_as_required()
+    {
+        const string json = """{"vehicle":1,"trip":"6f9619ff-8b86-d011-b42d-00c04fc964ff","fuel":2,"km":{"start":1,"end":2},"reading":{"km":0,"metres":0}}""";
+
+        var refused = Assert.Throws<RaskValidationException>(() => Read(Contract<AssignDriver>(), json, []));
+
+        Assert.Equal(["Driver", "Fleet"], refused.Errors.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(Rask.Rules.Required, refused.Errors["Driver"][0]);
+    }
+
+    [Fact]
+    public void A_message_sending_null_for_a_required_member_is_refused_while_an_optional_one_stays_null()
+    {
+        const string json = """{"vehicle":1,"trip":"6f9619ff-8b86-d011-b42d-00c04fc964ff","driver":null,"coDriver":null,"fuel":2,"km":{"start":1,"end":2},"reading":{"km":0,"metres":0},"fleet":[]}""";
+
+        var refused = Assert.Throws<RaskValidationException>(() => Read(Contract<AssignDriver>(), json, []));
+
+        Assert.Equal(["Driver"], refused.Errors.Keys);
+    }
+
+    [Fact]
+    public void A_result_leaving_out_a_required_member_is_read_as_the_server_sent_it()
+    {
+        var read = ReadResult<GetCrew>("""{"seats":[]}""");
+
+        Assert.Null(Assert.IsType<SeatCrew>(read).Reserves);
+    }
+
+    [Fact]
     public void A_result_holding_a_value_its_rules_would_refuse_is_read_as_the_server_sent_it()
     {
         var read = ReadResult<GetDriver>("\"far too long a name\"");
