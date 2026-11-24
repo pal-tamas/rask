@@ -8,7 +8,7 @@ namespace Rask.Data;
 ///     Hands every entity a query materializes, and every entity a save is about to write, collections of children
 ///     EF Core can fill — see <see cref="WritableChildren" /> — and marks each aggregate among them as having a row
 ///     (<see cref="StoredAggregates" />), then asks the domain's rules of the save (<see cref="DomainValidation" />). While one is materialized, the value objects built for it are loaded
-///     without their rules (<see cref="Loading" />).
+///     without their rules (<see cref="RowLoading" />).
 /// </summary>
 /// <remarks>
 ///     Registered first by <see cref="RaskDataServiceCollectionExtensions.AddRaskData(Microsoft.Extensions.DependencyInjection.IServiceCollection)" />,
@@ -26,18 +26,18 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
     /// <remarks>
     ///     The value objects EF Core builds for the entity — its complex values, between this call and
     ///     <see cref="InitializedInstance" /> — are loaded, not made: a row stored before a rule was tightened still
-    ///     loads (<see cref="Loading" />).
+    ///     loads (<see cref="RowLoading" />).
     /// </remarks>
     public InterceptionResult<object> CreatingInstance(MaterializationInterceptionData materializationData, InterceptionResult<object> result)
     {
-        Loading.Enter();
+        RowLoading.Enter();
         return result;
     }
 
     /// <inheritdoc />
     public object InitializedInstance(MaterializationInterceptionData materializationData, object entity)
     {
-        Loading.Leave();
+        RowLoading.Leave();
         WritableChildren.Ensure(materializationData.EntityType, entity);
         StoredAggregates.Mark(entity);
         return entity;

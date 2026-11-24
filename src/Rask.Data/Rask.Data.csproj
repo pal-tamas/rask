@@ -51,14 +51,18 @@
     <Compile Include="..\Rask.Generators.Shared\FormListName.cs" Link="Shared\FormListName.cs"/>
   </ItemGroup>
 
+  <!-- The value-object bases (Rask.Values: Value, Text, Number, Whole, Day, Range) live in the `Rask` package, so a
+       browser app declares its values without an EF Core dependency; this package maps them to columns. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
   <!--
     THE BROWSER FACE: AddRaskData in a WebAssembly app also wires what a Rask server host would — a save
-    refreshes the page's Rask.Query queries about what it wrote (Browser/). Rask.Core is PrivateAssets="all"
-    as in Rask.Query: it is not a package, and a browser app already carries it inside Rask.Wasm.
+    refreshes the page's Rask.Query queries about what it wrote (Browser/).
   -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
@@ -100,7 +104,6 @@
     <InternalsVisibleTo Include="Rask.Storage.Tests"/>
     <!-- Test.Make<T>() reads the rules a value object hands its base (DeclaredRules) to build a sample they accept:
          a test helper, so no public name an app would ever type. -->
-    <InternalsVisibleTo Include="Rask.Testing"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

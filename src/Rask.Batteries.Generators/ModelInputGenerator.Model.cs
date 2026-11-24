@@ -412,7 +412,7 @@ public sealed partial class ModelInputGenerator
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: ShapeOf(HeldType(member.ValueObject, property.Type), valueObject));
+            Shape: AnnotatedShapeOf(property, HeldType(member.ValueObject, property.Type), valueObject));
     }
 
     // What a control is bound to: the one value a value object of one value holds — the enum of `FuelKind(Fuel Value)` —
@@ -498,7 +498,7 @@ public sealed partial class ModelInputGenerator
                 new EquatableArray<string>(m.Property.GetAttributes().Where(IsSyncValidation).Select(ValidationAttributeSource.Construction)),
                 IsRequiredByType(m.Nullable, nested, m.Property),
                 ValidationAttributeSource.NameOf(m.Property),
-                ShapeOf(HeldType(m.ValueObject, m.Property.Type), nested));
+                AnnotatedShapeOf(m.Property, HeldType(m.ValueObject, m.Property.Type), nested));
         }).ToList();
 
         var shape = new ValueObjectShape(
@@ -516,7 +516,8 @@ public sealed partial class ModelInputGenerator
             DeclaresRules(valueObject),
             new EquatableArray<StaleRule>(StaleRulesOf(valueObject)),
             Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null,
-            ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type));
+            ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type),
+            AllowsEmpty: AggregateShape.AllowsEmptyText(valueObject.Type));
 
         converted[valueObject] = shape;
         return shape;

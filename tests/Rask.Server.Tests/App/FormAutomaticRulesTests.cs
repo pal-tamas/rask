@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Data;
+using Rask.Values;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.App;

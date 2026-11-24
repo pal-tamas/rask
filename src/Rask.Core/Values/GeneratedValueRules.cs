@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Rask.Cqrs;
 using Rask.Wire;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     What the generated half of a value object declared from <see cref="Value" /> or one of its bases is built

@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>What a <see cref="Day" /> was handed.</summary>
 /// <param name="NotBefore">The earliest day it may be, or null.</param>

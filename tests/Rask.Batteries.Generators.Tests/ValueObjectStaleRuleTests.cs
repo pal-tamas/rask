@@ -4,7 +4,7 @@ namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// RASK132: a static <c>Validate</c> on a one-value value object an aggregate holds that is not declared from a
-/// Rask.Data base record — the earlier way to state a rule, which no form and no generated write asks any more.
+/// Rask base record — the earlier way to state a rule, which no form and no generated write asks any more.
 /// </summary>
 public class ValueObjectStaleRuleTests
 {
@@ -21,6 +21,7 @@ public class ValueObjectStaleRuleTests
         using System.ComponentModel.DataAnnotations;
         using System.Threading.Tasks;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
 
         """;
@@ -38,6 +39,7 @@ public class ValueObjectStaleRuleTests
     [InlineData("string", "Text")]
     [InlineData("decimal", "Number")]
     [InlineData("long", "Whole")]
+    [InlineData("int", "Whole")]
     [InlineData("DateOnly", "Day")]
     public void A_Validate_beside_the_value_names_the_base_record_that_takes_the_value(string held, string declaredFrom)
     {
@@ -53,14 +55,14 @@ public class ValueObjectStaleRuleTests
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal(
             $"'Sku.Validate({held})' on value object 'Sku' is never asked: no form and no generated write runs a value object's "
-            + "Validate, only the rules of one declared from a Rask.Data base record — declare it "
+            + "Validate, only the rules of one declared from a Rask base record — declare it "
             + $"'public sealed partial record Sku({held} Value) : {declaredFrom}(Value, …);' with its rules as the base's "
             + "arguments, or ': Value' with them in 'protected override IEnumerable<Problem> Rules()', and make it with 'Sku.Create(…)'",
             diagnostic.GetMessage());
     }
 
     [Theory]
-    [InlineData("int")]
+    [InlineData("short")]
     [InlineData("Guid")]
     public void A_value_no_base_record_takes_is_told_to_derive_from_Value_with_its_own_rules(string held)
     {

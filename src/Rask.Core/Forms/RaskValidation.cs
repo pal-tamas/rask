@@ -350,7 +350,10 @@ public static class RaskValidation
     /// <param name="modelType">The type that declares the properties. A type derived from it is covered too.</param>
     /// <param name="shapeOf">
     ///     Given a property's name, its shape, or <see langword="null" /> for a property that has none to tell — one whose
-    ///     own type says all there is. Asked once per property and the answer kept until a type is registered again.
+    ///     own type says all there is. Asked once per property and the answer kept until a type is registered again. A
+    ///     shape given is the whole answer, the hints of the property's attributes included (a generated model writes
+    ///     them in); a property answered null is read off its DataAnnotations attributes instead, as a model that
+    ///     registered nothing is.
     /// </param>
     public static void RegisterFieldShapes(Type modelType, Func<string, FieldShape?> shapeOf)
     {
@@ -363,9 +366,10 @@ public static class RaskValidation
         }
     }
 
-    // The shape of the field a control is bound to, or null when its model registered none.
+    // The shape of the field a control is bound to: what its model registered, else what the member's DataAnnotations
+    // attributes say (a hand-written model), else null.
     internal static FieldShape? ShapeOf(ExpressionAccessor.Accessor bound) =>
-        _fieldShapes.ShapeOf(bound.Target.GetType(), bound.PropertyName);
+        _fieldShapes.ShapeOf(bound.Target.GetType(), bound.PropertyName) ?? AnnotatedShapes.Of(bound.Property);
 
     // The most characters the field a control is bound to may hold, or null: what its maxlength says.
     internal static int? MaxLengthOf(ExpressionAccessor.Accessor bound) => ShapeOf(bound)?.MaxLength;

@@ -1,23 +1,11 @@
-using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Rask;
 
-// What a bound field reads off the member it is bound to beyond its shape — the attributes that say a text is an email,
-// that the member is not to be edited — and the messages that name it.
+// The messages a bound field gives that name the member it is bound to.
 internal static class UiBoundMember
 {
-    // Per member, once: what its attributes say. Bounded by the members of the models an app binds.
-    private static readonly ConcurrentDictionary<MemberInfo, (bool ReadOnly, InputType? Type)> Read = new();
-
-    /// <summary>Whether the member is <c>[Editable(false)]</c>.</summary>
-    internal static bool IsReadOnly(LambdaExpression bound) => Member(bound) is { } member && Attributes(member).ReadOnly;
-
-    /// <summary>The input type the member's attributes ask for — email, tel, url, password — or null for plain text.</summary>
-    internal static InputType? TextType(LambdaExpression bound) => Member(bound) is { } member ? Attributes(member).Type : null;
-
     /// <summary>The field's call, as the page wrote it, for a message: <c>Ui.Field.Bind(() =&gt; model.Vehicle)</c>.</summary>
     internal static string Call(LambdaExpression bound) => "Ui.Field.Bind(() => …" + (Member(bound)?.Name is { } name ? "." + name : "") + ")";
 
@@ -50,35 +38,5 @@ internal static class UiBoundMember
         }
 
         return body is MemberExpression { Member: PropertyInfo or FieldInfo } member ? member.Member : null;
-    }
-
-    private static (bool ReadOnly, InputType? Type) Attributes(MemberInfo member) =>
-        Read.GetOrAdd(member, static m => (m.GetCustomAttribute<EditableAttribute>(inherit: true) is { AllowEdit: false }, TypeOf(m)));
-
-    private static InputType? TypeOf(MemberInfo member)
-    {
-        if (member.GetCustomAttribute<EmailAddressAttribute>(inherit: true) is not null)
-        {
-            return InputType.Email;
-        }
-
-        if (member.GetCustomAttribute<PhoneAttribute>(inherit: true) is not null)
-        {
-            return InputType.Tel;
-        }
-
-        if (member.GetCustomAttribute<UrlAttribute>(inherit: true) is not null)
-        {
-            return InputType.Url;
-        }
-
-        return member.GetCustomAttribute<DataTypeAttribute>(inherit: true)?.DataType switch
-        {
-            DataType.Password => InputType.Password,
-            DataType.EmailAddress => InputType.Email,
-            DataType.PhoneNumber => InputType.Tel,
-            DataType.Url => InputType.Url,
-            _ => null,
-        };
     }
 }

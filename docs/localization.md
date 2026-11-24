@@ -832,6 +832,9 @@ they say when you set nothing.
 | `ValidationTooFew` | Validation — `[MinLength]` on a list | `Choose at least {0}.` |
 | `ValidationCount` | Validation — `[Length]` on a list | `Choose between {0} and {1}.` |
 | `ValidationBetween` | Validation — `[Range]` | `Enter a value between {0} and {1}.` |
+| `ValidationAboveAndAtMost` | Validation — `[Range]` with `MinimumIsExclusive = true` | `Enter a value greater than {0} and at most {1}.` |
+| `ValidationAtLeastAndBelow` | Validation — `[Range]` with `MaximumIsExclusive = true` | `Enter a value at least {0} and less than {1}.` |
+| `ValidationAboveAndBelow` | Validation — `[Range]` exclusive at both ends | `Enter a value greater than {0} and less than {1}.` |
 | `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
 | `ValidationPhone` | Validation — `[Phone]` | `Enter a valid phone number.` |
 | `ValidationUrl` | Validation — `[Url]` | `Enter a valid http, https or ftp address.` |
@@ -890,6 +893,7 @@ they say when you set nothing.
 | `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |
 | `ValidationRangeNotBefore` | Validation — a range's end before its start (`Range(Start, End)`) | `It cannot be before the start, {0}.` |
 | `ValidationRangeAfter` | Validation — a strict range's end not after its start (`Range(Start, End, Strict: true)`) | `It must be after the start, {0}.` |
+| `ValidationChangedSince` | Validation — a save over an aggregate somebody else saved since it was read, about the whole form (`Find(id, version)`, `Update`, `Save()`; Rask.Data) | `Someone else changed this in the meantime. Reload it and try again.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

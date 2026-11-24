@@ -1,10 +1,7 @@
-using System.ComponentModel;
-
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>Which rule of a value object's base record a value broke: what <see cref="ValueWords" /> words.</summary>
-[EditorBrowsable(EditorBrowsableState.Never)]
-public enum ValueProblemKind
+internal enum ValueProblemKind
 {
     /// <summary>Nothing was given, or only blanks.</summary>
     Required,

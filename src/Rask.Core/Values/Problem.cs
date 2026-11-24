@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     One rule a value object breaks, and the member it is about: what <see cref="Value" />'s <c>Rules()</c> yields.

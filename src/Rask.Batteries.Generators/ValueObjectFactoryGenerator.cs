@@ -12,7 +12,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators;
 
 /// <summary>
-/// Writes the generated half of a value object declared from a Rask.Data base record —
+/// Writes the generated half of a value object declared from a Rask.Values base record —
 /// <c>public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);</c>: <c>Create</c>,
 /// <c>TryCreate</c> and <c>CreateOptional</c> over its primary constructor's parameters, and for one holding one value
 /// the <c>__Problems</c> a form and a generated write ask, plus the column facets (<c>__Facets</c>) and the field shape a
@@ -23,11 +23,6 @@ namespace Rask.Batteries.Generators;
 /// No rule is written here: every member makes the value through its constructor, which checks them, and reads the
 /// answer — inside an attempt (<c>GeneratedValueRules.Attempt</c>) for the ones that must not throw.
 /// </para>
-/// <para>
-/// The rules are worded by Rask.Data's <c>ValueWords</c>; a compilation that has Rask's strings catalog hands it the
-/// catalog in a module initializer, so they are said in the reader's language — the server build of Rask.Data cannot
-/// reach the catalog itself.
-/// </para>
 /// </remarks>
 [Generator]
 public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
@@ -35,7 +30,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
     internal static readonly DiagnosticDescriptor Rask129 = new(
         "RASK129",
         "A value object declared from a base record is not 'sealed partial'",
-        "'{0}' is declared from Rask.Data.{1}, so it must be {2} — Rask writes its other half",
+        "'{0}' is declared from Rask.Values.{1}, so it must be {2} — Rask writes its other half",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
@@ -44,8 +39,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
                      + "base for another, so it has to be sealed. A type it is nested in has to be partial too.",
         helpLinkUri: DiagnosticHelp.Link("RASK129"));
 
-    private const string Rules = "global::Rask.Data.GeneratedValueRules";
-    private const string ProblemType = "global::Rask.Data.Problem";
+    private const string Rules = "global::Rask.Values.GeneratedValueRules";
+    private const string ProblemType = "global::Rask.Values.Problem";
     private const string ProblemList = "global::System.Collections.Generic.IReadOnlyList<" + ProblemType + ">";
     private const string Messages = "global::System.Collections.Generic.IReadOnlyList<string>";
     private const string Hidden = "    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
@@ -65,19 +60,6 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(values.Collect(), static (spc, all) => Emit(spc, all));
 
-        // Worded from the catalog only where the compilation has one with every key the bases name.
-        var catalog = context.CompilationProvider.Select(static (compilation, _) =>
-            compilation.GetTypeByMetadataName("Rask.Data.ValueWords") is not null &&
-            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
-            compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationRangeAfter").Length > 0);
-
-        context.RegisterSourceOutput(catalog, static (spc, has) =>
-        {
-            if (has)
-            {
-                spc.AddSource("__RaskValueWords.g.cs", SourceText.From(RenderWords(), Encoding.UTF8));
-            }
-        });
     }
 
     private static ValueObject? Describe(GeneratorSyntaxContext ctx, CancellationToken token)
@@ -113,6 +95,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             ReadFacets(ctx.SemanticModel, node, token),
             ReadShape(ctx.SemanticModel, node, token),
             ctx.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Core.Forms.FieldShape") is not null,
+            DeclaresToString(type),
             IsOrdered(type, node.ParameterList, ctx.SemanticModel, token),
             problem,
             SymbolLocation.From(type));
@@ -150,7 +133,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
                 NullableForm(declared, nullable),
                 declared.SpecialType == SpecialType.System_String,
                 declared.IsValueType,
-                nullable));
+                nullable,
+                IsFormattable(declared)));
         }
 
         return new EquatableArray<Parameter>([.. parameters]);
@@ -260,7 +244,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
     }
 
     /// <summary>One primary-constructor parameter, as the generated members take it.</summary>
-    private sealed record Parameter(string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable);
+    private sealed record Parameter(
+        string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable, bool Formattable);
 
     /// <summary>The column facets a value object declares, as constants; null where it declares none.</summary>
     private sealed record ColumnFacets(int? MaxLength, int? Precision, int? Scale);
@@ -276,11 +261,15 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ColumnFacets Facets,
         ShapeFacets Shape,
         bool HasFieldSeam,
+        bool OwnToString,
         bool Ordered,
         string? Problem,
         SymbolLocation? Location)
     {
-        /// <summary>Holds one value — Text, Number, Whole, Day or Moment over one parameter — which forms ask directly.</summary>
-        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" or "Moment" && Parameters.Count == 1;
+        /// <summary>
+        ///     Holds one value — Text, Number, Whole, Day or Moment over one parameter, or Value over one member — which
+        ///     forms ask directly.
+        /// </summary>
+        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" or "Moment" or "Value" && Parameters.Count == 1;
     }
 }

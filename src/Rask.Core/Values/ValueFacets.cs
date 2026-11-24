@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     What a value object declared from <see cref="Text" /> or <see cref="Number" /> tells its column, read from the

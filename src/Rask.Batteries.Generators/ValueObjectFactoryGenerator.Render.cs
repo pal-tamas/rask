@@ -45,6 +45,7 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendFacets(s, value);
         AppendField(s, value);
         AppendOrder(s, value);
+        AppendToString(s, value);
         s.AppendLine("}");
 
         foreach (var _ in value.Containers)
@@ -64,7 +65,9 @@ public sealed partial class ValueObjectFactoryGenerator
     {
         var name = value.Name;
         s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" />, once its rules accept it.</summary>");
-        s.AppendLine("    /// <param name=\"field\">The field it came from, as a form names it: a refusal is shown under it, a member's under <c>field.Member</c>.</param>");
+        AppendParameters(s, value);
+        AppendFieldParameter(s);
+        s.AppendLine("    /// <returns>The value, its rules met.</returns>");
         s.AppendLine("    /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">A rule refuses it.</exception>");
         s.Append("    public static ").Append(name).Append(" Create(").Append(Declared(value)).AppendLine(", string? field = null) =>");
         s.Append("        TryCreate(").Append(Names(value)).Append(", out var __made, out var __problems) ? __made : throw ")
@@ -76,6 +79,10 @@ public sealed partial class ValueObjectFactoryGenerator
     {
         var name = value.Name;
         s.Append("    /// <summary>A <see cref=\"").Append(name).AppendLine("\" />, or what its rules say against it — never an exception for a refusal.</summary>");
+        AppendParameters(s, value);
+        s.AppendLine("    /// <param name=\"result\">The value when its rules accept it; otherwise null.</param>");
+        s.AppendLine("    /// <param name=\"problems\">What its rules say against it; empty when they accept it.</param>");
+        s.AppendLine("    /// <returns>Whether its rules accept it.</returns>");
         s.Append("    public static bool TryCreate(").Append(Declared(value))
             .Append(", [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ").Append(name).Append("? result, out ")
             .Append(ProblemList).AppendLine(" problems)");
@@ -99,6 +106,9 @@ public sealed partial class ValueObjectFactoryGenerator
 
         s.Append("    /// <summary>Nothing for a value left ").Append(value.Parameters.Any(static p => p.IsText) ? "blank" : "empty")
             .AppendLine("; otherwise <see cref=\"Create\" />.</summary>");
+        AppendParameters(s, value);
+        AppendFieldParameter(s);
+        s.AppendLine("    /// <returns>The value, or null when nothing was given.</returns>");
         s.AppendLine("    /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">Only some of it is given, or a rule refuses it.</exception>");
         s.Append("    public static ").Append(name).Append("? CreateOptional(").Append(optional).AppendLine(", string? field = null)");
         s.AppendLine("    {");
@@ -132,6 +142,20 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine("    }");
     }
 
+    // Every parameter a generated member takes is documented, or an app building its documentation file with warnings as
+    // errors fails on CS1573 in a file it never wrote.
+    private static void AppendParameters(StringBuilder s, ValueObject value)
+    {
+        foreach (var name in value.Parameters.Select(static p => p.Name))
+        {
+            s.Append("    /// <param name=\"").Append(name).Append("\">Its <c>").Append(name)
+                .AppendLine("</c>, as its constructor takes it.</param>");
+        }
+    }
+
+    private static void AppendFieldParameter(StringBuilder s) =>
+        s.AppendLine("    /// <param name=\"field\">The field it came from, as a form names it: a refusal is shown under it, a member's under <c>field.Member</c>.</param>");
+
     private static string Empty(Parameter parameter) =>
         parameter.IsText ? "string.IsNullOrWhiteSpace(" + parameter.Name + ")" : parameter.Name + " is null";
 
@@ -151,6 +175,8 @@ public sealed partial class ValueObjectFactoryGenerator
         var held = value.Parameters[0];
         s.AppendLine();
         s.AppendLine("    /// <summary>What the rules say against <paramref name=\"value\" />: what a form and a generated write ask.</summary>");
+        s.AppendLine("    /// <param name=\"value\">The value as a form holds it; null when it is empty.</param>");
+        s.AppendLine("    /// <returns>The messages its rules give; empty when they accept it.</returns>");
         s.AppendLine(Hidden);
         s.Append("    public static ").Append(Messages).Append(" __Problems(").Append(held.OptionalType).AppendLine(" value)");
         s.AppendLine("    {");
@@ -189,7 +215,7 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>The length, precision and scale it declares: what its column is given.</summary>");
         s.AppendLine(Hidden);
-        s.Append("    public static global::Rask.Data.ValueFacets __Facets => new(").Append(string.Join(", ", named)).AppendLine(");");
+        s.Append("    public static global::Rask.Values.ValueFacets __Facets => new(").Append(string.Join(", ", named)).AppendLine(");");
     }
 
     private static void AddFacet(List<string> named, string name, int? value)
@@ -200,53 +226,4 @@ public sealed partial class ValueObjectFactoryGenerator
         }
     }
 
-    // Hands Rask's strings catalog to Rask.Data's ValueWords as the assembly loads: the bases' rules are then said
-    // in the reader's language.
-    private static string RenderWords()
-    {
-        const string Strings = "global::Rask.Core.Globalization.RaskStrings";
-        const string Keys = "global::Rask.Core.Globalization.RaskString";
-        const string Kinds = "global::Rask.Data.ValueProblemKind";
-
-        var s = new StringBuilder();
-        s.AppendLine("// <auto-generated/>");
-        s.AppendLine("#nullable enable");
-        s.AppendLine();
-        s.AppendLine("/// <summary>Words the rules of Rask.Data's value-object bases from Rask's strings catalog.</summary>");
-        s.AppendLine("file static class __RaskValueWords");
-        s.AppendLine("{");
-        s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
-        s.AppendLine("    internal static void Use() => global::Rask.Data.ValueWords.Use(Say);");
-        s.AppendLine();
-        s.AppendLine("    private static string Say(global::Rask.Data.ValueProblem problem) =>");
-        s.AppendLine("        problem.Kind switch");
-        s.AppendLine("        {");
-        foreach (var (kind, key, limit) in Sentences)
-        {
-            s.Append("            ").Append(Kinds).Append('.').Append(kind).Append(" => ").Append(Strings).Append(".Get(")
-                .Append(Keys).Append('.').Append(key).Append(", problem.Template").Append(limit ? ", problem.Limit" : "").AppendLine("),");
-        }
-
-        s.AppendLine("            _ => problem.English,");
-        s.AppendLine("        };");
-        s.AppendLine("}");
-        return s.ToString();
-    }
-
-    // Each rule a base can break, and the catalog key that words it.
-    private static readonly (string Kind, string Key, bool Limit)[] Sentences =
-    [
-        ("Required", "ValidationRequired", false),
-        ("TooShort", "ValidationTooShort", true),
-        ("TooLong", "ValidationTooLong", true),
-        ("Pattern", "ValidationPattern", false),
-        ("BelowMin", "ValidationNumberMin", true),
-        ("AboveMax", "ValidationNumberMax", true),
-        ("TooManyDecimals", "ValidationDecimals", true),
-        ("TooManyDigits", "ValidationNumberRange", false),
-        ("BeforeEarliest", "ValidationDateMin", true),
-        ("AfterLatest", "ValidationDateMax", true),
-        ("EndBeforeStart", "ValidationRangeNotBefore", true),
-        ("EndNotAfterStart", "ValidationRangeAfter", true),
-    ];
 }

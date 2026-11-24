@@ -349,7 +349,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool HasRule = false,
         EquatableArray<StaleRule> StaleRules = default,
         bool Checked = false,
-        string? ValueBase = null);
+        string? ValueBase = null,
+        bool AllowsEmpty = false);
 
     private sealed record ValueObjectMember(
         string Name,

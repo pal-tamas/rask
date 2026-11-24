@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that is checked as it is made:
@@ -47,7 +47,7 @@ public abstract record Value
     // The base's own problems, then the record's Rules(): refused together, or recorded by the TryCreate in flight.
     private protected void Check(List<Problem>? problems)
     {
-        if (Loading.IsOn)
+        if (RowLoading.IsOn)
         {
             return;
         }

@@ -129,11 +129,6 @@ public sealed class FullTextSearchDeclarationTests
         protected override void OnModelCreating(ModelBuilder modelBuilder) => configure(modelBuilder);
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-            optionsBuilder.ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory, NoCache>();
-    }
-
-    private sealed class NoCache : Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime) => new object();
+            optionsBuilder.ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory, EachContextItsOwnModel>();
     }
 }

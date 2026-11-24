@@ -171,7 +171,7 @@ public sealed class AggregateChildrenTests : IDisposable
 
         await Basket.Update(id, o => o.Lines.First().SetQuantity(4), cancellationToken: TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+        await Assert.ThrowsAsync<RaskValidationException>(
             () => GeneratedModelWrites.Update<Basket>(
                 id, stale, o => o.Lines.First().SetQuantity(5), cancellationToken: TestContext.Current.CancellationToken));
     }

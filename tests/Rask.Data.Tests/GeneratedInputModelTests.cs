@@ -293,7 +293,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         await Invoice.Update(created.Id, first, cancellationToken: TestContext.Current.CancellationToken);
 
         second.Title = "Second";
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.Update(created.Id, second, cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => Invoice.Update(created.Id, second, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("First", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
     }
@@ -323,7 +323,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         Assert.Equal(1, updated.Views);
         Assert.Equal(1, updated.Version);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+        await Assert.ThrowsAsync<RaskValidationException>(() =>
             Invoice.Update(created.Id, invoice => invoice.Viewed(), version: 0, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(1, (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Views);
     }
@@ -349,7 +349,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         edit.Title = "Bumped";
         await Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken);         // version 0 -> 1
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.Delete(created.Id, version: 0, cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => Invoice.Delete(created.Id, version: 0, cancellationToken: TestContext.Current.CancellationToken));
         Assert.NotNull(await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken));
 
         await Invoice.Delete(created.Id, cancellationToken: TestContext.Current.CancellationToken);

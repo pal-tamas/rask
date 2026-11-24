@@ -87,21 +87,22 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData("", "A destination needs a name.")]
+    [InlineData("", "This field is required.")]
     [InlineData("9 lives", "A name starts with a letter.")]
     public void DestinationName_rejects_a_name_with_the_reason(string name, string reason)
     {
-        var messages = DestinationName.Validate(name);
+        var accepted = DestinationName.TryCreate(name, out _, out var problems);
 
-        Assert.Equal([reason], messages);
+        Assert.False(accepted);
+        Assert.Equal([reason], problems.Select(p => p.Message));
     }
 
     [Fact]
     public void DestinationName_accepts_a_name_that_starts_with_a_letter()
     {
-        var messages = DestinationName.Validate("Lisbon");
+        var name = DestinationName.Create("  Lisbon ");
 
-        Assert.Empty(messages);
+        Assert.Equal("Lisbon", name.Value);
     }
 
     [Fact]

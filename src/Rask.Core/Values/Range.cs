@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that is a start and an end:
@@ -51,7 +51,7 @@ public abstract record Range : Value
         var startName = Problem.MemberName(startMember);
         if (Start is null)
         {
-            Check(Loading.IsOn ? null : [new Problem(startName, ValueWords.Say(new ValueProblem(ValueProblemKind.Required)))]);
+            Check(RowLoading.IsOn ? null : [new Problem(startName, ValueWords.Say(new ValueProblem(ValueProblemKind.Required)))]);
             return;
         }
 
@@ -69,7 +69,7 @@ public abstract record Range : Value
             DeclaredRules.Note(new RangeRules(Strict, least, most));
         }
 
-        if (Loading.IsOn)
+        if (RowLoading.IsOn)
         {
             return;
         }

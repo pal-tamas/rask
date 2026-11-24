@@ -25,6 +25,7 @@ internal static class AggregateShape
     public const string TenantColumn = "TenantId";
 
     private const string RaskDataNamespace = "Rask.Data";
+    private const string RaskValuesNamespace = "Rask.Values";
     private const string EntityBase = "Entity";
     private const string AggregateBase = "Aggregate";
 
@@ -234,41 +235,75 @@ internal static class AggregateShape
     ///     backing field — a computed property (<c>Display =&gt; …</c>) is not one.
     /// </summary>
     /// <remarks>
-    ///     A value object declared from a base record (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>) stores the
-    ///     base's <c>Value</c> and nothing else: the rules its base keeps are not state.
+    ///     A value object declared from a base that holds its value (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>)
+    ///     stores the base's <c>Value</c> and nothing else: the rules its base keeps are not state. One declared from
+    ///     <c>Whole</c> (an <c>int</c> or a <c>long</c>) or <c>Value</c> stores its own positional members.
     /// </remarks>
     public static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol type) =>
-        ValueBaseOf(type) is not null
+        DeclaredValueBaseOf(type) is "Text" or "Number" or "Day" or "Moment"
             ? type.BaseType!.GetMembers("Value").OfType<IPropertySymbol>()
-            : type.GetMembers().OfType<IPropertySymbol>()
+            : OwnStoredProperties(type);
+
+    /// <summary>
+    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
+    ///     <c>Day</c> or <c>Moment</c> of Rask.Values, derived from directly, or <c>Value</c> for a record of ONE member
+    ///     that is not a value object itself (<c>record Rank(int Value) : Value</c>) — or null for any other type.
+    /// </summary>
+    public static string? ValueBaseOf(INamedTypeSymbol type)
+    {
+        var valueBase = DeclaredValueBaseOf(type);
+        return valueBase switch
+        {
+            "Text" or "Number" or "Whole" or "Day" or "Moment" => valueBase,
+            "Value" when HoldsOneOwnValue(type) => valueBase,
+            _ => null,
+        };
+    }
+
+    // One positional member, and not a value object itself: `record Rank(int Value) : Value`.
+    private static bool HoldsOneOwnValue(INamedTypeSymbol type)
+    {
+        var stored = OwnStoredProperties(type).Take(2).ToList();
+        return stored.Count == 1 && ValueObjectTypeOf(stored[0].Type) is null;
+    }
+
+    private static IEnumerable<IPropertySymbol> OwnStoredProperties(INamedTypeSymbol type) =>
+        type.GetMembers().OfType<IPropertySymbol>()
             .Where(static p => !p.IsStatic && !p.IsIndexer &&
                                p.DeclaredAccessibility == Accessibility.Public &&
                                p.GetMethod is { DeclaredAccessibility: Accessibility.Public } &&
                                (p.SetMethod is not null || HasBackingField(p)));
 
     /// <summary>
-    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
-    ///     <c>Day</c> or <c>Moment</c> of Rask.Data, derived from directly — or null for any other type.
-    /// </summary>
-    public static string? ValueBaseOf(INamedTypeSymbol type) =>
-        DeclaredValueBaseOf(type) is ("Text" or "Number" or "Whole" or "Day" or "Moment") and var valueBase ? valueBase : null;
-
-    /// <summary>
-    ///     The Rask.Data base record a value object checked as it is made derives from directly — <c>Value</c>,
+    ///     The Rask.Values base record a value object checked as it is made derives from directly — <c>Value</c>,
     ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
     /// </summary>
     public static string? DeclaredValueBaseOf(INamedTypeSymbol type) =>
         type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
-        IsRaskDataType(valueBase)
+        IsRaskValuesType(valueBase)
             ? valueBase.Name
             : null;
 
-    /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Data's <c>Value</c>.</summary>
+    /// <summary>
+    ///     Whether a value object declared from <c>Text</c> says an empty text is a value: <c>Text(Value, Required: false)</c>,
+    ///     read from its base call as written (a constant <c>false</c>).
+    /// </summary>
+    public static bool AllowsEmptyText(INamedTypeSymbol type) =>
+        DeclaredValueBaseOf(type) is "Text" &&
+        type.DeclaringSyntaxReferences
+            .Select(static r => r.GetSyntax())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.RecordDeclarationSyntax>()
+            .SelectMany(static d => d.BaseList?.Types.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.PrimaryConstructorBaseTypeSyntax>() ?? [])
+            .SelectMany(static call => call.ArgumentList.Arguments)
+            .Any(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "Required", StringComparison.Ordinal) &&
+                             a.Expression.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.FalseLiteralExpression));
+
+    /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Values' <c>Value</c>.</summary>
     public static bool IsValueRecord(INamedTypeSymbol type)
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
-            if (current is { Name: "Value", Arity: 0, ContainingType: null } && IsRaskDataType(current))
+            if (current is { Name: "Value", Arity: 0, ContainingType: null } && IsRaskValuesType(current))
             {
                 return true;
             }
@@ -323,6 +358,9 @@ internal static class AggregateShape
 
     private static bool IsRaskDataType(INamedTypeSymbol type) =>
         string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskDataNamespace, StringComparison.Ordinal);
+
+    private static bool IsRaskValuesType(INamedTypeSymbol type) =>
+        string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskValuesNamespace, StringComparison.Ordinal);
 
     private static bool HasBackingField(IPropertySymbol property)
     {

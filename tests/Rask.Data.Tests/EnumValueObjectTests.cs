@@ -80,6 +80,7 @@ public sealed class EnumValueObjectTests : IDisposable
         Assert.Equal(typeof(PumpFuel?), fuel);
         Assert.False(refused);
         Assert.Equal([PumpFuelKind.Unknown], problems.Select(p => p.Message));
+        Assert.Equal("Urea", PumpFuelKind.Create(PumpFuel.Urea).ToString());
     }
 
     [Fact]

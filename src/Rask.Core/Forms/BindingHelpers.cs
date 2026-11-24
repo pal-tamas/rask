@@ -515,7 +515,8 @@ public static class BindingHelpers
         {
             if (IsNullableProperty(acc.Property, underlying, t))
             {
-                acc.Setter(null);
+                // [DisplayFormat(ConvertEmptyStringToNull = false)]: an emptied text is "", as .NET's binders keep it.
+                acc.Setter(t == typeof(string) && RaskValidation.ShapeOf(acc) is { KeepEmpty: true } ? "" : null);
                 return true;
             }
 

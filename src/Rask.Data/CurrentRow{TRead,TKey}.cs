@@ -45,7 +45,7 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
     protected override async Task<object?> LoadAsync(Guid key, CancellationToken cancellationToken)
     {
         using var across = AcrossForTheUser();
-        using var loading = Loading.Read();
+        using var loading = RowLoading.Read();
         var context = ReadDb.CreateContext();
         await using (context.ConfigureAwait(false))
         {

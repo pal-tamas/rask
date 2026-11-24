@@ -1,18 +1,22 @@
 using System.Globalization;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
-///     The base of a value object that holds one whole number:
-///     <c>public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);</c>
+///     The base of a value object that holds one whole number, an <see cref="int" /> or a <see cref="long" />:
+///     <c>public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);</c>,
+///     <c>public sealed partial record Rank(int Value) : Whole(Value, Min: 1);</c>
 /// </summary>
 /// <remarks>
-///     The constructor checks the bounds and throws a <see cref="Rask.Cqrs.RaskValidationException" /> when one refuses
-///     the number; the generated half is <see cref="Text" />'s, for a <see cref="long" />. Two values are equal when
-///     they are of the same type and hold the same number.
+///     The derived record keeps its own typed <c>Value</c>, the <see cref="int" /> or <see cref="long" /> it declares;
+///     the constructor checks the bounds and throws a <see cref="Rask.Cqrs.RaskValidationException" /> when one refuses
+///     the number. The generated half is <see cref="Text" />'s, for the number's type. Two values are equal when they
+///     are of the same type and hold the same number.
 /// </remarks>
 public abstract record Whole : Value
 {
+    private readonly long _number;
+
     /// <summary>Keeps <paramref name="Value" /> once the bounds the other arguments declare accept it.</summary>
     /// <param name="Value">The number as given; the derived record's own positional parameter.</param>
     /// <param name="Min">The least it may be, or null.</param>
@@ -38,8 +42,8 @@ public abstract record Whole : Value
             DeclaredRules.Note(new WholeRules(Min, Max));
         }
 
-        this.Value = Value;
-        if (Loading.IsOn)
+        _number = Value;
+        if (RowLoading.IsOn)
         {
             return;
         }
@@ -58,10 +62,7 @@ public abstract record Whole : Value
         }
     }
 
-    /// <summary>The number it holds.</summary>
-    public long Value { get; }
-
-    /// <summary>The number it holds, written in the current culture.</summary>
+    /// <summary>The number it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The number as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+    public sealed override string ToString() => _number.ToString(CultureInfo.InvariantCulture);
 }
