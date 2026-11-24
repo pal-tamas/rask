@@ -121,7 +121,7 @@ public sealed class RefusedContext(DbContextOptions<RefusedContext> options, Act
 {
     /// <summary>On SQLite, with a model cache that never hands one context's model to the next.</summary>
     public static RefusedContext Declaring(Action<ModelBuilder> declare) =>
-        new(new DbContextOptionsBuilder<RefusedContext>()
+        new(OptionsLayout.LikeAddDbContext<RefusedContext>()
             .UseSqlite("Data Source=:memory:")
             .ReplaceService<IModelCacheKeyFactory, EachContextItsOwnModel>()
             .Options, declare);

@@ -190,7 +190,7 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     [Fact]
     public async Task The_way_out_the_message_names_is_saved_and_read_back_whole()
     {
-        var options = new DbContextOptionsBuilder<HolderContext<MembersHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<HolderContext<MembersHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
         await using (var writing = new HolderContext<MembersHolder>(options, nested: false))
         {
             await writing.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     [Fact]
     public async Task A_record_that_keeps_its_constructor_and_adds_a_private_parameterless_one_is_read_back_whole_too()
     {
-        var options = new DbContextOptionsBuilder<HolderContext<SpareConstructorHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<HolderContext<SpareConstructorHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
         await using (var writing = new HolderContext<SpareConstructorHolder>(options, nested: false))
         {
             await writing.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
@@ -227,7 +227,8 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     private static DbContext Open(Type holder, bool nested)
     {
         var context = typeof(HolderContext<>).MakeGenericType(holder);
-        var builder = (DbContextOptionsBuilder)Activator.CreateInstance(typeof(DbContextOptionsBuilder<>).MakeGenericType(context))!;
+        var builder = (DbContextOptionsBuilder)typeof(OptionsLayout).GetMethod(nameof(OptionsLayout.LikeAddDbContext))!
+            .MakeGenericMethod(context).Invoke(null, null)!;
         builder.UseSqlite("Data Source=:memory:").ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory, EachContextItsOwnModel>();
         return (DbContext)Activator.CreateInstance(context, builder.Options, nested)!;
     }

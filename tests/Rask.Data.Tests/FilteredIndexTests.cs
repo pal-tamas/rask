@@ -36,7 +36,7 @@ public sealed class FilteredIndexTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var context = new NeutralContext(new DbContextOptionsBuilder<NeutralContext>().UseSqlite(connection).Options);
+        await using var context = new NeutralContext(OptionsLayout.LikeAddDbContext<NeutralContext>().UseSqlite(connection).Options);
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         context.AddRange(
             new PartnerGrant { Partner = "p1", RevokedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
@@ -81,5 +81,5 @@ public sealed class FilteredIndexTests
     }
 
     private static DbContextOptions<NeutralContext> Options() =>
-        new DbContextOptionsBuilder<NeutralContext>().UseSqlite("Data Source=:memory:").Options;
+        OptionsLayout.LikeAddDbContext<NeutralContext>().UseSqlite("Data Source=:memory:").Options;
 }

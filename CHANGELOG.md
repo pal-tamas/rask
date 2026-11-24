@@ -817,6 +817,14 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `RaskDbContext` or `RaskReadDbContext` built from options of its own builds EF Core's internal services once.**
+  Before: EF Core builds a context's services in its constructor from the options it is handed, and again from the
+  ones `OnConfiguring` leaves, so a context given plain options (`new DbContextOptionsBuilder<T>().UseSqlite(…)`,
+  `AddDbContextFactory<T>(o => o.UseSqlite(…))`) cost two of the twenty EF Core allows a process, and a test suite of
+  many context shapes was refused part-way (`ManyServiceProvidersCreatedWarning`, failing whichever test came next).
+  After: the constructors say up front what `OnConfiguring` adds, so the two are one; options a Rask host built are
+  passed on as they are. `TestDatabase`'s contexts are also laid out as `AddDbContext` lays them out, so they share the
+  set the app's registered factory built.
 - **A test project that declares its own context still boots the app on demand.** Before: a `RaskDbContext` subclass
   in a test project that uses Rask.Testing got a generated design-time factory over `UseRaskDatabase`, so the test
   assembly referenced `Rask.Server` and Rask.Testing took the TEST project's entry point (the test SDK's `Main`) for the

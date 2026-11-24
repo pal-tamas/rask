@@ -141,7 +141,7 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     [Fact]
     public void A_context_wired_by_hand_keys_the_table_by_the_same_parts()
     {
-        using var context = new HandWiredFuelContext(new DbContextOptionsBuilder<HandWiredFuelContext>()
+        using var context = new HandWiredFuelContext(OptionsLayout.LikeAddDbContext<HandWiredFuelContext>()
             .UseSqlite($"Data Source={_dbPath}").Options);
 
         var entity = context.Model.FindEntityType(typeof(DeliveryNoteTransaction))!;

@@ -123,7 +123,7 @@ public sealed class EntityCollectionMappingTests : IDisposable
     }
 
     private DbContextOptions<RaskDbContext> Options() =>
-        new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));

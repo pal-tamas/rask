@@ -230,7 +230,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         using var complex = new ComplexGondolaContext(
-            new DbContextOptionsBuilder<ComplexGondolaContext>().UseSqlite("Data Source=:memory:").Options);
+            OptionsLayout.LikeAddDbContext<ComplexGondolaContext>().UseSqlite("Data Source=:memory:").Options);
 
         var now = ColumnsOf(database.Context, "Gondolas").Where(c => c.StartsWith("Crate_", StringComparison.Ordinal));
         var before = ColumnsOf(complex, "Gondolas").Where(c => c.StartsWith("Crate_", StringComparison.Ordinal));
@@ -242,7 +242,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
     public async Task A_row_the_scalar_mapping_writes_is_read_whole_by_the_complex_mapping_it_replaces()
     {
         await using var database = await StartDatabaseAsync();
-        var options = new DbContextOptionsBuilder<ComplexGondolaContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<ComplexGondolaContext>().UseSqlite($"Data Source={_dbPath}").Options;
         var id = await SaveAsync(Gondola.Packed("AB-1", alias: "ALT", weight: 12, tare: 3));
         var bare = await SaveAsync(Gondola.Packed("CD-2"));
 

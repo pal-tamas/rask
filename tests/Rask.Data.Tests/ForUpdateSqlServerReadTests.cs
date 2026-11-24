@@ -38,7 +38,7 @@ public sealed class ForUpdateSqlServerReadTests
         db.Model.FindEntityType(typeof(Period))!.FindPrimaryKey()!.Properties[0];
 
     private static PeriodContext Open() =>
-        new(new DbContextOptionsBuilder<PeriodContext>()
+        new(OptionsLayout.LikeAddDbContext<PeriodContext>()
             .UseSqlServer("Server=localhost;Database=rask;User Id=sa;Password=x;TrustServerCertificate=true")
             .Options);
 

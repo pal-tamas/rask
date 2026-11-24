@@ -122,8 +122,8 @@ public sealed class ComputedColumnTests
     }
 
     private static DbContextOptions<NeutralContext> Options() =>
-        new DbContextOptionsBuilder<NeutralContext>().UseSqlite("Data Source=:memory:").Options;
+        OptionsLayout.LikeAddDbContext<NeutralContext>().UseSqlite("Data Source=:memory:").Options;
 
     private static DbContextOptions<NeutralContext> Options(SqliteConnection connection) =>
-        new DbContextOptionsBuilder<NeutralContext>().UseSqlite(connection).Options;
+        OptionsLayout.LikeAddDbContext<NeutralContext>().UseSqlite(connection).Options;
 }

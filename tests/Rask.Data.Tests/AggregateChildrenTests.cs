@@ -152,7 +152,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await Basket.Update(id, b => b.Remove(b.Lines.First(l => l.Product == "pear")), cancellationToken: TestContext.Current.CancellationToken);
 
         await using var context = new RaskDbContext(
-            new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+            OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
 
         var rows = await context.Set<BasketLine>().IgnoreQueryFilters().CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 

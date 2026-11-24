@@ -36,14 +36,14 @@ public class RaskDbContext : DbContext, ITenantScoped
     /// <summary>Creates the context with the options the host registered.</summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public RaskDbContext(DbContextOptions<RaskDbContext> options)
-        : base(options)
+        : base(Configured(options))
     {
     }
 
     /// <summary>Creates the context for a derived type supplying its own options.</summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     protected RaskDbContext(DbContextOptions options)
-        : base(options)
+        : base(Configured(options))
     {
     }
 
@@ -98,6 +98,36 @@ public class RaskDbContext : DbContext, ITenantScoped
         ArgumentNullException.ThrowIfNull(optionsBuilder);
 
         base.OnConfiguring(optionsBuilder);
+        Configure(optionsBuilder);
+    }
+
+    // EF Core builds a context's internal services in its constructor from the options it is handed, and again from the
+    // ones OnConfiguring leaves; each distinct set counts towards the twenty a process may build. Handed what
+    // OnConfiguring adds, the two are one set, however the options were built. Options that already say it — a Rask
+    // host's — are passed on as they are.
+    private static TOptions Configured<TOptions>(TOptions options)
+        where TOptions : DbContextOptions
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (IsConfigured(options))
+        {
+            return options;
+        }
+
+        var builder = new DbContextOptionsBuilder(options);
+        Configure(builder);
+        return (TOptions)builder.Options;
+    }
+
+    private static bool IsConfigured(DbContextOptions options) =>
+        options.FindExtension<ViolationLoggingOptionsExtension>() is not null
+        && options.FindExtension<JoinedTransactionGuardOptionsExtension>() is not null
+        && options.FindExtension<CoreOptionsExtension>() is { } core
+        && core.WarningsConfiguration.GetBehavior(CoreEventId.NoEntityTypeConfigurationsWarning) == WarningBehavior.Ignore
+        && core.Interceptors?.Contains(WritableChildrenInterceptor.Instance) == true;
+
+    private static void Configure(DbContextOptionsBuilder optionsBuilder)
+    {
         WithSharedWarnings(optionsBuilder);
 
         // A child collection declared `= []` is filled through it, so a context configured without it gets it here.

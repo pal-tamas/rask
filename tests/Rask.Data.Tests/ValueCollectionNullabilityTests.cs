@@ -208,8 +208,8 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     [Fact]
     public void A_json_column_holding_one_value_object_keeps_an_empty_object()
     {
-        using var owned = new CoverContext(Sqlite<CoverContext>(), complex: false);
-        using var complex = new CoverContext(Sqlite<CoverContext>(), complex: true);
+        using var owned = new OwnedCoverContext(Sqlite<OwnedCoverContext>());
+        using var complex = new ComplexCoverContext(Sqlite<ComplexCoverContext>());
 
         var alter = Assert.Single(Differences(owned, complex).OfType<AlterColumnOperation>());
 
@@ -275,7 +275,7 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     // Through Rask's differ, which UseRaskSqlite, UseRaskSqlServer, UseRaskPostgres and a RaskApp register; the wiring
     // is pinned in their own test projects, so here it is put in place directly.
     private static DbContextOptions<TContext> Sqlite<TContext>(string connectionString)
-        where TContext : DbContext => new DbContextOptionsBuilder<TContext>()
+        where TContext : DbContext => OptionsLayout.LikeAddDbContext<TContext>()
         .UseSqlite(connectionString)
         .ReplaceService<IMigrationsModelDiffer, RaskMigrationsModelDiffer>()
         .Options;
@@ -289,12 +289,13 @@ public sealed class CoverRow
     public FiledFile Cover { get; set; } = new("", 0);
 }
 
-/// <summary>The row with its cover owned (a NULL column) or complex (NOT NULL), so the move between them is diffed.</summary>
-public sealed class CoverContext(DbContextOptions<CoverContext> options, bool complex) : DbContext(options)
+/// <summary>
+///     The row with its cover owned (a NULL column) or complex (NOT NULL), so the move between them is diffed. One type
+///     each, so EF Core's model cache tells them apart by type, as it does by default, and no key factory of their own
+///     costs the run another set of EF Core's internal services.
+/// </summary>
+public abstract class CoverContext(DbContextOptions options, bool complex) : DbContext(options)
 {
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-        optionsBuilder.ReplaceService<IModelCacheKeyFactory, CoverModelKey>();
-
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.Entity<CoverRow>(b =>
         {
@@ -308,14 +309,13 @@ public sealed class CoverContext(DbContextOptions<CoverContext> options, bool co
                 b.Navigation(r => r.Cover).IsRequired(false);
             }
         });
-
-    internal bool Complex => complex;
-
-    private sealed class CoverModelKey : IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime) => (context.GetType(), ((CoverContext)context).Complex, designTime);
-    }
 }
+
+/// <summary>The cover owned: a NULL column.</summary>
+public sealed class OwnedCoverContext(DbContextOptions<OwnedCoverContext> options) : CoverContext(options, complex: false);
+
+/// <summary>The cover complex: a NOT NULL column.</summary>
+public sealed class ComplexCoverContext(DbContextOptions<ComplexCoverContext> options) : CoverContext(options, complex: true);
 
 /// <summary>
 /// A get-only view with no list behind it: EF Core cannot write a complex collection through it, so it keeps the

@@ -29,14 +29,14 @@ public class RaskReadDbContext : DbContext, ITenantScoped
     /// <summary>Creates the context with the options the host registered.</summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public RaskReadDbContext(DbContextOptions<RaskReadDbContext> options)
-        : base(options)
+        : base(Prepared(options))
     {
     }
 
     /// <summary>Creates the context for a derived type supplying its own options.</summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     protected RaskReadDbContext(DbContextOptions options)
-        : base(options)
+        : base(Prepared(options))
     {
     }
 
@@ -69,6 +69,32 @@ public class RaskReadDbContext : DbContext, ITenantScoped
         base.OnConfiguring(optionsBuilder);
         Prepare(optionsBuilder);
     }
+
+    // EF Core builds a context's internal services in its constructor from the options it is handed, and again from the
+    // ones OnConfiguring leaves; handed what OnConfiguring adds, the two are one set, however the options were built.
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    private static TOptions Prepared<TOptions>(TOptions options)
+        where TOptions : DbContextOptions
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (IsPrepared(options))
+        {
+            return options;
+        }
+
+        var builder = new DbContextOptionsBuilder(options);
+        Prepare(builder);
+        return (TOptions)builder.Options;
+    }
+
+    // What a host's factory already said up front (Prepare), so its options are passed on without a copy.
+    private static bool IsPrepared(DbContextOptions options) =>
+        options.FindExtension<CoreOptionsExtension>() is { } core
+        && core.QueryTrackingBehavior == QueryTrackingBehavior.NoTracking
+        && core.WarningsConfiguration.GetBehavior(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)
+            == WarningBehavior.Ignore
+        && core.ReplacedServices?.TryGetValue((typeof(IModelCacheKeyFactory), null), out var keys) == true
+        && keys == typeof(ReadModelCacheKeyFactory);
 
     /// <summary>The read context's own configuration, for the factories that build its options to apply up front.</summary>
     /// <param name="optionsBuilder">The options being built.</param>

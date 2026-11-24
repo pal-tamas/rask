@@ -88,8 +88,8 @@ public sealed class TenantColumnMigrationTests
     [Fact]
     public void A_database_created_while_the_tenant_was_on_the_base_class_owes_no_migration()
     {
-        using var former = new FormerContext(new DbContextOptionsBuilder<FormerContext>().UseSqlite("Data Source=:memory:").Options);
-        using var today = new TodayContext(new DbContextOptionsBuilder<TodayContext>().UseSqlite("Data Source=:memory:").Options);
+        using var former = new FormerContext(OptionsLayout.LikeAddDbContext<FormerContext>().UseSqlite("Data Source=:memory:").Options);
+        using var today = new TodayContext(OptionsLayout.LikeAddDbContext<TodayContext>().UseSqlite("Data Source=:memory:").Options);
         var differ = today.GetService<IMigrationsModelDiffer>();
 
         var forward = differ.GetDifferences(RelationalModelOf(former), RelationalModelOf(today));
@@ -107,7 +107,7 @@ public sealed class TenantColumnMigrationTests
     [InlineData(typeof(Crate))]
     public void An_index_written_with_the_tenant_leads_with_it_whether_the_column_is_declared_or_not(Type entity)
     {
-        using var today = new TodayContext(new DbContextOptionsBuilder<TodayContext>().UseSqlite("Data Source=:memory:").Options);
+        using var today = new TodayContext(OptionsLayout.LikeAddDbContext<TodayContext>().UseSqlite("Data Source=:memory:").Options);
 
         var index = Assert.Single(today.Model.FindEntityType(entity)!.GetIndexes());
 

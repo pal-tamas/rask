@@ -18,8 +18,8 @@ public sealed class ValueObjectMappingDiffTests
     [Fact]
     public void On_sqlite_moving_between_the_two_mappings_is_no_migration_either_way()
     {
-        using var complex = new ComplexShapeContext(new DbContextOptionsBuilder<ComplexShapeContext>().UseSqlite("Data Source=:memory:").Options);
-        using var scalar = new ScalarShapeContext(new DbContextOptionsBuilder<ScalarShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var complex = new ComplexShapeContext(OptionsLayout.LikeAddDbContext<ComplexShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarShapeContext(OptionsLayout.LikeAddDbContext<ScalarShapeContext>().UseSqlite("Data Source=:memory:").Options);
 
         var (forward, back) = ValueObjectMappingDiff.Between(complex, scalar);
 
@@ -31,8 +31,8 @@ public sealed class ValueObjectMappingDiffTests
     [Fact]
     public void On_sqlite_only_the_order_of_columns_in_a_fresh_table_differs()
     {
-        using var complex = new ComplexShapeContext(new DbContextOptionsBuilder<ComplexShapeContext>().UseSqlite("Data Source=:memory:").Options);
-        using var scalar = new ScalarShapeContext(new DbContextOptionsBuilder<ScalarShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var complex = new ComplexShapeContext(OptionsLayout.LikeAddDbContext<ComplexShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarShapeContext(OptionsLayout.LikeAddDbContext<ScalarShapeContext>().UseSqlite("Data Source=:memory:").Options);
 
         var before = ValueObjectMappingDiff.CreateOrder(complex);
         var after = ValueObjectMappingDiff.CreateOrder(scalar);
@@ -47,8 +47,8 @@ public sealed class ValueObjectMappingDiffTests
     [Fact]
     public void On_sqlite_a_one_value_value_object_inside_another_is_no_migration_either_way()
     {
-        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
-        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var complex = new ComplexNestedShapeContext(OptionsLayout.LikeAddDbContext<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarNestedShapeContext(OptionsLayout.LikeAddDbContext<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
 
         var (forward, back) = ValueObjectMappingDiff.Between(complex, scalar);
 
@@ -62,8 +62,8 @@ public sealed class ValueObjectMappingDiffTests
     [Fact]
     public void On_sqlite_only_the_order_of_the_nested_columns_in_a_fresh_table_differs()
     {
-        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
-        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var complex = new ComplexNestedShapeContext(OptionsLayout.LikeAddDbContext<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarNestedShapeContext(OptionsLayout.LikeAddDbContext<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
 
         var before = ValueObjectMappingDiff.CreateOrder(complex, ValueObjectMappingDiff.NestedTable);
         var after = ValueObjectMappingDiff.CreateOrder(scalar, ValueObjectMappingDiff.NestedTable);

@@ -64,7 +64,7 @@ public sealed class ReplacedChildValueCollectionTests : IDisposable
 
         binder.Refill([(1, ["draft", "signed"]), (2, [])]);
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await using var fresh = new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+        await using var fresh = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
         var sheets = await fresh.Set<BinderSheet>().OrderBy(s => s.Number).ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([["draft", "signed"], []], sheets.Select(s => s.Stamps.Select(m => m.Mark).ToArray()));

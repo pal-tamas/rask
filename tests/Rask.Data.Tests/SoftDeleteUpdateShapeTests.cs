@@ -97,7 +97,7 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
     private TestContext<T> Context<T>(CommandCapture? capture = null)
         where T : class
     {
-        var builder = new DbContextOptionsBuilder<TestContext<T>>()
+        var builder = OptionsLayout.LikeAddDbContext<TestContext<T>>()
             .UseSqlite($"Data Source={_dbPath};Pooling=False")
             .AddInterceptors(new SoftDeleteInterceptor(TimeProvider.System), new AuditingInterceptor(TimeProvider.System));
         if (capture is not null)
