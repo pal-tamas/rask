@@ -17,6 +17,12 @@ namespace Rask.Generators.Shared;
 ///         ordinary type, so a <c>record struct Count(int Value)</c> keeps the record's own <c>ToString</c>.
 ///     </para>
 ///     <para>
+///         Every typed id is also what <c>WireShape</c> (Rask.Batteries.Generators) sends as the bare value it holds (a record struct with one
+///         public constructor feeding one property), so a command carrying one is <c>42</c> on Rask's wire and in JSON
+///         alike. The rule here is narrower on purpose: it decides which types get generated members — a
+///         <c>ToString</c> among them — and that needs the author's explicit <c>partial</c> and the <c>Id</c> name.
+///     </para>
+///     <para>
 ///         Shared because generators cannot see each other's output: the routes generator has to know a typed id
 ///         parses before the generated <c>IParsable</c> exists.
 ///     </para>

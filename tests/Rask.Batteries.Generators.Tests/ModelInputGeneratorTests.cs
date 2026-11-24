@@ -399,9 +399,9 @@ public class ModelInputGeneratorTests
             Assert.Contains($"Create({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
         }
 
-        // A store-generated integer gets no create that takes a key: an explicit identity value fails on SQL Server
-        // and leaves PostgreSQL's sequence behind.
-        foreach (var (name, id) in new[] { ("Note", "int"), ("Entry", "long") })
+        // A store-generated integer — or a typed id over one — gets no create that takes a key: an explicit identity
+        // value fails on SQL Server and leaves PostgreSQL's sequence behind.
+        foreach (var (name, id) in new[] { ("Note", "int"), ("Entry", "long"), ("Order", "global::Shop.OrderNumber") })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
             Assert.Contains($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
@@ -410,7 +410,7 @@ public class ModelInputGeneratorTests
 
         foreach (var (name, id) in new[]
                  {
-                     ("Order", "global::Shop.OrderNumber"), ("Item", "global::Shop.Sku"), ("Country", "string"),
+                     ("Item", "global::Shop.Sku"), ("Country", "string"),
                  })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
