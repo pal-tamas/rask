@@ -18,6 +18,15 @@
 
 This file helps AI coding assistants build apps with Rask. Start with [docs/ai-agents.md](docs/ai-agents.md)
 for app-authoring conventions, then the docs below (the repo-root AGENTS.md is for contributors to Rask itself).
+
+**Write Rask apps in ONE style** ([domain modelling](docs/domain.md)): every write is an aggregate's own method,
+run through its generated entry (`Supply.Change(id, version, …)`), one aggregate per transaction, and no service
+layer; every property is a one-line value object carrying its rule
+(`public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 200);`) or a typed id
+(`public readonly partial record struct VehicleId(int Value);`); a refusal is `Refuse.When(…)` under its field; a
+form is `Form.For(Aggregate.Operation, id)`; another aggregate changes from a domain event; no SQL and no
+provider API (`InTextOrder()`, `Db.Lock`, `.Covering(…)` instead, RASK177); tests run on SQLite in memory
+(`TestDatabase.Start<AppDbContext>()`, `Test.Refuses(…).At("Field")`, `Test.Concurrently`).
 Reading the web rather than this checkout? The published index is https://rask.sh/llms.txt, every
 guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is its page's URL plus
 `.md` (https://rask.sh/docs/guides/cqrs.md).
@@ -497,8 +506,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   fetch in `OnMount` with cancel/retry/error handling), the typed file-picker input (`Input.Of<string>().Type(InputType.File).OnFiles(…)` + `IRaskFile` metadata;
   multipart on Server, JS chunked reads on WASM), and `Download.File` (event-handler-only;
   served from `/_rask/download/…` on Server, base64 to JS on WASM).
-- [Data access](docs/data-access.md): EF Core + SQLite, IDbContextFactory, loading in the lifecycle, vertical slices, DDD value objects, decimal on SQLite (invariant collation).
-- [Splitting a total](docs/data.md#splitting-a-total-allocationsplit): `Allocation.Split(total, parts, step: 0.01m)` / `Allocation.Split(total, weights, step, remainder: Remainder.ToFirst|ToLast|ToLargest)` (namespace `Rask.Values`, `Rask` package; pure, deterministic, no DB) — shares that are whole numbers of `step`, each within one step of its exact part, whose SUM IS THE TOTAL EXACTLY (`Split(100m, 3, step: 0.01m)` = `[33.34, 33.33, 33.33]`); zero weight gets zero and no remainder; a total off the step's grid keeps its last fraction on the first remainder taker; negative totals give negative shares.
+- [Data access](docs/data-access.md): what sits under the domain — a context per read and per write (never injected into a component), `AddRaskData<TContext>((sp, o) => o.UseRaskSqlite(sp))` for an app with its own context, loading in the lifecycle through the read face, vertical slices with no service layer, lazy loading off, decimal on SQLite (invariant collation).
+- [Splitting a total](docs/domain.md#splitting-a-total-allocationsplit): `Allocation.Split(total, parts, step: 0.01m)` / `Allocation.Split(total, weights, step, remainder: Remainder.ToFirst|ToLast|ToLargest)` (namespace `Rask.Values`, `Rask` package; pure, deterministic, no DB) — shares that are whole numbers of `step`, each within one step of its exact part, whose SUM IS THE TOTAL EXACTLY (`Split(100m, 3, step: 0.01m)` = `[33.34, 33.33, 33.33]`); zero weight gets zero and no remainder; a total off the step's grid keeps its last fraction on the first remainder taker; negative totals give negative shares.
 - [SQLite production pragmas](docs/sqlite.md): the `Rask.SQLite` package (in `Rask.Server`, on by default) — applies a production SQLite pragma set (journal_mode=WAL, synchronous=NORMAL, foreign_keys=ON, busy_timeout=5000, cache_size=2000 pages, mmap_size=128MiB, journal_size_limit=64MiB;
   temp_store opt-in) to every connection.
   Raw ADO.NET: `services.AddRaskSqlite(configure?)` + inject `ISqlite` (connection string from `Rask:ConnectionStrings:App`, pragmas from `Rask:Sqlite` then the callback;
@@ -761,15 +770,17 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction)`) and `static void Model(ModelBuilder m)` (`m.HasDefaultSchema("dbo")`);
   applied as the model is finalized, so an entity's `Configure` (`HasDatabaseName`, `OnDelete`) wins.
   `RaskAppDbContext` maps a battery's tables ONLY WHILE IT IS ON — switching one on is a migration (`rask db add`), switching one off never drops its existing tables ([battery tables](docs/configuration.md#battery-tables)).
-- [Data layer](docs/data.md): the `Rask.Data` package — DECLARE AGGREGATES AND NOTHING ELSE.
+- [Domain modelling](docs/domain.md): aggregates, entities, value objects (`Text`/`Number`/`Whole`/`Day`/`Moment`/`Range`/`Value` bases), typed ids, `Children<,>`, operations and their generated entries, `Refuse`, `Validate()`, `LockedBy`, domain events, the transaction boundary (one aggregate per transaction; `Db.Transaction` over two entries only as the last resort), testing on SQLite in memory.
+- [Writing many rows](docs/data-writes.md): `BulkInsert` (batches, `SingleTransaction`, `SkipChangeTracking`), `ExecuteUpdate`/`ExecuteDelete` and what they skip, moving stored rows through the aggregate's own operation from a job after a schema or rule change.
+- [Data layer — storage](docs/data.md): the `Rask.Data` package — DECLARE AGGREGATES AND NOTHING ELSE.
   DDD BASES, BUILT IN: `Entity<TId>` (Id) and `Aggregate<TId> : Entity<TId>` (+ Raise/DomainEvents/ClearDomainEvents).
-  **A KEY OF SEVERAL COLUMNS** ([docs](docs/data.md#a-key-of-several-columns)) is a tuple of TYPES on a `partial` CHILD: `partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates `DeliveryNoteId`/`TransactionId` (each aggregate's own key type) and `new (int DeliveryNoteId, int TransactionId) Id`;
+  **A KEY OF SEVERAL COLUMNS** ([docs](docs/domain.md#a-key-of-several-columns)) is a tuple of TYPES on a `partial` CHILD: `partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates `DeliveryNoteId`/`TransactionId` (each aggregate's own key type) and `new (int DeliveryNoteId, int TransactionId) Id`;
   the PK is the pair in tuple order, never generated, in Rask's context or one wired by hand;
   a value part is named and declared by the entity (`Entity<(Order, int LineNo)>` + `public int LineNo { get; private set; }`);
   the read face lists the parts, infers `t.Transaction`, filters by tenant through the root.
   WRITTEN THROUGH ITS AGGREGATE: the entity's own factory sets the parts it knows (`new() { TransactionId = id, Quantity = q }`), Rask fills the holding aggregate's part, and an aggregate that clears and refills the collection (`DeliveryNote.Update(id, n => n.Fill(rows))`, `Find`+`Save()`, `db:`) is saved KEY-MATCHED — UPDATE of changed columns, INSERT for a new key, DELETE for a dropped one, nothing for an unchanged row;
   a GRANDCHILD names the child holding it (`Entity<(ReportColumn, int TotalColumnId)>` → `ReportColumnReportId`, `ReportColumnColumnId`);
-  THE HOLDER'S FORM MODEL CARRIES THEM ([docs](docs/data.md#link-tables-and-child-rows-on-the-form)): a LINK (the holder's part + one other, nothing else, `Entity<(Company, Teaor)>`) is a list of ids named after the collection made singular + `Ids` (`model.ActivityIds = [a.Id, b.Id]`), saved as a SET (insert/delete by key, never update, an unchanged set writes nothing, a duplicate id is one link);
+  THE HOLDER'S FORM MODEL CARRIES THEM ([docs](docs/domain.md#link-tables-and-child-rows-on-the-form)): a LINK (the holder's part + one other, nothing else, `Entity<(Company, Teaor)>`) is a list of ids named after the collection made singular + `Ids` (`model.ActivityIds = [a.Id, b.Id]`), saved as a SET (insert/delete by key, never update, an unchanged set writes nothing, a duplicate id is one link);
   a row with fields of its own is a list of generated row models carrying the parts the holder does not give plus its fields (`model.Columns = [new() { ColumnId = 3, Order = 1, Sum = true }]`), KEY-MATCHED;
   `Create(model)`/`Update(id, model)`/`Model(id)` carry both in one save (`db:`/`Db.Transaction` included);
   a refused id (FK) is a field error under `ActivityIds`/`Columns`, two rows of one key are refused under `Columns`;
@@ -959,11 +970,11 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   on the wire its properties are camelCase.
   NO PUBLIC SETTERS: RASK084 is an ERROR (+ code fix to private) for a public `set`, a hand-written public `init` or a public non-readonly field on an aggregate, an entity (and the app's abstract bases between them) or a value object one of them holds (a positional record's parameters are exempt);
   RASK085 (warning + code fix) reports an entity exposing a mutable collection of other entities — expose `IReadOnlyCollection<T>` over `private readonly List<T> _items` and mutate through a method.
-  EVERYTHING RICHER THAN THOSE WRITES IS PLAIN EF CORE — there is NO Db.Begin()/UnitOfWork/Db.Current/Db.HasCurrent/Db.CurrentUnitOfWork/Db.Set<T>()/Db.Entry()/Db.SaveChangesAsync(), NO Product.Add/AddRange/Update/UpdateRange/Remove/RemoveRange/Attach/Entry/Set: a behaviour method such as `order.Cancel()` is followed by `await order.Save()`, and multi-entity work injects the context and calls SaveChangesAsync.
-  On a LIVE PAGE (it outlives a DI scope) inject `IDbContextFactory<RaskAppDbContext>` and create a context per operation;
-  a CQRS HANDLER ALSO injects IDbContextFactory<T> and creates a context per `Handle`, because a command dispatched in-process from a live page resolves its handler from that page's SESSION scope (Dispatcher captures the session provider), so a scoped context injected into a handler would be shared across the whole session;
-  only a plain ASP.NET endpoint may inject the scoped context.
-  A form binds the generated `ProductModel` or a COMMAND (a class with settable props + DataAnnotations, validated by Form and again by the dispatcher's ValidationBehavior), and the handler calls `Product.Create`/`Update` or loads the entity, calls its method and SaveChangesAsync.
+  EVERY WRITE IS AN AGGREGATE METHOD ([domain modelling](docs/domain.md)) — NO service layer, NO handler around it, NO context injected into a page or a handler: a `partial` aggregate's public method `Change(…)` gets a generated static entry `Supply.Change(id, version, …)` (Find(id, version) → the method → Save(), its roles asked first, ONE aggregate in ONE transaction), a private/internal static factory `Register(…)` gets `await Supply.Register(…)` handing back the id, plus a hidden `DryRunChange(…)` (what a form asks while it is filled in) and `Supply.MayChange`;
+  a refusal is `Refuse.When(cond, () => field, "…")` / `Refuse.Unless(…)` / `Refuse.At(…)` (a `RaskValidationException` under the field), never an InvalidOperationException; a rule over the whole aggregate is its `IEnumerable<Problem> Validate()` (`ValidateDelete()` for a delete), asked by every save;
+  ANOTHER aggregate changes from a domain event: `Raise(new X(...))` in the operation, and a one-line `IDurableHandler<X>` (outbox, at least once) or `IEventHandler<X>` that calls the other aggregate's own entry; two aggregates in one save is the LAST RESORT — both entries inside one `Db.Transaction(async () => …, manyAggregates: "why")`, the reason naming the invariant that needs it ([the transaction boundary](docs/domain.md#the-transaction-boundary));
+  a FORM is the operation's: `Form.For(Supply.Change, id)[f => [Ui.Field.Bind(() => f.Details) …]]` — fields are the parameters, filled from the aggregate, each value object's rule and the method's Refuse shown under its field as it is typed, saved through the entry at the version read ([a form over an operation](docs/forms.md#a-form-over-an-operation)); a generated `ProductModel` (trait `Model`) is only for a data-shaped aggregate with no steps;
+  a write over thousands of rows (BulkInsert, ExecuteUpdate/ExecuteDelete) is a job's or a migration's and skips the domain ([writing many rows](docs/data-writes.md)).
   `RaskAppDbContext` is `Rask.RaskAppDbContext` and declares NO DbSet properties, but **EVERY MAPPED ENTITY GETS A NAMED SET AS AN EXTENSION MEMBER ON `DbContext` ITSELF** — `db.Orders`, `db.OrderLines` (children too) — beside the `db.Set<Order>()` that still works, so an app bringing its OWN context gets them without being `partial`.
   The name follows ONE documented rule and nothing cleverer (`+s`;
   `+es` after s/x/z/ch/sh;
