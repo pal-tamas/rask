@@ -65,6 +65,10 @@ public sealed partial class RaskApp
     private readonly List<Action<IEndpointRouteBuilder>> _endpoints = [];
     private readonly RaskAppOptions _options = new();
 
+    // The process arguments, for the one place that reads them itself: `dotnet App.dll rask audit` runs a command
+    // instead of the server (AppCommand).
+    private string[] _args = [];
+
     private RaskApp(WebApplicationBuilder builder) => _builder = builder;
 
     /// <summary>The application's services. The same collection <see cref="WebApplicationBuilder"/> exposes.</summary>
@@ -99,7 +103,7 @@ public sealed partial class RaskApp
         // The app is whoever wrote this line. Its migrations live there, and Rask's own context has to be
         // told so: EF looks for them in the context's assembly by default, which is this package. The entry
         // assembly would say the same in production and lie under `dotnet ef`, whose entry point is ef.dll.
-        var app = new RaskApp(builder);
+        var app = new RaskApp(builder) { _args = args ?? [] };
         app._options.AppAssembly = Assembly.GetCallingAssembly();
 
         // Before any Configure, so what Program.cs says about toasts wins over appsettings.
@@ -155,10 +159,14 @@ public sealed partial class RaskApp
     }
 
     /// <summary>Builds the pipeline and runs the app, with <typeparamref name="TApp"/> as the root component.</summary>
+    /// <remarks>
+    /// Started as <c>dotnet App.dll rask &lt;command&gt;</c> — <c>rask audit</c>, <c>rask db migrate</c> — it runs that
+    /// command against the app's database instead, and exits with its code; the server is never started.
+    /// </remarks>
     public void Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
         where TApp : Component
-        => Build<TApp>(pathBase).Run();
+        => RunOrCommand(Build<TApp>(pathBase));
 
     /// <summary>Builds the <see cref="WebApplication"/> and applies the pipeline, without running it.</summary>
     public WebApplication Build<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
@@ -203,7 +211,20 @@ public sealed partial class RaskApp
     /// because a route for <c>rask-sw.js</c> would answer before the bundle's own file.
     /// </para>
     /// </remarks>
-    public void Serve() => BuildServe().Run();
+    public void Serve() => RunOrCommand(BuildServe());
+
+    // The command the process was started with, when it was (AppCommand), else the server.
+    private void RunOrCommand(WebApplication app)
+    {
+        if (AppCommand.Names(_args))
+        {
+            System.Environment.ExitCode = AppCommand.RunAsync(app.Services, _args, Console.Out, Console.Error, CancellationToken.None)
+                .GetAwaiter().GetResult();
+            return;
+        }
+
+        app.Run();
+    }
 
     /// <summary>What <see cref="Serve"/> runs: the browser app's server, built and not yet started.</summary>
     internal WebApplication BuildServe()

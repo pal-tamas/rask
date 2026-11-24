@@ -66,6 +66,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   No migrations yet → a warning naming `rask db add Init`, nothing created (never EnsureCreated);
   a model changed since the last migration → the start FAILS naming `rask db add <Name>`;
   concurrent instances rely on EF Core's migration lock.
+  DATA MOVES IN C#, NOT SQL: a migration's `Up` calls `b.Data(async () => await Tank.UpdateEach(_ => true, …))`; the step runs ONCE after the whole schema is migrated, with today's model, inside `Tenant.Across()` — at start, from `dotnet App.dll rask db migrate`, or after `rask db update` — recorded in `__RaskDataSteps` ([moving data in C#](docs/data.md#moving-data-in-c-with-bdata)).
+  BEFORE TURNING A RULE ON, `rask audit` (or `dotnet App.dll rask audit [--aggregate Driver] [--json]`) asks every STORED aggregate today's rules — every field's attributes, `Validate()` (awaited too), each value object's own rules and whether it is stored as they keep it, every text id readable — READ ONLY, reporting rule + field + count + ids (never row data); exit 1 when any row fails ([auditing stored data](docs/data.md#auditing-stored-data-with-rask-audit)).
   Opt out with `app.Configure(c => c.MigrateOnStart = false)` or `Rask:Database:MigrateOnStart=false` (code wins);
   a database whose schema predates the migrations is taken over with `app.Configure(c => c.Data.OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users").Patience(10.Minutes)))` (MigrateOnStart off → nothing taken over; with `c.Data.Off()` → the start refuses);
   a hand-wired host migrates only with `AddRaskData<T>(o => …).OwnsSchema(s => s.TakesOverFrom("OldLast").WhenTable("Tenant").Patience(20.Minutes))`

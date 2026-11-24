@@ -381,6 +381,66 @@ public sealed class DbCommandTests
         Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
     }
 
+    // --- the app's own data steps after `dotnet ef database update` ---------------------------------
+
+    private const string DataStepMigration = "public partial class Fill : Migration { protected override void Up(MigrationBuilder b) => b.Data(async () => await Task.Yield()); }";
+
+    [Fact]
+    public async Task An_update_of_a_RaskApp_whose_migrations_declare_a_data_step_then_has_the_app_run_them()
+    {
+        var (command, runner, _) = CreateWithProject(program: "RaskApp.Create(args).Run<App>();", migration: DataStepMigration);
+
+        var exit = await command.ExecuteAsync(["migrate"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["run", "--project", ProjectDir, "--no-build", "--", "rask", "db", "migrate"], runner.LastRun!.Arguments);
+    }
+
+    [Theory]
+    [InlineData("RaskApp.Create(args).Run<App>();", "public partial class Init : Migration { protected override void Up(MigrationBuilder b) { } }")]
+    [InlineData("var app = builder.Build(); app.Run();", DataStepMigration)]
+    public async Task An_update_with_no_data_step_or_of_a_host_wired_by_hand_runs_dotnet_ef_alone(string program, string migration)
+    {
+        var (command, runner, _) = CreateWithProject(program, migration);
+
+        await command.ExecuteAsync(["update"], CancellationToken.None);
+
+        Assert.Equal(["ef", "database", "update", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
+    }
+
+    [Fact]
+    public async Task An_update_to_a_target_never_runs_the_apps_migrate_which_would_go_all_the_way_up()
+    {
+        var (command, runner, _) = CreateWithProject(program: "RaskApp.Create(args).Run<App>();", migration: DataStepMigration);
+
+        await command.ExecuteAsync(["update", "20240101_Init"], CancellationToken.None);
+
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("rask"));
+    }
+
+    [Fact]
+    public async Task A_failed_schema_update_runs_no_data_step()
+    {
+        var (command, runner, _) = CreateWithProject(program: "RaskApp.Create(args).Run<App>();", migration: DataStepMigration);
+        runner.RunHandler = args => args[0] == "ef" ? 1 : 0;
+
+        var exit = await command.ExecuteAsync(["update"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("rask"));
+    }
+
+    private static (DbCommand Command, FakeProcessRunner Runner, StringConsole Console) CreateWithProject(string program, string migration)
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
+        fileSystem.Seed("/proj/Program.cs", program);
+        fileSystem.Seed("/proj/Migrations/20240101_Init.cs", migration);
+        return (new DbCommand(console, fileSystem, runner, ProjectDir), runner, console);
+    }
+
     private static (DbCommand Command, FakeProcessRunner Runner, StringConsole Console) CreateWithProject()
     {
         var console = new StringConsole();

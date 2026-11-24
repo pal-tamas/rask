@@ -20,6 +20,7 @@ rask db remove                        # undo the last migration
 rask db drop --yes                  # delete the database, no prompt
 rask db backup                        # copy it to ./<app>-<timestamp>.db
 rask db restore backups/shop.db       # put a copy back (--remote for the deployed one)
+rask audit                            # which stored rows today's rules refuse — ids only, reads only
 
 # ship it
 rask deploy --host root@box --domain shop.example.com   # bare box → live HTTPS

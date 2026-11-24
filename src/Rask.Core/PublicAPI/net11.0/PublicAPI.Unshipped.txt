@@ -20275,3 +20275,5 @@ override Rask.Values.Change<T>.GetHashCode() -> int
 Rask.Values.Change<T>.Equals(Rask.Values.Change<T> other) -> bool
 static Rask.Values.Change<T>.operator !=(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
 static Rask.Values.Change<T>.operator ==(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
+Rask.Values.IStoredValue
+Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
