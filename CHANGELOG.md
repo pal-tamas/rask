@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Security
+- **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:
+  the generated CQRS codec rebuilt every value object it read inside the loading scope a row is read in, on BOTH
+  ends — so a command whose `DriverName` broke its `MaxLength` (or any rule) reached the server's handler exactly as
+  the browser sent it, and "no instance exists that its rules refuse" did not hold for untrusted input. After: the
+  server reads a command, query, event or subscription with every value object made through its rules; one they
+  refuse leaves the message unbuilt and the handler uncalled, and the request is answered `400` ("Validation
+  failed") with every refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`).
+  Only the browser's read of what the server answers — a result, a pushed event (`RemoteContract.LoadMessage`) —
+  keeps the loading scope, so a value stored before a rule was tightened still reaches the page. A handler that
+  re-checked with `X.Create` may drop it. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
 - **BREAKING: a remote publish of an event is held to every handler the event has.** Before: the wire contract kept
   the attributes of ONE handler — whichever the generator found last — so an event with an `[AllowAnonymous]`
   handler and an `[Authorize(Roles = "admin")]` one could be published by anyone, running the admin's handler too.
@@ -38,6 +48,11 @@ them until tagged releases begin.
   `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
   `ISpanParsable<T>`), `ToString()` of the value, a scalar JSON converter and route binding; a member written by hand is
   kept (docs/data.md#strongly-typed-ids).
+- **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
+  Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
+  variable, a static call — configured the column, but the generated model, writes and read face silently acted as
+  if it were never made. After: a warning on the call says to write it directly in the entity's own static
+  `Configure`.
 - **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
   msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
   a form shows under that field — or above the form when none is named — instead of the error page an
@@ -133,11 +148,9 @@ them until tagged releases begin.
   between the browser and the server may hold a `record struct`; a one-value value object
   (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id
   (`record struct VehicleId(int Value)`, over a `Guid`, a `string`, …) travel as the bare value — `"ABC-123"`, `42`,
-  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. The receiving end
-  rebuilds a value object through its generated `Create` inside the loading scope a row is read in, so it is not
-  checked on arrival (a rule tightened on one end never makes the other unable to read); a handler that relies on
-  a rule asks it with `X.Create`. The generated API client is unchanged, since its server reads with
-  System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. A value object is
+  rebuilt through its generated `Create`: checked by the server, loaded as sent by the browser (see Security above).
+  The generated API client is unchanged, since its server reads with System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
@@ -181,6 +194,15 @@ them until tagged releases begin.
   comparing it with a `TimeSpan` (`> 90.Minutes`) and its `TotalDays`…`TotalMilliseconds` run in the database, a
   `DateTimeOffset` measured in UTC — the answers PostgreSQL's provider already gave
   ([Data](docs/data.md#how-long-between-two-dates-in-a-query)).
+- **Computed columns, database defaults and filtered indexes, declared in C# for every database.** Before: a model
+  said `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` and
+  `HasFilter("[TeaorId] IS NOT NULL")` — SQL Server's SQL, which the SQLite the tests run on reads differently or
+  refuses. After: `b.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol)` is a stored computed column on SQL
+  Server, PostgreSQL and SQLite, from a closed C# subset that keeps C#'s null rules (anything outside it fails the model
+  build, naming the node); `b.Default(x => x.Size, 1000)` and `b.Default(x => x.CreatedAt, () => Clock.Now)` are the
+  database's default — the latter its UTC clock — for rows Rask does not write, while Rask always writes the value the
+  entity holds (a `Size` of 0 stays 0); and `HasIndex(…).IsUnique("…").Where(x => x.RevokedAt == null)` is a filtered
+  index on SQL Server and a partial one elsewhere ([Data](docs/data.md#computed-columns-defaults-and-filtered-indexes-in-c)).
 - **`HasIndex(…).Covering(p => new { p.Amount })`: a covering index in one sentence for every database.** Before: a
   SQL Server app wrote `IncludeProperties(…)` — a SQL Server call that breaks a model built for SQLite tests — and a
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and

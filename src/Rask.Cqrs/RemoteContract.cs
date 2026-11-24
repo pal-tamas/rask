@@ -29,8 +29,19 @@ public sealed class RemoteContract
     /// <summary>Encodes the message for sending.</summary>
     public required RemoteMessageWriter WriteMessage { get; init; }
 
-    /// <summary>Decodes a received message.</summary>
+    /// <summary>
+    ///     Decodes a received message, as the one it was sent to — a server, from a client — reads it: every value object
+    ///     in it is made through its rules, and a value they refuse is a <see cref="RaskValidationException" /> naming
+    ///     each field, so no handler is given one.
+    /// </summary>
     public required RemoteMessageReader ReadMessage { get; init; }
+
+    /// <summary>
+    ///     Decodes an event the server sent — one it pushes to a browser — the way a result is read: a value object is
+    ///     kept as the server held it, as a row is loaded, so a rule tightened since it was stored leaves it readable.
+    ///     Null for a message that is no event; a transport then reads it with <see cref="ReadMessage" />.
+    /// </summary>
+    public RemoteResultReader? LoadMessage { get; init; }
 
     /// <summary>
     ///     Encodes the handler's result. Null when <see cref="ResultType" /> is <see cref="Unit" /> or

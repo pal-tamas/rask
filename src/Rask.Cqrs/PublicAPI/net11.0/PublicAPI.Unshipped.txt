@@ -296,6 +296,8 @@ Rask.Background.WorkReported.Batch.get -> System.Guid?
 Rask.Background.WorkReported.Batch.init -> void
 Rask.Background.WorkReported.Detail.get -> string?
 Rask.Background.WorkReported.Detail.init -> void
+Rask.Cqrs.RemoteContract.LoadMessage.get -> Rask.Cqrs.RemoteResultReader?
+Rask.Cqrs.RemoteContract.LoadMessage.init -> void
 Rask.Cqrs.Events
 Rask.Cqrs.EventsFake
 Rask.Cqrs.EventsFake.Clear() -> void
