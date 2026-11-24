@@ -91,6 +91,51 @@ public partial class BoundValueFidelityTests : global::Rask.Core.RaskMarkup
         Assert.Equal(expected, text);
     }
 
+    [Theory]
+    [InlineData("35.000000000", "35")]
+    [InlineData("35.5000", "35.5")]
+    [InlineData("0.000", "0")]
+    [InlineData("-1.2300", "-1.23")]
+    public void A_decimal_read_with_its_column_scale_is_written_without_the_padding(string stored, string expected)
+    {
+        var value = decimal.Parse(stored, System.Globalization.CultureInfo.InvariantCulture);
+
+        var text = BindingHelpers.FormatValue(value);
+
+        Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void A_decimal_too_large_for_the_padding_trick_is_written_whole()
+    {
+        var text = BindingHelpers.FormatValue(decimal.MaxValue);
+
+        Assert.Equal("79228162514264337593543950335", text);
+    }
+
+    [Fact]
+    public void A_number_field_bound_to_a_padded_decimal_shows_it_unpadded_and_keeps_its_step()
+    {
+        var model = new Holder { Percent = 35.000000000m, Norm = 12.5000m };
+
+        var page = Page.Render(() => Form.Model(model)[Input.Bind(() => model.Percent), Input.Bind(() => model.Norm)]);
+
+        Assert.Contains("value=\"35\"", page.Html, StringComparison.Ordinal);
+        Assert.Contains("value=\"12.5\"", page.Html, StringComparison.Ordinal);
+        Assert.Contains("step=\"any\"", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_padded_decimal_edited_in_its_field_reads_back_the_typed_value()
+    {
+        var model = new Holder { Percent = 35.000000000m };
+        var page = Page.Render(() => Form.Model(model)[Input.Bind(() => model.Percent)]);
+
+        await page.On("input").Change("36");
+
+        Assert.Equal(36m, model.Percent);
+    }
+
     public enum Colour
     {
         Red,
@@ -113,5 +158,9 @@ public partial class BoundValueFidelityTests : global::Rask.Core.RaskMarkup
         public DateTimeOffset? Since { get; set; }
 
         public Colour Colour { get; set; }
+
+        public decimal Percent { get; set; }
+
+        public decimal? Norm { get; set; }
     }
 }

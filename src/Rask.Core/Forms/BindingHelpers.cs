@@ -124,10 +124,18 @@ public static class BindingHelpers
             DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             TimeOnly t => t.ToString("HH:mm", CultureInfo.InvariantCulture),
             TimeSpan ts => TimeOfDay(ts),
+            decimal number => Unpadded(number).ToString(CultureInfo.InvariantCulture),
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? ""
         };
     }
+
+    // A decimal read from a database carries its column's scale — 35 is 35.0 from SQLite and 35.000000000 from a
+    // decimal(18,9) — and the field showed it so. Dividing by one written with the most decimals a decimal holds
+    // drops every trailing zero and changes nothing else: 35, 35.5, 0, -1.23, never an exponent.
+    private const decimal OneAtFullScale = 1.0000000000000000000000000000m;
+
+    internal static decimal Unpadded(decimal value) => value / OneAtFullScale;
 
     // A TimeSpan in a time input is a time of day, hh:mm. One that is none — a day or more, or negative — was written
     // "02:00" for 1.02:00 and "01:30" for -01:30, and a save wrote that back as the value: in the constant ("c")
