@@ -96,7 +96,10 @@ them until tagged releases begin.
   order (so a part's rule fails under `Parts[1].Quantity`), and the result says what was `Added`, `Changed` (a public
   property moved), `Removed` and `Touched`. EF Core maps it as the aggregate's collection through its backing field —
   insert, update, delete on save — and RASK085 lets it be. Two specs naming one part, or a key of another type than
-  the ids, are an `ArgumentException` before anything changes. See [Children](docs/data.md#children).
+  the ids, are an `ArgumentException` before anything changes. Children matched by a key of their own take
+  `Sync(specs, s => s.TransactionId, f => f.TransactionId, add, update)`; a child made from no row is `Parts.Add(x)` /
+  `Parts.Remove(x)`, callable only from the aggregate that declares the property — elsewhere the new error
+  [RASK180](docs/diagnostics.md#rask180). See [Children](docs/data.md#children).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a
@@ -126,9 +129,12 @@ them until tagged releases begin.
   transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
   changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
   holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
-  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`).
-  `forUpdate: true` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL Server,
-  `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none. See
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`),
+  or from the parent and the write (`(p, w) => …`: `w.Kind` is `Add`, `Change`, `Delete` or `Move`, `w.Row` the row).
+  `LockRead.ForUpdate` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL
+  Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none.
+  `.Except(t => t.RefundId, …)` lets a change that touches only those columns through (a claim taking a transaction
+  over); `.Including(p => p.Filings)` loads a parent navigation for the message. See
   [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
