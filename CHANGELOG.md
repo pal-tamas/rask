@@ -31,6 +31,11 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
+  Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
+  variable, a static call — configured the column, but the generated model, writes and read face silently acted as
+  if it were never made. After: a warning on the call says to write it directly in the entity's own static
+  `Configure`.
 - **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
   `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
   so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by

@@ -2521,8 +2521,8 @@ A field left empty, or emptied, then writes `''` — the value object holding it
 empty text — and a new row starts with `''`. A row that holds `NULL` there and is saved with the field still empty
 keeps its `NULL`, so a save that changes nothing writes nothing; a filled field still answers to every rule. A
 stored `''` loads as the value object holding it and fills the model with `""`. The writes read the call from the
-aggregate's own static `Configure`, as they read `IsUnique`; on a member not stored as text it throws when the
-model is built.
+aggregate's own static `Configure`, as they read `IsUnique` — written anywhere else it is
+[RASK165](diagnostics.md#rask165); on a member not stored as text it throws when the model is built.
 
 **Columns named before the value object existed.** EF Core names a complex type's columns `Km_Start` and `Km_End`.
 A table whose columns were already `StartKm` and `EndKm` — read by reports and raw SQL — keeps them with one line in

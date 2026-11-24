@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -155,6 +155,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
 | [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
 | [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
+| [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3309,3 +3310,30 @@ public sealed class SignUp
 ```
 
 **Fix:** name the property with `nameof(…)`, which the compiler checks.
+
+## RASK165
+
+**A configuration call the generators read is written where they cannot see it** · Warning
+
+The generated model, writes and read face exist before any EF model is built, so three calls are read from the
+source of the entity's own static `Configure`, as written there: `KeepEmpty(c => c.Member)` (an empty text kept as
+`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members) and
+`IsUnique("message")` on an aggregate's index (a form asks the store before it saves). Written anywhere else — a
+helper method, another class, `OnModelCreating`, an `IEntityTypeConfiguration` — or called as a static method, with
+the member in a variable rather than a lambda, or with a pattern that is not a constant, the call still configures
+the column, but the generated code acts as if it were never made: an emptied text is stored as `NULL`, the read
+face keeps the default column names, a taken name is told only by the save.
+
+```csharp
+public static void Configure(EntityTypeBuilder<Company> b)
+{
+    b.KeepEmpty(c => c.VatNumber);                       // ✓
+    Texts.KeepAll(b);                                    // the helper's KeepEmpty: ⚠ RASK165
+    var pattern = "{Member}Km";
+    b.Columns(c => c.Km, pattern);                       // ⚠ RASK165 — not a constant
+    b.HasIndex(c => c.Name).IsUnique("That name is taken.");   // ✓
+}
+```
+
+**Fix:** write the call directly in the entity's own static `Configure`, the member as a lambda and the pattern as a
+constant.
