@@ -1,0 +1,11 @@
+#nullable enable
+Rask.Testing.AggregateMakes
+Rask.Testing.AggregateMakes.extension(Rask.Testing.Test!)
+Rask.Testing.MakeOptions
+Rask.Testing.MakeOptions.Factory.get -> string?
+Rask.Testing.MakeOptions.Factory.set -> void
+Rask.Testing.MakeOptions.MakeOptions() -> void
+Rask.Testing.MakeOptions.Use(object! given) -> Rask.Testing.MakeOptions!
+Rask.Testing.MakeOptions.With(string! parameter, object? value) -> Rask.Testing.MakeOptions!
+static Rask.Testing.AggregateMakes.Make<T>(System.Action<Rask.Testing.MakeOptions!>? configure = null) -> System.Threading.Tasks.Task<T!>!
+static Rask.Testing.AggregateMakes.extension(Rask.Testing.Test!).Make<T>(System.Action<Rask.Testing.MakeOptions!>? configure = null) -> System.Threading.Tasks.Task<T!>!

@@ -2319,6 +2319,10 @@ await database.Context.SaveChangesAsync();
 Assert.Equal(2, await Order.Count());
 ```
 
+A test that needs an aggregate to work on and does not care which asks `await Test.Make<Order>()`
+(`Rask.Testing.Data`): it is made through the aggregate's own factory, what it refers to is made and stored first, and
+it is saved with its rules asked ([testing](testing.md#a-stored-aggregate-its-rules-accept-await-testmakesupply)).
+
 `TestDatabase.Start<AppDbContext>` builds the app's context the way the app does — through its constructor
 taking `DbContextOptions<AppDbContext>` — so what its `OnModelCreating` adds (`b.AddRaskOutbox()`, a table of
 its own) is in the schema, and its `SaveChangesAsync` override (a guard, an audit) runs on every save, whether

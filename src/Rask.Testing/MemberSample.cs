@@ -11,11 +11,20 @@ namespace Rask.Testing;
 /// </summary>
 internal static class MemberSample
 {
-    [UnconditionalSuppressMessage("Trimming", "IL2072",
-        Justification = "A test helper over the test's own value objects, which a test project never trims.")]
     public static object For(string name, ParameterInfo member)
     {
         var type = Nullable.GetUnderlyingType(member.ParameterType) ?? member.ParameterType;
+        return Of(type)
+               ?? throw new InvalidOperationException(
+                   $"Test.Make<{name}>() has no sample for its member {member.Name}, a {type.Name}. "
+                   + $"Make this one by hand, with {name}.Create(…).");
+    }
+
+    /// <summary>The sample of <paramref name="type" />, or null for a type it has none for.</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "A test helper over the test's own value objects, which a test project never trims.")]
+    public static object? Of(Type type)
+    {
         if (type == typeof(string))
         {
             return "ABCDEFGH";
@@ -38,9 +47,6 @@ internal static class MemberSample
             return ValueSample.Make(type);
         }
 
-        return SampleSteps.First(type)
-            ?? throw new InvalidOperationException(
-                $"Test.Make<{name}>() has no sample for its member {member.Name}, a {type.Name}. "
-                + $"Make this one by hand, with {name}.Create(…).");
+        return SampleSteps.First(type);
     }
 }

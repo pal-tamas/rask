@@ -28,6 +28,21 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`await Test.Make<Supply>()` makes a stored aggregate its rules accept** (new package `Rask.Testing.Data`, beside
+  `Rask.Testing`, so a component-only test project stays free of EF Core). It calls the aggregate's own factory — a
+  static method declared on it that returns it, private or not — with a value its rules take for every parameter (a
+  value object from `Test.Make<Vin>()`, a row spec through its constructor, a list of one row; a nullable left null, a
+  default kept), makes and stores first every aggregate it refers to (an aggregate parameter, a typed id, a plain id
+  named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
+  `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
+  it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
+  aggregates and every reference by hand.
+- **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
+  field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
+  validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
+  a row the path names is added, a sub-object made, `given: m => m.Km.Start = 10` fills the other fields, and
+  `Test.FormShows(model, …)` takes a model made by hand. Anything else fails with a `FormAssertionException` that says
+  what the field showed.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
