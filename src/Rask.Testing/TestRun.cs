@@ -46,7 +46,7 @@ public static class TestRun
     {
         ArgumentNullException.ThrowIfNull(fixtures);
         Begin();
-        FixtureBinding.Value = FixtureDatabase.In(fixtures)?.Bind();
+        FixtureBinding.Value = FixtureDatabase.Bind(fixtures);
     }
 
     /// <summary>Shuts down the app this test booted, if it booted one.</summary>
