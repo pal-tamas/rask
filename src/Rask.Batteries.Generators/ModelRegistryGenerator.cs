@@ -819,7 +819,12 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             foreach (var id in ids)
             {
                 source.Append("        configurationBuilder.Properties<").Append(id.TypeName).AppendLine(">()");
-                source.Append("            .HaveConversion<").Append(ConverterName(id)).AppendLine(">();");
+                source.Append("            .HaveConversion<").Append(ConverterName(id)).Append(">()");
+
+                // A Guid's text form, for Rask.Data's GuidIdTextConvention to put in place where the column is text.
+                source.AppendLine(IsGuid(id)
+                    ? "\n            .HaveAnnotation(\"Rask:GuidIdText\", new " + TextConverterName(id) + "());"
+                    : ";");
             }
         }
 
@@ -839,8 +844,36 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             source.AppendLine("        }");
             source.AppendLine("    }");
             source.AppendLine();
+
+            if (IsGuid(id))
+            {
+                EmitTextConverter(source, id);
+            }
         }
     }
+
+    // Lower case, as Guid.ToString() writes it; either case is read.
+    private static void EmitTextConverter(StringBuilder source, StronglyTypedId id)
+    {
+        source.Append("    private sealed class ").Append(TextConverterName(id))
+            .Append(" : global::Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<")
+            .Append(id.TypeName).AppendLine(", string>");
+        source.AppendLine("    {");
+        source.Append("        public ").Append(TextConverterName(id)).AppendLine("()");
+        source.Append("            : base(static id => id.").Append(id.ValueMember)
+            .Append(".ToString(), static text => new ").Append(id.TypeName)
+            .AppendLine("(global::System.Guid.Parse(text)), new global::Microsoft.EntityFrameworkCore.Storage.ValueConversion.ConverterMappingHints(size: 36))");
+        source.AppendLine("        {");
+        source.AppendLine("        }");
+        source.AppendLine("    }");
+        source.AppendLine();
+    }
+
+    private static bool IsGuid(StronglyTypedId id) =>
+        string.Equals(id.ValueTypeName, "global::System.Guid", StringComparison.Ordinal);
+
+    private static string TextConverterName(StronglyTypedId id) =>
+        ConverterName(id).Replace("Converter", "TextConverter");
 
     private static void EmitApplyConfigurations(StringBuilder source, List<Candidate> entities)
     {

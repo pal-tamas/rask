@@ -31,6 +31,13 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A typed id is one line: `public readonly partial record struct VehicleId(int Value);`.** Before: a typed id was
+  converted for EF Core and nothing else, so it printed as `VehicleId { Value = 42 }`, serialized as `{"Value":42}`,
+  could not be a `[RouteParam]` without a hand-written `IParsable`, and an id over an `int` was never the store's
+  identity. After: Rask's generator completes a top-level `readonly partial record struct …Id` with one positional
+  `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
+  `ISpanParsable<T>`), `ToString()` of the value, a scalar JSON converter and route binding; a member written by hand is
+  kept (docs/data.md#strongly-typed-ids).
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
@@ -968,6 +975,14 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A strongly-typed id over an integer is the store's identity; a `Guid` one in a text column is written lower case.**
+  Before: Rask's key convention marked a `VehicleId(int Value)` key never generated, so `Create(model)` was missing
+  and the factory had to number the row; and a `Guid` id on SQLite was stored as SQLite spells a `Guid`, in upper
+  case. After: an id over an `int` or a `long` keys an identity column exactly as the integer does (`Create(model)`
+  inserts it, `Create(id, model)` is gone unless `Configure` says `ValueGeneratedNever()`), and an id over a `Guid`
+  whose column is text — every `Guid` on SQLite, an existing schema's `nvarchar` key — is written as the id prints it,
+  in lower case. Rows already stored in upper case still load, but a `Where` on them no longer matches: lower-case the
+  column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
 - **BREAKING: a field is named by `[Display(Name = …)]` alone; `[DisplayName]` is read nowhere.** Before: a control's
   label, a filter chip, the `{0}` of a validation message, a FluentValidation message and a Rask.Data model's
   generated server checks read `System.ComponentModel.DisplayNameAttribute` where a member had no `[Display]` name —

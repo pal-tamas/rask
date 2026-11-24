@@ -104,7 +104,7 @@ framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
-| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. |
+| `Id` | `Entity<TId>` | The key. A `Guid` (or a typed id over one) is assigned in the factory; an integer (or a typed id over one) is the store's identity. |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
 | `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
@@ -1915,7 +1915,7 @@ public sealed class OrderLine : Entity<Guid>
 }
 ```
 
-**The entity owns its key.** Rask.Data's key convention leaves an integer key to the database's identity and
+**The entity owns its key.** Rask.Data's key convention leaves an integer key (or a typed id over one) to the database's identity and
 marks every other key never generated, so a `Guid` or a strongly-typed id is assigned where the entity is
 built: `Id = Guid.CreateVersion7()` in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
@@ -2572,24 +2572,60 @@ A *collection* of value objects is not mapped automatically; configure it in the
 
 ## Strongly-typed ids
 
-Use one as the aggregate's key and it is converted to its underlying value automatically — nothing declares
-it as an id:
+A typed id is one line:
 
 ```csharp
-public readonly record struct ProductId(Guid Value);
+public readonly partial record struct VehicleId(int Value);
+public readonly partial record struct DriverId(Guid Value);
+public readonly partial record struct PlateId(string Value);
+public readonly partial record struct ShiftId(Guid Value);
 
-public sealed class Product : Aggregate<ProductId> { }
+public sealed class Vehicle : Aggregate<VehicleId> { }
+public sealed class Shift : Aggregate<ShiftId>
+{
+    public VehicleId Vehicle { get; private set; }   // cannot be handed a DriverId: a compile error
+}
 ```
 
-The converter is registered once for the type, in `ConfigureConventions`, so **every** property of that
-type is converted — the key, a foreign key on another entity, a nullable one — without any of them being
-named. An id the generator cannot build a converter for is reported as
-[RASK073](diagnostics.md#rask073) rather than left to fail at model build.
+**What counts as one.** A top-level, non-generic `readonly partial record struct` whose name ends in `Id`, with
+exactly one positional parameter named `Value` of `int`, `long`, `Guid` or `string`. Leave out `partial` or
+`readonly`, name it otherwise, or wrap another type, and it is an ordinary record struct that Rask still converts
+to its value in the database (below) but does not complete.
 
-Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
+**What Rask completes it with** (the `Rask` package's generator, so a domain library that references only `Rask`
+gets it too):
 
-Like any key that is not an integer, a strongly-typed id is the entity's to assign — `new ProductId(Guid.CreateVersion7())`
-in its factory — because nothing generates one through a converter.
+| Member | Does |
+|---|---|
+| `VehicleId.New()` | a new version-7 `Guid` — an id over a `Guid` only; the others come from the store or the caller |
+| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too |
+| `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
+| JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
+| routing | `[RouteParam] public VehicleId Id { get; set; }` binds `/vehicles/42`, and `Routes.VehiclePage(id)` writes `42` back |
+
+A member you write yourself — your own `ToString`, `Parse` or `[JsonConverter]` — is kept, and only the rest is
+generated.
+
+**In the model.** Use one as the aggregate's key and it is converted to its underlying value automatically. The
+converter is registered once for the type, in `ConfigureConventions`, so **every** property of that type is
+converted — the key, a foreign key on another entity, a nullable one — without any of them being named. An id the
+generator cannot build a converter for is reported as [RASK073](diagnostics.md#rask073) rather than left to fail
+at model build. Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
+
+Who produces the key follows the value it holds:
+
+- **Over an `int` or a `long`** the key is the store's identity, exactly as the integer would be: `Vehicle.Create(model)`
+  inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
+  `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
+- **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
+  `Create(model)` does the same.
+- **Over a `string`** the caller names it: `Create(id, model)`.
+
+**A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
+existing schema's `nvarchar` key (`HasColumnType("nvarchar(1000)")`) — the id is written as `ToString()` prints it,
+`3e18ad13-d95e-4808-97bd-918b457c006b`, rather than the provider's own spelling (SQLite's is upper case). A row an
+older tool wrote in upper case still loads; a `Where` matches the stored text exactly, so such a column is
+lower-cased once. A column that stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
 
 ## Using EF Core the usual way
 

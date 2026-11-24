@@ -109,6 +109,10 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services =>
             new CoveringIndexConvention(services.GetService<IDatabaseProvider>()?.Name));
 
+        // A typed id over a Guid is written lower case wherever its column is text.
+        configurationBuilder.Conventions.Add(static services =>
+            new GuidIdTextConvention(services.GetService<IRelationalTypeMappingSource>()));
+
         foreach (var contribution in Contributions.Values)
         {
             contribution.ConfigureConventions(configurationBuilder);
