@@ -475,6 +475,7 @@ Rask.Data.TestDatabaseOptions.Shared.set -> void
 Rask.Data.TestDatabaseOptions.TestDatabaseOptions() -> void
 static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!, string!>! configure, System.Action<Rask.Data.TestDatabaseOptions!>? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
 static Rask.Data.ModelConfigurationBuilderExtensions.OrderTextBy(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, string! collation) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelConfigurationBuilderExtensions.TenantReferences<TTenant>(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.TextOrderExtensions
 static Rask.Data.TextOrderExtensions.InTextOrder(this string! text) -> string!
 Rask.Data.LazyLoadingOptionsBuilderExtensions
@@ -572,3 +573,5 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+Rask.Data.DataMigrationExtensions
+static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void

@@ -25,7 +25,11 @@ public sealed class FluentRulesInTypeWasmTests(WasmExampleAppFixture app, Playwr
     {
         await Page.SetViewportSizeAsync(width, height);
         await OpenAsync();
-        var form = Page.Locator("#v47-supplier");
+        // The demo's own result pane: the guide's source view (which spells "Saved {m.Name}") and every other demo on
+        // the page sit outside it, so a count here sees only this form's state.
+        var demo = Page.Locator(".sample-result-body:has(#v47-supplier)");
+        var form = demo.Locator("#v47-supplier");
+        var saved = demo.GetByText("Saved ");
         var name = form.GetByLabel("Name");
         var email = form.GetByLabel("E-mail");
         var rating = form.GetByLabel("Rating");
@@ -42,16 +46,16 @@ public sealed class FluentRulesInTypeWasmTests(WasmExampleAppFixture app, Playwr
         await email.FillAsync("nowhere");
         await save.ClickAsync();
         Assert.True(await email.EvaluateAsync<bool>("el => el.validity.typeMismatch"));
-        await Expect(Page.GetByText("Saved ")).ToHaveCountAsync(0);
+        await Expect(saved).ToHaveCountAsync(0);
 
         // One it takes, under an empty name: the submit goes, and NotEmpty refuses it under the field.
         await email.FillAsync("orders@acme.test");
         await save.ClickAsync();
         await Expect(form.GetByText("'Name' must not be empty.")).ToBeVisibleAsync(new() { Timeout = 10_000 });
-        await Expect(Page.GetByText("Saved ")).ToHaveCountAsync(0);
+        await Expect(saved).ToHaveCountAsync(0);
         await name.FillAsync("Acme");
         await save.ClickAsync();
-        await Expect(Page.GetByText("Saved Acme")).ToBeVisibleAsync(new() { Timeout = 10_000 });
+        await Expect(demo.GetByText("Saved Acme")).ToBeVisibleAsync(new() { Timeout = 10_000 });
     });
 
     private async Task OpenAsync()

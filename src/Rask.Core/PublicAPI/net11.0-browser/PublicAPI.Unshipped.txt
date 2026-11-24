@@ -20285,6 +20285,8 @@ override Rask.Values.Change<T>.GetHashCode() -> int
 Rask.Values.Change<T>.Equals(Rask.Values.Change<T> other) -> bool
 static Rask.Values.Change<T>.operator !=(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
 static Rask.Values.Change<T>.operator ==(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
+Rask.Values.IStoredValue
+Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
 Rask.Values.Allocation
 static Rask.Values.Allocation.Split(decimal total, int parts, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
 static Rask.Values.Allocation.Split(decimal total, System.Collections.Generic.IReadOnlyList<decimal>! weights, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
