@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
+  carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
+  `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
+  `35.0` (SQLite) or `35.000000000` (SQL Server `decimal(18,9)`) where 35 was stored. Now every bound decimal is
+  written with its trailing zeros dropped, in the invariant spelling and never with an exponent: `35`, `35.5`, `0`,
+  `-1.23`; the field's `step`/`min`/`max` still come from its shape. A money field keeps its decimals up to its
+  precision (`12.50`), as before.
 - **`Current.Tenant` and `Current.User` are held per database, not per key alone.** Before: the rows were cached
   process-wide by the tenant's or user's key, so two tests running in parallel, each on its own
   `TestDatabase.Start<T>()` with a tenant 2, read each other's row for up to 60 seconds — the wrong settings, or a
