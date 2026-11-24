@@ -152,7 +152,7 @@ var asked = await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id).UnlessWai
   is conditional and the index still decides, so two hosts meeting the same stale key leave one new waiting row.
 - A plain `Enqueue` (no `.UnlessWaiting()`) always writes a row, and its await answers `true`.
 - `Jobs.Fake()` keeps the same promise: a copy recorded and not yet `Run()` makes the next one answer `false`.
-- Inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) a collision answers
+- Inside [`Db.Transaction`](domain.md#a-check-and-the-writes-it-guards-dbtransaction) a collision answers
   `false` and the rest of the transaction still commits — on SQL Server too, where `XACT_ABORT` would doom the
   whole transaction on a refused insert: there the key is locked for the transaction (`sp_getapplock` on
   `rask-job:{key}`) before the look, so the insert never meets the index.
@@ -430,7 +430,7 @@ processor logs exactly that command.
 
 ## Inside `Db.Transaction`
 
-A job enqueued inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) is a row in
+A job enqueued inside [`Db.Transaction`](domain.md#a-check-and-the-writes-it-guards-dbtransaction) is a row in
 that transaction: the processor cannot see it before the commit, and a rollback leaves no job to run.
 
 ```csharp

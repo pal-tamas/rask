@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
@@ -73,6 +76,44 @@ internal sealed class ModelSql
         mapping ??= _mappings.FindMapping(value.GetType())
                     ?? throw new InvalidOperationException($"{Provider} has no column type for {value.GetType().Name}.");
         return mapping.GenerateSqlLiteral(value);
+    }
+
+    /// <summary>
+    ///     How <paramref name="property" />'s column stores a value — its converter included, so a value object or a
+    ///     strongly-typed id beside it is written as the column holds it — or null where the provider has no mapping.
+    /// </summary>
+    /// <remarks>
+    ///     As the model is finalized a column's mapping may not be settled yet: then it is the provider's mapping of
+    ///     what the converter stores, the converter composed before it.
+    /// </remarks>
+    internal RelationalTypeMapping? Mapping(IReadOnlyProperty property)
+    {
+        if (property.FindTypeMapping() is RelationalTypeMapping mapping)
+        {
+            return mapping;
+        }
+
+        if (property.GetValueConverter() is not { } converter)
+        {
+            return null;
+        }
+
+        var stored = _mappings.FindMapping(converter.ProviderClrType, property.GetColumnType())
+                     ?? _mappings.FindMapping(converter.ProviderClrType);
+        return (RelationalTypeMapping?)stored?.WithComposedConverter(converter, null, null, null, null);
+    }
+
+    /// <summary>
+    ///     How a column holding the one value of a value object stores that value: the mapping of
+    ///     <paramref name="held" />, then <paramref name="through" /> — the provider's own conversion of it — when there
+    ///     is one.
+    /// </summary>
+    internal RelationalTypeMapping? Held(Type held, string? storeType, ValueConverter? through)
+    {
+        var mapping = (storeType is null ? null : _mappings.FindMapping(held, storeType)) ?? _mappings.FindMapping(held);
+        return through is null || mapping is null
+            ? mapping
+            : (RelationalTypeMapping)mapping.WithComposedConverter(through, null, null, null, null);
     }
 
     /// <summary>The literal a boolean column is compared with in a filtered index.</summary>

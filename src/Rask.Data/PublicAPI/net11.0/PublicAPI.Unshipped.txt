@@ -465,6 +465,7 @@ Rask.Data.TestDatabaseOptions.Shared.set -> void
 Rask.Data.TestDatabaseOptions.TestDatabaseOptions() -> void
 static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!, string!>! configure, System.Action<Rask.Data.TestDatabaseOptions!>? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
 static Rask.Data.ModelConfigurationBuilderExtensions.OrderTextBy(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, string! collation) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelConfigurationBuilderExtensions.TenantReferences<TTenant>(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.TextOrderExtensions
 static Rask.Data.TextOrderExtensions.InTextOrder(this string! text) -> string!
 Rask.Data.LazyLoadingOptionsBuilderExtensions
@@ -567,3 +568,5 @@ Rask.Data.AfterCommitFailure.Log = 0 -> Rask.Data.AfterCommitFailure
 Rask.Data.AfterCommitFailure.Throw = 1 -> Rask.Data.AfterCommitFailure
 Rask.Data.RaskDataOptions.AfterCommitFailures.get -> Rask.Data.AfterCommitFailure
 Rask.Data.RaskDataOptions.AfterCommitFailures.set -> void
+Rask.Data.DataMigrationExtensions
+static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void

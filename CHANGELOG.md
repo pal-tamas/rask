@@ -8,6 +8,27 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A JSON column stays `nvarchar(max)` on SQL Server at every compatibility level, with no type named by the app.**
+  Before: at compatibility level 170 (which `UseRaskSqlServer` reads from a SQL Server 2025) EF Core maps a value
+  collection, a `ToJson()` complex or owned type and a primitive collection to the native `json` type, so the model —
+  and every migration — changed with the level the server reported, and a column made at 170 could not be created on a
+  150 server. The only way to pin it, `SetContainerColumnType("nvarchar(max)")`, is SQL Server's word, and SQLite fails
+  on it (`near "max"`). After: Rask's conventions keep every JSON column `nvarchar(max)` on SQL Server, `TEXT` on SQLite
+  and Npgsql's `jsonb` on PostgreSQL; a model that pinned `nvarchar(max)` by hand drops the call with no migration, and a
+  type the app states itself (`SetContainerColumnType`, `HasColumnType`) still wins. Moving a column to `json` stays a
+  migration the app writes. RASK177 now names `SetContainerColumnType` too.
+- **An index's `Where(…)` and `Computed(…)` read a one-value value object as its column.** Before:
+  `HasIndex(f => f.PistolId).Where(f => f.Number.Value > 0)` over a `record FuelingNumber(int Value) : Value` failed the
+  model build ("Number … is not a value object Fueling maps"), and `Where(f => f.Number != FuelingNumber.Unset)` failed
+  with "SqlServer has no column type for FuelingNumber", so the filter stayed a provider-specific `HasFilter`. After:
+  `.Value` is the column, compared with a plain number, and a value object constant is written as the column stores
+  it — `[Number] > 0` on SQL Server, `"Number" > 0` on PostgreSQL and SQLite.
+- **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
+  generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
+  `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
+  toasted "Saved". After: it takes `.Id`, `.Class`, `.Style`, `.Data`, `.Attributes`, `.ConfirmLeave` and
+  `.OnInvalidSubmit` onto the `<form>` it draws, and `.Saved("Company saved.")` is the toast — the dialog's in place of
+  its catalog `EditorSaved`, or the form's own when nothing hosts it. `IOperationFormHost.Saved` takes the message.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
@@ -43,6 +64,38 @@ them until tagged releases begin.
   `b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString())` (or `.InLane(e => …)`); the outbox's
   row then only enqueues a job that runs `On`, with the job's lane, renewed lease, sweep and retry — what Eszaf's
   `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
+- **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
+  as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
+  model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
+  production refused it. After: the IRaskModel says it once; Rask's providers write the key (`NO ACTION`, named by
+  the app's `ConstraintNames` rule) in the migrations and in `EnsureCreated` on SQLite, SQL Server and PostgreSQL, so
+  the delete is refused everywhere with the tenant's `WhenReferenced` sentence. It is a database key, not an EF Core
+  relationship; a database that already has the keys empties the first migration's `AddForeignKey`s
+  (docs/multi-tenancy.md).
+- **RASK133: an aggregate written on a `DbContext` around its own operations.** `db.Products.Add(p)`,
+  `db.Update(order)`, `db.Remove(supply)` (and their `Range`/`Async` forms) in a method that also calls
+  `SaveChanges(Async)` skip the aggregate's factory, its operations, their roles and the rules every save asks. The
+  message names the generated entry to call instead (`X.Register(…)`, `X.M(id, version, …)`, `X.Delete(id, version)`)
+  or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
+  reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
+  `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
+- **`rask audit` asks the stored data the rules its types declare today.** Before: a rule was asked only of what a save
+  writes — of a stored row, only the fields a save changes — so an old row a tightened rule refuses stayed unseen
+  until someone edited it, and finding them took hand-written SQL per rule. After: `rask audit` (or, on the server,
+  `dotnet App.dll rask audit`) loads every aggregate whole, a page at a time and from every tenant, and asks what a save
+  adding it would ask — every attribute of every row, `IValidatableObject`, `Validate()`, awaited rules too, each in the
+  aggregate's tenant — plus each value object's own rules (which a load never asks) and whether it is stored as its
+  rules keep it, and whether every id kept as text is one the app reads and writes that way. It reports each rule
+  broken by field (a child's rows together, `Lines[*].Quantity`) with the count and the ids alone; `--aggregate Name`
+  narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
+  save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
+  See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
+- **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
+  moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
+  aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
+  app's release step, `MigrateOnStart` on or off), and after `rask db update` (which then has the app run them) — once,
+  recorded in `__RaskDataSteps`; a migration `dotnet ef` applied has its steps run the next time the app migrates. See
+  [docs/data-writes.md](docs/data-writes.md#moving-data-in-c-with-bdata).
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
@@ -118,6 +171,13 @@ them until tagged releases begin.
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
   `RaskDataOptions.AfterCommitFailures = AfterCommitFailure.Throw` hands it to the caller once all have run (the
   exception, or an `AggregateException` of several).
+- **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
+  entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
+  transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,
+  text order, `Db.Lock`, code that runs the same on every database, migrations) and `docs/data-writes.md` (bulk
+  insert, batch updates, moving stored rows). Gone from the docs: the command handler and the page that inject a
+  context factory to save, rules that throw `InvalidOperationException`, and SQL or store types written in the model.
+  Two aggregates in one save is the last resort, both entries inside one `Db.Transaction(…, manyAggregates: "why")`. The rask.sh guides follow.
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
   sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or

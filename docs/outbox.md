@@ -84,7 +84,7 @@ app.Configure(c => c.Outbox.Configure(o => o.HandlerInTransaction = true));
   that throws, a mark that fails, a lease another instance took over — each rolls the handler's writes back with the
   mark, and the next run starts from where the last one was. For what goes to the database, that is exactly once.
 - Everything the handler writes joins — `X.Update`, `Save`, a context of the app's own, even one from
-  `IDbContextFactory` — as it does inside any [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction).
+  `IDbContextFactory` — as it does inside any [`Db.Transaction`](domain.md#a-check-and-the-writes-it-guards-dbtransaction).
   It needs the model database the app registers (`AddRaskData<AppDbContext>()`, which `RaskApp` does).
 - The transaction stays open while the handler runs: keep a slow call outside the database out of it — or make the
   handler a [job](jobs.md#an-aggregates-handler-as-a-job).
