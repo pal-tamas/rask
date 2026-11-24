@@ -124,6 +124,11 @@ them until tagged releases begin.
   built and saved with its rules in one `Db.Transaction`, the id handed back. A factory left public gets none and is
   the warning [RASK173](docs/diagnostics.md#rask173). Each operation and factory also gets `Supply.MayChange` — whether
   the signed-in principal holds one of its roles, `true` when it names none — for a page to hide what it may not do.
+- **An operation can be tried without being done.** Each operation and factory also gets a hidden
+  `Supply.DryRunChange(id, version, …)` / `DryRunRegister(…)`: the method run on a fresh copy, the rules a save asks
+  asked of it (attributes of what changed, `Validate()`, a `Refuse`, a stale version), every failure handed back under
+  its field — and nothing written, versioned, announced or locked (`Db.Lock` inside the rules is not taken). It is the
+  engine a form over the operation uses to show the domain's own rules as it is filled in.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

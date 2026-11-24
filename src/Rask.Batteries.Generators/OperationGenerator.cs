@@ -51,6 +51,9 @@ public sealed class OperationGenerator : IIncrementalGenerator
     private const string RolesParameter = "roles";
     private const string TaskFqn = "global::System.Threading.Tasks.Task";
 
+    private const string FailuresTask =
+        "global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<global::Rask.Wire.FieldFailure>>";
+
     // The names the writes and the conventions already take: an entry by one of them would hide a generated write.
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
@@ -352,10 +355,12 @@ public sealed class OperationGenerator : IIncrementalGenerator
             if (operation.Factory)
             {
                 AppendFactoryEntry(s, aggregate, operation);
+                AppendFactoryDryRun(s, aggregate, operation);
             }
             else
             {
                 AppendEntry(s, aggregate, operation);
+                AppendDryRun(s, aggregate, operation);
             }
         }
 
@@ -421,6 +426,63 @@ public sealed class OperationGenerator : IIncrementalGenerator
             .Append(aggregate.IdType).Append(">(\"").Append(operation.Name).Append("\", ").Append(RolesLiteral(operation))
             .Append(", () => ").Append(call).AppendLine(", cancellationToken);");
         s.AppendLine();
+    }
+
+    // What a form asks while it is filled in: the operation run on a copy, nothing saved (GeneratedOperations.Try).
+    private static void AppendDryRun(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
+        var call = operation.Call.Replace("{0}", operation.Name + "(" + arguments + ")");
+
+        s.Append("    /// <summary>Tries <c>").Append(operation.Name)
+            .AppendLine("(…)</c> on a copy of the aggregate, its rules asked as a save asks them, and nothing written: what it would be refused for.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The id of the aggregate.</param>");
+        if (aggregate.Versioned)
+        {
+            s.AppendLine("    /// <param name=\"version\">The version the caller read.</param>");
+        }
+
+        AppendParameterDocs(s, operation);
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the try.</param>");
+        s.AppendLine("    /// <returns>Every failure under the field it names; empty when the operation would go through.</returns>");
+        AppendHidden(s);
+        s.Append("    public static ").Append(FailuresTask).Append(" DryRun").Append(operation.Name).Append('(')
+            .Append(aggregate.IdType).Append(" id, ");
+        if (aggregate.Versioned)
+        {
+            s.Append("int version, ");
+        }
+
+        AppendParameters(s, operation);
+        s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("        global::Rask.Data.GeneratedOperations.Try<").Append(aggregate.FullyQualifiedName).Append(">(id!, ")
+            .Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call).AppendLine(", cancellationToken);");
+        s.AppendLine();
+    }
+
+    private static void AppendFactoryDryRun(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
+        var call = operation.Call.Replace("{0}", operation.Name + "(" + arguments + ")");
+
+        s.Append("    /// <summary>Tries <c>").Append(operation.Name).Append("(…)</c>: the <c>").Append(aggregate.Name)
+            .AppendLine("</c> built and its rules asked as a save asks them, and nothing written: what it would be refused for.</summary>");
+        AppendParameterDocs(s, operation);
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the try.</param>");
+        s.AppendLine("    /// <returns>Every failure under the field it names; empty when the factory would go through.</returns>");
+        AppendHidden(s);
+        s.Append("    public static ").Append(FailuresTask).Append(" DryRun").Append(operation.Name).Append('(');
+        AppendParameters(s, operation);
+        s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("        global::Rask.Data.GeneratedOperations.TryBuild<").Append(aggregate.FullyQualifiedName)
+            .Append(">(() => ").Append(call).AppendLine(", cancellationToken);");
+        s.AppendLine();
+    }
+
+    private static void AppendHidden(StringBuilder s)
+    {
+        s.Append("    [global::System.CodeDom.Compiler.GeneratedCode(\"").Append(Tool).AppendLine("\", \"1\")]");
+        s.AppendLine("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
     }
 
     private static void AppendMay(StringBuilder s, Operation operation)

@@ -1115,6 +1115,12 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
   anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
   the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **Tried, not done: `Supply.DryRunChange(id, version, …)`** (hidden; a factory's is `DryRunRegister(…)`) runs the
+  operation on a fresh copy of the aggregate and asks the rules a save would — the changed properties' attributes,
+  `Validate()`, a `Refuse` in the method, a stale version — and hands back every `FieldFailure` under the field it
+  names, empty when it would go through. Nothing is written, no version bumped, no event published, and a
+  `Db.Lock` inside the rules is not taken. It is what a form over the operation asks while it is filled in, so the
+  rules the form shows are the domain's own.
 - **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
   in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
   entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
