@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK150, RASK165, RASK170–RASK173, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK150, RASK165, RASK170–RASK173, RASK180, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -162,6 +162,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
 | [RASK173](#rask173) | Warning | A factory is public, so its generated entry cannot be called |
+| [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3444,3 +3445,27 @@ private static Supply Register(CompanyId company, SupplyDetails details) => …;
 
 **Fix:** make the factory `private` or `internal`. Code that only wants the aggregate built, not saved, calls it from
 inside the aggregate (or the assembly, when it is `internal`).
+
+## RASK180
+
+**Children are added or removed outside their aggregate** · Error
+
+`Children<TEntity, TSpec>` is read by everyone and changed only by the aggregate that declares it: through `Sync`, or
+through `Add` and `Remove` in its own methods, where its rules are. C# has no access level for "only my holder", so
+`Add` and `Remove` are public and this error says it instead. A call is allowed when its receiver is the property (or
+field) of the type the call is written in — or of a type it is nested in: `Parts.Add(part)`, `this.Parts.Remove(p)`,
+`other.Parts.Add(p)` between two of the same aggregate, and `Parts.Add` handed over as a delegate. Children held in a
+local or returned from a method cannot be traced to their aggregate, so they are refused even inside it.
+
+```csharp
+public sealed class Supply : Aggregate<SupplyId>
+{
+    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+    public void Take(SupplyPart part) => Parts.Add(part);   // ✓ the aggregate's own method
+}
+
+supply.Parts.Add(part);                                      // ✗ RASK180, from a page or a handler
+supply.Take(part);                                           // ✓
+```
+
+**Fix:** call the aggregate's method that adds or removes the child, or write one.

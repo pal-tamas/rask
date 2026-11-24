@@ -143,7 +143,7 @@ internal static class DomainValidation
                     continue;
                 }
 
-                var writes = type.Select(e => new LockedWrite(e, PlaceOf(e))).ToList();
+                var writes = type.Select(e => new LockTarget(e, PlaceOf(e))).ToList();
                 foreach (var rule in locks)
                 {
                     Failures.AddRange(await rule.Check(context, writes, cancellationToken).ConfigureAwait(false));

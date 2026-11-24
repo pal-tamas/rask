@@ -5,7 +5,7 @@ namespace Rask.Data;
 
 /// <summary>
 ///     What a child reads as through its public properties, taken before and after an update, so
-///     <see cref="Children{TEntity,TSpec}.Sync" /> tells a child its update changed from one it left as it was.
+///     <c>Children.Sync</c> tells a child its update changed from one it left as it was.
 /// </summary>
 /// <remarks>
 ///     Values compare by <see cref="object.Equals(object, object)" />: a value object or a typed id by its value, a

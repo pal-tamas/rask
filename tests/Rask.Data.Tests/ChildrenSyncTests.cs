@@ -96,6 +96,40 @@ public sealed class ChildrenSyncTests : IDisposable
         Assert.Equal("A part weighs something.", Assert.Single(refused.Errors["Parts[1].Tonnes"]));
     }
 
+    [Fact]
+    public void A_keyed_sync_matches_children_by_their_own_key_and_refuses_a_key_named_twice()
+    {
+        var cargo = Cargo.Load("Aurora", [new(null, "A", 10), new(null, "B", 20)]);
+        var (a, b) = (cargo.Parts[0], cargo.Parts[1]);
+
+        var sync = cargo.Restow([new(null, "B", 25), new(null, "C", 5)]);
+        var refused = Assert.Throws<ArgumentException>(() => cargo.Restow([new(null, "C", 1), new(null, "C", 2)]));
+
+        Assert.Equal([b, sync.Added[0]], cargo.Parts);
+        Assert.Equal([b], sync.Changed);
+        Assert.Equal([a], sync.Removed);
+        Assert.Equal(25, b.Tonnes);
+        Assert.Equal("specs", refused.ParamName);
+        Assert.Equal(5, cargo.Parts[1].Tonnes);
+    }
+
+    [Fact]
+    public async Task A_child_the_aggregate_adds_or_removes_itself_is_inserted_or_deleted_on_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var cargo = Cargo.Load("Aurora", [new(null, "A", 10)]);
+        await cargo.Save(cancellationToken: Token);
+        var stored = (await Cargo.Find(cargo.Id, Token))!;
+
+        var stowed = stored.Stow("B", 7);
+        var unloaded = stored.Unload(stored.Parts.Single(p => p.Hold == "A"));
+        await stored.Save(cancellationToken: Token);
+
+        Assert.True(unloaded);
+        var parts = await database.Context.Set<CargoPart>().AsNoTracking().ToListAsync(Token);
+        Assert.Equal(stowed.Id, Assert.Single(parts).Id);
+    }
+
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 }

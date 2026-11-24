@@ -14,7 +14,7 @@ public sealed class ForUpdateReadTests
     {
         using var db = Open();
 
-        var sql = ForUpdateSql.Rewrite(db.Database.ProviderName, ParentLock<Period>.ForUpdate(db, Key(db), [3, 4]).ToQueryString());
+        var sql = ForUpdateSql.Rewrite(db.Database.ProviderName, ParentRead<Period>.ForUpdate(db, Key(db), [3, 4]).ToQueryString());
 
         Assert.Contains("FROM \"Periods\" AS p", sql, StringComparison.Ordinal);
         Assert.EndsWith("\nFOR UPDATE OF p", sql, StringComparison.Ordinal);

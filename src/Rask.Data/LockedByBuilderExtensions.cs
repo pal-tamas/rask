@@ -35,25 +35,20 @@ public static class LockedByBuilderExtensions
     /// <param name="parent">The row's property holding its parent's key: <c>n =&gt; n.Period</c>.</param>
     /// <param name="locked">When the parent locks its rows: <c>(Period p) =&gt; p.Closed</c>, translated to the database's SQL.</param>
     /// <param name="message">What the refused save says. Shown as written.</param>
-    /// <param name="forUpdate">
-    ///     Reads the parents with an update lock held to the end of the save's transaction — <c>UPDLOCK, HOLDLOCK</c> on SQL
-    ///     Server, <c>FOR UPDATE</c> on PostgreSQL; SQLite's one writer serializes the save already — so a parent cannot be
-    ///     locked between the check and the write. The save then runs in a transaction of its own when the caller opened
-    ///     none.
-    /// </param>
-    /// <returns>The same builder.</returns>
+    /// <param name="read">How the parents are read: <see cref="LockRead.ForUpdate" /> holds them to the end of the save.</param>
+    /// <returns>The lock's further steps: <c>Except</c>, <c>Including</c>.</returns>
     /// <exception cref="ArgumentException"><paramref name="parent" /> names no property of the row, or <paramref name="message" /> is blank.</exception>
-    public static EntityTypeBuilder<T> LockedBy<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent, TParentId>(
+    public static LockedByBuilder<T, TParent> LockedBy<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent, TParentId>(
         this EntityTypeBuilder<T> builder,
         Expression<Func<T, TParentId?>> parent,
         Expression<Func<TParent, bool>> locked,
         string message,
-        bool forUpdate = false)
+        LockRead read = LockRead.Plain)
         where T : class
         where TParent : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
-        return builder.LockedBy(parent, locked, _ => message, forUpdate);
+        return builder.LockedBy(parent, locked, (_, _) => message, read);
     }
 
     /// <summary>
@@ -67,15 +62,45 @@ public static class LockedByBuilderExtensions
     /// <param name="parent">The row's property holding its parent's key: <c>n =&gt; n.Period</c>.</param>
     /// <param name="locked">When the parent locks its rows: <c>(Period p) =&gt; p.Closed</c>, translated to the database's SQL.</param>
     /// <param name="message">What the refused save says, from the locked parent as it is stored.</param>
-    /// <param name="forUpdate">Reads the parents with an update lock, as the other overload's <c>forUpdate</c> does.</param>
-    /// <returns>The same builder.</returns>
+    /// <param name="read">How the parents are read: <see cref="LockRead.ForUpdate" /> holds them to the end of the save.</param>
+    /// <returns>The lock's further steps: <c>Except</c>, <c>Including</c>.</returns>
     /// <exception cref="ArgumentException"><paramref name="parent" /> names no property of the row.</exception>
-    public static EntityTypeBuilder<T> LockedBy<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent, TParentId>(
+    public static LockedByBuilder<T, TParent> LockedBy<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent, TParentId>(
         this EntityTypeBuilder<T> builder,
         Expression<Func<T, TParentId?>> parent,
         Expression<Func<TParent, bool>> locked,
         Func<TParent, string> message,
-        bool forUpdate = false)
+        LockRead read = LockRead.Plain)
+        where T : class
+        where TParent : class
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return builder.LockedBy(parent, locked, (p, _) => message(p), read);
+    }
+
+    /// <summary>
+    ///     Refuses every write of a <typeparamref name="T" /> whose parent is <paramref name="locked" />, saying so in words
+    ///     made from the parent and the write: <c>(p, w) =&gt; w.Kind == LockedWriteKind.Delete ? … : …</c>.
+    /// </summary>
+    /// <typeparam name="T">The row that is locked.</typeparam>
+    /// <typeparam name="TParent">The row whose state locks it.</typeparam>
+    /// <typeparam name="TParentId">The parent's key, as the row holds it: a typed id, an <c>int</c>, a nullable one.</typeparam>
+    /// <param name="builder">The row's entity builder.</param>
+    /// <param name="parent">The row's property holding its parent's key: <c>n =&gt; n.Period</c>.</param>
+    /// <param name="locked">When the parent locks its rows: <c>(Period p) =&gt; p.Closed</c>, translated to the database's SQL.</param>
+    /// <param name="message">
+    ///     What the refused save says, from the locked parent as it is stored (with what <c>Including</c> loads) and the
+    ///     write: an add, a change, a delete or a move, and the row.
+    /// </param>
+    /// <param name="read">How the parents are read: <see cref="LockRead.ForUpdate" /> holds them to the end of the save.</param>
+    /// <returns>The lock's further steps: <c>Except</c>, <c>Including</c>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="parent" /> names no property of the row.</exception>
+    public static LockedByBuilder<T, TParent> LockedBy<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent, TParentId>(
+        this EntityTypeBuilder<T> builder,
+        Expression<Func<T, TParentId?>> parent,
+        Expression<Func<TParent, bool>> locked,
+        Func<TParent, LockedWrite<T>, string> message,
+        LockRead read = LockRead.Plain)
         where T : class
         where TParent : class
     {
@@ -84,9 +109,11 @@ public static class LockedByBuilderExtensions
         ArgumentNullException.ThrowIfNull(locked);
         ArgumentNullException.ThrowIfNull(message);
 
-        ParentLocks.Add(typeof(T), new ParentLock<TParent>(PropertyOf(parent), locked, message, forUpdate));
-        return builder;
+        var rule = new ParentLock<T, TParent>(PropertyOf(parent), locked, message, read);
+        ParentLocks.Add(typeof(T), rule);
+        return new LockedByBuilder<T, TParent>(rule);
     }
+
 
     // n => n.Period, seen through the conversion a nullable or boxed key puts around it.
     private static string PropertyOf<T, TParentId>(Expression<Func<T, TParentId?>> parent)

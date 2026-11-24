@@ -204,6 +204,18 @@ is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two r
 type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
 carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`.
 
+Children matched by something other than their `Id` — a delivery note's fuellings by their transaction — take a key
+of their own on both sides, with the same refusal of a key named twice:
+
+```csharp
+Fuellings.Sync(fuellings, f => f.TransactionId, f => f.TransactionId,
+    add: DeliveryNoteTransaction.For, update: (f, s) => f.Use(s.Quantity));
+```
+
+A child the aggregate makes itself, from no row, is `Add`ed — `Fuellings.Add(await Transaction.FreeFor(…))` — and
+one it lets go is `Remove`d. Both are the aggregate's alone: called from any other type, or on children held in a
+local, they are [RASK180](diagnostics.md#rask180), an error.
+
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
 when you want them — listing a thousand orders should not drag in every line each of them holds:
@@ -1079,7 +1091,7 @@ public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
     b.LockedBy(n => n.Period, (Period p) => p.Closed, Texts.PeriodClosed);
 
 public static void Configure(EntityTypeBuilder<GasClaim> b) =>     // the words made from the parent
-    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", forUpdate: true);
+    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", LockRead.ForUpdate);
 ```
 
 `n => n.Period` is the property holding the parent's key — a typed id, an `int`, a nullable one — and
@@ -1094,7 +1106,7 @@ of the save:
   is refused as the note would be: the aggregate is the unit the lock holds.
 - **Under the parent field, or the whole row.** A new row, or one whose parent the save changes, is refused under
   that field (`Period`); any other write is refused about the row itself — the whole form for a root.
-- **`forUpdate: true`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
+- **`LockRead.ForUpdate`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
   SQL Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite, whose one writer serializes the save already — so a
   "Close period" cannot slip in between the check and the write. The save runs in a transaction of its own when its
   caller opened none (inside `Db.Transaction`, it is that one). A context whose execution strategy retries cannot
@@ -1102,6 +1114,28 @@ of the save:
 
 The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
 same save closes is judged as the database has it, before this save.
+
+**Columns a lock lets through, and words for each write.** A filed return holds its transactions, but a claim may still
+take one over by its refund columns; and "deleted" and "changed" want different sentences, which may name something
+the parent holds:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Transaction> b) =>
+    b.LockedBy(t => t.RefundId, (Refund r) => r.Filings.Any(f => f.UnfiledAt == null),
+            (r, write) => write.Kind == LockedWriteKind.Delete
+                ? $"{r.Name} is filed at {r.Filings[0].Office}: it keeps its transactions."
+                : $"{r.Name} is filed at {r.Filings[0].Office}: {write.Row.Litres} litres stay as filed.")
+        .Except(t => t.RefundId, t => t.ForeignRefundId)    // a change to only these passes, under a filed refund too
+        .Including(r => r.Filings);                         // loaded with each locked parent, for the words
+```
+
+- **`Except(columns)`** lets a change through when every column it touches is one of these — even the parent key, so a
+  claim moves the transaction. An add, a delete, a change to any other column, and a change through a child are
+  still refused.
+- **The message `(parent, write)`** is told the write's `Kind` — `Add`, `Change`, `Delete` or `Move` (a new parent) —
+  and its `Row`, as the save would write it.
+- **`Including(p => p.Navigation)`** loads that navigation of each locked parent before the message reads it; without
+  it the parent comes back as its own columns only.
 
 ### An operation, run as one write
 
