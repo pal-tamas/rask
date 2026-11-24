@@ -180,6 +180,24 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     }
 
     [Fact]
+    public void A_value_of_several_members_is_asked_live_under_the_member_its_problem_names_beside_the_others()
+    {
+        var model = new BunkerModel();
+        var ruleOf = Generated<Func<string, Delegate?>>("RigOpeningModel_RuleOf", typeof(BunkerModel));
+        var quantity = (Func<object, decimal?, IEnumerable<string>>)ruleOf("Quantity")!;
+        var date = (Func<object, DateOnly?, IEnumerable<string>>)ruleOf("Date")!;
+
+        var alone = quantity(model.Opening!, 5m);
+        var dateAlone = date(model.Opening!, null);
+        model.Opening!.Date = new DateOnly(2026, 3, 1);
+        var both = quantity(model.Opening, 5m);
+
+        Assert.Equal([RigOpening.BothOrNeither], alone);
+        Assert.Empty(dateAlone);
+        Assert.Empty(both);
+    }
+
+    [Fact]
     public void Check_answers_a_hand_written_form_what_Create_would_refuse_with()
     {
         Rask.Core.Forms.Validate<string> driver = RigDriver.Check;

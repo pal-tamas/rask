@@ -1747,6 +1747,13 @@ the generated `X.__Problems`, so the two cannot drift. A value object not declar
 of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
 ([RASK132](diagnostics.md#rask132)) rather than let it look like a rule that passed.
 
+**A value object of several values is asked as the form is filled, too.** Each member of its nested model —
+`Km.Start` and `Km.End` of a `Range`, `Opening.Date` and `Opening.Quantity` of a `: Value` record with its own
+`Rules()` — asks the value object's generated `TryCreate` with what the model holds beside it, and shows each
+`Problem` under the member it names: `Problem.At(Quantity, "Both or neither.")` is under `Opening.Quantity` the moment
+the quantity is typed without a date, not only on save. A member the value object needs and the model leaves empty
+says only that it is required; a problem about the whole value (`Problem.Whole`) is shown on save, under the field.
+
 **A non-nullable value-object property is required, and its base says so.** No attribute is needed:
 
 ```csharp

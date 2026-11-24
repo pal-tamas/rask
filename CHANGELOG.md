@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A value object of several values is asked as the form is filled.** Before: only a `Range`'s ends were checked
+  live; a `: Value` record of several members — `Opening(DateOnly? Date, decimal? Quantity)` with its own `Rules()` —
+  spoke only on save. After: every member of its nested model asks the record's generated `TryCreate` beside the
+  other members, and each problem shows under the member it names (`Opening.Quantity`) as it is typed.
 - **A `: Value` record of one member is a one-value value object, and `Whole` holds an `int` too.** Before:
   `record Rank(int Value) : Value { … Rules() … }` was built with `new` by the generated model, its rules ran only
   on save and a refusal named no field; `Whole` took only a `long Value`. After: it gets `__Problems`, the form asks it

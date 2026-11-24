@@ -77,7 +77,7 @@ public sealed partial class ModelInputGenerator
 
         foreach (var nested in entity.ValueObjects.Where(static v => !v.SingleValue))
         {
-            var ends = RangeEnds(nested).Select(static e => e.Property).ToList();
+            var ends = RangeEndNames(nested).ToList();
             var fields = nested.Members
                 .Select(m => (m.Name, Shape: MemberShape(entity, m.Shape, m.ValueObject) ??
                                              (ends.Contains(m.Name, StringComparer.Ordinal) ? EndsOf + "(" + nested.TypeName + ".__Field)" : null)))
