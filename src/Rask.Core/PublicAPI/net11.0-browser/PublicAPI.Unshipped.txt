@@ -20329,3 +20329,4 @@ static Rask.Core.Forms.PickedFile.Of(string! name, byte[]! content, string! cont
 static Rask.Core.Forms.PickedFile.Read(Rask.Core.Forms.IRaskFile! file, long maxSize = 52428800, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Forms.PickedFile!>!
 Rask.Core.Globalization.RaskString.FileTooLarge = 305 -> Rask.Core.Globalization.RaskString
 static Rask.Values.Problem.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member, string! message) -> Rask.Values.Problem
+static Rask.Core.Forms.RaskValidation.RegisterHiddenFields(System.Type! modelType, System.Func<string!, bool>! isHidden) -> void

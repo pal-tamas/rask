@@ -79,6 +79,49 @@ internal sealed class ModelSql
     }
 
     /// <summary>
+    ///     A column's default constant as its SQL: <paramref name="value" /> through the column's converter, or — when
+    ///     <paramref name="stored" /> — already as the column stores it.
+    /// </summary>
+    /// <remarks>
+    ///     A SQL Server bit is written bare (<c>0</c>), as a hand-written default and the one a legacy schema carries say
+    ///     it, so a model moving from <c>HasDefaultValueSql("0")</c> to <c>Default(x =&gt; x.Flag, false)</c> changes no
+    ///     column.
+    /// </remarks>
+    internal string Default(object? value, RelationalTypeMapping? mapping, bool stored)
+    {
+        if (value is null)
+        {
+            return "NULL";
+        }
+
+        var provider = stored || mapping?.Converter is null ? value : mapping.Converter.ConvertToProvider(value);
+        return provider switch
+        {
+            null => "NULL",
+            bool flag when IsSqlServer => flag ? "1" : "0",
+            _ when mapping is not null => mapping.GenerateProviderValueSqlLiteral(provider),
+            _ => Literal(provider),
+        };
+    }
+
+    /// <summary>
+    ///     The database's wall clock — its current local time, in the zone the database server runs in — as a
+    ///     <see cref="DateTime" /> column holds it.
+    /// </summary>
+    /// <remarks>
+    ///     <c>CURRENT_TIMESTAMP</c> on SQL Server (the server's local time, as a legacy schema's default writes it),
+    ///     <c>LOCALTIMESTAMP</c> on PostgreSQL (the session's zone), and SQLite's local time in the text a
+    ///     <see cref="DateTime" /> is stored as there.
+    /// </remarks>
+    internal string Wall() =>
+        Provider switch
+        {
+            ProviderNames.SqlServer => "CURRENT_TIMESTAMP",
+            ProviderNames.Sqlite => "strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime')",
+            _ => "LOCALTIMESTAMP",
+        };
+
+    /// <summary>
     ///     How <paramref name="property" />'s column stores a value — its converter included, so a value object or a
     ///     strongly-typed id beside it is written as the column holds it — or null where the provider has no mapping.
     /// </summary>

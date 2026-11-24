@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
@@ -22,10 +23,15 @@ internal sealed class TextCollationOptionsExtension : IDbContextOptionsExtension
 
     public string Collation => SqliteCollations.TextOrder;
 
+    public string SearchCollation => SqliteCollations.SearchOrder;
+
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
-    public void ApplyServices(IServiceCollection services) =>
+    public void ApplyServices(IServiceCollection services)
+    {
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor>(SqliteCollationInterceptor.Instance));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IMethodCallTranslatorPlugin, SqliteSearchTranslatorPlugin>());
+    }
 
     public void Validate(IDbContextOptions options)
     {

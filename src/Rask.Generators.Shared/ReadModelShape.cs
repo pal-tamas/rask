@@ -492,7 +492,7 @@ internal static class ReadModelShape
             members.Add(new ReadMember("Version", "Version", "Version", "int", false, false));
         }
 
-        if (AggregateShape.SoftDeletes(entity))
+        if (AggregateShape.SoftDeletes(entity) || AggregateShape.SoftRemoves(entity))
         {
             members.Add(new ReadMember("DeletedAt", "DeletedAt", "DeletedAt", "global::System.DateTime", true, false));
         }
@@ -504,6 +504,7 @@ internal static class ReadModelShape
     private static void AddTenantColumn(INamedTypeSymbol entity, List<ReadMember> members)
     {
         if (!AggregateShape.IsAggregate(entity) || !AggregateShape.Has(entity, AggregateShape.PerTenant) ||
+            AggregateShape.TenantParentOf(entity) is not null ||
             members.Exists(static m => string.Equals(m.Name, AggregateShape.TenantColumn, StringComparison.Ordinal)))
         {
             return;

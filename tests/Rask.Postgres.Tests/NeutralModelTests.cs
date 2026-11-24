@@ -143,7 +143,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Size\" integer NOT NULL DEFAULT 1000", script, StringComparison.Ordinal);
+        Assert.Contains("\"Size\" integer NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
         Assert.Contains("\"CreatedAt\" timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
         Assert.Contains("\"CountedAt\" timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
     }

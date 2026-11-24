@@ -183,6 +183,39 @@ declared or shadow, a `TenantId` on a child is data; only `PerTenant` on the agg
 reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
 the property if the column should stay.
 
+### An aggregate that belongs to another one's tenant: `PerTenantThrough<T>`
+
+Some aggregates are not held in a collection and keep no tenant of their own, but belong to whoever owns the
+aggregate they point at — a distribution of a supply, a pairing of a fueling. Name that aggregate on the base:
+
+```csharp
+public sealed class Distribution : Aggregate<DistributionId, Versioned, PerTenantThrough<Supply>>
+{
+    public SupplyId Supply { get; private set; }     // the key the tenant is read through
+}
+```
+
+It gets no `TenantId` column. Its filter is the child's: an `EXISTS` on the `Supply` its key names, through the
+supply's own filters, and a save under another tenant's supply is refused as a child's is. The relationship is the
+strongly-typed id's, or a foreign key its `Configure` maps (`b.HasOne<Supply>().WithMany().HasForeignKey(…)`); a
+model with neither is refused when it is built. A row whose key is NULL belongs to nobody.
+
+### One read across tenants: `X.Across(reason)`
+
+A rule sometimes has to see every tenant's rows — a sign-in name unique across all of them, a chip lent to another
+partner. Say so on the one query, with the reason:
+
+```csharp
+if (await User.Across("a user name is unique across every partner").Any(u => u.Username == Username && u.Id != Id))
+    yield return Problem.At(Username, Texts.UsernameTaken);
+```
+
+It lifts the tenant filter — and only that one — from every table the query reads: a child read through its
+parent, and a `PerTenantThrough` aggregate, are read across too, while a soft-deleted row stays hidden. The reason
+is required and never empty, so each crossing says what it is for where a reviewer reads it. It only reads: a row it
+hands back is still saved in the tenant it belongs to. `Tenant.Across()` remains for a block of work — an admin
+tool, a migration — that spans tenants as a whole.
+
 ## Where the tenant comes from
 
 **The signed-in user's.** The tenant is an outcome of authentication rather than an input to routing: signing
@@ -350,7 +383,9 @@ holding a `Guid` ([kept as text](#tenants-kept-as-text)), and it must be the key
 [RASK113](diagnostics.md#rask113); a project with `PerTenant` tables and no `ITenant` is warned with the line to
 add ([RASK115](diagnostics.md#rask115)).
 
-**It is not a query.** The row is read once per tenant and held for the whole process: the framework reads it as
+**It is not a query.** The row is read once per tenant and held for the whole process — per database, so two apps
+in one process (two tests side by side, each on its own `TestDatabase`, both with a tenant 2) never read each
+other's row: the framework reads it as
 each request, live event, job, mail and outbox message starts, so `Current.Tenant` in a render, a handler or a
 factory is a lookup. Read inside your own `Tenant.Use(id)` before anything has, it is read there and then — one
 synchronous query, counted on the `rask.data.current_row.queries` metric (meter `Rask.Data`) — and held after.

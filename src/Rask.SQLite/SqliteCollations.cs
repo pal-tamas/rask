@@ -80,6 +80,15 @@ public static class SqliteCollations
     public const string TextOrder = "RASK_TEXT";
 
     /// <summary>
+    /// The name of the text collating sequence <c>x.Loosely()</c> compares by in a query: case, accents, kana and width
+    /// aside, in no one language's order — registered on every connection <c>UseRaskSqlite</c> opens.
+    /// </summary>
+    /// <remarks>
+    /// It is written into a query only, never into the schema, so a file opened by another tool reads as before.
+    /// </remarks>
+    public const string SearchOrder = "RASK_SEARCH";
+
+    /// <summary>
     /// The name of the collating sequence every <see cref="DateTimeOffset"/> column of a <c>UseRaskSqlite</c> model is
     /// created with: two moments compare by the instant they name, whatever offset each was written in — as SQL
     /// Server's <c>datetimeoffset</c> compares them.

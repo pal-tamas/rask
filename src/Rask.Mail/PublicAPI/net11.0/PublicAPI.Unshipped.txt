@@ -326,3 +326,7 @@ Rask.Mailing.MailOutbox<TContext>.Add(Rask.Mailing.Mail.Message! email, System.D
 static Rask.Mailing.Mail.Message.To(string! address, string? name = null) -> Rask.Mailing.Mail.Message!
 static Rask.Mailing.Mail.Send(Rask.Mailing.Mail.Message! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
 static Rask.Mailing.MailExtensions.Send(this Rask.Mailing.IMail! mail, Rask.Mailing.Mail.Message! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mailing.Sending
+static Rask.Mailing.QueuedMailReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!

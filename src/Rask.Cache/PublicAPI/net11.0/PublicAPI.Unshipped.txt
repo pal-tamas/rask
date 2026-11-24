@@ -203,3 +203,7 @@ Rask.Caching.CacheOptions.DefaultLifetime.get -> System.TimeSpan
 Rask.Caching.CacheOptions.DefaultLifetime.set -> void
 Rask.Caching.Remembering<T>.Forever() -> Rask.Caching.Remembering<T>
 Rask.Caching.Setting<T>.Forever() -> Rask.Caching.Setting<T>
+static Rask.Caching.CacheEntryReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!

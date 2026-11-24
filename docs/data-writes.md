@@ -7,6 +7,62 @@ so its rules hold. This page is for the other kind of write: a load of thousands
 a statement the database runs over every matching row at once. Each says what it skips, so it is a choice you make
 knowing it.
 
+## Writes over many rows
+
+Five writes on every aggregate type, for when one row at a time is the wrong shape:
+
+```csharp
+await Pairing.DeleteWhere(p => p.Pump == pumpId);                                        // one DELETE
+await Period.UpdateWhere(p => p.Id == id, s => s.SetProperty(p => p.Closed, true));      // one UPDATE
+await Fueling.UpdateEach(f => codes.Contains(f.DriverChip), f => f.Match(plan));         // each loaded, changed, saved
+var kept = await Fueling.Upsert(f => f.Pump == r.Pump && f.Number == r.Number,
+    () => Taken(r), f => f.AsThePumpHoldsIt(r.Moment));                                  // the one, or a new one
+var loaded = await Transaction.Import(lines, line => Loaded(file, line), o =>
+{
+    o.OnInvalid = ImportFailure.Collect;                                                 // set aside, not stopped
+    o.Upsert(t => t.SourceId, (t, line) => t.Follow(line));                              // met again: changed
+});
+```
+
+**A set write — `UpdateWhere`, `DeleteWhere` — is one statement**, so no row is loaded and the aggregate's methods
+and `Validate()` do not run: it is for what no rule is about — a flag, a stamp, an infrastructure row (a login
+session, a pairing a pump re-sends). What a save keeps it still keeps:
+
+- the tenant and soft-delete filters (a `SoftDelete` aggregate's `DeleteWhere` stamps `DeletedAt` instead);
+- `UpdatedAt` stamped and `Version` bumped by `UpdateWhere`, so a form read before it is refused as stale;
+- the declared locks ([`LockedBy`](domain.md#a-row-closed-by-its-parent-lockedby)): a row whose parent is locked is refused — the old parent
+  before the statement, the one `UpdateWhere` moved it to after it, still inside the transaction it rolls back;
+- the unique and still-referenced messages, under the field a form shows;
+- the data-changed notices a live page repaints on, after the commit;
+- the [one-aggregate rule](domain.md#one-aggregate-per-transaction-manyaggregates), counted as one write of the type.
+
+What it cannot keep it refuses: a `ValidateDelete()` asks each row in C#, as does a lock declared on a child the
+delete would cascade to, so `DeleteWhere` on such an aggregate throws and names `X.Delete(id)`, which asks them.
+Both run in a `Db.Transaction` of their own, or join the one in progress, and hand back how many rows they wrote.
+
+**`UpdateEach` goes through the aggregate**: the keys the predicate matches are read first, then each aggregate is
+loaded whole, changed by its own method and saved — its rules, events and notices as for one — `batchSize` (500) to a
+transaction, each batch saved in one go. A batch says why it writes many aggregates (each is valid on its own), so
+`OneAggregatePerTransaction` lets it through. A refused batch rolls back alone and the refusal is thrown; the batches
+before it stay committed, so the change should be one that can run twice — which an event handler's is anyway.
+
+**`Upsert` is the static, one-root "make it or change it"**: the one aggregate the predicate matches is changed
+through its method, or the factory makes a new one, in one transaction; `Upserted<T>` says which. A predicate that
+matches two is refused. Back the predicate with a unique index — two upserts at once would otherwise both make one;
+with it, the second is refused under its field.
+
+**`Import` is the large load through the factory** ([`BulkInsert`](#bulk-insert) is the one past it): each row is made
+by the aggregate's factory and saved through its rules — `Validate()`, the unique checks, `LockedBy`, events —
+`BatchSize` (500) to a transaction, each batch from an empty change tracker, so memory stays flat. A row refused by
+its factory or its rules stops the import by default (the batches before stay committed); `ImportFailure.Collect`
+sets it aside in `result.Failures` — its `Index` among the rows, the row, the `RaskValidationException` — and saves
+the rest: the refused batch is run again a row at a time, each in a transaction of its own, which holds on every
+database alike (a unique violation ends PostgreSQL's transaction). `o.Upsert(key, update)` matches each row to the
+stored aggregate with the same natural key, and to an earlier row of the same import, and changes that one;
+`result.Inserted` and `result.Updated` count them. A factory may be called again for a retried batch: it builds, it
+does not write. `Collect` commits a batch at a time, so inside a `Db.Transaction` it is refused; `Stop` there makes
+the import part of that transaction.
+
 ## Bulk insert
 
 EF Core answers the bulk *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, but [its own
@@ -99,6 +155,41 @@ Two more rules follow from how it works:
 Under a retrying execution strategy (`Rask:Sqlite:Retry:Enabled`, or `UseRaskSqlite(sp, o => o.Retry.Enabled = true)`), a `SingleTransaction`
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
+
+## A running number
+
+`b.Numbered(…)` — beside [`b.Computed(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c), which it pairs with.
+
+A number every row has among its group — the fuelings of a pistol, counted by moment — kept by Rask in every save,
+with no SQL in the app (D18):
+
+```csharp
+static void Configure(EntityTypeBuilder<Fueling> b)
+{
+    b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId);
+    b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id },
+            skip: f => f.MergedParentId != null)
+        .Same(f => f.ParentId)                                                      // an IBC part has its fill's number
+        .SkipWhen<Distribution, string>((f, shares) => shares.Any(s => s.FromFuelingId == f.Id), s => s.FromFuelingId);
+}
+```
+
+- **What it keeps.** Each row of a group is numbered 1, 2, 3 … in the order `by` says, the first member first; a row
+  `skip` leaves out has none (null), and the rows after it close up. A row whose group is null has none.
+- **When.** A save that adds, deletes or moves a row — changes its group, a member of `by`, `skip` or `Same` — numbers
+  each group it touched anew from the earliest place it touched, counting on from the last number before it, and
+  writes only the numbers that changed — before the save's transaction commits, so a rollback takes them back too.
+  The rows the context holds are told their new numbers and stay unchanged.
+- **`Same(f => f.ParentId)`**: a row that names another takes that row's number instead of a place of its own, and
+  follows it when it moves.
+- **`SkipWhen<TOther, TRow>(when, row)`**: another table's rows leave a row out — a fueling distributed from is not
+  counted. A save that adds, changes or deletes a `TOther` row numbers anew the group of the row `row` names.
+- **One numbering of a group at a time, on every database.** SQL Server takes `sp_getapplock` owned by the save's
+  transaction and PostgreSQL `pg_advisory_xact_lock`, per group, in a sorted order, before the rows go out; SQLite's
+  one writer already keeps saves apart. Saves racing into one group leave it numbered without a gap or a twin.
+- `by` is a member, or several as an anonymous type (`new { f.Moment, f.Id }`): plain values, or one-value value objects compared by their value. The
+  number is a whole number — nullable when a row can have none — or a one-value value object over one. The entity's
+  key is one column. A raw `ExecuteUpdate` passes no save, so it numbers nothing.
 
 ## Batch update and delete
 

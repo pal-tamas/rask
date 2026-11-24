@@ -153,6 +153,10 @@ public sealed partial class ModelInputGenerator
         var store = AsksTheStore(entity);
         var optional = entity.AnnouncesOptionalFields ? OptionalSlots(entity).ToList() : [];
         var shaped = entity.AnnouncesFieldShapes ? ShapedModels(entity).ToList() : [];
+
+        // A member the entity gates (b.Gated) is left off its form while the gate is shut; asked of the entity at render,
+        // since the gates are the model's and the work's, not the source's.
+        var hides = entity.AnnouncesFieldShapes && store;
         if (models.Count == 0 && !store && optional.Count == 0 && shaped.Count == 0)
         {
             return;
@@ -169,6 +173,13 @@ public sealed partial class ModelInputGenerator
         AppendRegistrations(s, entity, models, store);
         AppendOptionalRegistrations(s, optional);
         AppendShapeRegistrations(s, shaped);
+        if (hides)
+        {
+            s.Append("        ").Append(RaskValidation).Append(".RegisterHiddenFields(typeof(").Append(FormModelType(entity))
+                .Append("), static property => global::Rask.Data.GeneratedGates.IsShut(typeof(").Append(entity.FullyQualifiedName)
+                .AppendLine("), property));");
+        }
+
         s.AppendLine("    }");
         AppendOptionalSlots(s, optional);
 

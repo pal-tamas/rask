@@ -443,3 +443,11 @@ static Rask.Auth.Accounts.Rename(string! id, string! name, System.Threading.Canc
 static Rask.Auth.Accounts.Rename(System.Guid id, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Auth.Accounts.SetPassword(string! id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Auth.Accounts.SetPassword(System.Guid id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.PasskeyReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.SessionReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!

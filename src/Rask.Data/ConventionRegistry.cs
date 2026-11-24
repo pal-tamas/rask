@@ -29,6 +29,8 @@ public static class ConventionRegistry
     private static readonly ConcurrentDictionary<Type, Type> DeclaredTenantKeys = new();
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
     private static readonly ConcurrentDictionary<Type, List<ChildField>> DeclaredChildFields = new();
+    private static readonly ConcurrentDictionary<Type, Type> DeclaredTenantParents = new();
+    private static readonly ConcurrentDictionary<Type, List<Type>> DeclaredInForce = new();
 
     /// <summary>Records the traits <paramref name="entity" /> named. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
@@ -100,6 +102,54 @@ public static class ConventionRegistry
 
         DeclaredChildFields.GetOrAdd(aggregate, static _ => []).Add(new ChildField(navigation, field));
     }
+
+    /// <summary>
+    ///     Records the aggregate <c>PerTenantThrough&lt;TParent&gt;</c> named: <paramref name="entity" /> belongs to the
+    ///     tenant of the <paramref name="parent" /> it points at. Called by generated code.
+    /// </summary>
+    /// <param name="entity">The aggregate that keeps no tenant of its own.</param>
+    /// <param name="parent">The aggregate whose tenant its rows are.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void DeclareTenantParent(Type entity, Type parent)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(parent);
+        DeclaredTenantParents[entity] = parent;
+    }
+
+    /// <summary>
+    ///     Records a <c>OneInForce&lt;TChild&gt;</c> the aggregate named: of its <paramref name="child" /> rows at most
+    ///     one is in force. Called by generated code.
+    /// </summary>
+    /// <param name="aggregate">The aggregate holding the children.</param>
+    /// <param name="child">The child of which one is in force.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void DeclareInForce(Type aggregate, Type child)
+    {
+        ArgumentNullException.ThrowIfNull(aggregate);
+        ArgumentNullException.ThrowIfNull(child);
+
+        var children = DeclaredInForce.GetOrAdd(aggregate, static _ => []);
+        lock (children)
+        {
+            if (!children.Contains(child))
+            {
+                children.Add(child);
+            }
+        }
+    }
+
+    /// <summary>The aggregate <c>PerTenantThrough&lt;TParent&gt;</c> named for <paramref name="entity" />, or null.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static Type? TenantParentOf(Type entity) => DeclaredTenantParents.GetValueOrDefault(entity);
+
+    /// <summary>The children of which <paramref name="aggregate" /> keeps one in force, or none.</summary>
+    /// <param name="aggregate">The aggregate type.</param>
+    internal static IReadOnlyList<Type> InForceChildrenOf(Type aggregate) =>
+        DeclaredInForce.TryGetValue(aggregate, out var children) ? children : [];
+
+    /// <summary>Every aggregate that keeps one child in force.</summary>
+    internal static IEnumerable<Type> InForceAggregates => DeclaredInForce.Keys;
 
     /// <summary>Whether <paramref name="entity" /> named <paramref name="trait" />. Nothing is named unless it was.</summary>
     /// <param name="entity">The entity type.</param>

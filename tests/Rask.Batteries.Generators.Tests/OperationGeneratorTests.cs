@@ -53,6 +53,29 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void An_operation_of_a_versioned_aggregate_also_gets_an_entry_without_a_version_for_a_system_actor()
+    {
+        var run = Run(Supply);
+
+        var generated = run.GeneratedSource("Shop.Supply.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static global::System.Threading.Tasks.Task Change(global::System.Guid id, string note, global::System.Collections.Generic.IReadOnlyList<int> parts, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
+        Assert.Contains("Run<global::Shop.Supply>(\"Change\", null, id!, null, aggregate =>", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_operation_whose_first_parameter_takes_a_number_gets_no_entry_without_a_version()
+    {
+        var run = Run(Supply);
+
+        var generated = run.GeneratedSource("Shop.Supply.Operations");
+
+        Assert.DoesNotContain("Distribute(global::System.Guid id, int count", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetOpening(global::System.Guid id, int opening", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_method_that_answers_a_question_and_the_conventions_get_no_entry()
     {
         var run = Run(Supply);
@@ -331,6 +354,50 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_one_value_value_object_declared_from_Value_is_a_field_held_as_its_value_and_made_through_Create()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public sealed partial record TankSize(int Value) : Value;
+
+                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                {
+                    public TankSize Size { get; private set; } = null!;
+                    public void ProbeA(TankSize size) => Size = size;
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Vehicle.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(run.RunResult.Diagnostics, static d => d.Id == "RASK188");
+        Assert.Contains("public sealed class VehicleProbeAInput", forms, StringComparison.Ordinal);
+        Assert.Contains("public int? Size { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.TankSize.Create(", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("TankSize.__Field", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_operation_with_a_parameter_no_field_holds_gets_no_form_and_RASK188_names_the_parameter()
+    {
+        var run = RunWithForms(Tagged("""
+            public int Level { get; private set; }
+            public void Weigh(System.IO.Stream scale) => Level = (int)scale.Length;
+            """));
+
+        var reported = Assert.Single(run.RunResult.Diagnostics, static d => d.Id == "RASK188");
+        Assert.Contains("'Tag.Weigh'", reported.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'scale' (System.IO.Stream)", reported.GetMessage(), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void Two_operations_that_take_the_same_parameters_get_no_form_and_RASK174_says_why()
     {
         var run = RunWithForms(Tagged("""
@@ -584,6 +651,109 @@ public class OperationGeneratorTests
         Assert.Contains("if (given.Date is null && given.Quantity is null)", forms, StringComparison.Ordinal);
         Assert.Contains("RegisterOptionalFields(typeof(DepotOpenInput), static property => property is \"Opening\");", forms, StringComparison.Ordinal);
         Assert.Contains("\"Quantity\" => global::Rask.Core.Forms.StatedRules.Shape(typeof(global::Shop.Opening), \"Quantity\", new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Number)),", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_row_member_of_several_values_is_a_group_of_its_own_filled_from_the_child_and_refused_under_its_place()
+    {
+        var run = RunWithForms("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value;
+
+                public sealed record ProbeRow(string? Id, Opening Start);
+
+                public sealed class Probe : Entity<string>
+                {
+                    public Opening Start { get; private set; } = null!;
+                }
+
+                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                {
+                    private readonly List<Probe> _rows = [];
+                    public IReadOnlyList<Probe> Rows => _rows;
+                    public void ProbeR(IReadOnlyList<ProbeRow> rows) { }
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Vehicle.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(run.RunResult.Diagnostics, static d => d.Id == "RASK188");
+        Assert.Contains("public sealed class VehicleProbeRInput", forms, StringComparison.Ordinal);
+        Assert.Contains("public RowsStartFields Start { get; set; } = new();", forms, StringComparison.Ordinal);
+        Assert.Contains("Start = __RowsChild.Start is { } __Start ? new VehicleProbeRInput.RowsStartFields { Date = __Start.Date, Quantity = __Start.Quantity } : new()", forms, StringComparison.Ordinal);
+        Assert.Contains("var __m_Start = ProbeRRowsStartMade(__row.Start, __at + \".Start\", failures)!;", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.Opening.Create(__m_Date, __m_Quantity, at)", forms, StringComparison.Ordinal);
+        Assert.Contains("RegisterFieldShapes(typeof(VehicleProbeRInput.RowsStartFields), ProbeRRowsStartShapeOf);", forms, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("decimal", "decimal?")]
+    [InlineData("DateTime", "global::System.DateTime?")]
+    [InlineData("DateOnly", "global::System.DateOnly?")]
+    [InlineData("Guid", "global::System.Guid?")]
+    [InlineData("string", "string?")]
+    public void Every_kind_of_one_value_declared_from_Value_is_a_field_held_as_its_value(string held, string field)
+    {
+        var run = RunWithForms($$"""
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public sealed partial record WallMoment({{held}} Value) : Value;
+
+                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                {
+                    public void Stamp(WallMoment at) { }
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Vehicle.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public " + field + " At { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.WallMoment.Create(", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_parameter_writing_a_gated_member_is_hidden_and_unread_while_its_gate_is_shut()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public enum Module { Tachograph }
+
+                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                {
+                    public string Name { get; private set; } = "";
+                    public string? Card { get; private set; }
+                    public void Describe(string name, string? card) => (Name, Card) = (name, card);
+                    public static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RegisterHiddenFields(typeof(DriverDescribeInput), static property => property switch { \"Card\" => global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\"), _ => false });", forms, StringComparison.Ordinal);
+        Assert.Contains("card = global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\") ? default! : ", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Name\" => global::Rask.Data.GeneratedGates", forms, StringComparison.Ordinal);
     }
 
     [Fact]

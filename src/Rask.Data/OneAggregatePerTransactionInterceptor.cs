@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -62,6 +63,15 @@ internal sealed partial class OneAggregatePerTransactionInterceptor(
     {
         SaveChangesFailed(eventData);
         return Task.CompletedTask;
+    }
+
+    /// <summary>Counts a set write of <paramref name="type" /> on <paramref name="context" />, and meets the policy as a save would.</summary>
+    internal void CountSet(DbContext context, IEntityType type)
+    {
+        if (Counting(context) is { } transaction && transaction.Written.NoteSet(type))
+        {
+            Meet(transaction);
+        }
     }
 
     // The transaction the save is part of, while what it writes is asked about: by the policy, or by a Db.Record().

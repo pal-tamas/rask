@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK186, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK188, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -37,6 +37,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
+| **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -181,6 +182,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK184](#rask184) | Info | An aggregate refuses with an exception no form can show |
 | [RASK185](#rask185) | Info | An aggregate is loaded outside the transaction that changes it |
 | [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
+| [RASK187](#rask187) | Info | A raw ExecuteUpdate or ExecuteDelete writes an aggregate's rows |
+| [RASK188](#rask188) | Info | An operation gets no Form.For, as one of its parameters is no field a form holds |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3425,6 +3428,9 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 **Fix:** initialize it with `null!` and set it where the aggregate is made (its factory, or the generated
 `Delivery.Create(model)`); the form then starts the field empty, and required. The quick-fix writes the `null!`.
+A placeholder that stands for "none" — `Opening Start = Opening.None` over `Opening(DateTime? Date, decimal? Quantity)`
+— is an optional value: declare it `Opening? Start` with no initializer. A row with every one of its columns `NULL`
+loads it as `null` ([domain.md](domain.md#declared-from-a-base-record)).
 
 ## RASK165
 
@@ -3692,9 +3698,9 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 ```
 
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
-`EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
+`EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts, and `x.Loosely()` where it searches case and accents aside;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c) (`b.StoredDefault(…)` for a value the value object refuses, `() => Clock.Wall` for `CURRENT_TIMESTAMP`);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
 `X.Where(…).ForUpdate()` inside `Db.Transaction` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
@@ -3846,3 +3852,43 @@ entry takes no `null`); and the updated aggregate the update hands back is not u
 
 **Fix:** call the entry (**quick-fix available** — the id, the version, the operation's arguments and a
 `cancellationToken:` in that order). A suggestion by default; a warning under `<RaskStrict>`.
+
+## RASK187
+
+**A raw ExecuteUpdate or ExecuteDelete writes an aggregate's rows** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+EF Core's `ExecuteUpdate`/`ExecuteDelete` over the rows of an aggregate. Every aggregate has its own
+[set write](data-writes.md#writes-over-many-rows) — `X.UpdateWhere(…)`, `X.DeleteWhere(…)` — the same one statement, which
+also stamps `UpdatedAt` and bumps `Version`, asks the aggregate's `LockedBy`, refuses a delete its `ValidateDelete()`
+would have to ask row by row, counts toward [one aggregate per transaction](domain.md#one-aggregate-per-transaction-manyaggregates)
+and tells the live pages showing the rows. The raw statement does none of it.
+
+```csharp
+await db.Pairings.Where(p => p.Pump == pumpId).ExecuteDeleteAsync();                    // ℹ RASK187
+await Pairing.DeleteWhere(p => p.Pump == pumpId);                                       // ✓
+await Period.UpdateWhere(p => p.Id == id, s => s.SetProperty(p => p.Closed, true));     // ✓ for ExecuteUpdateAsync
+```
+
+A table that is no aggregate (a plain entity, Rask's own outbox or cache) is not reported.
+
+**Fix:** call the aggregate's own (**quick-fix available** for the awaitable form on a `DbSet`, straight —
+`_ => true` — or behind one `Where`; the synchronous form, and a query composed further, are reported without one).
+The rewrite runs on the app's context in a `Db.Transaction`, not on the one the raw call named. A suggestion by
+default; a warning under `<RaskStrict>`.
+
+## RASK188
+
+**An operation gets no Form.For, as one of its parameters is no field a form holds** · Info
+
+`Form.For(Supply.Change, id)` is a form whose fields are the [operation](domain.md#an-operation-run-as-one-write)'s
+parameters: a value (text, number, day, bool, enum, id), a value object of one value — declared from `Text`, `Number`,
+`Whole`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
+list of rows. An operation that takes anything else, or more than 13 parameters, gets no form, and this names the
+parameter that keeps it from one rather than leaving the form silently missing.
+
+```csharp
+public void Weigh(Stream scale) { … }          // ℹ RASK188: 'scale' (System.IO.Stream) is no field a form holds
+public void Resize(TankSize size) { … }        // ✓ a field held as its int, made through TankSize.Create
+```
+
+**Fix:** take a value object of what the parameter means, or a value; the operation's entry is generated either way.

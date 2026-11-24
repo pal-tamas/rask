@@ -129,7 +129,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
         foreach (var method in symbol.GetMembers().OfType<IMethodSymbol>().Where(m => IsOperation(m, symbol) || IsFactory(m, symbol)))
         {
-            if (OperationOf(method, symbol, roles, problems) is { } operation)
+            if (OperationOf(method, symbol, roles, problems, ctx.SemanticModel.Compilation) is { } operation)
             {
                 operations.Add(operation);
             }
@@ -156,7 +156,11 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
     // One operation or factory, or null with what keeps it from an entry recorded in problems.
     private static Operation? OperationOf(
-        IMethodSymbol method, INamedTypeSymbol symbol, Dictionary<string, NamedRoles> roles, List<OperationProblem> problems)
+        IMethodSymbol method,
+        INamedTypeSymbol symbol,
+        Dictionary<string, NamedRoles> roles,
+        List<OperationProblem> problems,
+        Compilation compilation)
     {
         var location = SymbolLocation.From(method);
         var factory = method.IsStatic;
@@ -187,8 +191,16 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             new EquatableArray<OperationParameter>(method.Parameters.Select(p => Parameter(p, symbol))),
             factory,
             named?.ManyAggregates,
-            factory ? null : named?.ForUpdate);
+            factory ? null : named?.ForUpdate,
+            !factory && AggregateShape.HasVersion(symbol) && ReadsOneWay(method, compilation),
+            location);
     }
+
+    // Whether the entry without a version reads one way: `X.Book(id, 3)` would be the versioned entry given version 3
+    // AND this one given seats 3, so an operation whose first parameter takes a number gets none.
+    private static bool ReadsOneWay(IMethodSymbol method, Compilation compilation) =>
+        method.Parameters.FirstOrDefault() is not { } first ||
+        !compilation.ClassifyConversion(compilation.GetSpecialType(SpecialType.System_Int32), first.Type).IsImplicit;
 
     // A partial aggregate that can be deleted is deleted through an entry of its own, its roles named by nameof(Delete) —
     // roles that are no constant leave none rather than an open one (RASK172).
@@ -401,7 +413,8 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             context.AddSource(hint, SourceText.From(Render(aggregate), Encoding.UTF8));
 
             var ambiguous = new List<string>();
-            if (aggregate.Forms && RenderForms(aggregate, signatures, ambiguous) is { } forms)
+            var unformed = new List<Unformed>();
+            if (aggregate.Forms && RenderForms(aggregate, signatures, ambiguous, unformed) is { } forms)
             {
                 context.AddSource(aggregate.FullyQualifiedName.Replace("global::", "") + ".OperationForms.g.cs", SourceText.From(forms, Encoding.UTF8));
             }
@@ -409,6 +422,11 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             foreach (var operation in ambiguous)
             {
                 context.ReportDiagnostic(Diagnostic.Create(Rask174, Location.None, operation));
+            }
+
+            foreach (var skipped in unformed)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(Rask188, skipped.Location?.ToLocation(), skipped.Aggregate, skipped.Operation, skipped.Why));
             }
         }
     }
@@ -437,6 +455,11 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             else
             {
                 AppendEntry(s, aggregate, operation);
+                if (operation.Unversioned)
+                {
+                    AppendUnversionedEntry(s, aggregate, operation);
+                }
+
                 AppendDryRun(s, aggregate, operation);
             }
         }
@@ -537,6 +560,36 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
         s.Append(", id!, ").Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call)
             .AppendLine(", cancellationToken);");
+        s.AppendLine();
+    }
+
+    // F-72: `await Fueling.Match(id, plan)` — what a job or an event handler, which read no version, calls: the
+    // aggregate loaded as it now stands, so the system actor changes the latest, never a copy a person held.
+    private static void AppendUnversionedEntry(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
+        var call = operation.Call.Replace("{0}", operation.Name + "(" + arguments + ")");
+
+        s.Append("    /// <summary>Runs <c>").Append(operation.Name)
+            .AppendLine("(…)</c> on the aggregate as it now stands — for a job or an event handler, which read no version: loaded, the method called on it, and saved, its rules asked, in one transaction.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The id of the aggregate.</param>");
+        AppendParameterDocs(s, operation);
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the operation.</param>");
+        s.AppendLine("    /// <returns>A task that completes once the operation has committed.</returns>");
+        s.Append("    [global::System.CodeDom.Compiler.GeneratedCode(\"").Append(Tool).AppendLine("\", \"1\")]");
+        s.Append("    public static ").Append(TaskFqn).Append(' ').Append(operation.Name).Append('(')
+            .Append(aggregate.IdType).Append(" id, ");
+        AppendParameters(s, operation);
+        s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("        global::Rask.Data.GeneratedOperations.Run<").Append(aggregate.FullyQualifiedName).Append(">(\"")
+            .Append(operation.Name).Append("\", ")
+            .Append(RolesLiteral(operation));
+        if (operation.ManyAggregates is not null || operation.ForUpdate is not null)
+        {
+            s.Append(", ").Append(Literal(operation.ManyAggregates)).Append(", ").Append(LockLambda(aggregate, operation.ForUpdate));
+        }
+
+        s.Append(", id!, null, aggregate => ").Append(call).AppendLine(", cancellationToken);");
         s.AppendLine();
     }
 
@@ -690,7 +743,9 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         EquatableArray<OperationParameter> Parameters,
         bool Factory,
         string? ManyAggregates = null,
-        RowLock? ForUpdate = null);
+        RowLock? ForUpdate = null,
+        bool Unversioned = false,
+        SymbolLocation? Location = null);
 
     /// <summary>The rows <c>forUpdate:</c> locks: the aggregate's own (no navigation), or one child collection's.</summary>
     private sealed record RowLock(string? Navigation, string? Child);
