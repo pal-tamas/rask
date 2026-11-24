@@ -30,11 +30,20 @@ internal static class WireShape
     ///     this same compilation — is classified from the entity instead of being reported as a type with no
     ///     way to build it. Without it, that model is Unsupported, exactly as before.
     /// </param>
+    /// <param name="unwrapValues">
+    ///     Whether a value that holds one value — a one-value <c>Rask.Data</c> value object
+    ///     (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>) or a record struct id
+    ///     (<c>record struct VehicleId(int Value)</c>) — travels as that value (<c>"ABC-123"</c>, <c>42</c>), and
+    ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> unchecked, as a
+    ///     row is loaded. True for the CQRS codecs, whose two ends are both generated from this walk; false for
+    ///     the API client, whose server reads the same body with System.Text.Json, which knows neither rule.
+    /// </param>
     public static WireType Classify(
         ITypeSymbol type,
         bool allowFile,
         HashSet<ITypeSymbol>? stack = null,
-        Compilation? compilation = null)
+        Compilation? compilation = null,
+        bool unwrapValues = false)
     {
         stack ??= new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -43,14 +52,14 @@ internal static class WireShape
         // reference. Taken first, or the branch below would wrap a class in Nullable<T>.
         if (compilation is not null && GeneratedModelShape.NullableUnresolvedModel(type, compilation) is { } model)
         {
-            return Classify(model, allowFile, stack, compilation);
+            return Classify(model, allowFile, stack, compilation, unwrapValues);
         }
 
         // A nullable value type is a wrapper first and its underlying shape second, so unwrap before
         // anything else looks at it.
         if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
         {
-            var underlying = Classify(nullable.TypeArguments[0], false, stack, compilation);
+            var underlying = Classify(nullable.TypeArguments[0], false, stack, compilation, unwrapValues);
             return underlying.Kind == WireKind.Unsupported
                 ? underlying
                 : new WireType
@@ -68,7 +77,7 @@ internal static class WireShape
 
         if (type is IArrayTypeSymbol array)
         {
-            return ClassifyArray(array, stack, compilation);
+            return ClassifyArray(array, stack, compilation, unwrapValues);
         }
 
         if (type is not INamedTypeSymbol named2)
@@ -80,20 +89,93 @@ internal static class WireShape
         // an error type with none, or the author's partial half with none of the generated ones.
         if (compilation is not null && GeneratedModelShape.EntitiesFor(named2, compilation) is { Count: > 0 } entities)
         {
-            return ClassifyGeneratedModel(named2, entities, stack, compilation);
+            return ClassifyGeneratedModel(named2, entities, stack, compilation, unwrapValues);
         }
 
-        if (TryClassifyDictionary(named2, stack, compilation) is { } dictionary)
+        return ClassifyNamed(named2, allowFile, stack, compilation, unwrapValues);
+    }
+
+    // A named type that is no generated model: a map, a sequence, one value, or an object of properties.
+    private static WireType ClassifyNamed(
+        INamedTypeSymbol type,
+        bool allowFile,
+        HashSet<ITypeSymbol> stack,
+        Compilation? compilation,
+        bool unwrapValues)
+    {
+        if (TryClassifyDictionary(type, stack, compilation, unwrapValues) is { } dictionary)
         {
             return dictionary;
         }
 
-        if (TryClassifySequence(named2, stack, compilation) is { } sequence)
+        if (TryClassifySequence(type, stack, compilation, unwrapValues) is { } sequence)
         {
             return sequence;
         }
 
-        return ClassifyObject(named2, stack, membersMayCarryFiles: allowFile, compilation);
+        if (unwrapValues && TryClassifyOneValue(type, stack, compilation) is { } one)
+        {
+            return one;
+        }
+
+        return ClassifyObject(type, stack, membersMayCarryFiles: allowFile, compilation, unwrapValues);
+    }
+
+    // A value object of one value, or a record struct id, as the value it holds: the property is the whole of it, so
+    // {"value":"ABC-123"} would say nothing the bare "ABC-123" does not. Only where the held value is a plain scalar or
+    // an enum: a null, a list or an object inside would make the bare value ambiguous with the wrapper's own null.
+    private static WireType? TryClassifyOneValue(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation)
+    {
+        if (OneValue(type) is not { } held)
+        {
+            return null;
+        }
+
+        var inner = Classify(held.Type, false, stack, compilation, unwrapValues: true);
+        if (inner.Kind is not (WireKind.Scalar or WireKind.Enum))
+        {
+            return null;
+        }
+
+        var result = new WireType
+        {
+            Kind = WireKind.OneValue,
+            Fqn = Fqn(type, compilation),
+            IsReference = type.IsReferenceType,
+            Inner = inner,
+            ValueObject = AggregateShape.DeclaredValueBaseOf(type) is not null,
+        };
+        result.Members.Add(new WireMember(held.Name, WireName(held), inner));
+        return result;
+    }
+
+    // The one value a type holds, fed by its one public constructor — or null when it holds more, or none. A value
+    // object declared from Text, Number, Whole or Day holds its base's Value; a value object declared from Value, and a
+    // record struct, hold the one property their one constructor parameter feeds.
+    private static IPropertySymbol? OneValue(INamedTypeSymbol type)
+    {
+        var isValueObject = AggregateShape.DeclaredValueBaseOf(type) is not null;
+        if (type.IsGenericType || !(isValueObject || type is { IsRecord: true, TypeKind: TypeKind.Struct }))
+        {
+            return null;
+        }
+
+        var constructors = type.InstanceConstructors
+            .Where(c => c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length > 0)
+            .ToList();
+        if (constructors.Count != 1 || constructors[0].Parameters.Length != 1)
+        {
+            return null;
+        }
+
+        var parameter = constructors[0].Parameters[0];
+        var properties = AggregateShape.ValueBaseOf(type) is not null
+            ? type.BaseType!.GetMembers("Value").OfType<IPropertySymbol>().ToList()
+            : PublicProperties(type).Where(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        return properties.Count == 1 && SymbolEqualityComparer.Default.Equals(properties[0].Type, parameter.Type)
+            ? properties[0]
+            : null;
     }
 
     // The shapes that need no walk: scalars, enums, a message's file, and bytes.
@@ -148,14 +230,14 @@ internal static class WireShape
         return null;
     }
 
-    private static WireType ClassifyArray(IArrayTypeSymbol array, HashSet<ITypeSymbol> stack, Compilation? compilation)
+    private static WireType ClassifyArray(IArrayTypeSymbol array, HashSet<ITypeSymbol> stack, Compilation? compilation, bool unwrapValues)
     {
         if (array.Rank != 1)
         {
             return Unsupported(array, "only single-dimensional arrays have a JSON encoding — use a jagged array or a list of lists", compilation);
         }
 
-        var element = Classify(array.ElementType, false, stack, compilation);
+        var element = Classify(array.ElementType, false, stack, compilation, unwrapValues);
         return element.Kind == WireKind.Unsupported
             ? element
             : new WireType
@@ -171,11 +253,12 @@ internal static class WireShape
         INamedTypeSymbol type,
         IReadOnlyList<INamedTypeSymbol> entities,
         HashSet<ITypeSymbol> stack,
-        Compilation compilation)
+        Compilation compilation,
+        bool unwrapValues)
     {
         if (entities.Count == 1)
         {
-            return ClassifyModel(type, entities[0], stack, compilation);
+            return ClassifyModel(type, entities[0], stack, compilation, unwrapValues);
         }
 
         // Otherwise the generic "no way to build it" below would be true, and no help at all: the type
@@ -189,7 +272,7 @@ internal static class WireShape
             compilation);
     }
 
-    private static WireType? TryClassifyDictionary(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation)
+    private static WireType? TryClassifyDictionary(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation, bool unwrapValues)
     {
         var definition = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (!DictionaryDefinitions.Contains(definition) || type.TypeArguments.Length != 2)
@@ -208,7 +291,7 @@ internal static class WireShape
                 compilation);
         }
 
-        var value = Classify(type.TypeArguments[1], false, stack, compilation);
+        var value = Classify(type.TypeArguments[1], false, stack, compilation, unwrapValues);
         return value.Kind == WireKind.Unsupported
             ? value
             : new WireType
@@ -219,7 +302,7 @@ internal static class WireShape
             };
     }
 
-    private static WireType? TryClassifySequence(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation)
+    private static WireType? TryClassifySequence(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation, bool unwrapValues)
     {
         var definition = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (!SequenceDefinitions.TryGetValue(definition, out var shape) || type.TypeArguments.Length != 1)
@@ -227,7 +310,7 @@ internal static class WireShape
             return null;
         }
 
-        var element = Classify(type.TypeArguments[0], false, stack, compilation);
+        var element = Classify(type.TypeArguments[0], false, stack, compilation, unwrapValues);
         return element.Kind == WireKind.Unsupported
             ? element
             : new WireType
@@ -247,7 +330,8 @@ internal static class WireShape
         INamedTypeSymbol type,
         HashSet<ITypeSymbol> stack,
         bool membersMayCarryFiles,
-        Compilation? compilation)
+        Compilation? compilation,
+        bool unwrapValues)
     {
         if (ObjectRejection(type) is { } reason)
         {
@@ -266,7 +350,7 @@ internal static class WireShape
 
         try
         {
-            return DescribeObject(type, stack, membersMayCarryFiles, compilation);
+            return DescribeObject(type, stack, membersMayCarryFiles, compilation, unwrapValues);
         }
         finally
         {
@@ -294,15 +378,8 @@ internal static class WireShape
             return "'object' has no shape to encode — give the property its real type";
         }
 
-        if (type.IsGenericType)
-        {
-            return "a generic type has no single wire shape — use a closed, concrete type";
-        }
-
-        // Nothing wrong with a record struct in principle; it just has not been exercised, and quietly emitting
-        // an untested shape is worse than saying so.
-        return type.IsRecord && type.TypeKind == TypeKind.Struct
-            ? "record structs are not supported as contract members yet — use a record class"
+        return type.IsGenericType
+            ? "a generic type has no single wire shape — use a closed, concrete type"
             : null;
     }
 
@@ -310,26 +387,18 @@ internal static class WireShape
         INamedTypeSymbol type,
         HashSet<ITypeSymbol> stack,
         bool membersMayCarryFiles,
-        Compilation? compilation)
+        Compilation? compilation,
+        bool unwrapValues)
     {
         var result = new WireType
         {
             Kind = WireKind.Object,
             Fqn = Fqn(type, compilation),
             IsReference = type.IsReferenceType,
+            ValueObject = unwrapValues && AggregateShape.DeclaredValueBaseOf(type) is not null,
         };
 
-        var properties = type.GetMembers()
-            .OfType<IPropertySymbol>()
-            .Where(p => p is
-            {
-                IsStatic: false,
-                IsIndexer: false,
-                DeclaredAccessibility: Accessibility.Public,
-                GetMethod: not null,
-            })
-            .Where(p => !string.Equals(p.Name, "EqualityContract", StringComparison.Ordinal))
-            .ToList();
+        var properties = PublicProperties(type);
 
         var constructor = ChooseConstructor(type, properties);
         if (constructor is null)
@@ -352,7 +421,7 @@ internal static class WireShape
             // Only a directly file-typed property inherits the permission; anything else gets false,
             // which is what stops it flowing another level down.
             var memberAllowsFile = membersMayCarryFiles && IsRemoteFile(property.Type);
-            var member = Classify(property.Type, memberAllowsFile, stack, compilation);
+            var member = Classify(property.Type, memberAllowsFile, stack, compilation, unwrapValues);
             if (member.Kind == WireKind.Unsupported)
             {
                 return MemberUnsupported(property, member, compilation);
@@ -367,6 +436,20 @@ internal static class WireShape
 
         return result;
     }
+
+    // What a receiver could read off the type: its own public instance properties, not the record's EqualityContract.
+    private static List<IPropertySymbol> PublicProperties(INamedTypeSymbol type) =>
+        type.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Where(p => p is
+            {
+                IsStatic: false,
+                IsIndexer: false,
+                DeclaredAccessibility: Accessibility.Public,
+                GetMethod: not null,
+            })
+            .Where(p => !string.Equals(p.Name, "EqualityContract", StringComparison.Ordinal))
+            .ToList();
 
     // A get-only property that no constructor parameter feeds cannot be restored, so sending it would be a
     // lie: the receiver would drop it. It is skipped rather than pretended.
@@ -403,7 +486,8 @@ internal static class WireShape
         INamedTypeSymbol modelType,
         INamedTypeSymbol entity,
         HashSet<ITypeSymbol> stack,
-        Compilation compilation)
+        Compilation compilation,
+        bool unwrapValues)
     {
         var modelFqn = GeneratedModelShape.ModelFqn(entity);
 
@@ -430,7 +514,7 @@ internal static class WireShape
 
             foreach (var member in shape.Members)
             {
-                var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation);
+                var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation, unwrapValues);
 
                 if (wire.Kind == WireKind.Unsupported)
                 {
@@ -444,7 +528,7 @@ internal static class WireShape
 
             // The author's own partial half, when there is one, is part of the same object.
             return modelType.TypeKind != TypeKind.Error
-                ? AddAuthorsHalf(modelType, result, stack, compilation)
+                ? AddAuthorsHalf(modelType, result, stack, compilation, unwrapValues)
                 : result;
         }
         finally
@@ -459,7 +543,8 @@ internal static class WireShape
         INamedTypeSymbol modelType,
         WireType result,
         HashSet<ITypeSymbol> stack,
-        Compilation compilation)
+        Compilation compilation,
+        bool unwrapValues)
     {
         var settable = modelType.GetMembers().OfType<IPropertySymbol>()
             .Where(property => property is
@@ -478,7 +563,7 @@ internal static class WireShape
                 continue;
             }
 
-            var wire = Classify(property.Type, false, stack, compilation);
+            var wire = Classify(property.Type, false, stack, compilation, unwrapValues);
             if (wire.Kind == WireKind.Unsupported)
             {
                 return MemberUnsupported(property, wire, compilation);
@@ -500,7 +585,8 @@ internal static class WireShape
         ModelValueObject valueObject,
         string modelFqn,
         HashSet<ITypeSymbol> stack,
-        Compilation compilation)
+        Compilation compilation,
+        bool unwrapValues)
     {
         var result = new WireType
         {
@@ -512,7 +598,7 @@ internal static class WireShape
 
         foreach (var member in valueObject.Members)
         {
-            var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation);
+            var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation, unwrapValues);
 
             if (wire.Kind == WireKind.Unsupported)
             {
@@ -533,16 +619,17 @@ internal static class WireShape
         ModelValueObject? valueObject,
         string modelFqn,
         HashSet<ITypeSymbol> stack,
-        Compilation compilation)
+        Compilation compilation,
+        bool unwrapValues)
     {
         if (valueObject is { SingleValue: true } single)
         {
-            return Classify(AsNullable(single.Members[0].Property.Type, compilation), false, stack, compilation);
+            return Classify(AsNullable(single.Members[0].Property.Type, compilation), false, stack, compilation, unwrapValues);
         }
 
         return valueObject is { } nested
-            ? ClassifyValueObjectModel(nested, modelFqn, stack, compilation)
-            : Classify(AsNullable(entityType, compilation), false, stack, compilation);
+            ? ClassifyValueObjectModel(nested, modelFqn, stack, compilation, unwrapValues)
+            : Classify(AsNullable(entityType, compilation), false, stack, compilation, unwrapValues);
     }
 
     // T? for a value type (Nullable<T>), an annotated reference otherwise — the type the model property is declared with.

@@ -367,6 +367,33 @@ using var signedIn = Current.UsePrincipal(new ClaimsPrincipal(new ClaimsIdentity
     [new Claim(ClaimTypes.NameIdentifier, ada.ToString()), new Claim(Tenant.ClaimType, acme.ToString())], "Test")));
 ```
 
+### A valid value object: `Test.Make`
+
+A test that needs a value object its rules accept, and does not care which, asks for one instead of writing a
+literal that a tightened rule would one day refuse:
+
+```csharp
+var vin = Test.Make<Vin>();        // Text(Value, MinLength: 17, MaxLength: 17, Upper: true) → "ABCDEFGHIJKLMNOPQ"
+var tax = Test.Make<TaxNumber>();  // Text(Value, Pattern: @"^\d{8}-\d-\d{2}$")            → "11111111-1-11"
+var km  = Test.Make<KmRange>();    // Range(Start, End, Strict: true)                       → 1 to 2
+```
+
+It reads the rules the record hands its base and makes the value through the generated `Create`, so the base's rules
+and the record's own `Rules()` both accept it, and every call makes the same one:
+
+| Base | The sample |
+|---|---|
+| `Text` | letters to its `MinLength` (or a few, within its `MaxLength`); a simple `Pattern` — literals, `.`, `\d`, `\w`, `\s`, character classes, groups (the first alternative), counted repeats — is met |
+| `Number`, `Whole` | its `Min` (at its `Scale`), or 1 within its `Max` |
+| `Day`, `Moment` | its `NotBefore`, or `Clock.Today` (`Clock.Wall`) within its latest |
+| `Range` | from its `Min` (or 1, or today) one step on — a day for dates, an hour for times — within its `Max` |
+| `Value` | a sample of each member: a text, 1, today, an enum's first member, `true`, or another value object made the same way |
+
+A value object it cannot build — a pattern with a lookahead, a member of a type it has no sample for, or a sample
+its own `Rules()` refuse — is an `InvalidOperationException` naming it and saying to make it by hand with
+`X.Create(…)`. A value object has no `with` outside its type ([RASK127](diagnostics.md#rask127)), so there is
+nothing to tweak a made one with: a test that cares about the value writes `Vin.Create("…")`.
+
 ### A real database server, when the machine has one
 
 Some tests need the database the app runs on — SQL Server's locking, a stored procedure, a migration — and not

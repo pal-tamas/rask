@@ -25,6 +25,8 @@
     <Using Include="Rask.Cqrs"/>
     <Using Include="Rask.Wire"/>
     <Using Include="Rask.Core.Forms"/>
+    <Using Include="Rask.Data"/>
+    <Using Include="Rask.Data.Range" Alias="Range"/>
   </ItemGroup>
 
   <!--
@@ -38,6 +40,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <!-- The value-object bases a contract may carry (ValueContracts.cs); their other half comes from the same generator. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

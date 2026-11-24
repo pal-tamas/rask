@@ -626,7 +626,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     {
         // The compilation lets a Rask.Data entity's generated model — which this generator cannot see — be
         // encoded from the entity rather than rejected as a type with no way to build it.
-        var message = WireShape.Classify(type, allowFile: true, compilation: compilation);
+        var message = WireShape.Classify(type, allowFile: true, compilation: compilation, unwrapValues: true);
         if (message.Kind == WireKind.Unsupported)
         {
             return ContractModel.Failed(message.Reason!);
@@ -636,7 +636,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         WireType? result = null;
         if (resultType is not null && !returnsFile)
         {
-            result = WireShape.Classify(resultType, allowFile: false, compilation: compilation);
+            result = WireShape.Classify(resultType, allowFile: false, compilation: compilation, unwrapValues: true);
             if (result.Kind == WireKind.Unsupported)
             {
                 return ContractModel.Failed(
