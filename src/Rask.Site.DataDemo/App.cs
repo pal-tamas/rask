@@ -147,6 +147,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
     // A form over an operation that takes rows: Checklist(IReadOnlyList<NoteItemSpec>) is an editable list, a row per
     // item the note holds, each row's field told under that row what Checklist refuses (Items[1].Text) as it is left.
+    // Blur(), as on the rename field: a bound field otherwise waits for the next action, so leaving it would try nothing.
     private static Component Checklist(Guid newest) =>
         Section.Aria("label", "The newest note's checklist")[
             H2["The newest note's checklist"],
@@ -155,7 +156,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                     Ui.TableColumns[Ui.TableColumn["Item"], Ui.TableColumn.End[""]],
                     Ui.TableRows[f.Items.Select((row, i) => Ui.TableRow.Key(i)[
                         Ui.TableCell[
-                            Ui.Input.Bind(() => row.Text).Id($"item-{i}").Attributes(("aria-label", $"Item {i + 1}")),
+                            Ui.Input.Bind(() => row.Text).Blur().Id($"item-{i}").Attributes(("aria-label", $"Item {i + 1}")),
                             Ui.Error.For(() => row.Text).Id($"item-{i}-error")
                         ],
                         Ui.TableCell.End[
