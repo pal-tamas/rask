@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Cqrs;
 using Rask.Testing.Fixture.Pumps;
 
 namespace Rask.Testing.Database.Tests;
@@ -50,6 +51,18 @@ public sealed class SavedEventsTests
         await database.Context.SaveChangesAsync(Ct);
 
         Assert.Equal(["Diesel"], renames.Heard);
+    }
+
+    [Fact]
+    public async Task The_fake_events_hear_what_a_test_database_save_publishes()
+    {
+        await using var database = await TestDatabase.Start<PumpsContext>(cancellationToken: Ct);
+        using var events = Events.Fake();
+
+        database.Context.Add(Ledger.Open("Fuel"));
+        await database.Context.SaveChangesAsync(Ct);
+
+        Assert.Equal("Fuel", events.Published<LedgerOpened>().Only().Name);
     }
 
     private static async Task<List<string>> LinesAsync(TestDatabase<PumpsContext> database)

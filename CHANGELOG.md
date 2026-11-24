@@ -58,6 +58,8 @@ them until tagged releases begin.
   transaction (or `Outbox.Fake()` records it), and a handler's `IDbContextFactory<TContext>` opens the test's database.
   Every `Start` overload takes `services:` for what the app's handlers need beyond Rask's registrations. A test that
   asserted `DomainEvents` after a save asserts it before the save, or on what the handler did.
+  Its contexts' options also say up front what a Rask context configures for itself, so each start builds EF Core's
+  internal services once rather than twice (a test run is refused past twenty).
 - **A database a class or collection fixture started is its test class's own, in parallel.** Before: one started in a
   fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture classes in parallel read
   whichever started last. After: Rask.Testing's xUnit v3 hook binds it before each test of the class (a fixture that is

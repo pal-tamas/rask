@@ -195,6 +195,10 @@ public partial class TestDatabase : IAsyncDisposable
         {
             var builder = new DbContextOptionsBuilder<TContext>();
             configure(builder);
+
+            // Said up front, as a Rask host says it: options the context's OnConfiguring would change get EF Core's
+            // internal services built twice, and a test run that builds more than twenty sets is refused.
+            RaskDbContext.WithSharedWarnings(builder);
             builder.AddInterceptors(interceptors);
             return construct(builder.Options);
         }
@@ -206,6 +210,7 @@ public partial class TestDatabase : IAsyncDisposable
         {
             var builder = new DbContextOptionsBuilder<RaskReadDbContext>();
             configure(builder);
+            RaskReadDbContext.Prepare(builder);
             return new RaskReadDbContext(builder.Options);
         }
 

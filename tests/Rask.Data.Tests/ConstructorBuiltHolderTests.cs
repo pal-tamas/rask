@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Rask.Data.Tests.Holders;
@@ -229,8 +228,7 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     {
         var context = typeof(HolderContext<>).MakeGenericType(holder);
         var builder = (DbContextOptionsBuilder)Activator.CreateInstance(typeof(DbContextOptionsBuilder<>).MakeGenericType(context))!;
-        builder.UseSqlite("Data Source=:memory:").EnableServiceProviderCaching(false)
-            .ConfigureWarnings(static w => w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning));
+        builder.UseSqlite("Data Source=:memory:").EnableServiceProviderCaching(false).OneOfManyShapes();
         return (DbContext)Activator.CreateInstance(context, builder.Options, nested)!;
     }
 }
