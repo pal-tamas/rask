@@ -112,6 +112,11 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Test.Concurrently(first, second)`: a race in one line.** It starts both operations at the same moment, in the
+  test's flow and so on the database the test started, and passes only when exactly one goes through and the other is
+  refused, handing back the refusal (`.Whole()`, `.At(…)`). Both through, both refused, any other exception, or the two
+  still running after 30 seconds — a deadlock — fail the test saying which. Two saves of one version side by side on
+  SQLite in memory keep one and refuse the other ([testing](docs/testing.md#two-at-once-testconcurrently)).
 - **[RASK177](docs/diagnostics.md#rask177): code written for one database.** An app's tests run on SQLite in memory,
   and Rask proves only what it translates on SQLite, SQL Server and PostgreSQL alike — so app code naming a provider's
   or a driver's API (`IncludeProperties`, `SqlException`, `SqliteConnection`), `EF.Functions.*`, raw SQL (`FromSql*`,

@@ -14,6 +14,8 @@ public sealed class Company : Aggregate<Guid, Timestamps, Versioned, Model, Soft
 
     public static Company Named(string name) => new() { Id = Guid.NewGuid(), Name = name };
 
+    public void Rename(string name) => Name = name;
+
     /// <summary>Removes the company through <paramref name="db" />, unless a contact still belongs to it.</summary>
     public async Task Remove(DbContext db)
     {
