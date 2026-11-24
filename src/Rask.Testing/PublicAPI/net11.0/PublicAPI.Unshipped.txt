@@ -211,3 +211,4 @@ Rask.Testing.TestMakes
 Rask.Testing.TestMakes.extension(Rask.Testing.Test!)
 static Rask.Testing.TestMakes.Make<T>() -> T!
 static Rask.Testing.TestMakes.extension(Rask.Testing.Test!).Make<T>() -> T!
+static Rask.Testing.Test.Concurrently(System.Func<System.Threading.Tasks.Task!>! first, System.Func<System.Threading.Tasks.Task!>! second) -> System.Threading.Tasks.Task<Rask.Testing.RefusalAssertion!>!

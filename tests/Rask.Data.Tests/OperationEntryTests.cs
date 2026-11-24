@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Data.Tests;
 
@@ -198,6 +199,21 @@ public sealed class OperationEntryTests : IDisposable
         Assert.Empty(Assert.Single(stale.Failures).Fields);
         Assert.Equal("A sealed expedition is kept.", Assert.Single(kept.Failures).Message);
         Assert.NotNull(await database.Load<Expedition>(expedition.Id, Token));
+    }
+
+    [Fact]
+    public async Task A_change_parameter_keeps_clears_or_sets_what_it_is_about()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+
+        await Expedition.Annotate(expedition.Id, 0, Change<string?>.Set("Bring rope"), Token);
+        await Expedition.Annotate(expedition.Id, 1, Change<string?>.Keep, Token);
+        var kept = (await database.Load<Expedition>(expedition.Id, Token))!.Remark;
+        await Expedition.Annotate(expedition.Id, 1, Change<string?>.Clear, Token);   // a keep writes nothing, so no new version
+
+        Assert.Equal("Bring rope", kept);
+        Assert.Null((await database.Load<Expedition>(expedition.Id, Token))!.Remark);
     }
 
     private static async Task<Expedition> PlannedAsync()

@@ -1020,6 +1020,13 @@ Form.For(Note.Rename, id)[f => [
   a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
   entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is
   refused at the top of the form.
+- **Keep, clear or set: `Change<T>`.** A parameter that may leave its value alone is a `Change<T>` (`Rask.Values`):
+  `public void Change(Change<Secret> password, Change<Nickname?> nick) => (Password, Nick) = (password.Applied(Password)!, nick.Applied(Nick));`.
+  Its field starts **empty**, and an empty field always **keeps** the value — the password case: nothing typed, the
+  stored password stays, and it is never read into the form. A value typed in is `Change<T>.Set(…)`, made through the
+  value object's `Create`. Over a value that may be absent (`Change<Nickname?>`), `Ui.Field.Bind(() => f.Nick)` also
+  draws a "Clear" ("Törlés") beside the control; ticked, the operation is handed `Change<T>.Clear`. From code,
+  `Change<T>.Keep` is the default. A password value object (`Password` base) is never read into any form field.
 - **Who may.** A principal the operation's roles do not admit (`Note.MayRename` is false) sees the form with every
   control disabled, the submit among them.
 - **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.

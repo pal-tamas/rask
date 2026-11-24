@@ -38,6 +38,8 @@ public static class RaskValidation
     private static volatile Dictionary<Type, Func<string, Delegate?>> _fieldRules = [];
     private static volatile RequiredFields _requiredFields = RequiredFields.None;
     private static volatile FieldShapes _fieldShapes = FieldShapes.None;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<string, string?>> Clearing = new();
     private static volatile ConcurrentDictionary<(Type Owner, string Name), FieldShape?> _statedShapes = new();
 
     /// <summary>
@@ -368,6 +370,25 @@ public static class RaskValidation
             _fieldShapes = _fieldShapes.With(modelType, shapeOf);
         }
     }
+
+    /// <summary>
+    ///     Registers, for one form model, the fields whose value may be cleared rather than kept — an operation's
+    ///     <c>Change&lt;Nickname?&gt;</c> — each with the <see langword="bool" /> property that says it is to be:
+    ///     <c>Ui.Field.Bind(() =&gt; f.Nick)</c> then draws a "Clear" beside its control, bound to that property. Called by
+    ///     generated code, from a <c>[ModuleInitializer]</c>.
+    /// </summary>
+    /// <param name="modelType">The form model's type.</param>
+    /// <param name="clearedBy">The property that clears a field, by the field's name; null for one that is not cleared.</param>
+    public static void RegisterClearing(Type modelType, Func<string, string?> clearedBy)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(clearedBy);
+        Clearing[modelType] = clearedBy;
+    }
+
+    // The bool property that clears the field a control is bound to, or null for one that is kept or set only.
+    internal static string? ClearedByOf(ExpressionAccessor.Accessor bound) =>
+        Clearing.TryGetValue(bound.Target.GetType(), out var clearedBy) ? clearedBy(bound.Property.Name) : null;
 
     // The shape of the field a control is bound to: what its model registered, else what the member's DataAnnotations
     // attributes say (a hand-written model), else null.

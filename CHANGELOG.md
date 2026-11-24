@@ -137,6 +137,20 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Test.Concurrently(first, second)`: a race in one line.** It starts both operations at the same moment, in the
+  test's flow and so on the database the test started, and passes only when exactly one goes through and the other is
+  refused, handing back the refusal (`.Whole()`, `.At(…)`). Both through, both refused, any other exception, or the two
+  still running after 30 seconds — a deadlock — fail the test saying which. Two saves of one version side by side on
+  SQLite in memory keep one and refuse the other ([testing](docs/testing.md#two-at-once-testconcurrently)).
+- **[RASK177](docs/diagnostics.md#rask177): code written for one database.** An app's tests run on SQLite in memory,
+  and Rask proves only what it translates on SQLite, SQL Server and PostgreSQL alike — so app code naming a provider's
+  or a driver's API (`IncludeProperties`, `SqlException`, `SqliteConnection`), `EF.Functions.*`, raw SQL (`FromSql*`,
+  `ExecuteSql*`, `SqlQuery*`) or SQL in the model (`HasColumnType`, `UseCollation`, `HasDefaultValueSql`,
+  `HasComputedColumnSql`, `HasFilter`, `ToSqlQuery`) is now reported, the message naming the neutral form
+  (`Contains`, `InTextOrder()`, `end - start`, the value object's `Scale`, `b.Default`/`b.Computed`,
+  `HasIndex(…).Where`, `.Covering`, `Db.Lock`, `ForUpdate()`, `IsUnique("…")`). A suggestion by default, a warning
+  under `<RaskStrict>` and an error at errors. Migrations, generated code and the call that selects the provider
+  (`UseSqlServer`/`UseNpgsql`/`UseSqlite` and its options) are not reported.
 - **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
   Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
   and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses
@@ -325,6 +339,13 @@ them until tagged releases begin.
   `await Driver.Delete(id, version)`, roles by `b.Operation(nameof(Delete), roles: …)`, `Driver.MayDelete` — and
   `.Wide()` is now `.Flyout()`. The dialog's indexer hands the dialog back, so `.Delete(…)` follows the content. The
   rask.sh data demo edits and deletes its notes this way.
+- **`Change<T>`: an operation's parameter that keeps, clears or sets.** Before: "empty means keep" (a password),
+  "empty means clear" (a note) and "only if changed" were each written by hand in the form and again in the domain.
+  After: `public void Change(Change<Secret> password, Change<Nickname?> nick)` takes `Change<T>` (`Rask.Values`:
+  `Keep`, `Clear`, `Set(value)`, `.Applied(current)`), and its `Form.For` field starts empty, an empty field always
+  keeping the value; a value typed in is set through its value object's rules, and over a nullable value
+  `Ui.Field.Bind` draws a "Clear" (`RaskString.ChangeClear`, "Törlés") beside the control
+  (`RaskValidation.RegisterClearing`). A `Password` value object is never read into a form field.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

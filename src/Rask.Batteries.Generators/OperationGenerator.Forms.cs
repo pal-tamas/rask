@@ -48,22 +48,58 @@ public sealed partial class OperationGenerator
     /// <param name="Text">Whether the value object holds a text.</param>
     /// <param name="Fill">What the aggregate holds for it, read off <c>aggregate</c>, or null when it names nothing alike.</param>
     private sealed record FormField(
-        string Property, string PropertyType, string? ValueObject, bool Optional, bool Required, bool Text, string? Fill);
+        string Property, string PropertyType, string? ValueObject, bool Optional, bool Required, bool Text, string? Fill)
+    {
+        /// <summary>The <c>Change&lt;T&gt;</c> the parameter is, or null for a value taken as it is.</summary>
+        public string? Change { get; init; }
+
+        /// <summary>Whether its value may be taken away: a "Clear" beside the field (<c>{Property}Cleared</c>).</summary>
+        public bool Clearable { get; init; }
+    }
 
     private static FormField? FieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate)
     {
+        // Change<T>: an empty field keeps the value, so nothing is read into it; a nullable T may be cleared too.
+        if (parameter.Type is INamedTypeSymbol { Name: "Change", TypeArguments.Length: 1, ContainingNamespace: { Name: "Values", ContainingNamespace.Name: "Rask" } } change)
+        {
+            var held = change.TypeArguments[0];
+            var clearable = held.NullableAnnotation == NullableAnnotation.Annotated ||
+                            held.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+            var bare = held is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+                ? nullable.TypeArguments[0]
+                : held.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+            return ValueFieldOf(parameter, bare, aggregate) is { } field
+                ? field with
+                {
+                    PropertyType = Optionally(field.PropertyType),
+                    Optional = true,
+                    Required = false,
+                    Fill = null,
+                    Change = change.ToDisplayString(TypeFormat),
+                    Clearable = clearable,
+                }
+                : null;
+        }
+
+        return ValueFieldOf(parameter, parameter.Type, aggregate);
+    }
+
+    private static string Optionally(string type) => type.EndsWith("?", StringComparison.Ordinal) ? type : type + "?";
+
+    private static FormField? ValueFieldOf(IParameterSymbol parameter, ITypeSymbol parameterType, INamedTypeSymbol aggregate)
+    {
         var property = Capitalised(parameter.Name);
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
-                       parameter.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+                       parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>()
-            .FirstOrDefault(p => !p.IsStatic && SymbolEqualityComparer.Default.Equals(p.Type.WithNullableAnnotation(NullableAnnotation.None), parameter.Type.WithNullableAnnotation(NullableAnnotation.None)));
+            .FirstOrDefault(p => !p.IsStatic && SymbolEqualityComparer.Default.Equals(p.Type.WithNullableAnnotation(NullableAnnotation.None), parameterType.WithNullableAnnotation(NullableAnnotation.None)));
 
-        if (parameter.Type is INamedTypeSymbol named && OneValueOf(named) is { } inner)
+        if (parameterType is INamedTypeSymbol named && OneValueOf(named) is { } inner)
         {
             var text = inner.SpecialType == SpecialType.System_String;
             var innerType = inner.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString(TypeFormat);
             var access = held?.NullableAnnotation == NullableAnnotation.Annotated ? "?.Value" : ".Value";
-            var fill = held is null ? null : "aggregate." + property + access;
+            var fill = held is null || AggregateShape.IsPassword(named) ? null : "aggregate." + property + access;
             return new FormField(
                 property,
                 text ? "string?" : innerType + "?",
@@ -74,13 +110,13 @@ public sealed partial class OperationGenerator
                 fill);
         }
 
-        if (!IsFormValue(parameter.Type))
+        if (!IsFormValue(parameterType))
         {
             return null;
         }
 
-        var type = parameter.Type.ToDisplayString(TypeFormat);
-        var isString = parameter.Type.SpecialType == SpecialType.System_String;
+        var type = parameterType.ToDisplayString(TypeFormat);
+        var isString = parameterType.SpecialType == SpecialType.System_String;
         // A plain text is the domain's to refuse (its Refuse, its attributes), told by the dry run: no required rule of the form's own.
         return new FormField(property, type, null, optional, Required: false, isString, held is null ? null : "aggregate." + property);
     }
@@ -232,6 +268,13 @@ public sealed partial class OperationGenerator
             s.Append("        ").Append(ValidationFqn).Append(".RegisterFieldShapes(typeof(").Append(input).Append("), ").Append(operation.Name).AppendLine("ShapeOf);");
             s.Append("        ").Append(ValidationFqn).Append(".RegisterRequiredFields(typeof(").Append(input).Append("), ").Append(operation.Name).AppendLine("Required);");
             s.Append("        ").Append(ValidationFqn).Append(".RegisterStoreRules(typeof(").Append(input).Append("), static _ => new ").Append(operation.Name).AppendLine("Rules());");
+            var clearable = operation.Parameters.Select(static p => p.Field!).Where(static f => f.Clearable).ToList();
+            if (clearable.Count > 0)
+            {
+                s.Append("        ").Append(ValidationFqn).Append(".RegisterClearing(typeof(").Append(input).Append("), static property => property switch { ")
+                    .Append(string.Join(", ", clearable.Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true) + " => " + SymbolDisplay.FormatLiteral(f.Property + "Cleared", quote: true))))
+                    .AppendLine(", _ => null });");
+            }
         }
 
         s.AppendLine("    }");
@@ -311,6 +354,12 @@ public sealed partial class OperationGenerator
 
             s.AppendLine();
             s.AppendLine();
+            if (field.Clearable)
+            {
+                s.Append("    /// <summary>Whether <c>").Append(field.Property).AppendLine("</c> is to be cleared rather than kept: the Clear beside its field.</summary>");
+                s.Append("    public bool ").Append(field.Property).AppendLine("Cleared { get; set; }");
+                s.AppendLine();
+            }
         }
 
         s.AppendLine("}");
@@ -422,6 +471,11 @@ public sealed partial class OperationGenerator
 
     private static string Made(FormField field)
     {
+        if (field.Change is { } change)
+        {
+            return ChangeMade(field, change);
+        }
+
         var given = "input." + field.Property;
         if (field.ValueObject is not { } valueObject)
         {
@@ -445,6 +499,22 @@ public sealed partial class OperationGenerator
         }
 
         return "global::Rask.Data.GeneratedOperations.Given(() => " + make + ", failures)" + (field.Optional ? "" : "!");
+    }
+
+    // An empty field keeps; a ticked Clear clears; a value typed in is set, made through its value object's rules.
+    private static string ChangeMade(FormField field, string change)
+    {
+        var given = "input." + field.Property;
+        var name = SymbolDisplay.FormatLiteral(field.Property, quote: true);
+        var rest = field.Clearable
+            ? "input." + field.Property + "Cleared ? " + change + ".Clear : " + change + ".Keep"
+            : change + ".Keep";
+        var value = field.Text ? given + "!" : "__" + field.Property;
+        var made = field.ValueObject is { } valueObject
+            ? "global::Rask.Data.GeneratedOperations.Given(() => " + valueObject + ".Create(" + value + ", " + name + "), failures)!"
+            : value;
+        var filled = field.Text ? "!string.IsNullOrWhiteSpace(" + given + ")" : given + " is { } __" + field.Property;
+        return filled + " ? " + change + ".Set(" + made + ") : " + rest;
     }
 
     private static void AppendShapesAndRequired(StringBuilder s, Operation operation)

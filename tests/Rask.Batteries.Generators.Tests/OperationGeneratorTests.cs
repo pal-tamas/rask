@@ -365,6 +365,69 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_change_parameter_starts_empty_keeps_when_empty_and_a_nullable_one_can_be_cleared()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public sealed partial record Nickname(string Value) : Text(Value, MaxLength: 10);
+                public sealed partial record Secret(string Value) : Password(Value, MinLength: 8);
+
+                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                {
+                    public Nickname? Nick { get; private set; }
+                    public Secret Code { get; private set; } = null!;
+
+                    public void Change(Change<Nickname?> nick, Change<Secret> code) => (Nick, Code) = (nick.Applied(Nick), code.Applied(Code)!);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public string? Nick { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public bool NickCleared { get; set; }", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("CodeCleared", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nick = aggregate", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Code = aggregate", forms, StringComparison.Ordinal);
+        Assert.Contains("RegisterClearing(typeof(DriverChangeInput), static property => property switch { \"Nick\" => \"NickCleared\", _ => null });", forms, StringComparison.Ordinal);
+        Assert.Contains("!string.IsNullOrWhiteSpace(input.Nick) ? global::Rask.Values.Change<global::Shop.Nickname?>.Set(", forms, StringComparison.Ordinal);
+        Assert.Contains(": input.NickCleared ? global::Rask.Values.Change<global::Shop.Nickname?>.Clear : global::Rask.Values.Change<global::Shop.Nickname?>.Keep", forms, StringComparison.Ordinal);
+        Assert.Contains(": global::Rask.Values.Change<global::Shop.Secret>.Keep", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_password_is_never_read_from_the_aggregate_into_its_form()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public sealed partial record Secret(string Value) : Password(Value, MinLength: 8);
+
+                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                {
+                    public Secret Code { get; private set; } = null!;
+                    public void Recode(Secret code) => Code = code;
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("Code = aggregate", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_bare_call_inside_the_aggregate_that_lands_on_the_entry_is_RASK170()
     {
         var diagnostics = await Analyze(Tagged("""

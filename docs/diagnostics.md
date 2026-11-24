@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK176, RASK180–RASK183, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK177, RASK180–RASK183, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -170,6 +170,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK174](#rask174) | Info | Two operations take the same parameters, so neither gets a `Form.For` |
 | [RASK175](#rask175) | Error | An aggregate stores a password |
 | [RASK176](#rask176) | Error | A password is sent back |
+| [RASK177](#rask177) | Info | Code written for one database |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
@@ -3616,6 +3617,47 @@ public sealed record FindLogin(Guid Id) : IQuery<Login>;                        
 ```
 
 **Fix:** leave the password out of what is sent back; send what the reader needs instead (a token, a flag).
+
+## RASK177
+
+**Code written for one database** · Info (Warning under `<RaskStrict>`)
+
+App code that only one database understands: an API of the SQL Server, PostgreSQL or SQLite provider or of its
+driver (`IncludeProperties`, `IsClustered`, `SqlException`, `PostgresException`, `SqliteConnection`, …),
+`EF.Functions.*`, raw SQL (`FromSql`/`FromSqlRaw`/`FromSqlInterpolated`, `ExecuteSql*`, `SqlQuery`/`SqlQueryRaw`,
+`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `UseCollation`,
+`HasDefaultValueSql`, `HasComputedColumnSql` and `HasFilter` given SQL, `ToSqlQuery`). An app's tests run on SQLite
+in memory ([testing](testing.md)), and Rask proves what it translates behaves the same on SQLite, SQL Server and
+PostgreSQL; code written for one of them is outside that proof — green on the database the tests run on, different
+on the one production runs on.
+
+```csharp
+b.Property(s => s.Price).HasColumnType("decimal(18, 9)");                     // ℹ RASK177
+public sealed partial record UnitPrice(decimal Value) : Number(Value, Scale: 9); // ✓ the scale on every database
+
+db.Drivers.OrderBy(d => EF.Functions.Collate(d.Name, "Hungarian_100_CI_AS"));  // ℹ RASK177
+db.Drivers.OrderBy(d => d.Name.InTextOrder());                                 // ✓ in the order OrderTextBy names
+
+await db.Database.ExecuteSqlRawAsync("EXEC sp_getapplock @Resource = 'pump'"); // ℹ RASK177
+await using var turn = await Db.Lock("pump").For(30.Seconds);                  // ✓ held on every database
+```
+
+**Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
+`EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
+`EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
+/ `HasMaxLength`; `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+`HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
+`.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
+`ForUpdate()` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
+message on `OnDelete(…)`, which every database turns into the same `RaskValidationException`.
+
+**Not reported:** a migration — a type derived from `Migration` or `ModelSnapshot`, or any file under a `Migrations`
+folder — and generated code, which are written for the database they migrate; and **the call that selects the
+provider**, `UseSqlServer`, `UseAzureSql`, `UseAzureSynapse`, `UseNpgsql` or `UseSqlite` on a
+`DbContextOptionsBuilder`, with everything in its arguments: that is the one place an app names its database
+(`UseRaskDatabase(sp)` names none, and reads it from `Rask:Database:Provider`). Rask's own packages are compiled apart
+from the app, so their provider code is not seen. A suggestion by default; a warning under `<RaskStrict>`, so an error
+at `<RaskStrict>errors</RaskStrict>`. No quick-fix: each replacement is a different shape.
 
 ## RASK180
 
