@@ -209,32 +209,39 @@ public partial class TestDatabase : IAsyncDisposable
             return new RaskReadDbContext(builder.Options);
         }
 
-        // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
-        // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
-        // created the schema and disposed would hand the first query an empty file.
         // One delegate each, handed to every place that opens a context, so disposing can tell whether the process-wide
         // binding is still this database's before it clears it.
         Func<TContext> write = Create;
         Func<RaskReadDbContext> read = CreateRead;
-        var services = TestDatabaseServices.For(clock, ModelOf(configure, construct), write, read, addServices);
-        interceptors = TestDatabaseServices.Interceptors(services);
 
+        // Rask's own services first, so the context that builds the model is configured as every later one is (EF Core
+        // keys its internal services on the interceptors that shape materialization). Building the model loads a
+        // battery's assembly when the model maps its tables; with the batteries announced, the services are registered
+        // again with what they add — the outbox's interceptor.
+        var services = TestDatabaseServices.For(clock, model: null, write, read, addServices);
+        interceptors = TestDatabaseServices.Interceptors(services);
+        var model = ModelOf(write);
+        if (!TestDatabaseBatteries.All.IsEmpty)
+        {
+            services.Dispose();
+            services = TestDatabaseServices.For(clock, model, write, read, addServices);
+            interceptors = TestDatabaseServices.Interceptors(services);
+        }
+
+        // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
+        // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
+        // created the schema and disposed would hand the first query an empty file.
         var schemaOwner = write();
         Db.Configure(write);
         ReadDb.Configure(read);
         return new TestDatabase<TContext>(schemaOwner, read, write, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
     }
 
-    // The model the app's context builds — which is also what loads a battery's assembly when the model maps its tables, so
-    // the battery has announced itself (TestDatabaseBatteries) before the services are registered. EF Core keeps it, so
-    // the contexts opened afterwards build none.
-    private static IModel ModelOf<TContext>(Action<DbContextOptionsBuilder> configure, Func<DbContextOptions<TContext>, TContext> construct)
+    // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.
+    private static IModel ModelOf<TContext>(Func<TContext> open)
         where TContext : DbContext
     {
-        var builder = new DbContextOptionsBuilder<TContext>();
-        configure(builder);
-        builder.AddInterceptors(WritableChildrenInterceptor.Instance);
-        using var probe = construct(builder.Options);
+        using var probe = open();
         return probe.Model;
     }
 
@@ -328,17 +335,11 @@ public partial class TestDatabase : IAsyncDisposable
     ///         A database started in the test itself needs none of this: it is bound to the test's flow already. One started
     ///         in a fixture's <c>InitializeAsync</c> is not — that ran in a flow of the test framework's own, which is gone
     ///         by the time a test runs — so <c>Order.Where(…)</c> in a test reaches it only through the process-wide
-    ///         binding, which the last database started anywhere holds. Bind it in the test class's constructor and every
-    ///         test of the class reads and writes this one, beside fixtures of other classes running in parallel:
+    ///         binding, which the last database started anywhere holds. Rask.Testing's xUnit v3 hook calls this before each
+    ///         test of a class whose fixture is, or holds, a database; elsewhere a test binds it on its first line —
+    ///         <c>using var bound = fixture.Database.Bind();</c> — and reads and writes it beside fixtures of other classes
+    ///         running in parallel.
     ///     </para>
-    ///     <code>
-    /// public sealed class OrderTests(ShopDatabase shop) : IClassFixture&lt;ShopDatabase&gt;, IDisposable
-    /// {
-    ///     private readonly IDisposable _bound = shop.Database.Bind();
-    ///
-    ///     public void Dispose() => _bound.Dispose();
-    /// }
-    ///     </code>
     ///     <para>Not async, so it binds the flow of whatever calls it; disposing puts back what was bound before.</para>
     /// </remarks>
     /// <returns>The binding; dispose it to let go of it.</returns>

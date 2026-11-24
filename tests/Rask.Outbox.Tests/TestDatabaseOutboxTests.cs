@@ -17,6 +17,7 @@ public sealed class ShopWithOutboxContext(DbContextOptions<ShopWithOutboxContext
 }
 
 /// <summary>A <c>TestDatabase</c> saves through the outbox as the app does, once its model maps the table.</summary>
+[Collection(OutboxDbCollection.Name)]
 public sealed class TestDatabaseOutboxTests : IDisposable
 {
     private readonly ShippingLog _log = new();

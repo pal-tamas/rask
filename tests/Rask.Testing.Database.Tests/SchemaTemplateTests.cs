@@ -41,7 +41,7 @@ public sealed class SchemaTemplateTests
         await using var connection = new SqliteConnection(database.Context.Database.GetConnectionString());
         await connection.OpenAsync(Ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type IN ('table', 'index', 'trigger') ORDER BY name";
+        command.CommandText = "SELECT name FROM sqlite_master WHERE type IN ('table', 'index', 'trigger') AND name NOT LIKE 'sqlite_stat%' ORDER BY name";
         await using var reader = await command.ExecuteReaderAsync(Ct);
         var names = new List<string>();
         while (await reader.ReadAsync(Ct))

@@ -18,10 +18,11 @@ namespace Rask.Data;
 /// </remarks>
 internal static class TestDatabaseServices
 {
+    /// <summary>The services, with the batteries <paramref name="model" /> maps — none while it is not known yet.</summary>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public static ServiceProvider For<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         TimeProvider clock,
-        IModel model,
+        IModel? model,
         Func<TContext> openWrite,
         Func<RaskReadDbContext> openRead,
         Action<IServiceCollection>? addServices)
@@ -40,9 +41,12 @@ internal static class TestDatabaseServices
         // As the host registers them: the dispatcher first, then Data, then the batteries that follow it.
         services.AddRaskCqrs();
         services.AddRaskData<TContext>();
-        foreach (var battery in TestDatabaseBatteries.All)
+        if (model is not null)
         {
-            battery.Wire<TContext>(services, model);
+            foreach (var battery in TestDatabaseBatteries.All)
+            {
+                battery.Wire<TContext>(services, model);
+            }
         }
 
         // The test's own last, so it can stand in for any of the above.

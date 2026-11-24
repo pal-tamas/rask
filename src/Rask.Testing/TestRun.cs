@@ -8,7 +8,7 @@ namespace Rask.Testing;
 ///     <c>Accounts.Create&lt;User&gt;(…)</c>, its first <c>Page.Visit</c> — with its own database, and shut down when the test ends.
 /// </summary>
 /// <remarks>
-///     Machinery: Rask.Testing's build adds a test-framework hook that calls <see cref="Begin" /> before every
+///     Machinery: Rask.Testing's build adds a test-framework hook that calls <see cref="Begin()" /> before every
 ///     test and <see cref="End" /> after it, so a test writes neither. It is why
 ///     <c>await Accounts.Create&lt;User&gt;(…); var admin = await User.Where(…).First(); var page = Page.Visit("/x").As(admin);</c>
 ///     works in that order.
@@ -17,6 +17,7 @@ namespace Rask.Testing;
 public static class TestRun
 {
     private static readonly AsyncLocal<Run?> Open = new();
+    private static readonly AsyncLocal<IDisposable?> FixtureBinding = new();
 
     internal static Run? Current => Open.Value;
 
@@ -30,9 +31,33 @@ public static class TestRun
         _ = Ambient.Enter(run);
     }
 
+    /// <summary>
+    ///     Opens this test's app as <see cref="Begin()" /> does, and binds the model surface to the <c>TestDatabase</c> one of
+    ///     <paramref name="fixtures" /> — the test class's class and collection fixtures — started, if one did.
+    /// </summary>
+    /// <remarks>
+    ///     A fixture's <c>InitializeAsync</c> runs in a flow of the framework's own, so a database it starts reaches no test
+    ///     by itself; bound here, before each test and in the test's own flow, every test of the class reads and writes it —
+    ///     beside the fixtures of other classes running in parallel. A fixture that is a <c>TestDatabase</c>, or has one
+    ///     as a public property, counts; the first found is bound. A database the test starts itself still wins.
+    /// </remarks>
+    /// <param name="fixtures">The fixtures the test class was given.</param>
+    public static void Begin(IEnumerable<object> fixtures)
+    {
+        ArgumentNullException.ThrowIfNull(fixtures);
+        Begin();
+        FixtureBinding.Value = FixtureDatabase.In(fixtures)?.Bind();
+    }
+
     /// <summary>Shuts down the app this test booted, if it booted one.</summary>
     public static void End()
     {
+        if (FixtureBinding.Value is { } binding)
+        {
+            FixtureBinding.Value = null;
+            binding.Dispose();
+        }
+
         if (Open.Value is { } run)
         {
             Open.Value = null;

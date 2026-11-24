@@ -45,11 +45,11 @@ them until tagged releases begin.
   transaction (or `Outbox.Fake()` records it), and a handler's `IDbContextFactory<TContext>` opens the test's database.
   Every `Start` overload takes `services:` for what the app's handlers need beyond Rask's registrations. A test that
   asserted `DomainEvents` after a save asserts it before the save, or on what the handler did.
-- **`TestDatabase.Bind()` points the model surface at a fixture's database for the test class that binds it.** A
-  database started in a class fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture
-  classes in parallel read whichever started last. `private readonly IDisposable _bound = fixture.Database.Bind();` in
-  the test class binds it for that class's tests; disposing a database now clears the process-wide binding only while
-  it is still its own.
+- **A database a class or collection fixture started is its test class's own, in parallel.** Before: one started in a
+  fixture's `InitializeAsync` reached no test's flow and was process-wide, so two fixture classes in parallel read
+  whichever started last. After: Rask.Testing's xUnit v3 hook binds it before each test of the class (a fixture that is
+  a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
+  hand. Disposing a database clears the process-wide binding only while it is still its own.
 
 - **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
   `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
@@ -571,6 +571,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A test project that declares its own context still boots the app on demand.** Before: a `RaskDbContext` subclass
+  in a test project that uses Rask.Testing got a generated design-time factory over `UseRaskDatabase`, so the test
+  assembly referenced `Rask.Server` and Rask.Testing took the TEST project's entry point (the test SDK's `Main`) for the
+  app's — nothing booted, and a read with no database of its own failed with "The read faces have not been pointed at
+  a database". After: an assembly that references a test framework is never taken for the app.
 - **A `DateTimeOffset` orders and compares by its instant on SQLite, as on SQL Server.** Before: EF Core's SQLite
   provider stored it as text with its offset and refused `OrderBy`, `<`, `>` and `Max` over it, and `==` and a unique
   index compared the text — so `10:00+01:00` and `09:00+00:00` were two moments, and a query an app ran on SQL Server
@@ -579,7 +584,8 @@ them until tagged releases begin.
   instant; the stored text is EF Core's own, every tick and the offset kept, and a property with a converter of its own
   keeps its column. An existing SQLite database with such columns takes one migration (`rask db add MomentOrder`).
   `DateTimeParityTests` (Providers E2E) pins the date rules on SQL Server, SQLite and PostgreSQL: a tick and
-  `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL
+  `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL —
+  where a `Moment` value object, a wall-clock `DateTime` of `Kind = Unspecified`, is refused on save
   ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
 - **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
   `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's

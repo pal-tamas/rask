@@ -329,9 +329,10 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   rest of the model surface — opens its own connection to the same named database, so they all see the same rows;
 - tests run **in parallel**: a database started inside the test binds the model surface for that test alone, so two
   tests side by side never read each other's rows — not through the read face, the aggregate's statics, a handler,
-  nor `database.Factory` handed to a test host. One started in a class fixture's `InitializeAsync` reaches no test's
-  flow (xUnit ran it in its own) and is process-wide; `private readonly IDisposable _bound = fixture.Database.Bind();`
-  in the test class (disposed in its `Dispose`) binds it for that class's tests, beside every other class's;
+  nor `database.Factory` handed to a test host. One started in a class or collection fixture's `InitializeAsync`
+  reaches no test's flow by itself (xUnit ran it in its own), so the test hook binds it before each test of the
+  class — a fixture that is a `TestDatabase` or holds one as a public property — and two fixture classes run side by
+  side, each on its own (`using var bound = fixture.Database.Bind();` does it by hand where the hook is off);
 - a save runs the app's whole interceptor chain, **domain-event publication and the outbox included**: a saved
   aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
   handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations

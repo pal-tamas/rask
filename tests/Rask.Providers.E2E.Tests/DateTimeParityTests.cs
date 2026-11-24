@@ -14,12 +14,27 @@ public sealed class TimedRow
     public DateTimeOffset Stamp { get; set; }
 }
 
+/// <summary>A moment on the wall clock, as an app declares one: Rask.Data's <see cref="Moment" /> base.</summary>
+public sealed partial record ParityFueled(DateTime Value) : Moment(Value);
+
+/// <summary>A row holding a <see cref="Moment" /> value object, mapped as the generated model maps one: one converted column.</summary>
+public sealed class FueledRow
+{
+    public int Id { get; set; }
+
+    public string Code { get; set; } = "";
+
+    public ParityFueled Fueled { get; set; } = null!;
+}
+
 /// <summary>A date and time and a moment with its offset, as EF Core maps them on each provider.</summary>
 public sealed class DateTimeParityDbContext(DbContextOptions<DateTimeParityDbContext> options) : DbContext(options)
 {
     public const string Schema = "rask_date_time_parity";
 
     public DbSet<TimedRow> TimedRows => Set<TimedRow>();
+
+    public DbSet<FueledRow> FueledRows => Set<FueledRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +44,7 @@ public sealed class DateTimeParityDbContext(DbContextOptions<DateTimeParityDbCon
         }
 
         modelBuilder.Entity<TimedRow>().HasIndex(r => r.Code).IsUnique();
+        modelBuilder.Entity<FueledRow>().Property(r => r.Fueled).HasConversion(v => v.Value, v => ParityFueled.Create(v));
     }
 }
 
@@ -180,6 +196,37 @@ public abstract class DateTimeParityTests : IAsyncLifetime
         Assert.Equal(KeepsTheOffset ? written.Offset : TimeSpan.Zero, read.Offset);
     }
 
+    [Fact]
+    public async Task A_wall_clock_moment_comes_back_to_the_tick_and_orders_by_its_time()
+    {
+        Assert.SkipUnless(Available && KeepsWallClockMoments, SkipReason);
+        var noon = new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Unspecified);
+        await using (var db = NewContext())
+        {
+            db.FueledRows.AddRange(
+                Fueled("ticked", noon.AddTicks(1_234_567)),
+                Fueled("later", noon.AddMilliseconds(900)),
+                Fueled("first", noon));
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var fresh = NewContext();
+        var read = await fresh.FueledRows.Where(r => r.Code == "ticked").Select(r => r.Fueled).SingleAsync(Ct);
+        var ordered = await fresh.FueledRows.OrderBy(r => r.Fueled).Select(r => r.Code).ToListAsync(Ct);
+
+        Assert.Equal(noon.AddTicks(1_234_567), read.Value);
+        Assert.Equal(DateTimeKind.Unspecified, read.Value.Kind);
+        Assert.Equal(["first", "ticked", "later"], ordered);
+    }
+
+    /// <summary>
+    ///     Whether a <see cref="Moment" /> — a wall-clock time, <see cref="DateTimeKind.Unspecified" /> — can be stored.
+    ///     Npgsql maps <see cref="DateTime" /> to <c>timestamptz</c> and refuses any kind but UTC.
+    /// </summary>
+    private protected virtual bool KeepsWallClockMoments => true;
+
+    private protected static FueledRow Fueled(string code, DateTime at) => new() { Code = code, Fueled = ParityFueled.Create(at) };
+
     private static DateTime Second => new(2026, 3, 4, 12, 0, 0, DateTimeKind.Utc);
 
     private static DateTimeOffset At(int hour, int minute, int second, TimeSpan offset) =>
@@ -251,6 +298,20 @@ public sealed class PostgresDateTimeParityTests : DateTimeParityTests
     private protected override DateTimeKind KindReadBack => DateTimeKind.Utc;
 
     private protected override bool KeepsTheOffset => false;
+
+    private protected override bool KeepsWallClockMoments => false;
+
+    [Fact]
+    public async Task A_wall_clock_moment_is_refused_as_a_time_of_no_zone()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = NewContext();
+        db.FueledRows.Add(Fueled("noon", new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Unspecified)));
+
+        var refused = await Assert.ThrowsAnyAsync<Exception>(() => db.SaveChangesAsync(Ct));
+
+        Assert.Contains("Kind=Unspecified", refused.ToString(), StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task A_moment_in_another_offset_than_UTC_is_refused()

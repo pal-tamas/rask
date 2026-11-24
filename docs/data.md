@@ -2043,17 +2043,11 @@ triggers, `HasData` seed), so a start costs well under a millisecond of schema h
 tests side by side each read their own rows — through the read face (`Product.Where(…)`), the aggregate's statics
 (`Product.Find(id)`), a handler, or a factory a test host is handed (`database.Factory`). One started in a class or
 collection fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow — the framework ran it in a flow
-of its own — so on its own it points the process-wide surface, which the last database started anywhere holds.
-Bind it in the test class's constructor and the class runs on it beside every other:
-
-```csharp
-public sealed class OrderTests(ShopDatabase shop) : IClassFixture<ShopDatabase>, IDisposable
-{
-    private readonly IDisposable _bound = shop.Database.Bind();
-
-    public void Dispose() => _bound.Dispose();
-}
-```
+of its own — so on its own it points the process-wide surface, which the last database started anywhere holds. With
+`Rask.Testing` referenced (xUnit v3) its test hook binds it before each test of the class: a fixture that is a
+`TestDatabase`, or holds one as a public property, is the database every test of that class reads and writes, beside
+every other class's fixture. Without the hook, `using var bound = fixture.Database.Bind();` at the top of a test does
+the same by hand.
 
 The options callback is still there for another database: `TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs))`,
 or SQLite over a file. A provider's specifics stay in Rask (the collation, `end - start`, `Db.Lock`, a covering
@@ -2383,6 +2377,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 | A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
+| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | refused: Npgsql writes a `DateTime` only as UTC |
 
 SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
 `OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
