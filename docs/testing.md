@@ -342,6 +342,10 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
   text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
   unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));
+- a second context type of the app's — one that reads the tables as the database has them, a host's context with
+  interceptors of its own — opens on the same database with **`database.Options<TOther>()`**: the provider exactly as
+  the fixture's contexts have it (`UseRaskSqlite` on the same in-memory database), none of the fixture's interceptors,
+  so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
 - disposing it lets the database go.
 
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.

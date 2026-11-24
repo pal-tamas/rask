@@ -28,6 +28,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
+  app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
+  in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
+  string, since `UseRaskSqlite(string, SqliteOptions)` is internal. After: `new LegacyDb(database.Options<LegacyDb>().Options)`
+  — the provider configured as the fixture's own contexts are, none of its interceptors.
 - **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
   `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
   without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
