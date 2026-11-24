@@ -1071,6 +1071,45 @@ of the save:
 The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
 same save closes is judged as the database has it, before this save.
 
+### An operation, run as one write
+
+A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
+runs it as one write — the load, the method and the save in one `Db.Transaction`:
+
+```csharp
+public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
+{
+    public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
+    public void SetOpening(Opening opening) { … }                                           // an operation
+    public bool IsOpen() => …;                                                              // a question: no entry
+
+    public static void Configure(EntityTypeBuilder<Supply> b) =>
+        b.Operation(s => s.SetOpening, roles: Roles.Admin);
+}
+
+await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+```
+
+- **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
+  parameter, that returns `void`, `Task`, `ValueTask` or the aggregate itself (a fluent `Driver Change(…)`). A method
+  that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
+  method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
+  entries, because they are static overloads in its own class.
+- **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
+  principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
+  `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
+  whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
+  anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
+  the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
+  in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
+  entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
+  called on an aggregate in hand is your own code and runs as written.
+- **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
+  to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
+  whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
+
 ### Changing two aggregates together: `db:`
 
 **No `db:` means the write owns its unit of work; `db:` means you do.** Without a context, a write opens one,
@@ -1700,8 +1739,9 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 ```
 
 **The value object's own rules.** A value object that holds ONE value and is
-[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole` or `Day`, its base's
-arguments and any `Rules()` of its own — is asked by the field that holds it, before any `.Validate(…)` written on
+[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole`, `Day` or `Moment`, its base's
+arguments and any `Rules()` of its own, or `: Value` with ONE positional member (`record Rank(int Value) : Value`) and
+its `Rules()` — is asked by the field that holds it, before any `.Validate(…)` written on
 the field, which then runs only for a value it accepted. The form asks exactly what its constructor checks, through
 the generated `X.__Problems`, so the two cannot drift. A value object not declared from a base record has no rule
 of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
@@ -1790,6 +1830,24 @@ validation ones, those that describe a field (`[Display]`, `[DataType]`, `[Edita
 and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[ConcurrencyCheck]`, a Schema attribute
 like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
 property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
+
+What each one does, where it is read — on the aggregate's property, a generated model's, or a hand-written form model's:
+
+| Attribute | The form and its control | `Create(model)` / `Update(id, model)` | Every save | The column |
+| --- | --- | --- | --- | --- |
+| `[Required]` | checked; `aria-required` and the *Required* badge | checked | checked | `NOT NULL` (EF Core's) |
+| `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | checked; a text input's `maxlength`/`minlength` — on a value object's property, the tighter of the attribute and the value object's own | checked | checked | `[MaxLength]`/`[StringLength]` the length (EF Core's; RASK128 when it and the value object disagree) |
+| `[Range]`, `[RegularExpression]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
+| `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
+| `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
+| `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
+| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
+| `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
+
+`[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
+the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
+Rask.Ui list or table builds its columns from a model's members.
 
 ## The current user — `Current`
 
@@ -2607,8 +2665,11 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 ### Declared from a base record
 
-A value object is declared from the Rask.Data base record of what it holds, with its rules as the base's
-arguments, and is checked as it is made — no instance exists that its rules refuse. Rask writes the rest:
+A value object is declared from the base record of what it holds, with its rules as the base's arguments, and is
+checked as it is made — no instance exists that its rules refuse. Rask writes the rest. The bases — `Value`, `Text`,
+`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), so a browser app
+with no data layer declares its values the same way with a `using Rask.Values;`; Rask.Data maps them to columns and
+imports the namespace for you, with `Range` aliased over `System.Range`:
 
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
@@ -2644,13 +2705,13 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
+| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
-| `Whole` | `long Value` | `Min`, `Max` |
+| `Whole` | its own `int` or `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
 | `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
-| `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
+| `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)`; with ONE member it is a one-value value object: one column, asked on its field, refused under it |
 
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
 compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a
@@ -2669,16 +2730,22 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
-`FuelingChip { Value = C-17 }`. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it
-generated, a number or a date written culture-invariant (`1234.5` on every machine); a `ToString` the record
-declares itself is kept.
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number`, `Whole`, `Day` and `Moment` too
+(`1234.5` on every machine, never `1234,5`): it is the value's text, and showing it to a reader is the UI's and
+`Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
+way; a `ToString` the record declares itself is kept.
+
+**`Required: false` lets a text be empty**: `public sealed partial record FuelingChip(string Value) : Text(Value,
+MaxLength: 1000, Required: false);` makes `FuelingChip.Create("")` (or only blanks) the value `""` with no problem, while
+a filled one is still held to its lengths and its pattern. A field bound to it on the generated model is neither
+refused nor announced as required when left empty, and saves `""`; `CreateOptional("")` is still nothing.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
 
-**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing.Data): it reads the rules
+**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
 **A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in

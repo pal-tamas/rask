@@ -36,6 +36,10 @@ internal static class UiInputLook
     /// <summary>The <c>&lt;input&gt;</c> itself, before size and padding.</summary>
     internal const string Control = "[:where(&)]:block [:where(&)]:w-full appearance-none";
 
+    // A field kept in capitals (a value object declared `Upper: true`) shows what is typed in capitals as it is typed:
+    // the text-transform only, so the value sent is what was typed and the value object puts it in capitals.
+    internal const string Upper = "uppercase";
+
     /// <summary>A leading icon: over the box's left edge, not in the pointer's way.</summary>
     internal const string Leading =
         "pointer-events-none absolute top-0 bottom-0 start-0 flex items-center justify-center ps-3 text-xs "

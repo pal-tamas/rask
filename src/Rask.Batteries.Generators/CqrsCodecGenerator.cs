@@ -678,8 +678,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             return "global::Rask.Rules.Required";
         }
 
-        return compilation.GetTypeByMetadataName("Rask.Data.GeneratedValueRules") is { DeclaredAccessibility: Accessibility.Public }
-            ? "global::Rask.Data.GeneratedValueRules.Required()[0]"
+        return compilation.GetTypeByMetadataName("Rask.Values.GeneratedValueRules") is { DeclaredAccessibility: Accessibility.Public }
+            ? "global::Rask.Values.GeneratedValueRules.Required()[0]"
             : WireCodecEmitter.EnglishRequired;
     }
 

@@ -20,7 +20,10 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
             nameof(Leg.Axles) => new FieldShape(FieldKind.Whole, Min: 2, Max: 9),
             nameof(Leg.Day) => new FieldShape(FieldKind.Day, NotAfterToday: true),
             nameof(Leg.Fueled) => new FieldShape(FieldKind.Moment, NotAfterNow: true),
-            nameof(Leg.Level) or nameof(Leg.Fixed) => new FieldShape(FieldKind.Choice, Options: Levels),
+            nameof(Leg.Level) => new FieldShape(FieldKind.Choice, Options: Levels),
+            nameof(Leg.Fixed) => new FieldShape(FieldKind.Choice, Options: Levels) { ReadOnly = true },
+            nameof(Leg.Mode) => new FieldShape(FieldKind.Choice, Options: Levels) { Hint = FieldHints.RadioGroup },
+            nameof(Leg.Vin) => new FieldShape(FieldKind.Text, MaxLength: 17) { Upper = true },
             nameof(Leg.Vehicle) => new FieldShape(FieldKind.Id),
             nameof(Leg.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Whole),
             _ => null,
@@ -205,6 +208,67 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_bool_hinted_as_a_switch_is_a_switch()
+    {
+        var leg = new Leg();
+
+        var page = Page.Render(() => Ui.Field.Bind(() => leg.Notify));
+
+        Assert.True(page.Exists("[data-ui-switch]"));
+        Assert.False(page.Exists("[data-ui-checkbox]"));
+    }
+
+    [Fact]
+    public void An_enum_hinted_as_a_radio_group_is_a_radio_per_option_in_order()
+    {
+        var leg = new Leg();
+
+        var page = Page.Render(() => Ui.Field.Bind(() => leg.Mode));
+
+        var html = page.Render();
+        Assert.Equal(["Low", "High"], page.FindAll("input[type=\"radio\"]").Select(r => r.Attribute("value")));
+        Assert.True(html.IndexOf("Kicsi", StringComparison.Ordinal) < html.IndexOf("Nagy", StringComparison.Ordinal));
+        Assert.False(page.Exists("select"));
+    }
+
+    [Fact]
+    public void Text_typed_as_multiline_is_a_textarea_unless_the_step_says_otherwise()
+    {
+        var leg = new Leg();
+
+        var page = Page.Render(() => Div[Ui.Field.Bind(() => leg.Story), Ui.Field.Bind(() => leg.Story).Multiline(false).Label("Short")]);
+
+        Assert.Single(page.FindAll("textarea"));
+        Assert.Single(page.FindAll("input"));
+    }
+
+    [Fact]
+    public void A_moment_typed_as_a_date_is_a_date_input()
+    {
+        var leg = new Leg { Started = new DateTime(2025, 3, 14, 8, 30, 0, DateTimeKind.Unspecified) };
+
+        var page = Page.Render(() => Ui.Field.Bind(() => leg.Started));
+
+        var input = page.Find("input#f-started");
+        Assert.Equal(("date", "2025-03-14"), (input.Attribute("type"), input.Attribute("value")));
+    }
+
+    [Fact]
+    public void A_text_kept_in_capitals_draws_its_input_in_capitals_bare_or_in_a_field()
+    {
+        var leg = new Leg();
+
+        var page = Page.Render(() => Div[Ui.Field.Bind(() => leg.Vin), Ui.Input.Bind(() => leg.Vin).Id("bare")]);
+
+        Assert.Contains("uppercase", page.Find("input#f-vin").Attribute("class"), StringComparison.Ordinal);
+        Assert.Contains("uppercase", page.Find("input#bare").Attribute("class"), StringComparison.Ordinal);
+        Assert.Equal("17", page.Find("input#bare").Attribute("maxlength"));
+        Assert.Null(page.Find("input#bare").Attribute("style"));
+        Assert.Contains("uppercase", Page.Render(() => Ui.Textarea.Bind(() => leg.Vin)).Find("textarea").Attribute("class"), StringComparison.Ordinal);
+        Assert.DoesNotContain("uppercase", Page.Render(() => Ui.Input.Bind(() => leg.Note)).Render(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_container_still_draws_the_parts_it_is_given()
     {
         var leg = new Leg();
@@ -258,6 +322,19 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
 
         [Editable(false)]
         public Level? Fixed { get; set; }
+
+        [UIHint(FieldHints.Switch)]
+        public bool Notify { get; set; }
+
+        public Level Mode { get; set; }
+
+        [DataType(DataType.MultilineText)]
+        public string? Story { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime Started { get; set; }
+
+        public string? Vin { get; set; }
     }
 
     private sealed class Km

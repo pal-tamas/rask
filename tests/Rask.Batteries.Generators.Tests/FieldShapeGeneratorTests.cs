@@ -13,10 +13,12 @@ public class FieldShapeGeneratorTests
         using System;
         using System.ComponentModel.DataAnnotations;
         using Rask.Data;
-        using Range = Rask.Data.Range;
+        using Rask.Values;
+        using Range = Rask.Values.Range;
         namespace Shop;
 
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100, MinLength: 2);
+        public sealed partial record Plate(string Value) : Text(Value, MaxLength: 20, Upper: true);
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Max: 999.5m, Scale: 2);
         public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
@@ -45,6 +47,13 @@ public class FieldShapeGeneratorTests
             public Fuel Fuel { get; private set; }
             public DepotId Depot { get; private set; }
             public string Note { get; private set; } = "";
+            [EmailAddress, StringLength(80, MinimumLength = 5)] public string Contact { get; private set; } = "";
+            [Editable(false), UIHint("Switch")] public bool Locked { get; private set; }
+            [MaxLength(50)] public DriverName Second { get; private set; } = DriverName.Create("Bea");
+            [DisplayFormat(ConvertEmptyStringToNull = false), DataType(DataType.MultilineText)] public string? Remark { get; private set; }
+            [DataType(DataType.Date)] public DateTime Started { get; private set; }
+            [Phone, Editable(false)] public Fuel Spare { get; private set; }
+            public Plate Plate { get; private set; } = Plate.Create("ABC123");
         }
         """;
 
@@ -56,6 +65,7 @@ public class FieldShapeGeneratorTests
 
     [Theory]
     [InlineData("DriverName", Kind + ".Text, MaxLength: 100, MinLength: 2")]
+    [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true };")]
     [InlineData("Litres", Kind + ".Number, Min: 1m, Max: 999.5m, Scale: 2")]
     [InlineData("Pieces", Kind + ".Whole, Min: 0m, Max: 1000m")]
     [InlineData("InvoiceDay", Kind + ".Day, NotAfterToday: true")]
@@ -131,5 +141,38 @@ public class FieldShapeGeneratorTests
         Assert.Contains("__InRange_KmRangeModel(value, model.End, \"Start\")", model, StringComparison.Ordinal);
         Assert.Contains("global::Shop.KmRange.TryCreate(__start, __end, out _, out var __problems);", model, StringComparison.Ordinal);
         Assert.Contains("global::Shop.Shift.TryCreate(__start, end, out _, out var __problems);", model, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_plain_property_registers_what_its_attributes_tell_its_field()
+    {
+        var run = Run();
+
+        var model = run.GeneratedSource("TripModel.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "\"Contact\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Text, MaxLength: 80, MinLength: 5) { Input = global::Rask.Core.InputType.Email },",
+            model, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"Locked\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Text) { ReadOnly = true, Hint = \"Switch\" },", model, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"Remark\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Text) { KeepEmpty = true, Hint = \"MultilineText\" },", model, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"Started\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Moment) { Input = global::Rask.Core.InputType.Date },", model, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_value_objects_length_is_tightened_by_its_propertys_attribute_and_its_hints_are_added()
+    {
+        var run = Run();
+
+        var model = run.GeneratedSource("TripModel.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("\"Second\" => __Within(global::Shop.DriverName.__Field, 50, null),", model, StringComparison.Ordinal);
+        Assert.Contains("\"Spare\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Choice, Options:", model, StringComparison.Ordinal);
+        Assert.Contains(" with { Input = global::Rask.Core.InputType.Tel, ReadOnly = true },", model, StringComparison.Ordinal);
+        Assert.Contains("private static global::Rask.Core.Forms.FieldShape __Within(", model, StringComparison.Ordinal);
     }
 }

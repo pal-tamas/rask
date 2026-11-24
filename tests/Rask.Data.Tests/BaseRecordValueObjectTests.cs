@@ -89,7 +89,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal((10, 5), (loaded!.Km.Start, loaded.Km.End));
         Assert.Equal(" padded ", loaded.Driver.Value);
         Assert.Equal(tooLong, queried.Driver.ToString());
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
     }
 
     [Fact]
@@ -121,14 +121,14 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         await row.Save(cancellationToken: token);
         await WritePastTheRulesAsync(database, typeof(Sealed), "\"Seal_Count\" = {0}", -1);
         var raw = Record.Exception(() => database.Context.Set<Sealed>().AsNoTracking().ToList());
-        var afterTheRawQuery = Loading.IsOn;
+        var afterTheRawQuery = RowLoading.IsOn;
 
         var read = await Record.ExceptionAsync(() => database.Load<Sealed>(row.Id, token));
 
         Assert.IsType<InvalidOperationException>(raw);
         Assert.IsType<InvalidOperationException>(read);
         Assert.False(afterTheRawQuery);
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
         Assert.Throws<RaskValidationException>(() => RigKm.Create(5, 1));
     }
 
@@ -177,6 +177,93 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Empty(chip(""));
         Assert.Equal(["Enter at most 12 characters."], chip(new string('x', 13)));
         Assert.Equal(["Enter 2 or more."], axles(1));
+    }
+
+    [Fact]
+    public void A_record_of_one_member_declared_from_Value_is_asked_on_its_field_like_a_base_record()
+    {
+        var ruleOf = Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(LadderModel));
+        var rank = (Rask.Core.Forms.Validate<int?>)ruleOf("Rank")!;
+        var seats = (Rask.Core.Forms.Validate<int?>)ruleOf("Seats")!;
+
+        var zero = rank(0);
+        var nothing = rank(null);
+        var tooMany = seats(10);
+
+        Assert.Equal([RigRank.AtLeastOne], zero);
+        Assert.Equal([GeneratedModelRules.RequiredMessage], nothing);
+        Assert.Empty(rank(3));
+        Assert.Equal(["Enter 9 or less."], tooMany);
+    }
+
+    [Fact]
+    public async Task A_one_member_Value_record_and_an_int_Whole_are_one_column_each_and_a_refusal_names_the_field()
+    {
+        await using var database = await StartDatabaseAsync();
+        var token = TestContext.Current.CancellationToken;
+        var entity = database.Context.Model.FindEntityType(typeof(Ladder))!;
+
+        var created = await Ladder.Create(new LadderModel { Rank = 2, Seats = 4 }, cancellationToken: token);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Ladder.Create(new LadderModel { Rank = 0, Seats = 4 }, cancellationToken: token));
+        var made = Assert.Throws<RaskValidationException>(() => RigRank.Create(0, "Rank"));
+
+        Assert.Equal(typeof(int), entity.FindProperty(nameof(Ladder.Rank))!.GetValueConverter()!.ProviderClrType);
+        Assert.Equal(typeof(int), entity.FindProperty(nameof(Ladder.Seats))!.GetValueConverter()!.ProviderClrType);
+        Assert.Equal((2, 4), (created.Rank.Value, created.Seats.Value));
+        Assert.Equal([("Rank", RigRank.AtLeastOne)], refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal([("Rank", RigRank.AtLeastOne)], made.Failures.Select(f => (f.Fields.Single(), f.Message)));
+    }
+
+    [Fact]
+    public void A_text_that_is_not_required_keeps_an_empty_value_and_still_checks_a_filled_one()
+    {
+        var blank = RigNote.Create("   ");
+        var tooLong = RigNote.TryCreate("123456", out _, out var problems);
+        var optional = RigNote.CreateOptional("");
+
+        Assert.Equal("", blank.Value);
+        Assert.False(tooLong);
+        Assert.Equal(["Enter at most 5 characters."], problems.Select(p => p.Message));
+        Assert.Null(optional);
+    }
+
+    [Fact]
+    public async Task A_field_holding_a_text_that_is_not_required_is_neither_refused_nor_announced_and_saves_empty()
+    {
+        await using var database = await StartDatabaseAsync();
+        var rule = (Rask.Core.Forms.Validate<string?>)Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(NotebookModel))("Note")!;
+
+        var empty = rule(null);
+        var tooLong = rule("123456");
+        var created = await Notebook.Create(new NotebookModel(), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Empty(empty);
+        Assert.Equal(["Enter at most 5 characters."], tooLong);
+        Assert.Null(typeof(RigModel).Assembly.GetTypes().Single(t => t.Name.EndsWith("__NotebookModelRules", StringComparison.Ordinal))
+            .GetMethod("Root_IsRequired", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+        Assert.Equal("", created.Note.Value);
+    }
+
+    [Fact]
+    public void Every_base_prints_its_value_culture_invariant_whatever_the_culture()
+    {
+        var before = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("hu-HU");
+        try
+        {
+            var litres = RigLitres.Create(1234.5m).ToString();
+            var axles = RigAxles.Create(9).ToString();
+            var day = RigInspected.Create(new DateOnly(2026, 1, 31)).ToString();
+
+            Assert.Equal("1234.5", litres);
+            Assert.Equal("9", axles);
+            Assert.Equal("01/31/2026", day);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
     }
 
     [Fact]

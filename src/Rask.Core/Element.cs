@@ -450,6 +450,52 @@ public abstract partial class Element : Component
         return current;
     }
 
+    // A bound control typed into is drawn read-only when its field's shape says the member is not edited
+    // ([Editable(false)]). What the author set true stays; `said` remembers a true that is the framework's, so it is
+    // taken off again once the field is edited after all.
+    private protected static bool? SaidReadOnly(Forms.ExpressionAccessor.Accessor bound, bool? current, bool applies, ref bool said)
+    {
+        var shaped = applies && Forms.RaskValidation.ShapeOf(bound) is { ReadOnly: true };
+        if (shaped && current is not true)
+        {
+            said = true;
+            return true;
+        }
+
+        if (!shaped && said)
+        {
+            said = false;
+            return null;
+        }
+
+        return current;
+    }
+
+    // A bound text control whose field is kept in capitals (a value object declared `Upper: true`) shows what is typed in
+    // them: `text-transform:uppercase`, unless the author styled it, or a class says it already (the kit's `uppercase`).
+    // `said` remembers that the style is the framework's, so it is taken off again once the field is not kept so.
+    private protected string? SaidUpper(Forms.ExpressionAccessor.Accessor bound, bool applies, ref bool said)
+    {
+        const string Upper = "text-transform:uppercase";
+        var shaped = applies && Forms.RaskValidation.ShapeOf(bound) is { Upper: true } && !ClassSays("uppercase");
+        if (shaped && (Style is null || said))
+        {
+            said = true;
+            return Upper;
+        }
+
+        if (!shaped && said)
+        {
+            said = false;
+            return null;
+        }
+
+        return Style;
+    }
+
+    private bool ClassSays(string name) =>
+        Class is { } written && written.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(name, StringComparer.Ordinal);
+
     private bool AuthorSaysRequired() =>
         (Aria?.ContainsKey("required") ?? false) || (Attributes?.ContainsKey("aria-required") ?? false);
 

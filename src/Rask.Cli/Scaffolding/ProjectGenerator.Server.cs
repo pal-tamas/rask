@@ -122,11 +122,9 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     // Rask.Server carries every battery; one turned off is a line in Program.cs, never a missing reference.
     // Rask.DevTools is named directly because its build/ hooks are what keep it out of a Release publish.
-    // Rask.Testing and Rask.Testing.Data are the test project's, listed so the summary names every package the scaffold pins.
+    // Rask.Testing is the test project's, listed so the summary names every package the scaffold pins.
     private static List<string> ServerPackages(ServerBatteries batteries) =>
-        batteries.Tests
-            ? ["Rask.Server", "Rask.DevTools", "Rask.Testing", "Rask.Testing.Data"]
-            : ["Rask.Server", "Rask.DevTools"];
+        batteries.Tests ? ["Rask.Server", "Rask.DevTools", "Rask.Testing"] : ["Rask.Server", "Rask.DevTools"];
 
     private static string ServerNextSteps(string name, ServerBatteries batteries)
     {

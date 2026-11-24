@@ -366,7 +366,9 @@ public sealed partial class ModelInputGenerator
                 continue;
             }
 
-            s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)
+            // A text that may be empty is written empty when the field is left blank, not kept as it was.
+            var read = member is { Nullable: false, ValueObject.AllowsEmpty: true } ? "(model." + member.Name + " ?? \"\")" : "model." + member.Name;
+            s.Append("        if (").Append(read).Append(" is { } ").Append(given)
                 .Append(member.ValueObject is { } held ? AndNotEmpty(given, held, member.Nullable) : "").AppendLine(")");
             s.AppendLine("        {");
             s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, value));
@@ -408,7 +410,7 @@ public sealed partial class ModelInputGenerator
         var value = member.ValueObject switch
         {
             null => given,
-            { SingleValue: true } single => BuildExpression(single, _ => given, member.Nullable),
+            { SingleValue: true } single => BuildExpression(single, _ => given, member.Nullable, field: member.Name),
             { } valueObject => FromModelExpression(
                 given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
         };
@@ -416,7 +418,7 @@ public sealed partial class ModelInputGenerator
         // A value object that checks itself as it is made (Range, Value) refuses under its own members: `End`
         // becomes `Km.End`, the field the form shows it under.
         return member.ValueObject is { SingleValue: false, Checked: true }
-            ? "global::Rask.Data.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")"
+            ? "global::Rask.Values.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")"
             : value;
     }
 

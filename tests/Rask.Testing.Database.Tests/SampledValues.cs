@@ -1,5 +1,3 @@
-using Range = Rask.Data.Range;
-
 namespace Rask.Testing.Database.Tests;
 
 /// <summary>A vehicle number: exactly 17 characters, kept in capitals.</summary>

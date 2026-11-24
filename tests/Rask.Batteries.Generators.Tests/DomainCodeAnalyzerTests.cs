@@ -12,6 +12,7 @@ public class DomainCodeAnalyzerTests
         using System;
         using Rask;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public sealed class Delivery : Aggregate<Guid>
         {
@@ -86,6 +87,7 @@ public class DomainCodeAnalyzerTests
         using System;
         using Rask;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public interface IPrices { decimal Of(string sku); }
         public sealed class Order : Aggregate<Guid>
@@ -138,6 +140,7 @@ public class DomainCodeAnalyzerTests
         using System.Net.Http;
         using System.Threading.Tasks;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public sealed class Tank : Aggregate<Guid>
         {

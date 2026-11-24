@@ -35,9 +35,11 @@ public sealed partial class UiFieldPage : Component
                        + "and a bound int is a number field with nothing said at the call site."),
             UiDocsExample.Key("ui-field-auto").Heading("Auto field").File("FieldAutoExample.cs").Demo(FieldAutoExample).Testid("ui-field-auto")
                 .Blurb("Rask's own: Ui.Field.Bind draws the whole field from the member. The label, help text and "
-                       + "placeholder are its [Display], the badge its [Required], and the control what it holds: an "
-                       + "email input, a number, a select over an enum, a textarea when asked, a checkbox. To pick and "
-                       + "tune the control yourself, put it in Ui.Field[…]: the member still labels it."),
+                       + "placeholder are its [Display], the badge its [Required], the maxlength its [StringLength], and "
+                       + "the control what it holds and what its attributes say: an email or a phone input, a read-only "
+                       + "one for [Editable(false)], a number, a select over an enum, a textarea for "
+                       + "[DataType(DataType.MultilineText)], a switch for [UIHint(FieldHints.Switch)], a checkbox. To pick "
+                       + "and tune the control yourself, put it in Ui.Field[…]: the member still labels it."),
             UiFieldBehaviour
         ];
 }

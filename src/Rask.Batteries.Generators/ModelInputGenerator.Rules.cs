@@ -105,7 +105,7 @@ public sealed partial class ModelInputGenerator
         {
             SpecialType.System_String => "Text",
             SpecialType.System_Decimal => "Number",
-            SpecialType.System_Int64 => "Whole",
+            SpecialType.System_Int64 or SpecialType.System_Int32 => "Whole",
             _ when held is { Name: "DateOnly", ContainingNamespace.Name: "System" } => "Day",
             SpecialType.System_DateTime => "Moment",
             _ => null,
@@ -338,7 +338,7 @@ public sealed partial class ModelInputGenerator
             .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, HasRule: true })
             .Select(static m => m.RequiredByType
                 ? new FieldRule(m.Name, m.ModelType, null, Required: true)
-                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable))
+                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable && !m.ValueObject.AllowsEmpty))
             .ToList();
 
         if (root.Count > 0)
@@ -352,7 +352,7 @@ public sealed partial class ModelInputGenerator
                 .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, HasRule: true })
                 .Select(static m => m.RequiredByType
                     ? new FieldRule(m.Name, m.ModelType, null, Required: true)
-                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable))
+                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, !m.Nullable && !m.ValueObject.AllowsEmpty))
                 .ToList();
 
             var beside = RangeEnds(nested).ToList();
