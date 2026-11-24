@@ -40,6 +40,8 @@ internal static class TestDatabaseServices
 
         // As the host registers them: the dispatcher first, then Data, then the batteries that follow it.
         services.AddRaskCqrs();
+        // A test finds the transaction that writes a second aggregate without saying why; the app may only warn.
+        services.AddRaskData(static o => o.OneAggregatePerTransaction = AggregatePolicy.Throw);
         services.AddRaskData<TContext>();
         if (model is not null)
         {

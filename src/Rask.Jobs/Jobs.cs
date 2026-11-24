@@ -151,6 +151,14 @@ public static class Jobs
     }
 
     /// <summary>
+    ///     The name of the tenant-in-flight's lane that <c>.InTenantLane(lane)</c> runs jobs in, for <see cref="Lane" />:
+    ///     <c>var loads = await Jobs.Lane(Jobs.TenantLane("loads"));</c>.
+    /// </summary>
+    /// <param name="lane">Which of the tenant's lanes, or null for its one lane.</param>
+    /// <exception cref="InvalidOperationException">No tenant is in flight.</exception>
+    public static string TenantLane(string? lane = null) => TenantLanes.Of(lane, "Jobs.TenantLane()");
+
+    /// <summary>
     ///     Whether Rask.Jobs is registered at all. For an operator surface that renders "off" rather than
     ///     failing — <c>Rask.Dashboard</c> does exactly that. An app should not branch on this: a call with
     ///     nothing registered throws and names the registration that fixes it.

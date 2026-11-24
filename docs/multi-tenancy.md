@@ -13,7 +13,7 @@ table has nothing to configure.
 ## Declaring a tenant-scoped table
 
 One trait on the base partitions a table by tenant — `PerTenant`, one of the family that
-[chooses what a table carries](data.md#choosing-what-a-table-carries):
+[chooses what a table carries](domain.md#choosing-what-a-table-carries):
 
 ```csharp
 public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
@@ -532,7 +532,7 @@ Put `TenantId` first in an index that holds per tenant: the filtered query reads
 `Configure`, an `[Index]` attribute, a context of your own — with its [message](data.md#what-a-unique-indexs-violation-says),
 its `HasDatabaseName("…")` and its filter, so a violation is recognised by the name the database reports.
 
-Its unique rule is asked the same way — by [a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself)
+Its unique rule is asked the same way — by [a form bound to the generated model](domain.md#what-a-form-over-the-model-asks-by-itself)
 and by [the check before the save](data.md#when-the-index-may-not-be-there) — over exactly the index's columns:
 one that names `TenantId` about the row's tenant, one that does not about every tenant's rows, so a name another
 tenant holds is refused at the field and at the save with the index's message, and never tells the caller whose

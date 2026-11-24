@@ -238,7 +238,7 @@ Both attributes take an optional name to bind a segment/key whose name differs f
 
 **Supported types.** A bound property must be `string` or implement `IParsable<T>` (covers `int`, `long`, `double`,
 `bool`, `Guid`, `DateOnly`, `DateTime`, your own `IParsable<T>` types, and a
-[typed id](data.md#strongly-typed-ids) — `public readonly partial record struct VehicleId(int Value);` — which Rask makes one). An enum is not `IParsable<T>`: bind
+[typed id](domain.md#strongly-typed-ids) — `public readonly partial record struct VehicleId(int Value);` — which Rask makes one). An enum is not `IParsable<T>`: bind
 it as a `string` and convert inside the page. A `[QueryParam]` may also be a
 [list](#a-list-is-the-key-repeated-with-) of such a type. A non-parsable type raises
 [RASK011](diagnostics.md#rask011). When a route template constrains a segment (`{id:int}`), the bound property's CLR

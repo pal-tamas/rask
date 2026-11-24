@@ -242,7 +242,7 @@ MyApp/
   Properties/launchSettings.json
   MyApp.slnx                      the app and its tests, for `dotnet test` and your IDE
   MyApp.Tests/
-    MyApp.Tests.csproj            references the app, Rask.Testing and xUnit v3
+    MyApp.Tests.csproj            references the app, Rask.Testing (+ .Data on server) and xUnit v3
     Features/Home/HomePageTests.cs  renders the home page and checks its greeting
 ```
 
@@ -776,7 +776,7 @@ override with `--project`), and if the EF Core tools aren't installed it install
 | `add <Name>` | `dotnet ef migrations add` | `--output <dir>` sets the migrations folder |
 | `remove` | `dotnet ef migrations remove` | undo the last migration |
 | `list` | `dotnet ef migrations list` | show migrations and applied state |
-| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point. A `RaskApp` applies pending migrations itself on start, so this is for rolling back, for a hand-wired host, and for an app that [turned that off](data.md#migrations-apply-themselves-on-start). A whole update of a `RaskApp` whose migrations declare a [data step](data.md#moving-data-in-c-with-bdata) then runs `dotnet run --no-build -- rask db migrate`, so the app runs the steps in C# |
+| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point. A `RaskApp` applies pending migrations itself on start, so this is for rolling back, for a hand-wired host, and for an app that [turned that off](data.md#migrations-apply-themselves-on-start). A whole update of a `RaskApp` whose migrations declare a [data step](data-writes.md#moving-data-in-c-with-bdata) then runs `dotnet run --no-build -- rask db migrate`, so the app runs the steps in C# |
 | `drop` | `dotnet ef database drop` | drops the database; prompts unless `--yes` |
 | `backup` | — | a consistent copy; `--output/-o` a file or directory, `--remote` for the deployed one |
 | `restore <file>` | — | replaces the database with a copy; prompts unless `--yes` |
@@ -860,7 +860,7 @@ the rules of each value object it holds, and whether each id kept as text is one
 rule refuses reported by rule and field, with the ids alone, never what a row holds. Run it before a migration turns a
 rule or a unique index on. The app answers it itself (`dotnet run -- rask audit`): its host is built and not started,
 and the audit only reads. Exit code `0` every row passes, `1` some do not. See
-[Auditing stored data](data.md#auditing-stored-data-with-rask-audit).
+[Auditing stored data](data-writes.md#auditing-stored-data-with-rask-audit).
 
 ## `rask deploy` — ship to a single host over SSH
 

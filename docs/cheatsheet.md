@@ -160,13 +160,16 @@ public static ModelQuery<ProductRead> InStock => Product.Where(p => p.Stock > 0)
 // Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
 var hits = await Product.Search(query).Take(20);
 
-// Read and write it — no context injected; or send a command whose handler does the save:
+// The domain — a value object is one line, a write is the aggregate's own method (docs/domain.md):
+public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 200);
+public void Reprice(UnitPrice price) { Refuse.When(Discontinued, () => Price, "Discontinued."); Price = price; }
+
+// Read and write it — no context injected, no service, one aggregate per transaction:
 var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name);
-var product  = await Product.Create(model);               // ProductModel from a form
-var edit     = product.ToModel();                                                               // fills an edit form
-await Product.Update(id, edit, p => p.Touch(now));        // + values not from the form
-await Product.Delete(id, db: db);                        // join a context you hold
-await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
+ProductId id = await Product.Add(name, price);            // a private factory's generated entry
+await Product.Reprice(id, version, price);                // Find(id, version) → Reprice → Save()
+Form.For(Product.Reprice, id)[f => [Ui.Field.Bind(() => f.Price), Ui.Button.Primary.Submit["Save"]]]
+await Product.Delete(id, version);                        // its ValidateDelete() asked
 var page     = await Product.OrderBy(p => p.Name).Skip(20).Take(20);  // a table's page, in SQL
 
 // Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):

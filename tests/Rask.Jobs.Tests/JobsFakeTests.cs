@@ -204,6 +204,21 @@ public sealed class JobsFakeTests
     }
 
     [Fact]
+    public async Task A_fake_skips_work_of_the_same_key_while_a_copy_has_not_run_yet()
+    {
+        await using var app = App(out _);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+
+        var first = await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken).UnlessWaiting("customer-1");
+        var second = await Jobs.Enqueue(new ChaseInvoice(8), TestContext.Current.CancellationToken).UnlessWaiting("customer-1");
+        var unkeyed = await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken).UnlessWaiting();
+
+        Assert.Equal((true, false, true), (first, second, unkeyed));
+        jobs.Enqueued<ChaseInvoice>().Twice();
+    }
+
+    [Fact]
     public async Task A_fake_takes_the_same_work_again_once_the_first_copy_ran()
     {
         await using var app = App(out _);

@@ -238,11 +238,10 @@ navigation, a render the server pushes and the lifecycle hooks they run each cou
 one batched frame count as one.
 
 ```csharp
-builder.Services.AddDbContext<ShopDb>();          // scoped: one per event, not one per open tab
-builder.Services.AddScoped<IPricing, Pricing>();  // likewise
+builder.Services.AddScoped<IPricing, Pricing>();  // scoped: one per event, not one per open tab
 
-// A command handler that takes the context gets the event's own, and it is disposed after the click.
-public sealed class PlaceOrderHandler(ShopDb db) : ICommandHandler<PlaceOrder> { … }
+// A query handler that takes the service gets the event's own, and it is disposed after the click.
+public sealed class QuoteHandler(IPricing pricing) : IQueryHandler<GetQuote, Quote> { … }
 ```
 
 Everything scoped is one per event — your services, the batteries' (Rask.Data, Rask.Auth) and any package's —
