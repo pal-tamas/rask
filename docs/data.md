@@ -2171,8 +2171,10 @@ public sealed class AppModel : IRaskModel
   | a JSON column (`ToJson()`, a value-object collection) | the column yes, the properties inside it no |
   | an owned type in its owner's table | yes, after its navigation (`depotStreet`); its key stays its owner's column |
   | a hierarchy in one table, its discriminator | the table once, after its root; `discriminator` too |
-  | an owned type's own table, a view's name | no |
-  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — they keep the names their migrations have |
+  | an owned type in a table of its own | yes, after its class (`t.Class` is `Leg`) |
+  | a one-value value object inside another (`Price_Currency`) | yes, like its siblings (`priceCurrency`) |
+  | a view (`ToView` always names it) | no |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — each battery's configuration records its tables, and they keep the names their migrations have; the app's own user class (`AddRaskAuth<TUser>`) is the app's table and is named |
 
   Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
   unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work

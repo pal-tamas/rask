@@ -45,8 +45,8 @@ public static class NamingConventionExtensions
     ///         <c>[Table]</c> in an entity's own <c>Configure</c> wins, and the schema is left as it is.
     ///     </para>
     ///     <para>
-    ///         One table per hierarchy is named once, after its root. An owned type in a table of its own, and the
-    ///         tables of Rask's own batteries, keep their names.
+    ///         One table per hierarchy is named once, after its root, and an owned type in a table of its own after its
+    ///         class. The tables of Rask's own batteries keep their names; a view keeps the one <c>ToView</c> gave it.
     ///     </para>
     /// </remarks>
     public static ModelConfigurationBuilder TableNames(this ModelConfigurationBuilder configurationBuilder, Func<TableName, string> name)

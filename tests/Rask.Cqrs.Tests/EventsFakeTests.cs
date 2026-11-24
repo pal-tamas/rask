@@ -75,10 +75,10 @@ public sealed class EventsFakeTests
         await dispatcher.Publish(new Pinged("b"), TestContext.Current.CancellationToken);
         await dispatcher.Publish(new Pinged("a"), TestContext.Current.CancellationToken);
 
-        events.Published<Pinged>().Times(3);
-        events.Published<Pinged>().Where(e => e.Message == "a").Times(2);
-        events.Published<Pinged>().Where(e => e.Message == "c").Never();
-        events.Published<Unheard>().Never();
+        events.Published<Pinged>().Exactly(3);
+        events.Published<Pinged>().Where(e => e.Message == "a").Twice();
+        events.Published<Pinged>().Where(e => e.Message == "c").None();
+        events.Published<Unheard>().None();
         Assert.Equal(["a", "b", "a"], events.Published<Pinged>().All.Select(e => e.Message));
         Assert.Equal(3, events.Count);
     }
@@ -132,7 +132,7 @@ public sealed class EventsFakeTests
         await other;
 
         Assert.Equal(["A:here", "B:here"], recorder.Entries.Order(StringComparer.Ordinal));
-        otherFake.Published<Pinged>().Never();
+        otherFake.Published<Pinged>().None();
     }
 }
 

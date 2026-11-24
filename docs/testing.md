@@ -493,7 +493,7 @@ await Dispatcher.Send(new ChangeDriverChips(driver.Id, chips));
 
 events.Published<DriverChipsChanged>().Once();
 events.Published<DriverChipsChanged>().Where(e => e.DriverId == driver.Id).Once();
-events.Published<DriverRetired>().Never();
+events.Published<DriverRetired>().None();
 var changed = events.Published<DriverChipsChanged>().Only();   // the event itself; .All for every one
 ```
 
@@ -502,7 +502,7 @@ and so the domain events an aggregate raises, which its save publishes once the 
 `AddRaskCqrs()` registered, as a `RaskApp` has it). As with `Jobs.Fake()`, **nothing hears a recorded event**:
 no handler, no subscription, no open page. `await events.Run()` publishes every recorded event for real, and
 what its handlers publish in turn. A durable handler the outbox stored in the save's transaction stays the
-outbox's to run (`Outbox.Fake()`). `.Times(n)` counts exactly; a failed count names every event that was
+outbox's to run (`Outbox.Fake()`). `.Twice()`, `.None()` and `.Exactly(n)` count as every fake does; a failed count names every event that was
 published instead.
 
 ### Asserting a refusal: `Test.Refuses`
