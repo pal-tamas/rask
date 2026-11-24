@@ -221,8 +221,8 @@ public static class CurrentRows
             var claims = PrincipalClaims.In(scope);
             var tenantKey = tenant is not null ? Data.Tenant.KeyIn(scope, claims) : null;
             var userKey = user is not null ? CurrentUser.UserIdIn(scope, claims) : null;
-            var tenantOwed = tenantKey is { } t && !tenant!.Holds(t) ? tenant : null;
-            var userOwed = userKey is { } u && !user!.Holds(u) ? user : null;
+            var tenantOwed = tenantKey is { } t && !tenant!.Holds(scope, t) ? tenant : null;
+            var userOwed = userKey is { } u && !user!.Holds(scope, u) ? user : null;
 
             if (tenantOwed is null && userOwed is null)
             {

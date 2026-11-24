@@ -448,7 +448,8 @@ var greeting = $"Hello, {Current.RequiredUser.DisplayName}";
 ```
 
 It is looked up by `Current.UserId` and is not a query: the row is read as each request, live event and background
-job starts, and held per user for the process — a save of the user drops it, and another server sees the change
+job starts, and held per user for the process (per database: two apps or test databases in one process never
+share a row) — a save of the user drops it, and another server sees the change
 within 60 seconds. A signed-in user whose row is gone throws rather than reading as nobody; read `Current.UserId`
 where a missing row is an answer you handle. It is read-only — to change the user, load the aggregate:
 `var me = await User.Find(Current.RequiredUserId);`. Two aggregates that say `IUser` are
