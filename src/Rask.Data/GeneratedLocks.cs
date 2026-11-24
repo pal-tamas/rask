@@ -77,7 +77,7 @@ public static class GeneratedLocks
     }
 
     // A lock taken outside a transaction ends with its own statement: it would hold nothing.
-    private static void DemandTransaction(string what)
+    internal static void DemandTransaction(string what)
     {
         if (AmbientTransaction.Current is null)
         {

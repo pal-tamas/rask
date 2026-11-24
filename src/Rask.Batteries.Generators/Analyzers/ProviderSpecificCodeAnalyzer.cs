@@ -212,7 +212,7 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             if (sql.IndexOf("UPDLOCK", StringComparison.OrdinalIgnoreCase) >= 0 || sql.IndexOf("HOLDLOCK", StringComparison.OrdinalIgnoreCase) >= 0
                 || sql.IndexOf("FOR UPDATE", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                return "read the rows with ForUpdate(), which locks them on every database";
+                return "read the rows with await X.Where(…).ForUpdate() inside Db.Transaction, which locks them on every database";
             }
         }
 
