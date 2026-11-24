@@ -54,16 +54,19 @@ public partial class TestDatabase : IAsyncDisposable
     private readonly RaskDbContext _schemaOwner;
     private readonly Func<RaskReadDbContext> _openRead;
     private readonly Func<DbContext> _openWrite;
+    private readonly Action<DbContextOptionsBuilder> _configure;
     private readonly IAsyncDisposable? _lease;
     private readonly Db.FlowDatabase _flow;
 
     // Binds the model surface to this database for the flow that is starting it — so it must run in that flow, outside
     // any async method of its own (see Db.BindFlow).
-    private protected TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite, IAsyncDisposable? lease)
+    private protected TestDatabase(
+        RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite, Action<DbContextOptionsBuilder> configure, IAsyncDisposable? lease)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
+        _configure = configure;
         _lease = lease;
         _flow = Db.BindFlow(openWrite, openRead);
     }
@@ -239,7 +242,7 @@ public partial class TestDatabase : IAsyncDisposable
         var schemaOwner = write();
         Db.Configure(write);
         ReadDb.Configure(read);
-        return new TestDatabase<TContext>(schemaOwner, read, write, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
+        return new TestDatabase<TContext>(schemaOwner, read, write, configure, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
     }
 
     // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.
@@ -330,6 +333,33 @@ public partial class TestDatabase : IAsyncDisposable
     ///     read side was MAPPED to — a column name, a navigation, an empty change tracker.
     /// </remarks>
     public RaskReadDbContext OpenRead() => _openRead();
+
+    /// <summary>
+    ///     Options for another context type over this same database — a second context the app has beside its own, a
+    ///     host's context with interceptors of its own: <c>new LegacyDb(database.Options&lt;LegacyDb&gt;().Options)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The provider is configured exactly as the fixture's own contexts are — through <c>UseRaskSqlite</c> on the
+    ///         same in-memory database for <c>TestDatabase.Start&lt;T&gt;()</c>, or the <c>configure</c> callback the
+    ///         test passed — so text, decimals and moments compare as they do in the app, and every row either context
+    ///         saves the other reads.
+    ///     </para>
+    ///     <para>
+    ///         Only the provider: none of the fixture's interceptors are added, so the context saves exactly as its own
+    ///         <c>OnConfiguring</c> and whatever <c>AddInterceptors(…)</c> the caller adds say. The schema is the
+    ///         fixture's model's; a table only <typeparamref name="TOther" /> maps is the caller's to create.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TOther">The other context.</typeparam>
+    /// <returns>A builder the caller may add to, then hand its <c>Options</c> to the context's constructor.</returns>
+    public DbContextOptionsBuilder<TOther> Options<TOther>()
+        where TOther : DbContext
+    {
+        var builder = OptionsLayout.LikeAddDbContext<TOther>();
+        _configure(builder);
+        return builder;
+    }
 
     /// <summary>
     ///     Points the model surface at this database for the calling test, until the returned binding is disposed — for a

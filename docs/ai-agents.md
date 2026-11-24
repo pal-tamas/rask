@@ -28,6 +28,25 @@ Rask app correctly without you re-explaining the conventions.
   interactivity, typed utility classes). Each guide embeds its examples as live demos, so the source
   a user reads on GitHub and the running showcase stay in lockstep.
 
+## The one way to write an app
+
+An assistant writes every Rask app in one style ([domain modelling](domain.md)), never "the old way" beside it:
+
+- **Every write is an aggregate's own method**, run through its generated entry (`Supply.Change(id, version, …)`),
+  one aggregate per transaction. No service layer, no application or domain service, no context injected into a page
+  or a handler, no `SaveChanges` in app code.
+- **Every property is a value object or a typed id**: `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 200);`,
+  `public readonly partial record struct VehicleId(int Value);` — the rule is said once, in the type, made through
+  `Create`, never `new`.
+- **A refusal is `Refuse`** under its field; a rule over the whole aggregate is its `Validate()`.
+- **The form is the operation's**: `Form.For(Supply.Change, id)`, with no rule repeated on the form.
+- **Another aggregate changes from a domain event** (`Raise` + a one-line handler calling that aggregate's entry);
+  two in one `Db.Transaction(…, manyAggregates: "why")` only as [the last resort](domain.md#the-transaction-boundary).
+- **No SQL and no provider API** — `InTextOrder()`, `Db.Lock`, `.Covering(…)`, a value object's `Scale`
+  ([code written for one database](data.md#code-written-for-one-database)).
+- **Tests run on SQLite in memory**: `TestDatabase.Start<AppDbContext>()`, `Test.Refuses(…).At("Field")`,
+  `Test.Concurrently`, `Test.Make<T>()` ([testing the domain](testing.md#testing-the-domain)).
+
 ## The current tenant and user
 
 An assistant that reaches for "the current tenant" or "the current user" should read the app's own rows,
@@ -57,17 +76,17 @@ hidden, and a request that is not a page answers an RFC 9457 problem by default,
 message; the app gives its own exceptions a status with `server.Answer<T>(status)`. See
 [a refusal is shown](lifecycle.md#a-refusal-is-shown-refusedexception). A refusal about one field of a form is
 `Refuse.When(condition, () => Parts[i].Quantity, "…")`, shown under that field
-([refusing an operation](data.md#refusing-an-operation-refuse)); a test asserts it with
+([refusing an operation](domain.md#refusing-an-operation-refuse)); a test asserts it with
 `Test.Refuses(…).At("Parts[2].Quantity")`.
 
 ## Rules live on the aggregate
 
-An assistant should not re-check a rule in a page or a handler before saving. A property's DataAnnotations attribute,
-the aggregate's `IValidatableObject`, its `Validate()` and its `ValidateDelete()` are asked by **every** save —
-`Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:` context — and a refusal reaches the form as a
+An assistant should not re-check a rule in a page or a handler before saving. A value object's rule, the aggregate's
+`Validate()` and its `ValidateDelete()` (and a property's DataAnnotations attribute, where an app has one) are asked
+by **every** save — an operation's entry, `Save()`, `Create(model)`, `Delete` — and a refusal reaches the form as a
 `RaskValidationException` with each message under its field. A stored row is asked only about the properties the
 save changes, so old data that a rule tightened since still saves for its other fields. See
-[what every save asks](data.md#what-every-save-asks).
+[what every save asks](domain.md#what-every-save-asks).
 
 ## How to use it
 

@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
+  generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
+  `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
+  toasted "Saved". After: it takes `.Id`, `.Class`, `.Style`, `.Data`, `.Attributes`, `.ConfirmLeave` and
+  `.OnInvalidSubmit` onto the `<form>` it draws, and `.Saved("Company saved.")` is the toast — the dialog's in place of
+  its catalog `EditorSaved`, or the form's own when nothing hosts it. `IOperationFormHost.Saved` takes the message.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
@@ -28,6 +34,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
+  app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
+  in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
+  string, since `UseRaskSqlite(string, SqliteOptions)` is internal. After: `new LegacyDb(database.Options<LegacyDb>().Options)`
+  — the provider configured as the fixture's own contexts are, none of its interceptors.
 - **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
   `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
   without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
@@ -48,7 +59,8 @@ them until tagged releases begin.
   named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
   `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
   it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
-  aggregates and every reference by hand.
+  aggregates and every reference by hand. A new `server` app's `<Name>.Tests` project references `Rask.Testing.Data` beside
+  `Rask.Testing`; a `wasm` one stays on `Rask.Testing`.
 - **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
   field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
   validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
@@ -92,6 +104,13 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
+  entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
+  transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,
+  text order, `Db.Lock`, code that runs the same on every database, migrations) and `docs/data-writes.md` (bulk
+  insert, batch updates, moving stored rows). Gone from the docs: the command handler and the page that inject a
+  context factory to save, rules that throw `InvalidOperationException`, and SQL or store types written in the model.
+  Two aggregates in one save is the last resort, both entries inside one `Db.Transaction(…, manyAggregates: "why")`. The rask.sh guides follow.
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
   sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or

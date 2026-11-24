@@ -27,7 +27,7 @@ supported in a form, and they run with nothing declared.
 > that must not overlap — which a form [checks before the save](forms-validation.md#the-database-said-no).
 > Rask.Data registers both for every aggregate's generated model: a one-value value object's static
 > `Validate`, and each unique index declared with `IsUnique("…")`
-> ([data — what a form over the model asks by itself](data.md#what-a-form-over-the-model-asks-by-itself)).
+> ([data — what a form over the model asks by itself](domain.md#what-a-form-over-the-model-asks-by-itself)).
 
 ## Which one do I write?
 
@@ -36,7 +36,7 @@ There are several places a rule can live. Pick by what the rule is about:
 | The rule | Write it as | Why there |
 | --- | --- | --- |
 | One field, always true — required, a length, a range, a pattern | An attribute on the aggregate's property: `[Required]`, `[StringLength(80)]` | The generated model copies it, so every form, `Create(model)`, every save of the aggregate and EF Core's column all read the same rule |
-| The aggregate as a whole — its rows together, a state it may not be saved in, whether it may be deleted | `Validate()` / `ValidateDelete()` on the aggregate | Every save asks it, however the row was changed ([data — what every save asks](data.md#what-every-save-asks)) |
+| The aggregate as a whole — its rows together, a state it may not be saved in, whether it may be deleted | `Validate()` / `ValidateDelete()` on the aggregate | Every save asks it, however the row was changed ([data — what every save asks](domain.md#what-every-save-asks)) |
 | No two rows alike, or a row still referenced | `HasIndex(…).IsUnique("…")`, `OnDelete(…, "…")`, `WhenReferenced("…")` in `Configure` | The database owns it; a form asks before the save, and a collision comes back as a field message ([data](data.md#what-a-unique-indexs-violation-says)) |
 | Several fields of one form together — two passwords match, an end after a start | `.Validate(…)` on the `Form` | Its message belongs to the form, not to one input ([forms](forms-validation.md#a-rule-across-fields)) |
 | Needs a service or I/O, on a dispatched command | An `IRequestValidator<T>` | Runs for every caller of the command, not only the form, and is async by construction ([below](#requests)) |
@@ -51,8 +51,8 @@ that input.
 | --- | --- | --- |
 | A `Form.Model(m)` | The inline `.Validate(…)` rules, then the model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
-| `Create(model)` / `Update(id, model)` | The model's attributes, its own `IValidatableObject`, then everything the save asks (async attributes included) | [data](data.md#what-the-model-carries) |
-| Any save of an aggregate — `Save()`, `Update(id, apply)`, `Delete`, a `db:` context | The changed properties' attributes, `IValidatableObject`, `Validate()` — or `ValidateDelete()` for a delete | [data](data.md#what-every-save-asks) |
+| `Create(model)` / `Update(id, model)` | The model's attributes, its own `IValidatableObject`, then everything the save asks (async attributes included) | [data](domain.md#what-the-model-carries) |
+| Any save of an aggregate — `Save()`, `Update(id, apply)`, `Delete`, a `db:` context | The changed properties' attributes, `IValidatableObject`, `Validate()` — or `ValidateDelete()` for a delete | [data](domain.md#what-every-save-asks) |
 | A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 
 The first three share a rule written on the type: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
@@ -100,19 +100,21 @@ Every dispatched request is validated before its handler runs, by a `ValidationB
 `AddRaskCqrs` registers **outermost**: a request that is not valid should never reach a transaction,
 a log line saying it was handled, or the handler.
 
-Rules that fit neither source go in an `IRequestValidator<TRequest>`, which is asynchronous by
+A rule about what may be saved is the domain's — a value object's, the aggregate's `Validate()`, a unique index —
+and is asked by the save however the request arrived ([what every save asks](domain.md#what-every-save-asks)). A rule
+about the request itself that fits neither source goes in an `IRequestValidator<TRequest>`, which is asynchronous by
 construction:
 
 ```csharp
-public sealed class NoDuplicateOrders(IOrderStore store) : IRequestValidator<PlaceOrder>
+public sealed class KnownCustomer : IRequestValidator<PlaceOrder>
 {
     public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(PlaceOrder request) =>
-        await store.Exists(request.Reference, Current.Cancellation)
-            ? [new RequestValidationError(nameof(PlaceOrder.Reference), "That reference is already used.")]
-            : [];
+        await Customer.Where(c => c.Id == request.Customer).Any()
+            ? []
+            : [new RequestValidationError(nameof(PlaceOrder.Customer), "There is no such customer.")];
 }
 
-builder.Services.AddSingleton<IRequestValidator<PlaceOrder>, NoDuplicateOrders>();
+builder.Services.AddSingleton<IRequestValidator<PlaceOrder>, KnownCustomer>();
 ```
 
 Every validator runs and their failures are collected. This is deliberately **not** the form's
@@ -192,9 +194,9 @@ public sealed class NewOrder
 
 public sealed class NewOrderValidator : AbstractValidator<NewOrder>
 {
-    public NewOrderValidator(IOrderStore store) =>
+    public NewOrderValidator() =>
         RuleFor(o => o.Reference)
-            .MustAsync(async (reference, ct) => !await store.Exists(reference!, ct))
+            .MustAsync(async (reference, ct) => !await Order.Where(x => x.Reference == reference).Any(ct))
             .WithMessage("That reference is already used.");
 }
 ```
