@@ -35,7 +35,7 @@ and no provider API — the same model, the same queries and the same tests run 
 | `b.Computed(…)`, `b.Default(…)`, `HasIndex(…).Where(x => …)` | `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` | [computed columns, defaults and filtered indexes](#computed-columns-defaults-and-filtered-indexes-in-c) |
 | `end - start` | `EF.Functions.DateDiff*` | [how long between two dates](#how-long-between-two-dates-in-a-query) |
 | `IsUnique("…")`, `OnDelete(…)` with a message | catching a driver's `SqlException` | [a unique index's violation](#what-a-unique-indexs-violation-says) |
-| `Db.Lock(name)`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
+| `Db.Lock(name)`, `X.Where(…).ForUpdate()`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [rows read for update](#rows-read-for-update-forupdate), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
 | a LINQ query, a change through the aggregate | `FromSql`, `ExecuteSql*`, `SqlQuery` | [the read face](#reading-the-read-face), [operations](domain.md#operations-what-the-aggregate-does) |
 
 Code only one database understands is [RASK177](diagnostics.md#rask177) — a suggestion, a warning under
@@ -284,6 +284,32 @@ var byMonth = await Product.Query((q, ct) =>
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
 ```
+
+### Rows read for update: `ForUpdate()`
+
+A check and the write it guards — "is the month still open?", then a claim into it — need the rows to stay as they
+were read until the write commits. `ForUpdate()` reads them under an update lock held to the end of the
+`Db.Transaction` the read runs in, so a second writer of the same rows waits for the commit instead of reading what
+the first is about to change:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    var month = await Month.Where(m => m.Id == id).ForUpdate().Single();
+    Refuse.When(month.Closed, "The month is closed.");
+    await Claim.Into(id).Save();
+});
+```
+
+- It is written in each database's own words: `WITH (UPDLOCK, HOLDLOCK)` on the query's first table on SQL Server,
+  `FOR UPDATE OF` it on PostgreSQL, and as it is on SQLite, whose one writer serializes the transactions already.
+  Every terminal reads under it — awaiting the query, `First`, `Single`, a `Select(…)` — and the rows of a table it
+  joins (an `Include`) are not locked: lock them by a query of their own.
+- **Outside a `Db.Transaction` it is refused** where it runs: the lock would end with the read and hold nothing.
+- **A `Count()` or `Any()` of a locked query is refused** on every database — a lock is held on the rows a read
+  hands back, and PostgreSQL holds none for an aggregate. Read the rows, and count them in memory.
+- An operation that only needs its own aggregate's row locked says so where it is declared —
+  `b.Operation(x => x.M, forUpdate: true)`, or `await id.Load(version, forUpdate: true)` ([operations](domain.md#operations-what-the-aggregate-does)).
 
 ### A reusable query: a scope
 
@@ -789,7 +815,7 @@ on all three databases as it does in C#:
 
 | Takes | Written as |
 |---|---|
-| the entity's mapped members, a value object's too (`f.Amount.Value`) | the column |
+| the entity's mapped members, a value object's too (`f.Amount.Value`, a one-value one stored in a column of its own included) | the column |
 | constants, captured fields, enums, strongly-typed ids | a literal, as the column stores it |
 | `a ?? b`, `x.GetValueOrDefault()`, `x.GetValueOrDefault(v)` | `COALESCE` |
 | `+ - * / %` and unary `-` on whole numbers and doubles; `Math.Abs` | the same operators; `ABS` |
@@ -825,6 +851,9 @@ one holds among the rows the filter keeps — one live grant per partner, howeve
 plainest condition, because SQL Server's filtered index takes no other:
 
 - columns compared with constants or `null`, joined by `&&`; a boolean column as itself (`x => x.Active`) or with `!`
+- a one-value value object is its column: `x => x.Number.Value > 0` compares the number it holds, and
+  `x => x.Number != FuelingNumber.Unset` writes the constant as the column stores it — both `[Number] > 0`-shaped, the
+  same text a hand-written `HasFilter` had
 - `||`, two columns compared, and a `!=` on a nullable column fail the model build — C# keeps the nulls for
   `x.Level != 3`, a filtered index leaves them out, so say it in both: `x.Level != null && x.Level != 3`
 - on SQL Server a unique index also leaves out the rows with a NULL in a nullable key column, as EF Core's own unique
@@ -984,7 +1013,7 @@ PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): tex
 (`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
 (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
 indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
-(`ParentLockParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
+(`ParentLockParityTests`), a read face's `ForUpdate()` (`ReadForUpdateParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
 `ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
 is what lets an app run its own tests on SQLite in memory alone.
 
@@ -1407,6 +1436,10 @@ line wins over the setting — and it decides whether anything applies at start,
 `c.Data.OwnsSchema(…)` beside it takes nothing over either. A host wired by hand (`AddRask()` + `MapRask<TApp>()`)
 migrates on start only when its `AddRaskData<TContext>(…)` says `.OwnsSchema()`.
 
+The release step itself can be the app: `dotnet App.dll rask db migrate` builds the host without starting it, applies
+the pending migrations the way a start would (`OwnsSchema` included), runs their [data steps](data-writes.md#moving-data-in-c-with-bdata),
+and exits — with `MigrateOnStart` on or off.
+
 ### Taking over an existing schema
 
 An app moving onto Rask has a live database its new migrations did not make. Their first migration — the baseline —
@@ -1657,7 +1690,8 @@ leaves EF Core's default, is logged once as a warning, and is asked again 30 sec
 meanwhile keeps the default, so `AddDbContextFactory`'s options, built once, keep it until the app restarts. Pin it
 with `Rask:SqlServer:CompatibilityLevel` (`"CompatibilityLevel": 170`, or `s => s.CompatibilityLevel = 170`), which
 asks nothing — the one choice for Azure SQL Database before its database exists, since it reports no version to map.
-An app needs no `UseCompatibilityLevel` of its own.
+An app needs no `UseCompatibilityLevel` of its own. The level changes no column: a JSON column (a value collection, a
+`ToJson()` type) stays `nvarchar(max)` at 170 too, where EF Core alone would switch it to the native `json` type.
 
 Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
 on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on

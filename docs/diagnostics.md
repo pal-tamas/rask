@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK186, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK186, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -31,6 +31,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
 | **RASK130** | declares a value object from the property's rules (`[StringLength(200)]` or `RuleFor(s => s.Name).MaximumLength(200)` → `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);`), types the property as it, and takes off the rules its base arguments now say |
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
+| **RASK133** | calls the factory's generated entry: `await using var db = …; db.Add(Product.Place(n)); await db.SaveChangesAsync(t);` → `await Product.Place(n, cancellationToken: t);` |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
@@ -155,6 +156,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
+| [RASK133](#rask133) | Info | An aggregate is written on a DbContext around its own operations |
 | [RASK139](#rask139) | Warning | A `Rules` method is not the in-type FluentValidation convention |
 | [RASK140](#rask140) | Info | Domain code reads the machine's clock |
 | [RASK141](#rask141) | Info | Domain code looks up a service |
@@ -3250,6 +3252,45 @@ not a value object held by an aggregate — so a static method a hand-written fo
 
 RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
 
+## RASK133
+
+**An aggregate is written on a DbContext around its own operations** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+App code hands an aggregate to a `DbContext` — `db.Products.Add(p)`, `db.Update(order)`, `db.Remove(supply)`, their
+`Range` and `Async` forms — and the same method saves the context (`SaveChanges`, `SaveChangesAsync`). That write goes
+around everything the aggregate was drawn for: its [factory and operations](domain.md#operations-what-the-aggregate-does),
+the roles their generated entries ask, and [the rules every save asks](domain.md#what-every-save-asks) of a `Find` and
+`Save()`. The aggregate is [the transaction boundary](domain.md#the-transaction-boundary), so the write goes through it:
+
+```csharp
+db.Products.Add(Product.Place(name, price));     // ℹ RASK133
+await db.SaveChangesAsync();
+
+await Product.Place(name, price);                 // ✓ the factory's generated entry: roles, rules, one transaction
+await Order.Ship(id, version, tracking);          // ✓ an operation's entry, in place of db.Update(order)
+await Supply.Delete(id, version);                 // ✓ in place of db.Remove(supply)
+await Db.Transaction(async () =>                  // ✓ a check and the writes it guards, by hand
+{
+    var order = await Order.Find(id, version) ?? throw new KeyNotFoundException();
+    order.Ship(tracking);
+    await order.Save();
+});
+```
+
+Not reported: a context that only stages a write for its caller to save (no `SaveChanges` in the same method — a
+generated write's `db:` works that way); a write of an entity that is not an aggregate; a seed (a method or a type
+whose name says `Seed`, the work of `UseSeeding`/`UseAsyncSeeding`; `HasData` writes no `Add`); a migration (a
+`Migrations` folder, a `Migration` or a `ModelSnapshot`); a test (a `*.Tests` assembly, a method or a class with a
+test attribute); and generated code, Rask's own generated entries among it.
+
+**Fix:** call the generated entry the message names — the factory's `X.Register(…)`, the operation's
+`X.M(id, version, …)`, `X.Delete(id, version)` — or `Find`, the operation and `Save()` inside `Db.Transaction`. The
+**quick-fix** is offered where the rewrite is mechanical: `db.Add(X.F(…))` followed at once by
+`await db.SaveChangesAsync(…)` on a context local the method uses for nothing else, where `F` is a factory with a
+generated entry. It calls `await X.F(…, cancellationToken: …)` — the token passed by name, which is what binds the
+call to the entry rather than to the factory — and drops the context. A suggestion by default; a warning under
+`<RaskStrict>`.
+
 ## RASK140
 
 **Domain code reads the machine's clock** · Info (Warning under `<RaskStrict>`) · quick-fix
@@ -3635,7 +3676,7 @@ public sealed record FindLogin(Guid Id) : IQuery<Login>;                        
 App code that only one database understands: an API of the SQL Server, PostgreSQL or SQLite provider or of its
 driver (`IncludeProperties`, `IsClustered`, `SqlException`, `PostgresException`, `SqliteConnection`, …),
 `EF.Functions.*`, raw SQL (`FromSql`/`FromSqlRaw`/`FromSqlInterpolated`, `ExecuteSql*`, `SqlQuery`/`SqlQueryRaw`,
-`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `UseCollation`,
+`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `SetContainerColumnType`, `UseCollation`,
 `HasDefaultValueSql`, `HasComputedColumnSql` and `HasFilter` given SQL, `ToSqlQuery`). An app's tests run on SQLite
 in memory ([testing](testing.md)), and Rask proves what it translates behaves the same on SQLite, SQL Server and
 PostgreSQL; code written for one of them is outside that proof — green on the database the tests run on, different
@@ -3655,10 +3696,10 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
 `EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
-`ForUpdate()` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
+`X.Where(…).ForUpdate()` inside `Db.Transaction` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
 message on `OnDelete(…)`, which every database turns into the same `RaskValidationException`.
 
 **Not reported:** a migration — a type derived from `Migration` or `ModelSnapshot`, or any file under a `Migrations`

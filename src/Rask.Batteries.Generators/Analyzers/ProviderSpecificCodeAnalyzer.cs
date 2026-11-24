@@ -171,6 +171,8 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             "ToSqlQuery" => (method.Name, "one database's SQL", "map the entity to a table or a view, and query it with LINQ"),
             "HasColumnType" => (method.Name, "one database's column types",
                 "declare the value object's facets (Number(Value, Scale: 2), Text(Value, MaxLength: 200)) or HasPrecision / HasMaxLength"),
+            "SetContainerColumnType" => (method.Name, "one database's column types",
+                "leave the JSON column's type to Rask, which keeps it the same at every compatibility level"),
             "UseCollation" => (method.Name, "one database's collations",
                 "name the app's text order once with OrderTextBy(…) in ConfigureConventions, and sort with InTextOrder()"),
             "HasDefaultValueSql" when HasSql(call) => (method.Name, "one database's SQL",
@@ -212,7 +214,7 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             if (sql.IndexOf("UPDLOCK", StringComparison.OrdinalIgnoreCase) >= 0 || sql.IndexOf("HOLDLOCK", StringComparison.OrdinalIgnoreCase) >= 0
                 || sql.IndexOf("FOR UPDATE", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                return "read the rows with ForUpdate(), which locks them on every database";
+                return "read the rows with await X.Where(…).ForUpdate() inside Db.Transaction, which locks them on every database";
             }
         }
 

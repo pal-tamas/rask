@@ -177,4 +177,82 @@ are moved one of two ways, by what the change means:
 
 A tightened rule does not make a stored row unreadable: a value object is loaded without being validated, and a save
 asks a property's rules only once that property is changed ([what every save asks](domain.md#what-every-save-asks)),
-so old rows open, and are put right as they are next edited.
+so old rows open, and are put right as they are next edited. To find them before the rule goes in, [audit the stored
+data](#auditing-stored-data-with-rask-audit).
+
+### Moving data in C# with `b.Data`
+
+A schema change that needs its data moved — a link table filled from the column it replaces, a value split in two —
+moves it through the app's own aggregates, not in SQL. A migration's `Up` adds a **data step**:
+
+```csharp
+public partial class TankPistols : Migration
+{
+    protected override void Up(MigrationBuilder b)
+    {
+        b.CreateTable(/* …what `rask db add TankPistols` wrote… */);
+        b.Data(async () =>
+            await Tank.UpdateEach(_ => true, async t => t.Draw(await Pistol.Where(p => p.TankId == t.Id).Ids())));
+    }
+}
+```
+
+- **It runs after the whole schema is migrated**, with the model the app has now — at the app's start (when
+  [migrations apply themselves](data.md#migrations-apply-themselves-on-start)), from `dotnet App.dll rask db migrate`, and
+  after `rask db update` (which runs `dotnet ef database update`, then the app's `rask db migrate`). Every tenant's
+  rows are in reach: the step runs inside `Tenant.Across()`. The rules, events and audit of every save it makes run as
+  they do anywhere else.
+- **It runs once.** Each migration whose steps have run is recorded in a `__RaskDataSteps` table beside EF Core's
+  history, made by the first run that has a step to record — a database whose migrations declare none never gets it.
+  A migration applied by plain `dotnet ef database update` (which runs no C#) has its steps run the next time the app
+  migrates.
+- **Write it so a second run is harmless.** The schema step and its data step are not one transaction: a step that
+  fails stops the start with its error, the schema stays migrated, and the step runs again on the next start.
+- **The model is today's.** A step names only what the model still has; the change that drops a column a step reads
+  deletes the step from its migration (the migration itself stays, as history).
+- In the SQL of `dotnet ef migrations script` a step is a comment — it is C#, and the app runs it.
+
+### Auditing stored data with `rask audit`
+
+A rule is asked of what a save writes, and of a stored row only the fields a save changes — so a rule tightened
+since an old row was written says nothing about that row until someone edits the field. Before a new rule or a unique
+index is turned on, ask the stored rows instead:
+
+```bash
+rask audit                          # in the project: runs `dotnet run -- rask audit`
+rask audit --aggregate Driver       # one aggregate (repeat, or Driver,Vehicle)
+rask audit --json > audit.json      # every id, for a script
+dotnet App.dll rask audit           # on the server, from the published app
+```
+
+The app answers it itself, through its own model: the host is built and never started (no port, no worker), each
+aggregate is loaded whole, a page at a time, from every tenant, and asked what a save **adding** it would ask — every
+validation attribute of every row of it, the type's own, `IValidatableObject`, `Validate()`, awaited rules included,
+each in the aggregate's own tenant — plus:
+
+- **the rules of every value object it holds**, which a load never asks: a `DriverName` stored longer than its
+  `MaxLength` allows now, and a value its rules accept but would keep differently — stored with the blanks `Trim`
+  cuts off, or in the small letters `Upper` raises (*"Stored differently from how its rules keep it"*);
+- **every id kept as text** (a key or a reference whose column is text, as a typed id over a `Guid` in an existing
+  schema): read as stored, before any row is loaded, and turned into the id and back — *"Not an id its type can
+  read"*, or *"Not written the way the app writes it"* for an upper-case or braced one.
+
+```text
+rask audit: 2 aggregate(s), 1530 row(s) read, 2 rule(s) broken.
+
+Driver — 412 read:
+  CardNumber: At most 16 characters. — 2
+    3f2c…, 9a41…
+  Chips[*].Period: The end cannot be before the start. — 1
+    77ab…
+
+Vehicle — 1118 read, all pass.
+```
+
+**Read only, and the ids alone.** The audit's own context refuses a save, its rules are asked as a dry run (a
+`Db.Lock` one takes is not taken), and it prints each rule's words, the field, the count and the aggregates' ids —
+never what a row holds, so the report can leave a machine whose data cannot. A child's rows are counted together
+(`Chips[*]`). A rule that throws on an old row is reported against that row (*"A rule threw: …"*) and the audit goes
+on. The exit code says the answer: `0` every row passes, `1` some do not, `2` the command line was wrong — so a
+release step can stop before a migration whose rule the stored data would break.
+
