@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -81,8 +82,98 @@ public partial class FieldShapeTests : global::Rask.Core.RaskMarkup
         Assert.Same(first, again);
     }
 
+    [Fact]
+    public void A_hand_written_models_attributes_tell_its_input_the_lengths_the_type_and_that_it_is_not_edited()
+    {
+        var contact = new Contact();
+
+        var page = Page.Render(() => Div[
+            Input.Bind(() => contact.Email).Id("email"),
+            Input.Bind(() => contact.Phone).Id("phone"),
+            Input.Bind(() => contact.Code).Id("code"),
+            Textarea.Bind(() => contact.Code).Id("code-text")
+        ]);
+
+        var email = page.Find("#email");
+        Assert.Equal(("email", "80", "5"), (email.Attribute("type"), email.Attribute("maxlength"), email.Attribute("minlength")));
+        Assert.Equal("tel", page.Find("#phone").Attribute("type"));
+        Assert.Equal(("text", "12"), (page.Find("#code").Attribute("type"), page.Find("#code").Attribute("maxlength")));
+        Assert.True(page.Exists("#code[readonly]"));
+        Assert.True(page.Exists("#code-text[readonly]"));
+    }
+
+    [Fact]
+    public void The_tightest_of_several_length_attributes_is_the_one_said()
+    {
+        var contact = new Contact();
+
+        var html = Page.Render(() => Input.Bind(() => contact.Name)).Render();
+
+        Assert.Contains("maxlength=\"30\"", html, StringComparison.Ordinal);
+        Assert.Contains("minlength=\"3\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_date_typed_moment_is_a_date_input_showing_its_day_and_reads_the_day_back()
+    {
+        var contact = new Contact { Born = new DateTime(1990, 5, 17, 13, 45, 0, DateTimeKind.Unspecified) };
+
+        var page = Page.Render(() => Form.Model(contact)[Input.Bind(() => contact.Born)]);
+        var input = page.Find("input");
+
+        Assert.Equal(("date", "1990-05-17"), (input.Attribute("type"), input.Attribute("value")));
+    }
+
+    [Fact]
+    public async Task An_emptied_text_kept_empty_by_its_display_format_is_written_as_empty_not_null()
+    {
+        var contact = new Contact { Note = "x", Remark = "y" };
+
+        var page = Page.Render(() => Form.Model(contact)[Input.Bind(() => contact.Note).Id("note"), Input.Bind(() => contact.Remark).Id("remark")]);
+        await page.On("#note").Change("");
+        await page.On("#remark").Change("");
+
+        Assert.Equal("", contact.Note);
+        Assert.Null(contact.Remark);
+    }
+
+    [Fact]
+    public void What_a_models_type_registered_wins_over_the_members_attributes()
+    {
+        var driver = new Driver();
+
+        var html = Page.Render(() => Input.Bind(() => driver.Name)).Render();
+
+        Assert.Contains("maxlength=\"40\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("readonly", html, StringComparison.Ordinal);
+    }
+
+    private sealed class Contact
+    {
+        [EmailAddress, StringLength(80, MinimumLength = 5)]
+        public string Email { get; set; } = "";
+
+        [Phone]
+        public string Phone { get; set; } = "";
+
+        [Editable(false), MaxLength(12)]
+        public string Code { get; set; } = "";
+
+        [StringLength(40, MinimumLength = 2), MaxLength(30), MinLength(3)]
+        public string Name { get; set; } = "";
+
+        [DataType(DataType.Date)]
+        public DateTime Born { get; set; }
+
+        [DisplayFormat(ConvertEmptyStringToNull = false)]
+        public string? Note { get; set; }
+
+        public string? Remark { get; set; }
+    }
+
     private sealed class Driver
     {
+        [Editable(false)]
         public string Name { get; set; } = "";
 
         public string Note { get; set; } = "";

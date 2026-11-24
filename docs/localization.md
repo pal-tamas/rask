@@ -832,6 +832,9 @@ they say when you set nothing.
 | `ValidationTooFew` | Validation — `[MinLength]` on a list | `Choose at least {0}.` |
 | `ValidationCount` | Validation — `[Length]` on a list | `Choose between {0} and {1}.` |
 | `ValidationBetween` | Validation — `[Range]` | `Enter a value between {0} and {1}.` |
+| `ValidationAboveAndAtMost` | Validation — `[Range]` with `MinimumIsExclusive = true` | `Enter a value greater than {0} and at most {1}.` |
+| `ValidationAtLeastAndBelow` | Validation — `[Range]` with `MaximumIsExclusive = true` | `Enter a value at least {0} and less than {1}.` |
+| `ValidationAboveAndBelow` | Validation — `[Range]` exclusive at both ends | `Enter a value greater than {0} and less than {1}.` |
 | `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
 | `ValidationPhone` | Validation — `[Phone]` | `Enter a valid phone number.` |
 | `ValidationUrl` | Validation — `[Url]` | `Enter a valid http, https or ftp address.` |

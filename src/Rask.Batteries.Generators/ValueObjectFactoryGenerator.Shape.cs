@@ -29,7 +29,8 @@ public sealed partial class ValueObjectFactoryGenerator
         bool Strict = false,
         string? Start = null,
         string? End = null,
-        string? Ends = null);
+        string? Ends = null,
+        bool Upper = false);
 
     private static ShapeFacets ReadShape(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
     {
@@ -93,6 +94,7 @@ public sealed partial class ValueObjectFactoryGenerator
             ("NotAfterToday", bool notAfter) => shape with { NotAfterToday = notAfter },
             ("NotAfterNow", bool notAfter) => shape with { NotAfterNow = notAfter },
             ("Strict", bool strict) => shape with { Strict = strict },
+            ("Upper", bool upper) => shape with { Upper = upper },
             ("Min", _) when AsDecimal(value) is { } min => shape with { Min = min },
             ("Max", _) when AsDecimal(value) is { } max => shape with { Max = max },
             _ => shape,
@@ -136,7 +138,8 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>What a control bound to it is told: the kind of value it holds and the rules it declares.</summary>");
         s.AppendLine(Hidden);
-        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => new(").Append(string.Join(", ", named)).AppendLine(");");
+        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => new(").Append(string.Join(", ", named))
+            .AppendLine(facets.Upper ? ") { Upper = true };" : ");");
     }
 
     private static void AddRangeEnds(List<string> named, ShapeFacets facets)

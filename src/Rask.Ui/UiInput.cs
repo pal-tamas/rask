@@ -341,8 +341,12 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
                 UiInputLook.Size(Size ?? Ui.InputSize.Base),
                 UiInputLook.Padding(leading, trailing),
                 UiInputLook.Variant(Variant ?? Ui.InputVariant.Outline),
+                KeptUpper ? UiInputLook.Upper : null,
                 InputClass);
     }
+
+    // Whether the bound field is kept in capitals, so the input draws its text in them.
+    private bool KeptUpper => Bind is { } bind && RaskValidation.ShapeOf(ExpressionAccessor.Parse(bind)) is { Upper: true };
 
     private IReadOnlyDictionary<string, string?> Marks(bool invalid)
     {

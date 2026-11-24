@@ -20101,3 +20101,20 @@ override sealed Rask.Values.Moment.Equals(Rask.Values.Value? other) -> bool
 static Rask.Values.Moment.operator !=(Rask.Values.Moment? left, Rask.Values.Moment? right) -> bool
 static Rask.Values.Moment.operator ==(Rask.Values.Moment? left, Rask.Values.Moment? right) -> bool
 virtual Rask.Values.Moment.Equals(Rask.Values.Moment? other) -> bool
+Rask.Core.Forms.FieldShape.Hint.get -> string?
+Rask.Core.Forms.FieldShape.Hint.init -> void
+Rask.Core.Forms.FieldShape.Input.get -> Rask.Core.InputType?
+Rask.Core.Forms.FieldShape.Input.init -> void
+Rask.Core.Forms.FieldShape.KeepEmpty.get -> bool
+Rask.Core.Forms.FieldShape.KeepEmpty.init -> void
+Rask.Core.Forms.FieldShape.ReadOnly.get -> bool
+Rask.Core.Forms.FieldShape.ReadOnly.init -> void
+Rask.Core.Forms.FieldShape.Upper.get -> bool
+Rask.Core.Forms.FieldShape.Upper.init -> void
+Rask.Core.Forms.FieldHints
+const Rask.Core.Forms.FieldHints.MultilineText = "MultilineText" -> string!
+const Rask.Core.Forms.FieldHints.RadioGroup = "RadioGroup" -> string!
+const Rask.Core.Forms.FieldHints.Switch = "Switch" -> string!
+Rask.Core.Globalization.RaskString.ValidationAboveAndAtMost = 289 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationAtLeastAndBelow = 290 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationAboveAndBelow = 291 -> Rask.Core.Globalization.RaskString

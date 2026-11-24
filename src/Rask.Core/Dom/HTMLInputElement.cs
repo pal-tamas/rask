@@ -150,6 +150,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidRequired;
     private bool _saidMaxLength;
     private bool _saidMinLength;
+    private bool _saidReadOnly;
 
     // The input types the HTML spec gives maxlength and minlength to: the text-like ones (no type at all is text).
     private static bool TakesLength(string? type) =>
@@ -195,6 +196,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             var takesLength = TakesLength(resolvedType);
             MaxLength = SaidMaxLength(acc, MaxLength, takesLength, ref _saidMaxLength);
             MinLength = SaidMinLength(acc, MinLength, takesLength, ref _saidMinLength);
+            ReadOnly = SaidReadOnly(acc, ReadOnly, BindingHelpers.IsTypedInto(resolvedType), ref _saidReadOnly);
         }
 
         base.WriteAttributes(sb);
@@ -235,11 +237,11 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private static bool TakesAriaRequired(string? type) =>
         type is not ("radio" or "range" or "color" or "hidden" or "button" or "submit" or "reset" or "image");
 
-    // An explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a plain
-    // string input keeps "no type unless set".
+    // An explicit InputType wins, then the one the bound field's shape asks for ([EmailAddress], [DataType]) where it
+    // fits T; otherwise bound mode (and non-string T) default from T, while a plain string input keeps "no type unless set".
     private string? ResolveType(ExpressionAccessor.Accessor? acc)
     {
-        var resolvedType = Type?.ToHtml();
+        var resolvedType = (Type ?? (acc is null ? null : ShapedInput.For(RaskValidation.ShapeOf(acc), typeof(T))))?.ToHtml();
         if (resolvedType is null && (acc is not null || typeof(T) != typeof(string)))
         {
             resolvedType = BindingHelpers.DefaultInputType(typeof(T));
@@ -265,7 +267,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
         else
         {
-            valueString = Spelling(resolvedType) is { } numbers ? numbers.Show(acc.Getter()) : Shown(acc.Getter());
+            valueString = Spelling(resolvedType) is { } numbers ? numbers.Show(acc.Getter()) : ShownAs(acc.Getter(), resolvedType);
         }
 
         // A secret's value is the browser's: the server writes a clear and never the text (SecretField).
@@ -311,6 +313,12 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     }
 
     private string Shown(object? value) => Money?.Show(value) ?? BindingHelpers.FormatValue(value);
+
+    // A moment in a date input is its day: the input shows nothing for a value with a time in it.
+    private string ShownAs(object? value, string? resolvedType) =>
+        value is DateTime moment && string.Equals(resolvedType, "date", StringComparison.Ordinal)
+            ? BindingHelpers.FormatValue(DateOnly.FromDateTime(moment))
+            : Shown(value);
 
     // How a bound field spells its number: an amount with its marks; a number in a field typed into as TEXT (any
     // type but number and range — a browser sends those in the parsers' spelling) in the reader's culture, shown and
