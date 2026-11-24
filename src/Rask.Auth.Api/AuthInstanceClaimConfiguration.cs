@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Data;
 
 namespace Rask.Auth;
 
@@ -10,6 +11,9 @@ public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<Au
     public void Configure(EntityTypeBuilder<AuthInstanceClaim> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
+        KeptNames.Keep(builder.Metadata.ClrType);
 
         builder.ToTable("RaskAuthInstanceClaim");
 

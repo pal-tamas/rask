@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -65,7 +67,7 @@ public static class ValueObjectColumn
         var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, property.Metadata, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
@@ -104,19 +106,44 @@ public static class ValueObjectColumn
         var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, property.Metadata, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
 
-    // The length, precision and scale a value object declared from a base record states, read when the app was
-    // compiled — building one to ask would check its rules. The entity's own Configure runs after this, so a
-    // HasMaxLength there still has the last word (RASK128 says when it disagrees).
-    private static void Declare(ValueFacets facets, Action<int> length, Action<int, int> precision)
+    /// <summary>
+    ///     Names <paramref name="property" />'s column as the complex mapping named it — <c>Price_Currency</c> — at
+    ///     convention strength, so the app's <c>ColumnNames</c> renames it as it renames its siblings. Called by generated
+    ///     code.
+    /// </summary>
+    /// <param name="property">A one-value value object's column inside another value object.</param>
+    /// <param name="column">The column EF Core's complex mapping would give it.</param>
+    /// <returns>The same builder.</returns>
+    public static ComplexTypePropertyBuilder Held(ComplexTypePropertyBuilder property, string column)
     {
-        if (facets.MaxLength is > 0 and var most)
+        ArgumentNullException.ThrowIfNull(property);
+        ArgumentException.ThrowIfNullOrEmpty(column);
+
+        ((IConventionProperty)property.Metadata).Builder.HasColumnName(column);
+        return property;
+    }
+
+    // The length, precision and scale a value object declared from a base record states, read when the app was
+    // compiled — building one to ask would check its rules. An attribute on the property — [MaxLength],
+    // [StringLength], [Precision] — is the app's word for this one column, so it wins; and the entity's own Configure
+    // runs after this, so a HasMaxLength there still has the last word. RASK128 says when either disagrees.
+    private static void Declare(ValueFacets facets, IMutableProperty column, Action<int> length, Action<int, int> precision)
+    {
+        var declared = (IConventionProperty)column;
+
+        if (facets.MaxLength is > 0 and var most && declared.GetMaxLengthConfigurationSource() != ConfigurationSource.DataAnnotation)
         {
             length(most);
+        }
+
+        if (declared.GetPrecisionConfigurationSource() == ConfigurationSource.DataAnnotation)
+        {
+            return;
         }
 
         if (facets.Precision is { } digits)

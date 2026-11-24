@@ -40,6 +40,33 @@ public sealed class Tanker
     public string Plate { get; set; } = "";
 
     public Depot Depot { get; set; } = new();
+
+    public List<Leg> Legs { get; set; } = [];
+}
+
+public sealed class Leg
+{
+    public int Id { get; set; }
+
+    public int DrivenKm { get; set; }
+}
+
+/// <summary>A table a battery maps, recorded as one the way every battery's configuration records its own.</summary>
+public sealed class Ledger
+{
+    public int Id { get; set; }
+
+    public int EntryCount { get; set; }
+}
+
+/// <summary>An app's own context deriving from Rask's, so the generated value-object mapping is in its model.</summary>
+public sealed class CamelGondolaContext(DbContextOptions<CamelGondolaContext> options) : RaskDbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.ColumnNames(n => n.CamelCase);
+    }
 }
 
 public sealed class Depot
@@ -83,6 +110,8 @@ public class LegacyContext(DbContextOptions options) : DbContext(options)
     {
         modelBuilder.Entity<Refuel>(Configure);
         modelBuilder.Entity<Tanker>().OwnsOne(t => t.Depot);
+        modelBuilder.Entity<Tanker>().OwnsMany(t => t.Legs);
+        modelBuilder.Entity<Ledger>(ledger => KeptNames.Keep(ledger.Metadata.ClrType));
         modelBuilder.Entity<IbcNozzle>();
     }
 
@@ -255,13 +284,43 @@ public sealed class NamingConventionTests : IDisposable
     }
 
     [Fact]
-    public void Rasks_own_assemblies_keep_their_names_and_an_apps_do_not()
+    public void A_table_a_battery_recorded_keeps_its_names()
     {
-        var assemblies = new[] { typeof(ColumnName).Assembly, typeof(NamingConventionTests).Assembly, typeof(object).Assembly };
+        var ledger = Model(Snake()).FindEntityType(typeof(Ledger))!;
 
-        var kept = assemblies.Select(StoreNameConvention.IsRasks);
+        var names = (ledger.GetTableName(), Column(ledger, nameof(Ledger.EntryCount)));
 
-        Assert.Equal([true, false, false], kept);
+        Assert.Equal(("Ledger", "EntryCount"), names);
+    }
+
+    [Fact]
+    public void An_owned_type_in_a_table_of_its_own_is_named_after_its_class()
+    {
+        var legs = Model(Snake()).FindEntityType(typeof(Leg))!;
+
+        var names = (legs.GetTableName(), Column(legs, nameof(Leg.DrivenKm)));
+
+        Assert.Equal(("leg", "driven_km"), names);
+    }
+
+    [Fact]
+    public void A_one_value_value_object_inside_another_is_renamed_like_its_siblings()
+    {
+        using var db = new CamelGondolaContext(
+            new DbContextOptionsBuilder<CamelGondolaContext>().UseSqlite("Data Source=:memory:").Options);
+        var gondola = Model(db).FindEntityType(typeof(Gondola))!;
+        var store = StoreObjectIdentifier.Table("Gondolas");
+
+        var crate = gondola.FindComplexProperty(nameof(Gondola.Crate))!.ComplexType;
+        var route = gondola.FindComplexProperty(nameof(Gondola.Route))!.ComplexType.FindComplexProperty(nameof(GondolaRoute.Label))!.ComplexType;
+        var columns = new[]
+        {
+            crate.FindProperty(nameof(GondolaCrate.Alias))!.GetColumnName(store),
+            crate.FindProperty(nameof(GondolaCrate.Units))!.GetColumnName(store),
+            route.FindProperty(nameof(GondolaLabel.Code))!.GetColumnName(store),
+        };
+
+        Assert.Equal(["crateAlias", "crateUnits", "routeLabelCode"], columns);
     }
 
     private static string? Column(IEntityType entityType, string property) =>

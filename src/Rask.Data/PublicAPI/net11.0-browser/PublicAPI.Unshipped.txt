@@ -594,6 +594,16 @@ virtual Rask.Data.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask.D
 Rask.Data.CoveringIndexBuilderExtensions
 static Rask.Data.CoveringIndexBuilderExtensions.Covering(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, params string![]! propertyNames) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.CoveringIndexBuilderExtensions.Covering<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, object?>!>! columns) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.Refuse
+static Rask.Data.Refuse.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.Unless(bool condition, string! message) -> void
+static Rask.Data.Refuse.Unless<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.When(bool condition, string! message) -> void
+static Rask.Data.Refuse.When<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+Rask.Data.KeepEmptyBuilderExtensions
+Rask.Data.GeneratedEmptyTexts
+static Rask.Data.GeneratedEmptyTexts.Of<TValue>(System.Func<TValue>! make) -> TValue
+static Rask.Data.KeepEmptyBuilderExtensions.KeepEmpty<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 Rask.Data.ColumnName
 Rask.Data.ColumnName.AsDeclared.get -> string!
 Rask.Data.ColumnName.CamelCase.get -> string!
@@ -629,3 +639,4 @@ static Rask.Data.Moment.operator ==(Rask.Data.Moment? left, Rask.Data.Moment? ri
 virtual Rask.Data.Moment.Equals(Rask.Data.Moment? other) -> bool
 Rask.Data.ValueObjectColumnsBuilderExtensions
 static Rask.Data.ValueObjectColumnsBuilderExtensions.Columns<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue>!>! member, string! pattern) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.ValueObjectColumn.Held(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, string! column) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!

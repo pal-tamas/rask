@@ -42,14 +42,45 @@ them until tagged releases begin.
   and text collations (registered on each open by one service interceptor, which `UseRaskSqlite` shares) and the
   duration translation, so every Rask SQLite compares and computes alike. Parity: the Postgres class of
   `TextOrderParityTests` now passes the case-insensitive facts.
+- **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
+  msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
+  a form shows under that field — or above the form when none is named — instead of the error page an
+  `InvalidOperationException` ends in. The path is read from the lambda only when refusing: members (`Km.Start`), an
+  evaluated index (`Parts[2].Quantity`), a captured local under its form name (`parts` → `Parts`), `this.` dropped
+  ([data](docs/data.md#refusing-an-operation-refuse)).
+- **`Test.Refuses(…)` says where an operation was refused.** `Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End")`,
+  `(await Test.Refuses(() => Dispatcher.Send(cmd))).Only("Number")`, `.Whole()`; an operation that goes through or throws
+  anything else fails with a `RefusalAssertionException` naming what happened
+  ([testing](docs/testing.md#asserting-a-refusal-testrefuses)).
+- **`Events.Fake()` records what a test published.** `using var events = Events.Fake();` (`Rask.Cqrs`) records every
+  event published in the test's flow — `Dispatcher.Publish`, an injected `IDispatcher`, and the domain events a save
+  publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
+  `events.Published<DriverChipsChanged>().Once()`, `.Twice()`, `.None()`, `.Exactly(n)` (the words of every other fake),
+  `.Where(e => …)`, `.Only()`, `.All`
+  ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
+- **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
+  `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
+  so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by
+  hand (reflection over the model before each write). After: a member named by `KeepEmpty` in the aggregate's static
+  `Configure` writes `''` when its field is left empty or emptied (the value object made from `''` past its rules), a
+  new row starts with `''`, and a row holding `NULL` there keeps it while the field stays empty. A filled field
+  still answers to every rule; a member not stored as text throws when the model is built.
+- **An attribute on a value-object property shapes its column, and RASK128 says when it disagrees.** Before: a
+  `[MaxLength]`, `[StringLength]` or `[Precision]` on a property holding a `Text`/`Number` value object was overridden
+  by the value object's own facet without a word. After: the attribute wins for that column (`Configure` still over
+  both), the generated model carries it so a form and `Create(model)`/`Update(id, model)` ask it beside the value
+  object's rule, and [RASK128](docs/diagnostics.md#rask128) warns on the attribute when its literal disagrees with
+  the value object's.
 - **`c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class)` names a legacy schema once, in the app's
   `IRaskModel`.** Before: a database another tool made (TA's Prisma schema: `countedAt`, tables named after the class)
   took a `HasColumnName` on every property and a `ToTable` on every entity — hundreds of lines. After: one line names
   every column and table the model did not name itself. `n.CamelCase`, `n.SnakeCase`, `n.AsDeclared` (EF Core's) and
   `n.Path` name a column — a value object's after its whole path (`kmStart`, `km_start`), a JSON column but not what it
   holds, an owned type's after its navigation; `t.Class`, `t.CamelCase`, `t.SnakeCase`, `t.AsDeclared` name a table, a
-  hierarchy's once. An explicit `HasColumnName`/`ToTable`/`[Column]`/`[Table]` wins, Rask's battery tables keep their
-  names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
+  hierarchy's once, an owned type's own table after its class. An explicit `HasColumnName`/`ToTable`/`[Column]`/
+  `[Table]`/`Columns(…)` pattern wins; a one-value value object inside another (`Price_Currency`) is renamed like its
+  siblings, since the generator now names it at convention strength; Rask's battery tables (each battery's configuration
+  records its own) keep their names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
   stated in. Every provider ([data](docs/data.md#app-wide-model-rules-one-iraskmodel)).
 - **Five domain and data-annotation analyzers, suggestions by default and warnings under `<RaskStrict>`.**
   [RASK140](docs/diagnostics.md#rask140): `DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` or

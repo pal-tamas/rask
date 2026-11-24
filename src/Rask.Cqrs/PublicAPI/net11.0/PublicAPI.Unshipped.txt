@@ -296,3 +296,24 @@ Rask.Background.WorkReported.Batch.get -> System.Guid?
 Rask.Background.WorkReported.Batch.init -> void
 Rask.Background.WorkReported.Detail.get -> string?
 Rask.Background.WorkReported.Detail.init -> void
+Rask.Cqrs.Events
+Rask.Cqrs.EventsFake
+Rask.Cqrs.EventsFake.Clear() -> void
+Rask.Cqrs.EventsFake.Count.get -> int
+Rask.Cqrs.EventsFake.Dispose() -> void
+Rask.Cqrs.EventsFake.Published<TEvent>() -> Rask.Cqrs.PublishedEvents<TEvent>!
+Rask.Cqrs.EventsFake.Run(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.PublishedEvents<TEvent>
+Rask.Cqrs.PublishedEvents<TEvent>.All.get -> System.Collections.Generic.IReadOnlyList<TEvent>!
+Rask.Cqrs.PublishedEvents<TEvent>.Count.get -> int
+Rask.Cqrs.PublishedEvents<TEvent>.None() -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Twice() -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Once() -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Only() -> TEvent
+Rask.Cqrs.PublishedEvents<TEvent>.Exactly(int times) -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Where(System.Func<TEvent, bool>! predicate) -> Rask.Cqrs.PublishedEvents<TEvent>!
+Rask.Cqrs.PublishedEventsException
+Rask.Cqrs.PublishedEventsException.PublishedEventsException() -> void
+Rask.Cqrs.PublishedEventsException.PublishedEventsException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.PublishedEventsException.PublishedEventsException(string! message) -> void
+static Rask.Cqrs.Events.Fake() -> Rask.Cqrs.EventsFake!

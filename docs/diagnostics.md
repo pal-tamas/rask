@@ -3060,20 +3060,24 @@ it once per member changes nothing; a `new` with an object initializer gets none
 
 **A column is configured differently from its value object** · Warning
 
-A value object declared from `Text` or `Number` gives its column the length, precision and scale it declares. The
-entity's own `Configure` runs after that and still wins, so a `HasMaxLength`, `HasPrecision` or `HasColumnType` that
-says otherwise leaves the column and the rule disagreeing: a value the rule accepts does not fit, or the column
+A value object declared from `Text` or `Number` gives its column the length, precision and scale it declares. An
+attribute on the property — `[MaxLength]`, `[StringLength]`, `[Precision]` — wins over that, and the entity's own
+`Configure` runs after both and still wins, so an attribute or a `HasMaxLength`, `HasPrecision` or `HasColumnType`
+that says otherwise leaves the column and the rule disagreeing: a value the rule accepts does not fit, or the column
 keeps decimals the rule refuses. Only literal arguments are compared, on both sides — the value object's base
-arguments and the call's — so the warning is never a guess; a length computed at run time is not checked.
+arguments and the call's or the attribute's — so the warning is never a guess; a length computed at run time is not
+checked.
 
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
 
-builder.Property(d => d.Driver).HasMaxLength(200);             // ⚠ RASK128 — the rule allows 1000
+[MaxLength(200)] public DriverName Driver { get; private set; }  // ⚠ RASK128 — the rule allows 1000
+builder.Property(d => d.Driver).HasMaxLength(200);             // ⚠ RASK128 — the same, from Configure
 builder.Property(d => d.Fuel).HasColumnType("decimal(18,4)");  // ⚠ RASK128 on a Number(Value, Scale: 2, Precision: 9)
 ```
 
-**Fix:** change the value object's declaration, which the rule and the column then both follow, or drop the call.
+**Fix:** change the value object's declaration, which the rule and the column then both follow, or drop the
+attribute or the call.
 
 ## RASK129
 
