@@ -1705,8 +1705,9 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 ```
 
 **The value object's own rules.** A value object that holds ONE value and is
-[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole` or `Day`, its base's
-arguments and any `Rules()` of its own — is asked by the field that holds it, before any `.Validate(…)` written on
+[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole`, `Day` or `Moment`, its base's
+arguments and any `Rules()` of its own, or `: Value` with ONE positional member (`record Rank(int Value) : Value`) and
+its `Rules()` — is asked by the field that holds it, before any `.Validate(…)` written on
 the field, which then runs only for a value it accepted. The form asks exactly what its constructor checks, through
 the generated `X.__Problems`, so the two cannot drift. A value object not declared from a base record has no rule
 of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
@@ -2718,11 +2719,11 @@ public sealed class Delivery : Aggregate<Guid, Model>
 |---|---|---|
 | `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
-| `Whole` | `long Value` | `Min`, `Max` |
+| `Whole` | its own `int` or `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
 | `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
-| `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)` |
+| `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)`; with ONE member it is a one-value value object: one column, asked on its field, refused under it |
 
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
 compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a

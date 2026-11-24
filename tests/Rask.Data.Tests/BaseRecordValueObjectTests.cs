@@ -180,6 +180,42 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     }
 
     [Fact]
+    public void A_record_of_one_member_declared_from_Value_is_asked_on_its_field_like_a_base_record()
+    {
+        var ruleOf = Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(LadderModel));
+        var rank = (Rask.Core.Forms.Validate<int?>)ruleOf("Rank")!;
+        var seats = (Rask.Core.Forms.Validate<int?>)ruleOf("Seats")!;
+
+        var zero = rank(0);
+        var nothing = rank(null);
+        var tooMany = seats(10);
+
+        Assert.Equal([RigRank.AtLeastOne], zero);
+        Assert.Equal([GeneratedModelRules.RequiredMessage], nothing);
+        Assert.Empty(rank(3));
+        Assert.Equal(["Enter 9 or less."], tooMany);
+    }
+
+    [Fact]
+    public async Task A_one_member_Value_record_and_an_int_Whole_are_one_column_each_and_a_refusal_names_the_field()
+    {
+        await using var database = await StartDatabaseAsync();
+        var token = TestContext.Current.CancellationToken;
+        var entity = database.Context.Model.FindEntityType(typeof(Ladder))!;
+
+        var created = await Ladder.Create(new LadderModel { Rank = 2, Seats = 4 }, cancellationToken: token);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Ladder.Create(new LadderModel { Rank = 0, Seats = 4 }, cancellationToken: token));
+        var made = Assert.Throws<RaskValidationException>(() => RigRank.Create(0, "Rank"));
+
+        Assert.Equal(typeof(int), entity.FindProperty(nameof(Ladder.Rank))!.GetValueConverter()!.ProviderClrType);
+        Assert.Equal(typeof(int), entity.FindProperty(nameof(Ladder.Seats))!.GetValueConverter()!.ProviderClrType);
+        Assert.Equal((2, 4), (created.Rank.Value, created.Seats.Value));
+        Assert.Equal([("Rank", RigRank.AtLeastOne)], refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal([("Rank", RigRank.AtLeastOne)], made.Failures.Select(f => (f.Fields.Single(), f.Message)));
+    }
+
+    [Fact]
     public void A_text_that_is_not_required_keeps_an_empty_value_and_still_checks_a_filled_one()
     {
         var blank = RigNote.Create("   ");

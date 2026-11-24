@@ -221,14 +221,14 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
         Assert.Equal(new SpareConstructorHolder(new HeldLabel("AB-1", 2), "DHL"), stored.Route);
     }
 
-    // EF Core caches a model per context type, and the direct and the nested mapping share one type — so the
-    // provider cache is off and each context builds its own — so EF Core's count of the providers the process has built is
-    // this test's own doing, not a leak, and its warning is not one to raise.
+    // EF Core caches a model per context type, and the direct and the nested mapping share one type — so each
+    // context builds its own model. Never by turning the provider cache off: past twenty providers in the process
+    // EF Core refuses an uncached one too.
     private static DbContext Open(Type holder, bool nested)
     {
         var context = typeof(HolderContext<>).MakeGenericType(holder);
         var builder = (DbContextOptionsBuilder)Activator.CreateInstance(typeof(DbContextOptionsBuilder<>).MakeGenericType(context))!;
-        builder.UseSqlite("Data Source=:memory:").EnableServiceProviderCaching(false).OneOfManyShapes();
+        builder.UseSqlite("Data Source=:memory:").ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory, EachContextItsOwnModel>();
         return (DbContext)Activator.CreateInstance(context, builder.Options, nested)!;
     }
 }
