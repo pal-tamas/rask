@@ -51,7 +51,12 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
                 // Kept from before the checklist kept its order: the items' places, each item where it is until saved again.
                 AddColumnOperation position = new()
                 {
-                    Table = items, Name = Columns.Position, ClrType = typeof(int), ColumnType = "INTEGER", IsNullable = false, DefaultValue = 0,
+                    Table = items,
+                    Name = Columns.Position,
+                    ClrType = typeof(int),
+                    ColumnType = "INTEGER",
+                    IsNullable = false,
+                    DefaultValue = 0,
                 };
                 await Run(db, model, [position], cancellationToken).ConfigureAwait(false);
             }
