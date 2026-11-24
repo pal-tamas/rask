@@ -83,13 +83,53 @@ public sealed partial class OperationGenerator
 
         /// <summary>The rows of a list, or null for a field of one value.</summary>
         public FormRows? Rows { get; init; }
+
+        /// <summary>Whether it is a <c>Rask.Storage.Attachment</c>: a file picked into the field, stored with the row.</summary>
+        public bool Attachment { get; init; }
+
+        /// <summary>Whether the aggregate gates the member it writes (<c>b.Gated</c>): hidden, and unread, while shut.</summary>
+        public bool Gated { get; init; }
     }
 
     private static FormField? FieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate)
     {
         var input = InputName(aggregate.Name, parameter.ContainingSymbol.Name);
-        return ParameterFieldOf(parameter, aggregate) ?? GroupFieldOf(parameter, aggregate, input) ?? RowsFieldOf(parameter, aggregate, input);
+        var field = ParameterFieldOf(parameter, aggregate) ?? GroupFieldOf(parameter, aggregate, input) ?? RowsFieldOf(parameter, aggregate, input);
+        return field is { Rows: null } && GatedNames(aggregate).Contains(field.Property) ? field with { Gated = true } : field;
     }
+
+    // The members the aggregate's static Configure gates — `b.Gated(x => x.Card, Module.Tachograph)` — read as written.
+    private static HashSet<string> GatedNames(INamedTypeSymbol aggregate)
+    {
+        var gated = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var syntax in aggregate.GetMembers("Configure").OfType<IMethodSymbol>()
+                     .Where(static m => m.IsStatic)
+                     .SelectMany(static m => m.DeclaringSyntaxReferences)
+                     .Select(static r => r.GetSyntax()))
+        {
+            foreach (var call in syntax.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>())
+            {
+                if (call is
+                    {
+                        Expression: Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Gated" },
+                        ArgumentList.Arguments.Count: > 0,
+                    } &&
+                    call.ArgumentList.Arguments[0].Expression is Microsoft.CodeAnalysis.CSharp.Syntax.LambdaExpressionSyntax
+                    {
+                        Body: Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax member,
+                    })
+                {
+                    gated.Add(member.Name.Identifier.ValueText);
+                }
+            }
+        }
+
+        return gated;
+    }
+
+    // `GeneratedGates.IsShut(typeof(Driver), "Card")`: whether the member a gated field writes is shut for the work in flight.
+    private static string ShutCall(OperatedAggregate aggregate, FormField field) =>
+        "global::Rask.Data.GeneratedGates.IsShut(typeof(" + aggregate.FullyQualifiedName + "), " + SymbolDisplay.FormatLiteral(field.Property, quote: true) + ")";
 
     private static FormField? ParameterFieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate)
     {
@@ -119,6 +159,14 @@ public sealed partial class OperationGenerator
         return ValueFieldOf(parameter, parameter.Type, aggregate);
     }
 
+    private const string PickedFileFqn = "global::Rask.Core.Forms.PickedFile";
+
+    private const string AttachmentFqn = "global::Rask.Storage.Attachment";
+
+    private static bool IsAttachment(ITypeSymbol type) =>
+        type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol { Name: "Attachment", Arity: 0, ContainingType: null } named &&
+        string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Storage", StringComparison.Ordinal);
+
     private static string Optionally(string type) => type.EndsWith("?", StringComparison.Ordinal) ? type : type + "?";
 
     private static FormField? ValueFieldOf(IParameterSymbol parameter, ITypeSymbol parameterType, INamedTypeSymbol aggregate)
@@ -126,6 +174,12 @@ public sealed partial class OperationGenerator
         var property = Capitalised(parameter.Name);
         var optional = parameter.NullableAnnotation == NullableAnnotation.Annotated ||
                        parameterType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+        // A file: the field holds what the reader picked, and the operation is given it as an attachment to store.
+        if (IsAttachment(parameterType))
+        {
+            return new FormField(property, PickedFileFqn + "?", null, optional, Required: !optional, Text: false, Fill: null) { Attachment = true };
+        }
+
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
         // A declared default (`int count = 3`) is what the field starts from where nothing is read into it; a null one is empty.
         var field = MemberField(property, parameterType, optional, held, "aggregate", lift: true);
@@ -355,6 +409,14 @@ public sealed partial class OperationGenerator
                         .Append("), static property => property is ")
                         .Append(string.Join(" or ", optionalGroups.Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)))).AppendLine(");");
                 }
+            }
+
+            var gated = operation.Parameters.Select(static p => p.Field!).Where(static f => f.Gated).ToList();
+            if (gated.Count > 0)
+            {
+                s.Append("        ").Append(ValidationFqn).Append(".RegisterHiddenFields(typeof(").Append(input).Append("), static property => property switch { ")
+                    .Append(string.Join(", ", gated.Select(f => SymbolDisplay.FormatLiteral(f.Property, quote: true) + " => " + ShutCall(aggregate, f))))
+                    .AppendLine(", _ => false });");
             }
 
             s.Append("        ").Append(ValidationFqn).Append(".RegisterStoreRules(typeof(").Append(input).Append("), static _ => new ").Append(operation.Name).AppendLine("Rules());");
@@ -600,7 +662,15 @@ public sealed partial class OperationGenerator
         foreach (var parameter in operation.Parameters)
         {
             var field = parameter.Field!;
-            s.Append("        ").Append(parameter.Name).Append(" = ").Append(Made(operation, field)).AppendLine(";");
+            // A gated field is not shown while its gate is shut, so what it holds is not read: kept, or nothing.
+            var made = Made(operation, field);
+            if (field.Gated)
+            {
+                var kept = field.Change is { } change ? change + ".Keep" : "default!";
+                made = ShutCall(aggregate, field) + " ? " + kept + " : " + made;
+            }
+
+            s.Append("        ").Append(parameter.Name).Append(" = ").Append(made).AppendLine(";");
         }
 
         s.AppendLine("        return failures.Count == 0;");
@@ -645,9 +715,16 @@ public sealed partial class OperationGenerator
             ? "input." + field.Property + "Cleared ? " + change + ".Clear : " + change + ".Keep"
             : change + ".Keep";
         var value = field.Text ? given + "!" : "__" + field.Property;
-        var made = field.ValueObject is { } valueObject
-            ? "global::Rask.Data.GeneratedOperations.Given(() => " + valueObject + ".Create(" + value + ", " + name + "), failures)!"
-            : value;
+        var made = value;
+        if (field.ValueObject is { } valueObject)
+        {
+            made = "global::Rask.Data.GeneratedOperations.Given(() => " + valueObject + ".Create(" + value + ", " + name + "), failures)!";
+        }
+        else if (field.Attachment)
+        {
+            made = AttachmentFqn + ".Of(" + value + ", " + name + ")";
+        }
+
         var filled = field.Text ? "!string.IsNullOrWhiteSpace(" + given + ")" : given + " is { } __" + field.Property;
         return filled + " ? " + change + ".Set(" + made + ") : " + rest;
     }

@@ -1329,6 +1329,10 @@ for (var i = 0; i < Parts.Count; i++)
 - **The lambda is read only when the operation is refused.** A call that goes through pays for the expression the
   compiler builds at the call site and nothing more, so a guard in a loop over thousands of rows stays cheap.
 - A child row's own key, rather than its index, is `Problem.At(child)`'s to give, from a value object's rules.
+- **A problem inside a list a value or an aggregate holds** names its path the same way, positions evaluated:
+  `yield return Problem.At(() => LocalWells[i].Companies[j].DbId, Texts.NotThisPartners)` is under
+  `LocalWells[2].Companies[0].DbId` — where the form shows that row's field. `Problem.At(member, …)` without a lambda
+  keeps the member as written.
 
 ### Find, change, Save
 

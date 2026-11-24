@@ -31,10 +31,12 @@ internal sealed class MoneyMarks : IFieldNumbers
     internal string Attribute => string.Concat(Decimals.ToString(), Thousands.ToString(), Precision.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>The value as the field shows it: <c>1234.56m</c> is <c>"1,234.56"</c>.</summary>
+    /// <remarks>An amount keeps its scale up to <see cref="Precision" /> — 12.50 is "12.50" — where any other bound decimal drops its trailing zeros.</remarks>
     public string Show(object? value) => value switch
     {
         null => string.Empty,
         string text => Shape(text),
+        decimal amount => Shape(amount.ToString(CultureInfo.InvariantCulture).Replace('.', Decimals)),
         _ => Shape(Plain(BindingHelpers.FormatValue(value)).Replace('.', Decimals)),
     };
 

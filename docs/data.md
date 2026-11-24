@@ -448,7 +448,8 @@ var greeting = $"Hello, {Current.RequiredUser.DisplayName}";
 ```
 
 It is looked up by `Current.UserId` and is not a query: the row is read as each request, live event and background
-job starts, and held per user for the process — a save of the user drops it, and another server sees the change
+job starts, and held per user for the process (per database: two apps or test databases in one process never
+share a row) — a save of the user drops it, and another server sees the change
 within 60 seconds. A signed-in user whose row is gone throws rather than reading as nobody; read `Current.UserId`
 where a missing row is an answer you handle. It is read-only — to change the user, load the aggregate:
 `var me = await User.Find(Current.RequiredUserId);`. Two aggregates that say `IUser` are
@@ -925,6 +926,13 @@ gate shut for the work in flight, every save — a generated `Update(id, model)`
 gated member as it was stored, and a row added then stores nothing there; the rest of the row is written as usual.
 Only an optional member can be gated. Whether a gate is open is the app's to say, once, per kind of gate; a save
 that writes a gated member with no rule for its kind is refused rather than guessed at.
+
+The generated forms leave it out too. While the gate is shut, `Ui.Field.Bind(() => m.Card)` draws nothing — on the
+aggregate's form model (`Driver.Create(model)`, `Update(id, model)`) and on a `Form.For` over an operation whose
+parameter writes the gated member (`Describe(name, card)`, matched by name) — and the operation's form does not read
+what the field holds: a `Change<T>` parameter is kept, any other is given `null`, and the save keeps what is stored
+either way. A form asks as it renders (`GeneratedGates.IsShut`), so a gate that opens for the signed-in tenant shows
+the field on the next render.
 
 ### What deleting a referenced row says
 

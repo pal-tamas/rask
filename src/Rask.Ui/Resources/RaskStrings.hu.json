@@ -148,6 +148,7 @@
   "CommandEmpty": "Nincs találat",
 
   "FileItemRemove": "Fájl eltávolítása",
+  "FileTooLarge": "A fájl túl nagy.",
 
   "ColorPickerOpen": "Színválasztó megnyitása",
   "ColorPickerOpenWith": "Színválasztó megnyitása, {0}",

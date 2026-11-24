@@ -22,6 +22,9 @@ namespace Rask.Data;
 /// </remarks>
 public static class ReadDb
 {
+    // What IdentityFor answers before anything is configured: one source, so one identity.
+    private static readonly object Unconfigured = new();
+
     private static Func<DbContext>? _factory;
 
     /// <summary>Whether the read side has been pointed at a database.</summary>
@@ -92,6 +95,19 @@ public static class ReadDb
     internal static DbContext CreateContext() =>
         AmbientTransaction.Join(CreateOwnContext());
 
+    /// <summary>
+    ///     What a read context built for the work of <paramref name="scope" /> — or of the ambient scope, when null —
+    ///     would be opened from: the identity of the database it reads. One shared stand-in while the read side is
+    ///     not configured, when there is only one place a row can come from.
+    /// </summary>
+    /// <remarks>
+    ///     The same choice <see cref="CreateOwnContext" /> makes, in the same order: the scope's own read-context factory
+    ///     (one per app's container), else the test database bound to the flow, else the process-wide factory. A cache
+    ///     of rows keyed by it never hands one app's — or one test database's — row to another reading the same key.
+    /// </remarks>
+    internal static object IdentityFor(IServiceProvider? scope) =>
+        ScopedFactory(scope) ?? (object?)Db.InFlow ?? _factory ?? Unconfigured;
+
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "
                         + "IL2026 at the line that chose EF.")]
@@ -99,7 +115,7 @@ public static class ReadDb
     {
         // The work in progress's own app first — as the write side does — so two apps side by side (two tests, each
         // with its own database) never read each other's rows through the one process-wide factory.
-        if ((Db.ScopeServices ?? Ambient.Needed)?.GetService<IDbContextFactory<RaskReadDbContext>>() is { } scoped)
+        if (ScopedFactory(null) is { } scoped)
         {
             return scoped.CreateDbContext();
         }
@@ -109,6 +125,12 @@ public static class ReadDb
             + "Db.Configure(app.Services); elsewhere call ReadDb.Configure(app.Services) once after building "
             + "the container."))();
     }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "
+                        + "IL2026 at the line that chose EF.")]
+    private static IDbContextFactory<RaskReadDbContext>? ScopedFactory(IServiceProvider? scope) =>
+        (scope ?? Db.ScopeServices ?? Ambient.Needed)?.GetService<IDbContextFactory<RaskReadDbContext>>();
 
     // Asked once per closed generic rather than per call: the answer cannot change, and an interface
     // check on every terminal operator would be paid by every read in the app.

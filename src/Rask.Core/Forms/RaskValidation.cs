@@ -40,6 +40,7 @@ public static class RaskValidation
     private static volatile FieldShapes _fieldShapes = FieldShapes.None;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<string, string?>> Clearing = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<string, bool>> Hidden = new();
     private static volatile ConcurrentDictionary<(Type Owner, string Name), FieldShape?> _statedShapes = new();
 
     /// <summary>
@@ -385,6 +386,27 @@ public static class RaskValidation
         ArgumentNullException.ThrowIfNull(clearedBy);
         Clearing[modelType] = clearedBy;
     }
+
+    /// <summary>
+    ///     Registers, for one form model, the fields that are not shown while the work in flight may not write them — a
+    ///     member gated with <c>b.Gated(x =&gt; x.Card, Module.Tachograph)</c> whose gate is shut: <c>Ui.Field.Bind</c> draws
+    ///     nothing for it. Called by generated code, from a <c>[ModuleInitializer]</c>.
+    /// </summary>
+    /// <param name="modelType">The form model's type.</param>
+    /// <param name="isHidden">
+    ///     Whether a field is hidden now, by the field's name. Asked on every render — a gate opens and shuts with the
+    ///     signed-in tenant — so it answers quickly and may be asked from any thread.
+    /// </param>
+    public static void RegisterHiddenFields(Type modelType, Func<string, bool> isHidden)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(isHidden);
+        Hidden[modelType] = isHidden;
+    }
+
+    // Whether the field a control is bound to is hidden for the work in flight (RegisterHiddenFields).
+    internal static bool IsHidden(ExpressionAccessor.Accessor bound) =>
+        Hidden.TryGetValue(bound.Target.GetType(), out var isHidden) && isHidden(bound.Property.Name);
 
     // The bool property that clears the field a control is bound to, or null for one that is kept or set only.
     internal static string? ClearedByOf(ExpressionAccessor.Accessor bound) =>

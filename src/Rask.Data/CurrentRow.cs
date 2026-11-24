@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace Rask.Data;
 
 /// <summary>
-///     One of the app's own rows the work in flight is for — its tenant or its user — and the process-wide cache
-///     it is read from, keyed by the <see cref="Guid" /> the framework carries that key in.
+///     One of the app's own rows the work in flight is for — its tenant or its user — and the cache it is read from,
+///     kept per database and keyed there by the <see cref="Guid" /> the framework carries that key in.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -19,6 +20,11 @@ namespace Rask.Data;
 ///         kept. A save of the aggregate drops everything held (<see cref="Forget" />), and an entry lives
 ///         <see cref="Lifetime" /> at most, for the saves another node made.
 ///     </para>
+///     <para>
+///         A key names a row in ONE database, so the rows are held per database (<see cref="ReadDb.IdentityFor" />):
+///         two apps in one process — two tests side by side, each on its own <c>TestDatabase</c>, both with a tenant
+///         2 — never read each other's row. The databases are held weakly, so one let go of takes its rows with it.
+///     </para>
 /// </remarks>
 internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
 {
@@ -29,7 +35,7 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     // keeps the ones it is serving, not every one it ever saw.
     private const int SweepAbove = 4096;
 
-    private readonly ConcurrentDictionary<Guid, Held> _held = new();
+    private readonly ConditionalWeakTable<object, ConcurrentDictionary<Guid, Held>> _held = new();
     private long _generation;
 
     /// <summary>Which row this is.</summary>
@@ -48,7 +54,8 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     /// </exception>
     internal object Read(Guid key)
     {
-        if (TryHeld(key, out var held))
+        var database = ReadDb.IdentityFor(null);
+        if (TryHeld(database, key, out var held))
         {
             return held;
         }
@@ -56,12 +63,15 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
         var generation = Volatile.Read(ref _generation);
         CurrentRows.CountQuery(kind);
 
-        return Keep(key, Load(key), generation)
+        return Keep(database, key, Load(key), generation)
                ?? throw Missing(key);
     }
 
-    /// <summary>Whether a row keyed <paramref name="key" /> is held and still trusted.</summary>
-    internal bool Holds(Guid key) => TryHeld(key, out _);
+    /// <summary>
+    ///     Whether a row keyed <paramref name="key" /> is held, and still trusted, for the database the work of
+    ///     <paramref name="scope" /> reads — or the ambient work's, when null.
+    /// </summary>
+    internal bool Holds(IServiceProvider? scope, Guid key) => TryHeld(ReadDb.IdentityFor(scope), key, out _);
 
     /// <summary>Reads the row keyed <paramref name="key" /> ahead of the work that may ask for it, and keeps it.</summary>
     /// <remarks>
@@ -70,24 +80,36 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     /// </remarks>
     internal async ValueTask Prime(Guid key, CancellationToken cancellationToken)
     {
+        var database = ReadDb.IdentityFor(null);
         var generation = Volatile.Read(ref _generation);
         var loaded = await LoadAsync(key, cancellationToken).ConfigureAwait(false);
 
         if (loaded is not null && Owns(loaded, key))
         {
-            Store(key, loaded, generation);
+            Store(database, key, loaded, generation);
         }
     }
 
     /// <summary>Drops every row held: one of them was just saved.</summary>
     /// <remarks>
-    ///     The generation moves first, so a read that started before the save and lands after it is not kept
-    ///     either: it may hold the row as it was.
+    ///     <para>
+    ///         The generation moves first, so a read that started before the save and lands after it is not kept
+    ///         either: it may hold the row as it was — and an entry is trusted only under the generation it was kept
+    ///         in, so one a racing read stored after the clear is not served.
+    ///     </para>
+    ///     <para>
+    ///         Every database's rows go, not only the saving one's: which read database a write context saves to is
+    ///         not knowable here, and a save of the tenant or the user is rare enough that the next read's one
+    ///         query is the cheaper answer.
+    ///     </para>
     /// </remarks>
     internal void Forget()
     {
         Interlocked.Increment(ref _generation);
-        _held.Clear();
+        foreach (var (_, held) in _held)
+        {
+            held.Clear();
+        }
     }
 
     /// <summary>The row keyed <paramref name="key" />, read now by a synchronous query, or null when there is none.</summary>
@@ -99,9 +121,12 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     /// <summary>Whether <paramref name="row" />'s own key is <paramref name="key" />.</summary>
     protected abstract bool Owns(object row, Guid key);
 
-    private bool TryHeld(Guid key, out object row)
+    private bool TryHeld(object database, Guid key, out object row)
     {
-        if (_held.TryGetValue(key, out var held) && Environment.TickCount64 < held.Until)
+        if (_held.TryGetValue(database, out var rows) &&
+            rows.TryGetValue(key, out var held) &&
+            held.Generation == Volatile.Read(ref _generation) &&
+            Environment.TickCount64 < held.Until)
         {
             row = held.Row;
             return true;
@@ -111,7 +136,7 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
         return false;
     }
 
-    private object? Keep(Guid key, object? loaded, long generation)
+    private object? Keep(object database, Guid key, object? loaded, long generation)
     {
         if (loaded is null)
         {
@@ -126,11 +151,11 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
                 "text key in another form than the Guid it carries.");
         }
 
-        Store(key, loaded, generation);
+        Store(database, key, loaded, generation);
         return loaded;
     }
 
-    private void Store(Guid key, object row, long generation)
+    private void Store(object database, Guid key, object row, long generation)
     {
         // Read inside a Db.Transaction, the row may be one that transaction wrote and has not committed — or will
         // roll back. It answers this work, and is not kept for anybody else's.
@@ -139,19 +164,20 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
             return;
         }
 
-        if (_held.Count > SweepAbove)
+        var rows = _held.GetValue(database, static _ => new ConcurrentDictionary<Guid, Held>());
+        if (rows.Count > SweepAbove)
         {
             var now = Environment.TickCount64;
-            foreach (var entry in _held)
+            foreach (var entry in rows)
             {
                 if (entry.Value.Until <= now)
                 {
-                    _held.TryRemove(entry);
+                    rows.TryRemove(entry);
                 }
             }
         }
 
-        _held[key] = new Held(row, Environment.TickCount64 + (long)Lifetime.TotalMilliseconds);
+        rows[key] = new Held(row, Environment.TickCount64 + (long)Lifetime.TotalMilliseconds, generation);
     }
 
     private string Name => kind is CurrentRowKind.Tenant ? "tenant" : "user";
@@ -167,5 +193,5 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
                 "never written — so there is no Current.User to read. A deleted user's sign-in should end with them: " +
                 "read Current.UserId where a missing row is an answer you handle.");
 
-    private sealed record Held(object Row, long Until);
+    private sealed record Held(object Row, long Until, long Generation);
 }

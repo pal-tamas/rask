@@ -19,7 +19,7 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
     [InlineData("composer", "Composer", "ui-composer|ui-composer-header|ui-composer-inline|ui-composer-input|ui-composer-height|ui-composer-enter|ui-composer-rich|ui-composer-disabled|ui-composer-invalid")]
     [InlineData("autocomplete", "Autocomplete", "ui-autocomplete|ui-autocomplete-search")]
     [InlineData("pillbox", "Pillbox", "ui-pillbox|ui-pillbox-sm|ui-pillbox-searchable|ui-pillbox-icons|ui-pillbox-combobox|ui-pillbox-create|ui-pillbox-backend|ui-pillbox-store|ui-pillbox-choices|ui-pillbox-paged|ui-pillbox-loading|ui-pillbox-validation|ui-pillbox-modal")]
-    [InlineData("file-upload", "File upload", "ui-upload|ui-upload-inline|ui-upload-progress|ui-upload-disabled|ui-upload-custom|ui-upload-single|ui-upload-multiple")]
+    [InlineData("file-upload", "File upload", "ui-upload|ui-upload-inline|ui-upload-progress|ui-upload-disabled|ui-upload-custom|ui-upload-single|ui-upload-multiple|ui-file-picker")]
     public Task Every_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
         await OpenUiPageAsync(slug, heading);
@@ -516,6 +516,24 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
         Assert.Contains("loading 100% 100%", seen);
         Assert.Contains(seen, s => Between(s) is > 0 and < 100);
         Assert.Equal(string.Empty, await upload.EvaluateAsync<string>("u => u.style.getPropertyValue('--rask-progress')"));
+    });
+
+    [Fact]
+    public Task A_bound_file_picker_keeps_the_picked_file_for_the_submit_and_refuses_one_too_large() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("file-upload", "File upload");
+        var picker = Page.Locator("[data-testid='ui-file-picker']");
+
+        await picker.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "huge.pdf", MimeType = "application/pdf", Buffer = new byte[150_000] });
+        await Expect(picker).ToContainTextAsync("The file is too large.");
+        await picker.Locator("input[type=file]").SetInputFilesAsync(
+            new FilePayload { Name = "scan.pdf", MimeType = "application/pdf", Buffer = new byte[2_048] });
+        await Expect(picker.Locator("[data-ui-file-item]")).ToContainTextAsync("scan.pdf");
+        await picker.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
+
+        await Expect(Page.Locator("#ui-file-picker-saved")).ToHaveTextAsync("Saved scan.pdf (2048 bytes).");
+        await Expect(picker).Not.ToContainTextAsync("The file is too large.");
     });
 
     // A 1 × 1 PNG.

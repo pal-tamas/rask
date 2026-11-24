@@ -977,4 +977,7 @@ public enum RaskString
 
     /// <summary>The Clear beside a field whose value may be taken away rather than kept (<c>Change&lt;T&gt;</c>, <c>Ui.Field.Bind</c>).</summary>
     ChangeClear,
+
+    /// <summary>What a file picker says of a file larger than it takes (<c>Ui.FilePicker</c>).</summary>
+    FileTooLarge,
 }

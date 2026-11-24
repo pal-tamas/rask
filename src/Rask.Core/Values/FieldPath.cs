@@ -3,12 +3,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
-// Reads the field a Refuse names out of its lambda, as a FieldFailure names it: `Km.Start`, `Parts[2].Quantity`.
+// Reads the field a Refuse or a Problem names out of its lambda, as a FieldFailure names it: `Km.Start`, `Parts[2].Quantity`.
 // Walked from the last member back to the root, so the segments are gathered in reverse. The format is RowPath's (a row by
 // its place, `Pistols[1].Number`, invariant); RowPath reads it off tracked rows, this off a lambda, so neither can be the other.
-internal static class RefusedField
+internal static class FieldPath
 {
     // The compiler's name for a captured `this` inside a closure, and its suffix for a captured primary-constructor parameter.
     private const string CapturedThis = "<>4__this";
@@ -137,6 +137,6 @@ internal static class RefusedField
     }
 
     private static ArgumentException Unreadable(LambdaExpression field) =>
-        new($"Refuse names a field as a chain of members and indexers, such as () => Parts[i].Quantity; '{field}' is not one.",
+        new($"A field is named as a chain of members and indexers, such as () => Parts[i].Quantity; '{field}' is not one.",
             nameof(field));
 }

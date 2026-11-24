@@ -810,6 +810,7 @@ they say when you set nothing.
 | `SidebarSearch` | Sidebar | `Search` |
 | `CommandEmpty` | Command | `No results found` |
 | `FileItemRemove` | File upload | `Remove file` |
+| `FileTooLarge` | File picker: a picked file larger than its `MaxSize` (`Ui.FilePicker`) | `The file is too large.` |
 | `ValidationRequired` | Validation | `This field is required.` |
 | `ValidationWholeNumber` | Validation | `Enter a whole number.` |
 | `ValidationNumber` | Validation | `Enter a number.` |

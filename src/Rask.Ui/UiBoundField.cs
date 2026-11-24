@@ -70,6 +70,13 @@ public sealed partial class UiBoundField<T> : Component
     protected override Component? Render()
     {
         var bound = ExpressionAccessor.Parse(Bind);
+
+        // A field the work in flight may not write (a gated member, its gate shut) is not drawn at all.
+        if (RaskValidation.IsHidden(bound))
+        {
+            return null;
+        }
+
         var shape = RaskValidation.ShapeOf(bound);
         var field = shape is { Kind: FieldKind.Range }
             ? UiBoundRange.Draw(this, Bind, shape, Look(shape))

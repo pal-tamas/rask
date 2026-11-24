@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -10,9 +13,10 @@ using Rask.Wire;
 namespace Rask.Storage;
 
 /// <summary>
-///     Makes an <see cref="Attachment" /> one write with its row: stores a pending file as the row is saved, deletes a
-///     file replaced, cleared or deleted with its row once the save has gone through, and takes a stored file back
-///     when the save fails.
+///     Makes an <see cref="Attachment" /> one write with its row, wherever the row holds it — on itself, on a child row,
+///     inside a value object, in a list or a JSON column: stores a pending file as the row is saved, deletes a file
+///     replaced, cleared or deleted with its row once the save has gone through, and takes a stored file back when the
+///     save fails.
 /// </summary>
 /// <remarks>
 ///     Inside <c>Db.Transaction</c> — every generated operation — the store and the delete take part in the
@@ -24,21 +28,25 @@ internal sealed class AttachmentInterceptor : SaveChangesInterceptor
 {
     private static readonly ConditionalWeakTable<DbContext, Pass> Passes = new();
 
+    // Whether a type holds an attachment anywhere, so a row that cannot is never walked.
+    private static readonly ConcurrentDictionary<ITypeBase, bool> Holders = new();
+
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         ArgumentNullException.ThrowIfNull(eventData);
-        if (eventData.Context is { } context && Held(context).Any(static held => held.Current?.IsPending == true))
+        if (eventData.Context is not { } context)
+        {
+            return result;
+        }
+
+        if (Held(context).Any(static held => held.Attachment.IsPending))
         {
             throw new InvalidOperationException(
                 "An Attachment still to be stored is saved with SaveChanges, which cannot store its file: save with " +
                 "SaveChangesAsync — every generated operation does.");
         }
 
-        if (eventData.Context is { } released)
-        {
-            Passes.AddOrUpdate(released, new Pass([], Released(released)));
-        }
-
+        Passes.AddOrUpdate(context, new Pass([], Released(context)));
         return result;
     }
 
@@ -57,12 +65,10 @@ internal sealed class AttachmentInterceptor : SaveChangesInterceptor
         var field = "";
         try
         {
-            foreach (var held in Held(context).Where(static held => held.Current?.IsPending == true).ToList())
+            foreach (var held in Held(context).Where(static held => held.Attachment.IsPending).ToList())
             {
-                field = held.Property.Name;
-                var (attachment, file) = await held.Current!.Store(cancellationToken).ConfigureAwait(false);
-                stored.Add(file.Id);
-                held.Entry.ComplexProperty(held.Property).CurrentValue = attachment;
+                field = held.Attachment.Field ?? held.Path;
+                stored.Add((await held.Attachment.Store(cancellationToken).ConfigureAwait(false)).Id);
             }
         }
         catch (Exception failed)
@@ -78,6 +84,8 @@ internal sealed class AttachmentInterceptor : SaveChangesInterceptor
             throw;
         }
 
+        // Stored in place: the values EF Core writes changed under it.
+        context.ChangeTracker.DetectChanges();
         return result;
     }
 
@@ -126,51 +134,103 @@ internal sealed class AttachmentInterceptor : SaveChangesInterceptor
         }
     }
 
-    // Every attachment a tracked row holds on itself, as it stands now and as it was read.
-    private static IEnumerable<HeldAttachment> Held(DbContext context)
+    // Every attachment a tracked row holds now, with the form path it sits at (`Pistols[1].Documents[0]`).
+    private static List<HeldAttachment> Held(DbContext context)
     {
         context.ChangeTracker.DetectChanges();
+        var found = new List<HeldAttachment>();
         foreach (var entry in context.ChangeTracker.Entries())
         {
-            foreach (var property in entry.Metadata.GetComplexProperties())
+            if (entry.State != EntityState.Deleted && HoldsAttachments(entry.Metadata))
             {
-                if (!property.IsCollection && property.ComplexType.ClrType == typeof(Attachment))
-                {
-                    yield return new HeldAttachment(entry, property, entry.ComplexProperty(property).CurrentValue as Attachment);
-                }
+                Walk(entry.Entity, entry.Metadata, RowPath.Of(context, entry), found);
             }
         }
+
+        return found;
     }
 
-    // The files this save lets go: the one a row held when it was read, now replaced, cleared, or deleted with the row.
+    // The files this save lets go: those a row held when it was read and holds no more — replaced, cleared, or deleted
+    // with the row. A soft-deleted row (it has a DeletedAt, whichever interceptor runs first) keeps its files.
     private static List<Guid> Released(DbContext context)
     {
         var released = new List<Guid>();
-        foreach (var held in Held(context))
+        foreach (var entry in context.ChangeTracker.Entries())
         {
-            if (held.Entry.State is not (EntityState.Modified or EntityState.Deleted) ||
-                held.Entry.ComplexProperty(held.Property).Property(nameof(Attachment.Id)).OriginalValue is not Guid read ||
-                read == Guid.Empty)
+            if (entry.State is not (EntityState.Modified or EntityState.Deleted) || !HoldsAttachments(entry.Metadata))
             {
                 continue;
             }
 
-            // A row deleted for good lets its file go; one soft deleted (it has a DeletedAt, whichever interceptor runs
-            // first) keeps it, as it keeps every other column.
-            var gone = held.Entry.State == EntityState.Deleted && held.Entry.Metadata.FindProperty(Columns.DeletedAt) is null;
-            if (gone || (held.Entry.State == EntityState.Modified && held.Current?.Id != read))
+            var gone = entry.State == EntityState.Deleted && entry.Metadata.FindProperty(Columns.DeletedAt) is null;
+            if (entry.State == EntityState.Deleted && !gone)
             {
-                released.Add(read);
+                continue;
             }
+
+            var read = new List<HeldAttachment>();
+            Walk(entry.OriginalValues.ToObject(), entry.Metadata, "", read);
+
+            var now = new List<HeldAttachment>();
+            if (!gone)
+            {
+                Walk(entry.Entity, entry.Metadata, "", now);
+            }
+
+            var kept = now.Select(static h => h.Attachment.Id).ToHashSet();
+            released.AddRange(read.Select(static h => h.Attachment.Id).Where(id => id != Guid.Empty && !kept.Contains(id)));
         }
 
         return released;
     }
 
+    // The attachments `holder` holds through its complex members — a value object, a list of them — however deep.
+    private static void Walk(object holder, ITypeBase type, string path, List<HeldAttachment> found)
+    {
+        foreach (var complex in type.GetComplexProperties())
+        {
+            if (!HoldsAttachments(complex.ComplexType) || complex.GetGetter().GetClrValue(holder) is not { } value)
+            {
+                continue;
+            }
+
+            var at = path + complex.Name;
+            if (complex.IsCollection)
+            {
+                var index = 0;
+                foreach (var element in (IEnumerable)value)
+                {
+                    Collect(element, complex.ComplexType, at + "[" + index.ToString(CultureInfo.InvariantCulture) + "]", found);
+                    index++;
+                }
+            }
+            else
+            {
+                Collect(value, complex.ComplexType, at, found);
+            }
+        }
+    }
+
+    private static void Collect(object? value, ITypeBase type, string path, List<HeldAttachment> found)
+    {
+        if (value is Attachment attachment)
+        {
+            found.Add(new HeldAttachment(attachment, path));
+        }
+        else if (value is not null)
+        {
+            Walk(value, type, path + ".", found);
+        }
+    }
+
+    private static bool HoldsAttachments(ITypeBase type) =>
+        Holders.GetOrAdd(type, static t =>
+            t.ClrType == typeof(Attachment) || t.GetComplexProperties().Any(static c => HoldsAttachments(c.ComplexType)));
+
     // After the save: inside a transaction the row goes with it and the bytes once it commits; outside, at once.
     private static async Task Release(Pass pass)
     {
-        foreach (var id in pass.Let)
+        foreach (var id in pass.Let.Distinct())
         {
             await Files.Resolve().Delete(id).ConfigureAwait(false);
         }
@@ -192,5 +252,5 @@ internal sealed class AttachmentInterceptor : SaveChangesInterceptor
 
     private sealed record Pass(List<Guid> Stored, List<Guid> Let);
 
-    private readonly record struct HeldAttachment(EntityEntry Entry, IComplexProperty Property, Attachment? Current);
+    private readonly record struct HeldAttachment(Attachment Attachment, string Path);
 }

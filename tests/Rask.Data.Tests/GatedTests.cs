@@ -86,6 +86,20 @@ public sealed class GatedTests : IDisposable
         Assert.Contains("AddRaskGate<TruckModule>", refused.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_form_asks_whether_a_gated_member_is_shut_and_an_ungated_one_never_is()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SeedAsync("C-1");
+
+        var whileOpen = GeneratedGates.IsShut(typeof(Trucker), nameof(Trucker.Card));
+        _open = false;
+        var whileShut = GeneratedGates.IsShut(typeof(Trucker), nameof(Trucker.Card));
+
+        Assert.Equal((false, true), (whileOpen, whileShut));
+        Assert.False(GeneratedGates.IsShut(typeof(Trucker), nameof(Trucker.Name)));
+    }
+
     private static async Task<Guid> SeedAsync(string card)
     {
         var trucker = Trucker.Named("Ada", card);

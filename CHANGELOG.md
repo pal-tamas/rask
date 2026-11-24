@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
+  carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
+  `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
+  `35.0` (SQLite) or `35.000000000` (SQL Server `decimal(18,9)`) where 35 was stored. Now every bound decimal is
+  written with its trailing zeros dropped, in the invariant spelling and never with an exponent: `35`, `35.5`, `0`,
+  `-1.23`; the field's `step`/`min`/`max` still come from its shape. A money field keeps its decimals up to its
+  precision (`12.50`), as before.
+- **`Current.Tenant` and `Current.User` are held per database, not per key alone.** Before: the rows were cached
+  process-wide by the tenant's or user's key, so two tests running in parallel, each on its own
+  `TestDatabase.Start<T>()` with a tenant 2, read each other's row for up to 60 seconds — the wrong settings, or a
+  `MissingTenantException` for a row the test's own database holds — and a host serving several databases from one
+  process could hand one database's tenant row to work on another. After: a row is held for the database the work
+  reads (the scope's read-context factory, else the test database bound to the flow, else the process-wide one), each
+  test database gets a cache of its own that goes with it, and an entry is trusted only under the save generation it
+  was read in, so a read racing a save of the tenant or the user is never served afterwards.
 - **`Form.For` over an operation that takes a one-value `: Value` record is generated, and an operation that gets no
   form says why.** Before: a parameter like `TankSize(int Value) : Value` made the generator skip the operation's form
   silently — no `VehicleProbeAInput`, no `Form.For`, no diagnostic. After: it is a field held as its value and made
@@ -84,6 +99,18 @@ them until tagged releases begin.
   `b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString())` (or `.InLane(e => …)`); the outbox's
   row then only enqueues a job that runs `On`, with the job's lane, renewed lease, sweep and retry — what Eszaf's
   `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
+- **`Ui.FilePicker` and `Attachment` in forms**: an operation that takes an `Attachment` gets a form field holding a
+  `PickedFile` (read as it is picked, up to `MaxSize`), drawn by `Ui.Field.Bind` as `Ui.FilePicker` — Flux's upload, then
+  the file with its remove button; the store's refusal (size, type) is told under that field.
+  [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
+- **An `Attachment` anywhere in the row takes part in the save**: on a child row, inside a value object, in a list or a
+  JSON column — stored in the operation's transaction, let go after the commit when replaced or removed, refused at its
+  place (`Filed[2]`).
+- **`Problem.At(() => LocalWells[i].Companies[j].DbId, message)`** names a problem by its evaluated path, as `Refuse` does.
+- **A gated member is left off the generated forms while its gate is shut** (F-35 follow-up). `Ui.Field.Bind` draws
+  nothing for a member gated with `b.Gated(…)` on the aggregate's form model and on a `Form.For` over an operation
+  whose parameter writes it; the operation's form does not read the hidden field (a `Change<T>` keeps, anything else
+  is `null`), and the save keeps the stored value as before. New seam: `RaskValidation.RegisterHiddenFields`.
 - **Writes over many rows of one aggregate, on the type: `X.DeleteWhere`, `X.UpdateWhere`, `X.UpdateEach`,
   `X.Upsert`, `X.Import`** (F-25, F-24, F-69). `UpdateWhere`/`DeleteWhere` are one statement that still keeps what a
   save keeps — the tenant and soft-delete filters (a soft delete is stamped), `UpdatedAt` and `Version`, the declared

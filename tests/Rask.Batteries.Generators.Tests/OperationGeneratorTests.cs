@@ -488,6 +488,44 @@ public class OperationGeneratorTests
         Assert.Contains(": global::Rask.Values.Change<global::Shop.Secret>.Keep", forms, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_attachment_parameter_is_a_picked_file_field_handed_on_as_an_attachment_of_its_field()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Rask.Data;
+
+            namespace Rask.Storage
+            {
+                // Stands in for Rask.Storage's: the generator knows the type by its name.
+                public sealed class Attachment
+                {
+                    public static Attachment Of(global::Rask.Core.Forms.PickedFile file, string? field = null) => new();
+                }
+            }
+
+            namespace Shop
+            {
+                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                {
+                    public Rask.Storage.Attachment? Registration { get; private set; }
+                    public Rask.Storage.Attachment? Photo { get; private set; }
+
+                    public void Attach(Rask.Storage.Attachment registration, Rask.Storage.Attachment? photo) => (Registration, Photo) = (registration, photo);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Vehicle.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::Rask.Core.Forms.PickedFile? Registration { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public global::Rask.Core.Forms.PickedFile? Photo { get; set; }", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Registration = aggregate", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Registration is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Registration\") : throw", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Photo is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Photo\") : null", forms, StringComparison.Ordinal);
+    }
+
     private const string Cargo = """
         using System;
         using System.Collections.Generic;
@@ -685,6 +723,37 @@ public class OperationGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public " + field + " At { get; set; }", forms, StringComparison.Ordinal);
         Assert.Contains("global::Shop.WallMoment.Create(", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_parameter_writing_a_gated_member_is_hidden_and_unread_while_its_gate_is_shut()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public enum Module { Tachograph }
+
+                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                {
+                    public string Name { get; private set; } = "";
+                    public string? Card { get; private set; }
+                    public void Describe(string name, string? card) => (Name, Card) = (name, card);
+                    public static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RegisterHiddenFields(typeof(DriverDescribeInput), static property => property switch { \"Card\" => global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\"), _ => false });", forms, StringComparison.Ordinal);
+        Assert.Contains("card = global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\") ? default! : ", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Name\" => global::Rask.Data.GeneratedGates", forms, StringComparison.Ordinal);
     }
 
     [Fact]
