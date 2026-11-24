@@ -52,7 +52,7 @@ the table opts into:
 
 The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete
 removes the row; an aggregate whose deleted rows must stay recoverable names `SoftDelete` instead of `Deletable`
-and gets a `DeletedAt` column (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
+and gets a `DeletedAt` column (see [choosing what a table carries](../domain.md#choosing-what-a-table-carries)).
 
 Two rules shape the class, and the build enforces both:
 
@@ -451,9 +451,9 @@ What that one line did for this slice:
 - It added the interceptors that fill in timestamps and versions, publish events, and soft-delete an
   aggregate that asks for it.
 
-That factory is also what a page or a handler injects for work richer than one aggregate's write, such as
-several aggregates changed in one transaction: `IDbContextFactory<RaskAppDbContext>`. See
-[Rask.Data](../data.md#writing-plain-ef-core).
+Nothing in the app injects that context: a page reads through the read face and writes through the aggregate's
+own operations, each one aggregate in one transaction. See
+[the transaction boundary](../domain.md#the-transaction-boundary).
 
 ## 7. Create the table
 

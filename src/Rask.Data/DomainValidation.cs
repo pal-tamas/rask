@@ -69,7 +69,28 @@ internal static class DomainValidation
         }
     }
 
-    private sealed class Save(DbContext context, IServiceProvider? services, CancellationToken cancellationToken)
+    /// <summary>
+    ///     Asks every rule of a stored aggregate, every property of every row of it included, as if a save were adding it
+    ///     whole: what <c>rask audit</c> reports. Nothing is written, and no declared lock is asked — a lock is about a change.
+    /// </summary>
+    /// <param name="context">The context tracking the aggregate.</param>
+    /// <param name="root">The aggregate's root, its children loaded.</param>
+    /// <param name="cancellationToken">Cancels the rules in flight.</param>
+    /// <returns>Each failure under its field, as a save would refuse it; empty when every rule accepts the aggregate.</returns>
+    internal static async Task<IReadOnlyList<FieldFailure>> AuditAsync(DbContext context, EntityEntry root, CancellationToken cancellationToken)
+    {
+        var save = new Save(context, Ambient.Services, cancellationToken, everything: true);
+        foreach (var row in RowPaths.Of(root.Metadata, root.Entity).Rows)
+        {
+            await save.Row(context.Entry(row.Key), root).ConfigureAwait(false);
+        }
+
+        await save.Roots().ConfigureAwait(false);
+        return save.Failures;
+    }
+
+    // everything: ask every member of a stored row, not only what changed — the audit's question, never a save's.
+    private sealed class Save(DbContext context, IServiceProvider? services, CancellationToken cancellationToken, bool everything = false)
     {
         // Each root the save touches, once, in the order it was first touched.
         private readonly List<EntityEntry> _roots = [];
@@ -78,9 +99,9 @@ internal static class DomainValidation
 
         internal List<FieldFailure> Failures { get; } = [];
 
-        internal async Task Row(EntityEntry entry)
+        internal async Task Row(EntityEntry entry, EntityEntry? knownRoot = null)
         {
-            var root = entry.Entity is IAggregate ? entry : RootOf(entry);
+            var root = knownRoot ?? (entry.Entity is IAggregate ? entry : RootOf(entry));
             if (root is not null && _seen.Add(root.Entity))
             {
                 _roots.Add(root);
@@ -188,7 +209,7 @@ internal static class DomainValidation
         // every one of a new row, and of a stored one only those of the members this save changes.
         private async Task Stated(EntityEntry entry, string path)
         {
-            IReadOnlyCollection<string>? members = entry.State == EntityState.Added
+            IReadOnlyCollection<string>? members = everything || entry.State == EntityState.Added
                 ? null
                 : [.. entry.Members.Where(static m => m.IsModified).Select(static m => m.Metadata.Name)];
 
@@ -204,7 +225,7 @@ internal static class DomainValidation
             foreach (var property in rules.Properties)
             {
                 if (MemberOf(entry, property.Name) is not { } member ||
-                    (entry.State == EntityState.Modified && !member.IsModified))
+                    (!everything && entry.State == EntityState.Modified && !member.IsModified))
                 {
                     continue;
                 }
