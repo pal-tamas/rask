@@ -196,6 +196,9 @@ them until tagged releases begin.
   database's default — the latter its UTC clock — for rows Rask does not write, while Rask always writes the value the
   entity holds (a `Size` of 0 stays 0); and `HasIndex(…).IsUnique("…").Where(x => x.RevokedAt == null)` is a filtered
   index on SQL Server and a partial one elsewhere ([Data](docs/data.md#computed-columns-defaults-and-filtered-indexes-in-c)).
+  A unique rule filtered with `Where(…)` is asked as a query before the save (on a schema whose index may be missing)
+  over exactly the rows its C# keeps, and a row it leaves out is not checked; `ConstraintNames`' `Default` kind names
+  the defaults `Default(…)` declares on SQL Server, the clock's among them.
 - **`HasIndex(…).Covering(p => new { p.Amount })`: a covering index in one sentence for every database.** Before: a
   SQL Server app wrote `IncludeProperties(…)` — a SQL Server call that breaks a model built for SQLite tests — and a
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and

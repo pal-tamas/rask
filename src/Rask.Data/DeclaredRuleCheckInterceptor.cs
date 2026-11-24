@@ -152,6 +152,7 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
             {
                 var values = rule.Properties.Select(p => row.Property(p.Name).CurrentValue).ToList();
                 if (!values.Contains(null) &&
+                    DeclaredUniqueRules.Kept(rule, name => row.Property(name).CurrentValue) &&
                     !inThisSave.Add(rule.GetDatabaseName() + "\u001f" + string.Join('\u001f', values)))
                 {
                     failures.Add(UniqueViolation.FailureOf(rule));

@@ -2299,8 +2299,10 @@ before each save, and refuses the save with the same failure:
 - over exactly the index's columns: the row's tenant for an index that names `TenantId`, every tenant's rows for
   one that does not ([an index is what you write](multi-tenancy.md#an-index-is-what-you-write))
 - a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
-- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
-  filter is skipped, because its condition is SQL that Rask will not guess at
+- an index filter that only says its own columns are `NOT NULL` counts as no filter; an index filtered with
+  [`Where(…)`](#computed-columns-defaults-and-filtered-indexes-in-c) is asked over exactly the rows its C# keeps, and
+  a row it leaves out (a revoked grant) is not checked at all; an index with any other filter is skipped, because its
+  condition is SQL that Rask will not guess at
 - two rows of one save that break a rule between them are refused too
 - the row being saved does not collide with itself
 
@@ -2376,7 +2378,10 @@ a `double` or a date joined into text (each database writes it its own way), and
 script, another app — and the rows a migration finds when it adds the column. **Rask always writes the value the
 entity holds**: a `Size` of `0` is saved as `0`, where EF Core's own `HasDefaultValue` would leave a column holding
 its type's default to the database and save `1000`. The entity's own starting value is its initializer or its
-factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key.
+factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key. On SQL
+Server, where a default is a named constraint, an app's
+[`ConstraintNames`](#app-wide-model-rules-one-iraskmodel) rule names it (`ConstraintKind.Default`, the clock's too), so
+`{table}_{column}_df` needs no `HasDefaultConstraintName`; PostgreSQL and SQLite defaults have no name.
 
 `Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
 clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
