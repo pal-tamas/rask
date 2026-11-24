@@ -2026,8 +2026,8 @@ Rask.UiEditorDialog.Heading.set -> void
 Rask.UiEditorDialog.In.get -> string!
 Rask.UiEditorDialog.In.set -> void
 Rask.UiEditorDialog.UiEditorDialog() -> void
-Rask.UiEditorDialog.Wide.get -> bool?
-Rask.UiEditorDialog.Wide.set -> void
+Rask.UiEditorDialog.Flyout.get -> bool?
+Rask.UiEditorDialog.Flyout.set -> void
 Rask.UiEditorHeading
 Rask.UiEditorHeading.UiEditorHeading() -> void
 Rask.UiEditorHighlight
@@ -5935,8 +5935,8 @@ static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePicker! __b) ->
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePicker! __b, bool? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePickerRange! __b, bool? value) -> Rask.UiDatetimePickerRange!
-static RaskBuilderSettersRask_Ui.Wide(this Rask.UiEditorDialog! __b) -> Rask.UiEditorDialog!
-static RaskBuilderSettersRask_Ui.Wide(this Rask.UiEditorDialog! __b, bool? value) -> Rask.UiEditorDialog!
+static RaskBuilderSettersRask_Ui.Flyout(this Rask.UiEditorDialog! __b) -> Rask.UiEditorDialog!
+static RaskBuilderSettersRask_Ui.Flyout(this Rask.UiEditorDialog! __b, bool? value) -> Rask.UiEditorDialog!
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiTableColumn! __b, Rask.Ui.ColumnWidth? value) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatetimePicker! __b) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatetimePicker! __b, bool? value) -> Rask.UiDatetimePicker!
@@ -9380,3 +9380,5 @@ static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, Sy
 static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiBoundField<T?>!
 Rask.UiTableCell.For<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member) -> Rask.UiTableCell!
 Rask.UiTableColumn.For<TRow>(System.Linq.Expressions.Expression<System.Func<TRow, object?>!>! member) -> Rask.UiTableColumn!
+Rask.UiEditorDialog.Deleting(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!>! check, System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! delete, System.Func<bool>! may) -> void
+Rask.UiEditorDialog.this[params Rask.Core.Component?[]! children].get -> Rask.UiEditorDialog!

@@ -1,3 +1,4 @@
+using Rask.Core.Routing;
 using Rask.Data;
 using Rask.Querying;
 using Rask.SQLite.Browser;
@@ -12,7 +13,7 @@ namespace Rask.Site.DataDemo;
 ///     Nothing here loads data by hand. Both lists are <c>Rask.Query</c> queries keyed <c>QueryKey.For&lt;Note&gt;</c>,
 ///     so the save — which reports that it wrote a <see cref="Note" /> — refetches them, and the search follows the box.
 /// </remarks>
-public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownership) : Component
+public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownership, RouteState route) : Component
 {
     // No Tailwind build here: the kit's sheet carries the components, and these few rules lay the page out
     // in Flux's colours (white on zinc-800 in the dark: #27272a).
@@ -97,13 +98,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                     .Heading("The database did not open: ").Text(failed.Message)
                 : null,
 
-            Form.Model(_draft).Key(_form).OnSubmit(AddAsync).Class("notes-form")[f => [
-                Ui.Input.Bind(() => _draft.Title).Id("note-title").Label("Title").MaxLength(120),
-                Ui.Textarea.Bind(() => _draft.Body).Id("note-body").Label("Note").Rows(3),
-                Ui.Button.Primary.Id("add-note").Type(Ui.ButtonType.Submit)
-                    .Disabled(f.Submitting).Loading(f.Submitting)["Add note"],
-                _saveError is null ? null : Ui.Callout.Danger.Role("alert").Text(_saveError)
-            ]],
+            AddForm(),
 
             Ui.Input.Value(_search).Id("search").Label("Search notes").Icon(Ui.IconName.MagnifyingGlass)
                 .Type(InputType.Search).Placeholder("Try “offline”, or a word from your note")
@@ -112,6 +107,9 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             term.Length > 0 ? Results(term, hits) : Recent(notes),
 
             notes.Data is [var newest, ..] ? Rename(newest.Id) : null,
+
+            Editor(),
+            Ui.Confirm,
 
             P.Class("notes-foot")[
                 "Nothing leaves your browser: the database is saved to IndexedDB every two seconds and restored "
@@ -128,6 +126,8 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                     Ui.Icon.Name(Ui.IconName.Loading).Variant(Ui.IconVariant.Mini), "Opening the database…"]
                 : Ul.Id("notes").Class("notes-list")[rows.Select(n => Li.Key(n.Id).Class("note")[
                     Strong.Class("note-title")[n.Title],
+                    Ui.Button.Ghost.Sm.Class("note-edit self-start")
+                        .OnClick(() => Go.With("edit", n.Id.ToString()).Pushing())["Edit"],
                     n.Body is { Length: > 0 } body ? Span.Class("note-body")[body] : null
                 ])]
         ];
@@ -142,6 +142,30 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 Ui.Button.Id("rename-note").Type(Ui.ButtonType.Submit)["Rename"]
             ]]
         ];
+
+    private Component AddForm() =>
+        Form.Model(_draft).Key(_form).OnSubmit(AddAsync).Class("notes-form")[f => [
+            Ui.Input.Bind(() => _draft.Title).Id("note-title").Label("Title").MaxLength(120),
+            Ui.Textarea.Bind(() => _draft.Body).Id("note-body").Label("Note").Rows(3),
+            Ui.Button.Primary.Id("add-note").Type(Ui.ButtonType.Submit)
+                .Disabled(f.Submitting).Loading(f.Submitting)["Add note"],
+            _saveError is null ? null : Ui.Callout.Danger.Role("alert").Text(_saveError)
+        ]];
+
+    // A note's editor over the list, opened by ?edit=<id>: a form over Note.Rename, and Note's Delete.
+    private UiEditorDialog Editor() =>
+        Ui.EditorDialog.In("edit").Heading("Edit note")[
+            Editing() is { } id
+                ? Form.For(Note.Rename, id)[f => [
+                    Ui.Field.Bind(() => f.Title).Label("Title"),
+                    Ui.Button.Primary.Id("save-note").Type(Ui.ButtonType.Submit)["Save"]
+                ]]
+                : null
+        ].Delete(Note.Delete);
+
+    // The note ?edit= names, while it names one.
+    private Guid? Editing() =>
+        route.Query.TryGetValue("edit", out var edit) && Guid.TryParse(edit.ToString(), out var id) ? id : null;
 
     private static Component Results(string term, Query<List<Hit>> hits) =>
         Section.Aria("label", "Search results")[

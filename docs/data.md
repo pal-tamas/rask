@@ -1176,6 +1176,12 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   asks its roles, builds the aggregate, saves it (its rules asked) in one `Db.Transaction` and hands back its id. A
   factory left public would win every call over its entry, so it gets none ([RASK173](diagnostics.md#rask173)). Its
   roles are named with `nameof`, since its method group holds the entry too: `b.Operation(nameof(Register), roles: …)`.
+- **A delete of its own.** A `partial` aggregate that can be deleted (`Deletable`, `SoftDelete`) gets
+  `await Supply.Delete(id, version)`: the roles of `b.Operation(nameof(Delete), roles: …)` asked, then the aggregate
+  loaded at that version and deleted in one `Db.Transaction`, its `ValidateDelete()` asked by the delete; a hidden
+  `Supply.DryRunDelete(id, version)` tries it with nothing deleted, and `Supply.MayDelete` says who may. Called with
+  no version, or with a `db:`, `Supply.Delete(id)` is still the generated write's. `Ui.EditorDialog`'s
+  [`.Delete(Supply.Delete)`](ui-kit.md) is built on the three.
 - **`Supply.May…`** answers, for every operation and factory, whether the signed-in principal holds one of its roles —
   always `true` for one that names none — so a page hides or disables what the entry would refuse.
 - **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in

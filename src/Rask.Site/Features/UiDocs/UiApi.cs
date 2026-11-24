@@ -399,7 +399,7 @@ internal static partial class UiApi
         new("Ui.EditorDialog", typeof(UiEditorDialog), NotFlux, "A list's editor over the list, open while its query key is in the address; its children are the form, held only while it is open.",
         [
             new("In", typeof(string), "The query key that says which record is open: UiEditorDialog.New for one not yet saved. Required, and taken first.", "a key: Ui.EditorDialog.In(\"edit\")"),
-            new("Wide", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
+            new("Flyout", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
             new("Heading", typeof(string), "The dialog's heading, clear of its cross."),
         ]),
     ];
@@ -646,6 +646,8 @@ internal static partial class UiApi
             new("Direction", typeof(Ui.TableColumnDirection?), "Which way the sorted column runs. Ascending when unset."),
             new("Sticky", typeof(bool?), "Keeps the column in view while the others scroll sideways. Its cells say Sticky too, and all of it a background."),
             new("OnSort", typeof(Callback), "Runs when a sortable heading is clicked, or its button pressed from the keyboard.", Handler),
+            new("For", typeof(Expression<Func<object, object>>), "The row's member the heading names: its [Display(Name)] for the label, the end for a number, nothing at all for [ScaffoldColumn(false)]. Not Flux's.",
+                "r => r.X, after the row's type: For<OrderRead>(o => o.Total)"),
         ]),
         new("Ui.TableRows", typeof(UiTableRows), "flux:table.rows", "The body: the <tbody>, holding a row per record.", []),
         new("Ui.TableRow", typeof(UiTableRow), "flux:table.row", "One record: the <tr>. Key it with the record's id.",
@@ -660,6 +662,8 @@ internal static partial class UiApi
             new("Cut", typeof(string), "The value as text on one line, cut short with an ellipsis where the column ends, the whole of it in the cell's tooltip. Not Flux's."),
             new("Whole", typeof(bool?), "Keeps the value on one line, on screen and on paper, where every other cell wraps: a day a wrap would split. Not Flux's."),
             new("ColSpan", typeof(int?), "How many columns the cell spans: a row folded out beneath another, or the row that says the list is empty."),
+            new("For", typeof(Expression<Func<object>>), "The row's member the cell shows, written for the reader: its [DisplayFormat], else its kind, an enum's label, Yes or No, \"–\" for none. Not Flux's.",
+                "() => row.X"),
         ]),
     ];
 

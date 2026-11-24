@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Site.DataDemo;
 
@@ -30,4 +31,18 @@ public sealed partial class Note : Aggregate<Guid, Timestamps, Versioned, Model,
         Refuse.When(string.IsNullOrWhiteSpace(title), () => Title, "A note needs a title.");
         Title = title.Trim();
     }
+
+    /// <summary>The welcome note stays: what its generated <c>Note.Delete(id, version)</c>, and the editor's Delete before it asks, refuse.</summary>
+#pragma warning disable S1144 // found by convention: the generated domain rules reach it, as every delete asks it
+    private IEnumerable<Problem> ValidateDelete()
+    {
+        if (string.Equals(Title, Welcome, StringComparison.Ordinal))
+        {
+            yield return Problem.Whole("The welcome note stays.");
+        }
+    }
+#pragma warning restore S1144
+
+    /// <summary>The seeded note the demo keeps.</summary>
+    internal const string Welcome = "Welcome to Rask";
 }

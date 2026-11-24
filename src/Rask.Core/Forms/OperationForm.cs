@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Rask.Core.Components;
 
 namespace Rask.Core.Forms;
 
@@ -31,6 +32,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     private Func<TInput, IEnumerable<Component?>> _fields = static _ => [];
     private Func<Task>? _saved;
     private Component? _missing;
+    private IOperationFormHost? _host;
     private TInput? _input;
     private bool _loaded;
     private bool _mounted;
@@ -101,6 +103,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <inheritdoc />
     protected override Component? Render()
     {
+        _host = Context.Get<IOperationFormHost>();
         if (!_loaded)
         {
             return null;
@@ -108,7 +111,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
 
         if (_input is not { } input)
         {
-            return _missing;
+            return _missing ?? _host?.Missing;
         }
 
         var fields = _fields(input);
@@ -132,6 +135,11 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         if (_saved is { } saved)
         {
             await saved().ConfigureAwait(false);
+        }
+
+        if (_host is { } host)
+        {
+            await host.Saved().ConfigureAwait(false);
         }
     }
 }

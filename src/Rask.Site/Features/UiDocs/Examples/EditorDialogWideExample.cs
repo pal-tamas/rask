@@ -11,7 +11,7 @@ public sealed partial class EditorDialogWideExample(RouteState route) : Componen
     protected override Component? Render() =>
         Div[
             Ui.Button.Key("new-delivery").Sm.Icon(Ui.IconName.Plus).Href(route.With("delivery", UiEditorDialog.New))["New delivery"],
-            Ui.EditorDialog.In("delivery").Wide().Heading("New delivery")[
+            Ui.EditorDialog.In("delivery").Flyout().Heading("New delivery")[
                 Form.Model(_delivery).OnSubmit(_ => Go.Without("delivery")).Id("ued-delivery").Class("space-y-6")[
                     Div.Class("grid gap-4 md:grid-cols-4")[
                         Ui.Input.Bind(() => _delivery.Vehicle).Label("Vehicle"),

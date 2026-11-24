@@ -290,6 +290,16 @@ them until tagged releases begin.
   off. Operations with a list or a several-value value object as a parameter get none yet, and two operations whose
   entries take the same types get none ([RASK174](docs/diagnostics.md#rask174)). The rask.sh data demo renames the
   newest note this way. See [a form over an operation](docs/forms.md#a-form-over-an-operation).
+- **BREAKING: the editor over a list saves, refuses and deletes through the aggregate's own operations.** Before:
+  `Ui.EditorDialog` drew the dialog and nothing more; every editor wrote its own load, "not found", saved toast, close
+  and delete confirmation, and `.Wide()` asked for the sheet. After: a `Form.For(…)` inside it reports to it — "Saved"
+  in a toast (`RaskString.EditorSaved`, "Mentve") and the dialog closed, "It is not there any more." (`EditorNotFound`)
+  for an id no row has — and `.Delete(Driver.Delete)` adds a Delete button that first tries the delete
+  (`Driver.DryRunDelete`: its `ValidateDelete()`) and shows what it refuses, otherwise asks in `Ui.Confirm`, deletes,
+  says "Deleted" and closes. Every `partial` aggregate that can be deleted gets that entry —
+  `await Driver.Delete(id, version)`, roles by `b.Operation(nameof(Delete), roles: …)`, `Driver.MayDelete` — and
+  `.Wide()` is now `.Flyout()`. The dialog's indexer hands the dialog back, so `.Delete(…)` follows the content. The
+  rask.sh data demo edits and deletes its notes this way.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and

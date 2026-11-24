@@ -323,5 +323,10 @@
   "ValidationRangeAfter": "A kezdet ({0}) után kell lennie.",
   "ValidationChangedSince": "Közben más módosította. Töltse be újra, és próbálja meg ismét.",
   "TableCellYes": "Igen",
-  "TableCellNo": "Nem"
+  "TableCellNo": "Nem",
+  "EditorSaved": "Mentve",
+  "EditorDeleted": "Törölve",
+  "EditorNotFound": "Ez már nem létezik.",
+  "EditorDelete": "Törlés",
+  "EditorDeleteQuestion": "Biztosan törli? Ez nem vonható vissza."
 }

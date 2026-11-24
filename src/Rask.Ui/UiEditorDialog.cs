@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Primitives;
+using Rask.Core.Forms;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Wire;
 
 namespace Rask;
 
@@ -15,13 +18,21 @@ namespace Rask;
 ///
 ///     Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New driver"]
 ///     Ui.RowActions.Edit(route.With("edit", driver.Id.ToString(CultureInfo.InvariantCulture)))
-///     Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Wide()[
-///         DriverEditing.Key(Edit).Editing(Edit)
-///     ]
+///     Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Flyout()[
+///         Edit == UiEditorDialog.New ? Form.For(Driver.Register)[…] : Form.For(Driver.Change, id)[…]
+///     ].Delete(Driver.Delete)
 ///     </code>
 ///     <para>
+///     A form over an aggregate's operation inside it (<c>Form.For</c>) reports to the dialog: once it saves, the dialog
+///     says "Saved" in a toast and closes, and an id no row has shows "It is not there any more." instead of the form.
+///     <c>.Delete(Driver.Delete)</c> — a generated step for an aggregate that can be deleted — adds a Delete button for
+///     a stored record whose roles admit the reader (<c>Driver.MayDelete</c>). Pressed, it first tries the delete
+///     (<c>Driver.DryRunDelete</c>: its <c>ValidateDelete()</c>) and shows what that refuses instead of asking;
+///     otherwise it asks (<c>Ui.Confirm</c>), deletes, says "Deleted" and closes.
+///     </para>
+///     <para>
 ///     Not a Flux component: an addition the owner approved (2026-11-04, #1295), made of <see cref="UiModal" /> — a
-///     centred box, or with <see cref="Wide" /> Flux's flyout from the right, as wide as the screen allows. It reads its
+///     centred box, or with <see cref="Flyout" /> Flux's flyout from the right, as wide as the screen allows. It reads its
 ///     key from the address as it renders and holds its content only while the key is there. The cross, Escape and a
 ///     press outside take the key out (<c>Go.Without(key)</c>, in the current entry's place), so the list stands as the
 ///     reader left it — its filters, sort and page kept; Back, after the link that opened it, closes it the same way.
@@ -32,8 +43,14 @@ namespace Rask;
 ///     <c>Go.To(Routes.DriversPage().With("edit", id)).Replacing()</c> in its <c>OnMount</c>.
 ///     </para>
 /// </remarks>
-public sealed partial class UiEditorDialog : Component
+public sealed partial class UiEditorDialog : Component, IOperationFormHost
 {
+    private Func<string, CancellationToken, Task<IReadOnlyList<FieldFailure>>>? _check;
+    private Func<string, CancellationToken, Task>? _delete;
+    private Func<bool> _mayDelete = static () => false;
+    private IReadOnlyList<FieldFailure> _refused = [];
+    private string? _refusedFor;
+
     /// <summary>What the key says for a record not yet saved: <c>?edit=new</c>.</summary>
     public const string New = "new";
 
@@ -61,10 +78,21 @@ public sealed partial class UiEditorDialog : Component
     }
 
     /// <summary>Opens it as a sheet from the right, as wide as the screen allows, for a form with rows of its own.</summary>
-    public bool? Wide { get; set; }
+    public bool? Flyout { get; set; }
 
     /// <summary>The dialog's heading, clear of its cross: "Edit driver".</summary>
     public string? Heading { get; set; }
+
+    /// <summary>What the dialog holds — the form — handing the dialog back, so a <c>.Delete(…)</c> can follow it.</summary>
+    /// <param name="children">The dialog's content.</param>
+    public new UiEditorDialog this[params Component?[] children]
+    {
+        get
+        {
+            Children = children;
+            return this;
+        }
+    }
 
     /// <summary>Classes for the dialog, added to its own.</summary>
     public string? Class { get; set; }
@@ -81,18 +109,92 @@ public sealed partial class UiEditorDialog : Component
             UiListAddresses.Of(route).Dialog(In);
         }
 
-        var open = Editing(route) is not null;
+        var editing = Editing(route);
+        if (!string.Equals(editing, _refusedFor, StringComparison.Ordinal))
+        {
+            _refused = [];
+        }
 
-        return Ui.Modal.Key("ui-editor-dialog:" + In).Flyout(Wide is true).Class(Wide is true ? Sheet : Box, Class).Open(open).OnClose(Close)[
-            open ? Body() : null
+        return Ui.Modal.Key("ui-editor-dialog:" + In).Flyout(Flyout is true).Class(Flyout is true ? Sheet : Box, Class).Open(editing is not null).OnClose(Close)[
+            editing is null ? null : Body(editing)
         ];
     }
 
-    private Component Body() =>
-        Fragment[
+    /// <inheritdoc />
+    Component? IOperationFormHost.Missing =>
+        Ui.Callout.Warning.Role("alert").Id("editor-missing").Text(RaskStrings.Get(RaskString.EditorNotFound, "It is not there any more."));
+
+    /// <summary>
+    ///     Called by a generated <c>.Delete(Driver.Delete)</c>: how the record the key names is tried and deleted, and
+    ///     whether the reader may. Not an API to write against.
+    /// </summary>
+    /// <param name="check">What the delete of the record would be refused for; empty when nothing.</param>
+    /// <param name="delete">Deletes the record.</param>
+    /// <param name="may">Whether the signed-in principal may delete it.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public void Deleting(
+        Func<string, CancellationToken, Task<IReadOnlyList<FieldFailure>>> check, Func<string, CancellationToken, Task> delete, Func<bool> may)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        ArgumentNullException.ThrowIfNull(delete);
+        ArgumentNullException.ThrowIfNull(may);
+        (_check, _delete, _mayDelete) = (check, delete, may);
+    }
+
+    /// <inheritdoc />
+    Task IOperationFormHost.Saved()
+    {
+        Toast.Success(RaskStrings.Get(RaskString.EditorSaved, "Saved"));
+        Close();
+        return Task.CompletedTask;
+    }
+
+    // The form reports to the dialog it is in, found in its context.
+    private Component Body(string editing) =>
+        Context.Provide<IOperationFormHost>(this)[
             Heading is { } heading ? Ui.Heading.Level(2).Lg.Class("mb-6 pe-8")[heading] : null,
-            Children is { } content ? Fragment[content] : null
+            Children is { } content ? Fragment[content] : null,
+            Refusals(),
+            DeleteButton(editing)
         ];
+
+    private Component? Refusals() =>
+        _refused.Count == 0
+            ? null
+            : Ui.Callout.Danger.Role("alert").Id("editor-delete-refused").Class("mt-6")[
+                _refused.Select(static (failure, at) => P.Key(at)[failure.Message])
+            ];
+
+    private Component? DeleteButton(string editing) =>
+        _check is null || string.Equals(editing, New, StringComparison.Ordinal) || !_mayDelete()
+            ? null
+            : Div.Class("mt-6 flex")[
+                Ui.Button.Danger.Id("editor-delete").OnClick(DeleteAsync)[RaskStrings.Get(RaskString.EditorDelete, "Delete")]
+            ];
+
+    private async Task DeleteAsync()
+    {
+        if (Editing(Navigator.RequireCurrent().Route) is not { } editing || _check is not { } check || _delete is not { } delete)
+        {
+            return;
+        }
+
+        var refused = await check(editing, CancellationToken).ConfigureAwait(false);
+        if (refused.Count > 0)
+        {
+            (_refused, _refusedFor) = (refused, editing);
+            return;
+        }
+
+        if (!await Ui.Confirm.Ask(RaskStrings.Get(RaskString.EditorDeleteQuestion, "Delete it? This cannot be undone.")).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        await delete(editing, CancellationToken).ConfigureAwait(false);
+        Toast.Success(RaskStrings.Get(RaskString.EditorDeleted, "Deleted"));
+        Close();
+    }
 
     // Closed by the reader — the cross, Escape, a press outside — the key goes, unless Back already took it.
     private void Close()

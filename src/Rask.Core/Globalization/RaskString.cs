@@ -959,4 +959,19 @@ public enum RaskString
     ///     digits in total, and <c>{1}</c> the most of them after the decimal point.
     /// </summary>
     ValidationDigits,
+
+    /// <summary>What the toast says once an editor dialog's form has saved (<c>Ui.EditorDialog</c>).</summary>
+    EditorSaved,
+
+    /// <summary>What the toast says once an editor dialog's record has been deleted (<c>Ui.EditorDialog</c>).</summary>
+    EditorDeleted,
+
+    /// <summary>What an editor dialog shows for an id no row has any more (<c>Ui.EditorDialog</c>).</summary>
+    EditorNotFound,
+
+    /// <summary>The label of an editor dialog's delete button (<c>Ui.EditorDialog.Delete</c>).</summary>
+    EditorDelete,
+
+    /// <summary>What an editor dialog asks before it deletes its record (<c>Ui.EditorDialog.Delete</c>).</summary>
+    EditorDeleteQuestion,
 }

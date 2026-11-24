@@ -94,6 +94,33 @@ public sealed class DryRunTests : IDisposable
         Assert.Empty(await database.Context.Set<Expedition>().ToListAsync(Token));
     }
 
+    [Fact]
+    public async Task The_delete_of_a_record_its_rules_keep_is_told_and_nothing_is_deleted()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+        var stored = (await Expedition.Find(expedition.Id, Token))!;
+        stored.Seal();
+        await stored.Save(cancellationToken: Token);
+
+        var failures = await Expedition.DryRunDelete(expedition.Id, 1, Token);
+
+        Assert.Equal("A sealed expedition is kept.", Assert.Single(failures).Message);
+        Assert.NotNull(await database.Load<Expedition>(expedition.Id, Token));
+    }
+
+    [Fact]
+    public async Task The_delete_of_a_record_its_rules_let_go_is_told_nothing_and_nothing_is_deleted()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+
+        var failures = await Expedition.DryRunDelete(expedition.Id, 0, Token);
+
+        Assert.Empty(failures);
+        Assert.NotNull(await database.Load<Expedition>(expedition.Id, Token));
+    }
+
     private static async Task<Expedition> PlannedAsync()
     {
         var expedition = Expedition.Planned("North", 2);

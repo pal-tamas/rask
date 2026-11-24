@@ -145,7 +145,8 @@ public sealed partial class OperationGenerator
     private static string? RenderForms(OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous)
     {
         var formed = Formed(aggregate, signatures, ambiguous);
-        if (formed.Count == 0)
+        var deleting = aggregate.Dialog && aggregate.Delete is not null;
+        if (formed.Count == 0 && !deleting)
         {
             return null;
         }
@@ -169,7 +170,16 @@ public sealed partial class OperationGenerator
         s.AppendLine(HiddenFqn);
         s.Append("public static class ").AppendLine(forms);
         s.AppendLine("{");
-        AppendRegistrations(s, aggregate, formed);
+        if (formed.Count > 0)
+        {
+            AppendRegistrations(s, aggregate, formed);
+        }
+
+        if (deleting)
+        {
+            AppendDialogDelete(s, aggregate);
+        }
+
         // A classic extension of the seed, which the chain analyzer knows as an opening that takes the owed steps itself.
         foreach (var (operation, entry) in formed)
         {
@@ -224,6 +234,41 @@ public sealed partial class OperationGenerator
             s.Append("        ").Append(ValidationFqn).Append(".RegisterStoreRules(typeof(").Append(input).Append("), static _ => new ").Append(operation.Name).AppendLine("Rules());");
         }
 
+        s.AppendLine("    }");
+        s.AppendLine();
+    }
+
+    // `Ui.EditorDialog.In("edit")[…].Delete(Driver.Delete)`: the dialog's Delete button, over the record its key names —
+    // read at the version stored now, tried first, then deleted at that version.
+    private static void AppendDialogDelete(StringBuilder s, OperatedAggregate aggregate)
+    {
+        var entry = "global::System.Func<" + aggregate.IdType + ", " + (aggregate.Versioned ? "int, " : "") + TokenFqn + ", " + TaskFqn + ">";
+        var parse = string.Equals(aggregate.IdType, "string", StringComparison.Ordinal)
+            ? "editing is { } id"
+            : aggregate.IdType.TrimEnd('?') + ".TryParse(editing, out var id)";
+        var find = "await global::Rask.Data.GeneratedModelWrites.Find<" + aggregate.FullyQualifiedName + ">(id!, cancellationToken) is { } aggregate";
+        var version = aggregate.Versioned ? "aggregate.Version, " : "";
+
+        s.Append("    /// <summary>A Delete button in the dialog for the <c>").Append(aggregate.Name)
+            .AppendLine("</c> its key names: tried first, asked, then deleted through the entry.</summary>");
+        s.AppendLine("    /// <param name=\"dialog\">The editor dialog.</param>");
+        s.Append("    /// <param name=\"delete\">The delete: <c>").Append(aggregate.Name).AppendLine(".Delete</c>.</param>");
+        s.AppendLine("    /// <returns>The same dialog.</returns>");
+        s.Append("    public static global::Rask.UiEditorDialog Delete(this global::Rask.UiEditorDialog dialog, ").Append(entry).AppendLine(" delete)");
+        s.AppendLine("    {");
+        s.AppendLine("        dialog.Deleting(");
+        s.Append("            async (editing, cancellationToken) => ").Append(parse).Append(" && ").Append(find)
+            .Append(" ? await ").Append(aggregate.FullyQualifiedName).Append(".DryRunDelete(id, ").Append(version)
+            .AppendLine("cancellationToken).ConfigureAwait(false) : global::System.Array.Empty<" + FailureFqn + ">(),");
+        s.AppendLine("            async (editing, cancellationToken) =>");
+        s.AppendLine("            {");
+        s.Append("                if (").Append(parse).Append(" && ").Append(find).AppendLine(")");
+        s.AppendLine("                {");
+        s.Append("                    await delete(id, ").Append(version).AppendLine("cancellationToken).ConfigureAwait(false);");
+        s.AppendLine("                }");
+        s.AppendLine("            },");
+        s.Append("            static () => ").Append(aggregate.FullyQualifiedName).AppendLine(".MayDelete);");
+        s.AppendLine("        return dialog;");
         s.AppendLine("    }");
         s.AppendLine();
     }

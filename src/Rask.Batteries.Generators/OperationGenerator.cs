@@ -48,6 +48,8 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
     internal const string Tool = "Rask.Operations";
 
     private const string OperationCall = "Operation";
+    private const string DeleteName = "Delete";
+    private const string EditorDialogType = "Rask.UiEditorDialog";
     private const string RolesParameter = "roles";
     private const string TaskFqn = "global::System.Threading.Tasks.Task";
 
@@ -125,37 +127,14 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
         foreach (var method in symbol.GetMembers().OfType<IMethodSymbol>().Where(m => IsOperation(m, symbol) || IsFactory(m, symbol)))
         {
-            var location = SymbolLocation.From(method);
-            var factory = method.IsStatic;
-            if (factory && method.DeclaredAccessibility == Accessibility.Public)
+            if (OperationOf(method, symbol, roles, problems) is { } operation)
             {
-                problems.Add(new OperationProblem(Rask173.Id, method.Name, "", location));
-                continue;
+                operations.Add(operation);
             }
-
-            var taken = factory ? FactoryEntryParameters : EntryParameters;
-            if (method.Parameters.FirstOrDefault(p => taken.Contains(p.Name, StringComparer.Ordinal)) is { } clash)
-            {
-                problems.Add(new OperationProblem(Rask171.Id, method.Name, clash.Name, location));
-                continue;
-            }
-
-            // Roles that are no constant leave no entry rather than an open one; RASK172 says why.
-            roles.TryGetValue(method.Name, out var named);
-            if (named is { Constant: false })
-            {
-                continue;
-            }
-
-            operations.Add(new Operation(
-                method.Name,
-                factory ? FactoryCallOf(method, symbol)! : CallOf(method, symbol)!,
-                named?.Roles,
-                new EquatableArray<OperationParameter>(method.Parameters.Select(p => Parameter(p, symbol))),
-                factory));
         }
 
-        if (operations.Count == 0 && problems.Count == 0)
+        var delete = DeleteOf(symbol, roles, operations);
+        if (operations.Count == 0 && problems.Count == 0 && delete is null)
         {
             return null;
         }
@@ -168,7 +147,56 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             AggregateShape.HasVersion(symbol),
             new EquatableArray<Operation>(operations),
             new EquatableArray<OperationProblem>(problems),
-            ctx.SemanticModel.Compilation.GetTypeByMetadataName(OperationFormType) is not null);
+            ctx.SemanticModel.Compilation.GetTypeByMetadataName(OperationFormType) is not null,
+            delete,
+            ctx.SemanticModel.Compilation.GetTypeByMetadataName(EditorDialogType) is not null);
+    }
+
+    // One operation or factory, or null with what keeps it from an entry recorded in problems.
+    private static Operation? OperationOf(
+        IMethodSymbol method, INamedTypeSymbol symbol, Dictionary<string, NamedRoles> roles, List<OperationProblem> problems)
+    {
+        var location = SymbolLocation.From(method);
+        var factory = method.IsStatic;
+        if (factory && method.DeclaredAccessibility == Accessibility.Public)
+        {
+            problems.Add(new OperationProblem(Rask173.Id, method.Name, "", location));
+            return null;
+        }
+
+        var taken = factory ? FactoryEntryParameters : EntryParameters;
+        if (method.Parameters.FirstOrDefault(p => taken.Contains(p.Name, StringComparer.Ordinal)) is { } clash)
+        {
+            problems.Add(new OperationProblem(Rask171.Id, method.Name, clash.Name, location));
+            return null;
+        }
+
+        // Roles that are no constant leave no entry rather than an open one; RASK172 says why.
+        roles.TryGetValue(method.Name, out var named);
+        if (named is { Constant: false })
+        {
+            return null;
+        }
+
+        return new Operation(
+            method.Name,
+            factory ? FactoryCallOf(method, symbol)! : CallOf(method, symbol)!,
+            named?.Roles,
+            new EquatableArray<OperationParameter>(method.Parameters.Select(p => Parameter(p, symbol))),
+            factory);
+    }
+
+    // A partial aggregate that can be deleted is deleted through an entry of its own, its roles named by nameof(Delete) —
+    // roles that are no constant leave none rather than an open one (RASK172).
+    private static DeleteEntry? DeleteOf(INamedTypeSymbol symbol, Dictionary<string, NamedRoles> roles, List<Operation> operations)
+    {
+        if (!AggregateShape.IsDeletable(symbol) || operations.Exists(static o => string.Equals(o.Name, DeleteName, StringComparison.Ordinal)))
+        {
+            return null;
+        }
+
+        roles.TryGetValue(DeleteName, out var named);
+        return named is { Constant: false } ? null : new DeleteEntry(named?.Roles);
     }
 
     private static bool IsOperation(IMethodSymbol method, INamedTypeSymbol aggregate) =>
@@ -328,7 +356,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
                     : Diagnostic.Create(Rask171, problem.Location?.ToLocation(), aggregate.Name, problem.Method, problem.Clash));
             }
 
-            if (aggregate.Operations.Count == 0)
+            if (aggregate.Operations.Count == 0 && aggregate.Delete is null)
             {
                 continue;
             }
@@ -377,6 +405,11 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             }
         }
 
+        if (aggregate.Delete is { } delete)
+        {
+            AppendDelete(s, aggregate, delete);
+        }
+
         // One answer per name: overloads of an operation share its roles.
         foreach (var operation in aggregate.Operations.GroupBy(static o => o.Name, StringComparer.Ordinal).Select(static g => g.First()))
         {
@@ -385,6 +418,51 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
         s.AppendLine("}");
         return s.ToString();
+    }
+
+    // `await Supply.Delete(id, version)`: the roles of nameof(Delete) asked, then loaded and deleted in one transaction,
+    // its ValidateDelete() asked by the delete. Called with no version (or a db:), the generated write's Delete is meant,
+    // which this one does not take, so the call still reaches it.
+    private static void AppendDelete(StringBuilder s, OperatedAggregate aggregate, DeleteEntry delete)
+    {
+        var version = aggregate.Versioned ? "int version, " : "";
+        var given = aggregate.Versioned ? "version" : "null";
+        var roles = delete.Roles is { } named ? SymbolDisplay.FormatLiteral(named, quote: true) : "null";
+
+        s.Append("    /// <summary>Deletes the <c>").Append(aggregate.Name)
+            .AppendLine("</c> as one write: its roles asked, loaded and deleted — its ValidateDelete() asked — in one transaction.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The id of the aggregate.</param>");
+        if (aggregate.Versioned)
+        {
+            s.AppendLine("    /// <param name=\"version\">The version the caller read: a save since is refused.</param>");
+        }
+
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the delete.</param>");
+        s.AppendLine("    /// <returns>A task that completes once the delete has committed.</returns>");
+        s.Append("    [global::System.CodeDom.Compiler.GeneratedCode(\"").Append(Tool).AppendLine("\", \"1\")]");
+        s.Append("    public static ").Append(TaskFqn).Append(" Delete(").Append(aggregate.IdType).Append(" id, ").Append(version)
+            .AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("        global::Rask.Data.GeneratedOperations.Remove<").Append(aggregate.FullyQualifiedName).Append(">(\"Delete\", ")
+            .Append(roles).Append(", id!, ").Append(given).AppendLine(", cancellationToken);");
+        s.AppendLine();
+
+        s.AppendLine("    /// <summary>Tries the delete without doing it: what its ValidateDelete() and a stale version would refuse.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The id of the aggregate.</param>");
+        if (aggregate.Versioned)
+        {
+            s.AppendLine("    /// <param name=\"version\">The version the caller read.</param>");
+        }
+
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the try.</param>");
+        s.AppendLine("    /// <returns>Every failure the delete would be refused for; empty when it would go through.</returns>");
+        AppendHidden(s);
+        s.Append("    public static ").Append(FailuresTask).Append(" DryRunDelete(").Append(aggregate.IdType).Append(" id, ").Append(version)
+            .AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("        global::Rask.Data.GeneratedOperations.TryRemove<").Append(aggregate.FullyQualifiedName).Append(">(id!, ")
+            .Append(given).AppendLine(", cancellationToken);");
+        s.AppendLine();
+
+        AppendMay(s, new Operation(DeleteName, "", delete.Roles, new EquatableArray<OperationParameter>([]), Factory: false));
     }
 
     private static void AppendEntry(StringBuilder s, OperatedAggregate aggregate, Operation operation)
@@ -544,7 +622,12 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         bool Versioned,
         EquatableArray<Operation> Operations,
         EquatableArray<OperationProblem> Problems,
-        bool Forms);
+        bool Forms,
+        DeleteEntry? Delete,
+        bool Dialog);
+
+    /// <summary>The delete entry a partial aggregate that can be deleted gets, with the roles its Configure names.</summary>
+    private sealed record DeleteEntry(string? Roles);
 
     private sealed record Operation(string Name, string Call, string? Roles, EquatableArray<OperationParameter> Parameters, bool Factory);
 
