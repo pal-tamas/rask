@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -47,7 +46,7 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
         base.ProcessModelFinalizing(modelBuilder, context);
 
         // Rask's own batteries keep the names their code and their users' databases already have.
-        var entityTypes = modelBuilder.Metadata.GetEntityTypes().Where(e => !IsRasks(e)).ToList();
+        var entityTypes = modelBuilder.Metadata.GetEntityTypes().Where(e => !IsKept(e)).ToList();
 
         if (Tables is { } tables)
         {
@@ -60,7 +59,8 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
         }
     }
 
-    private static bool IsRasks(IConventionEntityType entityType)
+    // A battery's entity type, or a type owned by one.
+    private static bool IsKept(IConventionEntityType entityType)
     {
         var owner = entityType;
         while (owner.FindOwnership() is { } ownership)
@@ -68,22 +68,13 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
             owner = ownership.PrincipalEntityType;
         }
 
-        return IsRasks(owner.ClrType.Assembly);
+        return KeptNames.Has(owner.ClrType);
     }
 
-    /// <summary>Whether <paramref name="assembly" /> is one Rask ships — <c>Rask</c> or <c>Rask.*</c>, its tests aside.</summary>
-    /// <remarks>Rask's own test assemblies stand in for an app, so they are named like one.</remarks>
-    internal static bool IsRasks(Assembly assembly)
-    {
-        var name = assembly.GetName().Name ?? "";
-        return (string.Equals(name, "Rask", StringComparison.Ordinal) || name.StartsWith("Rask.", StringComparison.Ordinal))
-            && !name.EndsWith(".Tests", StringComparison.Ordinal);
-    }
-
-    // A table of its own, not stated: not a type in its base's one table, not an owned type, not a view.
+    // A table of its own, not stated: not a type in its base's one table, not an owned type in its owner's, not a view.
     private static bool NamesItsTable(IConventionEntityType entityType) =>
         entityType.GetTableName() is not null &&
-        !entityType.IsOwned() &&
+        !(entityType.FindOwnership() is { } ownership && SharesOwnersTable(ownership)) &&
         !IsInItsBasesTable(entityType) &&
         entityType.GetTableNameConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation);
 

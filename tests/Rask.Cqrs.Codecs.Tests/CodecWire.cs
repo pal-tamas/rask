@@ -32,6 +32,13 @@ internal static class CodecWire
         return contract.ReadMessage(ref reader, files);
     }
 
+    public static object? Load(RemoteContract contract, string json)
+    {
+        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
+        reader.Read();
+        return contract.LoadMessage!(ref reader);
+    }
+
     public static TMessage RoundTrip<TMessage>(TMessage message)
         where TMessage : notnull
     {

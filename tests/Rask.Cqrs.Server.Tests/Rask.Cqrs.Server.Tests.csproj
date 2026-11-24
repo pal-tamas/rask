@@ -30,12 +30,15 @@
     <Using Include="Rask.Cqrs"/>
     <Using Include="Rask.Wire"/>
     <Using Include="Rask.Core.Forms"/>
+    <Using Include="Rask.Data"/>
   </ItemGroup>
 
   <!-- The generator is referenced directly: analyzer references do not flow transitively. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj"/>
+    <!-- The value objects a message may carry (ValueContracts.cs): the server checks each one it reads. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
