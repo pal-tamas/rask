@@ -135,6 +135,18 @@ public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDis
         Assert.Equal(Rules.Required, Assert.Single(missing).Message);
     }
 
+    [Fact]
+    public async Task A_parameter_nothing_prefills_starts_from_its_declared_default_and_a_null_default_starts_empty()
+    {
+        await using var database = await StartDatabaseAsync();
+        var convoy = await StoredAsync();
+
+        var input = (await Form.For(Convoy.Rest, convoy.Id).Read(Token))!;
+
+        Assert.Equal(2, input.Days);
+        Assert.Null(input.From);
+    }
+
     private static async Task<IReadOnlyList<FieldFailure>> StoreRules<TInput>(TInput input) where TInput : class =>
         await RaskValidation.ResolveStoreRules(typeof(TInput), null)!.Check(input, null, Token);
 

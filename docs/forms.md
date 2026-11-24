@@ -1016,7 +1016,8 @@ Form.For(Note.Rename, id)[f => [
   through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text or a
   bool is taken as it is; a number, a day, an enum or an id is held empty until one is typed — never a `0` nobody
   chose — and refused as required when left so. An operation's form still starts from what the aggregate holds; only
-  a factory's, or a parameter the aggregate has nothing alike for, starts empty.
+  a factory's, or a parameter the aggregate has nothing alike for, starts from the parameter's declared default
+  (`int count = 3` shows 3) — or empty, when it declares none or a null one.
 - **The domain's rules are the form's.** As each field is committed — with the next action, or as it is left with
   `.Blur()` ([bind timing](#bind-timing)) — the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](data.md#an-operation-run-as-one-write)) and what it would be refused for —

@@ -359,7 +359,8 @@ them until tagged releases begin.
 - **BREAKING: a number nothing prefills starts empty on a `Form.For`.** Before: a factory's `int`/`decimal`/day/enum/id
   parameter was held as it is, so its field showed `0` (or the first enum member) and a form left alone saved it.
   After: it is held empty until one is typed and refused as required when left so, as a row's or a group's member is;
-  an operation's field still starts from what the aggregate holds.
+  an operation's field still starts from what the aggregate holds, and a parameter that declares a default
+  (`int count = 3`) starts from it.
 - **`Form.For` over an operation that takes rows, or a value object of several values.** Before: an operation with a
   list parameter (`Change(IReadOnlyList<SupplyPartSpec> parts)` for a `Children<,>.Sync`) or a `Range` / `: Value`
   record of several members got no `Form.For`. After: a list is `f.Parts`, a row per child the aggregate holds (read

@@ -312,12 +312,12 @@ public class OperationGeneratorTests
     }
 
     [Fact]
-    public void A_number_nothing_prefills_starts_empty_and_is_required_and_a_bool_is_held_as_it_is()
+    public void A_number_nothing_prefills_starts_empty_and_required_unless_it_declares_a_default_and_a_bool_is_held_as_it_is()
     {
         var run = RunWithForms(Tagged("""
             public int Level { get; private set; }
             public bool Pinned { get; private set; }
-            private static Tag Make(int level, bool pinned) => new() { Id = Guid.CreateVersion7(), Level = level, Pinned = pinned };
+            private static Tag Make(int level, bool pinned, int count = 3, DateOnly? from = null) => new() { Id = Guid.CreateVersion7(), Level = level + count, Pinned = pinned && from is null };
             """));
 
         var forms = run.GeneratedSource("Shop.Tag.OperationForms");
@@ -325,7 +325,9 @@ public class OperationGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public int? Level { get; set; }", forms, StringComparison.Ordinal);
         Assert.Contains("public bool Pinned { get; set; }", forms, StringComparison.Ordinal);
-        Assert.Contains("property is \"Level\";", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Level\" or \"Count\";", forms, StringComparison.Ordinal);
+        Assert.Contains("public int? Count { get; set; } = (int)3;", forms, StringComparison.Ordinal);
+        Assert.Contains("public global::System.DateOnly? From { get; set; }\n", forms.ReplaceLineEndings("\n"), StringComparison.Ordinal);
     }
 
     [Fact]
