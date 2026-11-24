@@ -44,6 +44,22 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
+  object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
+  reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
+  `[UIHint]` were copied onto the generated model and read by nothing. After: `FieldShape` carries `Input`,
+  `ReadOnly`, `KeepEmpty`, `Upper` and `Hint`, which a generated model registers at compile time for its plain
+  properties too and Core reads off a hand-written model's property: `[StringLength]`/`[MaxLength]`/`[MinLength]`/
+  `[Length]` → `maxlength`/`minlength` (on a value object's property the tighter of the attribute and the value
+  object), `[EmailAddress]`/`[Phone]`/`[Url]`/`[DataType]` → the input's `type` (a `[DataType(DataType.Date)]`
+  `DateTime` is a date input showing its day), `[Editable(false)]` → `readonly` on every bound `Input`/`Textarea`/
+  `Ui.Input` (no write wired), `[DisplayFormat(ConvertEmptyStringToNull = false)]` → an emptied `string?` is written
+  `""`, and `[UIHint(FieldHints.Switch | RadioGroup | MultilineText)]` / `[DataType(DataType.MultilineText)]` →
+  `Ui.Field.Bind` draws a `Ui.Switch`, a `Ui.RadioGroup` or a `Ui.Textarea`. A value object declared
+  `Text(Value, Upper: true)` draws its `Ui.Input` in capitals. A model that registers its shapes by hand gives the
+  whole answer for a property it answers (add `ReadOnly = true` where it relied on `[Editable(false)]` beside it).
+  See [forms validation — what a member's attributes tell its control](docs/forms-validation.md) and the per-attribute
+  table in [data](docs/data.md).
 - **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
   Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
   aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
