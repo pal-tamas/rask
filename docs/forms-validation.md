@@ -772,6 +772,9 @@ public sealed partial class Supplier : Aggregate<SupplierId, Model>
 
 <!-- demo:validation-fluent-in-type -->
 
+A private `Rules` is called only by the generated registry, so Sonar's S1144 and the IDE's IDE0051 would call it unused:
+Rask's analyzers suppress both on a method of exactly the convention's shape (`RASKSUP002`), and on nothing else.
+
 On a primitive member a rule works **exactly like the DataAnnotations attribute with the same rule**:
 
 - **The form.** A `Form` over `SupplierModel`, the generated form model, asks `Supplier`'s rules of the members that
@@ -805,7 +808,7 @@ public sealed partial record Handle(string Value) : Text(Value, MaxLength: 30)
 }
 ```
 
-A failure about `Value` is the value's own; one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
+A failure about `Value` is the value's own, and names no field — the field's label says which ("The specified condition was not met."); one about another member (`Opening(DateOnly? Date, decimal? Quantity)`)
 is under that member. A record with its own `Rules()` override and a static `Rules` is [RASK183](diagnostics.md#rask183).
 
 ### Three ways to say a rule

@@ -3159,7 +3159,7 @@ optional value object and keeps its `NotEmpty`. A FluentValidation check no base
 `EmailAddress`, `Must`) stays on the rule, for you to move into the value object. The fix is not offered where the
 value object would not say what was written: a type no base record holds, a name already taken, two rules that
 disagree, a conditional (`When`/`Unless`) rule, a rule in another file, or a DataAnnotations attribute no argument
-carries (`[EmailAddress]`, one with its own `ErrorMessage`), which on a value object would refuse every value.
+carries (`[EmailAddress]`, one with its own `ErrorMessage`), which on a value object would refuse every value. Nor is it offered while an `AbstractValidator<T>` class rules the same property: that rule would not compile once the property holds a value object.
 
 To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the project.
 
