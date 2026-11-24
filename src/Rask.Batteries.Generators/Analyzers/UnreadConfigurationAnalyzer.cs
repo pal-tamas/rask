@@ -127,18 +127,23 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
         }
 
         var arguments = call.ArgumentList.Arguments;
+        if (read == ReadCall.Operation)
+        {
+            if (arguments.Count == 0 || OperationGenerator.NamedOperation(arguments[0].Expression, model, context.CancellationToken) is null)
+            {
+                return "its operation is neither a lambda naming a method nor a constant name";
+            }
+
+            return RolesOf(arguments) is { } named &&
+                   model.GetConstantValue(named.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
+                ? "its roles are not a constant"
+                : null;
+        }
+
         if (arguments.Count == 0 ||
             arguments[0].Expression is not LambdaExpressionSyntax { Body: MemberAccessExpressionSyntax })
         {
-            return read == ReadCall.Operation ? "its operation is not a lambda naming a method" : "its member is not a lambda naming a property";
-        }
-
-        if (read == ReadCall.Operation)
-        {
-            return RolesOf(arguments) is { } roles &&
-                   model.GetConstantValue(roles.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
-                ? "its roles are not a constant"
-                : null;
+            return "its member is not a lambda naming a property";
         }
 
         return read == ReadCall.Columns &&

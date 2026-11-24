@@ -96,9 +96,11 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
         services.AddRaskData<RefundContext>();
         services.AddDbContextFactory<RefundContext>((sp, o) => o
             .UseSqlite(connection)
+            .OneOfManyShapes()
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         services.AddDbContextFactory<RaskReadDbContext>(o => o
             .UseSqlite(connection)
+            .OneOfManyShapes()
             .ConfigureWarnings(static w => w.Throw(CoreEventId.ShadowForeignKeyPropertyCreated)));
 
         _app = services.BuildServiceProvider(validateScopes: true);

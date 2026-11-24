@@ -67,29 +67,31 @@ public sealed class EventRecorder
     }
 }
 
-public sealed class WidgetCreatedHandler(EventRecorder recorder) : IEventHandler<WidgetCreated>
+// The recorder is optional: a TestDatabase publishes a saved widget's events as the app does, and a test that starts one
+// without registering a recorder is not asking what was handled.
+public sealed class WidgetCreatedHandler(EventRecorder? recorder = null) : IEventHandler<WidgetCreated>
 {
     public Task Handle(WidgetCreated notification)
     {
-        recorder.Add(notification);
+        recorder?.Add(notification);
         return Task.CompletedTask;
     }
 }
 
-public sealed class WidgetRenamedHandler(EventRecorder recorder) : IEventHandler<WidgetRenamed>
+public sealed class WidgetRenamedHandler(EventRecorder? recorder = null) : IEventHandler<WidgetRenamed>
 {
     public Task Handle(WidgetRenamed notification)
     {
-        recorder.Add(notification);
+        recorder?.Add(notification);
         return Task.CompletedTask;
     }
 }
 
-public sealed class WidgetDeletedHandler(EventRecorder recorder) : IEventHandler<WidgetDeleted>
+public sealed class WidgetDeletedHandler(EventRecorder? recorder = null) : IEventHandler<WidgetDeleted>
 {
     public Task Handle(WidgetDeleted notification)
     {
-        recorder.Add(notification);
+        recorder?.Add(notification);
         return Task.CompletedTask;
     }
 }
