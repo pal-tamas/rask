@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK186, RASK188–RASK190, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK191, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -37,6 +37,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
+| **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -182,9 +183,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK184](#rask184) | Info | An aggregate refuses with an exception no form can show |
 | [RASK185](#rask185) | Info | An aggregate is loaded outside the transaction that changes it |
 | [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
-| [RASK188](#rask188) | Error | An aggregate's event handler cannot be registered |
+| [RASK187](#rask187) | Info | A raw ExecuteUpdate or ExecuteDelete writes an aggregate's rows |
+| [RASK188](#rask188) | Info | An operation gets no Form.For, as one of its parameters is no field a form holds |
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
+| [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3874,21 +3877,45 @@ entry takes no `null`); and the updated aggregate the update hands back is not u
 **Fix:** call the entry (**quick-fix available** — the id, the version, the operation's arguments and a
 `cancellationToken:` in that order). A suggestion by default; a warning under `<RaskStrict>`.
 
-## RASK188
+## RASK187
 
-**An aggregate's event handler cannot be registered** · Error
+**A raw ExecuteUpdate or ExecuteDelete writes an aggregate's rows** · Info (Warning under `<RaskStrict>`) · quick-fix
 
-Rask registers an aggregate's `static Task On(E e)` from a generated part of the aggregate's own class, which is what
-lets the method stay private. That needs a `partial`, non-generic aggregate declared directly in a namespace.
+EF Core's `ExecuteUpdate`/`ExecuteDelete` over the rows of an aggregate. Every aggregate has its own
+[set write](data-writes.md#writes-over-many-rows) — `X.UpdateWhere(…)`, `X.DeleteWhere(…)` — the same one statement, which
+also stamps `UpdatedAt` and bumps `Version`, asks the aggregate's `LockedBy`, refuses a delete its `ValidateDelete()`
+would have to ask row by row, counts toward [one aggregate per transaction](domain.md#one-aggregate-per-transaction-manyaggregates)
+and tells the live pages showing the rows. The raw statement does none of it.
 
 ```csharp
-public sealed class Fueling : Aggregate<int>              // ✗ RASK188: it is not partial
-{
-    static Task On(DriverChipsChanged e) => …;
-}
+await db.Pairings.Where(p => p.Pump == pumpId).ExecuteDeleteAsync();                    // ℹ RASK187
+await Pairing.DeleteWhere(p => p.Pump == pumpId);                                       // ✓
+await Period.UpdateWhere(p => p.Id == id, s => s.SetProperty(p => p.Closed, true));     // ✓ for ExecuteUpdateAsync
 ```
 
-**Fix:** declare the aggregate `partial` (and at namespace level, not generic).
+A table that is no aggregate (a plain entity, Rask's own outbox or cache) is not reported.
+
+**Fix:** call the aggregate's own (**quick-fix available** for the awaitable form on a `DbSet`, straight —
+`_ => true` — or behind one `Where`; the synchronous form, and a query composed further, are reported without one).
+The rewrite runs on the app's context in a `Db.Transaction`, not on the one the raw call named. A suggestion by
+default; a warning under `<RaskStrict>`.
+
+## RASK188
+
+**An operation gets no Form.For, as one of its parameters is no field a form holds** · Info
+
+`Form.For(Supply.Change, id)` is a form whose fields are the [operation](domain.md#an-operation-run-as-one-write)'s
+parameters: a value (text, number, day, bool, enum, id), a value object of one value — declared from `Text`, `Number`,
+`Whole`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
+list of rows. An operation that takes anything else, or more than 13 parameters, gets no form, and this names the
+parameter that keeps it from one rather than leaving the form silently missing.
+
+```csharp
+public void Weigh(Stream scale) { … }          // ℹ RASK188: 'scale' (System.IO.Stream) is no field a form holds
+public void Resize(TankSize size) { … }        // ✓ a field held as its int, made through TankSize.Create
+```
+
+**Fix:** take a value object of what the parameter means, or a value; the operation's entry is generated either way.
 
 ## RASK189
 
@@ -3920,3 +3947,19 @@ private void OnDelete() => Raise(…);           // ✓
 ```
 
 **Fix:** give it that shape, or name the method something else.
+
+## RASK191
+
+**An aggregate's event handler cannot be registered** · Error
+
+Rask registers an aggregate's `static Task On(E e)` from a generated part of the aggregate's own class, which is what
+lets the method stay private. That needs a `partial`, non-generic aggregate declared directly in a namespace.
+
+```csharp
+public sealed class Fueling : Aggregate<int>              // ✗ RASK191: it is not partial
+{
+    static Task On(DriverChipsChanged e) => …;
+}
+```
+
+**Fix:** declare the aggregate `partial` (and at namespace level, not generic).

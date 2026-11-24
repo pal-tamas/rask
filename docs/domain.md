@@ -1285,6 +1285,11 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   one aggregate alone is keyed by, it loads the aggregate whole (`KeyNotFoundException` when there is none, the
   stale-version refusal as `Find(id, version)`), and refuses a lock outside a `Db.Transaction`, which would hold
   nothing.
+- **A job or an event handler, which read no version:** `await Supply.Change(id, details, parts)` — the same entry
+  without the `version`, generated beside it for a `Versioned` aggregate — loads the aggregate as it now stands and
+  runs the operation on that, its roles and rules asked as ever. It is the system actor's call (a rematch, an
+  ingest), never a form's: a person changes what they read. An operation whose first parameter takes a number
+  (`Book(int seats)`) gets none, since `Supply.Book(id, 3)` would read both ways — pass the version it loaded.
 - **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
   to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
   whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
@@ -1833,6 +1838,7 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
+| `Audited` | an `AuditEntry` written in every save — see [Who changed what](#who-changed-what-audited) |
 | `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) |
 | `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
 
@@ -1921,6 +1927,42 @@ the other server catches up on its next refetch.
 **Why a type argument and not an attribute.** The base is part of the type, so the generator reads it at
 compile time and can never quietly miss it, and a trait in the wrong place is a compile error at the
 declaration. Nothing is reflected over at run time, so a trimmed publish has the same shape as a debug build.
+
+### Who changed what: `Audited`
+
+An aggregate that names `Audited` leaves one `AuditEntry` in **every save that writes it — in that same save**, so
+the entry and the change commit or roll back together:
+
+```csharp
+public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, Audited> { … }
+```
+
+| column | holds |
+|---|---|
+| `Aggregate` | the aggregate's type name, `DeliveryNote` |
+| `Action` | `Insert`, `Update` or `Delete` (a soft delete is a `Delete`) |
+| `Key` | `Id=42` — read once the rows went out when the database generates it, before the commit |
+| `Before` / `After` | `Number=W-1 \|\| Km.Start=1200 \|\| Fuellings[0].Litres=12.5`: an insert every value it stores, a delete every value it held, an update the ones that changed — a value that became null among them, left out of the side where it is null |
+| `User` | the signed-in user's id as their claim reads, `system` for a job, a hosted service or startup |
+| `At` | when the save was made, in UTC (Rask's clock, so `Clock.Fake` moves it) |
+
+- **Its children are part of it.** A line added, changed or removed is recorded in its aggregate's entry, under the
+  place its form shows it at (`Fuellings[1].Quantity`), and only the aggregate's key names the entry.
+- **The values are the stored ones**, a one-value value object as its value, written in the **invariant culture** —
+  a decimal without trailing zeros (`1.5`, whatever scale the column keeps), a moment as `2026-11-24T13:05:00.0000000Z` —
+  so the same save writes the same text on SQLite, SQL Server and PostgreSQL.
+- **The table is `Audits`**, mapped in every model with an `Audited` aggregate and nowhere else, and its names stay
+  as they are under the app's `TableNames`/`ColumnNames`. Map it onto a table you already have in your `IRaskModel`
+  (`b.Entity<AuditEntry>().Property(a => a.Aggregate).HasColumnName("TableName")`).
+- **The text is replaceable.** Register an `AuditFormat` of your own — `services.AddSingleton<AuditFormat, LegacyFormat>()`
+  — and override `Values` for the whole text or `Value` for one value's, when the old rows of a table were written
+  another way.
+- A save that fails writes no entry, and its retry writes one. A raw `ExecuteUpdate`/`ExecuteDelete` writes no
+  entry: it never passes through a save.
+
+**The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
+converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
+it can actually be expressed.
 
 **The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](data.md#mapping-rules-the-conventions-dont-cover), which is where
@@ -2329,9 +2371,11 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
 - **What counts** is what the transaction's saves wrote, each aggregate once: a child counts as its aggregate (a
   changed `SupplyPart` is its `Supply`), the same aggregate saved twice is one, and two rows of one type are two.
   Rask's own tables — outbox, jobs, mail, sessions, passkeys, stored files, cache, push subscribers — are no aggregate
-  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A bulk
-  write (`ExecuteUpdate`, `BulkInsert`) is not a save and is not counted. A save refused for another reason counts
-  nothing.
+  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A
+  [set write](data-writes.md#writes-over-many-rows) (`X.UpdateWhere`, `X.DeleteWhere`) counts once, as `Pairing (set)`,
+  whatever rows it touched; a batch of `X.UpdateEach` or `X.Import` states its own reason — each row is an aggregate of
+  its own — and is let through. A raw `ExecuteUpdate` and a `BulkInsert` are not saves and are not counted
+  ([RASK187](diagnostics.md#rask187) points at the first). A save refused for another reason counts nothing.
 - **Nested blocks are one transaction.** The outermost counts, and a nested `Db.Transaction(…, manyAggregates: …)`
   states the reason for all of it.
 - **The build says it first.** [RASK178](diagnostics.md#rask178) points at a `Db.Transaction` whose work writes two

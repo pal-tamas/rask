@@ -5,7 +5,7 @@ namespace Rask.Batteries.Generators.Tests;
 /// <summary>
 ///     An aggregate's <c>static Task On(E e)</c> is a durable handler of <c>E</c>: the generator registers it from the
 ///     aggregate's own partial class (so <c>On</c> stays private), and refuses an <c>On</c> of the wrong shape (RASK179) or
-///     on an aggregate it cannot add to (RASK188).
+///     on an aggregate it cannot add to (RASK191).
 /// </summary>
 public class AggregateEventHandlerGeneratorTests
 {
@@ -86,7 +86,7 @@ public class AggregateEventHandlerGeneratorTests
     {
         var run = Run(Fuelings.Replace("sealed partial class Fueling", "sealed class Fueling", StringComparison.Ordinal));
 
-        var message = Assert.Single(Messages(run, "RASK188"));
+        var message = Assert.Single(Messages(run, "RASK191"));
 
         Assert.Contains("'Fueling' handles 'Fuel.DriverChipsChanged' in On, but it is not partial", message, StringComparison.Ordinal);
     }
@@ -99,6 +99,6 @@ public class AggregateEventHandlerGeneratorTests
         var generated = run.HasGeneratedSource("Fuel.Fueling.On");
 
         Assert.False(generated);
-        Assert.DoesNotContain(run.Diagnostics, static d => d.Id is "RASK179" or "RASK188");
+        Assert.DoesNotContain(run.Diagnostics, static d => d.Id is "RASK179" or "RASK191");
     }
 }

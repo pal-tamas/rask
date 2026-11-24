@@ -68,7 +68,7 @@ public sealed partial class Vehicle : Aggregate<int, …>
   aggregate or the event renames it, as renaming a handler class does.
 - **The shape is checked at build:** `static`, returning `Task`, one `IEvent` parameter
   ([RASK179](diagnostics.md#rask179)), on a `partial` aggregate declared in a namespace
-  ([RASK188](diagnostics.md#rask188)). One `On` per event; an aggregate may handle several.
+  ([RASK191](diagnostics.md#rask188)). One `On` per event; an aggregate may handle several.
 - A long one — an import, a pull from a partner — runs as a job instead: [`b.Job<E>()`](jobs.md#an-aggregates-handler-as-a-job).
 
 ### Exactly once for the database: `HandlerInTransaction`

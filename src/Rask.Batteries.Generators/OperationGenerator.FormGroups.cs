@@ -23,7 +23,22 @@ public sealed partial class OperationGenerator
 
     private static FormField? GroupFieldOf(IParameterSymbol parameter, INamedTypeSymbol aggregate, string input)
     {
-        if (parameter.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is not INamedTypeSymbol type ||
+        var property = Capitalised(parameter.Name);
+        var stored = parameter.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol type &&
+                     PropertyNamed(aggregate, property) is { } kept && Same(kept.Type, type)
+            ? kept
+            : null;
+        return GroupOf(property, parameter.Type, parameter.NullableAnnotation == NullableAnnotation.Annotated, stored, "aggregate", input, property + "Fields");
+    }
+
+    /// <summary>
+    ///     A value object of several values as a group of fields named <paramref name="property" />: a parameter's, or a row
+    ///     member's (<c>f.Rows[i].Start.Date</c>), filled from <paramref name="stored" /> on <paramref name="owner" />.
+    /// </summary>
+    private static FormField? GroupOf(
+        string property, ITypeSymbol declared, bool optional, IPropertySymbol? stored, string owner, string input, string model)
+    {
+        if (declared.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is not INamedTypeSymbol type ||
             AggregateShape.DeclaredValueBaseOf(type) is not ("Value" or "Range") ||
             OneValueOf(type) is not null ||
             PrimaryParameters(type) is not { Length: > 1 } positional)
@@ -31,7 +46,6 @@ public sealed partial class OperationGenerator
             return null;
         }
 
-        var property = Capitalised(parameter.Name);
         var value = "__" + property;
         var stated = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var range = string.Equals(AggregateShape.DeclaredValueBaseOf(type), "Range", System.StringComparison.Ordinal);
@@ -39,9 +53,9 @@ public sealed partial class OperationGenerator
         foreach (var member in positional)
         {
             var held = PropertyNamed(type, member.Name);
-            var optional = member.NullableAnnotation == NullableAnnotation.Annotated ||
-                           member.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
-            if (held is null || MemberField(member.Name, member.Type, optional, held, value, lift: true) is not { } field)
+            var optionalMember = member.NullableAnnotation == NullableAnnotation.Annotated ||
+                                 member.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+            if (held is null || MemberField(member.Name, member.Type, optionalMember, held, value, lift: true) is not { } field)
             {
                 return null;
             }
@@ -50,15 +64,12 @@ public sealed partial class OperationGenerator
             members.Add(field with { Shape = shape });
         }
 
-        var model = property + "Fields";
-        var optionalGroup = parameter.NullableAnnotation == NullableAnnotation.Annotated;
-        var stored = PropertyNamed(aggregate, property) is { } kept && Same(kept.Type, type) ? kept : null;
         var fills = members.Where(static m => m.Fill is not null).Select(static m => m.Property + " = " + m.Fill).ToList();
         var fill = stored is null
             ? null
-            : "aggregate." + property + " is { } " + value + " ? new " + input + "." + model + " { " + string.Join(", ", fills) + " } : new()";
+            : owner + "." + stored.Name + " is { } " + value + " ? new " + input + "." + model + " { " + string.Join(", ", fills) + " } : new()";
 
-        return new FormField(property, model, null, optionalGroup, Required: false, Text: false, fill)
+        return new FormField(property, model, null, optional, Required: false, Text: false, fill)
         {
             Group = new FormGroup(model, stated, new EquatableArray<FormField>(members), range),
             // A range's field is the range: `Ui.Field.Bind(() => f.Km)` draws both ends under one label.

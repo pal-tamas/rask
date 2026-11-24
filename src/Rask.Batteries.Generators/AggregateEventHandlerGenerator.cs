@@ -22,7 +22,7 @@ namespace Rask.Batteries.Generators;
 ///     </para>
 ///     <para>
 ///         The registration is a module initializer inside the aggregate's own partial class, which is what lets it call
-///         a private <c>On</c>. RASK179 refuses an <c>On</c> of the wrong shape; RASK188 an aggregate the registration
+///         a private <c>On</c>. RASK179 refuses an <c>On</c> of the wrong shape; RASK191 an aggregate the registration
 ///         cannot be added to.
 ///     </para>
 /// </remarks>
@@ -45,7 +45,7 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
         helpLinkUri: DiagnosticHelp.Link("RASK179"));
 
     internal static readonly DiagnosticDescriptor Rask188 = new(
-        "RASK188",
+        "RASK191",
         "An aggregate's event handler cannot be registered",
         "'{0}' handles '{1}' in On, but {2}",
         DiagnosticHelp.Category,
@@ -53,7 +53,7 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
         true,
         description: "Rask registers an aggregate's On(E) from a part of the aggregate's own class, so the method can stay "
                      + "private. That needs a partial, non-generic aggregate declared directly in a namespace.",
-        helpLinkUri: DiagnosticHelp.Link("RASK188"));
+        helpLinkUri: DiagnosticHelp.Link("RASK191"));
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)

@@ -17,6 +17,13 @@ internal abstract class ParentLock(string property)
     /// <summary>The failures of the <paramref name="writes" /> whose old or new parent is locked.</summary>
     internal abstract Task<IReadOnlyList<FieldFailure>> Check(
         DbContext context, IReadOnlyList<LockTarget> writes, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     The failure of a set write (<c>UpdateWhere</c>, <c>DeleteWhere</c>) over <paramref name="rows" />, when one of
+    ///     them holds a locked parent; <see langword="null" /> when none does. One query: the rows that have a locked parent.
+    /// </summary>
+    internal abstract Task<FieldFailure?> CheckSet(
+        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, CancellationToken cancellationToken);
 }
 
 /// <summary>A lock on a <typeparamref name="T" /> whose parent is a <typeparamref name="TParent" />.</summary>
@@ -86,6 +93,56 @@ internal sealed class ParentLock<T, [DynamicallyAccessedMembers(DataTrimming.Ent
         return failures;
     }
 
+    internal override async Task<FieldFailure?> CheckSet(
+        DbContext context, IEntityType rowType, IQueryable rows, LockedWriteKind kind, CancellationToken cancellationToken)
+    {
+        if (rowType.FindProperty(Property) is not { } held)
+        {
+            throw new InvalidOperationException(
+                $"{typeof(T).Name}.LockedBy names '{Property}' as the property holding its parent, but it is not a stored property.");
+        }
+
+        var parentType = context.Model.FindEntityType(typeof(TParent))!;
+        var key = parentType.FindPrimaryKey()!.Properties[0];
+
+        // The parents the rows hold, read as keys; then those of them that are locked, as the save's check reads them.
+        var row = Expression.Parameter(typeof(T), "r");
+        var stored = StoredProperty.Of(row, held);
+        var heldBy = Expression.Lambda<Func<T, object?>>(Expression.Convert(stored, typeof(object)), row);
+        var parents = (await ((IQueryable<T>)rows).AsNoTracking().Select(heldBy).ToListAsync(cancellationToken).ConfigureAwait(false))
+            .OfType<object>()
+            .Distinct()
+            .ToList();
+        foreach (var chunk in parents.Chunk(PerQuery))
+        {
+            var lockedParents = await IncludedLocked(context, key, chunk, cancellationToken).ConfigureAwait(false);
+            if (lockedParents.Count == 0)
+            {
+                continue;
+            }
+
+            var parentKey = key.GetGetter().GetClrValue(lockedParents[0])!;
+            var holds = Expression.Lambda<Func<T, bool>>(
+                Expression.Equal(stored, QueryParameter.Of(parentKey, stored.Type)), row);
+            var first = await ((IQueryable<T>)rows).AsNoTracking().FirstAsync(holds, cancellationToken).ConfigureAwait(false);
+            var text = message(lockedParents[0], new LockedWrite<T>(kind, first));
+            return new FieldFailure(text, kind == LockedWriteKind.Move ? [Property] : []);
+        }
+
+        return null;
+    }
+
+    private async Task<List<TParent>> IncludedLocked(DbContext context, IProperty key, IReadOnlyList<object> keys, CancellationToken cancellationToken)
+    {
+        var query = ParentRead<TParent>.Touched(context, key, keys).Where(locked);
+        foreach (var include in _includes)
+        {
+            query = include(query);
+        }
+
+        return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     // Under an update lock first, every touched parent whether locked or not — the one a concurrent close would write.
     private async Task<List<TParent>> Locked(DbContext context, IProperty key, IReadOnlyList<object> keys, CancellationToken cancellationToken)
     {
@@ -95,13 +152,7 @@ internal sealed class ParentLock<T, [DynamicallyAccessedMembers(DataTrimming.Ent
             await ParentRead<TParent>.ForUpdate(context, key, keys).ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var query = ParentRead<TParent>.Touched(context, key, keys).Where(locked);
-        foreach (var include in _includes)
-        {
-            query = include(query);
-        }
-
-        return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
+        return await IncludedLocked(context, key, keys, cancellationToken).ConfigureAwait(false);
     }
 
     // A change to nothing but the excepted columns passes; an add, a delete, or a change through a child never does.
