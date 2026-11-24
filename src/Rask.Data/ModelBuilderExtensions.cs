@@ -94,6 +94,7 @@ public static class ModelBuilderExtensions
         UseChildFields(entityTypes);
         IgnoreComputedProperties(modelBuilder, entityTypes);
         MapValueCollections(modelBuilder, entityTypes);
+        StatedColumns.Apply(entityTypes);
         ApplyTenancy(modelBuilder, entityTypes, context);
         TenantColumnFollowers.Settle(modelBuilder);
         BindChildrenToTheirParents(modelBuilder);

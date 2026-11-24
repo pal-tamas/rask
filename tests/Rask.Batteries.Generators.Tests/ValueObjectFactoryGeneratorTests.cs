@@ -157,9 +157,9 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Theory]
-    [InlineData("DriverName", "__Facets => new(MaxLength: 1000);")]
-    [InlineData("ChipCode", "__Facets => new(MaxLength: 1000);")]
-    [InlineData("Litres", "__Facets => new(Scale: 2);")]
+    [InlineData("DriverName", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(DriverName), \"Value\", new(MaxLength: 1000));")]
+    [InlineData("ChipCode", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(ChipCode), \"Value\", new(MaxLength: 1000));")]
+    [InlineData("Litres", "__Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(Litres), \"Value\", new(Scale: 2));")]
     public void The_column_facets_are_read_from_the_base_arguments_constants_included(string name, string facets)
     {
         var run = Run(ValueObjects);

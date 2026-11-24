@@ -17,6 +17,9 @@ internal sealed class FieldShapes
     internal FieldShapes With(Type modelType, Func<string, FieldShape?> shapeOf) =>
         new(new Dictionary<Type, Func<string, FieldShape?>>(_registered) { [modelType] = shapeOf });
 
+    // The same registrations with nothing answered yet.
+    internal FieldShapes Fresh() => new(_registered);
+
     // The type that owns the property, then its bases: a derived model answers what its base registered.
     internal FieldShape? ShapeOf(Type owner, string name) =>
         _registered.Count == 0 ? null : _answers.GetOrAdd((owner, name), Ask, _registered);

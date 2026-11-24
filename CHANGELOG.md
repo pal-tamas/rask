@@ -77,6 +77,21 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **FluentValidation rules inside the type, asked exactly where a DataAnnotations attribute is.** Before: an
+  `AbstractValidator<T>` ran only on a form over `T` itself — not on the generated form model of an aggregate, not at
+  the save, and it gave no hint and no column. After: a type may state its rules in its own
+  `static void Rules(InlineValidator<T> rules)` (any accessibility, found at compile time, trim-safe), and those rules —
+  or a separate `AbstractValidator<Supplier>`, which works the same and may sit beside them — run on the generated
+  `SupplierModel`'s form live (`MustAsync` included; a row's under `Parts[1].Quantity`), on a request that carries the
+  model, and at every save (every rule of a new row, only the changed members of a stored one), so `Create(model)`,
+  `Update(id, model)` and `Test.Refuses` refuse under the same fields. Their descriptors give the hints and columns the
+  attribute twin gives: `NotEmpty()` → required + NOT NULL, `MaximumLength`/`Length` → `maxlength`/`minlength` + column
+  length, `EmailAddress()` → `type="email"`, `InclusiveBetween`/`GreaterThanOrEqualTo`… → `min`/`max`,
+  `PrecisionScale` → `step` + `decimal(p, s)`; a rule under `When`/`Unless` gives none, and an attribute on the property
+  wins for its column. A value object may state its rules the same way: they run as it is made, after its base
+  record's own, never for a value loaded from a row. New seam: `Rask.Core.Forms.StatedRules` / `IStatedRules` /
+  `StatedFacets`. BREAKING: `RaskValidators.Replace` takes `ValidatorEntry`s (`RaskValidators.Entry<T>`, `Inline<T>`,
+  `Project<TModel, TOwner>`, all generated).
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a

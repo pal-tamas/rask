@@ -412,7 +412,8 @@ public sealed partial class ModelInputGenerator
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: AnnotatedShapeOf(property, valueObject));
+            Shape: AnnotatedShapeOf(property, valueObject),
+            Stated: valueObject is null && member.Role == ModelMemberRole.Value ? StatedStep(property.Type) : null);
     }
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited

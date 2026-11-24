@@ -26,7 +26,7 @@ public sealed partial class ModelInputGenerator
     /// </summary>
     private readonly record struct Seams(
         bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields, bool OptionalFields, bool DuplicateRowSentence,
-        bool CheckSentences, bool FieldShapes);
+        bool CheckSentences, bool FieldShapes, bool StatedRules);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -45,7 +45,8 @@ public sealed partial class ModelInputGenerator
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationDuplicateRow").Length > 0,
                 compilation.GetTypeByMetadataName("Rask.Core.Forms.DataAnnotationsFieldValidator")?.GetMembers("Message").Length > 0,
-                validation?.GetMembers("RegisterFieldShapes").Length > 0);
+                validation?.GetMembers("RegisterFieldShapes").Length > 0,
+                compilation.GetTypeByMetadataName("Rask.RaskValidators")?.GetMembers("Project").Length > 0);
         });
 
     /// <summary>

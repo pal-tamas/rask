@@ -67,6 +67,7 @@ public sealed partial class ModelInputGenerator
 
         var rulesMark = s.Length;
         AppendFieldRules(s, entity);
+        AppendStatedRules(s, entity);
         Keep(s, formModel, rulesMark);
 
         return s.ToString();

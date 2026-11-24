@@ -1,4 +1,7 @@
 #nullable enable
+override Rask.Core.Forms.StatedFacets.Equals(object? obj) -> bool
+override Rask.Core.Forms.StatedFacets.GetHashCode() -> int
+override Rask.Core.Forms.StatedFacets.ToString() -> string!
 override Rask.Core.SetHTMLUnsafeOptions.Equals(object? obj) -> bool
 override Rask.Core.SetHTMLUnsafeOptions.GetHashCode() -> int
 override Rask.Core.SetHTMLUnsafeOptions.ToString() -> string!
@@ -3978,12 +3981,40 @@ Rask.Core.Forms.IFormControl<T>.Validate.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
+Rask.Core.Forms.IStatedRules
+Rask.Core.Forms.IStatedRules.Check(object! instance, System.Collections.Generic.IReadOnlyCollection<string!>? members, System.IServiceProvider? services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
+Rask.Core.Forms.IStatedRules.FacetsOf(System.Type! type, string! member) -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.IStatedRules.States(System.Type! type) -> bool
 Rask.Core.Forms.IStoreRules
 Rask.Core.Forms.IStoreRules.Check(object! model, string? field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.IRaskFile
 Rask.Core.Forms.RaskValidation
+Rask.Core.Forms.StatedFacets
+Rask.Core.Forms.StatedFacets.<Clone>$() -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.StatedFacets.Deconstruct(out bool Required, out int? MaxLength, out int? MinLength, out decimal? Min, out decimal? Max, out bool Email, out int? Precision, out int? Scale) -> void
+Rask.Core.Forms.StatedFacets.Email.get -> bool
+Rask.Core.Forms.StatedFacets.Email.init -> void
+Rask.Core.Forms.StatedFacets.Equals(Rask.Core.Forms.StatedFacets? other) -> bool
+Rask.Core.Forms.StatedFacets.IsEmpty.get -> bool
+Rask.Core.Forms.StatedFacets.Max.get -> decimal?
+Rask.Core.Forms.StatedFacets.Max.init -> void
+Rask.Core.Forms.StatedFacets.MaxLength.get -> int?
+Rask.Core.Forms.StatedFacets.MaxLength.init -> void
+Rask.Core.Forms.StatedFacets.Min.get -> decimal?
+Rask.Core.Forms.StatedFacets.Min.init -> void
+Rask.Core.Forms.StatedFacets.MinLength.get -> int?
+Rask.Core.Forms.StatedFacets.MinLength.init -> void
+Rask.Core.Forms.StatedFacets.Precision.get -> int?
+Rask.Core.Forms.StatedFacets.Precision.init -> void
+Rask.Core.Forms.StatedFacets.Required.get -> bool
+Rask.Core.Forms.StatedFacets.Required.init -> void
+Rask.Core.Forms.StatedFacets.Scale.get -> int?
+Rask.Core.Forms.StatedFacets.Scale.init -> void
+Rask.Core.Forms.StatedFacets.StatedFacets(bool Required = false, int? MaxLength = null, int? MinLength = null, decimal? Min = null, decimal? Max = null, bool Email = false, int? Precision = null, int? Scale = null) -> void
+Rask.Core.Forms.StatedFacets.With(Rask.Core.Forms.StatedFacets! other) -> Rask.Core.Forms.StatedFacets!
+Rask.Core.Forms.StatedRules
 Rask.Core.Forms.Validate<T>
 Rask.Core.Forms.ValidationEntry
 Rask.Core.Forms.ValidationEntry.Deconstruct(out string! Field, out string! Message) -> void
@@ -7572,6 +7603,16 @@ static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelT
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?
+static Rask.Core.Forms.StatedFacets.None.get -> Rask.Core.Forms.StatedFacets!
+static Rask.Core.Forms.StatedFacets.operator !=(Rask.Core.Forms.StatedFacets? left, Rask.Core.Forms.StatedFacets? right) -> bool
+static Rask.Core.Forms.StatedFacets.operator ==(Rask.Core.Forms.StatedFacets? left, Rask.Core.Forms.StatedFacets? right) -> bool
+static Rask.Core.Forms.StatedRules.Changed() -> void
+static Rask.Core.Forms.StatedRules.Check(object! instance, System.Collections.Generic.IReadOnlyCollection<string!>? members, System.IServiceProvider? services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
+static Rask.Core.Forms.StatedRules.Facets(System.Type! type, string! member, Rask.Values.ValueFacets declared) -> Rask.Values.ValueFacets
+static Rask.Core.Forms.StatedRules.FacetsOf(System.Type! type, string! member) -> Rask.Core.Forms.StatedFacets!
+static Rask.Core.Forms.StatedRules.Shape(System.Type! type, string! member, Rask.Core.Forms.FieldShape! declared) -> Rask.Core.Forms.FieldShape!
+static Rask.Core.Forms.StatedRules.States(System.Type! type) -> bool
+static Rask.Core.Forms.StatedRules.Use(Rask.Core.Forms.IStatedRules! source) -> void
 static Rask.Core.Forms.ValidationEntry.operator !=(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Forms.ValidationEntry.operator ==(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Globalization.CultureNegotiation.operator !=(Rask.Core.Globalization.CultureNegotiation left, Rask.Core.Globalization.CultureNegotiation right) -> bool

@@ -175,6 +175,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
             AnnouncesOptionalFields = seams.OptionalFields,
             AnnouncesFieldShapes = seams.FieldShapes,
+            BorrowsStatedRules = seams.StatedRules,
             TypedIds = typedIds,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
@@ -236,7 +237,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> CompositeChildren = default,
         EquatableArray<IdListShape> IdLists = default,
         bool KeyedByParts = false,
-        ModelOwnRules? OwnRules = null)
+        ModelOwnRules? OwnRules = null,
+        bool BorrowsStatedRules = false)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
@@ -324,7 +326,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         string? DeclaredOn = null,
         string? Named = null,
         string? Shape = null,
-        bool KeepsEmpty = false);
+        bool KeepsEmpty = false,
+        string? Stated = null);
 
     private sealed record Write(
         ModelWriteKind Kind,

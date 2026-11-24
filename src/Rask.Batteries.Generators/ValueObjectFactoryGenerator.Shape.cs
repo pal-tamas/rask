@@ -138,8 +138,10 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>What a control bound to it is told: the kind of value it holds and the rules it declares.</summary>");
         s.AppendLine(Hidden);
-        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => new(").Append(string.Join(", ", named))
-            .AppendLine(facets.Upper ? ") { Upper = true };" : ");");
+        // With what its own static Rules (FluentValidation) state for its value, the tightest of both.
+        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => global::Rask.Core.Forms.StatedRules.Shape(typeof(")
+            .Append(value.Name).Append("), \"Value\", new ").Append(FieldShapeType).Append('(').Append(string.Join(", ", named))
+            .AppendLine(facets.Upper ? ") { Upper = true });" : "));");
     }
 
     private static void AddRangeEnds(List<string> named, ShapeFacets facets)

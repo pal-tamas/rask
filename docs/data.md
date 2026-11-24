@@ -1022,6 +1022,9 @@ For every row the save adds or changes, in this order:
    this save changes. A row stored before a rule was tightened still opens, and still saves for another field; the
    rule is asked again once that field is touched. A one-value value object is checked by the value it holds, as its
    form field is.
+   The rules it states in code — a FluentValidation `RuleFor` in its own `static void Rules(InlineValidator<T> rules)`
+   or in an `AbstractValidator<T>` class ([forms validation](forms-validation.md#rules-inside-the-type)) — are asked the
+   same way, `MustAsync` included: every rule of a new row, only the changed members' of a stored one.
 2. **Its type's attributes, and `IValidatableObject` / `IAsyncValidatableObject`** when it implements one.
 3. **Its `Validate()`** — the root's whenever anything in the aggregate changes, a removed row included, because a
    rule over the rows is the root's.
@@ -1864,6 +1867,14 @@ What each one does, where it is read — on the aggregate's property, a generate
 | `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
 | `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
 | `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
+
+The same rules written with FluentValidation — in the aggregate's own `static void Rules(InlineValidator<T> rules)`, or
+in an `AbstractValidator<T>` class — are read in exactly these places: the generated model's members carry the
+aggregate's rules on its form (live, `MustAsync` included, a row's under `Lines[2].Quantity`), every save asks them, and
+`NotEmpty()`, `MaximumLength`/`Length`, `EmailAddress()`, `InclusiveBetween`/`GreaterThanOrEqualTo`… and
+`PrecisionScale(p, s)` give the hint and the column their attribute twin gives — `NOT NULL`, the length, `decimal(p, s)`
+— which a migration shows. An attribute on the same property wins for its column. The value object stays the
+recommended way: see [three ways to say a rule](forms-validation.md#three-ways-to-say-a-rule).
 
 `[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
 the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no

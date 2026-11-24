@@ -169,6 +169,12 @@ public static partial class DemoRegistry
             ["validation-async-attribute"] = () => CodeSample.Files(["AsyncAttributeDemo.cs", "NewsletterModel.cs", "UniqueEmailAttribute.cs"]).Result(AsyncAttributeDemo),
             ["validation-validatable-object"] = () => CodeSample.Files(["ValidatableObjectDemo.cs", "BookingModel.cs"]).Result(ValidatableObjectDemo),
             ["validation-fluent-async"] = () => CodeSample.Files(["FluentValidationAsyncDemo.cs", "TicketModel.cs", "TicketValidator.cs"]).Result(FluentValidationAsyncDemo),
+            ["validation-fluent-in-type"] = () => CodeSample
+                .Files(["FluentRulesInTypeDemo.cs", "SupplierModel.cs"])
+                .Notes("The rules live in the model's own static Rules(InlineValidator<T>), found at compile time. "
+                + "They tell each field what an attribute would: Name its maxlength and the required badge, E-mail "
+                + "an email input, Rating its min and max.")
+                .Result(FluentRulesInTypeDemo),
             ["validation-async"] = () => CodeSample.Files(["AsyncValidationDemo.cs", "SignupModel.cs", "UniqueUsernameValidator.cs"]).Result(AsyncValidationDemo),
             ["validation-programmatic"] = () => CodeSample.Files(["ProgrammaticValidateDemo.cs", "TaskModel.cs", "SlowTitleValidator.cs"]).Result(ProgrammaticValidateDemo),
             ["validation-first-error-wins"] = () => CodeSample.Files(["FirstErrorWinsDemo.cs", "LicenseModel.cs"]).Result(FirstErrorWinsDemo),

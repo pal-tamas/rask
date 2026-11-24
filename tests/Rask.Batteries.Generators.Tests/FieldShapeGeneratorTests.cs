@@ -65,7 +65,7 @@ public class FieldShapeGeneratorTests
 
     [Theory]
     [InlineData("DriverName", Kind + ".Text, MaxLength: 100, MinLength: 2")]
-    [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true };")]
+    [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true });")]
     [InlineData("Litres", Kind + ".Number, Min: 1m, Max: 999.5m, Scale: 2")]
     [InlineData("Pieces", Kind + ".Whole, Min: 0m, Max: 1000m")]
     [InlineData("InvoiceDay", Kind + ".Day, NotAfterToday: true")]
@@ -79,7 +79,7 @@ public class FieldShapeGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("public static global::Rask.Core.Forms.FieldShape __Field => new(" + shape, generated, StringComparison.Ordinal);
+        Assert.Contains("\"Value\", new global::Rask.Core.Forms.FieldShape(" + shape, generated, StringComparison.Ordinal);
     }
 
     [Fact]
