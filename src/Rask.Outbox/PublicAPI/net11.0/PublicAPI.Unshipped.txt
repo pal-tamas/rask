@@ -172,3 +172,5 @@ static Rask.Cqrs.OutboxFakes.Fake() -> Rask.Cqrs.OutboxFake!
 static Rask.Cqrs.OutboxFakes.extension(Rask.Cqrs.Outbox!).Fake() -> Rask.Cqrs.OutboxFake!
 Rask.Outbox.OutboxOptions.HandlerInTransaction.get -> bool
 Rask.Outbox.OutboxOptions.HandlerInTransaction.set -> void
+static Rask.Outbox.OutboxMessageReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
+static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!

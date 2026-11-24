@@ -52,14 +52,26 @@ internal static class TenantParents
     ///     parent <paramref name="partitioned" /> says is tenant-scoped, whose collection holds the child.
     /// </summary>
     internal static List<IReadOnlyForeignKey> KeysOf(IReadOnlyEntityType child, Func<Type, bool> partitioned) =>
-        [.. child.GetForeignKeys().Where(key =>
-            key.PrincipalToDependent is { IsCollection: true } &&
-            !ReferenceEquals(key.PrincipalEntityType, child) &&
-            partitioned(key.PrincipalEntityType.ClrType))];
+        ConventionRegistry.TenantParentOf(child.ClrType) is { } parent
+            ? KeysTo(child, parent)
+            : HeldKeys(child, partitioned);
 
     /// <summary>The same, for a write model's entity type, where the registry says which parent is partitioned.</summary>
     internal static List<IForeignKey> KeysOf(IEntityType child) =>
         [.. KeysOf(child, IsPartitioned).Cast<IForeignKey>()];
+
+    /// <summary>
+    ///     The relationships from an aggregate that names <see cref="PerTenantThrough{TParent}" /> to
+    ///     <paramref name="parent" /> — on the write model the parent's type, on a read face the parent's face.
+    /// </summary>
+    internal static List<IReadOnlyForeignKey> KeysTo(IReadOnlyEntityType entity, Type parent) =>
+        [.. entity.GetForeignKeys().Where(key => key.PrincipalEntityType.ClrType == parent)];
+
+    private static List<IReadOnlyForeignKey> HeldKeys(IReadOnlyEntityType child, Func<Type, bool> partitioned) =>
+        [.. child.GetForeignKeys().Where(key =>
+            key.PrincipalToDependent is { IsCollection: true } &&
+            !ReferenceEquals(key.PrincipalEntityType, child) &&
+            partitioned(key.PrincipalEntityType.ClrType))];
 
     /// <summary>
     ///     The tenant parents of a read face, where an id's reverse collection is a collection of the child too: only the

@@ -76,3 +76,25 @@ public sealed class Booth : Aggregate<Guid>
         }
     }
 }
+
+// An aggregate whose unique indexes are only planned — the database has none (UniqueCandidateTests drops them): what
+// `rask audit --unique-candidates` asks of the stored rows before the migration that adds them.
+public sealed class Keycard : Aggregate<Guid>
+{
+    private Keycard() { } // EF materialization
+
+    public string Number { get; private set; } = "";
+
+    public string? Holder { get; private set; }
+
+    public bool Revoked { get; private set; }
+
+    public static Keycard Issue(string number, string? holder = null, bool revoked = false) =>
+        new() { Id = Guid.CreateVersion7(), Number = number, Holder = holder, Revoked = revoked };
+
+    public static void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Keycard> builder)
+    {
+        builder.HasIndex(k => k.Number).IsUnique();
+        builder.HasIndex(k => k.Holder).IsUnique().Where(k => k.Revoked == false);
+    }
+}

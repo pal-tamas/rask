@@ -662,7 +662,9 @@ internal static class GeneratedModelShape
             return null;
         }
 
-        if (HasAttribute(property, NotMappedAttribute) || IsNavigationOrCollection(property.Type))
+        // A secret is set by an operation that takes the plain value (Secret.Applied) and is never a form's: a model that
+        // carried it would be filled with it, and a save from the model would write it back.
+        if (HasAttribute(property, NotMappedAttribute) || IsNavigationOrCollection(property.Type) || AggregateShape.IsSecret(property.Type))
         {
             return null;
         }

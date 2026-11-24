@@ -154,6 +154,7 @@ Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsQueryable() -> System.Linq.IQueryable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsSplitQuery() -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.ForUpdate() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.IgnoreQueryFilters() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<TEntity!>!
@@ -499,7 +500,7 @@ Rask.Data.ComputedColumnBuilderExtensions
 static Rask.Data.ComputedColumnBuilderExtensions.Computed<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.DefaultValueBuilderExtensions
 static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TProperty value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
-static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty, TClock>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TClock>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.FilteredIndexBuilderExtensions
 static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 Rask.Data.Refuse
@@ -607,3 +608,40 @@ Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore
 static Rask.Data.ProjectionBuilderExtensions.Projects<T, TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
 Rask.Data.DeleteHooks
 static Rask.Data.DeleteHooks.Register(System.Type! aggregate, System.Action<object!>! onDelete) -> void
+static Rask.Data.DefaultValueBuilderExtensions.StoredDefault<TEntity, TProperty, TStored>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TStored value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+Rask.Data.SearchTextExtensions
+static Rask.Data.SearchTextExtensions.Loosely(this string! text) -> string!
+Rask.Data.ISecrets
+Rask.Data.ISecrets.Protect(string! plaintext) -> string!
+Rask.Data.ISecrets.Unprotect(string! stored) -> string!
+Rask.Data.JsonBuilderExtensions
+Rask.Data.SecretConverter<T>
+Rask.Data.SecretConverter<T>.SecretConverter() -> void
+Rask.Data.SecretKeeping
+static Rask.Data.JsonBuilderExtensions.Json<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member, string? column = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.SecretKeeping.Default.get -> Rask.Data.ISecrets?
+static Rask.Data.SecretKeeping.Default.set -> void
+Rask.Data.Entity<TId, T1, T2>
+Rask.Data.Entity<TId, T1, T2>.Entity() -> void
+Rask.Data.GatedBuilderExtensions
+Rask.Data.InForceBuilderExtensions
+Rask.Data.InForceExtensions
+Rask.Data.ModelQuery<TEntity>.Across(string! reason) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.OneInForce<TChild>
+Rask.Data.OneInForce<TChild>.OneInForce() -> void
+Rask.Data.PerTenantThrough<TParent>
+Rask.Data.PerTenantThrough<TParent>.PerTenantThrough() -> void
+Rask.Data.SoftRemoved
+Rask.Data.SoftRemoved.SoftRemoved() -> void
+Rask.Data.TraitSet.SoftRemoved = 512 -> Rask.Data.TraitSet
+static Rask.Data.ConventionRegistry.DeclareInForce(System.Type! aggregate, System.Type! child) -> void
+static Rask.Data.ConventionRegistry.DeclareTenantParent(System.Type! entity, System.Type! parent) -> void
+static Rask.Data.GatedBuilderExtensions.Gated<TEntity, TValue, TGate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member, TGate gate) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.InForceBuilderExtensions.InForceWhile<TChild>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TChild!>! child, System.Linq.Expressions.Expression<System.Func<TChild!, bool>!>! inForce, string! message = "Another one is already in force.") -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TChild!>!
+static Rask.Data.InForceExtensions.End<TChild>(this System.Collections.Generic.IEnumerable<TChild!>! children, System.Action<TChild!>! end) -> TChild?
+static Rask.Data.InForceExtensions.InForce<TChild>(this System.Collections.Generic.IEnumerable<TChild!>! children) -> TChild?
+static Rask.Data.InForceExtensions.Put<TChild>(this System.Collections.Generic.ICollection<TChild!>! children, TChild! next, System.Action<TChild!>! end) -> TChild?
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskGate<TGate>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, TGate, bool>! isOpen) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Data.SequenceBuilderExtensions
+static Rask.Data.SequenceBuilderExtensions.FromSequence(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
+static Rask.Data.SequenceBuilderExtensions.FromSequence<TKey>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>!

@@ -123,3 +123,20 @@ public abstract class Entity<TId, T1> : Entity<TId>
     {
     }
 }
+
+/// <summary>
+/// A child entity that names two traits, in any order: <c>VirtualTank : Entity&lt;VirtualTankId, Timestamps, SoftRemoved&gt;</c>.
+/// </summary>
+/// <typeparam name="TId">The key type.</typeparam>
+/// <typeparam name="T1">An <see cref="IEntityTrait" />.</typeparam>
+/// <typeparam name="T2">An <see cref="IEntityTrait" />.</typeparam>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
+public abstract class Entity<TId, T1, T2> : Entity<TId>
+    where T1 : IEntityTrait
+    where T2 : IEntityTrait
+{
+    /// <summary>Initializes the base.</summary>
+    protected Entity()
+    {
+    }
+}

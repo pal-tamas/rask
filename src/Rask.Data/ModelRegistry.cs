@@ -109,6 +109,9 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services =>
             new CoveringIndexConvention(services.GetService<IDatabaseProvider>()?.Name));
 
+        // x.Loosely() is the provider's case- and accent-insensitive collation, in the query that asks for it.
+        configurationBuilder.Conventions.Add(static services => SearchTextConvention.For(services));
+
         // A JSON column on SQL Server stays nvarchar(max) at every compatibility level.
         configurationBuilder.Conventions.Add(static services =>
             new JsonContainerTextConvention(services.GetService<IDatabaseProvider>()?.Name));
@@ -117,10 +120,11 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services =>
             new GuidIdTextConvention(services.GetService<IRelationalTypeMappingSource>()));
 
-        // Computed(…), Default(…, () => Clock.Now) and an index's Where(…) become the provider's own SQL there too.
+        // Computed(…), Default(…) and an index's Where(…) become the provider's own SQL there too.
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));
-        configurationBuilder.Conventions.Add(static services => new DatabaseNowConvention(ModelSql.For(services)));
+        configurationBuilder.Conventions.Add(static services => new DatabaseDefaultConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new FilteredIndexConvention(ModelSql.For(services)));
+        configurationBuilder.Conventions.Add(static services => new SequenceConvention(ModelSql.For(services)));
 
         foreach (var contribution in Contributions.Values)
         {
@@ -180,6 +184,9 @@ public static class ModelRegistry
         // A child partitioned through its parent is settled once more: Configure may have given it a TenantId, or
         // moved the key its filter asks by.
         ModelBuilderExtensions.SettleTenancyThroughParents(modelBuilder, context);
+
+        // OneInForce<TChild> reads the condition the child's own Configure declared.
+        InForceIndexes.Apply(modelBuilder);
 
         return modelBuilder;
     }

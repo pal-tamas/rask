@@ -534,3 +534,7 @@ Rask.Background.EventJob<TEvent>.InLane(System.Func<TEvent!, string!>! lane) -> 
 Rask.Background.EventJob<TEvent>.InTenantLane(string? lane = null) -> Rask.Background.EventJob<TEvent!>!
 Rask.Background.EventJob<TEvent>.UnlessWaiting(System.Func<TEvent!, string!>! key) -> Rask.Background.EventJob<TEvent!>!
 static Rask.Background.JobsModelBuilderExtensions.Job<TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder! builder) -> Rask.Background.EventJob<TEvent!>!
+static Rask.Background.JobReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!

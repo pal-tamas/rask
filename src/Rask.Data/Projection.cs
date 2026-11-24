@@ -20,12 +20,17 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;
     private readonly Expression<Func<TEntity, TResult>> _selector;
 
+    // The read face a ForUpdate() query names, or null when the rows are read unlocked.
+    private readonly string? _lockedSubject;
+
     internal Projection(
         Func<IQueryable<TEntity>, IQueryable<TEntity>> source,
-        Expression<Func<TEntity, TResult>> selector)
+        Expression<Func<TEntity, TResult>> selector,
+        string? lockedSubject = null)
     {
         _source = source;
         _selector = selector;
+        _lockedSubject = lockedSubject;
     }
 
     /// <summary>Runs the query and hands back every projected row: <c>await Product.All.Select(p =&gt; p.Name)</c>.</summary>
@@ -49,12 +54,26 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken)!;
 
     /// <summary>How many rows match.</summary>
-    public Task<int> Count(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+    public Task<int> Count(CancellationToken cancellationToken = default)
+    {
+        RefuseAggregate(nameof(Count));
+        return RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+    }
 
     /// <summary>Whether the query matches any row.</summary>
-    public Task<bool> Any(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
+    public Task<bool> Any(CancellationToken cancellationToken = default)
+    {
+        RefuseAggregate(nameof(Any));
+        return RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
+    }
+
+    private void RefuseAggregate(string terminal)
+    {
+        if (_lockedSubject is not null)
+        {
+            throw ForUpdateSql.Aggregate(_lockedSubject, terminal);
+        }
+    }
 
     private async Task<TValue> RunAsync<TValue>(
         Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,

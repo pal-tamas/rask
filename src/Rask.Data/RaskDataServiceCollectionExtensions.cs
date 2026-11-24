@@ -63,6 +63,9 @@ public static partial class RaskDataServiceCollectionExtensions
             // events: a declared projection's event rides on its rows, so it is stored and published as theirs.
             services.AddSingleton<ISaveChangesInterceptor>(ProjectionInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
+
+            // Before auditing, so a gated member it keeps unwritten is not what makes the row look changed.
+            services.AddSingleton<ISaveChangesInterceptor, GatedWritesInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
             // Publishes after the commit and clears the events only then, so the outbox (which reads the same events

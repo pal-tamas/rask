@@ -350,9 +350,16 @@ it keeps EF Core's default.
 **An optional complex value is null when its row has none.** `public Opening? Start { get; private set; }` is an EF
 Core optional complex property: every column under it is nullable, a row with no opening holds `NULL` in all of
 them and loads `Start` as `null`, and the read face's `StartDate` and `StartQuantity` are `DateTime?` and
-`decimal?` however `Opening`'s own members are declared. EF Core needs one member that is not nullable to tell
-"none" from "all empty" — an `Opening(DateTime? Date, decimal? Quantity)` held as `Opening?` is refused when the
-model is built; declare a member required, or hold it as `Opening` and let its members be empty.
+`decimal?` however `Opening`'s own members are declared. When a member is not nullable, that one column tells a
+row with an opening from one without. **When every member is optional** — `Opening(DateTime? Date, decimal? Quantity)`
+held as `Opening?`, the shape a legacy table with two nullable columns has — every column `NULL` is none: a row
+holding only a date, or only a quantity, loads as that `Opening`, a row holding neither loads as `null`, and
+`Where(p => p.Start == null)` asks that every column is `NULL`. No column is added for it, so a schema another tool
+made is read as it is. An `Opening(null, null)` saved is therefore read back as `null`: a value whose members are all
+empty is no value. EF Core alone refuses such a property (it asks for a discriminator column); every
+`RaskDbContext` holds it on any relational provider, and `UseRaskSqlite`, `UseRaskSqlServer` and `UseRaskPostgres`
+hold it on a plain `DbContext` too. Don't start it from a placeholder (`= Opening.None`, which
+[RASK150](diagnostics.md#rask150) flags): leave it `null`.
 
 **An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
 into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
@@ -1106,6 +1113,95 @@ builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>
 await Skid.Where(s => s.Handling.Contains(SkidHandling.Cold));                         // the enum, not its name
 ```
 
+### A list that is a value: `ValueList<T>`
+
+A `List<T>` is compared by reference, so a value object that holds one is never equal to another holding the same
+elements, and anything holding the list can change it under the value object's feet. **`ValueList<T>`** (namespace
+`Rask.Values`) is the list that is a value: equal by its elements in order, and never changed once made — a
+collection expression makes one, and a new list replaces it:
+
+```csharp
+public sealed class Tenant : Aggregate<TenantId, Versioned>
+{
+    public ValueList<CategoryCode> Codes { get; private set; } = [];     // a JSON column, as IReadOnlyList<T> is
+
+    public void Classify(params CategoryCode[] codes) => Codes = [.. codes];
+}
+```
+
+On an aggregate or an entity it takes the same column an `IReadOnlyList<T>` does — a primitive collection of plain
+values, a JSON column of value objects, `NOT NULL` and `[]` when empty — and is queried the same way
+(`Tenant.Where(t => t.Codes.Contains(code))`). It implements `IList<T>` only because that is what EF Core reads a
+JSON collection into: once anything has read it, a change through that interface throws `NotSupportedException`.
+
+### One value object kept whole as JSON: `b.Json(…)`
+
+A value object of several members is a complex type, one column per member. A value object that **holds a list** —
+a partner's settings, a set of pairings — has no columns to spread over, so it is kept whole in **one JSON column**,
+named in the entity's `Configure`:
+
+```csharp
+public sealed record LocalWell
+{
+    private LocalWell() { }                                            // EF Core builds a holder of a list
+    public LocalWell(LocalWellProvider provider, Secret<ApiKey>? key, ValueList<Pair> tanks) =>   // through its members
+        (Provider, Key, Tanks) = (provider, key, tanks);
+
+    public LocalWellProvider Provider { get; private init; }
+    public Secret<ApiKey>? Key { get; private init; }
+    public ValueList<Pair> Tanks { get; private init; } = [];
+}
+
+public sealed partial class Tenant
+{
+    public LocalWell? LocalWell { get; private set; }
+
+    static void Configure(EntityTypeBuilder<Tenant> b) => b.Json(t => t.LocalWell, column: "LocalSettings");
+}
+```
+
+`column:` names a column an adopted table already has; without it the column is named after the property. A
+nullable member is a `NULL` column while it holds nothing. It is EF Core's own JSON mapping, so the column is `TEXT`
+on SQLite, `nvarchar(max)` (or `json`) on SQL Server and `jsonb` on PostgreSQL, a filter on what is inside runs in
+the database on all three (`Tenant.Where(t => t.LocalWell!.Provider == provider)`, `….Tanks.Any(p => p.DbId == id)`),
+and the conformance suite proves it on each (`JsonValueParityTests`). `b.Json(…)` on a collection of value objects
+renames its JSON column. The read face leaves a value object kept as JSON out; read it through the aggregate.
+
+EF Core builds a value object that holds another, or a list, through its members rather than its constructor — so
+such a holder has a private parameterless constructor and `private init` members, as above.
+
+### Secrets: `Secret<T>`
+
+An API key a partner issued, a token the app must send on: a value the app **stores and uses but never shows**.
+Declare it `Secret<T>` — over a `string`, or over a value object that holds one text (its rules checked as it is
+made):
+
+```csharp
+public sealed partial record ApiKey(string Value) : Text(Value, MaxLength: 200);
+
+public sealed partial class Partner
+{
+    public Secret<ApiKey>? Key { get; private set; }
+
+    public void Connect(Change<ApiKey> key) => Key = Secret.Applied(key, Key);   // empty field: keep; typed: replace
+}
+```
+
+- **Stored as ciphertext.** The column — and a `Secret<T>` inside a JSON column, as `LocalWell.Key` above — holds the
+  value encrypted through `ISecrets`, which Rask.Server backs with the host's ASP.NET Core Data Protection key ring
+  (the ring a Rask deploy persists to its volume, under a purpose of its own). A dump, a backup or a logged SQL
+  parameter shows nothing usable. A row stored before a rule was tightened still loads. **Keep the key ring as long
+  as the data**: a ciphertext is only readable with the keys that wrote it.
+- **Never shown.** `ToString()` and the debugger say `••••`, and it has no public member, so a serializer writes `{}`.
+  The read face leaves it out, and the generated model — so every form over the aggregate — has no field for it: it
+  is never prefilled into a form and never sent to a browser.
+- **Set through an operation** that takes the plain value object. `Change<ApiKey>` gives the form an empty field that
+  keeps the stored key unless something is typed, and `Secret.Applied` wraps what was typed. Read `Key.Reveal()` in
+  the one place the key is used — the request to the partner.
+- **A host wired by hand** registers its own `ISecrets`; a test sets `SecretKeeping.Default` to one. A
+  `Secret<T>` of a `Password` value object is not [RASK175](diagnostics.md#rask175): it is kept as ciphertext, which is
+  what a password the app must send on asks for. A sign-in password is still hashed, never kept.
+
 Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
 searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
 
@@ -1737,6 +1833,8 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
+| `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) |
+| `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
 
 With neither `Deletable` nor `SoftDelete` there is no `Delete` at all — calling it is a compile error, which is
 what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
@@ -1753,8 +1851,45 @@ What the table does not carry, the generated types do not either. A `Reading` li
 `Reading.OrderBy(r => r.UpdatedAt)` is a compile error, not a query that fails. `DeletedAt` is on a read face
 only for an aggregate that names `SoftDelete`.
 
-A child `Entity` takes only a timestamp trait — `OrderLine : Entity<Guid, Timestamps>`. Tenancy, the version, the
-delete and the form model are the aggregate's, so naming one on an entity is a compile error (CS0311).
+A child `Entity` takes only a timestamp trait and `SoftRemoved` — `OrderLine : Entity<Guid, Timestamps>`,
+`VirtualTank : Entity<VirtualTankId, Timestamps, SoftRemoved>`. Tenancy, the version, the delete and the form model are
+the aggregate's, so naming one on an entity is a compile error (CS0311).
+
+#### History and the one in force
+
+**`SoftRemoved`** keeps a child its aggregate lets go of. Removed from the collection — by `Sync`, `Remove`, a
+list's own — its row stays, stamped with `DeletedAt`, together with what it holds: whatever points at it (a fueling
+at a virtual tank) still does, and a unique index over it still counts it, so the name it held stays taken. The
+aggregate's load and the child's read face no longer see it; `IgnoreQueryFilters()` lists it again. An aggregate root
+names `SoftDelete` instead, and a root that names `SoftRemoved` is refused when the model is built.
+
+**`OneInForce<TChild>`** keeps the history of a child and at most one of it in force — a return's filings, a
+period's closings. The child says when one is, in its own `Configure`; the aggregate puts the next one in force and
+ends the last in one step:
+
+```csharp
+public sealed class Period : Aggregate<PeriodId, Versioned, OneInForce<PeriodFiling>>
+{
+    private readonly List<PeriodFiling> _filings = [];
+    public IReadOnlyList<PeriodFiling> Filings => _filings;
+
+    public void Close(Filer by) => _filings.Put(PeriodFiling.Of(by, Clock.Now), end: f => f.Unfile(by, Clock.Now));
+    public void Reopen(Filer by) => _filings.End(f => f.Unfile(by, Clock.Now));
+    public bool Closed => Filings.InForce() is not null;
+}
+
+public sealed class PeriodFiling : Entity<PeriodFilingId>
+{
+    public DateTime? UnfiledAt { get; private set; }
+    static void Configure(EntityTypeBuilder<PeriodFiling> b) => b.InForceWhile(f => f.UnfiledAt == null, Texts.AlreadyFiled);
+}
+```
+
+The rule is a unique index on the child's key to its aggregate over the rows in force only — filtered on SQL
+Server, partial on PostgreSQL and SQLite — so of two saves that each file one, one commits and the other is refused
+with a `RaskValidationException` under the new child's row (`Filings[1].PeriodId`) carrying the message; never a
+check-then-insert. `InForce()`, `Put(…)` and `End(…)`
+ask the same condition in memory, and `InForce()` throws if it ever finds two.
 
 ### Announcing a save
 

@@ -103,7 +103,11 @@ public static class ReadModelRegistry
                 continue;
             }
 
-            var keys = TenantParents.HeldKeysOf(face, partitioned.Contains);
+            // PerTenantThrough<TParent> asks the face of the aggregate it points at; a child, the face that holds it.
+            var keys = ConventionRegistry.TenantParentOf(mapping.WriteType) is { } parent &&
+                       all.Find(m => m.WriteType == parent) is { } parentFace
+                ? TenantParents.KeysTo(face, parentFace.ReadType)
+                : TenantParents.HeldKeysOf(face, partitioned.Contains);
             if (keys.Count == 0)
             {
                 // Never left unfiltered: a child face with no column and no parent to ask would read every tenant.
@@ -335,7 +339,8 @@ public static class ReadModelRegistry
         // conventions, but an app that maps its own context without them — or that ignored the column —
         // would otherwise get a query filter over a property this face does not map, and EF refuses the
         // model with an error naming neither the filter nor the reason.
-        if (mapping.IsRoot && builder.Metadata.FindProperty(Columns.DeletedAt) is not null)
+        if ((mapping.IsRoot || write?.FindProperty(Columns.DeletedAt) is not null) &&
+            builder.Metadata.FindProperty(Columns.DeletedAt) is not null)
         {
             builder.HasQueryFilter(
                 ModelBuilderExtensions.SoftDeleteFilter,

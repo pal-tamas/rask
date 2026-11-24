@@ -24,6 +24,7 @@ internal static class AppCommand
     private const string Help =
         "Usage: dotnet <App>.dll rask <command>\n"
         + "  rask audit [--aggregate <Name>]... [--json]   Report every stored aggregate its current rules refuse (reads only).\n"
+        + "  rask audit --unique-candidates [...]         Report the stored rows each unique index would refuse, before it is migrated.\n"
         + "  rask db migrate                              Apply pending migrations, then their data steps.";
 
     /// <summary>Whether <paramref name="args" /> name a command rather than start the server.</summary>
@@ -59,7 +60,7 @@ internal static class AppCommand
     {
         if (AuditOptions.Parse(options) is not { } parsed)
         {
-            await Say(error, "rask audit takes --aggregate <Name> (any number of times) and --json.\n" + Help, cancellationToken).ConfigureAwait(false);
+            await Say(error, "rask audit takes --aggregate <Name> (any number of times), --unique-candidates and --json.\n" + Help, cancellationToken).ConfigureAwait(false);
             return Usage;
         }
 
@@ -76,7 +77,7 @@ internal static class AppCommand
             RuleAuditReport report;
             try
             {
-                report = await RuleAudit.RunAsync(parsed.Aggregates, cancellationToken).ConfigureAwait(false);
+                report = await RuleAudit.RunAsync(parsed.Aggregates, cancellationToken, parsed.UniqueCandidates).ConfigureAwait(false);
             }
             catch (ArgumentException unknown)
             {

@@ -29,13 +29,13 @@ and no provider API — the same model, the same queries and the same tests run 
 
 | Say | Not | Where |
 |---|---|---|
-| `OrderTextBy("Hungarian_100_CI_AS")` once, `x.Name.InTextOrder()` in a query | `EF.Functions.Collate`, `UseCollation` | [app-wide model rules](#app-wide-model-rules-one-iraskmodel) |
+| `OrderTextBy("Hungarian_100_CI_AS")` once, `x.Name.InTextOrder()` in a query; `x.Name.Loosely().Contains(typed)` for a search | `EF.Functions.Collate`, `UseCollation` | [app-wide model rules](#app-wide-model-rules-one-iraskmodel) |
 | the value object's `Scale`/`MaxLength` (`Number(Value, Scale: 9)`), or `HasPrecision` | a store type written in SQL | [decimals](#decimals-what-each-database-keeps) |
 | `.Covering(x => x.Amount)` | `IncludeProperties` | [an index that answers the query by itself](#an-index-that-answers-the-query-by-itself) |
-| `b.Computed(…)`, `b.Default(…)`, `HasIndex(…).Where(x => …)` | `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` | [computed columns, defaults and filtered indexes](#computed-columns-defaults-and-filtered-indexes-in-c) |
+| `b.Computed(…)`, `b.Default(…)`, `b.StoredDefault(…)`, `HasIndex(…).Where(x => …)` | `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` | [computed columns, defaults and filtered indexes](#computed-columns-defaults-and-filtered-indexes-in-c) |
 | `end - start` | `EF.Functions.DateDiff*` | [how long between two dates](#how-long-between-two-dates-in-a-query) |
 | `IsUnique("…")`, `OnDelete(…)` with a message | catching a driver's `SqlException` | [a unique index's violation](#what-a-unique-indexs-violation-says) |
-| `Db.Lock(name)`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
+| `Db.Lock(name)`, `X.Where(…).ForUpdate()`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [rows read for update](#rows-read-for-update-forupdate), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
 | a LINQ query, a change through the aggregate | `FromSql`, `ExecuteSql*`, `SqlQuery` | [the read face](#reading-the-read-face), [operations](domain.md#operations-what-the-aggregate-does) |
 
 Code only one database understands is [RASK177](diagnostics.md#rask177) — a suggestion, a warning under
@@ -284,6 +284,32 @@ var byMonth = await Product.Query((q, ct) =>
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
 ```
+
+### Rows read for update: `ForUpdate()`
+
+A check and the write it guards — "is the month still open?", then a claim into it — need the rows to stay as they
+were read until the write commits. `ForUpdate()` reads them under an update lock held to the end of the
+`Db.Transaction` the read runs in, so a second writer of the same rows waits for the commit instead of reading what
+the first is about to change:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    var month = await Month.Where(m => m.Id == id).ForUpdate().Single();
+    Refuse.When(month.Closed, "The month is closed.");
+    await Claim.Into(id).Save();
+});
+```
+
+- It is written in each database's own words: `WITH (UPDLOCK, HOLDLOCK)` on the query's first table on SQL Server,
+  `FOR UPDATE OF` it on PostgreSQL, and as it is on SQLite, whose one writer serializes the transactions already.
+  Every terminal reads under it — awaiting the query, `First`, `Single`, a `Select(…)` — and the rows of a table it
+  joins (an `Include`) are not locked: lock them by a query of their own.
+- **Outside a `Db.Transaction` it is refused** where it runs: the lock would end with the read and hold nothing.
+- **A `Count()` or `Any()` of a locked query is refused** on every database — a lock is held on the rows a read
+  hands back, and PostgreSQL holds none for an aggregate. Read the rows, and count them in memory.
+- An operation that only needs its own aggregate's row locked says so where it is declared —
+  `b.Operation(x => x.M, forUpdate: true)`, or `await id.Load(version, forUpdate: true)` ([operations](domain.md#operations-what-the-aggregate-does)).
 
 ### A reusable query: a scope
 
@@ -637,6 +663,27 @@ public sealed class AppModel : IRaskModel
   c.OrderTextBy("Hungarian_100_CI_AS");
   .OrderBy(x => x.Name.InTextOrder())
   ```
+- **`x.Loosely()`** is the text compared **case and accents aside**, in no one language's order — what a search box
+  wants beside the app's own order: `Driver.Where(d => d.Name.Loosely().Contains(typed))` finds `Kovács` for
+  `"kovacs"`, and `"c"` in `Csaba`, which the Hungarian order (where `cs` is one letter) would not. It needs no
+  convention and changes only the query it is written in — no column, no index, no migration on SQL Server and SQLite:
+
+  | | written as | `Contains` / `StartsWith` / `EndsWith` |
+  |---|---|---|
+  | **SQL Server** | `[Name] COLLATE Latin1_General_100_CI_AI` | by that collation |
+  | **SQLite** (`UseRaskSqlite`, or a browser's `UseRaskFullTextSearch()`) | `"Name" COLLATE "RASK_SEARCH"`, registered on every connection | `rask_search(…)`, the same comparison (SQLite's `instr`/`LIKE` see no collation) |
+  | **PostgreSQL 18+** (`UseRaskPostgres`) | `"Name" COLLATE rask_search`, a nondeterministic ICU collation (`und-u-ks-level1`) | `LIKE` by it |
+  | anything else | refused, naming the options that have it | |
+
+  `==` and `OrderBy` on it compare the same way. On PostgreSQL the collation is created `IF NOT EXISTS` at the start of
+  every migration (and `EnsureCreated`); a database migrated before Rask had it gets it with its next migration.
+
+  ```csharp
+  // before — one database's collation, which SQLite has never heard of
+  .Where(d => EF.Functions.Collate(d.Name, "Latin1_General_100_CI_AI").Contains(typed))
+  // after
+  .Where(d => d.Name.Loosely().Contains(typed))
+  ```
 - `ConstraintNames` and `DeleteBehavior` are applied as the model is finalized, so they see every table — **and an
   entity's `Configure` still wins**: a `HasDatabaseName`, `HasConstraintName` or `OnDelete` written there is kept as
   written. A unique index's [message](#what-a-unique-indexs-violation-says) and a
@@ -778,6 +825,8 @@ static void Configure(EntityTypeBuilder<Fueling> b)
     b.Computed(f => f.Period, f => f.Year + "." + f.Month);
     b.Default(f => f.Size, 1000);                                       // what a row written without it gets
     b.Default(f => f.CreatedAt, () => Clock.Now);                       // the database's clock, UTC
+    b.Default(f => f.SentAt, () => Clock.Wall);                         // its wall clock, in the server's zone
+    b.StoredDefault(f => f.HardwareNumber, 0);                          // as the column stores it, past the value object
     b.HasIndex(f => f.Partner).IsUnique("This partner has a live grant.").Where(f => f.RevokedAt == null);
 }
 ```
@@ -807,18 +856,30 @@ a `double` or a date joined into text (each database writes it its own way), and
 script, another app — and the rows a migration finds when it adds the column. **Rask always writes the value the
 entity holds**: a `Size` of `0` is saved as `0`, where EF Core's own `HasDefaultValue` would leave a column holding
 its type's default to the database and save `1000`. The entity's own starting value is its initializer or its
-factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key. On SQL
+factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key, a value
+object's value — and it is written as **SQL**, `HasDefaultValueSql("1000")`, never EF Core's `HasDefaultValue`: a
+model moving from a hand-written `HasDefaultValueSql("1000")` (or `"0"` for a SQL Server `bit`, which Rask writes bare)
+to `Default(x => x.Size, 1000)` makes a migration with nothing in it. On SQL
 Server, where a default is a named constraint, an app's
 [`ConstraintNames`](#app-wide-model-rules-one-iraskmodel) rule names it (`ConstraintKind.Default`, the clock's too), so
 `{table}_{column}_df` needs no `HasDefaultConstraintName`; PostgreSQL and SQLite defaults have no name.
+
+**`StoredDefault(property, stored)`** gives the default as the column stores it, for the one a value object would
+refuse — a legacy schema's `0` for a `HardwareNumber(int Value) : Whole(Value, Min: 1)`:
+`b.StoredDefault(p => p.HardwareNumber, 0)`. The type is checked as the model is built: an `int` column takes an `int`.
 
 `Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
 clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
 PostgreSQL, `strftime('%Y-%m-%d %H:%M:%f', 'now')` on SQLite — the text a `DateTime` is stored as there. It is the
 moment the database writes the row, on the database server; `Clock.Fake` does not move it. A row Rask writes takes
-its moment from the entity, which reads `Clock.Now` — an aggregate's `Timestamps` are stamped that way. Any other
-lambda is refused where it is written; `Clock.Wall` and `Clock.Today` too, since the database does not know the
-app's time zone.
+its moment from the entity, which reads `Clock.Now` — an aggregate's `Timestamps` are stamped that way.
+
+`Default(x => x.SentAt, () => Clock.Wall)` is **the database's wall clock**, for a `DateTime` column (or a value object
+over one, `WallMoment(DateTime Value)`) that keeps moments as the clock showed them: `CURRENT_TIMESTAMP` on SQL Server
+(what a legacy schema's default usually says), `LOCALTIMESTAMP` on PostgreSQL, `strftime(…, 'now', 'localtime')` on
+SQLite. It is the local time **of the zone the database server runs in** — the database does not know the app's
+`Clock.Zone`, so it is the app's wall clock only when the server runs in that zone (`TZ=Europe/Budapest`). A
+`DateTimeOffset` refuses it, as the model is built. Any other lambda is refused where it is written; `Clock.Today` too.
 
 **`HasIndex(…).Where(rows)`** is a filtered index on SQL Server and a partial one on PostgreSQL and SQLite; a unique
 one holds among the rows the filter keeps — one live grant per partner, however many revoked. The filter is the
@@ -837,6 +898,33 @@ All three are read as the model is finalized by every `RaskDbContext` (a plain `
 `ModelRegistry.ApplyConventions`), and the model a migration is made from carries the provider's SQL alone —
 `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` — as if you had written it. A provider other than the
 three refuses the model; say it in that provider's own SQL there.
+
+### A key from a sequence: `FromSequence`
+
+```csharp
+static void Configure(EntityTypeBuilder<Provider> b) => b.Property(p => p.Id).FromSequence("Providers", start: 1000);
+```
+
+The key of each new row is taken from a database sequence as the row is added — before its insert — so an aggregate
+that derives something from its own key (`"p" + Id`) saves once, and a key the app worked out as `MAX + 1` and
+retried on a collision is no longer needed. It is a real sequence on SQL Server and PostgreSQL, made by the
+migration (the name defaults to the entity's and `Ids`); SQLite has none, so there it is a row of Rask's own
+`__RaskSequences` table, advanced in one statement under SQLite's writer lock and started above the highest key the
+table already holds. An `int` or `long` key, or a strongly-typed id over one.
+
+### A member behind a gate: `Gated`
+
+```csharp
+static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+
+services.AddRaskGate<Module>((scope, module) => scope.GetRequiredService<Modules>().IsOn(module));
+```
+
+A screen that hides a field from someone without the module must not clear what someone with it stored. With the
+gate shut for the work in flight, every save — a generated `Update(id, model)`, an operation, an import — leaves a
+gated member as it was stored, and a row added then stores nothing there; the rest of the row is written as usual.
+Only an optional member can be gated. Whether a gate is open is the app's to say, once, per kind of gate; a save
+that writes a gated member with no rule for its kind is refused rather than guessed at.
 
 ### What deleting a referenced row says
 
@@ -987,7 +1075,7 @@ PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): tex
 (`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
 (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
 indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
-(`ParentLockParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
+(`ParentLockParityTests`), a read face's `ForUpdate()` (`ReadForUpdateParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
 `ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
 is what lets an app run its own tests on SQLite in memory alone.
 

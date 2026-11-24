@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 
 /// <summary>
 ///     Registers, on every connection a context opens, the collating sequences its model needs: the invariant
-///     <c>EF_DECIMAL</c> always, and <see cref="SqliteCollations.TextOrder" /> — with <c>instr</c> and <c>LIKE</c> compared
+///     <c>EF_DECIMAL</c> and <see cref="SqliteCollations.SearchOrder" /> always, and <see cref="SqliteCollations.TextOrder" /> — with <c>instr</c> and <c>LIKE</c> compared
 ///     the same way — when the model names how text compares with <c>OrderTextBy</c>.
 /// </summary>
 /// <remarks>
@@ -42,6 +42,7 @@ internal sealed class SqliteCollationInterceptor : DbConnectionInterceptor
         }
 
         SqliteCollations.Apply(sqlite);
+        SqliteSearchText.Apply(sqlite);
         if (eventData.Context?.Model.FindAnnotation(TextCollation.Annotation)?.Value is string name)
         {
             var collation = TextCollation.Parse(name);

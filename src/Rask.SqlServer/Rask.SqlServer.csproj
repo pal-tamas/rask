@@ -39,6 +39,8 @@
     <!-- Rask's migrations differ, registered by RaskSqlServerOptionsExtension. Linked, since this package does not
          reference Rask.Data; internal in both, so an app holding both sees neither. -->
     <Compile Include="..\Rask.Data\RaskMigrationsModelDiffer.cs" Link="Shared\RaskMigrationsModelDiffer.cs"/>
+    <!-- An optional value object whose members are all optional, held in its row's columns (RaskSqlServerModelValidator). -->
+    <Compile Include="..\Rask.Data\OptionalComplexValues.cs" Link="Shared\OptionalComplexValues.cs"/>
     <Compile Include="..\Rask.Data\TenantReference.cs" Link="Shared\TenantReference.cs"/>
     <!-- end - start between two dates in a query, which SQL Server's own provider does not translate. -->
     <Compile Include="..\Rask.Data\QueryDuration.cs" Link="Shared\QueryDuration.cs"/>

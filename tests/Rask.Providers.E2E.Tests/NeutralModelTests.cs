@@ -76,6 +76,12 @@ public sealed class Cistern
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTime CountedAt { get; set; }
+
+    public bool Sealed { get; set; }
+
+    public MeterKind Kind { get; set; }
+
+    public DateTime SeenAt { get; set; }
 }
 
 /// <summary>The three provider-neutral declarations, under Rask's conventions.</summary>
@@ -111,6 +117,9 @@ public sealed class NeutralDbContext(DbContextOptions<NeutralDbContext> options)
             b.Default(c => c.Size, 1000);
             b.Default(c => c.CreatedAt, () => Clock.Now);
             b.Default(c => c.CountedAt, () => Clock.Now.UtcDateTime);
+            b.Default(c => c.Sealed, true);
+            b.StoredDefault(c => c.Kind, 1);
+            b.Default(c => c.SeenAt, () => Clock.Wall);
         });
     }
 }
@@ -179,6 +188,11 @@ internal static class NeutralModelParity
         Assert.Equal(1000, read.Size);
         Assert.InRange(read.CreatedAt, before, DateTimeOffset.UtcNow.AddMinutes(5));
         Assert.InRange(read.CountedAt, before.UtcDateTime, DateTime.UtcNow.AddMinutes(5));
+        Assert.True(read.Sealed);
+        Assert.Equal(MeterKind.Pump, read.Kind);
+
+        // The database server's own zone, whatever it is: within a day of now.
+        Assert.InRange(read.SeenAt, DateTime.UtcNow.AddHours(-15), DateTime.UtcNow.AddHours(15));
     }
 }
 

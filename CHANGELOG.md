@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **An optional value object whose members are all optional is held in its row's columns.** Before: `Opening? Start`
+  over `Opening(DateTime? Date, decimal? Quantity) : Value` failed the model build — EF Core asked for a required member
+  or a discriminator column, a column a legacy table does not have — so an app held it as `Opening Start =
+  Opening.None`, which RASK150 flags. After: every `RaskDbContext` (and a plain `DbContext` through `UseRaskSqlite`,
+  `UseRaskSqlServer` or `UseRaskPostgres`) holds it with no column added: every column `NULL` loads as `null`, a row
+  holding only one member loads as that value, and `Where(p => p.Start == null)` asks every column. An all-empty value
+  saved reads back as `null`. Proven on SQLite and PostgreSQL by `OptionalValueObjectParityTests`.
 - **A JSON column stays `nvarchar(max)` on SQL Server at every compatibility level, with no type named by the app.**
   Before: at compatibility level 170 (which `UseRaskSqlServer` reads from a SQL Server 2025) EF Core maps a value
   collection, a `ToJson()` complex or owned type and a primitive collection to the native `json` type, so the model —
@@ -69,6 +76,59 @@ them until tagged releases begin.
   `b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString())` (or `.InLane(e => …)`); the outbox's
   row then only enqueues a job that runs `On`, with the job's lane, renewed lease, sweep and retry — what Eszaf's
   `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
+- **`x.Loosely()` searches text case and accents aside on every database.** Before: a picker's search wrote
+  `EF.Functions.Collate(x, "Latin1_General_100_CI_AI").Contains(typed)`, and SQLite answered "no such collation
+  sequence". After: `Where(d => d.Name.Loosely().Contains(typed))` is `COLLATE Latin1_General_100_CI_AI` on SQL Server,
+  `COLLATE "RASK_SEARCH"` (registered on every connection) with `Contains`/`StartsWith`/`EndsWith` matched by
+  `rask_search(…)` on SQLite, and `COLLATE rask_search`, a nondeterministic ICU collation the migrations create, on
+  PostgreSQL 18+. `==` and `OrderBy` compare the same way; nothing reaches the schema on SQL Server and SQLite. RASK177
+  suggests it for `EF.Functions.Collate`.
+- **`b.StoredDefault(p => p.HardwareNumber, 0)` states a default as the column stores it.** Before: `Default` took the
+  value object, so a legacy `0` a `HardwareNumber` (at least 1) refuses could not be said at all. After: the raw value
+  goes in, its type checked against the column's as the model is built.
+- **`Default(x => x.SentAt, () => Clock.Wall)` is the database's wall clock.** Before: refused, leaving
+  `HasDefaultValueSql("CURRENT_TIMESTAMP")`. After: `CURRENT_TIMESTAMP` on SQL Server, `LOCALTIMESTAMP` on PostgreSQL,
+  SQLite's `'localtime'` — the local time of the zone the database server runs in — for a `DateTime` or a value object
+  over one.
+- **Five model traits for the DDD plan's history, tenancy, keys and gates (F-30, F-31, F-32, F-34, F-35).**
+  - `SoftRemoved` on a child (`VirtualTank : Entity<VirtualTankId, SoftRemoved>`): a child its aggregate lets go of
+    keeps its row, stamped `DeletedAt`, with what it holds — hidden from the aggregate's load and its read face,
+    listed by `IgnoreQueryFilters()`, its unique name still taken. Before: it was deleted, or kept by a hand-written
+    `Deleted` flag every read had to remember. `Entity<TId, T1, T2>` takes two child traits.
+  - `PerTenantThrough<T>` (`Distribution : Aggregate<DistributionId, PerTenantThrough<Supply>>`): an aggregate with
+    no tenant column of its own is read and written through the tenant of the aggregate it points at, as a child is
+    through its parent. And `X.Across(reason)` lifts the tenant filter — only it — for one read:
+    `await User.Across("unique across every partner").Any(…)`. Before: a `Tenant.Across()` block around the read.
+  - `OneInForce<TChild>` with the child's `b.InForceWhile(f => f.UnfiledAt == null, message)`: a partial unique index
+    keeps at most one in force beside the history, and `Filings.InForce()`, `Filings.Put(next, end: …)` and
+    `Filings.End(…)` ask the same condition in memory. Before: a check-then-insert under a lock.
+  - `b.Property(p => p.Id).FromSequence("Providers", start: 1000)`: the key comes from a sequence as the row is added,
+    before its insert (SQL Server and PostgreSQL sequences; Rask's `__RaskSequences` row on SQLite, started above the
+    table's keys). Before: `MAX + 1` and a retry on the primary-key collision, and a second save for a key-derived code.
+  - `b.Gated(d => d.Card, Module.Tachograph)` + `services.AddRaskGate<Module>((scope, m) => …)`: with the gate shut,
+    a save keeps the stored value of a gated member and an added row stores none. Before: each form re-read the
+    hidden field and wrote it back by hand.
+- **`Attachment` — a file the aggregate holds, stored and deleted with its row** (`Rask.Storage`): `public Attachment?
+  Document { get; private set; }`, set to `Attachment.Of(Files.Save(…))`, is stored as the aggregate is saved, inside the
+  operation's transaction; a failed or rolled-back save leaves no file, a refused file is a `RaskValidationException` on
+  the property, and a file replaced, cleared or deleted with its row goes once the save commits. Four columns
+  (`Document_Id`, `_Name`, `_ContentType`, `_Size`), no join. [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
+- **`ValueList<T>` — a list that is a value** (`Rask.Values`): equal by its elements in order, frozen once read, made
+  from `[a, b]`; on an aggregate it is the primitive or JSON column an `IReadOnlyList<T>` is.
+- **`b.Json(t => t.Settings, column: "LocalSettings")` keeps a value object whole in one JSON column** — its lists,
+  nested value objects and secrets inside — on SQLite, SQL Server and PostgreSQL alike (`JsonValueParityTests`), with
+  filters on its members translated in the database. The read face leaves it out.
+- **`Secret<T>` — a stored value nobody reads back**: an API key is kept as ciphertext through `ISecrets` (Rask.Server:
+  the host's Data Protection key ring), on its own column or inside a JSON column; `ToString()` and the debugger mask
+  it, a serializer writes `{}`, and the read face and the generated model leave it out, so no form is prefilled with it
+  and no browser receives it. Set it with `Secret.Applied(Change<T>, current)`. A `Secret<T>` of a password value
+  object is not RASK175. [docs/domain.md](docs/domain.md#secrets-secrett)
+- **A read face reads its rows for update: `await Month.Where(m => m.Id == id).ForUpdate()`.** Before: the update lock
+  existed only inside `LockedBy(…, LockRead.ForUpdate)` and an operation's `forUpdate:`, and RASK177 told an app with
+  `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE` in raw SQL to use a `ForUpdate()` it could not call. After: `ModelQuery<T>.ForUpdate()`
+  reads the rows under `WITH (UPDLOCK, HOLDLOCK)` on SQL Server, `FOR UPDATE OF` on PostgreSQL and as written on SQLite
+  (its one writer serializes), held to the end of the `Db.Transaction`; outside one it is refused, and so is a
+  `Count()`/`Any()` of it on every database. RASK177's message names `X.Where(…).ForUpdate()` inside `Db.Transaction`.
 - **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
   as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
   model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
@@ -95,6 +155,13 @@ them until tagged releases begin.
   narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
   save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
   See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
+- **`rask audit --unique-candidates` says whether the stored rows let a unique index in.** Before: adding
+  `IsUnique()` to an index over old data failed at the migration, on the first duplicate the database met. After: the
+  audit asks every unique index the model declares — migrated or not, its `.Where(…)` applied — of every stored row in
+  LINQ, and reports each group of rows that would collide by their ids (`id = id`), never the values; a NULL key
+  collides with nothing, and texts differing only in letter case are reported apart, as a collision under a
+  case-insensitive collation. An index filtered by hand-written SQL is named in a note. See
+  [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
 - **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
   moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
   aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
@@ -183,6 +250,12 @@ them until tagged releases begin.
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
   `RaskDataOptions.AfterCommitFailures = AfterCommitFailure.Throw` hands it to the caller once all have run (the
   exception, or an `AggregateException` of several).
+- **BREAKING: `Default(x => x.Size, 1000)` is the column's default SQL, as the docs said.** Before: it was EF Core's
+  `HasDefaultValue(1000)`, so a model moving from `HasDefaultValueSql("1000")` made a migration altering every
+  default. After: Rask writes `HasDefaultValueSql` in the provider's literal (a SQL Server `bit` bare, `0`/`1`), so that
+  move makes an empty migration. A model already on `Default(…)` gets one migration that restates each default, and
+  changes no row. The clock overload now takes the clock's own type (`Default<TEntity, TProperty, TClock>`), which is
+  what lets a value object over a `DateTime` default to it.
 - **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
   entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
   transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,

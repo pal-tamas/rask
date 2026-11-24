@@ -20285,6 +20285,30 @@ override Rask.Values.Change<T>.GetHashCode() -> int
 Rask.Values.Change<T>.Equals(Rask.Values.Change<T> other) -> bool
 static Rask.Values.Change<T>.operator !=(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
 static Rask.Values.Change<T>.operator ==(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
+Rask.Values.Secret
+Rask.Values.Secret<T>
+Rask.Values.Secret<T>.Equals(Rask.Values.Secret<T!>? other) -> bool
+Rask.Values.Secret<T>.Reveal() -> T!
+Rask.Values.ValueList
+Rask.Values.ValueList<T>
+Rask.Values.ValueList<T>.Contains(T item) -> bool
+Rask.Values.ValueList<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Rask.Values.ValueList<T>.Count.get -> int
+Rask.Values.ValueList<T>.Equals(Rask.Values.ValueList<T>? other) -> bool
+Rask.Values.ValueList<T>.GetEnumerator() -> System.Collections.Generic.List<T>.Enumerator
+Rask.Values.ValueList<T>.IndexOf(T item) -> int
+Rask.Values.ValueList<T>.ValueList() -> void
+Rask.Values.ValueList<T>.this[int index].get -> T
+override Rask.Values.Secret<T>.Equals(object? obj) -> bool
+override Rask.Values.Secret<T>.GetHashCode() -> int
+override Rask.Values.Secret<T>.ToString() -> string!
+override Rask.Values.ValueList<T>.Equals(object? obj) -> bool
+override Rask.Values.ValueList<T>.GetHashCode() -> int
+override Rask.Values.ValueList<T>.ToString() -> string!
+static Rask.Values.Secret.Applied<T>(Rask.Values.Change<T!> change, Rask.Values.Secret<T!>? current) -> Rask.Values.Secret<T!>?
+static Rask.Values.Secret.Of<T>(T! value) -> Rask.Values.Secret<T!>!
+static Rask.Values.ValueList.Of<T>(System.Collections.Generic.IEnumerable<T>! items) -> Rask.Values.ValueList<T>!
+static Rask.Values.ValueList.Of<T>(System.ReadOnlySpan<T> items) -> Rask.Values.ValueList<T>!
 Rask.Values.IStoredValue
 Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
 Rask.Values.Allocation

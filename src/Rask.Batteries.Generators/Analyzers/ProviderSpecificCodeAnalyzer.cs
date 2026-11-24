@@ -176,7 +176,7 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             "UseCollation" => (method.Name, "one database's collations",
                 "name the app's text order once with OrderTextBy(…) in ConfigureConventions, and sort with InTextOrder()"),
             "HasDefaultValueSql" when HasSql(call) => (method.Name, "one database's SQL",
-                "b.Default(x => x.Property, value), or b.Default(x => x.At, () => Clock.Now)"),
+                "b.Default(x => x.Property, value), b.StoredDefault(x => x.Property, stored), or b.Default(x => x.At, () => Clock.Now) (Clock.Wall for the database's wall clock)"),
             "HasComputedColumnSql" when HasSql(call) => (method.Name, "one database's SQL", "b.Computed(x => x.Property, x => …) in C#"),
             "HasFilter" when HasSql(call) => (method.Name, "one database's SQL", "HasIndex(…).Where(x => …) in C#"),
             _ => null,
@@ -186,7 +186,7 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
     private static string FunctionReplacement(string name) => name switch
     {
         "Like" or "ILike" => "write Contains, StartsWith or EndsWith, which Rask matches in the app's text order on every database",
-        "Collate" => "sort with InTextOrder(), in the order OrderTextBy(…) names once for the app",
+        "Collate" => "search case and accents aside with x.Loosely().Contains(typed), or sort with InTextOrder() in the order OrderTextBy(…) names once for the app",
         _ when name.StartsWith("DateDiff", StringComparison.Ordinal) => "subtract the moments (end - start), which Rask translates for every database",
         _ => "write the plain C# expression, which Rask translates for every database",
     };
@@ -214,7 +214,7 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
             if (sql.IndexOf("UPDLOCK", StringComparison.OrdinalIgnoreCase) >= 0 || sql.IndexOf("HOLDLOCK", StringComparison.OrdinalIgnoreCase) >= 0
                 || sql.IndexOf("FOR UPDATE", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                return "read the rows with ForUpdate(), which locks them on every database";
+                return "read the rows with await X.Where(…).ForUpdate() inside Db.Transaction, which locks them on every database";
             }
         }
 
