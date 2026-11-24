@@ -860,7 +860,7 @@ holds `?edit=` — `UiEditorDialog.New` for a record not yet saved, its id other
 The link that opens it is the list's own address with the key set, `route.With("edit", id)`, so the search, sort and
 page stay, a reload reopens it and Back closes it. The cross, Escape, a press outside and Cancel take the key out
 (`Go.Without("edit")`, in the current history entry's place) and the list stands as the reader left it; a save ends
-with `Go.Without("edit")`, and the list, rendering again, reads its rows again. `.Wide()` opens a form with rows of its
+with `Go.Without("edit")`, and the list, rendering again, reads its rows again. `.Flyout()` (it was `.Wide()`) opens a form with rows of its
 own as a sheet from the right, as wide as the screen allows (84rem at most); one list can hold both, each with its own
 key. Open it from a link — a row's Edit, a New button — never a row's double-click. An editor's old address keeps working
 when its page sends the reader on: `Go.To(Routes.DriversPage().With("edit", id)).Replacing()` in its `OnMount`.
@@ -876,10 +876,26 @@ EditorDialog.Heading("Edit driver")   // inside the editor
 [QueryParam("edit")] public string? Edit { get; set; }
 Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New driver"]
 Ui.RowActions.Edit(route.With("edit", driver.Id.ToString(CultureInfo.InvariantCulture)))
-Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Wide()[
+Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Flyout()[
     DriverEditing.Key(Edit).Editing(Edit)
 ]
+
+// With the aggregate's own operations: nothing of the editor's to write.
+Ui.EditorDialog.In("edit").Heading("Driver")[
+    Edit == UiEditorDialog.New
+        ? Form.For(Driver.Register)[f => [Ui.Field.Bind(() => f.Name), Ui.Button.Primary.Submit["Save"]]]
+        : Form.For(Driver.Change, DriverId.Parse(Edit!))[f => [Ui.Field.Bind(() => f.Name), Ui.Button.Primary.Submit["Save"]]]
+].Delete(Driver.Delete)
 ```
+
+A [form over an operation](forms.md#a-form-over-an-operation) inside it reports to the dialog: once it saves, the
+dialog says "Saved" in a toast (`RaskString.EditorSaved`, "Mentve") and closes, and an id no row has shows "It is not
+there any more." (`EditorNotFound`) instead of the form. `.Delete(Driver.Delete)` — generated for every `partial`
+aggregate that can be deleted — adds a Delete button for a stored record whose roles admit the reader
+(`Driver.MayDelete`; roles by `b.Operation(nameof(Delete), roles: …)`). Pressed, it first tries the delete
+(`Driver.DryRunDelete`, its `ValidateDelete()`) and shows what that refuses in place of asking; otherwise it asks
+in the page's `Ui.Confirm` ("Delete it? This cannot be undone."), deletes through `Driver.Delete(id, version)`, says
+"Deleted" and closes.
 
 Live: **[rask.sh/ui/editor-dialog](https://rask.sh/ui/editor-dialog/)**.
 

@@ -27,7 +27,7 @@ public sealed partial class EditorDialogDriversPage(RouteState route) : Componen
 public sealed partial class EditorDialogVehiclesPage : Component
 {
     /// <inheritdoc />
-    protected override Component? Render() => Main[Ui.EditorDialog.In("edit").Wide()[P["Vehicle"]]];
+    protected override Component? Render() => Main[Ui.EditorDialog.In("edit").Flyout()[P["Vehicle"]]];
 }
 
 /// <summary><c>Ui.EditorDialog.In("edit")</c>: the editor over its list, opened and closed by the list's own address.</summary>

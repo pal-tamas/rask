@@ -40,10 +40,20 @@ public sealed partial class Expedition : Aggregate<Guid, Versioned, Deletable>
 
     internal const string Lock = "expeditions";
 
+    // A sealed expedition is kept: what its delete, and the editor's Delete before it asks, refuse.
+    private IEnumerable<Problem> ValidateDelete()
+    {
+        if (Sealed)
+        {
+            yield return Problem.Whole("A sealed expedition is kept.");
+        }
+    }
+
     public static void Configure(EntityTypeBuilder<Expedition> b)
     {
         b.Operation(e => e.Seal, roles: "Captain,Admiral");
         b.Operation(nameof(Plan), roles: "Admiral");
+        b.Operation(nameof(Delete), roles: "Admiral");
     }
 
     private static Expedition Plan(string title, int seats) => new() { Id = Guid.CreateVersion7(), Title = title, Seats = seats };

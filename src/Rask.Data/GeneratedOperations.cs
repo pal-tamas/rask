@@ -105,6 +105,71 @@ public static class GeneratedOperations
     }
 
     /// <summary>
+    ///     Deletes one aggregate as one write — what a generated <c>await Supply.Delete(id, version)</c> does: the roles of
+    ///     <c>b.Operation(nameof(Delete), roles: …)</c> asked first, then, in one <c>Db.Transaction</c>, the aggregate
+    ///     loaded at <paramref name="version" /> and deleted, its <c>ValidateDelete()</c> asked by the delete.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate to delete.</typeparam>
+    /// <param name="operation">The entry's name, for the refusal a missing role gets.</param>
+    /// <param name="roles">The roles that admit, comma-separated, or <see langword="null" /> for none asked.</param>
+    /// <param name="key">The id of the aggregate.</param>
+    /// <param name="version">The version the caller read, or <see langword="null" /> for an aggregate with none.</param>
+    /// <param name="cancellationToken">Cancels the delete; unset, the work this call belongs to does.</param>
+    /// <returns>A task that completes once the delete has committed.</returns>
+    /// <exception cref="ForbiddenException">The principal holds none of <paramref name="roles" />.</exception>
+    /// <exception cref="KeyNotFoundException">No aggregate has <paramref name="key" />, or it is soft-deleted.</exception>
+    /// <exception cref="RaskValidationException">It was saved since <paramref name="version" />, or its rules refuse the delete.</exception>
+    public static Task Remove<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        string operation,
+        string? roles,
+        object key,
+        int? version,
+        CancellationToken cancellationToken = default)
+        where TAggregate : class, IAggregate
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentNullException.ThrowIfNull(key);
+        cancellationToken = Ambient.Or(cancellationToken);
+
+        Demand<TAggregate>(operation, roles);
+
+        return Db.Transaction(async () =>
+        {
+            var aggregate = await Found<TAggregate>(key, version, cancellationToken).ConfigureAwait(false);
+            await GeneratedModelWrites.Delete(aggregate, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    ///     Tries the delete of one aggregate without doing it — what a generated <c>Supply.DryRunDelete(id, version)</c>
+    ///     does, and an editor's delete asks before it confirms: its <c>ValidateDelete()</c> and a stale version, with
+    ///     nothing deleted.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate to try the delete of.</typeparam>
+    /// <param name="key">The id of the aggregate.</param>
+    /// <param name="version">The version the caller read, or <see langword="null" /> for an aggregate with none.</param>
+    /// <param name="cancellationToken">Cancels the try; unset, the work this call belongs to does.</param>
+    /// <returns>Every failure the delete would be refused for; empty when it would go through.</returns>
+    public static Task<IReadOnlyList<FieldFailure>> TryRemove<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        object key,
+        int? version,
+        CancellationToken cancellationToken = default)
+        where TAggregate : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        cancellationToken = Ambient.Or(cancellationToken);
+        return DryRun.OfDelete(() => Found<TAggregate>(key, version, cancellationToken), cancellationToken);
+    }
+
+    private static async Task<TAggregate> Found<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        object key, int? version, CancellationToken cancellationToken)
+        where TAggregate : class, IAggregate =>
+        (version is { } read
+            ? await GeneratedModelWrites.Find<TAggregate>(key, read, cancellationToken).ConfigureAwait(false)
+            : await GeneratedModelWrites.Find<TAggregate>(key, cancellationToken).ConfigureAwait(false))
+        ?? throw GeneratedModelWrites.Missing<TAggregate>(key);
+
+    /// <summary>
     ///     Tries one operation without doing it — what a generated <c>Supply.DryRunChange(id, version, …)</c> does, and
     ///     a form over the operation asks as it is filled in: the aggregate loaded afresh at <paramref name="version" />,
     ///     the method run on that copy, and the rules a save would ask asked of it, with nothing written, locked or

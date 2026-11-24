@@ -399,7 +399,7 @@ internal static partial class UiApi
         new("Ui.EditorDialog", typeof(UiEditorDialog), NotFlux, "A list's editor over the list, open while its query key is in the address; its children are the form, held only while it is open.",
         [
             new("In", typeof(string), "The query key that says which record is open: UiEditorDialog.New for one not yet saved. Required, and taken first.", "a key: Ui.EditorDialog.In(\"edit\")"),
-            new("Wide", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
+            new("Flyout", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
             new("Heading", typeof(string), "The dialog's heading, clear of its cross."),
         ]),
     ];

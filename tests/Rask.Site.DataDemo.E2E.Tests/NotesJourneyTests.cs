@@ -95,6 +95,39 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
     }
 
     [Fact]
+    public async Task A_note_is_edited_in_a_dialog_over_the_list_and_deleted_unless_its_rules_keep_it()
+    {
+        var context = await playwright.Browser.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenAsync(page);
+        var welcome = page.Locator("#notes li", new() { HasText = "Welcome to Rask" });
+
+        // The welcome note: its editor opens over the list, and its Delete says why it stays instead of asking.
+        await welcome.Locator(".note-edit").ClickAsync();
+        await Expect(page.Locator("dialog h2")).ToHaveTextAsync("Edit note", Text);
+        await page.ClickAsync("#editor-delete");
+        await Expect(page.Locator("#editor-delete-refused")).ToHaveTextAsync("The welcome note stays.", Text);
+
+        // Another note: renamed in the editor, which says "Saved" and closes over the list that follows.
+        await page.Keyboard.PressAsync("Escape");
+        var offline = page.Locator("#notes li", new() { HasText = "Offline first" });
+        await offline.Locator(".note-edit").ClickAsync();
+        await page.Locator("dialog[open] input").First.ClickAsync();
+        await page.Keyboard.PressAsync("ControlOrMeta+A");
+        await page.Keyboard.TypeAsync("Offline, always");
+        await page.ClickAsync("#save-note");
+        await Expect(page.Locator("#notes li .note-title", new() { HasText = "Offline, always" })).ToHaveCountAsync(1, Count);
+
+        // Deleted: asked first, then gone from the list.
+        await page.Locator("#notes li", new() { HasText = "Offline, always" }).Locator(".note-edit").ClickAsync();
+        await page.ClickAsync("#editor-delete");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Yes" }).ClickAsync();
+        await Expect(page.Locator("#notes li")).ToHaveCountAsync(2, Count);
+
+        await context.CloseAsync();
+    }
+
+    [Fact]
     public async Task A_search_that_matches_nothing_says_so()
     {
         var context = await playwright.Browser.NewContextAsync();

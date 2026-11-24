@@ -170,6 +170,36 @@ public sealed class OperationEntryTests : IDisposable
         Assert.Empty(await database.Context.Set<Expedition>().ToListAsync(Token));
     }
 
+    [Fact]
+    public async Task The_delete_entry_asks_its_roles_and_deletes_at_the_version_read()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => Expedition.Delete(expedition.Id, 0, Token));
+        using var signedIn = Current.UsePrincipal(Signed("Admiral"));
+        await Expedition.Delete(expedition.Id, 0, Token);
+
+        Assert.True(Expedition.MayDelete);
+        Assert.Null(await database.Load<Expedition>(expedition.Id, Token));
+    }
+
+    [Fact]
+    public async Task The_delete_entry_is_refused_by_the_records_rules_and_a_stale_version()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+        using var signedIn = Current.UsePrincipal(Signed("Admiral"));
+        await Expedition.Seal(expedition.Id, 0, Token);
+
+        var stale = await Assert.ThrowsAsync<RaskValidationException>(() => Expedition.Delete(expedition.Id, 0, Token));
+        var kept = await Assert.ThrowsAsync<RaskValidationException>(() => Expedition.Delete(expedition.Id, 1, Token));
+
+        Assert.Empty(Assert.Single(stale.Failures).Fields);
+        Assert.Equal("A sealed expedition is kept.", Assert.Single(kept.Failures).Message);
+        Assert.NotNull(await database.Load<Expedition>(expedition.Id, Token));
+    }
+
     private static async Task<Expedition> PlannedAsync()
     {
         var expedition = Expedition.Planned("North", 2);

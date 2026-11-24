@@ -944,4 +944,19 @@ public enum RaskString
 
     /// <summary>What a value object declared from <c>Url</c> says of text that is no absolute http or https address.</summary>
     ValidationWebAddress,
+
+    /// <summary>What the toast says once an editor's form has saved (<c>Ui.Editor</c>).</summary>
+    EditorSaved,
+
+    /// <summary>What the toast says once an editor's record has been deleted (<c>Ui.Editor</c>).</summary>
+    EditorDeleted,
+
+    /// <summary>What an editor shows for an id no row has any more (<c>Ui.Editor</c>).</summary>
+    EditorNotFound,
+
+    /// <summary>The label of an editor's delete button (<c>Ui.Editor.Delete</c>).</summary>
+    EditorDelete,
+
+    /// <summary>What an editor asks before it deletes its record (<c>Ui.Editor.Delete</c>).</summary>
+    EditorDeleteQuestion,
 }

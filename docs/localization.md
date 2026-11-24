@@ -897,6 +897,11 @@ they say when you set nothing.
 | `ValidationRangeNotBefore` | Validation — a range's end before its start (`Range(Start, End)`) | `It cannot be before the start, {0}.` |
 | `ValidationRangeAfter` | Validation — a strict range's end not after its start (`Range(Start, End, Strict: true)`) | `It must be after the start, {0}.` |
 | `ValidationChangedSince` | Validation — a save over an aggregate somebody else saved since it was read, about the whole form (`Find(id, version)`, `Update`, `Save()`; Rask.Data) | `Someone else changed this in the meantime. Reload it and try again.` |
+| `EditorSaved` | Editor: What the toast says once an editor's form has saved (`Ui.Editor`). | `Saved` |
+| `EditorDeleted` | Editor: What the toast says once an editor's record has been deleted (`Ui.Editor`). | `Deleted` |
+| `EditorNotFound` | Editor: What an editor shows for an id no row has any more (`Ui.Editor`). | `It is not there any more.` |
+| `EditorDelete` | Editor: The label of an editor's delete button (`Ui.Editor.Delete`). | `Delete` |
+| `EditorDeleteQuestion` | Editor: What an editor asks before it deletes its record (`Ui.Editor.Delete`). | `Delete it? This cannot be undone.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

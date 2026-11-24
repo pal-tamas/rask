@@ -326,6 +326,45 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_partial_aggregate_that_can_be_deleted_gets_a_delete_entry_its_dry_run_and_who_may()
+    {
+        var run = Run("""
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            namespace Shop
+            {
+                public sealed partial class Tag : Aggregate<System.Guid, Versioned, Deletable>
+                {
+                    public string Name { get; private set; } = "";
+                    public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(nameof(Delete), roles: "Admin");
+                }
+            }
+            """);
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static global::System.Threading.Tasks.Task Delete(global::System.Guid id, int version, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.Remove<global::Shop.Tag>(\"Delete\", \"Admin\", id!, version, cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.TryRemove<global::Shop.Tag>(id!, version, cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("public static bool MayDelete => global::Rask.Data.GeneratedOperations.Admits(\"Admin\");", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_aggregate_that_is_never_deleted_gets_no_delete_entry()
+    {
+        var run = Run(Tagged("""
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            """));
+
+        var generated = run.GeneratedSource("Shop.Tag.Operations");
+
+        Assert.DoesNotContain(" Delete(", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("MayDelete", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_bare_call_inside_the_aggregate_that_lands_on_the_entry_is_RASK170()
     {
         var diagnostics = await Analyze(Tagged("""

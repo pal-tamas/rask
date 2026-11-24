@@ -35,8 +35,19 @@ internal static class DryRun
     internal static IAsyncDisposable NoLock { get; } = new Unheld();
 
     /// <summary>What the save of what <paramref name="change" /> leaves would be refused for; empty when nothing.</summary>
-    internal static async Task<IReadOnlyList<FieldFailure>> Of<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+    internal static Task<IReadOnlyList<FieldFailure>> Of<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
         Func<Task<TAggregate>> change, CancellationToken cancellationToken)
+        where TAggregate : class, IAggregate =>
+        Of(change, static (context, aggregate, token) => AggregateSave.StageAsync(context, aggregate, token), cancellationToken);
+
+    /// <summary>What the delete of what <paramref name="find" /> loads would be refused for — its <c>ValidateDelete()</c>.</summary>
+    internal static Task<IReadOnlyList<FieldFailure>> OfDelete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        Func<Task<TAggregate>> find, CancellationToken cancellationToken)
+        where TAggregate : class, IAggregate =>
+        Of(find, static (context, aggregate, token) => AggregateSave.StageDeleteAsync(context, aggregate, token), cancellationToken);
+
+    private static async Task<IReadOnlyList<FieldFailure>> Of<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        Func<Task<TAggregate>> change, Func<DbContext, TAggregate, CancellationToken, Task> stage, CancellationToken cancellationToken)
         where TAggregate : class, IAggregate
     {
         var outer = Running.Value;
@@ -47,7 +58,7 @@ internal static class DryRun
 
             var context = Db.CreateContext();
             await using var contextScope = context.ConfigureAwait(false);
-            await AggregateSave.StageAsync(context, aggregate, cancellationToken).ConfigureAwait(false);
+            await stage(context, aggregate, cancellationToken).ConfigureAwait(false);
             await DomainValidation.CheckAsync(context, cancellationToken).ConfigureAwait(false);
             (aggregate as IHasDomainEvents)?.ClearDomainEvents();
             return [];
