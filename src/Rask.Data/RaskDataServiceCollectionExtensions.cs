@@ -54,6 +54,10 @@ public static partial class RaskDataServiceCollectionExtensions
 
             // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
             services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
+
+            // Before soft-delete turns a removal into an update, and before the outbox and the publish read the rows'
+            // events: a declared projection's event rides on its rows, so it is stored and published as theirs.
+            services.AddSingleton<ISaveChangesInterceptor>(ProjectionInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 

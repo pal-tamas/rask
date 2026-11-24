@@ -1265,6 +1265,8 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 - **`WritableChildrenInterceptor`** — first of all: hands a held collection EF Core can fill, and asks the domain's
   rules of the save ([what every save asks](domain.md#what-every-save-asks)) before any other interceptor touches a row.
+- **`ProjectionInterceptor`** — next: raises each [declared projection](domain.md#declared-projections-projects)'s event onto
+  the rows the save changed, before soft-delete rewrites a removal and before the outbox and the publish read the events.
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each `Versioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
 - **`SoftDeleteInterceptor`** — for an aggregate that names `SoftDelete`, rewrites a `Deleted`

@@ -580,3 +580,28 @@ Rask.Data.RaskDataOptions.AfterCommitFailures.get -> Rask.Data.AfterCommitFailur
 Rask.Data.RaskDataOptions.AfterCommitFailures.set -> void
 Rask.Data.DataMigrationExtensions
 static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void
+~Rask.Data.ProjectedRow<T>.<Clone>$() -> Rask.Data.ProjectedRow<T>!
+~Rask.Data.ProjectedRow<T>.Equals(Rask.Data.ProjectedRow<T>? other) -> bool
+~static Rask.Data.ProjectedRow<T>.operator !=(Rask.Data.ProjectedRow<T>? left, Rask.Data.ProjectedRow<T>? right) -> bool
+~static Rask.Data.ProjectedRow<T>.operator ==(Rask.Data.ProjectedRow<T>? left, Rask.Data.ProjectedRow<T>? right) -> bool
+override Rask.Data.ProjectedRow<T>.Equals(object? obj) -> bool
+override Rask.Data.ProjectedRow<T>.GetHashCode() -> int
+override Rask.Data.ProjectedRow<T>.ToString() -> string!
+Rask.Data.ProjectedRow<T>
+Rask.Data.ProjectedRow<T>.Added.get -> bool
+Rask.Data.ProjectedRow<T>.After.get -> T?
+Rask.Data.ProjectedRow<T>.After.init -> void
+Rask.Data.ProjectedRow<T>.Before.get -> T?
+Rask.Data.ProjectedRow<T>.Before.init -> void
+Rask.Data.ProjectedRow<T>.Deconstruct(out T? Before, out T? After) -> void
+Rask.Data.ProjectedRow<T>.ProjectedRow(T? Before, T? After) -> void
+Rask.Data.ProjectedRow<T>.Removed.get -> bool
+Rask.Data.ProjectedRows<T>
+Rask.Data.ProjectedRows<T>.Count.get -> int
+Rask.Data.ProjectedRows<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<Rask.Data.ProjectedRow<T!>!>!
+Rask.Data.ProjectedRows<T>.this[int index].get -> Rask.Data.ProjectedRow<T!>!
+Rask.Data.ProjectedRows<T>.Values<TValue>(System.Func<T!, TValue>! member) -> System.Collections.Generic.IReadOnlyList<TValue>!
+Rask.Data.ProjectionBuilderExtensions
+Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!)
+Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!).Projects<TEvent>(System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
+static Rask.Data.ProjectionBuilderExtensions.Projects<T, TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
