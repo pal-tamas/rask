@@ -500,7 +500,7 @@ Rask.Data.ComputedColumnBuilderExtensions
 static Rask.Data.ComputedColumnBuilderExtensions.Computed<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.DefaultValueBuilderExtensions
 static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TProperty value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
-static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty, TClock>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TClock>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.FilteredIndexBuilderExtensions
 static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 Rask.Data.Refuse
@@ -574,6 +574,9 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+static Rask.Data.DefaultValueBuilderExtensions.StoredDefault<TEntity, TProperty, TStored>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TStored value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+Rask.Data.SearchTextExtensions
+static Rask.Data.SearchTextExtensions.Loosely(this string! text) -> string!
 Rask.Data.ISecrets
 Rask.Data.ISecrets.Protect(string! plaintext) -> string!
 Rask.Data.ISecrets.Unprotect(string! stored) -> string!

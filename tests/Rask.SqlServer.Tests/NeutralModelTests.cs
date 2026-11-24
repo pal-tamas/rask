@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Rask.Data;
 
 namespace Rask.SqlServer.Tests;
@@ -57,6 +59,10 @@ public sealed class Vessel
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTime CountedAt { get; set; }
+
+    public bool Sealed { get; set; }
+
+    public DateTime SeenAt { get; set; }
 }
 
 /// <summary>The three provider-neutral declarations.</summary>
@@ -87,6 +93,8 @@ public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : R
             b.Default(v => v.Size, 1000);
             b.Default(v => v.CreatedAt, () => Clock.Now);
             b.Default(v => v.CountedAt, () => Clock.Now.UtcDateTime);
+            b.Default(v => v.Sealed, false);
+            b.Default(v => v.SeenAt, () => Clock.Wall);
         });
     }
 }
@@ -172,9 +180,33 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Size] int NOT NULL DEFAULT 1000", script, StringComparison.Ordinal);
+        Assert.Contains("[Size] int NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
         Assert.Contains("[CreatedAt] datetimeoffset NOT NULL DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))", script, StringComparison.Ordinal);
         Assert.Contains("[CountedAt] datetime2 NOT NULL DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_loose_search_is_the_case_and_accent_insensitive_Latin1_collation_in_the_query_alone()
+    {
+        using var context = new NeutralContext(Options());
+        var typed = "kovacs";
+
+        var sql = context.Set<Meter>().Where(m => m.Name.Loosely().Contains(typed)).ToQueryString();
+
+        Assert.Contains("[m].[Name] COLLATE Latin1_General_100_CI_AI", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("Latin1_General_100_CI_AI", context.Database.GenerateCreateScript(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_bit_default_is_written_bare_and_the_wall_clock_as_CURRENT_TIMESTAMP_as_a_legacy_schema_has_them()
+    {
+        using var context = new NeutralContext(Options());
+
+        var vessel = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(Vessel))!;
+
+        Assert.Equal("0", vessel.FindProperty(nameof(Vessel.Sealed))!.GetDefaultValueSql());
+        Assert.Equal("CURRENT_TIMESTAMP", vessel.FindProperty(nameof(Vessel.SeenAt))!.GetDefaultValueSql());
+        Assert.Equal("1000", vessel.FindProperty(nameof(Vessel.Size))!.GetDefaultValueSql());
     }
 
     [Fact]
@@ -185,7 +217,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Size] int NOT NULL CONSTRAINT [Vessel_Size_df] DEFAULT 1000", script, StringComparison.Ordinal);
+        Assert.Contains("[Size] int NOT NULL CONSTRAINT [Vessel_Size_df] DEFAULT (1000)", script, StringComparison.Ordinal);
         Assert.Contains(
             "[CreatedAt] datetimeoffset NOT NULL CONSTRAINT [Vessel_CreatedAt_df] DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))",
             script,
