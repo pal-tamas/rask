@@ -77,6 +77,13 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
+  "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
+  `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
+  `ExclusiveBetween`, `GreaterThanOrEqualTo`, `LessThanOrEqualTo`, `NotEqual` and `IsInEnum` say the `RaskStrings`
+  sentence the equivalent DataAnnotations attribute says, in the reader's language; a rule with no catalog sentence,
+  or a language the catalog does not speak, keeps FluentValidation's own text, `WithMessage` still wins, and a
+  `ValidatorOptions.Global.LanguageManager` the app sets itself replaces Rask's.
 - **BREAKING: a `TestDatabase` save runs the app's whole interceptor chain, domain events and the outbox included.**
   Before: the fixture wired six interceptors by hand (ambient transaction, writable children, soft delete, auditing,
   data changes, the violation sentence), so a saved aggregate's events were never published and stayed on it, a

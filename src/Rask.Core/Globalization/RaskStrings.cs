@@ -123,9 +123,10 @@ public static class RaskStrings
         _libraries = [];
     }
 
-    // The app's translation, else the first library's, else nothing. An app with no catalog and no
-    // languages of its own — the common case — pays three reads here and never asks for the culture.
-    private static string? Translation(RaskString key)
+    // The app's translation, else the first library's, else nothing, in culture's language — the visitor's when
+    // that is null. An app with no catalog and no languages of its own — the common case — pays three reads here
+    // and never asks for the culture. Internal for a caller that is told the language: FluentValidation's.
+    internal static string? Translation(RaskString key, CultureInfo? culture = null)
     {
         var app = Source;
 
@@ -137,7 +138,7 @@ public static class RaskStrings
             return null;
         }
 
-        var tag = RaskCulture.CurrentUI.Name;
+        var tag = (culture ?? RaskCulture.CurrentUI).Name;
         if (app?.Get(key, tag) is { } own)
         {
             return own;
