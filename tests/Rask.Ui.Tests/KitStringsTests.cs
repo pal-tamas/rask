@@ -334,6 +334,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationColor),
         // A form's list of ids or of rows: the generated model and Rask.Data's refused id.
         nameof(RaskString.ValidationNotFound), nameof(RaskString.ValidationDuplicateRow),
+        // A save over an aggregate somebody else saved since it was read: Rask.Data's whole-form refusal.
+        nameof(RaskString.ValidationChangedSince),
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),
@@ -351,7 +353,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         // A DataAnnotations attribute with no message of its own, and Rules: Core's validation words them.
         nameof(RaskString.ValidationTooLong), nameof(RaskString.ValidationTooShort), nameof(RaskString.ValidationLength),
         nameof(RaskString.ValidationTooMany), nameof(RaskString.ValidationTooFew), nameof(RaskString.ValidationCount),
-        nameof(RaskString.ValidationBetween), nameof(RaskString.ValidationEmail), nameof(RaskString.ValidationPhone),
+        nameof(RaskString.ValidationBetween), nameof(RaskString.ValidationAboveAndAtMost), nameof(RaskString.ValidationAtLeastAndBelow),
+        nameof(RaskString.ValidationAboveAndBelow), nameof(RaskString.ValidationEmail), nameof(RaskString.ValidationPhone),
         nameof(RaskString.ValidationUrl), nameof(RaskString.ValidationCreditCard), nameof(RaskString.ValidationPattern),
         nameof(RaskString.ValidationMatch), nameof(RaskString.ValidationFileType), nameof(RaskString.ValidationNotAllowed),
         nameof(RaskString.ValidationBase64), nameof(RaskString.ValidationInvalid),

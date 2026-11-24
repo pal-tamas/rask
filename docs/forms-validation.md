@@ -48,8 +48,9 @@ Form.Model(_model)
 
 ### Rules in a value object
 
-A field's simple rules — required, length, format — belong to the value, not to one form. With
-[Rask.Data](data.md#declared-from-a-base-record), declare the value object from a base record and its constructor
+A field's simple rules — required, length, format — belong to the value, not to one form. Declare the
+value object from one of Rask's [base records](data.md#declared-from-a-base-record) (`Rask.Values`, in the `Rask` package, so
+a browser app has them too) and its constructor
 checks them — `public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);`
 — and a form bound to the aggregate's generated model asks the same rules
 [by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
@@ -123,7 +124,7 @@ A property the aggregate declares non-nullable is required by its type, with no 
 automatic validators on or off; a plain property that cannot be null (`int Weight`, `string Plate`) is required
 the same way, in the framework's one sentence — *This field is required.*, in the reader's language.
 
-A value object declared from one of Rask.Data's [base records](data.md#declared-from-a-base-record) —
+A value object declared from one of Rask's [base records](data.md#declared-from-a-base-record) —
 `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000)` — is asked by every field
 bound to it on the aggregate's generated model (`DeliveryModel.Driver`), with nothing written on the field: its
 rules are the base's arguments and its own `Rules()`, checked by its constructor, and the field runs its generated `DriverName.__Problems`,
@@ -143,10 +144,29 @@ states as constants (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`, `NotAfterT
 names of its two ends and their kind). Each value object answers its own generated `X.__Field`; a member holding
 another aggregate's typed id is `FieldKind.Id`; an enum is `FieldKind.Choice` with its members and their labels
 (`[Display(Name = …)]`, else the member's name), written out at compile time so nothing reflects over the enum. A
-plain `string`, number, date or `bool` says what it is through its type and is not registered. A range's ends whose
+plain `string`, number, date or `bool` says what it is through its type, and is registered only when its
+DataAnnotations attributes say more (below). A range's ends whose
 type is not a whole number, a number or a `DateOnly` — a `DateTime` moment — have `Ends = null`. A bound text input
 or textarea is given the declared lengths as its `maxlength` and `minlength`, so the browser stops at 1000
 characters instead of the save refusing the 1001st; a `.MaxLength(…)`/`.MinLength(…)` written on the control wins.
+A value object declared `Text(Value, Upper: true)` has `Upper`, and every input or textarea bound to it draws what is typed in capitals
+(`uppercase`, the text-transform only: the value object puts the value in capitals as it is made).
+
+**What a member's attributes tell its control.** Beside the rules, a `FieldShape` carries the hints a property's
+attributes give, read at compile time for a generated model and off the property itself for a model written by
+hand (a model type that registered shapes answers for itself; a property it answers `null` for is read off its
+attributes):
+
+| Attribute | `FieldShape` | A bound control |
+| --- | --- | --- |
+| `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `MaxLength`, `MinLength` — the tightest they say, and on a value object's property the tighter of the attribute and the value object's facet | `maxlength`, `minlength` |
+| `[EmailAddress]`, `[Phone]`, `[Url]`, `[DataType(Password \| EmailAddress \| PhoneNumber \| Url \| ImageUrl \| Date \| Time \| DateTime)]` | `Input` | the input's `type`, where it fits what the member holds: any of them on a `string`, `Date` on a `DateTime` too (shown and read back as its day) |
+| `[Editable(false)]` | `ReadOnly` | `readonly` on an input or a textarea, which then wires no write; `Ui.Field.Bind` disables a control that cannot be read-only |
+| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | `KeepEmpty` | an emptied `string?` is written `""`, not `null` |
+| `[UIHint("…")]`, `[DataType(DataType.MultilineText)]` | `Hint` | `Ui.Field.Bind` draws `Ui.Switch` for `FieldHints.Switch` on a `bool`, `Ui.RadioGroup` for `FieldHints.RadioGroup` on an enum, `Ui.Textarea` for `FieldHints.MultilineText` |
+
+A step written on the control wins over each of them — `.Type(…)`, `.MaxLength(…)`, `.MinLength(…)`,
+`Ui.Field.Bind(…).Multiline(false)` — except `[Editable(false)]`, which a control cannot be talked out of.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
@@ -605,7 +625,9 @@ public sealed class UniqueEmailAttribute() : AsyncValidationAttribute("{0} is al
 An attribute with no `ErrorMessage` of its own speaks the reader's language: .NET ships its attributes' English
 only, so Rask words every built-in one — `[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`,
 `[Compare]`, … — from the [strings catalog](localization.md#a-models-validation-attributes), with the attribute's
-numbers filled in. A `[Compare("X")]` naming no property of its model refuses every value, and is
+numbers filled in. A `[Range]` with an exclusive end says so: `[Range(0, 10, MinimumIsExclusive = true)]` is
+*0 feletti, legfeljebb 10 értéket adjon meg.* (`ValidationAboveAndAtMost`; `ValidationAtLeastAndBelow` and
+`ValidationAboveAndBelow` for the other two). A `[Compare("X")]` naming no property of its model refuses every value, and is
 [RASK144](diagnostics.md#rask144): name it with `nameof(…)`. Under `AddRask(culture: "hu")` a bare `[StringLength(100)]` says *Maximum 100 karakter
 hosszúnak kell lennie.*; an English reader still reads .NET's own text, word for word. An `ErrorMessage`, an
 `ErrorMessageResourceType` and an attribute class of your own always say what they say. It holds on the Server

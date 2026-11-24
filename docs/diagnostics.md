@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK172, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -156,6 +156,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
 | [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
+| [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
+| [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
+| [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3170,7 +3173,7 @@ public readonly record struct DriverName(string Value)
 ```
 
 > 'DriverName.Validate(string)' on value object 'DriverName' is never asked: no form and no generated write runs a
-> value object's Validate, only the rules of one declared from a Rask.Data base record — declare it 'public sealed
+> value object's Validate, only the rules of one declared from a Rask base record — declare it 'public sealed
 > partial record DriverName(string Value) : Text(Value, …);' with its rules as the base's arguments, or ': Value'
 > with them in 'protected override IEnumerable<Problem> Rules()', and make it with 'DriverName.Create(…)'
 
@@ -3337,3 +3340,61 @@ public static void Configure(EntityTypeBuilder<Company> b)
 
 **Fix:** write the call directly in the entity's own static `Configure`, the member as a lambda and the pattern as a
 constant.
+
+## RASK170
+
+**An aggregate calls an operation's generated entry by its bare name** · Warning
+
+Every public method of a `partial` aggregate gets a static entry of the same name —
+`Supply.Change(id, version, details, parts)` — that loads the aggregate, runs the method and saves it. Inside the
+aggregate a call by the bare name binds to that entry whenever the arguments fit, which is almost never what was
+meant: it loads ANOTHER copy, changes and saves that one in a transaction of its own, and leaves the aggregate in hand
+as it was.
+
+```csharp
+public sealed partial class Supply : Aggregate<Guid, Versioned>
+{
+    public void Change(string note) => Note = note;
+    public Task Again(Guid other) => Change(other, 0, "again");   // ⚠ RASK170
+    public void Twice(string note) { Change(note); this.Change(note); }   // ✓ the method
+    public Task Other(Guid other) => Supply.Change(other, 0, "x");      // ✓ plainly the entry
+}
+```
+
+**Fix:** call the method on the aggregate in hand (`this.Change(…)`), or name the type (`Supply.Change(…)`) when
+another copy really is what is meant.
+
+## RASK171
+
+**An operation's parameter takes a name its generated entry needs** · Warning
+
+The entry of an operation takes `id`, `version` and `cancellationToken` around the method's own parameters. An
+operation whose parameter has one of those names would make the entry ambiguous, so it gets none.
+
+```csharp
+public void Bump(int version) => Level = version;   // ⚠ RASK171: no Tag.Bump(id, version, …)
+```
+
+**Fix:** rename the parameter.
+
+## RASK172
+
+**The roles of an operation are written where its generated entry cannot read them** · Error
+
+`b.Operation(x => x.M, roles: …)` is read from the aggregate's own static `Configure` where the entry is generated,
+as `[Authorize(Roles = …)]` is read by the compiler. Written in a helper, another class, `OnModelCreating` or an
+`IEntityTypeConfiguration`, called as a static method, with the operation in a variable, or with roles that are no
+constant, it would leave the entry asking nothing — open to everyone — so the build stops. Roles that are no constant
+leave no entry at all.
+
+```csharp
+private static readonly string Admins = "Admin";
+public static void Configure(EntityTypeBuilder<Supply> b)
+{
+    b.Operation(s => s.SetOpening, roles: Roles.Admin);   // ✓ a const string
+    b.Operation(s => s.Close, roles: Admins);              // ⛔ RASK172 — not a constant
+}
+```
+
+**Fix:** write the call directly in the aggregate's own static `Configure`, the operation as a lambda and the roles as
+a `const string` or a literal.

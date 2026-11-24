@@ -72,6 +72,9 @@ public static class RaskPostgresDbContextOptionsExtensions
         optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskPostgresMigrationsSqlGenerator>();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new PostgresFullTextSearchOptionsExtension());
 
+        // The case-insensitive collation OrderTextBy asks for, which the generator above creates before its columns.
+        PostgresTextCollationOptionsExtension.Add(optionsBuilder);
+
         // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
         Rask.Data.RaskDbContext.WithSharedWarnings(optionsBuilder);
 

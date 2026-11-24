@@ -19,8 +19,10 @@ namespace Rask;
 ///     <para>
 ///         The label is the member's <c>[Display(Name)]</c>, the help text its <c>[Display(Description)]</c>, the
 ///         placeholder its <c>[Display(Prompt)]</c>; each step of the same name wins. <c>[Editable(false)]</c> makes a text
-///         or number input read-only and every other control disabled. <c>Ui.Field[…]</c> with parts of your own is
-///         still the field you compose by hand.
+///         or number input read-only and every other control disabled. <c>[DataType(DataType.Date)]</c> on a
+///         <c>DateTime</c> is a date input, <c>[DataType(DataType.MultilineText)]</c> a textarea, and <c>[UIHint]</c> picks
+///         the kit control of that name where it fits (<see cref="FieldHints" />): a <c>Ui.Switch</c> for a <c>bool</c>, a
+///         <c>Ui.RadioGroup</c> for an enum. <c>Ui.Field[…]</c> with parts of your own is still the field you compose by hand.
 ///     </para>
 /// </remarks>
 /// <typeparam name="T">The member's type.</typeparam>
@@ -42,7 +44,10 @@ public sealed partial class UiBoundField<T> : Component
     /// <summary>Flux's <c>badge</c>, beside the label, in place of the automatic <em>Required</em>; <c>""</c> says nothing.</summary>
     public string? Badge { get; set; }
 
-    /// <summary>Text drawn as a <c>Ui.Textarea</c> rather than a <c>Ui.Input</c>.</summary>
+    /// <summary>
+    ///     Text drawn as a <c>Ui.Textarea</c> rather than a <c>Ui.Input</c>. Unset, a member that is
+    ///     <c>[DataType(DataType.MultilineText)]</c> is drawn as one; false keeps it an input.
+    /// </summary>
     public bool? Multiline { get; set; }
 
     /// <summary>False: the message under the control is left to a <c>Ui.Error</c> of your own.</summary>
@@ -65,22 +70,19 @@ public sealed partial class UiBoundField<T> : Component
     {
         var shape = RaskValidation.ShapeOf(ExpressionAccessor.Parse(Bind));
         return shape is { Kind: FieldKind.Range }
-            ? UiBoundRange.Draw(this, Bind, shape, Look())
-            : UiBoundControl.Draw(Bind, shape, Look(), _choices);
+            ? UiBoundRange.Draw(this, Bind, shape, Look(shape))
+            : UiBoundControl.Draw(Bind, shape, Look(shape), _choices);
     }
 
-    private UiBoundLook Look()
-    {
-        var readOnly = UiBoundMember.IsReadOnly(Bind);
-        return new UiBoundLook(
+    private UiBoundLook Look(FieldShape? shape) =>
+        new(
             Label ?? DisplayNames.Of(Bind),
             Description ?? DisplayNames.DescriptionOf(Bind),
             Placeholder ?? DisplayNames.PromptOf(Bind),
             Badge,
             ShowValidation,
             Disabled == true,
-            readOnly,
-            Multiline == true,
+            shape?.ReadOnly == true,
+            Multiline ?? string.Equals(shape?.Hint, FieldHints.MultilineText, StringComparison.Ordinal),
             new UiBoundTiming(Live, Blur, Debounce));
-    }
 }

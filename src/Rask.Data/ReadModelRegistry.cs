@@ -269,7 +269,7 @@ public static class ReadModelRegistry
 
         property.HasColumnName(
             (store is { } table ? source.GetColumnName(table) : source.GetColumnName()) ?? column.ColumnName);
-        property.IsRequired(!source.IsNullable);
+        property.IsRequired(!HoldsNull(source));
 
         if (source.GetColumnType() is { Length: > 0 } columnType)
         {
@@ -469,6 +469,26 @@ public static class ReadModelRegistry
         ModelBuilderExtensions.HasCompositeKey(parent) && ModelBuilderExtensions.KeyPartsOf(parent) is { } parts
             ? [.. parts.Select(part => parent.Name + part)]
             : [parent.Name + nameof(Entity<int>.Id)];
+
+    // Whether the column can hold NULL: the property is optional, or an optional complex property holds it — EF Core's
+    // property says only the former, and a row with no Opening has NULL in its Opening_Date however Date is declared.
+    private static bool HoldsNull(IProperty property)
+    {
+        if (property.IsNullable)
+        {
+            return true;
+        }
+
+        for (var type = property.DeclaringType; type is IComplexType complex; type = complex.ComplexProperty.DeclaringType)
+        {
+            if (complex.ComplexProperty.IsNullable)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // "Total.Amount" walks the complex properties a value object was mapped to; "Reference" is one step.
     private static IProperty? FindProperty(IEntityType entity, string path)

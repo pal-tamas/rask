@@ -15,9 +15,10 @@ public sealed class UnreadConfigurationAnalyzerTests
             using Microsoft.EntityFrameworkCore;
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
+            using Rask.Values;
             namespace Shop;
             public sealed partial record VatNumber(string Value) : Text(Value, MaxLength: 13);
-            public sealed partial record KmRange(int Start, int End) : Rask.Data.Range(Start, End);
+            public sealed partial record KmRange(int Start, int End) : Rask.Values.Range(Start, End);
             public sealed class Company : Aggregate<Guid>
             {
                 private Company() { }

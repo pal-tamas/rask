@@ -13,6 +13,7 @@ public class DomainRulesGeneratorTests
             using System.Collections.Generic;
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
+            using Rask.Values;
 
             namespace Shop
             {
@@ -42,6 +43,7 @@ public class DomainRulesGeneratorTests
         var run = Run("""
             using System.Collections.Generic;
             using Rask.Data;
+            using Rask.Values;
 
             namespace Shop
             {
@@ -66,6 +68,7 @@ public class DomainRulesGeneratorTests
         var run = Run("""
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
+            using Rask.Values;
 
             namespace Shop
             {

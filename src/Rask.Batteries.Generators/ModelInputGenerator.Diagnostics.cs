@@ -92,7 +92,7 @@ public sealed partial class ModelInputGenerator
         "RASK132",
         "A value object's Validate is never asked: declare it from a base record",
         "'{0}' on value object '{1}' is never asked: no form and no generated write runs a value object's Validate, "
-        + "only the rules of one declared from a Rask.Data base record — declare it {2}, and make it with '{1}.Create(…)'",
+        + "only the rules of one declared from a Rask base record — declare it {2}, and make it with '{1}.Create(…)'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

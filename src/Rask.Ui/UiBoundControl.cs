@@ -20,10 +20,13 @@ internal static class UiBoundControl
         return (shape?.Kind ?? KindOf(type)) switch
         {
             FieldKind.Id => throw UiBoundMember.NoChoices(bind),
+            FieldKind.Choice when Hinted(shape, FieldHints.RadioGroup) => Radios(bind, look, shape?.Options ?? OptionsOf(type)),
             FieldKind.Choice => Chosen(bind, look, shape?.Options ?? OptionsOf(type)),
+            _ when ShapedInput.For(shape, type) is InputType.Date && type == typeof(DateTime) => Text(bind, look),
             FieldKind.Day => Day(bind, shape, look),
             FieldKind.Moment => Moment(bind, shape, look),
             FieldKind.Number or FieldKind.Whole => Number(bind, shape!, look),
+            _ when bind is Expression<Func<bool>> flag && Hinted(shape, FieldHints.Switch) => Switched(flag, look),
             _ when type == typeof(bool) => Checked(bind, look),
             _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => Moment(bind, shape, look),
             _ => Text(bind, look),
@@ -81,7 +84,7 @@ internal static class UiBoundControl
                 .Live(look.Timing.Live)
                 .Blur(look.Timing.Blur)
                 .Debounce(look.Timing.Debounce)
-            : Input(bind, look).Type(UiBoundMember.TextType(bind));
+            : Input(bind, look);
 
     private static UiInput<T> Number<T>(Expression<Func<T>> bind, FieldShape shape, UiBoundLook look) =>
         Numbered(Input(bind, look), shape);
@@ -106,6 +109,27 @@ internal static class UiBoundControl
             .ShowValidation(look.ShowValidation)
             .Disabled(look.Locked)
             .Live(look.Timing.Live);
+
+    private static bool Hinted(FieldShape? shape, string hint) => string.Equals(shape?.Hint, hint, StringComparison.Ordinal);
+
+    // [UIHint(FieldHints.Switch)] on a bool.
+    private static UiSwitch Switched(Expression<Func<bool>> bind, UiBoundLook look) =>
+        Ui.Switch.Bind(bind)
+            .Label(look.Label)
+            .Description(look.Description)
+            .ShowValidation(look.ShowValidation)
+            .Disabled(look.Locked)
+            .Live(look.Timing.Live);
+
+    // [UIHint(FieldHints.RadioGroup)] on an enum: a radio per option, in their declared order.
+    private static Component Radios<T>(Expression<Func<T>> bind, UiBoundLook look, IReadOnlyList<FieldOption> options) =>
+        Ui.RadioGroup.Bind(bind)
+            .Label(look.Label)
+            .Description(look.Description)
+            .ShowValidation(look.ShowValidation)
+            .Live(look.Timing.Live)[
+                options.Select(option => Ui.Radio.Key(option.Value).Value(option.Value).Label(option.Label).Disabled(look.Locked))
+            ];
 
     private static UiCheckbox Checked<T>(Expression<Func<T>> bind, UiBoundLook look) =>
         Ui.Checkbox.Bind(bind switch

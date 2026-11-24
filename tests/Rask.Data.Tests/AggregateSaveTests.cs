@@ -120,7 +120,7 @@ public sealed class AggregateSaveTests : IDisposable
         await theirs.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         mine.Rename("mine");
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => mine.Save(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => mine.Save(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("theirs", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
@@ -149,7 +149,7 @@ public sealed class AggregateSaveTests : IDisposable
         await Widget.Delete(widget.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         found.Rename("hammer");
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("anvil", Assert.Single(await Widget.IgnoreQueryFilters()).Name);
     }
@@ -179,7 +179,7 @@ public sealed class AggregateSaveTests : IDisposable
             .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
         found.Rename("hammer");
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Empty(await Widget.IgnoreQueryFilters());
     }
@@ -194,7 +194,7 @@ public sealed class AggregateSaveTests : IDisposable
             .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
         basket.Lines.First(l => l.Product == "pear").SetQuantity(5);
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => basket.Save(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => basket.Save(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(["apple"], (await database.Load<Basket>(id, TestContext.Current.CancellationToken))!.Lines.Select(l => l.Product));
     }
@@ -387,7 +387,7 @@ public sealed class AggregateSaveTests : IDisposable
         theirs.Rename("theirs");
         await theirs.Save(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => mine.Delete(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<RaskValidationException>(() => mine.Delete(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("theirs", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }

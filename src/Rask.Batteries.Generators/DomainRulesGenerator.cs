@@ -31,10 +31,10 @@ namespace Rask.Batteries.Generators;
 [Generator]
 public sealed class DomainRulesGenerator : IIncrementalGenerator
 {
-    private const string ProblemType = "Rask.Data.Problem";
+    private const string ProblemType = "Rask.Values.Problem";
     private const string Enumerable = "System.Collections.Generic.IEnumerable<T>";
     private const string AsyncEnumerable = "System.Collections.Generic.IAsyncEnumerable<T>";
-    private const string ProblemFqn = "global::Rask.Data.Problem";
+    private const string ProblemFqn = "global::Rask.Values.Problem";
     private const string WordsType = "Rask.Core.Forms.DataAnnotationsFieldValidator";
 
     private static readonly string[] SelfValidating =
