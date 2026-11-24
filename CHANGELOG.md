@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **An index's `Where(…)` and `Computed(…)` read a one-value value object as its column.** Before:
+  `HasIndex(f => f.PistolId).Where(f => f.Number.Value > 0)` over a `record FuelingNumber(int Value) : Value` failed the
+  model build ("Number … is not a value object Fueling maps"), and `Where(f => f.Number != FuelingNumber.Unset)` failed
+  with "SqlServer has no column type for FuelingNumber", so the filter stayed a provider-specific `HasFilter`. After:
+  `.Value` is the column, compared with a plain number, and a value object constant is written as the column stores
+  it — `[Number] > 0` on SQL Server, `"Number" > 0` on PostgreSQL and SQLite.
 - **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
   generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
   `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
