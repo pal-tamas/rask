@@ -106,8 +106,8 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <summary>Whether the column stays in view while the others scroll under it: told so, or a row menu's.</summary>
     internal bool Sticks => Sticky is true || UiColumnWidths.Sticks(Width);
 
-    // The edge the width's values keep to, where the call site names none.
-    private Ui.Align Implied => Width is { } width ? UiColumnWidths.Align(width) : default;
+    // The edge the width's values keep to, where the call site names none: else the member's, the end for a number.
+    private Ui.Align Implied => Width is { } width ? UiColumnWidths.Align(width) : _member?.Align ?? default;
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() =>
         (Sortable is true ? Waiting : Marker).With(Data);
@@ -115,10 +115,18 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <inheritdoc />
     protected override Component? Render()
     {
+        if (_member is { Listed: false })
+        {
+            return null;
+        }
+
         var label = Div.Class(Label);
 
-        return HostedElement.Tag("th").Owner(this)[Sortable is true ? label[SortControl()] : label[Children ?? Unworded()]];
+        return HostedElement.Tag("th").Owner(this)[Sortable is true ? label[SortControl()] : label[Words ?? Unworded()]];
     }
+
+    // What the heading says: the words in its brackets, else the name of the member it is bound to.
+    private IEnumerable<Component?>? Words => Children ?? (_member is { } member ? [(Component)member.Label] : null);
 
     // A row actions column the page gives no words still has a name, for a screen reader alone.
     private Component?[] Unworded() =>
@@ -175,7 +183,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
 
     private Component SortControl() =>
         Button.Type(ButtonType.Button).Class(SortButton).Data("ui-table-sortable", "")[
-            Div[Children ?? []],
+            Div[Words ?? []],
             Div.Class(SortIcon)[Indicator()]
         ];
 

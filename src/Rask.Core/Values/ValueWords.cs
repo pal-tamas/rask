@@ -3,12 +3,19 @@ using Rask.Core.Globalization;
 namespace Rask.Values;
 
 /// <summary>
-///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" /> and
+///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" />, <see cref="Moment" /> and
 ///     <see cref="Range" /> are worded: from Rask's strings catalog, so they are said in the reader's language, and in
 ///     English where the catalog says nothing.
 /// </summary>
 internal static class ValueWords
 {
+    /// <summary>
+    ///     The problems a base found, with the value object's own message said once: a text both too long and of the
+    ///     wrong form is told <c>Message</c> one time, not twice.
+    /// </summary>
+    public static List<Problem>? Once(List<Problem>? problems, string? message) =>
+        message is null || problems is not { Count: > 1 } ? problems : [.. problems.DistinctBy(static p => (p.Field, p.Message))];
+
     /// <summary>What <paramref name="problem" /> says: its own message, else the catalog's words, else the English.</summary>
     public static string Say(ValueProblem problem) =>
         problem.Message ?? problem.Kind switch

@@ -15,7 +15,10 @@ public abstract record Multiline : Text
     /// <param name="MaxLength">The most characters it may hold, and the column's length; 0 for no limit.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
     /// <param name="Pattern">A regular expression the text must match, or null.</param>
-    /// <param name="Message">What a text that does not match <paramref name="Pattern" /> is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What a text that breaks a rule declared here — its lengths, its <paramref name="Pattern" /> — is told, said
+    ///     once; or null for the framework's words for each.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks (and blank lines) are cut off before it is checked and kept.</param>
     /// <param name="Upper">Whether it is kept in capitals.</param>
     /// <param name="Required">Whether it must be filled; with <c>false</c> an empty text is kept as <c>""</c>.</param>

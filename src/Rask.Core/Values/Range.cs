@@ -27,6 +27,10 @@ public abstract record Range : Value
     /// <param name="Strict">Whether the end must be after the start, rather than at least the start.</param>
     /// <param name="Min">The least either end may be, of the ends' type (a number is converted to it); or null.</param>
     /// <param name="Max">The greatest either end may be, of the ends' type (a number is converted to it); or null.</param>
+    /// <param name="Message">
+    ///     What a range that breaks a rule declared here is told, under the member it is about and said once there however many it breaks; or null for the
+    ///     framework's words for each.
+    /// </param>
     /// <param name="startMember">Filled in by the compiler: the member <paramref name="Start" /> is read from.</param>
     /// <param name="endMember">Filled in by the compiler: the member <paramref name="End" /> is read from.</param>
     /// <exception cref="ArgumentException">The ends, or a bound and the ends, are of types that cannot be compared.</exception>
@@ -38,6 +42,7 @@ public abstract record Range : Value
         bool Strict = false,
         IComparable? Min = null,
         IComparable? Max = null,
+        string? Message = null,
         [CallerArgumentExpression(nameof(Start))] string startMember = "",
         [CallerArgumentExpression(nameof(End))] string endMember = "")
 #pragma warning restore IDE1006
@@ -70,32 +75,32 @@ public abstract record Range : Value
         }
 
         List<Problem>? problems = null;
-        Bounded(ref problems, Start, startName, least, most);
+        Bounded(ref problems, Start, startName, least, most, Message);
         if (End is not null)
         {
             var endName = Problem.MemberName(endMember);
             var order = End.CompareTo(Start);
             if (Strict ? order <= 0 : order < 0)
             {
-                (problems ??= []).Add(Say(endName, Strict ? ValueProblemKind.EndNotAfterStart : ValueProblemKind.EndBeforeStart, Start));
+                (problems ??= []).Add(Say(endName, Strict ? ValueProblemKind.EndNotAfterStart : ValueProblemKind.EndBeforeStart, Start, Message));
             }
 
-            Bounded(ref problems, End, endName, least, most);
+            Bounded(ref problems, End, endName, least, most, Message);
         }
 
-        Check(problems);
+        Check(ValueWords.Once(problems, Message));
     }
 
-    private static void Bounded(ref List<Problem>? problems, IComparable end, string? name, IComparable? least, IComparable? most)
+    private static void Bounded(ref List<Problem>? problems, IComparable end, string? name, IComparable? least, IComparable? most, string? message)
     {
         if (least is not null && end.CompareTo(least) < 0)
         {
-            (problems ??= []).Add(Say(name, ValueProblemKind.BelowMin, least));
+            (problems ??= []).Add(Say(name, ValueProblemKind.BelowMin, least, message));
         }
 
         if (most is not null && end.CompareTo(most) > 0)
         {
-            (problems ??= []).Add(Say(name, ValueProblemKind.AboveMax, most));
+            (problems ??= []).Add(Say(name, ValueProblemKind.AboveMax, most, message));
         }
     }
 
@@ -118,6 +123,6 @@ public abstract record Range : Value
     private static bool IsNumber(Type type) =>
         Type.GetTypeCode(type) is >= TypeCode.SByte and <= TypeCode.Decimal;
 
-    private static Problem Say(string? name, ValueProblemKind kind, object limit) =>
-        new(name, ValueWords.Say(new ValueProblem(kind, limit)));
+    private static Problem Say(string? name, ValueProblemKind kind, object limit, string? message) =>
+        new(name, ValueWords.Say(new ValueProblem(kind, limit, message)));
 }

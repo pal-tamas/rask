@@ -15,7 +15,10 @@ public abstract record Phone : Text
     /// <param name="Value">The number as given; the derived record's own positional parameter.</param>
     /// <param name="MaxLength">The most characters it may hold, and the column's length: 32 unless declared.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
-    /// <param name="Message">What a text that is no phone number is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What a number that breaks a rule declared here — its lengths, or being no phone number — is told, said once;
+    ///     or null for the framework's words for each.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks are cut off before it is checked and kept.</param>
     /// <param name="Upper">Whether it is kept in capitals.</param>
     /// <param name="Required">Whether it must be filled; with <c>false</c> an empty number is kept as <c>""</c>.</param>

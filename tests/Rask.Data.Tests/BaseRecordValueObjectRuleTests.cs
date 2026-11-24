@@ -275,6 +275,68 @@ public sealed class BaseRecordValueObjectRuleTests
     }
 
     [Fact]
+    public void A_number_declared_to_round_is_kept_at_its_scale_instead_of_refused()
+    {
+        var half = RigUnitPrice.Create(1.005m);
+        var down = RigUnitPrice.Create(2.344999m);
+        var negative = RigUnitPrice.TryCreate(-0.004m, out var zero, out _);
+
+        Assert.Equal(1.01m, half.Value);
+        Assert.Equal(2.34m, down.Value);
+        Assert.True(negative);
+        Assert.Equal(0m, zero!.Value);
+        Assert.Equal(["Enter at most 2 decimal places."], RigLitres.__Problems(1.005m));
+    }
+
+    [Fact]
+    public void A_number_rounded_to_its_scale_is_still_checked_against_its_bounds_and_digits()
+    {
+        var below = RigUnitPrice.__Problems(-0.005m);
+        var tooMany = RigUnitPrice.__Problems(9999.999m);
+
+        Assert.Equal(["Enter 0 or more."], below);
+        Assert.Equal(["The number is out of range."], tooMany);
+    }
+
+    [Fact]
+    public void A_number_that_rounds_without_a_scale_is_a_programming_error()
+    {
+        var made = () => RigUnscaled.Create(1m);
+
+        var error = Assert.Throws<ArgumentOutOfRangeException>(made);
+
+        Assert.Equal("Round", error.ParamName);
+    }
+
+    [Fact]
+    public void A_base_message_words_every_rule_it_declares_once()
+    {
+        var today = Clock.Today;
+
+        var shortAndLower = RigSerial.__Problems("ab");
+        var tooLong = RigSerial.__Problems("ABCDEF");
+        var blank = RigSerial.__Problems("  ");
+
+        Assert.Equal([RigWords.Serial], shortAndLower);
+        Assert.Equal([RigWords.Serial], tooLong);
+        Assert.Equal([GeneratedModelRules.RequiredMessage], blank);
+        Assert.Equal([RigWords.Count], RigCount.__Problems(0));
+        Assert.Equal([RigWords.Share], RigShare.__Problems(100.5m));
+        Assert.Equal([RigWords.Due], RigDue.__Problems(today.AddDays(1)));
+        Assert.Equal([RigWords.Read], RigMeterRead.__Problems(Clock.Wall.AddHours(1)));
+    }
+
+    [Fact]
+    public void A_range_message_words_each_rule_under_the_end_it_is_about()
+    {
+        var backwards = Assert.Throws<RaskValidationException>(() => RigOdometer.Create(120, 100, "Km"));
+        var belowZero = Assert.Throws<RaskValidationException>(() => RigOdometer.Create(-5, -1, "Km"));
+
+        Assert.Equal([("Km.EndKm", RigWords.Odometer)], Failures(backwards));
+        Assert.Equal([("Km.StartKm", RigWords.Odometer), ("Km.EndKm", RigWords.Odometer)], Failures(belowZero));
+    }
+
+    [Fact]
     public void A_problem_names_the_member_it_is_written_with()
     {
         var quantity = 5m;

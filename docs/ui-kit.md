@@ -578,6 +578,41 @@ Ui.Table.Loading(_rows is null)[
 ]
 ```
 
+### Columns from the row's members
+
+`Ui.TableColumn.For<TRow>(r => r.X)` is a heading bound to a member of the row type, and `Ui.TableCell.For(() => row.X)`
+a cell bound to the same member of one row. They are Flux's heading and cell with the member read for them — not
+Flux's, an owner-approved addition (2026-11-24):
+
+```csharp
+Ui.Table.Of(Listed)[
+    Ui.TableColumns[
+        Ui.TableColumn.For<SupplierRead>(s => s.Name).Class(ListTable.Wide),     // "Megnevezés" — its [Display(Name)]
+        Ui.TableColumn.For<SupplierRead>(s => s.VatNumber).Sortable().Sorted(bySort).OnSort(Sort),
+        Ui.TableColumn.End[RowActions.Heading]                                   // a hand-written heading, as before
+    ],
+    Ui.TableRows[(Listed.Data?.Rows ?? []).Select(supplier => Ui.TableRow.Key(supplier.Id)[
+        Ui.TableCell.For(() => supplier.Name).Variant(Ui.TableCellVariant.Strong),
+        Ui.TableCell.For(() => supplier.VatNumber),
+        Ui.TableCell.End.Class("py-0")[RowActions.For(…)]                       // a hand-written cell
+    ])]
+]
+```
+
+- **The heading** says the member's `[Display(Name)]`, else its name; words in its brackets win.
+- **The cell** writes the value in the reader's culture: the member's `[DisplayFormat(DataFormatString)]` first, else by
+  what it holds — a number with its value object's scale (`Format.Number`), a day (`Format.Day`), a moment on the wall
+  clock (`Format.Moment`), an enum's `[Display(Name)]`, a `bool` as Yes or No (`TableCellYes`/`TableCellNo`), a value
+  object as its value. No value is its `[DisplayFormat(NullDisplayText)]`, else "–". Content in its brackets wins.
+- **Alignment**: a number or a whole number keeps to the end in the heading and the cells, as Flux aligns an amount;
+  `.Align(…)` wins.
+- **`[ScaffoldColumn(false)]`** draws neither the heading nor any cell of the member, so they never go out of line.
+- **Sorting** stays the heading's own steps — `.Sortable().Sorted(…).Direction(…).OnSort(…)`.
+
+A generated read face (`SupplierRead`) carries the aggregate property's `[Display]`, `[DisplayFormat]` and
+`[ScaffoldColumn]`, and registers each value object's shape (its kind and scale) at compile time, so nothing is
+reflected over; a row type of your own is read off its attributes.
+
 ### A list page
 
 **`SortIn`, `PageIn` and `Empty` are the list page every app writes** (not Flux's: an addition the owner approved,

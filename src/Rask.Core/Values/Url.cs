@@ -15,7 +15,10 @@ public abstract record Url : Text
     /// <param name="Value">The address as given; the derived record's own positional parameter.</param>
     /// <param name="MaxLength">The most characters it may hold, and the column's length: 2048 unless declared.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
-    /// <param name="Message">What a text that is no http or https address is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What an address that breaks a rule declared here — its lengths, or being no http or https address — is told,
+    ///     said once; or null for the framework's words for each.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks are cut off before it is checked and kept.</param>
     /// <param name="Upper">Whether it is kept in capitals.</param>
     /// <param name="Required">Whether it must be filled; with <c>false</c> an empty address is kept as <c>""</c>.</param>

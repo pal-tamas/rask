@@ -26,7 +26,13 @@ public sealed partial class ValueObjectFactoryGenerator
             s.AppendLine("{");
         }
 
-        s.Append("partial record ").AppendLine(value.Name);
+        s.Append("partial record ").Append(value.Name);
+        if (value.Ordered)
+        {
+            s.Append(" : global::System.IComparable<").Append(value.Name).Append(">, global::System.IComparable");
+        }
+
+        s.AppendLine();
         s.AppendLine("{");
         AppendCreate(s, value);
         AppendTryCreate(s, value);
@@ -38,6 +44,7 @@ public sealed partial class ValueObjectFactoryGenerator
 
         AppendFacets(s, value);
         AppendField(s, value);
+        AppendOrder(s, value);
         AppendToString(s, value);
         s.AppendLine("}");
 

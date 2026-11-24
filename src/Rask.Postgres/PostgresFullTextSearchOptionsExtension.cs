@@ -14,7 +14,10 @@ using Rask.Data;
 
 namespace Rask.Postgres;
 
-/// <summary>Registers the model and query halves of PostgreSQL full-text search on a context.</summary>
+/// <summary>
+///     Registers the model and query halves of PostgreSQL full-text search on a context, and stores a <c>Moment</c> value
+///     object as UTC (<see cref="PostgresMomentConventionSetPlugin" />).
+/// </summary>
 internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptionsExtension
 {
     private DbContextOptionsExtensionInfo? _info;
@@ -24,7 +27,8 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
-            .TryAdd<IConventionSetPlugin, PostgresFullTextSearchConventionSetPlugin>();
+            .TryAdd<IConventionSetPlugin, PostgresFullTextSearchConventionSetPlugin>()
+            .TryAdd<IConventionSetPlugin, PostgresMomentConventionSetPlugin>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor, PostgresFullTextSearchQueryInterceptor>());
 

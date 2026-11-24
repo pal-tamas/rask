@@ -31,7 +31,11 @@ public abstract record Text : Value
     /// <param name="MaxLength">The most characters it may hold, and the column's length; 0 for no limit.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
     /// <param name="Pattern">A regular expression the text must match — anchor it (<c>^…$</c>) to cover the whole text — or null.</param>
-    /// <param name="Message">What a text that does not match <paramref name="Pattern" /> is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What a text that breaks a rule declared here — too short, too long, not matching <paramref name="Pattern" /> —
+    ///     is told, said once however many it breaks; or null for the framework's words for each. A text left blank is
+    ///     still told it is required.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks are cut off before the text is checked and kept.</param>
     /// <param name="Upper">
     ///     Whether the text is kept in capitals — <c>"wvwzzz1jzxw000001"</c> becomes <c>"WVWZZZ1JZXW000001"</c>, and
@@ -108,12 +112,12 @@ public abstract record Text : Value
 
         if (text.Length < declared.MinLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooShort, declared.MinLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooShort, declared.MinLength, declared.Message));
         }
 
         if (declared.MaxLength > 0 && text.Length > declared.MaxLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooLong, declared.MaxLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooLong, declared.MaxLength, declared.Message));
         }
 
         if (declared.Pattern is { } pattern && !Matches(pattern, text))
@@ -126,7 +130,7 @@ public abstract record Text : Value
             (problems ??= []).Add(Say(format, null, declared.Message));
         }
 
-        return problems;
+        return ValueWords.Once(problems, declared.Message);
     }
 
     private static Problem Say(ValueProblemKind kind, object? limit = null, string? message = null) =>

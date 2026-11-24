@@ -9,7 +9,8 @@ namespace Rask.Core.Forms;
 /// </summary>
 /// <remarks>
 ///     Beyond the rules, the hints the member's attributes give a control — <see cref="Input" />, <see cref="ReadOnly" />,
-///     <see cref="KeepEmpty" />, <see cref="Hint" /> — and the way a value object keeps its text (<see cref="Upper" />).
+///     <see cref="KeepEmpty" />, <see cref="Hint" /> — the way a value object keeps its text (<see cref="Upper" />), and how
+///     a list shows the member (<see cref="Format" />, <see cref="NullText" />, <see cref="Listed" />).
 /// </remarks>
 /// <param name="Kind">What the field holds.</param>
 /// <param name="MaxLength">The most characters a <see cref="FieldKind.Text" /> may hold, or null for no limit.</param>
@@ -86,4 +87,19 @@ public sealed record FieldShape(
     ///     one fits what the member holds (<see cref="FieldHints" />), and its usual control otherwise.
     /// </summary>
     public string? Hint { get; init; }
+
+    /// <summary>
+    ///     How the value is written where it is shown — <c>[DisplayFormat(DataFormatString = "{0:N2}")]</c> — in the
+    ///     reader's culture, or null for the way its kind is shown (<c>Ui.TableCell.For</c>).
+    /// </summary>
+    public string? Format { get; init; }
+
+    /// <summary>What is shown for no value — <c>[DisplayFormat(NullDisplayText = "n/a")]</c> — or null for the kit's "–".</summary>
+    public string? NullText { get; init; }
+
+    /// <summary>
+    ///     Whether the member is a column of a list: false for <c>[ScaffoldColumn(false)]</c>, which drops its
+    ///     <c>Ui.TableColumn.For</c> and every <c>Ui.TableCell.For</c> of it.
+    /// </summary>
+    public bool Listed { get; init; } = true;
 }

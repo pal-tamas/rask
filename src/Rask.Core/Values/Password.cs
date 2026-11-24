@@ -32,7 +32,10 @@ public abstract record Password : Text
     /// <param name="MaxLength">The most characters it may hold; 0 for no limit.</param>
     /// <param name="MinLength">The fewest characters it must hold; 0 for none beyond being filled.</param>
     /// <param name="Pattern">A regular expression it must match, or null.</param>
-    /// <param name="Message">What a password that does not match <paramref name="Pattern" /> is told, or null for the framework's.</param>
+    /// <param name="Message">
+    ///     What a password that breaks a rule declared here — its lengths, its <paramref name="Pattern" /> — is told,
+    ///     said once; or null for the framework's words for each.
+    /// </param>
     /// <param name="Trim">Whether surrounding blanks are cut off: not unless declared, since they are part of it.</param>
     /// <param name="Upper">Whether it is kept in capitals.</param>
     /// <param name="Required">Whether it must be filled.</param>

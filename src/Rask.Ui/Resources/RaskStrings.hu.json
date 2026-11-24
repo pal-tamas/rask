@@ -317,5 +317,7 @@
   "ValidationDecimals": "Legfeljebb {0} tizedesjegy adható meg.",
   "ValidationRangeNotBefore": "Nem lehet a kezdet ({0}) előtt.",
   "ValidationRangeAfter": "A kezdet ({0}) után kell lennie.",
-  "ValidationChangedSince": "Közben más módosította. Töltse be újra, és próbálja meg ismét."
+  "ValidationChangedSince": "Közben más módosította. Töltse be újra, és próbálja meg ismét.",
+  "TableCellYes": "Igen",
+  "TableCellNo": "Nem"
 }

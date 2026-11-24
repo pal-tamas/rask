@@ -28,10 +28,14 @@ public abstract record Moment : Value
     /// <param name="NotBefore">The earliest moment it may be, on the wall clock, or null.</param>
     /// <param name="NotAfter">The latest moment it may be, on the wall clock, or null.</param>
     /// <param name="NotAfterNow">Whether a moment after now is refused.</param>
+    /// <param name="Message">
+    ///     What a moment that breaks a rule declared here is told, said once however many it breaks; or null for the
+    ///     framework's words for each.
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="NotBefore" /> is after <paramref name="NotAfter" />.</exception>
     /// <exception cref="Rask.Cqrs.RaskValidationException">A bound refuses the moment.</exception>
 #pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Moment(Value, NotAfterNow: true)`
-    protected Moment(DateTime Value, DateTime? NotBefore = null, DateTime? NotAfter = null, bool NotAfterNow = false)
+    protected Moment(DateTime Value, DateTime? NotBefore = null, DateTime? NotAfter = null, bool NotAfterNow = false, string? Message = null)
 #pragma warning restore IDE1006
         : base(checkNow: false)
     {
@@ -48,7 +52,7 @@ public abstract record Moment : Value
         this.Value = OnTheWall(Value);
         if (!RowLoading.IsOn)
         {
-            Check(Problems(this.Value, NotBefore, NotAfter, NotAfterNow));
+            Check(Problems(this.Value, NotBefore, NotAfter, NotAfterNow, Message));
         }
     }
 
@@ -69,11 +73,11 @@ public abstract record Moment : Value
             ? given
             : DateTime.SpecifyKind(TimeZoneInfo.ConvertTime(given, Clock.Zone), DateTimeKind.Unspecified);
 
-    private static List<Problem>? Problems(DateTime moment, DateTime? notBefore, DateTime? notAfter, bool notAfterNow)
+    private static List<Problem>? Problems(DateTime moment, DateTime? notBefore, DateTime? notAfter, bool notAfterNow, string? message)
     {
         if (moment < notBefore)
         {
-            return [Say(ValueProblemKind.BeforeEarliest, notBefore)];
+            return [Say(ValueProblemKind.BeforeEarliest, notBefore, message)];
         }
 
         var latest = notAfter;
@@ -82,9 +86,9 @@ public abstract record Moment : Value
             latest = now;
         }
 
-        return moment > latest ? [Say(ValueProblemKind.AfterLatest, latest)] : null;
+        return moment > latest ? [Say(ValueProblemKind.AfterLatest, latest, message)] : null;
     }
 
-    private static Problem Say(ValueProblemKind kind, object? limit) =>
-        Problem.Whole(ValueWords.Say(new ValueProblem(kind, limit)));
+    private static Problem Say(ValueProblemKind kind, object? limit, string? message) =>
+        Problem.Whole(ValueWords.Say(new ValueProblem(kind, limit, message)));
 }

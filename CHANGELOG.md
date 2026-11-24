@@ -95,6 +95,62 @@ them until tagged releases begin.
   a query's or a command's result, a subscription's item or an event; the read face leaves it out. `Test.Make` builds
   an address, a number or a URL in the format its kind checks. Both paths — attribute and value object — are tabled
   side by side in docs/forms-validation.md and docs/data.md, with a site example.
+- **A table's heading and cell can be bound to a row's member.** Before: every `Ui.TableColumn` was given its words and
+  every `Ui.TableCell` its value written out by hand (`Ui.TableCell.End[Format.Number(tank.Size)]`), and
+  `[DisplayFormat(DataFormatString)]`, `NullDisplayText` and `[ScaffoldColumn]` were read by nothing. After:
+  `Ui.TableColumn.For<TRow>(r => r.X)` says the member's `[Display(Name)]`, and `Ui.TableCell.For(() => row.X)` writes
+  the value in the reader's culture — its `DataFormatString`, else by kind (a number with its value object's scale, a
+  day, a moment), an enum's label, a `bool` as Yes/No (new keys `TableCellYes`/`TableCellNo`, Hungarian *Igen*/*Nem*),
+  `NullDisplayText` or "–" for none. Numbers keep to the end in both, and a `[ScaffoldColumn(false)]` member draws
+  neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
+  property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
+  `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
+- **The in-type FluentValidation rules are checked as they are written (RASK139, RASK181–RASK183).** Before: a `Rules` taking an
+  `InlineValidator` in the wrong shape, a rule on an aggregate's value-object member, a `MaximumLength(200)` on a
+  `[MaxLength(100)]` property, and a value object with both a `Rules()` override and FluentValidation `Rules` all
+  compiled silently. After: RASK139 names why a `Rules` is never registered, RASK181 points a value-object member's
+  rule into the value object, RASK182 says where a rule's length or precision disagrees with the column's, and RASK183
+  refuses a value object that states its rules twice. All four are silent without FluentValidation.
+- **RASK130's quick-fix declares the value object from the rules already written.** Before: RASK130 had no fix.
+  After: "Declare a value object from its rules" turns `[StringLength(200)] public string Name` or
+  `rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200)` into `public SupplierName Name` beside
+  `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);` — `Number`, `Whole` and
+  `Day` likewise — and takes the rules its base arguments now say off the property.
+- **PostgreSQL stores a `Moment` value object.** Before: Npgsql refused to save a wall-clock `DateTime`
+  (`Kind=Unspecified`) to its `timestamptz` column, so a `Moment` could not be kept on PostgreSQL at all. After:
+  `UseRaskPostgres` stores every `Moment` column as the UTC instant the wall-clock time is in `Clock.Zone` and reads it
+  back onto the wall clock — a converter of the app's own on the property is composed with it — so SQL Server, SQLite
+  and PostgreSQL save, read, compare and order the same moment (PostgreSQL to the microsecond); `.Value` in a query is
+  converted the same way. The parity suite runs the moment on all three.
+- **A write-side query reads a value object's value as its column, and orders and compares the value object itself.**
+  Before: `db.Set<Transaction>().Sum(t => t.Quantity.Value)`, `Where(t => t.Quantity.Value > 0)` and
+  `OrderBy(f => f.Moment.Value)` were "could not be translated" on a converter-mapped one-value value object, and a
+  list of them could not be sorted (`fuelings.OrderBy(f => f.Moment)` threw: not `IComparable`). After: `.Value` of a
+  column Rask maps is that column, typed as the value with the column's own store type (no `CAST`), on SQL Server,
+  SQLite and PostgreSQL, inside a complex value object too (`g.Crate.Weight.Value`); and a one-value record over an
+  ordered value (a number, a whole number, a day, a moment, a text) is generated `IComparable` with `<`, `>`, `<=`
+  and `>=` against its own type — `Where(f => f.Moment >= since)`, `OrderBy(f => f.Moment)`, `Max(f => f.Moment)`
+  translate, and `ExecuteUpdate(s => s.SetProperty(f => f.Moment, moment))` sets one. A record that writes its own
+  `CompareTo` or operators keeps them. A column the app maps through a converter of its own is left as it was.
+- **`Number(…, Round: true)` rounds a computed number to its `Scale` instead of refusing its extra digits** — half
+  away from zero, as SQL Server rounds what it stores — before the bounds and the precision are checked. Before: a
+  unit price computed to fourteen decimals was refused where SqlClient used to round it silently, so an app wrote a
+  `Stored(decimal)` helper beside every computed value object. A `Round` with no `Scale` throws as the value is made.
+- **Every value-object base takes a `Message` for every rule it declares.** Before: `Text(Message: …)` worded only
+  the `Pattern` rule, and `Number`, `Whole`, `Day`, `Moment` and `Range` had no `Message` at all, so "A záró km-nek
+  nagyobbnak kell lennie a kezdőnél." could not be said for a `Range`. After: `Message` words each rule the base
+  declares — lengths and pattern, bounds, digits, days, the range's order and bounds (under the end it is about) —
+  said once however many it breaks; a blank text is still told it is required. **BREAKING** for a `Text` with both a
+  `Message` and a length: a text of the wrong length now says the `Message` too.
+- **`Covering(…)` carries a value object of several members.** Before: `HasIndex(l => l.Lane).Covering(l => l.Km)`
+  over a `KmRange` failed the model build (a complex property is not a mapped property), so its `StartKm`/`EndKm`
+  columns could not be INCLUDEd. After: it includes every column of the value object, as they are named
+  (`INCLUDE ([EndKm], [StartKm])` on SQL Server, the same on PostgreSQL), or one member by its path
+  (`Covering(l => l.Km.Start)`, `Covering("Km.Start")`); one stored as JSON is refused with its name.
+- **An enum held as a value object is offered as a choice.** `public sealed partial record FuelKind(Fuel Value) :
+  Value;` was already one column of the enum and `Fuel?` on the generated model; now `.Value` translates in a query
+  and a control bound to the field is offered the enum's members with their `[Display(Name)]` labels, as for a bare
+  enum (before: no field shape, so a bound select listed nothing).
 - **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
   "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
   `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
