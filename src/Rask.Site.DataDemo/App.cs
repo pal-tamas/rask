@@ -111,6 +111,8 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
             term.Length > 0 ? Results(term, hits) : Recent(notes),
 
+            notes.Data is [var newest, ..] ? Rename(newest.Id) : null,
+
             P.Class("notes-foot")[
                 "Nothing leaves your browser: the database is saved to IndexedDB every two seconds and restored "
                 + "before the page reads it."
@@ -128,6 +130,17 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                     Strong.Class("note-title")[n.Title],
                     n.Body is { Length: > 0 } body ? Span.Class("note-body")[body] : null
                 ])]
+        ];
+
+    // A form straight over the aggregate's operation: its field is Rename's parameter, filled from the note, told what
+    // Rename's Refuse and the note's [MaxLength] say as it is typed in, and saved through Note.Rename(id, version, …).
+    private static Component Rename(Guid newest) =>
+        Section.Aria("label", "Rename the newest note")[
+            H2["Rename the newest note"],
+            Form.For(Note.Rename, newest)[f => [
+                Ui.Field.Bind(() => f.Title).Label("New title"),
+                Ui.Button.Id("rename-note").Type(Ui.ButtonType.Submit)["Rename"]
+            ]]
         ];
 
     private static Component Results(string term, Query<List<Hit>> hits) =>

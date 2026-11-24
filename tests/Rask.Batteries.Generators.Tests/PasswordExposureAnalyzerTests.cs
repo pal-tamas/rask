@@ -3,7 +3,7 @@ using Rask.Batteries.Generators.Analyzers;
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// RASK173 and RASK174: a password value object is input only — never stored on an aggregate or an entity, never
+/// RASK175 and RASK176: a password value object is input only — never stored on an aggregate or an entity, never
 /// carried outward by a result, a subscription's item or an event — and a command that takes one is what it is for.
 /// </summary>
 public class PasswordExposureAnalyzerTests
@@ -26,7 +26,7 @@ public class PasswordExposureAnalyzerTests
         ModelStateAnalyzerHarness.RunAsync(new PasswordExposureAnalyzer(), Values + source);
 
     [Fact]
-    public async Task An_aggregate_that_stores_a_password_is_RASK173()
+    public async Task An_aggregate_that_stores_a_password_is_RASK175()
     {
         var diagnostics = await Run("""
             public sealed class User : Aggregate<Guid>
@@ -39,14 +39,14 @@ public class PasswordExposureAnalyzerTests
 
         var diagnostic = Assert.Single(diagnostics);
 
-        Assert.Equal("RASK173", diagnostic.Id);
+        Assert.Equal("RASK175", diagnostic.Id);
         Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal("Password", diagnostic.Flagged());
         Assert.Contains("'User.Password' stores the password 'SignInPassword'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_password_inside_a_value_object_or_a_list_the_entity_holds_is_RASK173()
+    public async Task A_password_inside_a_value_object_or_a_list_the_entity_holds_is_RASK175()
     {
         var diagnostics = await Run("""
             public sealed class Account : Aggregate<Guid>
@@ -58,7 +58,7 @@ public class PasswordExposureAnalyzerTests
             """);
 
         Assert.Equal(["Login", "Previous"], diagnostics.Select(d => d.Flagged()));
-        Assert.All(diagnostics, d => Assert.Equal("RASK173", d.Id));
+        Assert.All(diagnostics, d => Assert.Equal("RASK175", d.Id));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class PasswordExposureAnalyzerTests
     }
 
     [Fact]
-    public async Task A_result_an_item_or_an_event_that_carries_a_password_is_RASK174()
+    public async Task A_result_an_item_or_an_event_that_carries_a_password_is_RASK176()
     {
         var diagnostics = await Run("""
             public sealed record Login(ContactEmail Email, SignInPassword Password);
@@ -103,7 +103,7 @@ public class PasswordExposureAnalyzerTests
             """);
 
         Assert.Equal(3, diagnostics.Count);
-        Assert.All(diagnostics, d => Assert.Equal("RASK174", d.Id));
+        Assert.All(diagnostics, d => Assert.Equal("RASK176", d.Id));
         Assert.Contains("'FindLogin' sends the password 'SignInPassword' back through 'IQuery<Login>'", diagnostics[0].GetMessage(), StringComparison.Ordinal);
         Assert.Contains("through 'IEvent'", diagnostics[2].GetMessage(), StringComparison.Ordinal);
     }

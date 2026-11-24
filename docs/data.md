@@ -172,6 +172,50 @@ public sealed class OrderLine : Entity<Guid>
 An auto-property works the same: `public IReadOnlyList<OrderLine> Lines { get; private set; } = [];`, refilled
 with `Lines = [.. Lines, line]`. Rask hands EF Core a collection it can add to whenever it loads or saves the lines.
 
+**Children made from a form's rows: `Children<TEntity, TSpec>`.** When the aggregate's children are whatever a list
+of rows says — a delivery's parts, a driver's chips — declare them as one property, with no field and no view, and
+let `Sync` do the add/change/remove loop:
+
+```csharp
+public sealed record SupplyPartSpec(SupplyPartId? Id, TankId Tank, decimal Quantity);   // a row of the form
+
+public sealed class Supply : Aggregate<SupplyId>
+{
+    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+
+    public void Change(IReadOnlyList<SupplyPartSpec> parts)
+    {
+        var sync = Parts.Sync(parts, s => s.Id,
+            add: SupplyPart.For,                    // a spec whose key is null, or names no part of this supply
+            update: (p, s) => p.Hold(s),            // a spec whose key is a part's Id
+            remove: p => p.Release());              // optional: a part no spec names, as it is let go
+        if (sync.Removed.Count > 0) Raise(new PartsReleased(sync.Removed));
+    }
+}
+```
+
+`Parts` is an `IReadOnlyList<SupplyPart>` to everyone, in the specs' order — the order a form posted them, so a
+part's rule fails under `Parts[1].Quantity` as for any child. It is also the collection EF Core maps (through the
+property's own backing field): the part `Sync` adds is inserted, the one it changes is updated, the one it lets go
+is deleted, all by the aggregate's save. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved
+one of its public properties — one its row left as it was is not there), `Removed`, and `Touched` (added or
+changed), which is what a rule over old rows asks so a row stored before the rule was tightened is let be. The key
+is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two rows naming one part, or a key of another
+type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
+carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`.
+
+Children matched by something other than their `Id` — a delivery note's fuellings by their transaction — take a key
+of their own on both sides, with the same refusal of a key named twice:
+
+```csharp
+Fuellings.Sync(fuellings, f => f.TransactionId, f => f.TransactionId,
+    add: DeliveryNoteTransaction.For, update: (f, s) => f.Use(s.Quantity));
+```
+
+A child the aggregate makes itself, from no row, is `Add`ed — `Fuellings.Add(await Transaction.FreeFor(…))` — and
+one it lets go is `Remove`d. Both are the aggregate's alone: called from any other type, or on children held in a
+local, they are [RASK180](diagnostics.md#rask180), an error.
+
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
 when you want them — listing a thousand orders should not drag in every line each of them holds:
@@ -1037,6 +1081,62 @@ save has been stamped and versioned by nothing: fix the value and `Save()` again
 request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
 runs no interceptor ([bulk insert](#bulk-insert)).
 
+### A row closed by its parent: `LockedBy`
+
+A delivery note of a closed period, a transaction of a filed return: the row stays as it was while the row it
+belongs to says so. Declare it once in `Configure`, and every save holds to it — a page's, a job's, an import's:
+
+```csharp
+public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
+    b.LockedBy(n => n.Period, (Period p) => p.Closed, Texts.PeriodClosed);
+
+public static void Configure(EntityTypeBuilder<GasClaim> b) =>     // the words made from the parent
+    b.LockedBy(c => c.Period, (Period p) => p.Closed, p => $"{p.Name} is closed.", LockRead.ForUpdate);
+```
+
+`n => n.Period` is the property holding the parent's key — a typed id, an `int`, a nullable one — and
+`(Period p) => p.Closed` is translated to SQL, so it may reach further (`r => r.Filings.Any(f => f.UnfiledAt == null)`).
+The save asks it with the rest of [what every save asks](#what-every-save-asks), one query per lock for all the rows
+of the save:
+
+- **The old and the new parent.** For a row the save adds, changes or deletes, the parent it was read with and the
+  one it holds now are both read, so a row is moved neither out of a locked parent nor into one. A null key names no
+  parent and locks nothing; a null set to a locked parent is refused.
+- **A child's change locks through its root.** A line added to, changed on or removed from a note of a closed period
+  is refused as the note would be: the aggregate is the unit the lock holds.
+- **Under the parent field, or the whole row.** A new row, or one whose parent the save changes, is refused under
+  that field (`Period`); any other write is refused about the row itself — the whole form for a root.
+- **`LockRead.ForUpdate`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
+  SQL Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite, whose one writer serializes the save already — so a
+  "Close period" cannot slip in between the check and the write. The save runs in a transaction of its own when its
+  caller opened none (inside `Db.Transaction`, it is that one). A context whose execution strategy retries cannot
+  take one: wrap such a save in `Db.Transaction` for the lock to hold.
+
+The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
+same save closes is judged as the database has it, before this save.
+
+**Columns a lock lets through, and words for each write.** A filed return holds its transactions, but a claim may still
+take one over by its refund columns; and "deleted" and "changed" want different sentences, which may name something
+the parent holds:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Transaction> b) =>
+    b.LockedBy(t => t.RefundId, (Refund r) => r.Filings.Any(f => f.UnfiledAt == null),
+            (r, write) => write.Kind == LockedWriteKind.Delete
+                ? $"{r.Name} is filed at {r.Filings[0].Office}: it keeps its transactions."
+                : $"{r.Name} is filed at {r.Filings[0].Office}: {write.Row.Litres} litres stay as filed.")
+        .Except(t => t.RefundId, t => t.ForeignRefundId)    // a change to only these passes, under a filed refund too
+        .Including(r => r.Filings);                         // loaded with each locked parent, for the words
+```
+
+- **`Except(columns)`** lets a change through when every column it touches is one of these — even the parent key, so a
+  claim moves the transaction. An add, a delete, a change to any other column, and a change through a child are
+  still refused.
+- **The message `(parent, write)`** is told the write's `Kind` — `Add`, `Change`, `Delete` or `Move` (a new parent) —
+  and its `Row`, as the save would write it.
+- **`Including(p => p.Navigation)`** loads that navigation of each locked parent before the message reads it; without
+  it the parent comes back as its own columns only.
+
 ### An operation, run as one write
 
 A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
@@ -1048,13 +1148,19 @@ public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
     public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
     public void SetOpening(Opening opening) { … }                                           // an operation
     public bool IsOpen() => …;                                                              // a question: no entry
+    private static Supply Register(CompanyId company, SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) => …;   // a factory
 
-    public static void Configure(EntityTypeBuilder<Supply> b) =>
+    public static void Configure(EntityTypeBuilder<Supply> b)
+    {
         b.Operation(s => s.SetOpening, roles: Roles.Admin);
+        b.Operation(nameof(Register), roles: Roles.Buyer);
+    }
 }
 
-await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
-await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+await Supply.Change(id, version, details, parts);           // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);              // and first: is the signed-in user an Admin?
+SupplyId id = await Supply.Register(company, details, parts);   // generated: Register → Save(), the id handed back
+if (Supply.MaySetOpening) { … }                             // generated: may the signed-in user run it?
 ```
 
 - **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
@@ -1062,12 +1168,25 @@ await Supply.SetOpening(id, version, opening);      // and first: is the signed-
   that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
   method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
   entries, because they are static overloads in its own class.
+- **A factory** is a static method declared on the aggregate that returns it (or a `Task` of it), of any accessibility
+  — written `private` or `internal`, because its generated entry takes the public name: `await Supply.Register(…)`
+  asks its roles, builds the aggregate, saves it (its rules asked) in one `Db.Transaction` and hands back its id. A
+  factory left public would win every call over its entry, so it gets none ([RASK173](diagnostics.md#rask173)). Its
+  roles are named with `nameof`, since its method group holds the entry too: `b.Operation(nameof(Register), roles: …)`.
+- **`Supply.May…`** answers, for every operation and factory, whether the signed-in principal holds one of its roles —
+  always `true` for one that names none — so a page hides or disables what the entry would refuse.
 - **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
   principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
   `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
   whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
   anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
   the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **Tried, not done: `Supply.DryRunChange(id, version, …)`** (hidden; a factory's is `DryRunRegister(…)`) runs the
+  operation on a fresh copy of the aggregate and asks the rules a save would — the changed properties' attributes,
+  `Validate()`, a `Refuse` in the method, a stale version — and hands back every `FieldFailure` under the field it
+  names, empty when it would go through. Nothing is written, no version bumped, no event published, and a
+  `Db.Lock` inside the rules is not taken. It is what a form over the operation asks while it is filled in, so the
+  rules the form shows are the domain's own.
 - **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
   in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
   entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
@@ -1713,6 +1832,13 @@ the generated `X.__Problems`, so the two cannot drift. A value object not declar
 of its own here, and a `public static Validate` on one an aggregate holds is never asked — the build says so
 ([RASK132](diagnostics.md#rask132)) rather than let it look like a rule that passed.
 
+**A value object of several values is asked as the form is filled, too.** Each member of its nested model —
+`Km.Start` and `Km.End` of a `Range`, `Opening.Date` and `Opening.Quantity` of a `: Value` record with its own
+`Rules()` — asks the value object's generated `TryCreate` with what the model holds beside it, and shows each
+`Problem` under the member it names: `Problem.At(Quantity, "Both or neither.")` is under `Opening.Quantity` the moment
+the quantity is typed without a date, not only on save. A member the value object needs and the model leaves empty
+says only that it is required; a problem about the whole value (`Problem.Whole`) is shown on save, under the field.
+
 **A non-nullable value-object property is required, and its base says so.** No attribute is needed:
 
 ```csharp
@@ -2179,9 +2305,25 @@ which runs a plain `RaskDbContext`. For a test that needs the real database serv
 takes it from an environment variable and skips the test where it is unset ([testing](testing.md#a-real-database-server-when-the-machine-has-one)).
 
 Either way it maps every entity the build found — so no fixture has to list entities — creates the
-schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
-production, and points the model surface at it. Disposing clears it, so one test cannot leak its
-database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
+schema, and points the model surface at it. Disposing clears it, so one test cannot leak its database into the
+next. It takes a `TimeProvider`, so audit stamps are assertable.
+
+**A save runs what it runs in the app.** The context's interceptors come from services registered as the host
+registers them — `AddRaskCqrs()`, `AddRaskData<AppDbContext>()`, and the outbox when the model maps its table
+(`b.AddRaskOutbox()`, which every Rask app's model does) — so the whole chain runs, in the app's order: the ambient
+transaction, the lazy-loading guard, writable children, soft delete, auditing, **domain-event publication**, data
+changes, the violation sentence, the outbox. A saved aggregate's events reach their `IEventHandler`s after the commit
+and are cleared then, exactly as in production; a durable handler's event is stored in the save's own transaction
+(or recorded by `Outbox.Fake()`, and run by `await outbox.Run()`). A handler is resolved from those services, and the
+`IDbContextFactory<AppDbContext>` it is handed opens this database. What a handler needs beyond Rask's registrations
+the test registers itself:
+
+```csharp
+var receipts = new ReceiptLog();   // what the app's OrderPlaced handler takes
+await using var database = await TestDatabase.Start<AppDbContext>(services: s => s.AddSingleton(receipts));
+```
+
+So assert an event before the save (`order.DomainEvents`), or on what its handler did after it.
 
 **In memory, and side by side.** `TestDatabase.Start<AppDbContext>()` (and `TestDatabase.Start()` over Rask's own
 context) come with `Rask.SQLite.EntityFrameworkCore`, which every server app already has through `Rask.Server`. Each
@@ -2191,17 +2333,22 @@ surface's reads and writes — opens its own connection to the same name and see
 fixture lets the database go. It is configured through `UseRaskSqlite`, so a decimal orders as a number and a model
 that names `c.OrderTextBy("Hungarian_100_CI_AS")` compares text case-insensitively, in Hungarian order, as its SQL
 Server does ([text order](#app-wide-model-rules-one-iraskmodel)); the schema is the model's, so an app whose
-migrations are SQL Server's still gets its tables. **Tests run in parallel**: a database started inside a test binds
-the model surface for that test's own flow, so two tests side by side each read their own rows. One started in a class
-fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow and points the process-wide surface instead —
-those tests take turns, one fixture at a time.
+migrations are SQL Server's still gets its tables — made once per model: the first database over a model runs
+`EnsureCreated`, and every later one is copied from that empty schema through SQLite's backup API (tables, indexes,
+triggers, `HasData` seed), so a start costs well under a millisecond of schema however many tables there are.
+**Tests run in parallel**: a database started inside a test binds the model surface for that test's own flow, so two
+tests side by side each read their own rows — through the read face (`Product.Where(…)`), the aggregate's statics
+(`Product.Find(id)`), a handler, or a factory a test host is handed (`database.Factory`). One started in a class or
+collection fixture (`IAsyncLifetime.InitializeAsync`) cannot reach the test's flow — the framework ran it in a flow
+of its own — so on its own it points the process-wide surface, which the last database started anywhere holds. With
+`Rask.Testing` referenced (xUnit v3) its test hook binds it before each test of the class: a fixture that is a
+`TestDatabase`, or holds one as a public property, is the database every test of that class reads and writes, beside
+every other class's fixture. Without the hook, `using var bound = fixture.Database.Bind();` at the top of a test does
+the same by hand.
 
 The options callback is still there for another database: `TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs))`,
 or SQLite over a file. A provider's specifics stay in Rask (the collation, `end - start`, `Db.Lock`, a covering
 index), so the app's tests need no SQL Server of their own to mean what they say.
-
-Domain-event *publication* is deliberately not wired — that needs a service provider to resolve handlers
-through, which is more than a database fixture should invent. Assert on `DomainEvents` instead.
 
 ## Mapping rules the conventions don't cover
 
@@ -2623,6 +2770,31 @@ subtraction is; a nullable date makes a nullable length, which no comparison mat
 reads three fractional digits of it, hence the millisecond. A date column stored through a value converter of the
 app's own (ticks, Unix time) is left untranslated — EF Core says so — rather than measured wrong.
 
+### Dates and moments: what each database keeps
+
+A `DateTime` and a `DateTimeOffset` mapped by EF Core come back, compare and order the same on SQL Server and on SQLite
+through `UseRaskSqlite` — which is what lets an app whose production database is SQL Server test on SQLite in memory.
+PostgreSQL differs in three ways it cannot be made not to. The parity suite (`DateTimeParityTests` in
+`tests/Rask.Providers.E2E.Tests`) pins every row of this table on all three:
+
+| | SQL Server (`datetime2(7)`, `datetimeoffset(7)`) | SQLite (`UseRaskSqlite`) | PostgreSQL (`timestamptz`) |
+|---|---|---|---|
+| Smallest step kept | a tick (100 ns) | a tick (stored as text, seven fractional digits) | a microsecond: the seventh digit is rounded away |
+| A `DateTime` reads back as | `Kind = Unspecified` | `Kind = Unspecified` | `Kind = Utc`, and writing one that is not UTC is refused |
+| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
+| Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
+| A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
+| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | refused: Npgsql writes a `DateTime` only as UTC |
+
+SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
+`OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
+EF Core writes it (`2026-03-04 10:00:00.1234567+01:00`, every tick and the offset) and creates the column
+`COLLATE "RASK_MOMENT"`, which compares two values by their UTC instant: `10:00+01:00` and `09:00+00:00` are one
+moment, as on SQL Server. A property the model gives a converter of its own (`DateTimeOffsetToBinaryConverter`,
+Unix time) keeps that column. A `DateTime` needs nothing: its text, written to the tick in one format, orders as the
+time does. An existing SQLite database with `DateTimeOffset` columns gets the collation through one migration
+(`rask db add MomentOrder`); the stored values do not change.
+
 ## Value objects
 
 A value object is **its values**: two with the same values are the same. Any composite an entity holds that is
@@ -2660,9 +2832,13 @@ public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
 
 public sealed class Delivery : Aggregate<Guid, Model>
 {
-    public DriverName Driver { get; private set; } = DriverName.Create("Unknown");
-    public Litres Fuel { get; private set; } = Litres.Create(1);
-    public KmRange Km { get; private set; } = KmRange.Create(0, 1);
+    private Delivery() { }
+
+    public DriverName Driver { get; private set; } = null!;   // no made-up value: a new form starts it empty (RASK150)
+    public Litres Fuel { get; private set; } = null!;
+    public KmRange Km { get; private set; } = null!;
+
+    public static Delivery Start(string driver) => new() { Driver = DriverName.Create(driver, nameof(Driver)), Fuel = Litres.Create(1), Km = KmRange.Create(0, 1) };
 
     public void Fill(decimal litres) => Fuel = Litres.Create(litres, nameof(Fuel));
     public void Drive(int start, int end) => Km = KmRange.Create(start, end, nameof(Km));
@@ -2712,9 +2888,9 @@ a job, an import — not only where a form posts it. The format messages are the
 
 **A password is input only.** Its `ToString()` and its debugger view say `••••`, so a log line or `$"{password}"`
 never shows it; read `.Value` where it is checked or hashed. An aggregate or entity that stores one — directly, in a
-value object or in a list — is [RASK173](diagnostics.md#rask173) (store the hash), and the generated read face leaves
+value object or in a list — is [RASK175](diagnostics.md#rask175) (store the hash), and the generated read face leaves
 it out; a query's or a command's result, a subscription's item or an event that carries one is
-[RASK174](diagnostics.md#rask174). A command that takes one in — `record SignIn(ContactEmail Email, SignInPassword
+[RASK176](diagnostics.md#rask176). A command that takes one in — `record SignIn(ContactEmail Email, SignInPassword
 Password) : ICommand<Token>` — is what it is for.
 
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
@@ -2822,7 +2998,7 @@ A table whose columns were already `StartKm` and `EndKm` — read by reports and
 the entity's `Configure`:
 
 ```csharp
-public KmRange Km { get; private set; } = KmRange.Create(0, 1);
+public KmRange Km { get; private set; } = null!;
 
 public static void Configure(EntityTypeBuilder<DeliveryNote> b) =>
     b.Columns(n => n.Km, "{Member}Km").Columns(n => n.Trip, "{Member}Date");   // StartKm, EndKm; StartDate, EndDate

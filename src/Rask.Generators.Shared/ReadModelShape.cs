@@ -121,7 +121,7 @@ internal static class ReadModelShape
         List<ReadValueCollection> valueCollections,
         CancellationToken cancellationToken)
     {
-        // A password is never read back (RASK173 refuses storing one): the face leaves it out.
+        // A password is never read back (RASK175 refuses storing one): the face leaves it out.
         if (AggregateShape.IsPassword(Underlying(property.Type)))
         {
             return;

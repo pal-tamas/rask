@@ -124,27 +124,20 @@ public sealed class TextKindValueObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task Each_column_takes_the_length_its_kind_declares_or_its_bases_default()
+    public async Task Each_kind_round_trips_as_one_text_column_of_the_length_it_declares_or_its_bases_default()
     {
-        await using var database = await StartDatabaseAsync();
-
-        var type = database.Context.Model.FindEntityType(typeof(Addressee))!;
-
-        Assert.Equal(200, type.FindProperty(nameof(Addressee.Email))!.GetMaxLength());
-        Assert.Equal(32, type.FindProperty(nameof(Addressee.Phone))!.GetMaxLength());
-        Assert.Equal(2048, type.FindProperty(nameof(Addressee.Site))!.GetMaxLength());
-        Assert.Equal(4000, type.FindProperty(nameof(Addressee.Remark))!.GetMaxLength());
-    }
-
-    [Fact]
-    public async Task A_contact_round_trips_each_kind_as_one_text_column()
-    {
+        // One database for both halves: the suite builds close to EF's twenty service providers already.
         await using var database = await StartDatabaseAsync();
         var contact = Addressee.Of(" ada@example.com ", "+36 1 234 5678", "https://rask.sh", "first line\nsecond line");
         await contact.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         var stored = await database.Load<Addressee>(contact.Id, TestContext.Current.CancellationToken);
 
+        var type = database.Context.Model.FindEntityType(typeof(Addressee))!;
+        Assert.Equal(200, type.FindProperty(nameof(Addressee.Email))!.GetMaxLength());
+        Assert.Equal(32, type.FindProperty(nameof(Addressee.Phone))!.GetMaxLength());
+        Assert.Equal(2048, type.FindProperty(nameof(Addressee.Site))!.GetMaxLength());
+        Assert.Equal(4000, type.FindProperty(nameof(Addressee.Remark))!.GetMaxLength());
         Assert.Equal("ada@example.com", stored!.Email.Value);
         Assert.Equal("+36 1 234 5678", stored.Phone!.Value);
         Assert.Equal("https://rask.sh", stored.Site!.Value);

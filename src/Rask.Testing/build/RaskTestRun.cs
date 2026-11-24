@@ -10,9 +10,25 @@ namespace Rask.Testing.Generated
     internal sealed class RaskTestRunAttribute : global::Xunit.v3.BeforeAfterTestAttribute
     {
         public override void Before(global::System.Reflection.MethodInfo methodUnderTest, global::Xunit.v3.IXunitTest test) =>
-            global::Rask.Testing.TestRun.Begin();
+            global::Rask.Testing.TestRun.Begin(Fixtures(test));
 
         public override void After(global::System.Reflection.MethodInfo methodUnderTest, global::Xunit.v3.IXunitTest test) =>
             global::Rask.Testing.TestRun.End();
+
+        // The test class's class and collection fixtures, already made: a TestDatabase one of them started is bound to the
+        // test, as one the test started itself would be.
+        private static global::System.Collections.Generic.IEnumerable<object> Fixtures(global::Xunit.v3.IXunitTest test)
+        {
+            var context = global::Xunit.TestContext.Current;
+            var types = new global::System.Collections.Generic.List<global::System.Type>(test.TestCase.TestClass.ClassFixtureTypes);
+            types.AddRange(test.TestCase.TestCollection.CollectionFixtureTypes);
+            foreach (var type in types)
+            {
+                if (context.GetFixture(type).GetAwaiter().GetResult() is { } fixture)
+                {
+                    yield return fixture;
+                }
+            }
+        }
     }
 }

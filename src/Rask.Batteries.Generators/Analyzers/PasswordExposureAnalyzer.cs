@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK173 — an aggregate or entity stores a value object declared from <c>Rask.Values.Password</c>; RASK174 — a
+///     RASK175 — an aggregate or entity stores a value object declared from <c>Rask.Values.Password</c>; RASK176 — a
 ///     query's or a command's result, a subscription's item or an event carries one outward.
 /// </summary>
 /// <remarks>
@@ -23,8 +23,8 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
     private const string Cqrs = "Rask.Cqrs";
     private const int MaxDepth = 6;
 
-    private static readonly DiagnosticDescriptor Rask173 = new(
-        "RASK173",
+    private static readonly DiagnosticDescriptor Rask175 = new(
+        "RASK175",
         "An aggregate stores a password",
         "'{0}.{1}' stores the password '{2}' — store its hash, and keep the password on the form or the command that brings it in",
         DiagnosticHelp.Category,
@@ -33,10 +33,10 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         description: "A value object declared from Rask.Values.Password holds a password as it was typed. An aggregate "
                      + "or entity that holds one — directly, in a value object, or in a list — would write it to a column "
                      + "and show it on the generated read face. Hash it where it is checked and store the hash.",
-        helpLinkUri: DiagnosticHelp.Link("RASK173"));
+        helpLinkUri: DiagnosticHelp.Link("RASK175"));
 
-    private static readonly DiagnosticDescriptor Rask174 = new(
-        "RASK174",
+    private static readonly DiagnosticDescriptor Rask176 = new(
+        "RASK176",
         "A password is sent back",
         "'{0}' sends the password '{1}' back through '{2}' — a password comes in, and is never part of a result, an item or an event",
         DiagnosticHelp.Category,
@@ -45,10 +45,10 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         description: "A value object declared from Rask.Values.Password is input only: a form or a command brings it to "
                      + "the server. A query's or a command's result, a subscription's item and an event are written "
                      + "outward — to the browser, a log, another service — so none of them may hold one.",
-        helpLinkUri: DiagnosticHelp.Link("RASK174"));
+        helpLinkUri: DiagnosticHelp.Link("RASK176"));
 
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask173, Rask174);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask175, Rask176);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -59,7 +59,7 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(AnalyzeMessage, SymbolKind.NamedType);
     }
 
-    // RASK173: a stored member of an entity that reaches a password.
+    // RASK175: a stored member of an entity that reaches a password.
     private static void AnalyzeProperty(SymbolAnalysisContext context)
     {
         var property = (IPropertySymbol)context.Symbol;
@@ -72,10 +72,10 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask173, property.Locations.FirstOrDefault(), property.ContainingType.Name, property.Name, password.Name));
+            Rask175, property.Locations.FirstOrDefault(), property.ContainingType.Name, property.Name, password.Name));
     }
 
-    // RASK174: what a message sends outward — a result, an item, an event itself — that reaches a password.
+    // RASK176: what a message sends outward — a result, an item, an event itself — that reaches a password.
     private static void AnalyzeMessage(SymbolAnalysisContext context)
     {
         var type = (INamedTypeSymbol)context.Symbol;
@@ -83,7 +83,7 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         {
             if (PasswordIn(outward) is { } password)
             {
-                context.ReportDiagnostic(Diagnostic.Create(Rask174, type.Locations.FirstOrDefault(), type.Name, password.Name, through));
+                context.ReportDiagnostic(Diagnostic.Create(Rask176, type.Locations.FirstOrDefault(), type.Name, password.Name, through));
                 return;
             }
         }

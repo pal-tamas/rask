@@ -45,6 +45,7 @@ public readonly struct Locking
         AsTask().ConfigureAwait(continueOnCapturedContext);
 
     /// <summary>Takes it, as a <see cref="Task{TResult}" />.</summary>
+    /// <remarks>Inside an operation's dry run (what a form asks while it is filled in) nothing is taken.</remarks>
     public Task<IAsyncDisposable> AsTask() =>
-        NamedLock.Take(_name ?? throw new InvalidOperationException("Start a lock with Db.Lock(name)."), _wait, Ambient.Or(_cancellationToken));
+        DryRun.IsRunning ? Task.FromResult(DryRun.NoLock) : NamedLock.Take(_name ?? throw new InvalidOperationException("Start a lock with Db.Lock(name)."), _wait, Ambient.Or(_cancellationToken));
 }

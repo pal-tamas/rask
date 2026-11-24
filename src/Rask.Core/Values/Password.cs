@@ -16,8 +16,8 @@ namespace Rask.Values;
 ///     <para>
 ///         It never shows what it holds: <see cref="Text.ToString" /> and the debugger say <c>"••••"</c>, so a log line
 ///         or an interpolation does not leak it. It is never stored either — an aggregate or an entity that holds one
-///         is RASK173 (store its hash) — nor sent back: a query's or a command's result, or an event, that carries
-///         one is RASK174. Read <see cref="Text.Value" /> where it is checked or hashed, and nowhere else.
+///         is RASK175 (store its hash) — nor sent back: a query's or a command's result, or an event, that carries
+///         one is RASK176. Read <see cref="Text.Value" /> where it is checked or hashed, and nowhere else.
 ///     </para>
 /// </remarks>
 [DebuggerDisplay("••••")]

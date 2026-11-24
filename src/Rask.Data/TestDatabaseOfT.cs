@@ -1,11 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
 
 /// <summary>
 ///     A <see cref="TestDatabase" /> over the app's own context, from
-///     <see cref="TestDatabase.Start{TContext}(Action{DbContextOptionsBuilder}, TimeProvider?, CancellationToken)" />.
+///     <see cref="TestDatabase.Start{TContext}(Action{DbContextOptionsBuilder}, TimeProvider?, Action{IServiceCollection}?, CancellationToken)" />.
 /// </summary>
 /// <typeparam name="TContext">The app's context.</typeparam>
 public sealed class TestDatabase<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext> : TestDatabase

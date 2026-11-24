@@ -71,6 +71,8 @@ public static class ReadDb
     /// <summary>Forgets the configured factory. Test seam, like <see cref="Db.Reset" />.</summary>
     public static void Reset() => _factory = null;
 
+    /// <summary>Forgets the configured factory if it is still <paramref name="factory" /> — a test database letting go of its own.</summary>
+    internal static void ResetIf(Func<RaskReadDbContext> factory) => Interlocked.CompareExchange(ref _factory, null, factory);
 
     /// <summary>
     ///     A fresh context for whichever side <typeparamref name="TEntity" /> belongs to.

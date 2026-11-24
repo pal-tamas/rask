@@ -34,7 +34,7 @@ public sealed class Addressee : Aggregate<int, Model>
 {
     private Addressee() { }
 
-    public ContactEmail Email { get; private set; } = ContactEmail.Create("nobody@example.com");
+    public ContactEmail Email { get; private set; } = null!;
 
     public ContactPhone? Phone { get; private set; }
 

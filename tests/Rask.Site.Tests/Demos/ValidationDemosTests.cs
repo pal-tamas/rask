@@ -91,10 +91,9 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     [InlineData("9 lives", "A name starts with a letter.")]
     public void DestinationName_rejects_a_name_with_the_reason(string name, string reason)
     {
-        var accepted = DestinationName.TryCreate(name, out _, out var problems);
+        var messages = DestinationName.Check(name);
 
-        Assert.False(accepted);
-        Assert.Equal([reason], problems.Select(p => p.Message));
+        Assert.Equal([reason], messages);
     }
 
     [Fact]

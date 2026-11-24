@@ -7,7 +7,7 @@ namespace Rask.Site.DataDemo;
 ///     The one aggregate: a note with a title and a body. That is the whole declaration — the generator writes
 ///     <c>NoteModel</c> for the form, <c>Note.Create(model)</c> to save it and <c>Note.Where(…)</c> to query it.
 /// </summary>
-public sealed class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed partial class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     /// <summary>What the list shows first, and what a search ranks highest.</summary>
     [MaxLength(120)]
@@ -18,6 +18,16 @@ public sealed class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletab
     public string? Body { get; private set; }
 
     /// <summary>A note written by code rather than by the form — the seed rows.</summary>
-    public static Note Write(string title, string body) =>
+    internal static Note Write(string title, string body) =>
         new() { Id = Guid.CreateVersion7(), Title = title, Body = body };
+
+    /// <summary>
+    ///     An operation: its generated entry <c>Note.Rename(id, version, title)</c> saves it, and
+    ///     <c>Form.For(Note.Rename, id)</c> is a form over it, checked against these rules as it is typed in.
+    /// </summary>
+    public void Rename(string title)
+    {
+        Refuse.When(string.IsNullOrWhiteSpace(title), () => Title, "A note needs a title.");
+        Title = title.Trim();
+    }
 }
