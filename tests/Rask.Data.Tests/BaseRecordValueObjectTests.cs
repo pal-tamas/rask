@@ -292,7 +292,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
 
             Assert.Equal("1234.5", litres);
             Assert.Equal("9", axles);
-            Assert.Equal("01/31/2026", day);
+            Assert.Equal("2026-01-31", day);
         }
         finally
         {

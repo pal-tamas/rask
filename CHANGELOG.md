@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING: a `Day` prints `2026-01-31` and a `Moment` `2026-01-31T14:05:00`.** Before: both wrote the invariant
+  culture's default, `01/31/2026` and `01/31/2026 14:05:00`. After: ISO 8601, and the generated `ToString` of a
+  one-member `: Value` record holding a `DateOnly` or a `DateTime` does the same.
+- **The value-object generator ships with the `Rask` package.** Before: `Create`, `TryCreate`, `CreateOptional`,
+  `Check`, `__Problems`, the field shape and the facets were written by Rask.Batteries.Generators, so a component
+  library on `Rask` alone could declare `record Plate(string Value) : Text(Value)` and got no `Create`. After: the
+  generator is Rask.Generators', which every Rask project runs; the column mapping and the read face stay Rask.Data's.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the

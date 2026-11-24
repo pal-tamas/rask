@@ -7,7 +7,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Rask.Batteries.Generators;
+namespace Rask.Generators;
 
 // The field shape a value object declares — `__Field`, what a control bound to it is told (Rask.Core.Forms.FieldShape):
 // the kind of value it holds and the rules its base call states as constants. A bound that is not a constant — a

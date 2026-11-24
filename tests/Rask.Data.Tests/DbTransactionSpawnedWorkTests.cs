@@ -1,3 +1,4 @@
+#pragma warning disable RASK014 // the live session under test is handed its root component itself
 using System.Data;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;

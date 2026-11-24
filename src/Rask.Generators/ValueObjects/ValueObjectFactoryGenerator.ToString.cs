@@ -2,7 +2,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
-namespace Rask.Batteries.Generators;
+namespace Rask.Generators;
 
 // `ToString()` for a value object of one member declared straight from Value — `FuelingChip(string Value) : Value`: the
 // value it holds, as the one-value bases (Text, Number, Whole, Day, Moment) print theirs, rather than the record's
@@ -20,7 +20,7 @@ public sealed partial class ValueObjectFactoryGenerator
         var held = value.Parameters[0];
         s.AppendLine();
         s.Append("    /// <summary>The <c>").Append(held.Name).AppendLine("</c> it holds, as text.</summary>");
-        s.AppendLine("    /// <returns>The value it holds, a number or a date written culture-invariant; empty for none.</returns>");
+        s.AppendLine("    /// <returns>The value it holds, a number culture-invariant and a date as ISO 8601; empty for none.</returns>");
         s.Append("    public override string ToString() => ").Append(Printed(held)).AppendLine(";");
     }
 
@@ -33,13 +33,28 @@ public sealed partial class ValueObjectFactoryGenerator
             return held.Name + (held.Nullable ? " ?? \"\"" : "");
         }
 
-        var call = held.Formattable ? ".ToString(null, global::System.Globalization.CultureInfo.InvariantCulture)" : ".ToString()";
+        var format = held.Iso is { } iso ? "\"" + iso + "\"" : "null";
+        var call = held.Formattable ? ".ToString(" + format + ", global::System.Globalization.CultureInfo.InvariantCulture)" : ".ToString()";
         if (held.IsValueType && !held.Nullable)
         {
             return held.Name + call;
         }
 
         return held.Name + "?" + call + " ?? \"\"";
+    }
+
+    // A date as ISO 8601, as Day and Moment print theirs: `2026-01-31`, `2026-01-31T14:05:00`.
+    private static string? IsoFormat(ITypeSymbol type)
+    {
+        var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
+        return held.ToDisplayString() switch
+        {
+            "System.DateOnly" => "yyyy-MM-dd",
+            "System.DateTime" => "yyyy-MM-ddTHH:mm:ss",
+            _ => null,
+        };
     }
 
     // A ToString() of its own, declared in any part of the record.

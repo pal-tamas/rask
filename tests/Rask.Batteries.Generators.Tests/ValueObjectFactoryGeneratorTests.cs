@@ -273,6 +273,45 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void A_date_of_a_one_member_Value_record_prints_as_ISO_8601_like_Day_and_Moment()
+    {
+        var run = Run("""
+            public sealed partial record Due(DateOnly Value) : Value;
+            public sealed partial record Seen(DateTime? Value) : Value;
+            """);
+
+        var due = run.GeneratedSource("Due.Value.g.cs");
+        var seen = run.GeneratedSource("Seen.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Value.ToString(\"yyyy-MM-dd\", global::System.Globalization.CultureInfo.InvariantCulture)", due, StringComparison.Ordinal);
+        Assert.Contains("Value?.ToString(\"yyyy-MM-ddTHH:mm:ss\", global::System.Globalization.CultureInfo.InvariantCulture)", seen, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_library_on_Rask_alone_gets_its_value_objects_Create_with_no_data_layer()
+    {
+        var run = GeneratorHarness.RunWithout(
+            """
+            using Rask.Values;
+            namespace Parts;
+            public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);
+            public static class Use
+            {
+                public static Plate Make(string text) => Plate.Create(text, "Plate");
+            }
+            """,
+            new ValueObjectFactoryGenerator(),
+            ["Rask.Data", "Rask.Cqrs"],
+            "Rask.Core", "Rask.Wire");
+
+        var plate = run.GeneratedSource("Plate.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static Plate Create(", plate, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void No_module_initializer_is_written_since_the_bases_word_their_rules_from_the_catalog_themselves()
     {
         var run = Run(ValueObjects, "Rask.Core");
