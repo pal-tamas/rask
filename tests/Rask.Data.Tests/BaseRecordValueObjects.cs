@@ -173,6 +173,14 @@ public sealed class Ladder : Aggregate<int, Model>
     public RigSeats Seats { get; private set; } = null!;
 }
 
+/// <summary>An aggregate written through its generated model, holding a value of several members with its own rule.</summary>
+public sealed class Bunker : Aggregate<int, Model>
+{
+    private Bunker() { }
+
+    public RigOpening Opening { get; private set; } = null!;
+}
+
 /// <summary>An aggregate holding a text that may be left empty, written through its generated model.</summary>
 public sealed class Notebook : Aggregate<int, Model>
 {

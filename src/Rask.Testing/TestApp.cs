@@ -21,6 +21,9 @@ internal static class TestApp
     // Looked up once: the test project's references do not change while it runs.
     private static readonly Lazy<MethodInfo?> Entry = new(FindEntryPoint);
 
+    // What a test project references and an app never does.
+    private static readonly string[] TestFrameworks = ["xunit", "Microsoft.VisualStudio.TestPlatform", "Microsoft.Testing.Platform", "nunit", "MSTest"];
+
     static TestApp() => AppDomain.CurrentDomain.ProcessExit += (_, _) =>
     {
         while (Left.TryTake(out var booted))
@@ -153,11 +156,20 @@ internal static class TestApp
     private static MethodInfo? FindEntryPoint() =>
         ProjectReferences()
             .Select(static name => TryLoad(name))
-            .Where(static a => a is { EntryPoint: not null } &&
-                               a.GetReferencedAssemblies().Any(static r =>
-                                   string.Equals(r.Name, "Rask.Server", StringComparison.Ordinal)))
+            .Where(static a => a is { EntryPoint: not null } && IsAnApp(a))
             .Select(static a => a!.EntryPoint)
             .FirstOrDefault();
+
+    // An app references Rask.Server and no test framework. The test project is in its own deps file too, with the test
+    // SDK's entry point — and it references Rask.Server as soon as it compiles anything of it in: a context it declares
+    // gets a generated design-time factory over UseRaskDatabase. Taken for the app, its Main would run the tests' runner
+    // instead of the app's Program.cs, and nothing would boot.
+    private static bool IsAnApp(Assembly assembly)
+    {
+        var references = assembly.GetReferencedAssemblies();
+        return references.Any(static r => string.Equals(r.Name, "Rask.Server", StringComparison.Ordinal))
+               && !references.Any(static r => r.Name is { } name && TestFrameworks.Any(f => name.StartsWith(f, StringComparison.Ordinal)));
+    }
 
     private static IEnumerable<string> ProjectReferences()
     {

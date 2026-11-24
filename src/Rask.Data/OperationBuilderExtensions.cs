@@ -41,6 +41,27 @@ public static class OperationBuilderExtensions
         return aggregate;
     }
 
+    /// <summary>
+    ///     Names who may run one operation or factory of the aggregate, by its name — the form a factory takes, whose
+    ///     method group has two members once its entry is generated: <c>b.Operation(nameof(Register), roles: Roles.Admin)</c>.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the operation belongs to.</typeparam>
+    /// <param name="aggregate">The aggregate's builder, in its <c>Configure</c>.</param>
+    /// <param name="operation">The method's name, a constant: <c>nameof(Register)</c>.</param>
+    /// <param name="roles">The roles that admit, comma-separated; any one is enough. A constant.</param>
+    /// <returns>The same builder.</returns>
+    /// <remarks>Read from the source as the lambda form is; see <see cref="Operation{TAggregate}(EntityTypeBuilder{TAggregate}, Expression{Func{TAggregate, Delegate}}, string?)" />.</remarks>
+    /// <exception cref="ArgumentException"><paramref name="operation" /> is empty.</exception>
+    public static EntityTypeBuilder<TAggregate> Operation<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(
+        this EntityTypeBuilder<TAggregate> aggregate, string operation, string? roles = null)
+        where TAggregate : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(aggregate);
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+
+        return aggregate;
+    }
+
     // `s => s.Distribute` is a method group converted to a delegate: CreateDelegate called on the MethodInfo constant.
     private static MethodInfo MethodOf<TAggregate>(Expression<Func<TAggregate, Delegate>> operation)
     {

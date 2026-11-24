@@ -1,8 +1,6 @@
-using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Storage;
 using Rask.Cqrs;
 using Rask.Wire;
 
@@ -18,16 +16,12 @@ namespace Rask.Data;
 ///         tenant has to be stamped before a rule that names it can be asked.
 ///     </para>
 ///     <para>
-///         The checks and the save share ONE transaction: when the caller has not opened one, this does, and
-///         closes it when the save ends. A context whose execution strategy retries is the exception — EF Core
-///         refuses a transaction it did not start there — so on such a context the checks run just before the
-///         save, outside it.
+///         The checks and the save share ONE transaction (<see cref="SaveTransaction" />): when the caller has not
+///         opened one, this does, and closes it when the save ends.
 ///     </para>
 /// </remarks>
 internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
 {
-    private readonly ConditionalWeakTable<DbContext, IDbContextTransaction> _opened = [];
-
     /// <inheritdoc />
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -105,7 +99,7 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
         await base.SaveChangesCanceledAsync(eventData, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task CheckAsync(DbContext? context, CancellationToken cancellationToken)
+    private static async Task CheckAsync(DbContext? context, CancellationToken cancellationToken)
     {
         if (context is null || Touched(context) is not { Count: > 0 } rows)
         {
@@ -173,40 +167,11 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
     private static List<object?>? KeyOf(EntityEntry row) =>
         row.Metadata.FindPrimaryKey()?.Properties.Select(p => row.Property(p.Name).CurrentValue).ToList();
 
-    private async Task OpenAsync(DbContext context, CancellationToken cancellationToken)
-    {
-        if (context.Database.CurrentTransaction is not null ||
-            context.Database.CreateExecutionStrategy().RetriesOnFailure)
-        {
-            return;
-        }
+    private static Task OpenAsync(DbContext context, CancellationToken cancellationToken) =>
+        SaveTransaction.Open(context, cancellationToken);
 
-        _opened.AddOrUpdate(
-            context, await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false));
-    }
+    private static void Close(DbContext? context, bool commit) => SaveTransaction.Close(context, commit);
 
-    private void Close(DbContext? context, bool commit) =>
-        CloseAsync(context, commit, CancellationToken.None).GetAwaiter().GetResult();
-
-    private async Task CloseAsync(DbContext? context, bool commit, CancellationToken cancellationToken)
-    {
-        if (context is null || !_opened.TryGetValue(context, out var transaction))
-        {
-            return;
-        }
-
-        _opened.Remove(context);
-
-        await using (transaction.ConfigureAwait(false))
-        {
-            if (commit)
-            {
-                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-    }
+    private static Task CloseAsync(DbContext? context, bool commit, CancellationToken cancellationToken) =>
+        SaveTransaction.Close(context, commit, cancellationToken);
 }

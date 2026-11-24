@@ -70,8 +70,47 @@ public static class GeneratedOperations
         }, cancellationToken: cancellationToken);
     }
 
-    /// <summary>Whether the principal of the work in flight holds one of <paramref name="roles" />.</summary>
-    internal static bool Admits(string? roles) =>
+    /// <summary>
+    ///     Builds a new <typeparamref name="TAggregate" /> with its factory and saves it as one write — what
+    ///     <c>await Supply.Register(company, details, parts)</c> does.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate the factory builds.</typeparam>
+    /// <typeparam name="TId">Its key type.</typeparam>
+    /// <param name="operation">The factory's name, for the refusal a missing role gets.</param>
+    /// <param name="roles">The roles its <c>Configure</c> names, comma-separated, or <see langword="null" /> for none.</param>
+    /// <param name="build">Calls the factory.</param>
+    /// <param name="cancellationToken">Cancels the operation; unset, the work this call belongs to does.</param>
+    /// <returns>The id of the saved aggregate, once committed.</returns>
+    /// <exception cref="ForbiddenException">The principal holds none of <paramref name="roles" />.</exception>
+    /// <exception cref="RaskValidationException">A rule refused what the factory built.</exception>
+    public static async Task<TId> Build<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate, TId>(
+        string operation,
+        string? roles,
+        Func<Task<TAggregate>> build,
+        CancellationToken cancellationToken = default)
+        where TAggregate : Entity<TId>, IAggregate
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentNullException.ThrowIfNull(build);
+        cancellationToken = Ambient.Or(cancellationToken);
+
+        Demand<TAggregate>(operation, roles);
+
+        return await Db.Transaction(async () =>
+        {
+            var aggregate = await build().ConfigureAwait(false);
+            await GeneratedModelWrites.Save(aggregate, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return aggregate.Id;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Whether the principal of the work in flight holds one of <paramref name="roles" /> — what a generated
+    ///     <c>Supply.MaySetOpening</c> answers.
+    /// </summary>
+    /// <param name="roles">The roles, comma-separated; <see langword="null" /> or empty admits anyone.</param>
+    /// <returns>True when it may run the operation.</returns>
+    public static bool Admits(string? roles) =>
         RolesOf(roles) is not { Length: > 0 } named || named.Any(static role => Current.IsInRole(role));
 
     private static void Demand<TAggregate>(string operation, string? roles)
