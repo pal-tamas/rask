@@ -67,7 +67,7 @@ public static class ValueObjectColumn
         var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, property.Metadata, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
@@ -106,7 +106,7 @@ public static class ValueObjectColumn
         var (converter, comparer) = Conversion(value);
         property.HasConversion(converter, comparer);
 
-        Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
+        Declare(facets, property.Metadata, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
         return property;
     }
@@ -129,13 +129,21 @@ public static class ValueObjectColumn
     }
 
     // The length, precision and scale a value object declared from a base record states, read when the app was
-    // compiled — building one to ask would check its rules. The entity's own Configure runs after this, so a
-    // HasMaxLength there still has the last word (RASK128 says when it disagrees).
-    private static void Declare(ValueFacets facets, Action<int> length, Action<int, int> precision)
+    // compiled — building one to ask would check its rules. An attribute on the property — [MaxLength],
+    // [StringLength], [Precision] — is the app's word for this one column, so it wins; and the entity's own Configure
+    // runs after this, so a HasMaxLength there still has the last word. RASK128 says when either disagrees.
+    private static void Declare(ValueFacets facets, IMutableProperty column, Action<int> length, Action<int, int> precision)
     {
-        if (facets.MaxLength is > 0 and var most)
+        var declared = (IConventionProperty)column;
+
+        if (facets.MaxLength is > 0 and var most && declared.GetMaxLengthConfigurationSource() != ConfigurationSource.DataAnnotation)
         {
             length(most);
+        }
+
+        if (declared.GetPrecisionConfigurationSource() == ConfigurationSource.DataAnnotation)
+        {
+            return;
         }
 
         if (facets.Precision is { } digits)

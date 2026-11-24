@@ -1432,6 +1432,37 @@ When a page shows the order between loading and changing it, the same rules run 
   the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
   the row, its history and everything that refers to it.
 
+### Refusing an operation: `Refuse`
+
+An `InvalidOperationException` ends the request with an error page. When the person can do something about it,
+say so with `Refuse` instead: it throws a `RaskValidationException`, which a form shows like any failed rule — the
+message under the field it names, or above the form when it names none.
+
+```csharp
+public void Ship(string tracking)
+{
+    Refuse.Unless(Status == OrderStatus.Paid, $"A {Status} order cannot ship.");          // the whole form
+    Refuse.When(tracking.Length == 0, () => tracking, "Give the tracking number.");     // under "Tracking"
+    (Status, Tracking) = (OrderStatus.Shipped, tracking);
+}
+
+for (var i = 0; i < Parts.Count; i++)
+{
+    Refuse.When(locked.Contains(Parts[i].Id), () => Parts[i].Quantity, Texts.LockedChanged);  // "Parts[2].Quantity"
+}
+```
+
+- `Refuse.When(condition, …)` refuses when the condition holds, `Refuse.Unless(condition, …)` when it does not,
+  and `Refuse.At(() => field, message)` always — the branch that already knows. Each takes the field as a lambda,
+  or no field for the form as a whole.
+- **The field path is read from the lambda**, as the form names it: `() => Km.Start` is `Km.Start`; an index is
+  evaluated, so `() => Parts[i].Quantity` is `Parts[2].Quantity`; a captured local or parameter takes its form
+  field's name (`() => parts[i].Quantity` is `Parts[2].Quantity`); `this.` is dropped. A lambda that is not a chain
+  of members and indexers (`() => Total()`) throws an `ArgumentException` naming the shape to write.
+- **The lambda is read only when the operation is refused.** A call that goes through pays for the expression the
+  compiler builds at the call site and nothing more, so a guard in a loop over thousands of rows stays cheap.
+- A child row's own key, rather than its index, is `Problem.At(child)`'s to give, from a value object's rules.
+
 ### Time in the domain
 
 An aggregate, an entity and a value object read the time from Rask's `Clock`, never the machine's: `Clock.Now` is
@@ -2496,9 +2527,35 @@ tightened on one end never makes the other unable to read; a handler that must r
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
 MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Value, Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a
 scale alone keeps EF Core's precision of 18). A one-value record is one column; a `Range` or `Value` record is a
-complex type, one column per member. The entity's own `Configure` runs after and still has the last word —
-[RASK128](diagnostics.md#rask128) warns when it gives the column a length or precision other than the value
-object's, since a value the rule accepts would then not fit.
+complex type, one column per member. An attribute on the property — `[MaxLength]`, `[StringLength]`,
+`[Precision]` — is the app's word for that one column and wins over the value object's, and the entity's own
+`Configure` runs after both and has the last word. [RASK128](diagnostics.md#rask128) warns when either gives the
+column a length or precision other than the value object's, since a value the rule accepts would then not fit.
+The generated model carries the attribute like any other (`[Required]` included, which also makes the column
+`NOT NULL`), so a form and `Create(model)`/`Update(id, model)` ask it beside the value object's rule: the tighter
+of the two refuses.
+
+**An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
+into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
+`NULL`, a report that counts the two apart — keeps them apart with `KeepEmpty` in the aggregate's `Configure`:
+
+```csharp
+public VatNumber? VatNumber { get; private set; }
+public string? Remark { get; private set; }
+
+public static void Configure(EntityTypeBuilder<Company> b)
+{
+    b.KeepEmpty(c => c.VatNumber);   // a string, or a value object of one text
+    b.KeepEmpty(c => c.Remark);
+}
+```
+
+A field left empty, or emptied, then writes `''` — the value object holding it, whose rules are not asked of an
+empty text — and a new row starts with `''`. A row that holds `NULL` there and is saved with the field still empty
+keeps its `NULL`, so a save that changes nothing writes nothing; a filled field still answers to every rule. A
+stored `''` loads as the value object holding it and fills the model with `""`. The writes read the call from the
+aggregate's own static `Configure`, as they read `IsUnique`; on a member not stored as text it throws when the
+model is built.
 
 **Columns named before the value object existed.** EF Core names a complex type's columns `Km_Start` and `Km_End`.
 A table whose columns were already `StartKm` and `EndKm` — read by reports and raw SQL — keeps them with one line in

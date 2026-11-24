@@ -31,6 +31,34 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
+  msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
+  a form shows under that field — or above the form when none is named — instead of the error page an
+  `InvalidOperationException` ends in. The path is read from the lambda only when refusing: members (`Km.Start`), an
+  evaluated index (`Parts[2].Quantity`), a captured local under its form name (`parts` → `Parts`), `this.` dropped
+  ([data](docs/data.md#refusing-an-operation-refuse)).
+- **`Test.Refuses(…)` says where an operation was refused.** `Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End")`,
+  `(await Test.Refuses(() => Dispatcher.Send(cmd))).Only("Number")`, `.Whole()`; an operation that goes through or throws
+  anything else fails with a `RefusalAssertionException` naming what happened
+  ([testing](docs/testing.md#asserting-a-refusal-testrefuses)).
+- **`Events.Fake()` records what a test published.** `using var events = Events.Fake();` (`Rask.Cqrs`) records every
+  event published in the test's flow — `Dispatcher.Publish`, an injected `IDispatcher`, and the domain events a save
+  publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
+  `events.Published<DriverChipsChanged>().Once()`, `.Never()`, `.Times(n)`, `.Where(e => …)`, `.Only()`, `.All`
+  ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
+- **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
+  `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
+  so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by
+  hand (reflection over the model before each write). After: a member named by `KeepEmpty` in the aggregate's static
+  `Configure` writes `''` when its field is left empty or emptied (the value object made from `''` past its rules), a
+  new row starts with `''`, and a row holding `NULL` there keeps it while the field stays empty. A filled field
+  still answers to every rule; a member not stored as text throws when the model is built.
+- **An attribute on a value-object property shapes its column, and RASK128 says when it disagrees.** Before: a
+  `[MaxLength]`, `[StringLength]` or `[Precision]` on a property holding a `Text`/`Number` value object was overridden
+  by the value object's own facet without a word. After: the attribute wins for that column (`Configure` still over
+  both), the generated model carries it so a form and `Create(model)`/`Update(id, model)` ask it beside the value
+  object's rule, and [RASK128](docs/diagnostics.md#rask128) warns on the attribute when its literal disagrees with
+  the value object's.
 - **`c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class)` names a legacy schema once, in the app's
   `IRaskModel`.** Before: a database another tool made (TA's Prisma schema: `countedAt`, tables named after the class)
   took a `HasColumnName` on every property and a `ToTable` on every entity — hundreds of lines. After: one line names
