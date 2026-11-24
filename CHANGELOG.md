@@ -40,6 +40,21 @@ them until tagged releases begin.
   generated entry in that transaction; `forUpdate: true` locks the aggregate's row, `forUpdate: s => s.Parts` that
   child collection's rows, before the load (`UPDLOCK, HOLDLOCK` / `FOR UPDATE`). A typed id one aggregate alone is
   keyed by gets `await id.Load(version, forUpdate: true)` for a static method of your own.
+- **`await Test.Make<Supply>()` makes a stored aggregate its rules accept** (new package `Rask.Testing.Data`, beside
+  `Rask.Testing`, so a component-only test project stays free of EF Core). It calls the aggregate's own factory — a
+  static method declared on it that returns it, private or not — with a value its rules take for every parameter (a
+  value object from `Test.Make<Vin>()`, a row spec through its constructor, a list of one row; a nullable left null, a
+  default kept), makes and stores first every aggregate it refers to (an aggregate parameter, a typed id, a plain id
+  named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
+  `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
+  it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
+  aggregates and every reference by hand.
+- **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
+  field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
+  validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
+  a row the path names is added, a sub-object made, `given: m => m.Km.Start = 10` fills the other fields, and
+  `Test.FormShows(model, …)` takes a model made by hand. Anything else fails with a `FormAssertionException` that says
+  what the field showed.
 - **`Allocation.Split` splits a total into shares whose sum is the total exactly.** Before: an app rounded each share
   on its own and lost or invented a cent (TA's `StockChanges.Shares`, Eszaf's per-category rounding). After:
   `Allocation.Split(total, receivers.Count, step: 0.01m)` for equal parts, `Allocation.Split(total, weights, step,
