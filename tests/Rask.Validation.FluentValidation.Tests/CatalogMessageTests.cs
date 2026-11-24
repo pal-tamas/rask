@@ -66,6 +66,34 @@ public sealed class CatalogMessageTests : IDisposable
         Assert.Equal(["Az értéknek 1 és 10 között kell lennie."], rating);
     }
 
+    [Theory]
+    [InlineData(nameof(Fluent.Above), "17 feletti értéket adjon meg.")]
+    [InlineData(nameof(Fluent.Below), "10 alatti értéket adjon meg.")]
+    [InlineData(nameof(Fluent.Pin), "Pontosan 8 karakter hosszúnak kell lennie.")]
+    [InlineData(nameof(Fluent.Price), "Legfeljebb 10 számjegy adható meg, ebből legfeljebb 2 tizedesjegy.")]
+    public async Task A_rule_no_attribute_has_says_its_own_catalog_sentence_in_hungarian(string field, string sentence)
+    {
+        var fluent = new Fluent();
+
+        var said = await InAsync(Hungarian, () => FluentMessages(fluent, field));
+
+        Assert.Equal([sentence], said);
+    }
+
+    [Theory]
+    [InlineData(nameof(Fluent.Above), "Enter a value greater than 17.")]
+    [InlineData(nameof(Fluent.Below), "Enter a value less than 10.")]
+    [InlineData(nameof(Fluent.Pin), "Enter exactly 8 characters.")]
+    [InlineData(nameof(Fluent.Price), "Enter at most 10 digits, at most 2 of them after the decimal point.")]
+    public async Task A_rule_no_attribute_has_says_its_own_catalog_sentence_in_english(string field, string sentence)
+    {
+        var fluent = new Fluent();
+
+        var said = await InAsync(British, () => FluentMessages(fluent, field));
+
+        Assert.Equal([sentence], said);
+    }
+
     [Fact]
     public async Task A_rules_own_message_wins_over_the_catalog()
     {
@@ -83,7 +111,7 @@ public sealed class CatalogMessageTests : IDisposable
 
         var said = await InAsync(Hungarian, () => FluentMessages(fluent, nameof(Fluent.Age)));
 
-        Assert.Equal(["A(z) 'Kor' nagyobb kell, hogy legyen, mint '17'."], said);
+        Assert.Equal(["A megadott feltétel nem teljesült a(z) 'Kor' mezőre."], said);
     }
 
     [Fact]
@@ -189,6 +217,14 @@ public sealed class CatalogMessageTests : IDisposable
         public string Note { get; set; } = "";
 
         public int Age { get; set; } = 3;
+
+        public int Above { get; set; } = 3;
+
+        public int Below { get; set; } = 30;
+
+        public string Pin { get; set; } = "123";
+
+        public decimal Price { get; set; } = 123.456m;
     }
 
     private sealed class FluentRules : AbstractValidator<Fluent>
@@ -202,7 +238,11 @@ public sealed class CatalogMessageTests : IDisposable
             RuleFor(f => f.Code).Matches("^[A-Z]+$");
             RuleFor(f => f.Nick).Length(3, 10);
             RuleFor(f => f.Note).NotEmpty().WithMessage("Írjon megjegyzést.");
-            RuleFor(f => f.Age).GreaterThan(17).WithName("Kor");
+            RuleFor(f => f.Age).Must(age => age > 17).WithName("Kor");
+            RuleFor(f => f.Above).GreaterThan(17);
+            RuleFor(f => f.Below).LessThan(10);
+            RuleFor(f => f.Pin).Length(8);
+            RuleFor(f => f.Price).PrecisionScale(10, 2, false);
         }
     }
 
@@ -217,6 +257,10 @@ public sealed class CatalogMessageTests : IDisposable
             [RaskString.ValidationBetween] = "Az értéknek {0} és {1} között kell lennie.",
             [RaskString.ValidationEmail] = "Érvényes e-mail-címet adjon meg.",
             [RaskString.ValidationPattern] = "A megadott érték formátuma nem megfelelő.",
+            [RaskString.ValidationAbove] = "{0} feletti értéket adjon meg.",
+            [RaskString.ValidationBelow] = "{0} alatti értéket adjon meg.",
+            [RaskString.ValidationExactLength] = "Pontosan {0} karakter hosszúnak kell lennie.",
+            [RaskString.ValidationDigits] = "Legfeljebb {0} számjegy adható meg, ebből legfeljebb {1} tizedesjegy.",
         };
 
         private static readonly Dictionary<RaskString, string> EnglishSentences = new()
@@ -225,6 +269,10 @@ public sealed class CatalogMessageTests : IDisposable
             [RaskString.ValidationTooLong] = "Enter at most {0} characters.",
             [RaskString.ValidationBetween] = "Enter a value between {0} and {1}.",
             [RaskString.ValidationEmail] = "Enter a valid email address.",
+            [RaskString.ValidationAbove] = "Enter a value greater than {0}.",
+            [RaskString.ValidationBelow] = "Enter a value less than {0}.",
+            [RaskString.ValidationExactLength] = "Enter exactly {0} characters.",
+            [RaskString.ValidationDigits] = "Enter at most {0} digits, at most {1} of them after the decimal point.",
         };
 
         public string? Get(RaskString key, string cultureTag) => cultureTag switch

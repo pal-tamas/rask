@@ -13,6 +13,11 @@ them until tagged releases begin.
   `Rask.Values.Email` value-object base — so a bare `Email` was CS0104. After: `await Mail.Send(Mail.Message.To(address).Subject(s).Html(b))`
   (the builder is nested in the static `Mail`, `Rask.Mailing.Mail.Message`), and `Email` is the value-object base alone.
   `IMail.Add`, `Mail.Send` and `MailOutbox.Add` take a `Mail.Message`. No shim: replace `Email.To(` with `Mail.Message.To(`.
+- **FluentValidation's `GreaterThan`, `LessThan`, `Length(n)` and `PrecisionScale` speak Rask's catalog too.** Before:
+  `RuleFor(x => x.Age).GreaterThan(17)` said "A(z) 'Age' nagyobb kell, hogy legyen, mint '17'." because the catalog had
+  no sentence for it. After: four new `RaskString` keys — `ValidationAbove`, `ValidationBelow`, `ValidationExactLength`,
+  `ValidationDigits` — say "17 feletti értéket adjon meg." and the like, with Rask.Ui's Hungarian and an app's own
+  translation, like the rules that already did.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
