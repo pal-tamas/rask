@@ -206,4 +206,3 @@ Rask.Testing.RefusalAssertionException.RefusalAssertionException(string! message
 Rask.Testing.RefusalAssertionException.RefusalAssertionException(string! message) -> void
 static Rask.Testing.Test.Refuses(System.Action! act) -> Rask.Testing.RefusalAssertion!
 static Rask.Testing.Test.Refuses(System.Func<System.Threading.Tasks.Task!>! act) -> System.Threading.Tasks.Task<Rask.Testing.RefusalAssertion!>!
-static Rask.Testing.Test.Make<T>() -> T!

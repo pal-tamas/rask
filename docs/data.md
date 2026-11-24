@@ -2643,7 +2643,7 @@ same type and hold the same values; a one-value record's `ToString()` is its val
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
 
-**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
+**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing.Data): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
 **A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in

@@ -100,7 +100,7 @@
     <InternalsVisibleTo Include="Rask.Storage.Tests"/>
     <!-- Test.Make<T>() reads the rules a value object hands its base (DeclaredRules) to build a sample they accept:
          a test helper, so no public name an app would ever type. -->
-    <InternalsVisibleTo Include="Rask.Testing"/>
+    <InternalsVisibleTo Include="Rask.Testing.Data"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Testing.Data\Rask.Testing.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <!-- TestDatabase.Start<TContext>() with nothing to configure: SQLite in memory, through UseRaskSqlite. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
