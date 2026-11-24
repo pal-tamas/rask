@@ -917,9 +917,16 @@ published after the commit.
 - **Values that do not come from the form** go in an optional lambda, which runs after the model's values are
   written, so it has the last word: `Product.Create(model, p => p.AssignTo(user.Id))`. With private setters
   the lambda calls the aggregate's methods, and so the rules in those methods run.
-- **A stale edit is refused** on a `Versioned` aggregate. `Update(id, model)` checks the `Version` the model carries and throws
-  `DbUpdateConcurrencyException` when someone saved since; a model whose `Version` is `null` skips the check.
-  `Update(id, p => …)` and `Delete(id)` take an optional `version:` for the same check.
+- **A stale edit is refused** on a `Versioned` aggregate. `Update(id, model)` checks the `Version` the model carries and
+  refuses the save when someone saved since — a `RaskValidationException` about the whole form, "Someone else changed
+  this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`, translated by the kit's
+  catalog), which a form shows at its top with nothing to catch; EF's `DbUpdateConcurrencyException` is its
+  `InnerException`, for the log. A model whose `Version` is `null` skips the check. `Update(id, p => …)` and
+  `Delete(id)` take an optional `version:` for the same check, and `Update(id, async p => await p.Distribute(…),
+  version: v)` awaits a change that reads first.
+- **The version a form was filled from** goes to `Find` as well: `await Supply.Find(id, version)` loads the
+  aggregate and refuses it with that same sentence when it has moved on, before anything is changed. A write
+  STAGED on your own context (`db:`) is saved by your `SaveChangesAsync`, which throws EF's exception as it is.
 - **A missing row**, never created or soft-deleted, is `KeyNotFoundException`, naming the aggregate and the key.
 
 A write refreshes what is on screen: once it commits, every `Rask.Query` query about that aggregate —
@@ -955,8 +962,8 @@ writes what changed since — it never reads the row again.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
   updated.
 - **Changed underneath is refused, never written over.** The `Version` compared is the one `Find` read, so on a
-  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is
-  `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
+  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is refused with the
+  whole-form `RaskValidationException` above. So is a save whose row, or a changed child's, has been deleted outright: nothing is
   silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
 - **The domain is asked first** — the changed properties' attributes, `Validate()`, `ValidateDelete()` — and a save
@@ -970,7 +977,7 @@ writes what changed since — it never reads the row again.
 - **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
   file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
   read first: an aggregate that names `SoftDelete` is stamped, any other has its row and its children removed. The
-  `Version` read is compared, so a row changed or deleted since is `DbUpdateConcurrencyException` (an unversioned
+  `Version` read is compared, so a row changed or deleted since is the same whole-form refusal (an unversioned
   soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
   `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
   transaction — a rollback leaves the row and its children, and its events go out after the commit. The static
@@ -1256,7 +1263,6 @@ public sealed partial class EditProductPage : Component
     [RouteParam] public Guid Id { get; set; }
 
     private ProductModel? _product;
-    private string? _conflict;
 
     protected override async Task OnMount() =>
         _product = await Product.Model(Id);
@@ -1264,7 +1270,6 @@ public sealed partial class EditProductPage : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnSubmit(Save)[
-            _conflict is null ? null : Ui.Callout.Warning.Role("alert").Text(_conflict),
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
             Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),
@@ -1273,15 +1278,8 @@ public sealed partial class EditProductPage : Component
 
     private async Task Save(ProductModel edit)
     {
-        try
-        {
-            await Product.Update(Id, edit);        // Version checked
-            Routes.ProductsPage().Go();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _conflict = "Someone saved this product while you were editing it.";
-        }
+        await Product.Update(Id, edit);        // Version checked: a stale one is shown at the form's top
+        Routes.ProductsPage().Go();
     }
 }
 ```
@@ -1378,8 +1376,8 @@ row was solving that problem a second time, worse, while charging every query a 
 
 The version check is scaffolded because **a lost delete is visible and a lost update is not**. A deleted row is
 gone and somebody notices; two people editing one form both see "Saved" and the second silently erases the
-first. The cost that would normally argue for turning it off — an unhandled `DbUpdateConcurrencyException` —
-Rask already absorbs: the scaffolded edit page catches it and says somebody else changed the row.
+first. The cost that would normally argue for turning it off — an unhandled concurrency exception — Rask already
+absorbs: a stale save is a `RaskValidationException` about the whole form, which the form shows at its top.
 
 #### An entity that knows its own time
 
@@ -2646,7 +2644,7 @@ declares itself is kept.
 for the capitals. A stored value is loaded as it was stored. The input is not drawn in capitals yet — the text is
 put in capitals when it is made.
 
-**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
+**A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing.Data): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
 **A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in

@@ -44,6 +44,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **BREAKING: the version a form was filled from reaches the aggregate, and a stale save says so in the form's words.**
+  Before: `Find(id)` took no version, so a form's `Version` could only be checked through `Update(id, model)`;
+  `Update(id, apply)` took only a synchronous `Action<T>`, so `s => s.Distribute(…)` returning a `Task` was dropped
+  unawaited; and every stale save threw EF's `DbUpdateConcurrencyException`, which each page caught by hand. After:
+  `await Supply.Find(id, version)` refuses an aggregate saved since with a `RaskValidationException` about the whole
+  form — "Someone else changed this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`,
+  Hungarian in the kit's catalog) — before anything is changed; `Supply.Update(id, async s => await s.Distribute(…),
+  version: v)` awaits a change that reads first; and the generated `Update`, `Delete` and `Save()` refuse a stale save
+  with that same failure, EF's exception kept as its `InnerException`. A `catch (DbUpdateConcurrencyException)` around
+  a generated write becomes `catch (RaskValidationException)`, or goes: a form shows the failure at its top. A write
+  staged on your own context (`db:`) is still saved, and refused, by your `SaveChangesAsync`.
 - **`OrderTextBy` compares text case-insensitively on PostgreSQL 18+ and in the browser too.** Before: PostgreSQL only
   ordered by the language's ICU collation, so `Where(x => x.Name == "csaba")` missed `Csaba` there; and a browser
   app's plain `UseSqlite(…).UseRaskFullTextSearch()` got neither the `RASK_TEXT` collation nor `end - start` between
@@ -150,13 +161,19 @@ them until tagged releases begin.
   MaxLength: 17, Upper: true);` keeps it culture-invariant in capitals (Hungarian `ő` → `Ő` included), after the trim
   and before the lengths and the pattern are checked. A stored value still loads as stored; the bound input is not
   drawn in capitals yet.
-- **`Test.Make<T>()` (Rask.Testing) is a value object its rules accept.** Before: a test that needed a `Vin`, a
+- **`Test.Make<T>()` (Rask.Testing.Data) is a value object its rules accept.** Before: a test that needed a `Vin`, a
   `KmRange` or a `TaxNumber` wrote a literal that matched today's rules, and broke when a rule was tightened. After:
   `Test.Make<Vin>()` reads the rules the record hands its base — `Text` lengths and a simple `Pattern`, `Number`/`Whole`
   `Min`/`Max`/`Scale`, `Day` and `Moment` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
   makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
   member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
-  at `X.Create(…)`. Rask.Testing now references Rask.Data.
+  at `X.Create(…)`.
+- **`Rask.Testing.Data` is a new package, and `Rask.Testing` no longer brings Rask.Data or EF Core.** Before: making
+  `Test.Make<T>()` part of Rask.Testing made it reference Rask.Data, so a test project that only renders components
+  restored EF Core and its providers. After: `Test.Make<T>()` ships in `Rask.Testing.Data` (still called
+  `Test.Make<Vin>()`, a static extension of `Test`), and Rask.Testing is back to the core alone. The `server`
+  template's test project references both; a wasm one stays on Rask.Testing. Add `dotnet add package
+  Rask.Testing.Data` to a test project that calls `Test.Make`.
 - **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
   several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
   `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the

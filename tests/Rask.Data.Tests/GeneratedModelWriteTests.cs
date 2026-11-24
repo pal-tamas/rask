@@ -100,12 +100,80 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("first-edit"), cancellationToken: TestContext.Current.CancellationToken);
 
         // Still holding version 0, from before the first edit.
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+        await Assert.ThrowsAsync<RaskValidationException>(() =>
             GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("stale-edit"), cancellationToken: TestContext.Current.CancellationToken));
 
         var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("first-edit", stored!.Name);
         Assert.Equal(1, stored.Version);
+    }
+
+    [Fact]
+    public async Task A_stale_save_is_refused_as_one_failure_about_the_whole_form()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"), cancellationToken: TestContext.Current.CancellationToken);
+        await Widget.Update(widget.Id, w => w.Rename("first-edit"), version: 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() =>
+            Widget.Update(widget.Id, w => w.Rename("stale-edit"), version: 0, cancellationToken: TestContext.Current.CancellationToken));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Empty(failure.Fields);
+        Assert.Equal("Someone else changed this in the meantime. Reload it and try again.", failure.Message);
+        Assert.IsType<DbUpdateConcurrencyException>(refused.InnerException);
+    }
+
+    [Fact]
+    public async Task An_awaited_update_runs_its_change_before_the_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"), cancellationToken: TestContext.Current.CancellationToken);
+
+        await Widget.Update(widget.Id, async w =>
+        {
+            var others = await Widget.Count(TestContext.Current.CancellationToken);
+            w.Rename($"one of {others}");
+        }, version: 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        Assert.Equal("one of 1", stored!.Name);
+        Assert.Equal(1, stored.Version);
+    }
+
+    [Fact]
+    public async Task Find_at_the_version_the_form_was_filled_from_hands_the_aggregate_back()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"), cancellationToken: TestContext.Current.CancellationToken);
+
+        var found = await Widget.Find(widget.Id, version: 0, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(found);
+        Assert.Equal("original", found.Name);
+    }
+
+    [Fact]
+    public async Task Find_at_a_version_saved_over_since_is_refused_before_anything_changes()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"), cancellationToken: TestContext.Current.CancellationToken);
+        await Widget.Update(widget.Id, w => w.Rename("first-edit"), cancellationToken: TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() =>
+            Widget.Find(widget.Id, version: 0, TestContext.Current.CancellationToken));
+
+        Assert.Equal("Someone else changed this in the meantime. Reload it and try again.", Assert.Single(refused.Failures).Message);
+    }
+
+    [Fact]
+    public async Task Find_at_a_version_of_a_key_no_row_has_finds_nothing()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var found = await Widget.Find(Guid.NewGuid(), version: 0, TestContext.Current.CancellationToken);
+
+        Assert.Null(found);
     }
 
     [Fact]
@@ -170,7 +238,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         var widget = await GeneratedModelWrites.Create(Widget.Create("contested"), cancellationToken: TestContext.Current.CancellationToken);
         await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("edited"), cancellationToken: TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+        await Assert.ThrowsAsync<RaskValidationException>(() =>
             GeneratedModelWrites.Delete<Widget>(widget.Id, version: 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(1, await Widget.Count(TestContext.Current.CancellationToken));

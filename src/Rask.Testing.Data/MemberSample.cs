@@ -7,7 +7,7 @@ namespace Rask.Testing;
 /// <summary>
 ///     A sample of one member of a value object declared from <see cref="Value" />, whose rules are its own code and
 ///     so cannot be read: a filled text, the first number, date or time, an enum's first member, or another value
-///     object made by <see cref="Test.Make{T}" />.
+///     object made by <c>Test.Make&lt;T&gt;()</c>.
 /// </summary>
 internal static class MemberSample
 {

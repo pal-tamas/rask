@@ -238,9 +238,6 @@ public sealed partial class EditProductPage : Component
                 save.Error switch
                 {
                     null => null,
-                    DbUpdateConcurrencyException => Ui.Callout.Danger.Role("alert")
-                        .Heading("Someone else changed this product while you were editing it.")
-                        .Text("Reload to see their changes."),
                     KeyNotFoundException => Ui.Callout.Danger.Role("alert").Heading("This product has been deleted."),
                     _ => Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again."),
                 },
@@ -267,7 +264,8 @@ Four things in that page are doing more than they look:
   `Id`. The model carries no id, so no input on the form can point the save at another row.
 - **`ToModel()` copies the `Version` too.** That is the whole of optimistic concurrency here: the model
   remembers the version the form was loaded at, and `Update` refuses to write if the row has moved on
-  since, throwing `DbUpdateConcurrencyException` rather than overwriting someone else's edit. A row deleted
+  since rather than overwriting someone else's edit: a `RaskValidationException` about the whole form, which the
+  form shows at its top ("Someone else changed this in the meantime. Reload it and try again."). A row deleted
   in the meantime is a `KeyNotFoundException`.
 - **The save writes what the form holds.** `Update` loads the row, copies the model onto it and saves only
   the columns that changed. The model is how a change gets back: nothing the page holds is tracked by EF.

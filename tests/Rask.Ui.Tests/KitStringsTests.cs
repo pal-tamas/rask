@@ -334,6 +334,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationColor),
         // A form's list of ids or of rows: the generated model and Rask.Data's refused id.
         nameof(RaskString.ValidationNotFound), nameof(RaskString.ValidationDuplicateRow),
+        // A save over an aggregate somebody else saved since it was read: Rask.Data's whole-form refusal.
+        nameof(RaskString.ValidationChangedSince),
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),

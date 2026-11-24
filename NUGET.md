@@ -131,6 +131,7 @@ dotnet add package Rask.SqlServer                     # SQL Server via UseRaskSq
 ```bash
 dotnet add package Rask.Validation.FluentValidation   # optional: AbstractValidator<T>; inline .Validate(…) and DataAnnotations are built in
 dotnet add package Rask.Testing                       # render + drive components in unit tests
+dotnet add package Rask.Testing.Data                  # Test.Make<Vin>(): a valid value object (needs Rask.Data)
 dotnet add package Rask.Testing.Playwright            # await page.WaitForRask() in Playwright browser tests
 ```
 
