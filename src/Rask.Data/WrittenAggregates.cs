@@ -17,7 +17,7 @@ internal sealed class WrittenAggregates
 
     private readonly List<string> _written = [];
     private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
-    private readonly Dictionary<DbContext, List<EntityEntry>> _pending = [];
+    private readonly Dictionary<DbContext, List<Staged>> _pending = [];
 
     /// <summary>Whether the warning <see cref="AggregatePolicy.Warn" /> logs has been logged for this transaction.</summary>
     internal bool Warned { get; set; }
@@ -26,71 +26,50 @@ internal sealed class WrittenAggregates
     internal IReadOnlyList<string> All => _written;
 
     /// <summary>
-    ///     Adds the aggregates <paramref name="context" />'s pending save writes, as its <c>SavingChanges</c> sees them.
-    ///     A row whose key the store has yet to make is named once the save has made it (<see cref="Settle" />): its
-    ///     temporary key would make it a second aggregate when it is saved again.
+    ///     Notes the aggregates <paramref name="context" />'s save is about to write, as its <c>SavingChanges</c> sees
+    ///     them; they count once it has written them (<see cref="Settle" />), so a save refused for another reason counts
+    ///     nothing. A row whose key the store has yet to make is named after the save: its temporary key would make it a
+    ///     second aggregate when it is saved again. A deleted row is named now, while it is still tracked.
     /// </summary>
-    /// <returns>True when the save writes one not counted before.</returns>
-    internal bool Stage(DbContext context)
+    internal void Stage(DbContext context)
     {
-        var added = false;
-        List<EntityEntry>? later = null;
-        foreach (var entry in context.ChangeTracker.Entries())
+        List<Staged> staged =
+        [
+            .. context.ChangeTracker.Entries()
+                .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+                .Select(e => HasTemporaryKey(e) ? new Staged(null, e) : new Staged(RootOf(context, e, 0), null)),
+        ];
+
+        if (staged.Count > 0)
         {
-            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
-            {
-                continue;
-            }
-
-            if (HasTemporaryKey(entry))
-            {
-                (later ??= []).Add(entry);
-            }
-            else
-            {
-                added |= Count(context, entry);
-            }
+            _pending[context] = staged;
         }
-
-        if (later is not null)
-        {
-            _pending[context] = later;
-        }
-
-        return added;
     }
 
-    /// <summary>Names the rows <see cref="Stage" /> left for after the save, their keys made by now.</summary>
-    /// <returns>True when one was an aggregate not counted before.</returns>
+    /// <summary>Counts what <see cref="Stage" /> noted, the save having written it.</summary>
+    /// <returns>True when it wrote an aggregate not counted before.</returns>
     internal bool Settle(DbContext context)
     {
-        if (!_pending.Remove(context, out var later))
+        if (!_pending.Remove(context, out var staged))
         {
             return false;
         }
 
         var added = false;
-        foreach (var entry in later)
+        foreach (var (root, later) in staged)
         {
-            added |= Count(context, entry);
+            if ((root ?? (later is null ? null : RootOf(context, later, 0))) is { } named && _seen.Add(named))
+            {
+                _written.Add(named);
+                added = true;
+            }
         }
 
         return added;
     }
 
-    /// <summary>Forgets what <see cref="Stage" /> left for a save that failed.</summary>
+    /// <summary>Forgets what <see cref="Stage" /> noted for a save that failed.</summary>
     internal void Abandon(DbContext context) => _pending.Remove(context);
-
-    private bool Count(DbContext context, EntityEntry entry)
-    {
-        if (RootOf(context, entry, 0) is not { } root || !_seen.Add(root))
-        {
-            return false;
-        }
-
-        _written.Add(root);
-        return true;
-    }
 
     // An Added row, or the child of one, whose key the store makes: its parent's key is still temporary too.
     private static bool HasTemporaryKey(EntityEntry entry) =>
@@ -151,4 +130,7 @@ internal sealed class WrittenAggregates
                 var value = entry.State == EntityState.Deleted ? property.OriginalValue : property.CurrentValue;
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null";
             }));
+
+    // A row the save writes: named before it, or (its key still to be made) the entry to name after it.
+    private readonly record struct Staged(string? Root, EntityEntry? Later);
 }

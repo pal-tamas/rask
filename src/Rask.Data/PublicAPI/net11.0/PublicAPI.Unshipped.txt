@@ -2,6 +2,9 @@
 abstract Rask.Data.ValueObject.EqualityComponents() -> System.Collections.Generic.IEnumerable<object?>!
 override Rask.Data.Entity<TId>.Equals(object? obj) -> bool
 override Rask.Data.Entity<TId>.GetHashCode() -> int
+override Rask.Data.RecordedTransaction.Equals(object? obj) -> bool
+override Rask.Data.RecordedTransaction.GetHashCode() -> int
+override Rask.Data.RecordedTransaction.ToString() -> string!
 override Rask.Data.ValueObject.Equals(object? obj) -> bool
 override Rask.Data.ValueObject.GetHashCode() -> int
 Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>
@@ -109,6 +112,15 @@ Rask.Data.RaskDataOptions
 Rask.Data.RaskDataOptions.OneAggregatePerTransaction.get -> Rask.Data.AggregatePolicy
 Rask.Data.RaskDataOptions.OneAggregatePerTransaction.set -> void
 Rask.Data.RaskDataOptions.RaskDataOptions() -> void
+Rask.Data.RecordedTransaction
+Rask.Data.RecordedTransaction.<Clone>$() -> Rask.Data.RecordedTransaction!
+Rask.Data.RecordedTransaction.Aggregates.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.RecordedTransaction.Aggregates.init -> void
+Rask.Data.RecordedTransaction.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! Aggregates, out string? ManyAggregates) -> void
+Rask.Data.RecordedTransaction.Equals(Rask.Data.RecordedTransaction? other) -> bool
+Rask.Data.RecordedTransaction.ManyAggregates.get -> string?
+Rask.Data.RecordedTransaction.ManyAggregates.init -> void
+Rask.Data.RecordedTransaction.RecordedTransaction(System.Collections.Generic.IReadOnlyList<string!>! Aggregates, string? ManyAggregates) -> void
 Rask.Data.SoftDelete
 Rask.Data.SoftDelete.SoftDelete() -> void
 Rask.Data.Timestamps.Timestamps() -> void
@@ -123,6 +135,10 @@ Rask.Data.TraitSet.SoftDelete = 64 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Updated = 2 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.UpdateModel = 16 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Versioned = 4 -> Rask.Data.TraitSet
+Rask.Data.TransactionRecording
+Rask.Data.TransactionRecording.Dispose() -> void
+Rask.Data.TransactionRecording.EachWroteOneAggregate() -> void
+Rask.Data.TransactionRecording.Transactions.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.RecordedTransaction!>!
 Rask.Data.Updated
 Rask.Data.Updated.Updated() -> void
 Rask.Data.UpdateModel
@@ -266,6 +282,7 @@ static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContex
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
+static Rask.Data.Db.Record() -> Rask.Data.TransactionRecording!
 static Rask.Data.Db.Reset() -> void
 static Rask.Data.Db.Lock(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
 Rask.Data.Locking
@@ -325,6 +342,8 @@ static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuil
 static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
+static Rask.Data.RecordedTransaction.operator !=(Rask.Data.RecordedTransaction? left, Rask.Data.RecordedTransaction? right) -> bool
+static Rask.Data.RecordedTransaction.operator ==(Rask.Data.RecordedTransaction? left, Rask.Data.RecordedTransaction? right) -> bool
 static Rask.Data.Tenant.Across() -> System.IDisposable!
 static Rask.Data.Tenant.IsAcrossTenants.get -> bool
 static Rask.Data.Tenant.None() -> System.IDisposable!

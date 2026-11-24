@@ -12,9 +12,9 @@ namespace Rask.Data;
 ///     <see cref="ManyAggregatesException" />, or nothing.
 /// </summary>
 /// <remarks>
-///     Before the save, so a refusal writes nothing; a row whose key the store makes is named after it, and refused then
-///     — still inside the transaction, which the refusal rolls back. Outside a <c>Db.Transaction</c>, and at
-///     <see cref="AggregatePolicy.Off" />, it reads one <see cref="AsyncLocal{T}" /> and returns.
+///     What a save writes is noted before it and counted after it, so a save refused for another reason (a rule, a
+///     referenced delete) counts nothing; a refusal comes after the save, still inside the transaction it rolls back. Outside a <c>Db.Transaction</c>, and at
+///     <see cref="AggregatePolicy.Off" /> with no <see cref="Db.Record" /> open, it reads one <see cref="AsyncLocal{T}" /> and returns.
 /// </remarks>
 internal sealed partial class OneAggregatePerTransactionInterceptor(
     IOptions<RaskDataOptions> options, ILoggerFactory? loggers = null)
@@ -28,11 +28,7 @@ internal sealed partial class OneAggregatePerTransactionInterceptor(
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
-        if (Counting(eventData.Context) is { } transaction && transaction.Written.Stage(eventData.Context!))
-        {
-            Meet(transaction);
-        }
-
+        Counting(eventData.Context)?.Written.Stage(eventData.Context!);
         return result;
     }
 
@@ -68,16 +64,17 @@ internal sealed partial class OneAggregatePerTransactionInterceptor(
         return Task.CompletedTask;
     }
 
-    // The transaction the save is part of, while a second aggregate in it would still owe a reason.
+    // The transaction the save is part of, while what it writes is asked about: by the policy, or by a Db.Record().
     private AmbientTransaction? Counting(DbContext? context) =>
-        _policy != AggregatePolicy.Off && AmbientTransaction.Of(context) is { ManyAggregates: null } transaction
+        AmbientTransaction.Of(context) is { } transaction && (transaction.Recorded || _policy != AggregatePolicy.Off)
             ? transaction
             : null;
 
+    // A second aggregate meets the policy only while no reason was stated; a recording counts it either way.
     private void Meet(AmbientTransaction transaction)
     {
         var written = transaction.Written;
-        if (written.All.Count < 2)
+        if (written.All.Count < 2 || transaction.ManyAggregates is not null || _policy == AggregatePolicy.Off)
         {
             return;
         }

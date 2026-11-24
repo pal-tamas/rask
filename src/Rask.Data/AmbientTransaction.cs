@@ -54,6 +54,9 @@ internal sealed class AmbientTransaction
     /// <summary>The aggregates its saves have written so far, each once (<see cref="OneAggregatePerTransactionInterceptor" />).</summary>
     internal WrittenAggregates Written { get; } = new();
 
+    /// <summary>Whether a <see cref="TransactionRecording" /> waits for this transaction, so its writes are counted.</summary>
+    internal bool Recorded { get; private set; }
+
     /// <summary>
     ///     Lets a joined <c>Db.Transaction(…, manyAggregates: …)</c> state its reason for the whole transaction: a nested
     ///     block is not a transaction of its own, so what it writes is the outermost one's to answer for.
@@ -84,6 +87,14 @@ internal sealed class AmbientTransaction
         SpawnedWork.Leave ??= Leave;
 
         var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation, manyAggregates);
+
+        // A test's Db.Record() hears of the transaction once it commits, with what it wrote.
+        if (TransactionRecording.Current is { } recording)
+        {
+            entered.Recorded = true;
+            entered.AfterCommit(() => recording.Add(new RecordedTransaction([.. entered.Written.All], entered.ManyAggregates)));
+        }
+
         return new Scope(entered);
     }
 
