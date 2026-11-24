@@ -1037,6 +1037,45 @@ save has been stamped and versioned by nothing: fix the value and `Save()` again
 request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
 runs no interceptor ([bulk insert](#bulk-insert)).
 
+### An operation, run as one write
+
+A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
+runs it as one write — the load, the method and the save in one `Db.Transaction`:
+
+```csharp
+public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
+{
+    public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
+    public void SetOpening(Opening opening) { … }                                           // an operation
+    public bool IsOpen() => …;                                                              // a question: no entry
+
+    public static void Configure(EntityTypeBuilder<Supply> b) =>
+        b.Operation(s => s.SetOpening, roles: Roles.Admin);
+}
+
+await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+```
+
+- **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
+  parameter, that returns `void`, `Task`, `ValueTask` or the aggregate itself (a fluent `Driver Change(…)`). A method
+  that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
+  method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
+  entries, because they are static overloads in its own class.
+- **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
+  principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
+  `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
+  whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
+  anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
+  the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
+  in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
+  entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
+  called on an aggregate in hand is your own code and runs as written.
+- **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
+  to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
+  whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
+
 ### Changing two aggregates together: `db:`
 
 **No `db:` means the write owns its unit of work; `db:` means you do.** Without a context, a write opens one,

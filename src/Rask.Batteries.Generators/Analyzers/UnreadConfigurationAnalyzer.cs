@@ -10,7 +10,8 @@ namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
 ///     RASK165 — a configuration call the generators read from the source — <c>KeepEmpty(…)</c>, <c>Columns(…)</c>,
-///     <c>IsUnique("…")</c> — written where they cannot see it.
+///     <c>IsUnique("…")</c> — written where they cannot see it; RASK172 — the same for an operation's roles
+///     (<c>Operation(x =&gt; x.M, roles: …)</c>), which would leave its generated entry open.
 /// </summary>
 /// <remarks>
 ///     The generated model, writes and read face are generated before any EF model is built, so they read these calls
@@ -37,7 +38,23 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
                      + "the call were never made.",
         helpLinkUri: DiagnosticHelp.Link("RASK165"));
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask165);
+    // The roles of an operation the entry's generator cannot read would leave the entry open to everyone: an error, not
+    // RASK165's warning.
+    private static readonly DiagnosticDescriptor Rask172 = new(
+        "RASK172",
+        "The roles of an operation are written where its generated entry cannot read them",
+        "'Operation' names roles for '{0}', but its generated entry never sees them, so it would run for everyone: {1} — "
+        + "write it directly in the static Configure of '{0}', the operation as a lambda and the roles as a constant",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "b.Operation(x => x.M, roles: …) is read from the aggregate's own static Configure where the entry "
+                     + "Supply.M(id, version, …) is generated, as [Authorize(Roles = …)] is read by the compiler. Made "
+                     + "anywhere else, or with roles that are no constant, it would leave the entry asking nothing, so the "
+                     + "build stops instead; roles that are no constant leave no entry at all.",
+        helpLinkUri: DiagnosticHelp.Link("RASK172"));
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask165, Rask172);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -54,14 +71,16 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
             method.Parameters.Length == 0 ||
             method.Parameters[0].Type is not INamedTypeSymbol { TypeArguments.Length: 1 } builder ||
             builder.TypeArguments[0] is not INamedTypeSymbol entity ||
-            !(read == ReadCall.IsUnique ? AggregateShape.IsAggregate(entity) : AggregateShape.IsEntity(entity)) ||
+            !(read is ReadCall.IsUnique or ReadCall.Operation ? AggregateShape.IsAggregate(entity) : AggregateShape.IsEntity(entity)) ||
             call.Syntax is not InvocationExpressionSyntax syntax ||
             Unseen(syntax, method, read, entity, context) is not { } why)
         {
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(Rask165, syntax.GetLocation(), method.Name, entity.Name, why));
+        context.ReportDiagnostic(read == ReadCall.Operation
+            ? Diagnostic.Create(Rask172, syntax.GetLocation(), entity.Name, why)
+            : Diagnostic.Create(Rask165, syntax.GetLocation(), method.Name, entity.Name, why));
     }
 
     private enum ReadCall
@@ -69,6 +88,7 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
         KeepEmpty,
         Columns,
         IsUnique,
+        Operation,
     }
 
     // The calls a generator reads, by the type that declares them.
@@ -78,6 +98,7 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
             ("Rask.Data.KeepEmptyBuilderExtensions", "KeepEmpty", _) => ReadCall.KeepEmpty,
             ("Rask.Data.ValueObjectColumnsBuilderExtensions", "Columns", _) => ReadCall.Columns,
             ("Rask.Data.ViolationMessageBuilderExtensions", "IsUnique", 2) => ReadCall.IsUnique,
+            ("Rask.Data.OperationBuilderExtensions", "Operation", _) => ReadCall.Operation,
             _ => null,
         };
 
@@ -109,7 +130,15 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
         if (arguments.Count == 0 ||
             arguments[0].Expression is not LambdaExpressionSyntax { Body: MemberAccessExpressionSyntax })
         {
-            return "its member is not a lambda naming a property";
+            return read == ReadCall.Operation ? "its operation is not a lambda naming a method" : "its member is not a lambda naming a property";
+        }
+
+        if (read == ReadCall.Operation)
+        {
+            return RolesOf(arguments) is { } roles &&
+                   model.GetConstantValue(roles.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
+                ? "its roles are not a constant"
+                : null;
         }
 
         return read == ReadCall.Columns &&
@@ -117,4 +146,9 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
             ? "its pattern is not a constant"
             : null;
     }
+
+    // The roles argument: named, or the second one given in place.
+    private static ArgumentSyntax? RolesOf(SeparatedSyntaxList<ArgumentSyntax> arguments) =>
+        arguments.Skip(1).FirstOrDefault(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "roles", System.StringComparison.Ordinal))
+        ?? (arguments.Count > 1 && arguments[1].NameColon is null ? arguments[1] : null);
 }
