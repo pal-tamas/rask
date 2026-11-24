@@ -3201,7 +3201,7 @@ the form, or in the aggregate's unique rule (`IsUnique("…")`), which a form ov
 **Not reported:** a value object declared from a base record, whatever else it declares; an instance `Validate`, or
 one that implements an interface (`IValidatableObject`); a value object of several values; and any type that is
 not a value object held by an aggregate — so a static method a hand-written form names on a field
-(`.Validate(DestinationName.Validate)`) is left alone.
+(`.Validate(Rules.Destination)`) is left alone; a value object's own rule is its generated `X.Check`.
 
 RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
 

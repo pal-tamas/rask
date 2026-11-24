@@ -180,6 +180,22 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     }
 
     [Fact]
+    public void Check_answers_a_hand_written_form_what_Create_would_refuse_with()
+    {
+        Rask.Core.Forms.Validate<string> driver = RigDriver.Check;
+        Rask.Core.Forms.Validate<long> axles = RigAxles.Check;
+
+        var empty = driver("");
+        var tooLong = driver(new string('x', 21));
+        var tooFew = axles(1);
+
+        Assert.Equal([GeneratedModelRules.RequiredMessage], empty);
+        Assert.Equal(["Enter at most 20 characters."], tooLong);
+        Assert.Equal(["Enter 2 or more."], tooFew);
+        Assert.Empty(driver("Ada"));
+    }
+
+    [Fact]
     public void A_record_of_one_member_declared_from_Value_is_asked_on_its_field_like_a_base_record()
     {
         var ruleOf = Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(LadderModel));

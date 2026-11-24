@@ -69,6 +69,11 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`X.Check(value)` on every one-value value object.** Before: a hand-written form asked a value object's rules
+  through a lambda over `TryCreate`, or a `static Validate` written beside it. After: the generated, public, sync
+  `DriverName.Check(value)` answers what `DriverName.Create` would refuse with, in the shape of a field's rule —
+  `Ui.Input.Bind(() => m.Name).Validate(DriverName.Check)`; a number gets one for `decimal` and one for `decimal?`. The
+  site's destination demos use it.
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
   hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods

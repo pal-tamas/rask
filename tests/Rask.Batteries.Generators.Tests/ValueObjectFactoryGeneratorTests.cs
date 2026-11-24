@@ -114,6 +114,35 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void A_one_value_value_object_gets_a_public_Check_in_the_shape_of_a_fields_rule()
+    {
+        var run = Run(ValueObjects + """
+            public sealed class Field<T>
+            {
+                public Field<T> Validate(Rask.Core.Forms.Validate<T> rule) => this;
+            }
+            public static class Form
+            {
+                public static void Bind()
+                {
+                    new Field<string>().Validate(DriverName.Check);
+                    new Field<decimal>().Validate(Litres.Check);
+                    new Field<decimal?>().Validate(Litres.Check);
+                }
+            }
+            """, "Rask.Core");
+
+        var name = run.GeneratedSource("DriverName.Value.g.cs");
+        var litres = run.GeneratedSource("Litres.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static global::System.Collections.Generic.IEnumerable<string> Check(string? value) => __Problems(value);", name, StringComparison.Ordinal);
+        Assert.Contains("Check(decimal? value)", litres, StringComparison.Ordinal);
+        Assert.Contains("Check(decimal value)", litres, StringComparison.Ordinal);
+        Assert.DoesNotContain("Check(", run.GeneratedSource("KmRange.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CreateOptional_refuses_only_the_members_that_may_not_be_empty()
     {
         var run = Run(ValueObjects);
