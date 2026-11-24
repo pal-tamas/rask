@@ -1758,6 +1758,24 @@ and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[
 like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
 property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
 
+What each one does, where it is read — on the aggregate's property, a generated model's, or a hand-written form model's:
+
+| Attribute | The form and its control | `Create(model)` / `Update(id, model)` | Every save | The column |
+| --- | --- | --- | --- | --- |
+| `[Required]` | checked; `aria-required` and the *Required* badge | checked | checked | `NOT NULL` (EF Core's) |
+| `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | checked; a text input's `maxlength`/`minlength` — on a value object's property, the tighter of the attribute and the value object's own | checked | checked | `[MaxLength]`/`[StringLength]` the length (EF Core's; RASK128 when it and the value object disagree) |
+| `[Range]`, `[RegularExpression]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
+| `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
+| `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
+| `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
+| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
+| `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
+
+`[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
+the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
+Rask.Ui list or table builds its columns from a model's members.
+
 ## The current user — `Current`
 
 A read or a write on a model is a static call — `Product.Where(…)`, a `Product.Create(…)` factory — so there
