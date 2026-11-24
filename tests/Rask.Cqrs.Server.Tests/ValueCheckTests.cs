@@ -26,6 +26,28 @@ public sealed class ValueCheckTests
         Assert.Null(RenameDriverHandler.Received);
     }
 
+    [Theory]
+    [InlineData("""{"id":1}""", "Driver")]
+    [InlineData("""{"id":1,"driver":null}""", "Driver")]
+    [InlineData("""{"id":1,"driver":{"name":null}}""", "Driver.Name")]
+    public async Task A_required_member_left_out_or_sent_null_is_answered_400_under_its_field_and_never_reaches_the_handler(
+        string body, string field)
+    {
+        RenameDriverHandler.Received = null;
+        using var host = EndpointSecurityTests.Host();
+        using var client = host.CreateClient();
+        using var request = Rename(body);
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var errors = json.RootElement.GetProperty("errors");
+        Assert.Equal(Rask.Rules.Required, errors.GetProperty(field)[0].GetString());
+        Assert.Single(errors.EnumerateObject());
+        Assert.Null(RenameDriverHandler.Received);
+    }
+
     [Fact]
     public async Task A_value_object_its_rules_keep_reaches_the_handler_as_create_makes_it()
     {

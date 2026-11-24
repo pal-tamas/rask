@@ -39,6 +39,16 @@ public sealed class WireRefusals
     /// <summary>Steps back out of the member, item or entry entered last.</summary>
     public void Leave() => _path.RemoveAt(_path.Count - 1);
 
+    /// <summary>Records that a member that must be given was left out or sent null, under its own field.</summary>
+    /// <param name="member">The member's name, as the contract declares it.</param>
+    /// <param name="message">What a form's required field says.</param>
+    public void Require(string member, string message)
+    {
+        Enter(member);
+        (_failures ??= []).Add(new FieldFailure(message, [Here()]));
+        Leave();
+    }
+
     /// <summary>Records what a value object's rules refused, under the field being read.</summary>
     /// <param name="failures">The refusal's failures, each about the whole value or one of its members.</param>
     public void Refuse(IReadOnlyList<FieldFailure> failures)
