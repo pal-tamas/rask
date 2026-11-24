@@ -913,7 +913,11 @@ Ui.TableCell[Ui.Input.Bind(() => row.Size).Type(InputType.Number), Ui.Error.For(
 text and placeholder are the member's `[Display(Name, Description, Prompt)]`, its badge the automatic
 *Required*, and the control what the member holds — its [field shape](forms-validation.md) on a generated
 model, else its type. Text is a `Ui.Input` (`email`/`tel`/`url`/`password` from `[EmailAddress]`, `[Phone]`,
-`[Url]`, `[DataType(DataType.Password)]`; `.Multiline()` a `Ui.Textarea`), a number an input with its
+`[Url]`, `[DataType(DataType.Password)]`; its `maxlength`/`minlength` from `[StringLength]`, `[MaxLength]`,
+`[MinLength]`, `[Length]`; drawn in capitals for a value object declared `Upper: true`; `.Multiline()` or
+`[DataType(DataType.MultilineText)]` a `Ui.Textarea`), a `DateTime` that is `[DataType(DataType.Date)]` a date input,
+`[UIHint(FieldHints.Switch)]` on a `bool` a `Ui.Switch` and `[UIHint(FieldHints.RadioGroup)]` on an enum a
+`Ui.RadioGroup` ([what a member's attributes tell its control](forms-validation.md)), a number an input with its
 `min`/`max` and a step of its scale, a day a `Ui.DatePicker` (ending today when it may not be after it), a moment
 a `Ui.DayAndTime`, a `bool` a `Ui.Checkbox`, an enum a `Ui.Select` over its members in their order (an empty
 choice first for a nullable one), and a range two controls under one label, each end with its own message.

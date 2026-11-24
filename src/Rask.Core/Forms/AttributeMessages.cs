@@ -62,9 +62,15 @@ internal static class AttributeMessages
                 Said(RaskString.ValidationLength, "Enter between {0} and {1} characters.", length.MinimumLength, length.MaximumLength),
             LengthAttribute length => Said(RaskString.ValidationCount, "Choose between {0} and {1}.", length.MinimumLength, length.MaximumLength),
 
-            // An exclusive bound reads differently ("more than"), and no key says that yet: .NET's text stands.
+            // An exclusive bound reads differently: "greater than" the least, "less than" the greatest.
             RangeAttribute { MinimumIsExclusive: false, MaximumIsExclusive: false } range =>
                 Said(RaskString.ValidationBetween, "Enter a value between {0} and {1}.", range.Minimum, range.Maximum),
+            RangeAttribute { MinimumIsExclusive: true, MaximumIsExclusive: false } range =>
+                Said(RaskString.ValidationAboveAndAtMost, "Enter a value greater than {0} and at most {1}.", range.Minimum, range.Maximum),
+            RangeAttribute { MinimumIsExclusive: false, MaximumIsExclusive: true } range =>
+                Said(RaskString.ValidationAtLeastAndBelow, "Enter a value at least {0} and less than {1}.", range.Minimum, range.Maximum),
+            RangeAttribute range =>
+                Said(RaskString.ValidationAboveAndBelow, "Enter a value greater than {0} and less than {1}.", range.Minimum, range.Maximum),
             EmailAddressAttribute => Said(RaskString.ValidationEmail, "Enter a valid email address."),
             PhoneAttribute => Said(RaskString.ValidationPhone, "Enter a valid phone number."),
             UrlAttribute => Said(RaskString.ValidationUrl, "Enter a valid http, https or ftp address."),

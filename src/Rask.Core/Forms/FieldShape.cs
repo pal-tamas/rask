@@ -4,8 +4,13 @@ namespace Rask.Core.Forms;
 ///     What a field of a model is, beyond its property's type: the rules its value object declares (<c>Text(Value,
 ///     MaxLength: 100)</c>, <c>Range(Start, End, Strict: true)</c>), told to the controls bound to it — a text input
 ///     is given its <c>maxlength</c> and <c>minlength</c> — instead of found out on submit. Registered per model type
-///     through <see cref="RaskValidation.RegisterFieldShapes" />, which a generated model does for every field it holds.
+///     through <see cref="RaskValidation.RegisterFieldShapes" />, which a generated model does for every field it holds;
+///     a member of a model that registered nothing is read off its DataAnnotations attributes instead.
 /// </summary>
+/// <remarks>
+///     Beyond the rules, the hints the member's attributes give a control — <see cref="Input" />, <see cref="ReadOnly" />,
+///     <see cref="KeepEmpty" />, <see cref="Hint" /> — and the way a value object keeps its text (<see cref="Upper" />).
+/// </remarks>
 /// <param name="Kind">What the field holds.</param>
 /// <param name="MaxLength">The most characters a <see cref="FieldKind.Text" /> may hold, or null for no limit.</param>
 /// <param name="MinLength">The fewest characters a <see cref="FieldKind.Text" /> may hold, or null for none.</param>
@@ -35,4 +40,35 @@ public sealed record FieldShape(
     string? End = null,
     FieldKind? Ends = null,
     IReadOnlyList<FieldOption>? Options = null,
-    bool NotAfterNow = false);
+    bool NotAfterNow = false)
+{
+    /// <summary>
+    ///     The input a text is typed into, where the member's attributes ask for one: <c>[EmailAddress]</c> an
+    ///     <see cref="InputType.Email" />, <c>[Phone]</c> a <see cref="InputType.Tel" />, <c>[Url]</c> a
+    ///     <see cref="InputType.Url" />, <c>[DataType(DataType.Password)]</c> a <see cref="InputType.Password" />,
+    ///     <c>[DataType(DataType.Date)]</c> a <see cref="InputType.Date" />. Null for the input the member's type calls for.
+    /// </summary>
+    public InputType? Input { get; init; }
+
+    /// <summary>Whether the member is <c>[Editable(false)]</c>: shown, never changed by the reader.</summary>
+    public bool ReadOnly { get; init; }
+
+    /// <summary>
+    ///     Whether a text the reader empties is kept as <c>""</c> rather than written as <c>null</c>:
+    ///     <c>[DisplayFormat(ConvertEmptyStringToNull = false)]</c>.
+    /// </summary>
+    public bool KeepEmpty { get; init; }
+
+    /// <summary>
+    ///     Whether the text is kept in capitals — a value object declared <c>Text(Value, Upper: true)</c> — so its input
+    ///     shows what is typed in capitals as well.
+    /// </summary>
+    public bool Upper { get; init; }
+
+    /// <summary>
+    ///     The control the member names — its <c>[UIHint]</c>, or <c>"MultilineText"</c> for
+    ///     <c>[DataType(DataType.MultilineText)]</c> — or null. A bound field draws the kit control of that name where
+    ///     one fits what the member holds (<see cref="FieldHints" />), and its usual control otherwise.
+    /// </summary>
+    public string? Hint { get; init; }
+}

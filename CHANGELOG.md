@@ -56,6 +56,26 @@ them until tagged releases begin.
   named `id`, `version` or `cancellationToken`) and the error [RASK172](docs/diagnostics.md#rask172) (roles written
   where the entry cannot read them, which would leave it open). See
   [an operation, run as one write](docs/data.md#an-operation-run-as-one-write).
+- **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
+  object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
+  reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
+  `[UIHint]` were copied onto the generated model and read by nothing. After: `FieldShape` carries `Input`,
+  `ReadOnly`, `KeepEmpty`, `Upper` and `Hint`, which a generated model registers at compile time for its plain
+  properties too and Core reads off a hand-written model's property: `[StringLength]`/`[MaxLength]`/`[MinLength]`/
+  `[Length]` → `maxlength`/`minlength` (on a value object's property the tighter of the attribute and the value
+  object), `[EmailAddress]`/`[Phone]`/`[Url]`/`[DataType]` → the input's `type` (a `[DataType(DataType.Date)]`
+  `DateTime` is a date input showing its day), `[Editable(false)]` → `readonly` on every bound `Input`/`Textarea`/
+  `Ui.Input` (no write wired), `[DisplayFormat(ConvertEmptyStringToNull = false)]` → an emptied `string?` is written
+  `""`, and `[UIHint(FieldHints.Switch | RadioGroup | MultilineText)]` / `[DataType(DataType.MultilineText)]` →
+  `Ui.Field.Bind` draws a `Ui.Switch`, a `Ui.RadioGroup` or a `Ui.Textarea`. A value object declared
+  `Text(Value, Upper: true)` draws its `Ui.Input` in capitals. A model that registers its shapes by hand gives the
+  whole answer for a property it answers (add `ReadOnly = true` where it relied on `[Editable(false)]` beside it).
+  See [forms validation — what a member's attributes tell its control](docs/forms-validation.md) and the per-attribute
+  table in [data](docs/data.md).
+- **An exclusive `[Range]` is worded in the reader's language.** Before: a `[Range]` with `MinimumIsExclusive` or
+  `MaximumIsExclusive` kept .NET's English text in every language. After: three catalog keys say it —
+  `ValidationAboveAndAtMost`, `ValidationAtLeastAndBelow`, `ValidationAboveAndBelow` — with Hungarian in Rask.Ui
+  (*0 feletti, legfeljebb 10 értéket adjon meg.*). See [localization](docs/localization.md).
 - **BREAKING: the version a form was filled from reaches the aggregate, and a stale save says so in the form's words.**
   Before: `Find(id)` took no version, so a form's `Version` could only be checked through `Update(id, model)`;
   `Update(id, apply)` took only a synchronous `Action<T>`, so `s => s.Distribute(…)` returning a `Task` was dropped
@@ -706,6 +726,21 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A value object's generated half is fully documented.** Before: `X.Create(…)` documented only its `field`
+  parameter, so an app building its documentation file with warnings as errors failed on CS1573 in a file it never
+  wrote (TA had to `NoWarn` CS1573 project-wide). After: `Create`, `TryCreate`, `CreateOptional` and `__Problems`
+  document every parameter and their result; a generator test compiles the output with documentation on.
+- **An optional complex value object reads back as `null` on the read face.** Before: `public Opening? Start` over
+  `Opening(DateTime Date, Amount Quantity) : Value` gave the read face a non-nullable `StartQuantity` (a nested value
+  object lost the outer `?`) and mapped every column under `Start` as required, so reading any row with no opening
+  threw `SqlNullValueException` (SQLite: "The data is NULL at ordinal …"). After: every column under an optional value
+  object is nullable on the read face, however deep, and is mapped as EF Core stores it; the aggregate and the
+  generated `Create(model)`/`Update(id, model)` store and clear it as before. See
+  [data.md](docs/data.md#declared-from-a-base-record).
+- **A one-member value object declared straight from `Value` prints its value.** Before: `FuelingChip(string Value) :
+  Value` printed `FuelingChip { Value = C-17 }` in `$"{chip}"`. After: the generated half gives it `ToString()` — the
+  value, a number or a date culture-invariant, empty for none — unless the record declares its own. Text, Number,
+  Whole, Day and Moment already printed their value.
 - **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
   fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
   continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —

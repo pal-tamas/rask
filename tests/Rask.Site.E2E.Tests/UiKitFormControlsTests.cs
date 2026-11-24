@@ -90,10 +90,15 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
         var scope = Page.Locator("[data-testid='ui-field-auto']");
         var state = Page.Locator("[data-testid='ui-field-auto-state']");
 
-        // Each control is the member's: [Display] names it and prompts it, [EmailAddress] types it, an int is a number,
-        // an enum a select, Multiline a textarea, a bool a checkbox.
+        // Each control is the member's: [Display] names it and prompts it, [StringLength] bounds it, [EmailAddress] and
+        // [Phone] type it, [Editable(false)] locks it, an int is a number, an enum a select, [DataType(MultilineText)] a
+        // textarea, [UIHint(Switch)] a switch, a bool a checkbox.
         var name = scope.Locator("input[placeholder='Ada Lovelace']");
         await Expect(name).ToHaveAccessibleNameAsync(new System.Text.RegularExpressions.Regex("^Name"));
+        await Expect(name).ToHaveAttributeAsync("maxlength", "60");
+        await Expect(scope.Locator("input[type='tel']")).ToHaveAttributeAsync("placeholder", "+36 30 123 4567");
+        await Expect(scope.Locator("input[name='Reference']")).ToHaveAttributeAsync("readonly", "");
+        await Expect(scope.Locator("input[name='Reference']")).ToHaveValueAsync("BK-1042");
         await Expect(scope.Locator("label").First).ToContainTextAsync("Required");
         await name.FillAsync("Ada");
         await Expect(state).ToContainTextAsync("Ada ·");
@@ -104,6 +109,8 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
         await scope.Locator("select").SelectOptionAsync("Enterprise");
         await Expect(state).ToContainTextAsync("Enterprise");
         await Expect(scope.Locator("textarea")).ToHaveCountAsync(1);
+        await scope.Locator("[data-ui-switch]").ClickAsync();
+        await Expect(state).ToContainTextAsync("newsletter yes");
         await scope.Locator("[data-ui-checkbox]").ClickAsync();
         await Expect(state).ToContainTextAsync("agreed yes");
     });

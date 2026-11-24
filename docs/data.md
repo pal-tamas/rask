@@ -1796,6 +1796,24 @@ and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[
 like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
 property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
 
+What each one does, where it is read — on the aggregate's property, a generated model's, or a hand-written form model's:
+
+| Attribute | The form and its control | `Create(model)` / `Update(id, model)` | Every save | The column |
+| --- | --- | --- | --- | --- |
+| `[Required]` | checked; `aria-required` and the *Required* badge | checked | checked | `NOT NULL` (EF Core's) |
+| `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | checked; a text input's `maxlength`/`minlength` — on a value object's property, the tighter of the attribute and the value object's own | checked | checked | `[MaxLength]`/`[StringLength]` the length (EF Core's; RASK128 when it and the value object disagree) |
+| `[Range]`, `[RegularExpression]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
+| `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
+| `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
+| `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
+| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
+| `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
+
+`[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
+the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
+Rask.Ui list or table builds its columns from a model's members.
+
 ## The current user — `Current`
 
 A read or a write on a model is a static call — `Product.Where(…)`, a `Product.Create(…)` factory — so there
@@ -2673,7 +2691,10 @@ over the primary constructor's parameters:
 [RASK127](diagnostics.md#rask127) refuses both outside the type, tests included, and its quick-fix writes the
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
-same type and hold the same values; a one-value record's `ToString()` is its value.
+same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
+`FuelingChip { Value = C-17 }`. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it
+generated, a number or a date written culture-invariant (`1234.5` on every machine); a `ToString` the record
+declares itself is kept.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
@@ -2713,6 +2734,18 @@ column a length or precision other than the value object's, since a value the ru
 The generated model carries the attribute like any other (`[Required]` included, which also makes the column
 `NOT NULL`), so a form and `Create(model)`/`Update(id, model)` ask it beside the value object's rule: the tighter
 of the two refuses.
+
+**A value object held inside another keeps its own column shape.** `Opening(DateTime Date, Amount Quantity) : Value`
+with `Amount : Number(Value, Scale: 16, Precision: 32)` stores `Start_Quantity` as `decimal(32,16)` — the `Amount`
+says so, and no `HasPrecision` in `Configure` is needed; a plain `decimal Quantity` member has no rules to read, so
+it keeps EF Core's default.
+
+**An optional complex value is null when its row has none.** `public Opening? Start { get; private set; }` is an EF
+Core optional complex property: every column under it is nullable, a row with no opening holds `NULL` in all of
+them and loads `Start` as `null`, and the read face's `StartDate` and `StartQuantity` are `DateTime?` and
+`decimal?` however `Opening`'s own members are declared. EF Core needs one member that is not nullable to tell
+"none" from "all empty" — an `Opening(DateTime? Date, decimal? Quantity)` held as `Opening?` is refused when the
+model is built; declare a member required, or hold it as `Opening` and let its members be empty.
 
 **An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
 into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
