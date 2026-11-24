@@ -3,7 +3,7 @@ using System.ComponentModel;
 namespace Rask.Data;
 
 /// <summary>
-///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" /> and
+///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" />, <see cref="Moment" /> and
 ///     <see cref="Range" /> are worded. An app's generated module initializer hands over Rask's strings catalog, so
 ///     they are said in the reader's language; without one they are said in English.
 /// </summary>

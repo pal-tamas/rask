@@ -18,6 +18,29 @@ public sealed class BaseRecordValueObjectRuleTests
     }
 
     [Fact]
+    public void A_text_declared_upper_is_kept_in_capitals_after_it_is_trimmed()
+    {
+        var vin = RigVin.Create("  wvwzzz1jzxw000001  ");
+        var hungarian = RigCode.Create("árvíztűrő");
+
+        Assert.Equal("WVWZZZ1JZXW000001", vin.Value);
+        Assert.Equal("ÁRVÍZTŰRŐ", hungarian.Value);
+    }
+
+    [Fact]
+    public void A_text_declared_upper_is_checked_as_it_is_kept()
+    {
+        var lower = "abcdefghijklmnopq";
+
+        var pattern = RigCode.__Problems("őrült");
+        var length = RigVin.__Problems(lower[..16]);
+
+        Assert.Empty(pattern);
+        Assert.Empty(RigVin.__Problems(lower));
+        Assert.Equal(["Enter at least 17 characters."], length);
+    }
+
+    [Fact]
     public void Create_refuses_a_one_value_object_exactly_under_the_field_it_is_given()
     {
         var tooLong = Assert.Throws<RaskValidationException>(() => RigDriver.Create(new string('x', 21), "Driver"));
@@ -43,6 +66,42 @@ public sealed class BaseRecordValueObjectRuleTests
         Assert.Empty(RigInspected.__Problems(today));
         Assert.Empty(RigChip.__Problems(" 123456789A "));
         Assert.Single(RigChip.__Problems(" 123456789AB "));
+    }
+
+    [Fact]
+    public void A_moment_that_may_not_be_after_now_refuses_one_after_the_wall_clock()
+    {
+        var now = Clock.Wall;
+
+        var later = RigFueled.__Problems(now.AddHours(1));
+        var earlier = RigFueled.__Problems(now.AddMinutes(-1));
+
+        Assert.Single(later);
+        Assert.Empty(earlier);
+    }
+
+    [Fact]
+    public void A_utc_moment_is_kept_on_the_wall_clock_of_the_apps_zone()
+    {
+        var utc = new DateTime(2024, 3, 31, 0, 30, 0, DateTimeKind.Utc);
+
+        var fueled = RigFueled.Create(utc);
+
+        Assert.Equal(TimeZoneInfo.ConvertTimeFromUtc(utc, Clock.Zone), fueled.Value);
+        Assert.Equal(DateTimeKind.Unspecified, fueled.Value.Kind);
+        Assert.Equal(DateOnly.FromDateTime(fueled.Value), fueled.Day);
+    }
+
+    [Fact]
+    public void A_wall_clock_moment_is_kept_as_given()
+    {
+        var wall = new DateTime(2024, 3, 31, 2, 30, 0, DateTimeKind.Unspecified);
+
+        var fueled = RigFueled.Create(wall);
+
+        Assert.Equal(wall, fueled.Value);
+        Assert.Equal(new DateOnly(2024, 3, 31), fueled.Day);
+        Assert.Equal(RigFueled.Create(wall), fueled);
     }
 
     [Fact]

@@ -107,6 +107,7 @@ public sealed partial class ModelInputGenerator
             SpecialType.System_Decimal => "Number",
             SpecialType.System_Int64 => "Whole",
             _ when held is { Name: "DateOnly", ContainingNamespace.Name: "System" } => "Day",
+            SpecialType.System_DateTime => "Moment",
             _ => null,
         };
 
