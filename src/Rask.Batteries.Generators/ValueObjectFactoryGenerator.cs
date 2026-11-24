@@ -95,6 +95,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             ReadFacets(ctx.SemanticModel, node, token),
             ReadShape(ctx.SemanticModel, node, token),
             ctx.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Core.Forms.FieldShape") is not null,
+            DeclaresToString(type),
             problem,
             SymbolLocation.From(type));
     }
@@ -131,7 +132,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
                 NullableForm(declared, nullable),
                 declared.SpecialType == SpecialType.System_String,
                 declared.IsValueType,
-                nullable));
+                nullable,
+                IsFormattable(declared)));
         }
 
         return new EquatableArray<Parameter>([.. parameters]);
@@ -241,7 +243,8 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
     }
 
     /// <summary>One primary-constructor parameter, as the generated members take it.</summary>
-    private sealed record Parameter(string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable);
+    private sealed record Parameter(
+        string Name, string Type, string OptionalType, bool IsText, bool IsValueType, bool Nullable, bool Formattable);
 
     /// <summary>The column facets a value object declares, as constants; null where it declares none.</summary>
     private sealed record ColumnFacets(int? MaxLength, int? Precision, int? Scale);
@@ -257,6 +260,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ColumnFacets Facets,
         ShapeFacets Shape,
         bool HasFieldSeam,
+        bool OwnToString,
         string? Problem,
         SymbolLocation? Location)
     {

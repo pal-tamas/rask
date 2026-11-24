@@ -536,7 +536,7 @@ public class ModelRulesGeneratorTests
         var source = run.GeneratedSource("Shop.ProductModel");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.DoesNotContain("RaskValidation", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Core.Forms.RaskValidation", source, StringComparison.Ordinal);
         Assert.DoesNotContain("__ProductModelRules", source, StringComparison.Ordinal);
     }
 }

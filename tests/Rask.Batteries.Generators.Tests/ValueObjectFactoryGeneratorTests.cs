@@ -137,6 +137,55 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void Every_generated_member_is_documented_for_an_app_that_writes_its_documentation_file()
+    {
+        // An app with GenerateDocumentationFile and warnings as errors failed on CS1573 in the generated half: Create
+        // documented its field and none of the value object's own parameters.
+        var parse = new CSharpParseOptions(LanguageVersion.Latest, DocumentationMode.Diagnose);
+        var run = Run(ValueObjects.Replace(
+            "public sealed partial record", "/// <summary>A value.</summary>\npublic sealed partial record", StringComparison.Ordinal));
+        var source = run.Compilation.SyntaxTrees.Single();
+
+        var documented = run.RunResult.GeneratedTrees
+            .Where(t => t.FilePath.EndsWith(".Value.g.cs", StringComparison.Ordinal))
+            .Select(t => CSharpSyntaxTree.ParseText(
+                t.GetText(TestContext.Current.CancellationToken), parse, t.FilePath, TestContext.Current.CancellationToken))
+            .ToList();
+        var compilation = run.Compilation
+            .ReplaceSyntaxTree(source, source.WithRootAndOptions(source.GetRoot(TestContext.Current.CancellationToken), parse))
+            .AddSyntaxTrees(documented);
+        var findings = compilation.GetDiagnostics(TestContext.Current.CancellationToken)
+            .Where(d => d.Id.StartsWith("CS15", StringComparison.Ordinal) && d.Location.SourceTree is { } tree && documented.Contains(tree))
+            .Select(d => d.Id + " " + d.GetMessage(System.Globalization.CultureInfo.InvariantCulture))
+            .ToList();
+
+        Assert.Equal(9, documented.Count);
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void Only_a_value_of_one_member_declared_from_Value_without_its_own_ToString_gets_one()
+    {
+        var run = Run("""
+            public sealed partial record Chip(string Value) : Value;
+            public sealed partial record Reading(decimal? Value) : Value;
+            public sealed partial record Sign(int Value) : Value { public override string ToString() => "#"; }
+            public sealed partial record Driver(string Value) : Text(Value);
+            public sealed partial record Pair(int A, int B) : Value;
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public override string ToString() => Value;", run.GeneratedSource("Chip.Value.g.cs"), StringComparison.Ordinal);
+        Assert.Contains(
+            "ToString() => Value?.ToString(null, global::System.Globalization.CultureInfo.InvariantCulture) ?? \"\";",
+            run.GeneratedSource("Reading.Value.g.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Sign.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Driver.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Pair.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void No_module_initializer_is_written_since_the_bases_word_their_rules_from_the_catalog_themselves()
     {
         var run = Run(ValueObjects, "Rask.Core");

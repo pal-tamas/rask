@@ -18,6 +18,28 @@ public sealed class BaseRecordValueObjectRuleTests
     }
 
     [Fact]
+    public void A_value_of_one_member_declared_from_Value_prints_the_value_it_holds_culture_invariant()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("hu-HU");
+
+        try
+        {
+            var tag = RigTag.Create("C-17");
+            var reading = RigReading.Create(1234.5m);
+            var sign = RigSign.Create(7);
+
+            Assert.Equal("C-17", $"{tag}");
+            Assert.Equal("1234.5", reading.ToString());
+            Assert.Equal("#7", sign.ToString());
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Fact]
     public void A_text_declared_upper_is_kept_in_capitals_after_it_is_trimmed()
     {
         var vin = RigVin.Create("  wvwzzz1jzxw000001  ");

@@ -46,7 +46,7 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 
     /// <summary>
     /// The optimistic-concurrency token: bumped on every save of the aggregate, and compared on the next one, so
-    /// a save built from a stale copy is refused with <c>DbUpdateConcurrencyException</c>.
+    /// a save built from a stale copy is refused — "someone else changed this", a failure about the whole form.
     /// </summary>
 #pragma warning disable S1144 // EF materializes and bumps the column through the setter
     public int Version { get; private set; }

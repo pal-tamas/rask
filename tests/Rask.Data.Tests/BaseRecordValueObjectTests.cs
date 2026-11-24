@@ -244,6 +244,58 @@ public sealed class BaseRecordValueObjectTests : IDisposable
             km);
     }
 
+    [Fact]
+    public async Task An_optional_complex_value_left_empty_reads_back_as_none_on_both_faces()
+    {
+        await using var database = await StartDatabaseAsync();
+        var empty = Tankyard.Of("Empty");
+        var opened = Tankyard.Of("Opened");
+        opened.Open(new DateTime(2026, 3, 1), 1234.5678901234567891m);
+        await empty.Save(cancellationToken: TestContext.Current.CancellationToken);
+        await opened.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        var storedEmpty = await database.Load<Tankyard>(empty.Id, TestContext.Current.CancellationToken);
+        var storedOpened = await database.Load<Tankyard>(opened.Id, TestContext.Current.CancellationToken);
+        var rows = await Tankyard.OrderBy(d => d.Name);
+        var withStart = await Tankyard.Count(d => d.StartQuantity > 1000m, TestContext.Current.CancellationToken);
+
+        Assert.Null(storedEmpty!.Start);
+        Assert.Equal(RigStart.Create(new DateTime(2026, 3, 1), RigQuantity.Create(1234.5678901234567891m)), storedOpened!.Start);
+        Assert.Equal(["Empty", "Opened"], rows.Select(r => r.Name));
+        Assert.Equal((null, null), (rows[0].StartDate, rows[0].StartQuantity));
+        Assert.Equal((new DateTime(2026, 3, 1), 1234.5678901234567891m), (rows[1].StartDate, rows[1].StartQuantity));
+        Assert.Equal(1, withStart);
+    }
+
+    [Fact]
+    public async Task The_generated_writes_store_an_optional_complex_value_and_take_it_away_again()
+    {
+        await using var database = await StartDatabaseAsync();
+        var token = TestContext.Current.CancellationToken;
+
+        var created = await Tankyard.Create(new TankyardModel { Name = "Yard" }, cancellationToken: token);
+        var opened = await Tankyard.Update(
+            created.Id, new TankyardModel { Name = "Yard", Start = new() { Date = new DateTime(2026, 3, 1), Quantity = 50m } }, cancellationToken: token);
+        var closed = await Tankyard.Update(created.Id, new TankyardModel { Name = "Yard" }, cancellationToken: token);
+        var row = await Tankyard.Where(t => t.Id == created.Id).First(token);
+
+        Assert.Null(created.Start);
+        Assert.Equal(RigStart.Create(new DateTime(2026, 3, 1), RigQuantity.Create(50m)), opened.Start);
+        Assert.Null(closed.Start);
+        Assert.Equal((null, null), (row.StartDate, row.StartQuantity));
+    }
+
+    [Fact]
+    public async Task A_value_object_held_inside_a_complex_value_shapes_its_column_as_it_does_on_its_own()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var start = database.Context.Model.FindEntityType(typeof(Tankyard))!.FindComplexProperty(nameof(Tankyard.Start))!.ComplexType;
+        var quantity = start.FindProperty(nameof(RigStart.Quantity))!;
+
+        Assert.Equal((32, 16), (quantity.GetPrecision(), quantity.GetScale()));
+    }
+
     // Written past the rules on purpose: a row stored before a rule was tightened. The table name comes from the
     // model, the values are parameters.
     private static async Task WritePastTheRulesAsync(TestDatabase database, Type entity, string set, params object[] values)
