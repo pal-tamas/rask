@@ -765,13 +765,20 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             // complex property cannot.
             if (nested.Count == 0 && self.SingleValue is { } held)
             {
-                source.Append(indent).Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
+                // Named at convention strength, so an app's ColumnNames renames it as it renames its siblings.
+                source.Append(indent);
+                if (self.ColumnPrefix is not null)
+                {
+                    source.Append("global::Rask.Data.ValueObjectColumn.Held(");
+                }
+
+                source.Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
                     .Append(".Property(x => x.").Append(group.Key).Append("), (").Append(self.Types[0])
                     .Append(" v) => v.").Append(held).Append(self.Facets is { } facets ? ", " + facets : "").Append(')');
 
                 if (self.ColumnPrefix is { } prefix)
                 {
-                    source.Append(".HasColumnName(\"").Append(prefix).Append('_').Append(group.Key).Append("\")");
+                    source.Append(", \"").Append(prefix).Append('_').Append(group.Key).Append("\")");
                 }
 
                 source.AppendLine(";");

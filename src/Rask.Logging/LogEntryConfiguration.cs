@@ -30,5 +30,12 @@ internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
         // The level and category filters, each already in the newest-first order a page is read in.
         entity.HasIndex(e => new { e.Level, e.Id }).IsDescending(false, true);
         entity.HasIndex(e => new { e.Category, e.Id }).IsDescending(false, true);
+
+        // The file store's column names, stated: an app's ColumnNames (Rask.Data, which this package does not
+        // reference) leaves a column named explicitly as it is, so the log reads the same in both stores.
+        foreach (var property in entity.Metadata.GetDeclaredProperties())
+        {
+            property.SetColumnName(property.Name);
+        }
     }
 }
