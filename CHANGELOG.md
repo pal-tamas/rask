@@ -28,6 +28,14 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
+  as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
+  model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
+  production refused it. After: the IRaskModel says it once; Rask's providers write the key (`NO ACTION`, named by
+  the app's `ConstraintNames` rule) in the migrations and in `EnsureCreated` on SQLite, SQL Server and PostgreSQL, so
+  the delete is refused everywhere with the tenant's `WhenReferenced` sentence. It is a database key, not an EF Core
+  relationship; a database that already has the keys empties the first migration's `AddForeignKey`s
+  (docs/multi-tenancy.md).
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
