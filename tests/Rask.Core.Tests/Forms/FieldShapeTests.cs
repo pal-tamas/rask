@@ -14,6 +14,9 @@ public partial class FieldShapeTests : global::Rask.Core.RaskMarkup
         RaskValidation.RegisterFieldShapes(typeof(Driver), static name => name == nameof(Driver.Name)
             ? new FieldShape(FieldKind.Text, MaxLength: 40, MinLength: 2)
             : null);
+        RaskValidation.RegisterFieldShapes(typeof(Plated), static name => name == nameof(Plated.Vin)
+            ? new FieldShape(FieldKind.Text) { Upper = true }
+            : null);
         RaskValidation.RegisterFieldShapes(typeof(Leg), static name => name == nameof(Leg.Kind)
             ? new FieldShape(FieldKind.Choice, Options: [new FieldOption(LegKind.Road, "On the road")])
             : null);
@@ -146,6 +149,33 @@ public partial class FieldShapeTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("maxlength=\"40\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("readonly", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_bound_input_and_textarea_kept_in_capitals_draw_their_text_in_capitals_unless_styled_or_classed()
+    {
+        var plated = new Plated();
+
+        var page = Page.Render(() => Div[
+            Input.Bind(() => plated.Vin).Id("input"),
+            Textarea.Bind(() => plated.Vin).Id("text"),
+            Input.Bind(() => plated.Vin).Id("styled").Style("color:red"),
+            Input.Bind(() => plated.Vin).Id("classed").Class("uppercase"),
+            Input.Bind(() => plated.Other).Id("other")
+        ]);
+
+        Assert.Equal("text-transform:uppercase", page.Find("#input").Attribute("style"));
+        Assert.Equal("text-transform:uppercase", page.Find("#text").Attribute("style"));
+        Assert.Equal("color:red", page.Find("#styled").Attribute("style"));
+        Assert.Null(page.Find("#classed").Attribute("style"));
+        Assert.Null(page.Find("#other").Attribute("style"));
+    }
+
+    private sealed class Plated
+    {
+        public string Vin { get; set; } = "";
+
+        public string Other { get; set; } = "";
     }
 
     private sealed class Contact

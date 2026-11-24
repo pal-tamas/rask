@@ -263,6 +263,8 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
         Assert.Contains("uppercase", page.Find("input#f-vin").Attribute("class"), StringComparison.Ordinal);
         Assert.Contains("uppercase", page.Find("input#bare").Attribute("class"), StringComparison.Ordinal);
         Assert.Equal("17", page.Find("input#bare").Attribute("maxlength"));
+        Assert.Null(page.Find("input#bare").Attribute("style"));
+        Assert.Contains("uppercase", Page.Render(() => Ui.Textarea.Bind(() => leg.Vin)).Find("textarea").Attribute("class"), StringComparison.Ordinal);
         Assert.DoesNotContain("uppercase", Page.Render(() => Ui.Input.Bind(() => leg.Note)).Render(), StringComparison.Ordinal);
     }
 
