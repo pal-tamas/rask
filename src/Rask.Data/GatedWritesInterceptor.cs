@@ -12,6 +12,9 @@ namespace Rask.Data;
 /// <param name="services">The app's services: its gate rules, and the scope to fall back to outside one.</param>
 internal sealed class GatedWritesInterceptor(IServiceProvider services) : SaveChangesInterceptor
 {
+    /// <summary>The app's services it asks the gates of, for a form that asks the same outside a save (GeneratedGates).</summary>
+    internal IServiceProvider Services => services;
+
     /// <inheritdoc />
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {

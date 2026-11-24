@@ -20318,3 +20318,4 @@ Rask.Values.Remainder
 Rask.Values.Remainder.ToFirst = 0 -> Rask.Values.Remainder
 Rask.Values.Remainder.ToLast = 1 -> Rask.Values.Remainder
 Rask.Values.Remainder.ToLargest = 2 -> Rask.Values.Remainder
+static Rask.Core.Forms.RaskValidation.RegisterHiddenFields(System.Type! modelType, System.Func<string!, bool>! isHidden) -> void

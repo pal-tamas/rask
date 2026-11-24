@@ -688,6 +688,37 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void A_parameter_writing_a_gated_member_is_hidden_and_unread_while_its_gate_is_shut()
+    {
+        var run = RunWithForms("""
+            using System;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            using Rask.Values;
+
+            namespace Shop
+            {
+                public enum Module { Tachograph }
+
+                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                {
+                    public string Name { get; private set; } = "";
+                    public string? Card { get; private set; }
+                    public void Describe(string name, string? card) => (Name, Card) = (name, card);
+                    public static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
+                }
+            }
+            """);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RegisterHiddenFields(typeof(DriverDescribeInput), static property => property switch { \"Card\" => global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\"), _ => false });", forms, StringComparison.Ordinal);
+        Assert.Contains("card = global::Rask.Data.GeneratedGates.IsShut(typeof(global::Shop.Driver), \"Card\") ? default! : ", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Name\" => global::Rask.Data.GeneratedGates", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_password_is_never_read_from_the_aggregate_into_its_form()
     {
         var run = RunWithForms("""
