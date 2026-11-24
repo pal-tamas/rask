@@ -28,6 +28,18 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
+  `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
+  without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
+  `Warn` by default (logged once per transaction), `Throw` (`ManyAggregatesException` naming the aggregates, rolled
+  back) or `Off`. A child counts as its aggregate; Rask's own tables and those marked `b.Infrastructure()` never
+  count. **Behaviour change in tests: a `TestDatabase` runs at `Throw`.** `Db.Record()` records each committed
+  transaction's aggregates for a test (`saves.EachWroteOneAggregate()`). RASK178 flags a block writing two aggregate
+  types with no reason; its quick-fix inserts `manyAggregates: "TODO: why"`.
+- **An operation's `Configure` states its reason and its locks:** `b.Operation(x => x.M, manyAggregates: "…")` runs the
+  generated entry in that transaction; `forUpdate: true` locks the aggregate's row, `forUpdate: s => s.Parts` that
+  child collection's rows, before the load (`UPDLOCK, HOLDLOCK` / `FOR UPDATE`). A typed id one aggregate alone is
+  keyed by gets `await id.Load(version, forUpdate: true)` for a static method of your own.
 - **`await Test.Make<Supply>()` makes a stored aggregate its rules accept** (new package `Rask.Testing.Data`, beside
   `Rask.Testing`, so a component-only test project stays free of EF Core). It calls the aggregate's own factory — a
   static method declared on it that returns it, private or not — with a value its rules take for every parameter (a

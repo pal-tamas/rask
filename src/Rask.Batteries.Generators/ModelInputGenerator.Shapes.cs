@@ -60,6 +60,16 @@ public sealed partial class ModelInputGenerator
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static id => id, StringComparer.Ordinal));
 
+    // The typed ids one root alone is keyed by: each gets `id.Load(…)` for that root. One that two roots share gets
+    // none, since `id.Load` would not say which.
+    private static HashSet<string> LoadableIdsOf(List<Entity> entities, EquatableArray<string> typedIds) =>
+        new(entities
+                .Where(static e => !e.IsChild && e.Refusal == Refusal.None && e.IdTypeName is not null)
+                .GroupBy(static e => e.IdTypeName!.TrimEnd('?'), StringComparer.Ordinal)
+                .Where(g => g.Count() == 1 && typedIds.Contains(g.Key, StringComparer.Ordinal))
+                .Select(static g => g.Key),
+            StringComparer.Ordinal);
+
     // The root model and each nested value-object model with at least one field that has a shape.
     private static IEnumerable<ShapedModel> ShapedModels(Entity entity)
     {

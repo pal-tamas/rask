@@ -605,6 +605,22 @@ exception, or the two still running after 30 seconds (two operations waiting on 
 `RefusalAssertionException` that says which. It is how a test proves a version check, a unique index, a
 `ForUpdate()` read or a `Db.Lock` keeps two writers apart, on the SQLite in memory the tests run on.
 
+### One aggregate per transaction: `Db.Record`
+
+A `TestDatabase` runs at `OneAggregatePerTransaction = AggregatePolicy.Throw`: a `Db.Transaction` that writes a second
+aggregate without `manyAggregates: "why"` fails the test with a `ManyAggregatesException` naming both
+([data.md](data.md#one-aggregate-per-transaction-manyaggregates)). To say outright that a feature is one aggregate's:
+
+```csharp
+using var saves = Db.Record();
+await DeliveryNote.Write(note, 0);
+saves.EachWroteOneAggregate();   // fails on a transaction that wrote more, reason or not
+```
+
+`saves.Transactions` holds every transaction that committed in the test's flow while the recording was open, each with
+its `Aggregates` (`DeliveryNote 7`) and its `ManyAggregates` reason. A test that means to write several without a
+reason sets the policy back in its `services:` — `s => s.Configure<RaskDataOptions>(o => o.OneAggregatePerTransaction = AggregatePolicy.Off)`.
+
 ---
 
 ## 2. The test stack

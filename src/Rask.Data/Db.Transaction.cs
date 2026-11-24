@@ -77,8 +77,78 @@ public static partial class Db
     /// var order = await Db.Transaction(async () => await Order.Create(model));
     ///     </code>
     /// </remarks>
-    public static async Task<T> Transaction<T>(
-        Func<Task<T>> work, IsolationLevel? isolation = null, CancellationToken cancellationToken = default)
+    public static Task<T> Transaction<T>(
+        Func<Task<T>> work, IsolationLevel? isolation = null, CancellationToken cancellationToken = default) =>
+        Run(work, manyAggregates: null, isolation, cancellationToken);
+
+    /// <summary>
+    ///     Runs <paramref name="work" /> in one database transaction that writes more than one aggregate, saying why they
+    ///     must commit together — committed when it completes, rolled back when it throws.
+    /// </summary>
+    /// <param name="work">The work; see <see cref="Transaction(Func{Task}, IsolationLevel?, CancellationToken)" />.</param>
+    /// <param name="manyAggregates">
+    ///     Why these aggregates are only valid together — <c>"The IBC filling and its withdrawals are only valid
+    ///     together"</c>. An aggregate is the transaction boundary, so a transaction that writes a second one is a
+    ///     decision, and this is where it is written down; <see cref="AggregatePolicy" /> refuses or reports a second
+    ///     aggregate written without one.
+    /// </param>
+    /// <param name="isolation">The isolation level, or <see langword="null" /> for the database's default.</param>
+    /// <param name="cancellationToken">Cancels the transaction; unset, the work this call belongs to does.</param>
+    /// <returns>A task that completes once the transaction has committed.</returns>
+    /// <exception cref="ArgumentException"><paramref name="manyAggregates" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Called inside another <c>Db.Transaction</c> with a different <paramref name="isolation" />.
+    /// </exception>
+    /// <remarks>
+    ///     <code>
+    /// await Db.Transaction(async () =>
+    /// {
+    ///     await filling.Save();
+    ///     foreach (var withdrawal in withdrawals) await withdrawal.Save();
+    /// }, manyAggregates: "The IBC filling and its withdrawals are only valid together");
+    ///     </code>
+    ///     Inside another <c>Db.Transaction</c> it joins that one, and its reason then covers the whole of it: the
+    ///     outermost block is the one transaction there is.
+    /// </remarks>
+    public static Task Transaction(
+        Func<Task> work, string manyAggregates, IsolationLevel? isolation = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        ArgumentException.ThrowIfNullOrWhiteSpace(manyAggregates);
+        return Run(
+            async () =>
+            {
+                await work().ConfigureAwait(false);
+                return true;
+            },
+            manyAggregates,
+            isolation,
+            cancellationToken);
+    }
+
+    /// <summary>
+    ///     Runs <paramref name="work" /> in one database transaction that writes more than one aggregate, saying why, and
+    ///     hands back what it returned, once committed.
+    /// </summary>
+    /// <typeparam name="T">What the work returns.</typeparam>
+    /// <param name="work">The work; see <see cref="Transaction(Func{Task}, IsolationLevel?, CancellationToken)" />.</param>
+    /// <param name="manyAggregates">Why these aggregates are only valid together; see <see cref="Transaction(Func{Task}, string, IsolationLevel?, CancellationToken)" />.</param>
+    /// <param name="isolation">The isolation level, or <see langword="null" /> for the database's default.</param>
+    /// <param name="cancellationToken">Cancels the transaction; unset, the work this call belongs to does.</param>
+    /// <returns>What <paramref name="work" /> returned, after the commit.</returns>
+    /// <exception cref="ArgumentException"><paramref name="manyAggregates" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Called inside another <c>Db.Transaction</c> with a different <paramref name="isolation" />.
+    /// </exception>
+    public static Task<T> Transaction<T>(
+        Func<Task<T>> work, string manyAggregates, IsolationLevel? isolation = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(manyAggregates);
+        return Run(work, manyAggregates, isolation, cancellationToken);
+    }
+
+    private static async Task<T> Run<T>(
+        Func<Task<T>> work, string? manyAggregates, IsolationLevel? isolation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(work);
         cancellationToken = Ambient.Or(cancellationToken);
@@ -86,6 +156,7 @@ public static partial class Db
         if (AmbientTransaction.Current is { } outer)
         {
             RefuseAnotherIsolation(outer, isolation);
+            outer.AllowManyAggregates(manyAggregates);
             return await work().ConfigureAwait(false);
         }
 
@@ -95,8 +166,8 @@ public static partial class Db
         // Inside the strategy, so a retrying one accepts a transaction it did not open — and suspends itself for
         // every context the work opens, which would otherwise refuse the transaction they join.
         var (result, afterCommit) = await owner.Database.CreateExecutionStrategy().ExecuteAsync(
-            (owner, work, isolation),
-            static (_, state, token) => Attempt(state.owner, state.work, state.isolation, token),
+            (owner, work, isolation, manyAggregates),
+            static (_, state, token) => Attempt(state.owner, state.work, state.isolation, state.manyAggregates, token),
             verifySucceeded: null,
             cancellationToken).ConfigureAwait(false);
 
@@ -109,12 +180,12 @@ public static partial class Db
     }
 
     private static async Task<(T Result, IReadOnlyList<Func<Task>> AfterCommit)> Attempt<T>(
-        DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, CancellationToken cancellationToken)
+        DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, string? manyAggregates, CancellationToken cancellationToken)
     {
         // No level asked, or one that does not outlive its transaction: no extra round trip.
         if (IsolationReset.After(owner, isolation) is not { } reset)
         {
-            return await InTransaction(owner, work, isolation, cancellationToken).ConfigureAwait(false);
+            return await InTransaction(owner, work, isolation, manyAggregates, cancellationToken).ConfigureAwait(false);
         }
 
         // Held open past the transaction's end — commit, rollback or a throw — so the level it set is taken back on
@@ -123,7 +194,7 @@ public static partial class Db
         await owner.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return await InTransaction(owner, work, isolation, cancellationToken).ConfigureAwait(false);
+            return await InTransaction(owner, work, isolation, manyAggregates, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -133,7 +204,7 @@ public static partial class Db
     }
 
     private static async Task<(T Result, IReadOnlyList<Func<Task>> AfterCommit)> InTransaction<T>(
-        DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, CancellationToken cancellationToken)
+        DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, string? manyAggregates, CancellationToken cancellationToken)
     {
         // No level asked, none sent: the database's own default, not one Rask picked for it.
         var transaction = isolation is { } level
@@ -144,7 +215,7 @@ public static partial class Db
         IReadOnlyList<Func<Task>> afterCommit;
         IReadOnlyList<Func<Task>> onRollback;
         T result;
-        using (var scope = AmbientTransaction.Enter(owner, transaction, isolation))
+        using (var scope = AmbientTransaction.Enter(owner, transaction, isolation, manyAggregates))
         {
             try
             {

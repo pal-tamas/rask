@@ -79,7 +79,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
             await GeneratedModelWrites.Create(Widget.Create("anvil"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        }, manyAggregates: "Two widgets staged on one context", cancellationToken: TestContext.Current.CancellationToken);
         mine.Add(Widget.Create("tongs"));
         await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
 
