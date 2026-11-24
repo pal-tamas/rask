@@ -11,12 +11,12 @@ namespace Rask.Mailing;
 public readonly struct Sending
 {
     private readonly IMail? _mail;
-    private readonly Email _email;
+    private readonly Mail.Message _email;
     private readonly DateTimeOffset? _at;
     private readonly TimeSpan? _after;
     private readonly CancellationToken _cancellationToken;
 
-    internal Sending(IMail? mail, Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken)
+    internal Sending(IMail? mail, Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken)
     {
         _mail = mail;
         _email = email ?? throw new ArgumentNullException(nameof(email));

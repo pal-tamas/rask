@@ -19,5 +19,5 @@ public interface IMail
     /// resolved the delay itself would queue against a clock the processor never reads.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    Task Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default);
+    Task Add(Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default);
 }

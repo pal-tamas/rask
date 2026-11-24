@@ -944,4 +944,19 @@ public enum RaskString
 
     /// <summary>What a value object declared from <c>Url</c> says of text that is no absolute http or https address.</summary>
     ValidationWebAddress,
+
+    /// <summary>What a value not greater than a FluentValidation <c>GreaterThan</c> says. <c>{0}</c> is the value it must be greater than.</summary>
+    ValidationAbove,
+
+    /// <summary>What a value not less than a FluentValidation <c>LessThan</c> says. <c>{0}</c> is the value it must be less than.</summary>
+    ValidationBelow,
+
+    /// <summary>What a text not exactly as long as a FluentValidation <c>Length(n)</c> says. <c>{0}</c> is the length.</summary>
+    ValidationExactLength,
+
+    /// <summary>
+    ///     What a number with more digits than a FluentValidation <c>PrecisionScale</c> allows says. <c>{0}</c> is the most
+    ///     digits in total, and <c>{1}</c> the most of them after the decimal point.
+    /// </summary>
+    ValidationDigits,
 }

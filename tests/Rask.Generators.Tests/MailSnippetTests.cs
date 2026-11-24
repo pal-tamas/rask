@@ -5,7 +5,7 @@ namespace Rask.Generators.Tests;
 // src/Rask.Mail/NUGET.md — the README nuget.org shows for Rask.Mail, and docs/mail.md, which teaches the same component.
 // Both still taught the factory call (`Div()[…]`, `WelcomeEmail(Name: …)`) long after the chain replaced it, and nothing
 // compiled either (#1082). The component and the body are mirrored here character-for-character; the sending code around
-// the body needs Rask.Mail's Email builder, which this reference set does not carry, so a markup host stands in for it.
+// the body needs Rask.Mail's Mail.Message builder, which this reference set does not carry, so a markup host stands in for it.
 public sealed class MailSnippetTests
 {
     [Fact]

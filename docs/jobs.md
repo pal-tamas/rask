@@ -38,7 +38,7 @@ public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 public sealed class SendWelcomeEmailHandler : IJobHandler<SendWelcomeEmail>
 {
     public async Task Handle(SendWelcomeEmail job) =>
-        await Mail.Send(Email.To(job.Email).Subject("Welcome").Body(WelcomeEmail.Name(job.Name)));
+        await Mail.Send(Mail.Message.To(job.Email).Subject("Welcome").Body(WelcomeEmail.Name(job.Name)));
 }
 
 // Program.cs

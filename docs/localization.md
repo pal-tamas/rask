@@ -828,6 +828,7 @@ they say when you set nothing.
 | `ValidationTooLong` | Validation — `Rules.TooLong`, `[StringLength]`, `[MaxLength]` on a text | `Enter at most {0} characters.` |
 | `ValidationTooShort` | Validation — `[MinLength]` on a text | `Enter at least {0} characters.` |
 | `ValidationLength` | Validation — `[StringLength]` with a `MinimumLength`, `[Length]` on a text | `Enter between {0} and {1} characters.` |
+| `ValidationExactLength` | Validation — FluentValidation's `Length(n)` | `Enter exactly {0} characters.` |
 | `ValidationTooMany` | Validation — `[MaxLength]` on a list | `Choose at most {0}.` |
 | `ValidationTooFew` | Validation — `[MinLength]` on a list | `Choose at least {0}.` |
 | `ValidationCount` | Validation — `[Length]` on a list | `Choose between {0} and {1}.` |
@@ -835,6 +836,8 @@ they say when you set nothing.
 | `ValidationAboveAndAtMost` | Validation — `[Range]` with `MinimumIsExclusive = true` | `Enter a value greater than {0} and at most {1}.` |
 | `ValidationAtLeastAndBelow` | Validation — `[Range]` with `MaximumIsExclusive = true` | `Enter a value at least {0} and less than {1}.` |
 | `ValidationAboveAndBelow` | Validation — `[Range]` exclusive at both ends | `Enter a value greater than {0} and less than {1}.` |
+| `ValidationAbove` | Validation — FluentValidation's `GreaterThan` | `Enter a value greater than {0}.` |
+| `ValidationBelow` | Validation — FluentValidation's `LessThan` | `Enter a value less than {0}.` |
 | `TableCellYes` | Table: a `Ui.TableCell.For` over a `bool` that is true | `Yes` |
 | `TableCellNo` | Table: a `Ui.TableCell.For` over a `bool` that is false | `No` |
 | `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
@@ -894,6 +897,7 @@ they say when you set nothing.
 | `ValidationNumberMin` | Validation — a number below a value object's `Number(Min: …)` / `Whole(Min: …)` | `Enter {0} or more.` |
 | `ValidationNumberMax` | Validation — a number above a value object's `Number(Max: …)` / `Whole(Max: …)` | `Enter {0} or less.` |
 | `ValidationDecimals` | Validation — more decimal places than a value object's `Number(Scale: …)` | `Enter at most {0} decimal places.` |
+| `ValidationDigits` | Validation — FluentValidation's `PrecisionScale` | `Enter at most {0} digits, at most {1} of them after the decimal point.` |
 | `ValidationRangeNotBefore` | Validation — a range's end before its start (`Range(Start, End)`) | `It cannot be before the start, {0}.` |
 | `ValidationRangeAfter` | Validation — a strict range's end not after its start (`Range(Start, End, Strict: true)`) | `It must be after the start, {0}.` |
 | `ValidationChangedSince` | Validation — a save over an aggregate somebody else saved since it was read, about the whole form (`Find(id, version)`, `Update`, `Save()`; Rask.Data) | `Someone else changed this in the meantime. Reload it and try again.` |

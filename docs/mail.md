@@ -80,7 +80,7 @@ The body is a component built through its chain, so the sending class must be a 
 one, mark it `[RaskMarkup]` and `partial` (RASK118 says so, and its quick-fix does it):
 
 ```csharp
-await Mail.Send(Email
+await Mail.Send(Mail.Message
     .To(user.Email, user.Name)
     .Subject("Welcome")
     .Body(WelcomeEmail.Name(user.Name)));                      // the chain, not new (RASK014)
@@ -101,7 +101,7 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
 
 ## How it works
 
-- **`Email`** — a fluent builder: `To`/`AndTo`/`Cc`/`Bcc`/`ReplyTo`/`From`, `Subject`, `Body(component)` (or
+- **`Mail.Message`** — a fluent builder: `To`/`AndTo`/`Cc`/`Bcc`/`ReplyTo`/`From`, `Subject`, `Body(component)` (or
   `Html(html)`), an optional `PlainText` alternative, and `Attach`. `Body(component)` renders the component to
   HTML **immediately** (`Component.ToHtml()`), so the built email holds only strings and bytes.
 - **`IMail`** — writes one `QueuedMail` row (envelope + already-rendered body) through your

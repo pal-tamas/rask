@@ -739,9 +739,11 @@ A built-in rule with no `.WithMessage(…)` says what the equivalent attribute s
 `NotNull()` what `[Required]` says, `MaximumLength`/`MinimumLength`/`Length` what `[StringLength]`/`[MaxLength]`/
 `[MinLength]` say, `EmailAddress()`, `Matches(…)`, `CreditCard()`, `InclusiveBetween`/`ExclusiveBetween` (`[Range]`),
 `GreaterThanOrEqualTo`/`LessThanOrEqualTo` (a value object's least and greatest), `NotEqual` and `IsInEnum` — the
-`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. A rule it has
-no sentence for (`GreaterThan`, `Length(n)` exact, `PrecisionScale`, `Must`), and every language it does not speak,
-keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
+`RaskStrings` catalog's sentence, Hungarian included, wherever the catalog speaks the reader's language. The rules no
+attribute has say sentences of their own: `GreaterThan`/`LessThan` (`ValidationAbove`/`ValidationBelow`, "Enter a
+value greater than 17."), `Length(n)` (`ValidationExactLength`, "Enter exactly 8 characters.") and `PrecisionScale`
+(`ValidationDigits`, "Enter at most 10 digits, at most 2 of them after the decimal point."). A rule the catalog has no
+sentence for (`Must`, `Equal`, `Empty`), and every language it does not speak, keeps FluentValidation's own translation. Rask puts this behind `ValidatorOptions.Global.LanguageManager`: a rule's
 `.WithMessage(…)` always wins, and a language manager the app sets itself replaces Rask's.
 
 An async `MustAsync` rule rides the same wrapper:

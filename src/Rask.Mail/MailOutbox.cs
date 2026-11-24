@@ -16,7 +16,7 @@ public sealed class MailOutbox<TContext>(IDbContextFactory<TContext> contextFact
     where TContext : DbContext
 {
     /// <inheritdoc/>
-    public async Task Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
+    public async Task Add(Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(email);
         var runAt = (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;
