@@ -789,7 +789,7 @@ on all three databases as it does in C#:
 
 | Takes | Written as |
 |---|---|
-| the entity's mapped members, a value object's too (`f.Amount.Value`) | the column |
+| the entity's mapped members, a value object's too (`f.Amount.Value`, a one-value one stored in a column of its own included) | the column |
 | constants, captured fields, enums, strongly-typed ids | a literal, as the column stores it |
 | `a ?? b`, `x.GetValueOrDefault()`, `x.GetValueOrDefault(v)` | `COALESCE` |
 | `+ - * / %` and unary `-` on whole numbers and doubles; `Math.Abs` | the same operators; `ABS` |
@@ -825,6 +825,9 @@ one holds among the rows the filter keeps — one live grant per partner, howeve
 plainest condition, because SQL Server's filtered index takes no other:
 
 - columns compared with constants or `null`, joined by `&&`; a boolean column as itself (`x => x.Active`) or with `!`
+- a one-value value object is its column: `x => x.Number.Value > 0` compares the number it holds, and
+  `x => x.Number != FuelingNumber.Unset` writes the constant as the column stores it — both `[Number] > 0`-shaped, the
+  same text a hand-written `HasFilter` had
 - `||`, two columns compared, and a `!=` on a nullable column fail the model build — C# keeps the nulls for
   `x.Level != 3`, a filtered index leaves them out, so say it in both: `x.Level != null && x.Level != 3`
 - on SQL Server a unique index also leaves out the rows with a NULL in a nullable key column, as EF Core's own unique
@@ -1661,7 +1664,8 @@ leaves EF Core's default, is logged once as a warning, and is asked again 30 sec
 meanwhile keeps the default, so `AddDbContextFactory`'s options, built once, keep it until the app restarts. Pin it
 with `Rask:SqlServer:CompatibilityLevel` (`"CompatibilityLevel": 170`, or `s => s.CompatibilityLevel = 170`), which
 asks nothing — the one choice for Azure SQL Database before its database exists, since it reports no version to map.
-An app needs no `UseCompatibilityLevel` of its own.
+An app needs no `UseCompatibilityLevel` of its own. The level changes no column: a JSON column (a value collection, a
+`ToJson()` type) stays `nvarchar(max)` at 170 too, where EF Core alone would switch it to the native `json` type.
 
 Both providers' limits are made for an app's queries, not its schema: the migrations `MigrateOnStart` applies run
 on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on PostgreSQL, `LOCK_TIMEOUT -1` on

@@ -1050,6 +1050,11 @@ collection is stored as `[]`, never as NULL. A nullable one, `List<Stop>? Detour
 column. This works the same way as Laravel's `$table->json('stops')` and Rails' `t.json :stops, null: false`. An
 adopted `Stops nvarchar(max) NOT NULL` column is mapped as it is, with no migration.
 
+The column is the database's own text of any length: `nvarchar(max)` on SQL Server at **every** compatibility level
+(EF Core alone would make it SQL Server 2025's `json` at 170, and change the model — and so the migrations — with the
+level the server reports), `TEXT` on SQLite and `jsonb` on PostgreSQL. A plain value collection (`List<string>`) is
+kept the same way. No app names the type; a `SetContainerColumnType(…)` or `HasColumnType(…)` of its own still wins.
+
 A JSON column is an EF Core *complex collection*, which EF Core writes through a list, so the property needs a
 `List<T>` behind it. **A get-only `IReadOnlyList<T>` auto-property keeps a NULL column**, whatever its nullability:
 
@@ -1187,6 +1192,10 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
 - **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
   to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
   whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
+- **Outside the aggregate, call the entry, not a context.** `db.Products.Add(Product.Place(…))` or `db.Update(product)`
+  followed by `SaveChangesAsync()` writes the aggregate past its roles and its rules
+  ([RASK133](diagnostics.md#rask133)); `await Product.Place(…)` and `await Product.Reprice(id, version, …)` are the
+  same write through the aggregate, and a check that must go with it is a `Db.Transaction` around the operation.
 
 ### Refusing an operation: `Refuse`
 
@@ -2084,7 +2093,10 @@ aggregate's property, so a list's columns are named, written and shown as the pr
 
 **One aggregate, one transaction.** An operation's entry, `Save()` and every generated write load one aggregate
 whole, change it and save it in one transaction — its children, its version check and its events with it. That is
-the boundary the aggregate was drawn for, and a change that seems to need two aggregates is decided in this order:
+the boundary the aggregate was drawn for — so app code does not write an aggregate on a `DbContext` of its own
+(`db.Products.Add(p)`, `db.Update(order)`, `db.Remove(supply)`, then `SaveChangesAsync()`), which goes around the
+factory, the operations, their roles and the save's rules; [RASK133](diagnostics.md#rask133) points at it, outside seeds,
+migrations and tests. A change that seems to need two aggregates is decided in this order:
 
 1. **Draw the boundary again.** Two things that must always change together are usually one aggregate: a part that
    never stands on its own is a [child](#children), not an aggregate of its own.
