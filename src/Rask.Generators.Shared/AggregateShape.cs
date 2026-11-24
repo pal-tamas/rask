@@ -264,6 +264,20 @@ internal static class AggregateShape
             ? valueBase.Name
             : null;
 
+    /// <summary>
+    ///     Whether a value object declared from <c>Text</c> says an empty text is a value: <c>Text(Value, Required: false)</c>,
+    ///     read from its base call as written (a constant <c>false</c>).
+    /// </summary>
+    public static bool AllowsEmptyText(INamedTypeSymbol type) =>
+        DeclaredValueBaseOf(type) is "Text" &&
+        type.DeclaringSyntaxReferences
+            .Select(static r => r.GetSyntax())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.RecordDeclarationSyntax>()
+            .SelectMany(static d => d.BaseList?.Types.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.PrimaryConstructorBaseTypeSyntax>() ?? [])
+            .SelectMany(static call => call.ArgumentList.Arguments)
+            .Any(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "Required", StringComparison.Ordinal) &&
+                             a.Expression.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.FalseLiteralExpression));
+
     /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Values' <c>Value</c>.</summary>
     public static bool IsValueRecord(INamedTypeSymbol type)
     {

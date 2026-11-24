@@ -1037,6 +1037,45 @@ save has been stamped and versioned by nothing: fix the value and `Save()` again
 request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
 runs no interceptor ([bulk insert](#bulk-insert)).
 
+### An operation, run as one write
+
+A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
+runs it as one write — the load, the method and the save in one `Db.Transaction`:
+
+```csharp
+public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
+{
+    public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
+    public void SetOpening(Opening opening) { … }                                           // an operation
+    public bool IsOpen() => …;                                                              // a question: no entry
+
+    public static void Configure(EntityTypeBuilder<Supply> b) =>
+        b.Operation(s => s.SetOpening, roles: Roles.Admin);
+}
+
+await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+```
+
+- **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
+  parameter, that returns `void`, `Task`, `ValueTask` or the aggregate itself (a fluent `Driver Change(…)`). A method
+  that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
+  method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
+  entries, because they are static overloads in its own class.
+- **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
+  principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
+  `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
+  whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
+  anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
+  the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
+  in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
+  entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
+  called on an aggregate in hand is your own code and runs as written.
+- **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
+  to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
+  whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
+
 ### Changing two aggregates together: `db:`
 
 **No `db:` means the write owns its unit of work; `db:` means you do.** Without a context, a write opens one,
@@ -2631,7 +2670,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
+| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
@@ -2656,9 +2695,15 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
-`FuelingChip { Value = C-17 }`. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it
-generated, a number or a date written culture-invariant (`1234.5` on every machine); a `ToString` the record
-declares itself is kept.
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number`, `Whole`, `Day` and `Moment` too
+(`1234.5` on every machine, never `1234,5`): it is the value's text, and showing it to a reader is the UI's and
+`Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
+way; a `ToString` the record declares itself is kept.
+
+**`Required: false` lets a text be empty**: `public sealed partial record FuelingChip(string Value) : Text(Value,
+MaxLength: 1000, Required: false);` makes `FuelingChip.Create("")` (or only blanks) the value `""` with no problem, while
+a filled one is still held to its lengths and its pattern. A field bound to it on the generated model is neither
+refused nor announced as required when left empty, and saves `""`; `CreateOptional("")` is still nothing.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written

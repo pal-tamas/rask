@@ -180,6 +180,57 @@ public sealed class BaseRecordValueObjectTests : IDisposable
     }
 
     [Fact]
+    public void A_text_that_is_not_required_keeps_an_empty_value_and_still_checks_a_filled_one()
+    {
+        var blank = RigNote.Create("   ");
+        var tooLong = RigNote.TryCreate("123456", out _, out var problems);
+        var optional = RigNote.CreateOptional("");
+
+        Assert.Equal("", blank.Value);
+        Assert.False(tooLong);
+        Assert.Equal(["Enter at most 5 characters."], problems.Select(p => p.Message));
+        Assert.Null(optional);
+    }
+
+    [Fact]
+    public async Task A_field_holding_a_text_that_is_not_required_is_neither_refused_nor_announced_and_saves_empty()
+    {
+        await using var database = await StartDatabaseAsync();
+        var rule = (Rask.Core.Forms.Validate<string?>)Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(NotebookModel))("Note")!;
+
+        var empty = rule(null);
+        var tooLong = rule("123456");
+        var created = await Notebook.Create(new NotebookModel(), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Empty(empty);
+        Assert.Equal(["Enter at most 5 characters."], tooLong);
+        Assert.Null(typeof(RigModel).Assembly.GetTypes().Single(t => t.Name.EndsWith("__NotebookModelRules", StringComparison.Ordinal))
+            .GetMethod("Root_IsRequired", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+        Assert.Equal("", created.Note.Value);
+    }
+
+    [Fact]
+    public void Every_base_prints_its_value_culture_invariant_whatever_the_culture()
+    {
+        var before = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("hu-HU");
+        try
+        {
+            var litres = RigLitres.Create(1234.5m).ToString();
+            var axles = RigAxles.Create(9).ToString();
+            var day = RigInspected.Create(new DateOnly(2026, 1, 31)).ToString();
+
+            Assert.Equal("1234.5", litres);
+            Assert.Equal("9", axles);
+            Assert.Equal("01/31/2026", day);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
+    }
+
+    [Fact]
     public void A_form_bound_to_the_generated_model_is_told_each_fields_shape()
     {
         var shapeOf = Generated<Func<string, Rask.Core.Forms.FieldShape?>>("Root_ShapeOf");

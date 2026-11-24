@@ -366,7 +366,9 @@ public sealed partial class ModelInputGenerator
                 continue;
             }
 
-            s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)
+            // A text that may be empty is written empty when the field is left blank, not kept as it was.
+            var read = member is { Nullable: false, ValueObject.AllowsEmpty: true } ? "(model." + member.Name + " ?? \"\")" : "model." + member.Name;
+            s.Append("        if (").Append(read).Append(" is { } ").Append(given)
                 .Append(member.ValueObject is { } held ? AndNotEmpty(given, held, member.Nullable) : "").AppendLine(")");
             s.AppendLine("        {");
             s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, value));

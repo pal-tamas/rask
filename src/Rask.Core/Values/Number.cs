@@ -60,9 +60,9 @@ public abstract record Number : Value
     /// <summary>The number it holds.</summary>
     public decimal Value { get; }
 
-    /// <summary>The number it holds, written in the current culture.</summary>
+    /// <summary>The number it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The number as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     private static List<Problem>? Problems(decimal number, decimal? min, decimal? max, int? scale, int? precision)
     {

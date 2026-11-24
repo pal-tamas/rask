@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
+  `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
+  runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value
+  shown to a reader goes through the UI or `Format`.
+- **`Text(Value, Required: false)` lets a text be empty.** Before: every `Text` refused an empty text, so a chip or a
+  note that may be left blank needed its own `: Value` record. After: `: Text(Value, MaxLength: 1000, Required: false)`
+  makes `Create("")` the value `""`; a filled one is still held to its lengths and pattern, a field bound to it on the
+  generated model is neither refused nor announced as required and saves `""`, and `CreateOptional("")` is still null.
 - **BREAKING: the value-object bases moved from Rask.Data into the `Rask` package, namespace `Rask.Values`.** Before:
   `Value`, `Text`, `Number`, `Whole`, `Day`, `Range` and `Problem` were `Rask.Data`'s, so a browser app or the site,
   with no EF Core, could not declare a value object from them. After: they are Rask.Core's (with `Moment`, the declared-rules
@@ -56,6 +64,18 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
+  name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
+  hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods
+  (`[Authorize]`). After: `public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts)` gets
+  `await Supply.Change(id, version, details, parts)` — the roles of `b.Operation(s => s.Change, roles: Roles.Admin)`
+  in its `Configure` asked first (a `ForbiddenException` before anything is read), then `Find(id, version)`, the
+  method and `Save()` with its rules, all in one `Db.Transaction`, any refusal rolling the whole operation back. A
+  method that returns an answer (`bool IsOpen()`) gets none. New diagnostics: [RASK170](docs/diagnostics.md#rask170)
+  (a bare call to the entry inside the aggregate), [RASK171](docs/diagnostics.md#rask171) (an operation parameter
+  named `id`, `version` or `cancellationToken`) and the error [RASK172](docs/diagnostics.md#rask172) (roles written
+  where the entry cannot read them, which would leave it open). See
+  [an operation, run as one write](docs/data.md#an-operation-run-as-one-write).
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
