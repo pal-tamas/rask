@@ -151,6 +151,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidMaxLength;
     private bool _saidMinLength;
     private bool _saidReadOnly;
+    private bool _saidUpper;
 
     // The input types the HTML spec gives maxlength and minlength to: the text-like ones (no type at all is text).
     private static bool TakesLength(string? type) =>
@@ -197,6 +198,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             MaxLength = SaidMaxLength(acc, MaxLength, takesLength, ref _saidMaxLength);
             MinLength = SaidMinLength(acc, MinLength, takesLength, ref _saidMinLength);
             ReadOnly = SaidReadOnly(acc, ReadOnly, BindingHelpers.IsTypedInto(resolvedType), ref _saidReadOnly);
+            Style = SaidUpper(acc, takesLength, ref _saidUpper);
         }
 
         base.WriteAttributes(sb);

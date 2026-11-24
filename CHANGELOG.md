@@ -68,7 +68,7 @@ them until tagged releases begin.
   `Ui.Input` (no write wired), `[DisplayFormat(ConvertEmptyStringToNull = false)]` → an emptied `string?` is written
   `""`, and `[UIHint(FieldHints.Switch | RadioGroup | MultilineText)]` / `[DataType(DataType.MultilineText)]` →
   `Ui.Field.Bind` draws a `Ui.Switch`, a `Ui.RadioGroup` or a `Ui.Textarea`. A value object declared
-  `Text(Value, Upper: true)` draws its `Ui.Input` in capitals. A model that registers its shapes by hand gives the
+  `Text(Value, Upper: true)` draws its bound `Ui.Input`, `Ui.Textarea` (`uppercase`) and bare `Input`/`Textarea` (`text-transform:uppercase`) in capitals. A model that registers its shapes by hand gives the
   whole answer for a property it answers (add `ReadOnly = true` where it relied on `[Editable(false)]` beside it).
   See [forms validation — what a member's attributes tell its control](docs/forms-validation.md) and the per-attribute
   table in [data](docs/data.md).

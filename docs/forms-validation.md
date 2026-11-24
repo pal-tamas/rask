@@ -149,7 +149,7 @@ DataAnnotations attributes say more (below). A range's ends whose
 type is not a whole number, a number or a `DateOnly` — a `DateTime` moment — have `Ends = null`. A bound text input
 or textarea is given the declared lengths as its `maxlength` and `minlength`, so the browser stops at 1000
 characters instead of the save refusing the 1001st; a `.MaxLength(…)`/`.MinLength(…)` written on the control wins.
-A value object declared `Text(Value, Upper: true)` has `Upper`, and its `Ui.Input` draws what is typed in capitals
+A value object declared `Text(Value, Upper: true)` has `Upper`, and every input or textarea bound to it draws what is typed in capitals
 (`uppercase`, the text-transform only: the value object puts the value in capitals as it is made).
 
 **What a member's attributes tell its control.** Beside the rules, a `FieldShape` carries the hints a property's

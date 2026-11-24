@@ -119,8 +119,9 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     private bool _saidMaxLength;
     private bool _saidMinLength;
     private bool _saidReadOnly;
+    private bool _saidUpper;
 
-    // What the bound field is, said up front: invalid, required, its lengths, whether it is edited at all.
+    // What the bound field is, said up front: invalid, required, its lengths, whether it is edited at all, in capitals.
     private void SayShape(ExpressionAccessor.Accessor acc, EditContext? bindCtx)
     {
         SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
@@ -128,6 +129,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
         MaxLength = SaidMaxLength(acc, MaxLength, applies: true, ref _saidMaxLength);
         MinLength = SaidMinLength(acc, MinLength, applies: true, ref _saidMinLength);
         ReadOnly = SaidReadOnly(acc, ReadOnly, applies: true, ref _saidReadOnly);
+        Style = SaidUpper(acc, applies: true, ref _saidUpper);
     }
 
     protected override void WriteAttributes(StringBuilder sb)
