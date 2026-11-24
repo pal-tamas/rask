@@ -17,19 +17,26 @@ The event is an ordinary event:
 public sealed record OrderPlaced(Guid Id, string Customer, decimal Total) : IEvent;
 ```
 
-Publish it where it happens, through the dispatcher you already use:
+Raise it where it happens — in the aggregate's own operation — and its save publishes it once the change commits
+([domain events](domain.md#domain-events)):
 
 ```csharp
-public sealed class PlaceOrderHandler(IDispatcher dispatcher) : ICommandHandler<PlaceOrder, Guid>
+public sealed partial class Order : Aggregate<Guid, Versioned>
 {
-    public async Task<Guid> Handle(PlaceOrder command)
+    public CustomerName Customer { get; private set; } = null!;
+    public Amount Total { get; private set; } = null!;
+
+    private static Order Place(CustomerName customer, Amount total)
     {
-        var order = await Order.Create(command.Customer, command.Total);
-        await dispatcher.Publish(new OrderPlaced(order.Id, order.Customer, order.Total), Current.Cancellation);
-        return order.Id;
+        var order = new Order { Id = Guid.CreateVersion7(), Customer = customer, Total = total };
+        order.Raise(new OrderPlaced(order.Id, customer.Value, total.Value));
+        return order;
     }
 }
 ```
+
+An event with no save behind it — a button that only announces something — goes through
+`dispatcher.Publish(new OrderPlaced(…))`, and reaches the same subscriptions.
 
 Subscribe in the component that shows it:
 

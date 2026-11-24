@@ -192,14 +192,12 @@ mistake, the rule notes the ID.
 
 ## Data access & side effects
 
-- **Register `IDbContextFactory<T>`, not a scoped `DbContext`.** A Server session is long-lived; a
-  `DbContext` is not thread-safe and is meant to be short-lived. Open a fresh context per unit of
-  work and dispose it:
-  ```csharp
-  await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-  var products = await db.Products.AsNoTracking().ToListAsync(CancellationToken);
-  ```
-  Thread `Component.CancellationToken` into every async EF call so navigating away cancels in flight.
+- **A write is the aggregate's own method — no service, no SQL.** A page reads through the read face
+  (`Product.Where(…)`) and changes through the operation's entry (`await Product.Reprice(id, version, price)`): one
+  aggregate, one transaction, its rules asked by the save. Nothing injects a `DbContext` — a Server session is
+  long-lived and a context is not, so Rask opens one per read and per write. A rule is a value object's or the
+  aggregate's (`Refuse`, `Validate()`), never re-checked on the page; another aggregate changes from a domain event.
+  See [domain modelling](domain.md).
 - **Load in a lifecycle hook, store in a field, render the field** — never query in `Render()`
   (which runs on every event the page hears). For an event-handler mutation, do the work and reload; the awaited
   handler re-renders on completion automatically. See [data access](data-access.md).
@@ -303,8 +301,11 @@ mistake, the rule notes the ID.
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
 | `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |
 | Subscribing to an event without unsubscribing | Pair `+=` in `OnMount` with `-=` in `OnUnmount` |
-| Scoped `DbContext` in a Server app | `IDbContextFactory<T>` + a fresh context per op |
-| Async EF/HTTP calls without the token | Thread `Component.CancellationToken` through |
+| A context injected into a page or a handler to save | The aggregate's operation entry: `await Supply.Change(id, version, …)` |
+| A service class that loads two aggregates and saves both | One aggregate per operation; the other follows from a domain event |
+| `throw new InvalidOperationException(…)` in a rule | `Refuse.When(…, () => Field, "…")` — shown under the field |
+| SQL or a provider API in app code (**RASK177**) | `InTextOrder()`, `Db.Lock`, `.Covering(…)`, a value object's `Scale` |
+| Async HTTP calls without the token | Thread `Component.CancellationToken` through |
 | Any auth token in `localStorage` | The `HttpOnly` session cookie the battery already sets |
 | `UseAuthentication()` after `MapRask()` (**RASK024**) | Auth → Authorization → Rask, in that order |
 | `Img` without `Alt` (**RASK023**) | Real alt text, or `.Alt("")` for decorative |

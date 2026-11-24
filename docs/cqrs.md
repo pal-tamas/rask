@@ -7,10 +7,10 @@ the whole point: it publishes clean under the WASM/AOT trimmer, where a reflecti
 cannot. It is standalone — it depends only on the `Microsoft.Extensions` DI, configuration and hosting
 abstractions plus `Rask.Wire` (the codec primitives), and works in any .NET app, not just Rask.
 
-> Rask encourages **vertical slices**: a handler owns its own data access, through [`Rask.Data`](data.md)
-> or [plain EF Core](data-access.md), with no shared repository or service layer in between.
-> CQRS is the natural way to structure those slices: each slice owns its query/command and handler.
-> Reach for it when that structure earns its keep — a small app is fine calling services directly.
+> **A write is an aggregate's own operation** ([domain modelling](domain.md)): a page calls its entry
+> (`Supply.Change(id, version, …)`), and a domain event is `Raise`d by the aggregate and published by its save. A
+> command is the wire contract a WebAssembly client or an outside caller sends for it, and its handler is one line —
+> it calls the operation and decides nothing. There is no service layer in between.
 
 > Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -71,7 +71,8 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
 
 ## Events
 
-A command handler can publish an `IEvent`; every registered `IEventHandler` runs. Choose
+An aggregate's domain events are published by its save, after the commit; an event with no save behind it is
+published through the dispatcher. Either way every registered `IEventHandler` runs. Choose
 `Sequential` (default) or `WhenAll` fan-out via `CqrsOptions.EventPublishStrategy`. Handlers are
 matched by the event's **concrete runtime type** (a handler declared against a base type is not
 invoked for a derived one — see Limitations), their run order is deterministic but not the declaration

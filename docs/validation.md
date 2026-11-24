@@ -100,19 +100,21 @@ Every dispatched request is validated before its handler runs, by a `ValidationB
 `AddRaskCqrs` registers **outermost**: a request that is not valid should never reach a transaction,
 a log line saying it was handled, or the handler.
 
-Rules that fit neither source go in an `IRequestValidator<TRequest>`, which is asynchronous by
+A rule about what may be saved is the domain's — a value object's, the aggregate's `Validate()`, a unique index —
+and is asked by the save however the request arrived ([what every save asks](domain.md#what-every-save-asks)). A rule
+about the request itself that fits neither source goes in an `IRequestValidator<TRequest>`, which is asynchronous by
 construction:
 
 ```csharp
-public sealed class NoDuplicateOrders(IOrderStore store) : IRequestValidator<PlaceOrder>
+public sealed class KnownCustomer : IRequestValidator<PlaceOrder>
 {
     public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(PlaceOrder request) =>
-        await store.Exists(request.Reference, Current.Cancellation)
-            ? [new RequestValidationError(nameof(PlaceOrder.Reference), "That reference is already used.")]
-            : [];
+        await Customer.Where(c => c.Id == request.Customer).Any()
+            ? []
+            : [new RequestValidationError(nameof(PlaceOrder.Customer), "There is no such customer.")];
 }
 
-builder.Services.AddSingleton<IRequestValidator<PlaceOrder>, NoDuplicateOrders>();
+builder.Services.AddSingleton<IRequestValidator<PlaceOrder>, KnownCustomer>();
 ```
 
 Every validator runs and their failures are collected. This is deliberately **not** the form's
@@ -192,9 +194,9 @@ public sealed class NewOrder
 
 public sealed class NewOrderValidator : AbstractValidator<NewOrder>
 {
-    public NewOrderValidator(IOrderStore store) =>
+    public NewOrderValidator() =>
         RuleFor(o => o.Reference)
-            .MustAsync(async (reference, ct) => !await store.Exists(reference!, ct))
+            .MustAsync(async (reference, ct) => !await Order.Where(x => x.Reference == reference).Any(ct))
             .WithMessage("That reference is already used.");
 }
 ```
