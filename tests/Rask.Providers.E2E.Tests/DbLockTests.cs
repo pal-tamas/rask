@@ -79,6 +79,42 @@ internal static class LockRun
 
         await using var after = await Db.Lock("rask-lock-parity", TestContext.Current.CancellationToken).For(TimeSpan.Zero);
     }
+    internal static async Task Several_names_are_taken_together_or_not_at_all()
+    {
+        var other = await Db.Lock("rask-lock-parity:b", TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<TimeoutException>(() => Db.Lock(
+            ["rask-lock-parity:c", "rask-lock-parity:b", "rask-lock-parity:a"], TestContext.Current.CancellationToken)
+            .For(TimeSpan.FromMilliseconds(200)).AsTask());
+        await using (await Db.Lock("rask-lock-parity:a", TestContext.Current.CancellationToken).For(TimeSpan.Zero))
+        {
+        }
+
+        await other.DisposeAsync();
+        var both = await Db.Lock(["rask-lock-parity:b", "rask-lock-parity:a"], TestContext.Current.CancellationToken).For(TimeSpan.Zero);
+        await Assert.ThrowsAsync<TimeoutException>(
+            () => Db.Lock("rask-lock-parity:a", TestContext.Current.CancellationToken).For(TimeSpan.Zero).AsTask());
+        await both.DisposeAsync();
+
+        await using var after = await Db.Lock(["rask-lock-parity:a", "rask-lock-parity:b"], TestContext.Current.CancellationToken).For(TimeSpan.Zero);
+    }
+
+    internal static async Task Callers_naming_the_same_locks_in_opposite_orders_never_deadlock()
+    {
+        var all = Task.WhenAll(Enumerable.Range(0, 10).Select(i => Hold(
+            i % 2 == 0 ? ["rask-lock-parity:a", "rask-lock-parity:b"] : ["rask-lock-parity:b", "rask-lock-parity:a"])));
+
+        var finished = await Task.WhenAny(all, Task.Delay(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+
+        Assert.Same(all, finished);
+        await all;
+    }
+
+    private static async Task Hold(string[] names)
+    {
+        await using var held = await Db.Lock(names, TestContext.Current.CancellationToken).For(TimeSpan.FromSeconds(20));
+        await Task.Delay(10, TestContext.Current.CancellationToken);
+    }
 }
 
 [Collection(SqlServerCollection.Name)]
@@ -134,6 +170,26 @@ public sealed class SqlServerDbLockTests
             () => Db.Lock(name, TestContext.Current.CancellationToken).AsTask()));
 
         await refused;
+    }
+
+    [Fact]
+    public async Task Several_names_are_taken_together_or_not_at_all()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+
+        var run = LockRun.Run(Server, LockRun.Several_names_are_taken_together_or_not_at_all);
+
+        await run;
+    }
+
+    [Fact]
+    public async Task Callers_naming_the_same_locks_in_opposite_orders_never_deadlock()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+
+        var run = LockRun.Run(Server, LockRun.Callers_naming_the_same_locks_in_opposite_orders_never_deadlock);
+
+        await run;
     }
 
     private static void Server(DbContextOptionsBuilder o) => o.UseSqlServer(SqlServer.ConnectionString);
@@ -212,6 +268,26 @@ public sealed class PostgresDbLockTests
         context.Database.SqlQueryRaw<string>("SELECT current_setting('lock_timeout') AS \"Value\"")
             .SingleAsync(TestContext.Current.CancellationToken);
 
+    [Fact]
+    public async Task Several_names_are_taken_together_or_not_at_all()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+
+        var run = LockRun.Run(Server, LockRun.Several_names_are_taken_together_or_not_at_all);
+
+        await run;
+    }
+
+    [Fact]
+    public async Task Callers_naming_the_same_locks_in_opposite_orders_never_deadlock()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+
+        var run = LockRun.Run(Server, LockRun.Callers_naming_the_same_locks_in_opposite_orders_never_deadlock);
+
+        await run;
+    }
+
     private static void Server(DbContextOptionsBuilder o) => o.UseNpgsql(Postgres.Required);
 }
 
@@ -264,6 +340,26 @@ public sealed class SqliteDbLockTests : IDisposable
 
         var run = LockRun.Run(
             o => o.UseSqlite($"Data Source={path}"), LockRun.A_lock_taken_inside_a_rolled_back_transaction_is_held_until_it_is_let_go);
+
+        await run;
+    }
+
+    [Fact]
+    public async Task Several_names_are_taken_together_or_not_at_all()
+    {
+        var path = _path;
+
+        var run = LockRun.Run(o => o.UseSqlite($"Data Source={path}"), LockRun.Several_names_are_taken_together_or_not_at_all);
+
+        await run;
+    }
+
+    [Fact]
+    public async Task Callers_naming_the_same_locks_in_opposite_orders_never_deadlock()
+    {
+        var path = _path;
+
+        var run = LockRun.Run(o => o.UseSqlite($"Data Source={path}"), LockRun.Callers_naming_the_same_locks_in_opposite_orders_never_deadlock);
 
         await run;
     }

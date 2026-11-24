@@ -523,3 +523,9 @@ Rask.Background.Running<TResult>.ByTenant() -> Rask.Background.Running<TResult>
 Rask.Background.Running.ByTenant() -> Rask.Background.Running
 Rask.Background.RecurringJob.RunOnFirstStart() -> Rask.Background.RecurringJob!
 Rask.Background.RecurringJob.RunsOnFirstStart.get -> bool
+Rask.Background.Enqueuing.InTenantLane(string? lane = null) -> Rask.Background.Enqueuing
+Rask.Background.Enqueuing.UnlessWaiting(string! key) -> Rask.Background.Enqueuing
+Rask.Background.Enqueuing<TJob>.InTenantLane(string? lane = null) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Running.InTenantLane(string? lane = null) -> Rask.Background.Running
+Rask.Background.Running<TResult>.InTenantLane(string? lane = null) -> Rask.Background.Running<TResult>
+static Rask.Background.Jobs.TenantLane(string? lane = null) -> string!

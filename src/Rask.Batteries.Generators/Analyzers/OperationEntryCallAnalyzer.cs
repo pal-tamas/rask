@@ -63,7 +63,7 @@ public sealed class OperationEntryCallAnalyzer : DiagnosticAnalyzer
             Rask170, call.Syntax.GetLocation(), method.ContainingType.Name, method.Name));
     }
 
-    private static bool IsEntry(IMethodSymbol method) =>
+    internal static bool IsEntry(IMethodSymbol method) =>
         method.GetAttributes().Any(static a =>
             a.AttributeClass is { Name: "GeneratedCodeAttribute" } &&
             a.ConstructorArguments.Length > 0 &&

@@ -179,7 +179,7 @@ serializes a `User`'s public properties can ever carry it. Add the columns your 
 **It is an [aggregate](data.md) like any other.** `Authenticatable` derives from
 `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`, so a `User` has the reads, the writes, a generated
 `UserModel` for a profile form (never with the credentials on it), a `Version` and domain events. It does **not**
-soft-delete: soft delete is [a trait it does not name](data.md#choosing-what-a-table-carries),
+soft-delete: soft delete is [a trait it does not name](domain.md#choosing-what-a-table-carries),
 and a deleted account has to free its address for the person to sign up again, so deleting a user removes the row.
 `Session` is the one Rask.Auth table that opts in (below):
 

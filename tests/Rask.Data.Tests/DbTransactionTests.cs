@@ -26,7 +26,7 @@ public sealed class DbTransactionTests : IDisposable
         {
             await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), cancellationToken: TestContext.Current.CancellationToken);
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        }, manyAggregates: "Two widgets committed together", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, await Widget.Count(TestContext.Current.CancellationToken));
     }

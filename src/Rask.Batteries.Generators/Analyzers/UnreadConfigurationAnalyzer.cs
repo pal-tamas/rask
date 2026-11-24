@@ -136,9 +136,15 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
                 return "its operation is neither a lambda naming a method nor a constant name";
             }
 
-            return RolesOf(arguments) is { } named &&
-                   model.GetConstantValue(named.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
-                ? "its roles are not a constant"
+            if (OperationGenerator.RolesArgument(arguments) is { } named &&
+                model.GetConstantValue(named.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null })
+            {
+                return "its roles are not a constant";
+            }
+
+            return arguments.FirstOrDefault(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "manyAggregates", System.StringComparison.Ordinal)) is { } many &&
+                   model.GetConstantValue(many.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
+                ? "its manyAggregates reason is not a constant"
                 : null;
         }
 
@@ -154,8 +160,4 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
             : null;
     }
 
-    // The roles argument: named, or the second one given in place.
-    private static ArgumentSyntax? RolesOf(SeparatedSyntaxList<ArgumentSyntax> arguments) =>
-        arguments.Skip(1).FirstOrDefault(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "roles", System.StringComparison.Ordinal))
-        ?? (arguments.Count > 1 && arguments[1].NameColon is null ? arguments[1] : null);
 }

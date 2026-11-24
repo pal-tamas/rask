@@ -36,6 +36,8 @@
     <!-- For Page.Watching: the kit's tests watch every render they drive and fail on one a live session
          would answer with the whole page instead of a diff (tests/Rask.Ui.Tests/Live/DiffGuard.cs). -->
     <InternalsVisibleTo Include="Rask.Ui.Tests"/>
+    <!-- Test.Make of an aggregate samples its factory's values with the value-object sampler here. -->
+    <InternalsVisibleTo Include="Rask.Testing.Data"/>
   </ItemGroup>
 
   <ItemGroup>

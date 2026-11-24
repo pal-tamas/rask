@@ -12,8 +12,9 @@ namespace Rask.Data;
 public sealed class TestDatabase<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext> : TestDatabase
     where TContext : RaskDbContext
 {
-    internal TestDatabase(TContext schemaOwner, Func<RaskReadDbContext> openRead, Func<TContext> openWrite, IAsyncDisposable? lease)
-        : base(schemaOwner, openRead, openWrite, lease)
+    internal TestDatabase(
+        TContext schemaOwner, Func<RaskReadDbContext> openRead, Func<TContext> openWrite, Action<DbContextOptionsBuilder> configure, IAsyncDisposable? lease)
+        : base(schemaOwner, openRead, openWrite, configure, lease)
     {
         Context = schemaOwner;
         Factory = new TestContextFactory<TContext>(openWrite);

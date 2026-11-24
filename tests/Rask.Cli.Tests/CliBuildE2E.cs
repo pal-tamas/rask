@@ -61,6 +61,7 @@ internal static class CliBuildE2E
         "Rask.DevTools",                    // every template — the in-page devtools of a Debug build
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
         "Rask.Testing",                     // server + wasm: the <name>.Tests project's one passing test
+        "Rask.Testing.Data",                // server: the <name>.Tests project's Test.Make<Aggregate>()
     ];
 
     // Packed once and shared across every case (packing the projects is the expensive part of these gates).

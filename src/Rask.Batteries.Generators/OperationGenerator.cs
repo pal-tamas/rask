@@ -51,6 +51,8 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
     private const string DeleteName = "Delete";
     private const string EditorDialogType = "Rask.UiEditorDialog";
     private const string RolesParameter = "roles";
+    private const string ManyAggregatesParameter = "manyAggregates";
+    private const string ForUpdateParameter = "forUpdate";
     private const string TaskFqn = "global::System.Threading.Tasks.Task";
 
     private const string FailuresTask =
@@ -183,7 +185,9 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             factory ? FactoryCallOf(method, symbol)! : CallOf(method, symbol)!,
             named?.Roles,
             new EquatableArray<OperationParameter>(method.Parameters.Select(p => Parameter(p, symbol))),
-            factory);
+            factory,
+            named?.ManyAggregates,
+            factory ? null : named?.ForUpdate);
     }
 
     // A partial aggregate that can be deleted is deleted through an entry of its own, its roles named by nameof(Delete) —
@@ -292,7 +296,8 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         };
     }
 
-    // `b.Operation(x => x.M, roles: …)` in the aggregate's own static Configure, read as KeepEmpty and IsUnique are.
+    // `b.Operation(x => x.M, roles: …, manyAggregates: …, forUpdate: …)` in the aggregate's own static Configure, read as
+    // KeepEmpty and IsUnique are.
     private static Dictionary<string, NamedRoles> RolesOf(
         INamedTypeSymbol symbol, Compilation compilation, CancellationToken cancellationToken)
     {
@@ -317,24 +322,55 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                var roles = arguments.Skip(1).FirstOrDefault(static a =>
-                    string.Equals(a.NameColon?.Name.Identifier.ValueText, RolesParameter, StringComparison.Ordinal))
-                    ?? (arguments.Count > 1 && arguments[1].NameColon is null ? arguments[1] : null);
-
-                if (roles is null)
+                var roles = RolesArgument(arguments);
+                var many = Named(arguments, ManyAggregatesParameter);
+                var forUpdate = Named(arguments, ForUpdateParameter) ??
+                                (arguments.Count > 1 && arguments[1] is { NameColon: null, Expression: LambdaExpressionSyntax } ? arguments[1] : null);
+                if (roles is null && many is null && forUpdate is null)
                 {
                     continue;
                 }
 
-                var constant = model.GetConstantValue(roles.Expression, cancellationToken);
+                var role = roles is null ? default : model.GetConstantValue(roles.Expression, cancellationToken);
+                var reason = many is null ? default : model.GetConstantValue(many.Expression, cancellationToken);
                 named[operation] = new NamedRoles(
-                    constant is { HasValue: true, Value: string or null },
-                    constant.HasValue ? constant.Value as string : null);
+                    (roles is null || role is { HasValue: true, Value: string or null }) &&
+                    (many is null || reason is { HasValue: true, Value: string or null }),
+                    role.HasValue ? role.Value as string : null,
+                    reason.HasValue ? reason.Value as string : null,
+                    forUpdate is null ? null : LockOf(forUpdate.Expression, symbol, model, cancellationToken));
             }
         }
 
         return named;
     }
+
+    // The roles argument: named, or the second one given in place — unless that is the lambda of `forUpdate: x => x.Parts`.
+    internal static ArgumentSyntax? RolesArgument(SeparatedSyntaxList<ArgumentSyntax> arguments) =>
+        Named(arguments, RolesParameter) ??
+        (arguments.Count > 1 && arguments[1] is { NameColon: null } second && second.Expression is not LambdaExpressionSyntax ? second : null);
+
+    private static ArgumentSyntax? Named(SeparatedSyntaxList<ArgumentSyntax> arguments, string name) =>
+        arguments.Skip(1).FirstOrDefault(a => string.Equals(a.NameColon?.Name.Identifier.ValueText, name, StringComparison.Ordinal));
+
+    // `forUpdate: true` locks the aggregate's row; `forUpdate: x => x.Parts` the rows of that child collection.
+    private static RowLock? LockOf(ExpressionSyntax argument, INamedTypeSymbol symbol, SemanticModel model, CancellationToken cancellationToken)
+    {
+        if (argument is LambdaExpressionSyntax { Body: MemberAccessExpressionSyntax member })
+        {
+            var name = member.Name.Identifier.ValueText;
+            return symbol.GetMembers(name).OfType<IPropertySymbol>().FirstOrDefault()?.Type is INamedTypeSymbol collection &&
+                   ElementOf(collection) is { } child
+                ? new RowLock(name, child.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                : null;
+        }
+
+        return model.GetConstantValue(argument, cancellationToken) is { HasValue: true, Value: true } ? new RowLock(null, null) : null;
+    }
+
+    private static ITypeSymbol? ElementOf(INamedTypeSymbol collection) =>
+        (collection is { IsGenericType: true, TypeArguments.Length: 1 } ? collection : null)?.TypeArguments[0] ??
+        collection.AllInterfaces.FirstOrDefault(static i => i is { Name: "IEnumerable", TypeArguments.Length: 1 })?.TypeArguments[0];
 
     // `x => x.Distribute`, or `nameof(Register)` for a factory, whose method group has no single delegate type.
     internal static string? NamedOperation(ExpressionSyntax argument, SemanticModel model, CancellationToken cancellationToken) =>
@@ -493,8 +529,13 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
         s.Append("        global::Rask.Data.GeneratedOperations.Run<").Append(aggregate.FullyQualifiedName).Append(">(\"")
             .Append(operation.Name).Append("\", ")
-            .Append(RolesLiteral(operation))
-            .Append(", id!, ").Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call)
+            .Append(RolesLiteral(operation));
+        if (operation.ManyAggregates is not null || operation.ForUpdate is not null)
+        {
+            s.Append(", ").Append(Literal(operation.ManyAggregates)).Append(", ").Append(LockLambda(aggregate, operation.ForUpdate));
+        }
+
+        s.Append(", id!, ").Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call)
             .AppendLine(", cancellationToken);");
         s.AppendLine();
     }
@@ -515,6 +556,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
         s.Append("        global::Rask.Data.GeneratedOperations.Build<").Append(aggregate.FullyQualifiedName).Append(", ")
             .Append(aggregate.IdType).Append(">(\"").Append(operation.Name).Append("\", ").Append(RolesLiteral(operation))
+            .Append(operation.ManyAggregates is null ? "" : ", " + Literal(operation.ManyAggregates))
             .Append(", () => ").Append(call).AppendLine(", cancellationToken);");
         s.AppendLine();
     }
@@ -587,8 +629,20 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         s.AppendLine();
     }
 
-    private static string RolesLiteral(Operation operation) =>
-        operation.Roles is { } roles ? SymbolDisplay.FormatLiteral(roles, quote: true) : "null";
+    private static string RolesLiteral(Operation operation) => Literal(operation.Roles);
+
+    private static string Literal(string? text) => text is null ? "null" : SymbolDisplay.FormatLiteral(text, quote: true);
+
+    // What locks the rows before the load: the aggregate's own, or one child collection's (GeneratedLocks).
+    private static string LockLambda(OperatedAggregate aggregate, RowLock? rowLock) => rowLock switch
+    {
+        null => "null",
+        { Navigation: null } => "static (key, token) => global::Rask.Data.GeneratedLocks.Row<" + aggregate.FullyQualifiedName + ">(key, token)",
+        { Navigation: { } navigation, Child: { } child } =>
+            "static (key, token) => global::Rask.Data.GeneratedLocks.Children<" + aggregate.FullyQualifiedName + ", " + child + ">(key, " +
+            SymbolDisplay.FormatLiteral(navigation, quote: true) + ", token)",
+        _ => "null",
+    };
 
     private static void AppendParameterDocs(StringBuilder s, Operation operation)
     {
@@ -629,11 +683,21 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
     /// <summary>The delete entry a partial aggregate that can be deleted gets, with the roles its Configure names.</summary>
     private sealed record DeleteEntry(string? Roles);
 
-    private sealed record Operation(string Name, string Call, string? Roles, EquatableArray<OperationParameter> Parameters, bool Factory);
+    private sealed record Operation(
+        string Name,
+        string Call,
+        string? Roles,
+        EquatableArray<OperationParameter> Parameters,
+        bool Factory,
+        string? ManyAggregates = null,
+        RowLock? ForUpdate = null);
+
+    /// <summary>The rows <c>forUpdate:</c> locks: the aggregate's own (no navigation), or one child collection's.</summary>
+    private sealed record RowLock(string? Navigation, string? Child);
 
     private sealed record OperationParameter(string Type, string Name, string? Default, FormField? Field);
 
     private sealed record OperationProblem(string Id, string Method, string Clash, SymbolLocation? Location);
 
-    private sealed record NamedRoles(bool Constant, string? Roles);
+    private sealed record NamedRoles(bool Constant, string? Roles, string? ManyAggregates = null, RowLock? ForUpdate = null);
 }

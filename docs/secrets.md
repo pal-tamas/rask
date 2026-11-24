@@ -10,7 +10,7 @@ whole story for a Rask app: where they live, how they reach the server, and what
 
 > **A secret the app stores** — a partner's API key a user types in, kept on a row — is a different thing: declare it
 > `Secret<T>` on the aggregate and it is stored encrypted with the host's key ring, never shown and never sent to a
-> browser. See [Secrets in the data model](data.md#secrets-secrett).
+> browser. See [Secrets in the data model](domain.md#secrets-secrett).
 
 ## Reading a secret in your app
 
