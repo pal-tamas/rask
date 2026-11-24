@@ -92,7 +92,7 @@ internal sealed class UiTableMember
     {
         Rask.Values.Text text => text.Value,
         Number number => number.Value,
-        Whole whole => whole.Value,
+        Whole whole => long.Parse(whole.ToString(), CultureInfo.InvariantCulture), // its derived record declares the Value
         Day day => day.Value,
         Moment moment => moment.Value,
         _ => value,
