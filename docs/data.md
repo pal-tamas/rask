@@ -1407,6 +1407,10 @@ line wins over the setting — and it decides whether anything applies at start,
 `c.Data.OwnsSchema(…)` beside it takes nothing over either. A host wired by hand (`AddRask()` + `MapRask<TApp>()`)
 migrates on start only when its `AddRaskData<TContext>(…)` says `.OwnsSchema()`.
 
+The release step itself can be the app: `dotnet App.dll rask db migrate` builds the host without starting it, applies
+the pending migrations the way a start would (`OwnsSchema` included), runs their [data steps](data-writes.md#moving-data-in-c-with-bdata),
+and exits — with `MigrateOnStart` on or off.
+
 ### Taking over an existing schema
 
 An app moving onto Rask has a live database its new migrations did not make. Their first migration — the baseline —

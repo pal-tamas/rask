@@ -16,15 +16,19 @@ public sealed partial class EditorDialogNotesPage : Component
     /// <summary>Whether the form finds the note its key names.</summary>
     public static bool Stored { get; set; } = true;
 
+    /// <summary>What the form says once saved; null leaves the dialog its own word.</summary>
+    public static string? SavedMessage { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
+        var form = OperationForms.Of<NoteInput>(
+            "7",
+            static _ => Task.FromResult(Stored ? new NoteInput { Title = "Shopping" } : null),
+            static (_, _) => Task.CompletedTask,
+            static () => true).Id("note-form");
         var dialog = Ui.EditorDialog.In("edit").Heading("Note")[
-                OperationForms.Of<NoteInput>(
-                    "7",
-                    static _ => Task.FromResult(Stored ? new NoteInput { Title = "Shopping" } : null),
-                    static (_, _) => Task.CompletedTask,
-                    static () => true)[f => [Input.Bind(() => f.Title).Id("title")]]
+                (SavedMessage is { } saved ? form.Saved(saved) : form)[f => [Input.Bind(() => f.Title).Id("title")]]
             ];
         dialog.Deleting(static (_, _) => Task.FromResult(Refused), static (_, _) => Task.CompletedTask, static () => true);
         return Main[dialog];
@@ -78,6 +82,21 @@ public sealed partial class UiEditorDialogFormsTests : global::Rask.Core.RaskMar
 
         Assert.Equal("A pinned note is kept.", page.TextOf("#editor-delete-refused"));
         EditorDialogNotesPage.Refused = [];
+    }
+
+    [Theory]
+    [InlineData(null, "Saved")]
+    [InlineData("Note saved.", "Note saved.")]
+    public async Task A_saved_form_has_the_dialog_toast_its_own_message_or_the_dialogs_word(string? message, string toasted)
+    {
+        EditorDialogNotesPage.SavedMessage = message;
+        using var toasts = Toast.Fake();
+        var page = Page.Visit("/ui-editor-dialog/notes?edit=7");
+
+        await page.On("#note-form").Submit();
+
+        toasts.Shown(toasted).Once();
+        EditorDialogNotesPage.SavedMessage = null;
     }
 }
 

@@ -263,14 +263,7 @@ internal sealed partial class DbCommand(
         // against which project (#600).
         if (parsed.HasFlag("dry-run"))
         {
-            WriteDryRun(
-                "run",
-                "dotnet " + string.Join(
-                    ' ',
-                    BuildEfArguments(
-                        subcommand, name, project, startupProject, parsed.Option("context"), output,
-                        parsed.HasFlag("yes"), parsed.Passthrough)));
-            WriteDryRun("run it in", _workingDirectory);
+            WriteEfDryRun(subcommand, parsed, name, project, startupProject);
             return 0;
         }
 
@@ -301,9 +294,62 @@ internal sealed partial class DbCommand(
             return await ListAsJsonAsync(efArgs, cancellationToken).ConfigureAwait(false);
         }
 
-        return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken, _buildEnvironment)
+        var exit = await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken, _buildEnvironment)
+            .ConfigureAwait(false);
+        if (exit != 0 || !RunsDataSteps(subcommand, name, parsed, startupProject))
+        {
+            return exit;
+        }
+
+        // `dotnet ef` applies the schema and runs no C#; the app runs its migrations' data steps itself.
+        return await _process.RunAsync("dotnet", DataStepArguments(startupProject), _workingDirectory, cancellationToken, _buildEnvironment)
             .ConfigureAwait(false);
     }
+
+    private void WriteEfDryRun(string subcommand, ParsedArguments parsed, string? name, string project, string startupProject)
+    {
+        var efArgs = BuildEfArguments(
+            subcommand, name, project, startupProject, parsed.Option("context"), parsed.Option("output"), parsed.HasFlag("yes"), parsed.Passthrough);
+        WriteDryRun("run", "dotnet " + string.Join(' ', efArgs));
+        WriteDryRun("run it in", _workingDirectory);
+        if (RunsDataSteps(subcommand, name, parsed, startupProject))
+        {
+            WriteDryRun("then run", "dotnet " + string.Join(' ', DataStepArguments(startupProject)));
+        }
+    }
+
+    /// <summary>
+    ///     Whether an update is followed by the app's own <c>rask db migrate</c>, which runs the data steps
+    ///     (<c>b.Data(…)</c>) of its migrations: only a whole update — not one to a target, which may be a step back —
+    ///     of the one context of a RaskApp whose migrations declare a data step. Anything else has none to run, and a
+    ///     host wired by hand would serve rather than answer the command.
+    /// </summary>
+    private bool RunsDataSteps(string subcommand, string? target, ParsedArguments parsed, string startupProject)
+    {
+        if (!string.Equals(subcommand, "update", StringComparison.Ordinal) || target is not null || parsed.Option("context") is not null)
+        {
+            return false;
+        }
+
+        var directory = startupProject.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+            ? Path.GetDirectoryName(startupProject) ?? startupProject
+            : startupProject;
+        var program = Path.Combine(directory, "Program.cs");
+        return _fileSystem.FileExists(program) &&
+               _fileSystem.ReadAllText(program).Contains("RaskApp.Create", StringComparison.Ordinal) &&
+               _fileSystem.ListFilesRecursive(directory, "*.cs").Any(DeclaresDataStep);
+    }
+
+    // A migration's Up that calls the data-step extension: `b.Data(async () => …)`.
+    private bool DeclaresDataStep(string file)
+    {
+        var text = _fileSystem.ReadAllText(file);
+        return text.Contains("MigrationBuilder", StringComparison.Ordinal) && text.Contains(".Data(", StringComparison.Ordinal);
+    }
+
+    /// <summary>The <c>dotnet run</c> that has the app run its migrations' data steps, after <c>dotnet ef</c> built it.</summary>
+    internal static IReadOnlyList<string> DataStepArguments(string startupProject) =>
+        ["run", "--project", startupProject, "--no-build", "--", "rask", "db", "migrate"];
 
     /// <summary>Asks before a drop; the exit code to stop with when the answer is no (or cannot be asked), else null.</summary>
     private async Task<int?> ConfirmDropAsync(string startupProject)

@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
+  generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
+  `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
+  toasted "Saved". After: it takes `.Id`, `.Class`, `.Style`, `.Data`, `.Attributes`, `.ConfirmLeave` and
+  `.OnInvalidSubmit` onto the `<form>` it draws, and `.Saved("Company saved.")` is the toast — the dialog's in place of
+  its catalog `EditorSaved`, or the form's own when nothing hosts it. `IOperationFormHost.Saved` takes the message.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
@@ -35,6 +41,23 @@ them until tagged releases begin.
   or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
   reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
   `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
+- **`rask audit` asks the stored data the rules its types declare today.** Before: a rule was asked only of what a save
+  writes — of a stored row, only the fields a save changes — so an old row a tightened rule refuses stayed unseen
+  until someone edited it, and finding them took hand-written SQL per rule. After: `rask audit` (or, on the server,
+  `dotnet App.dll rask audit`) loads every aggregate whole, a page at a time and from every tenant, and asks what a save
+  adding it would ask — every attribute of every row, `IValidatableObject`, `Validate()`, awaited rules too, each in the
+  aggregate's tenant — plus each value object's own rules (which a load never asks) and whether it is stored as its
+  rules keep it, and whether every id kept as text is one the app reads and writes that way. It reports each rule
+  broken by field (a child's rows together, `Lines[*].Quantity`) with the count and the ids alone; `--aggregate Name`
+  narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
+  save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
+  See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
+- **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
+  moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
+  aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
+  app's release step, `MigrateOnStart` on or off), and after `rask db update` (which then has the app run them) — once,
+  recorded in `__RaskDataSteps`; a migration `dotnet ef` applied has its steps run the next time the app migrates. See
+  [docs/data-writes.md](docs/data-writes.md#moving-data-in-c-with-bdata).
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
