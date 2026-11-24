@@ -49,6 +49,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **An aggregate's delete raises events: `private void OnDelete()`.** Before: the generated `X.Delete(id, version)` (and
+  an editor dialog's `.Delete(X.Delete)`) had no body to `Raise` in, so TA's `Driver`/`Vehicle` kept a hand `Remove` to
+  raise their chip-rematch event. After: `private void OnDelete() => Raise(new DriverChipsChanged(…));` on the partial
+  aggregate is called by every save that deletes it, and what it raises is stored and published with the delete, as an
+  operation's events are. RASK190 refuses another shape.
 - **An aggregate handles an event in one line: `static Task On(E e)`.** Before: a change that reaches another aggregate
   through an event needed an `IDurableHandler<E>` class of its own, registered in DI (TA's `RematchDriverFuelings`). After:
   `static Task On(DriverChipsChanged e) => …;` on the `partial` aggregate it changes is that durable handler — generated

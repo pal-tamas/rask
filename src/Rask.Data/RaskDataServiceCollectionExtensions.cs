@@ -56,6 +56,10 @@ public static partial class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
 
             // Before soft-delete turns a removal into an update, and before the outbox and the publish read the rows'
+            // events: what an aggregate's OnDelete() raises goes out with its delete.
+            services.AddSingleton<ISaveChangesInterceptor>(DeleteHookInterceptor.Instance);
+
+            // Before soft-delete turns a removal into an update, and before the outbox and the publish read the rows'
             // events: a declared projection's event rides on its rows, so it is stored and published as theirs.
             services.AddSingleton<ISaveChangesInterceptor>(ProjectionInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();

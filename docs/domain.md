@@ -1529,6 +1529,28 @@ decides nothing — a change to another aggregate is that aggregate's own operat
 ([the transaction boundary](#the-transaction-boundary)). A test asserts what a save published with
 [`Events.Fake()`](testing.md#asserting-what-was-published-eventsfake).
 
+#### What a delete raises: `OnDelete()`
+
+A delete is a change like any other, and others may need to hear of it — a driver removed frees the chips it held, so
+its fuelings are matched again. The generated delete (`Driver.Delete(id, version)`, an editor dialog's
+`.Delete(Driver.Delete)`) has no operation body to `Raise` in, so the aggregate says it in one private hook:
+
+```csharp
+public sealed partial class Driver : Aggregate<int, Versioned>
+{
+    private void OnDelete() => Raise(new DriverChipsChanged([.. Chips.Select(c => c.Code)]));
+}
+```
+
+- **Every save that deletes the aggregate calls it** — the generated delete, a dialog's delete, `db.Remove(x)` and a
+  save — after its `ValidateDelete()` has passed and before a `SoftDelete` aggregate's removal becomes an update. What it
+  raises goes out exactly as an operation's events do: a durable handler's outbox row in the delete's own transaction,
+  the in-memory handlers after the commit, nothing on a rollback.
+- **Once per aggregate**: a save that fails keeps the events it raised, and its retry carries them without asking again.
+- **Its shape is checked at build** ([RASK190](diagnostics.md#rask190)): `private void OnDelete()` on a `partial`
+  aggregate. Private, since a public method of an aggregate is an operation of its own. A bulk `ExecuteDelete` is not a
+  save and calls no hook.
+
 ## A form model for data-shaped aggregates
 
 Some aggregates have no steps — a category, a setting, a destination whose only rule is "the fields are valid".

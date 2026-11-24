@@ -605,3 +605,5 @@ Rask.Data.ProjectionBuilderExtensions
 Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!)
 Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!).Projects<TEvent>(System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
 static Rask.Data.ProjectionBuilderExtensions.Projects<T, TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
+Rask.Data.DeleteHooks
+static Rask.Data.DeleteHooks.Register(System.Type! aggregate, System.Action<object!>! onDelete) -> void

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
@@ -85,7 +84,7 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
             aggregate.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : "",
             eventType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "",
             ShapeProblem(method, eventType),
-            RegistrationProblem(aggregate, token),
+            AggregatePart.Problem(aggregate, token),
             SymbolLocation.From(method));
     }
 
@@ -116,26 +115,6 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
         }
 
         return method.Parameters[0].RefKind == RefKind.None ? null : "takes its event by reference";
-    }
-
-    // Why the registration cannot be added to the aggregate's class, or null when it can.
-    private static string? RegistrationProblem(INamedTypeSymbol aggregate, CancellationToken token)
-    {
-        if (aggregate.ContainingType is not null)
-        {
-            return "it is nested in another type — declare it directly in a namespace";
-        }
-
-        if (aggregate.IsGenericType)
-        {
-            return "it is generic";
-        }
-
-        var partial = aggregate.DeclaringSyntaxReferences
-            .Select(r => r.GetSyntax(token))
-            .OfType<ClassDeclarationSyntax>()
-            .Any(static c => c.Modifiers.Any(SyntaxKind.PartialKeyword));
-        return partial ? null : "it is not partial — declare it 'partial class'";
     }
 
     private static bool IsEvent(ITypeSymbol type) =>

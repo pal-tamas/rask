@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK186, RASK188–RASK189, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK186, RASK188–RASK190, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -184,6 +184,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
 | [RASK188](#rask188) | Error | An aggregate's event handler cannot be registered |
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
+| [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3899,3 +3900,19 @@ public static void Configure(EntityTypeBuilder<QueuedFile> b) =>
 ```
 
 **Fix:** declare `static Task On(FileQueued e)` on the aggregate, or remove the line.
+
+## RASK190
+
+**An aggregate's `OnDelete` is not a delete hook** · Error
+
+A method named `OnDelete` on an aggregate is what every save that deletes it calls, so the events it raises go out with
+the delete ([what a delete raises](domain.md#what-a-delete-raises-ondelete)). It has one shape: `private void
+OnDelete()` — an instance method, no parameters, private (a public method of an aggregate is an operation of its own) —
+on a `partial`, non-generic aggregate declared in a namespace.
+
+```csharp
+public void OnDelete() => Raise(…);            // ✗ RASK190: is not private
+private void OnDelete() => Raise(…);           // ✓
+```
+
+**Fix:** give it that shape, or name the method something else.

@@ -43,11 +43,11 @@ public sealed class RecordDispatch(IDbContextFactory<OutboxDbContext> contexts, 
 }
 
 /// <summary>An aggregate whose <c>static Task On(E e)</c> the generator makes a durable handler of.</summary>
-public sealed partial class Parcel : Aggregate<Guid>
+public sealed partial class Consignment : Aggregate<Guid>
 {
     internal static ConcurrentQueue<Guid> Handled { get; } = new();
 
-    private Parcel() { }
+    private Consignment() { }
 
     static Task On(Parceled e)
     {
@@ -155,8 +155,8 @@ public sealed class HandlerInTransactionTests : IDisposable
         var stored = Assert.Single(await Rows(provider));
         await Processor(provider).RunCycleAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal($"{CqrsRegistry.NameOf(typeof(Parcel))}:{CqrsRegistry.NameOf(typeof(Parceled))}", stored.Handler);
-        Assert.Contains(parcel, Parcel.Handled);
+        Assert.Equal($"{CqrsRegistry.NameOf(typeof(Consignment))}:{CqrsRegistry.NameOf(typeof(Parceled))}", stored.Handler);
+        Assert.Contains(parcel, Consignment.Handled);
         Assert.NotNull(Assert.Single(await Rows(provider)).ProcessedAt);
     }
 

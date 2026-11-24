@@ -37,6 +37,7 @@ public sealed partial class QueuedFile : Aggregate<Guid>
 ///     F-27: <c>b.Job&lt;E&gt;()</c> in an aggregate's <c>Configure</c> runs its <c>static Task On(E e)</c> as a job — the
 ///     durable handler only enqueues it, in the lane and under the key the declaration reads off the event.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class EventJobTests
 {
     private static readonly Guid Acme = Guid.Parse("0f8b6f1e-1a59-4d0e-9a3a-4c1f7b2f0a01");
