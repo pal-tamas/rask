@@ -1113,6 +1113,95 @@ builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>
 await Skid.Where(s => s.Handling.Contains(SkidHandling.Cold));                         // the enum, not its name
 ```
 
+### A list that is a value: `ValueList<T>`
+
+A `List<T>` is compared by reference, so a value object that holds one is never equal to another holding the same
+elements, and anything holding the list can change it under the value object's feet. **`ValueList<T>`** (namespace
+`Rask.Values`) is the list that is a value: equal by its elements in order, and never changed once made — a
+collection expression makes one, and a new list replaces it:
+
+```csharp
+public sealed class Tenant : Aggregate<TenantId, Versioned>
+{
+    public ValueList<CategoryCode> Codes { get; private set; } = [];     // a JSON column, as IReadOnlyList<T> is
+
+    public void Classify(params CategoryCode[] codes) => Codes = [.. codes];
+}
+```
+
+On an aggregate or an entity it takes the same column an `IReadOnlyList<T>` does — a primitive collection of plain
+values, a JSON column of value objects, `NOT NULL` and `[]` when empty — and is queried the same way
+(`Tenant.Where(t => t.Codes.Contains(code))`). It implements `IList<T>` only because that is what EF Core reads a
+JSON collection into: once anything has read it, a change through that interface throws `NotSupportedException`.
+
+### One value object kept whole as JSON: `b.Json(…)`
+
+A value object of several members is a complex type, one column per member. A value object that **holds a list** —
+a partner's settings, a set of pairings — has no columns to spread over, so it is kept whole in **one JSON column**,
+named in the entity's `Configure`:
+
+```csharp
+public sealed record LocalWell
+{
+    private LocalWell() { }                                            // EF Core builds a holder of a list
+    public LocalWell(LocalWellProvider provider, Secret<ApiKey>? key, ValueList<Pair> tanks) =>   // through its members
+        (Provider, Key, Tanks) = (provider, key, tanks);
+
+    public LocalWellProvider Provider { get; private init; }
+    public Secret<ApiKey>? Key { get; private init; }
+    public ValueList<Pair> Tanks { get; private init; } = [];
+}
+
+public sealed partial class Tenant
+{
+    public LocalWell? LocalWell { get; private set; }
+
+    static void Configure(EntityTypeBuilder<Tenant> b) => b.Json(t => t.LocalWell, column: "LocalSettings");
+}
+```
+
+`column:` names a column an adopted table already has; without it the column is named after the property. A
+nullable member is a `NULL` column while it holds nothing. It is EF Core's own JSON mapping, so the column is `TEXT`
+on SQLite, `nvarchar(max)` (or `json`) on SQL Server and `jsonb` on PostgreSQL, a filter on what is inside runs in
+the database on all three (`Tenant.Where(t => t.LocalWell!.Provider == provider)`, `….Tanks.Any(p => p.DbId == id)`),
+and the conformance suite proves it on each (`JsonValueParityTests`). `b.Json(…)` on a collection of value objects
+renames its JSON column. The read face leaves a value object kept as JSON out; read it through the aggregate.
+
+EF Core builds a value object that holds another, or a list, through its members rather than its constructor — so
+such a holder has a private parameterless constructor and `private init` members, as above.
+
+### Secrets: `Secret<T>`
+
+An API key a partner issued, a token the app must send on: a value the app **stores and uses but never shows**.
+Declare it `Secret<T>` — over a `string`, or over a value object that holds one text (its rules checked as it is
+made):
+
+```csharp
+public sealed partial record ApiKey(string Value) : Text(Value, MaxLength: 200);
+
+public sealed partial class Partner
+{
+    public Secret<ApiKey>? Key { get; private set; }
+
+    public void Connect(Change<ApiKey> key) => Key = Secret.Applied(key, Key);   // empty field: keep; typed: replace
+}
+```
+
+- **Stored as ciphertext.** The column — and a `Secret<T>` inside a JSON column, as `LocalWell.Key` above — holds the
+  value encrypted through `ISecrets`, which Rask.Server backs with the host's ASP.NET Core Data Protection key ring
+  (the ring a Rask deploy persists to its volume, under a purpose of its own). A dump, a backup or a logged SQL
+  parameter shows nothing usable. A row stored before a rule was tightened still loads. **Keep the key ring as long
+  as the data**: a ciphertext is only readable with the keys that wrote it.
+- **Never shown.** `ToString()` and the debugger say `••••`, and it has no public member, so a serializer writes `{}`.
+  The read face leaves it out, and the generated model — so every form over the aggregate — has no field for it: it
+  is never prefilled into a form and never sent to a browser.
+- **Set through an operation** that takes the plain value object. `Change<ApiKey>` gives the form an empty field that
+  keeps the stored key unless something is typed, and `Secret.Applied` wraps what was typed. Read `Key.Reveal()` in
+  the one place the key is used — the request to the partner.
+- **A host wired by hand** registers its own `ISecrets`; a test sets `SecretKeeping.Default` to one. A
+  `Secret<T>` of a `Password` value object is not [RASK175](diagnostics.md#rask175): it is kept as ciphertext, which is
+  what a password the app must send on asks for. A sign-in password is still hashed, never kept.
+
 Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
 searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
 

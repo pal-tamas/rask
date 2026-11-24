@@ -10,6 +10,7 @@ internal sealed class RuleAuditFindings
 {
     private readonly Dictionary<(string Aggregate, string Field, string Rule), List<string>> _breaches = [];
     private readonly Dictionary<string, int> _read = new(StringComparer.Ordinal);
+    private readonly List<string> _notes = [];
 
     /// <summary>Records that <paramref name="id" /> of <paramref name="aggregate" /> breaks <paramref name="rule" /> at <paramref name="field" />.</summary>
     /// <param name="aggregate">The aggregate's (or the table's entity's) name.</param>
@@ -34,6 +35,9 @@ internal sealed class RuleAuditFindings
     /// <summary>Records that <paramref name="count" /> more rows of <paramref name="aggregate" /> were asked.</summary>
     internal void Read(string aggregate, int count) => _read[aggregate] = _read.GetValueOrDefault(aggregate) + count;
 
+    /// <summary>Records something the audit could not ask, said in the report beside the findings.</summary>
+    internal void Note(string note) => _notes.Add(note);
+
     /// <summary>The findings, each aggregate's together, its fields in order.</summary>
     internal RuleAuditReport Report() => new(
         [.. _read.OrderBy(static r => r.Key, StringComparer.Ordinal).Select(static r => new RuleAuditCount(r.Key, r.Value))],
@@ -43,7 +47,10 @@ internal sealed class RuleAuditFindings
                 .ThenBy(static b => b.Key.Field, StringComparer.Ordinal)
                 .ThenBy(static b => b.Key.Rule, StringComparer.Ordinal)
                 .Select(static b => new RuleBreach(b.Key.Aggregate, b.Key.Field, b.Key.Rule, [.. b.Value.Distinct(StringComparer.Ordinal)])),
-        ]);
+        ])
+    {
+        Notes = [.. _notes],
+    };
 
     // `Lines[2].Taxes[0].Rate` → `Lines[*].Taxes[*].Rate`.
     private static string AnyPosition(string field)

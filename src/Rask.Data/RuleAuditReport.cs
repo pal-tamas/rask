@@ -7,4 +7,7 @@ internal sealed record RuleAuditReport(IReadOnlyList<RuleAuditCount> Read, IRead
 {
     /// <summary>Whether every stored row passes every rule.</summary>
     public bool Clean => Breaches.Count == 0;
+
+    /// <summary>What the audit could not ask, and why: an index whose filter is SQL. Not findings.</summary>
+    public IReadOnlyList<string> Notes { get; init; } = [];
 }

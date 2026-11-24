@@ -29,6 +29,11 @@ internal static class DataHostSeams
 
         services.AddRaskData();
 
+        // A Secret<T> column is encrypted with the host's key ring; idempotent, as AddRask already asked for the ring.
+        services.AddDataProtection();
+        services.TryAddSingleton<ISecrets, DataProtectionSecrets>();
+        services.AddHostedService<SecretsAtStart>();
+
         // A form's refused id (HeldRowReference) says it in the reader's language: Rask.Data has no strings catalog of
         // its own on a server, so the host hands it Rask's.
         HeldRowReference.Sentence = static () =>

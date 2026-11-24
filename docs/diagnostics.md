@@ -3435,7 +3435,8 @@ loads it as `null` ([domain.md](domain.md#declared-from-a-base-record)).
 
 The generated model, writes and read face exist before any EF model is built, so three calls are read from the
 source of the entity's own static `Configure`, as written there: `KeepEmpty(c => c.Member)` (an empty text kept as
-`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members) and
+`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members), `Json(c => c.Member)`
+(a value object kept whole in one JSON column, which the read face then leaves out) and
 `IsUnique("message")` on an aggregate's index (a form asks the store before it saves). Written anywhere else — a
 helper method, another class, `OnModelCreating`, an `IEntityTypeConfiguration` — or called as a static method, with
 the member in a variable rather than a lambda, or with a pattern that is not a constant, the call still configures
