@@ -25,8 +25,6 @@ public sealed class DataDbCollectionGuardTests
             nameof(BaseRecordValueObjectRuleTests),
             // Collation names read into cultures; it never builds a context.
             nameof(TextCollationTests),
-            // Refusals built in memory; it never builds a context.
-            nameof(RefuseTests),
             // SQL text read into a record; it never builds a context.
             nameof(BulkDeleteTests),
             // Refusals thrown from conditions and lambdas; it never builds a context.
