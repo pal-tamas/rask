@@ -162,6 +162,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
 | [RASK173](#rask173) | Warning | A factory is public, so its generated entry cannot be called |
+| [RASK174](#rask174) | Info | Two operations take the same parameters, so neither gets a `Form.For` |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
@@ -3445,6 +3446,21 @@ private static Supply Register(CompanyId company, SupplyDetails details) => …;
 
 **Fix:** make the factory `private` or `internal`. Code that only wants the aggregate built, not saved, calls it from
 inside the aggregate (or the assembly, when it is `internal`).
+
+## RASK174
+
+**Two operations take the same parameters, so neither gets a `Form.For`** · Info
+
+`Form.For(Driver.Rename, id)` picks the operation by the parameters of its generated entry, since a method group
+carries no name a call can be told by. Two operations whose entries take the same types would make every such call
+ambiguous, so neither gets a form.
+
+```csharp
+public void Rename(DriverName name) { … }        // ℹ RASK174
+public void SetFullName(DriverName name) { … }   // ℹ RASK174
+```
+
+**Fix:** give one of them a value object of its own for what it takes (`FullName`), which is also the clearer domain.
 
 ## RASK180
 
