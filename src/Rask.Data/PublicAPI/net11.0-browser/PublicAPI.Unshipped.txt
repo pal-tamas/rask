@@ -2,6 +2,9 @@
 abstract Rask.Data.ValueObject.EqualityComponents() -> System.Collections.Generic.IEnumerable<object?>!
 override Rask.Data.Entity<TId>.Equals(object? obj) -> bool
 override Rask.Data.Entity<TId>.GetHashCode() -> int
+override Rask.Data.RecordedTransaction.Equals(object? obj) -> bool
+override Rask.Data.RecordedTransaction.GetHashCode() -> int
+override Rask.Data.RecordedTransaction.ToString() -> string!
 override Rask.Data.ValueObject.Equals(object? obj) -> bool
 override Rask.Data.ValueObject.GetHashCode() -> int
 Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>
@@ -23,6 +26,10 @@ Rask.Data.Aggregate<TId>.DeletedAt.get -> System.DateTime?
 Rask.Data.Aggregate<TId>.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.IEvent!>!
 Rask.Data.Aggregate<TId>.Raise(Rask.Cqrs.IEvent! domainEvent) -> void
 Rask.Data.Aggregate<TId>.Version.get -> int
+Rask.Data.AggregatePolicy
+Rask.Data.AggregatePolicy.Off = 0 -> Rask.Data.AggregatePolicy
+Rask.Data.AggregatePolicy.Throw = 2 -> Rask.Data.AggregatePolicy
+Rask.Data.AggregatePolicy.Warn = 1 -> Rask.Data.AggregatePolicy
 Rask.Data.AmbientContextBinding
 Rask.Data.AmbientContextBinding.ContextType.get -> System.Type!
 Rask.Data.AmbientContextBinding.CreateContext() -> Microsoft.EntityFrameworkCore.DbContext!
@@ -65,6 +72,7 @@ Rask.Data.FullTextSearchBuilderExtensions
 Rask.Data.FullTextTokenizer
 Rask.Data.FullTextTokenizer.English = 1 -> Rask.Data.FullTextTokenizer
 Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
+Rask.Data.GeneratedLocks
 Rask.Data.GeneratedModelRules
 Rask.Data.GeneratedModelWrites
 Rask.Data.GeneratedReadQuery
@@ -78,12 +86,18 @@ Rask.Data.IEntityTrait
 Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
 Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.IEvent!>!
+Rask.Data.InfrastructureBuilderExtensions
 Rask.Data.IPrincipalSource
 Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Data.IReadModel
 Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
 Rask.Data.JsonIndexBuilderExtensions
+Rask.Data.ManyAggregatesException
+Rask.Data.ManyAggregatesException.Aggregates.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.ManyAggregatesException.ManyAggregatesException() -> void
+Rask.Data.ManyAggregatesException.ManyAggregatesException(string! message) -> void
+Rask.Data.ManyAggregatesException.ManyAggregatesException(string! message, System.Exception? innerException) -> void
 Rask.Data.Model
 Rask.Data.Model.Model() -> void
 Rask.Data.ModelBuilderExtensions
@@ -95,6 +109,19 @@ Rask.Data.PerTenant
 Rask.Data.PerTenant.PerTenant() -> void
 Rask.Data.PerTenant<TKey>
 Rask.Data.PerTenant<TKey>.PerTenant() -> void
+Rask.Data.RaskDataOptions
+Rask.Data.RaskDataOptions.OneAggregatePerTransaction.get -> Rask.Data.AggregatePolicy
+Rask.Data.RaskDataOptions.OneAggregatePerTransaction.set -> void
+Rask.Data.RaskDataOptions.RaskDataOptions() -> void
+Rask.Data.RecordedTransaction
+Rask.Data.RecordedTransaction.<Clone>$() -> Rask.Data.RecordedTransaction!
+Rask.Data.RecordedTransaction.Aggregates.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.RecordedTransaction.Aggregates.init -> void
+Rask.Data.RecordedTransaction.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! Aggregates, out string? ManyAggregates) -> void
+Rask.Data.RecordedTransaction.Equals(Rask.Data.RecordedTransaction? other) -> bool
+Rask.Data.RecordedTransaction.ManyAggregates.get -> string?
+Rask.Data.RecordedTransaction.ManyAggregates.init -> void
+Rask.Data.RecordedTransaction.RecordedTransaction(System.Collections.Generic.IReadOnlyList<string!>! Aggregates, string? ManyAggregates) -> void
 Rask.Data.SoftDelete
 Rask.Data.SoftDelete.SoftDelete() -> void
 Rask.Data.Timestamps.Timestamps() -> void
@@ -109,6 +136,10 @@ Rask.Data.TraitSet.SoftDelete = 64 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Updated = 2 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.UpdateModel = 16 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Versioned = 4 -> Rask.Data.TraitSet
+Rask.Data.TransactionRecording
+Rask.Data.TransactionRecording.Dispose() -> void
+Rask.Data.TransactionRecording.EachWroteOneAggregate() -> void
+Rask.Data.TransactionRecording.Transactions.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.RecordedTransaction!>!
 Rask.Data.Updated
 Rask.Data.Updated.Updated() -> void
 Rask.Data.UpdateModel
@@ -211,6 +242,7 @@ Rask.Data.TestDatabase.Load<TEntity>(object! key, System.Threading.CancellationT
 Rask.Data.TestDatabase.Load<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.Bind() -> System.IDisposable!
 Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
+Rask.Data.TestDatabase.Options<TOther>() -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TOther!>!
 Rask.Data.Timestamps
 const Rask.Data.GeneratedModelRules.RequiredMessage = "This field is required." -> string!
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
@@ -253,15 +285,19 @@ static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContex
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsOn.get -> bool
+static Rask.Data.Db.Record() -> Rask.Data.TransactionRecording!
 static Rask.Data.Db.Reset() -> void
 static Rask.Data.Db.Lock(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
+static Rask.Data.Db.Lock(System.Collections.Generic.IEnumerable<string!>! names, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Data.Locking
 Rask.Data.Locking
 Rask.Data.Locking.Locking() -> void
 Rask.Data.Locking.For(System.TimeSpan wait) -> Rask.Data.Locking
 Rask.Data.Locking.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<System.IAsyncDisposable!>
 Rask.Data.Locking.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.IAsyncDisposable!>
 Rask.Data.Locking.AsTask() -> System.Threading.Tasks.Task<System.IAsyncDisposable!>!
+static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, string! manyAggregates, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.Db.Transaction(System.Func<System.Threading.Tasks.Task!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, string! manyAggregates, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.Transaction<T>(System.Func<System.Threading.Tasks.Task<T>!>! work, System.Data.IsolationLevel? isolation = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Data.Entity<TId>.operator !=(Rask.Data.Entity<TId>? left, Rask.Data.Entity<TId>? right) -> bool
@@ -270,6 +306,8 @@ static Rask.Data.FullText.Highlight(string? property) -> string?
 static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
 static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
 static Rask.Data.FullTextSearchBuilderExtensions.HasFullTextSearch<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! properties, Rask.Data.FullTextTokenizer tokenizer = Rask.Data.FullTextTokenizer.Unicode) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.GeneratedLocks.Children<TAggregate, TChild>(object! key, string! navigation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedLocks.Row<TAggregate>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedModelRules.OrRequired(System.Collections.Generic.IEnumerable<string!>? said) -> System.Collections.Generic.IEnumerable<string!>!
 static Rask.Data.GeneratedModelRules.OrRequired(System.Collections.Generic.IEnumerable<string!>? said, string! sentence) -> System.Collections.Generic.IEnumerable<string!>!
 static Rask.Data.GeneratedModelRules.Refused(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>! failures) -> Rask.Cqrs.RaskValidationException!
@@ -280,11 +318,15 @@ static Rask.Data.GeneratedModelRules.Told(System.Collections.Generic.IList<Rask.
 static Rask.Data.GeneratedModelWrites.Create<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.Delete<TEntity>(object! key, int? version, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedModelWrites.Delete<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedModelWrites.Load<TEntity>(object! key, int? version = null, bool forUpdate = false, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.ModelSource<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, string? roles, string? manyAggregates, System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TId>!
+static Rask.Data.GeneratedOperations.Run<TAggregate>(string! operation, string? roles, string? manyAggregates, System.Func<object!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>? forUpdate, object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
 static Rask.Data.GeneratedStoreRules.CanAsk(System.IServiceProvider? services) -> bool
 static Rask.Data.GeneratedStoreRules.Check<TEntity, TModel>(System.IServiceProvider? services, TModel! model, string? field, System.Func<TModel!, string!, object?>! valueOf, System.Func<TModel!, object?>! keyOf, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
+static Rask.Data.InfrastructureBuilderExtensions.Infrastructure<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext! context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
@@ -295,11 +337,15 @@ static Rask.Data.ModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ModelRegistry.Replace(System.Type! group, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! mapEntities, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! applyConfigurations, System.Action<Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!>! configureConventions) -> void
 static Rask.Data.ModelSet.Create<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).Create(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, string! operation, string? roles = null, string? manyAggregates = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, string? roles = null, string? manyAggregates = null, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
+static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Collections.Generic.IEnumerable<object!>!>!>! forUpdate, string? roles = null, string? manyAggregates = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 static Rask.Data.RangeExclusionBuilderExtensions.HasNonOverlappingRange<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! lo, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! hi, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>? partitionBy = null, bool? ignoreSoftDeleted = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.RangeExclusionSpec.TryParse(object? value, out Rask.Data.RangeExclusionSpec! spec) -> bool
 static Rask.Data.RangeExclusionSpec.operator !=(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
 static Rask.Data.RangeExclusionSpec.operator ==(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
 static Rask.Data.RangeOverlapException.ForTable(string! table, System.Exception? innerException = null) -> Rask.Data.RangeOverlapException!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.ReadDb.Configure(System.Func<Rask.Data.RaskReadDbContext!>! createContext) -> void
 static Rask.Data.ReadDb.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.ReadDb.IsOn.get -> bool
@@ -308,6 +354,8 @@ static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuil
 static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
+static Rask.Data.RecordedTransaction.operator !=(Rask.Data.RecordedTransaction? left, Rask.Data.RecordedTransaction? right) -> bool
+static Rask.Data.RecordedTransaction.operator ==(Rask.Data.RecordedTransaction? left, Rask.Data.RecordedTransaction? right) -> bool
 static Rask.Data.Tenant.Across() -> System.IDisposable!
 static Rask.Data.Tenant.IsAcrossTenants.get -> bool
 static Rask.Data.Tenant.None() -> System.IDisposable!
@@ -382,7 +430,6 @@ static Rask.Data.ViolationMessageBuilderExtensions.WhenReferenced(this Microsoft
 static Rask.Data.ViolationMessageBuilderExtensions.WhenReferenced<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
-static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Data.Constraint
 Rask.Data.Constraint.Columns.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -428,6 +475,7 @@ Rask.Data.TestDatabaseOptions.Shared.set -> void
 Rask.Data.TestDatabaseOptions.TestDatabaseOptions() -> void
 static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!, string!>! configure, System.Action<Rask.Data.TestDatabaseOptions!>? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
 static Rask.Data.ModelConfigurationBuilderExtensions.OrderTextBy(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, string! collation) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelConfigurationBuilderExtensions.TenantReferences<TTenant>(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.TextOrderExtensions
 static Rask.Data.TextOrderExtensions.InTextOrder(this string! text) -> string!
 Rask.Data.LazyLoadingOptionsBuilderExtensions
@@ -487,7 +535,6 @@ static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, int version, Sy
 Rask.Data.GeneratedOperations
 Rask.Data.OperationBuilderExtensions
 static Rask.Data.GeneratedOperations.Run<TAggregate>(string! operation, string? roles, object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, System.Delegate!>!>! operation, string? roles = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 Rask.Data.Children<TEntity, TSpec>
 Rask.Data.Children<TEntity, TSpec>.Children() -> void
 Rask.Data.Children<TEntity, TSpec>.Count.get -> int
@@ -501,7 +548,6 @@ Rask.Data.SyncResult<TEntity>.Removed.get -> System.Collections.Generic.IReadOnl
 Rask.Data.SyncResult<TEntity>.Touched.get -> System.Collections.Generic.IReadOnlyList<TEntity>!
 static Rask.Data.GeneratedOperations.Admits(string? roles) -> bool
 static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, string? roles, System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TId>!
-static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, string! operation, string? roles = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 static Rask.Data.GeneratedOperations.Try<TAggregate>(object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.TryBuild<TAggregate>(System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.Given<T>(System.Func<T>! make, System.Collections.Generic.ICollection<Rask.Wire.FieldFailure!>! failures) -> T?
@@ -527,6 +573,8 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+Rask.Data.DataMigrationExtensions
+static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void
 Rask.Data.Entity<TId, T1, T2>
 Rask.Data.Entity<TId, T1, T2>.Entity() -> void
 Rask.Data.GatedBuilderExtensions

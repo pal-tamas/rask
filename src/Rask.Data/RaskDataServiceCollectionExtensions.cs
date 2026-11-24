@@ -22,9 +22,21 @@ public static partial class RaskDataServiceCollectionExtensions
     /// A raised event reaches its <c>IEventHandler</c>s in memory after the save commits, and its
     /// <c>IDurableHandler</c>s through the outbox when <c>Rask.Outbox</c> is registered — each handler chooses.
     /// </remarks>
-    public static IServiceCollection AddRaskData(this IServiceCollection services)
+    /// <param name="services">The services.</param>
+    /// <param name="configure">
+    /// Sets the writes' options — <c>o =&gt; o.OneAggregatePerTransaction = AggregatePolicy.Throw</c>. Every call's applies,
+    /// in order.
+    /// </param>
+    /// <returns>The same services.</returns>
+    public static IServiceCollection AddRaskData(this IServiceCollection services, Action<RaskDataOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
+
+        services.AddOptions<RaskDataOptions>();
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
 
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
@@ -51,6 +63,10 @@ public static partial class RaskDataServiceCollectionExtensions
             // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
             // in SavingChanges) sees them whichever interceptor runs first.
             services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
+
+            // After the others have shaped the save, so it counts the rows the save writes: a second aggregate in one
+            // Db.Transaction, written without manyAggregates:, meets RaskDataOptions.OneAggregatePerTransaction.
+            services.AddSingleton<ISaveChangesInterceptor, OneAggregatePerTransactionInterceptor>();
 
             // Last, so it sees the save as the others left it. Also a transaction interceptor — EF hands the
             // same instance both roles — which is how a save inside the caller's transaction waits for its

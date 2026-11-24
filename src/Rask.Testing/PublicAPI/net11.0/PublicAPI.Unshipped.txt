@@ -212,3 +212,10 @@ Rask.Testing.TestMakes.extension(Rask.Testing.Test!)
 static Rask.Testing.TestMakes.Make<T>() -> T!
 static Rask.Testing.TestMakes.extension(Rask.Testing.Test!).Make<T>() -> T!
 static Rask.Testing.Test.Concurrently(System.Func<System.Threading.Tasks.Task!>! first, System.Func<System.Threading.Tasks.Task!>! second) -> System.Threading.Tasks.Task<Rask.Testing.RefusalAssertion!>!
+Rask.Testing.FormAssertionException
+Rask.Testing.FormAssertionException.FormAssertionException() -> void
+Rask.Testing.FormAssertionException.FormAssertionException(string! message) -> void
+Rask.Testing.FormAssertionException.FormAssertionException(string! message, System.Exception! innerException) -> void
+static Rask.Testing.Test.FormShows<TModel>(System.Linq.Expressions.Expression<System.Func<TModel!, object?>!>! field, object? value, string! message) -> System.Threading.Tasks.Task!
+static Rask.Testing.Test.FormShows<TModel>(System.Linq.Expressions.Expression<System.Func<TModel!, object?>!>! field, object? value, System.Action<TModel!>! given, string! message) -> System.Threading.Tasks.Task!
+static Rask.Testing.Test.FormShows<TModel>(TModel! model, System.Linq.Expressions.Expression<System.Func<TModel!, object?>!>! field, object? value, string! message) -> System.Threading.Tasks.Task!

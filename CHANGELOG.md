@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **An index's `Where(…)` and `Computed(…)` read a one-value value object as its column.** Before:
+  `HasIndex(f => f.PistolId).Where(f => f.Number.Value > 0)` over a `record FuelingNumber(int Value) : Value` failed the
+  model build ("Number … is not a value object Fueling maps"), and `Where(f => f.Number != FuelingNumber.Unset)` failed
+  with "SqlServer has no column type for FuelingNumber", so the filter stayed a provider-specific `HasFilter`. After:
+  `.Value` is the column, compared with a plain number, and a value object constant is written as the column stores
+  it — `[Number] > 0` on SQL Server, `"Number" > 0` on PostgreSQL and SQLite.
+- **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
+  generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
+  `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always
+  toasted "Saved". After: it takes `.Id`, `.Class`, `.Style`, `.Data`, `.Attributes`, `.ConfirmLeave` and
+  `.OnInvalidSubmit` onto the `<form>` it draws, and `.Saved("Company saved.")` is the toast — the dialog's in place of
+  its catalog `EditorSaved`, or the form's own when nothing hosts it. `IOperationFormHost.Saved` takes the message.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
@@ -46,6 +58,98 @@ them until tagged releases begin.
   - `b.Gated(d => d.Card, Module.Tachograph)` + `services.AddRaskGate<Module>((scope, m) => …)`: with the gate shut,
     a save keeps the stored value of a gated member and an added row stores none. Before: each form re-read the
     hidden field and wrote it back by hand.
+- **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
+  as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
+  model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
+  production refused it. After: the IRaskModel says it once; Rask's providers write the key (`NO ACTION`, named by
+  the app's `ConstraintNames` rule) in the migrations and in `EnsureCreated` on SQLite, SQL Server and PostgreSQL, so
+  the delete is refused everywhere with the tenant's `WhenReferenced` sentence. It is a database key, not an EF Core
+  relationship; a database that already has the keys empties the first migration's `AddForeignKey`s
+  (docs/multi-tenancy.md).
+- **RASK133: an aggregate written on a `DbContext` around its own operations.** `db.Products.Add(p)`,
+  `db.Update(order)`, `db.Remove(supply)` (and their `Range`/`Async` forms) in a method that also calls
+  `SaveChanges(Async)` skip the aggregate's factory, its operations, their roles and the rules every save asks. The
+  message names the generated entry to call instead (`X.Register(…)`, `X.M(id, version, …)`, `X.Delete(id, version)`)
+  or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
+  reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
+  `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
+- **`rask audit` asks the stored data the rules its types declare today.** Before: a rule was asked only of what a save
+  writes — of a stored row, only the fields a save changes — so an old row a tightened rule refuses stayed unseen
+  until someone edited it, and finding them took hand-written SQL per rule. After: `rask audit` (or, on the server,
+  `dotnet App.dll rask audit`) loads every aggregate whole, a page at a time and from every tenant, and asks what a save
+  adding it would ask — every attribute of every row, `IValidatableObject`, `Validate()`, awaited rules too, each in the
+  aggregate's tenant — plus each value object's own rules (which a load never asks) and whether it is stored as its
+  rules keep it, and whether every id kept as text is one the app reads and writes that way. It reports each rule
+  broken by field (a child's rows together, `Lines[*].Quantity`) with the count and the ids alone; `--aggregate Name`
+  narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
+  save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
+  See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
+- **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
+  moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
+  aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
+  app's release step, `MigrateOnStart` on or off), and after `rask db update` (which then has the app run them) — once,
+  recorded in `__RaskDataSteps`; a migration `dotnet ef` applied has its steps run the next time the app migrates. See
+  [docs/data-writes.md](docs/data-writes.md#moving-data-in-c-with-bdata).
+- **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
+  app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
+  in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
+  string, since `UseRaskSqlite(string, SqliteOptions)` is internal. After: `new LegacyDb(database.Options<LegacyDb>().Options)`
+  — the provider configured as the fixture's own contexts are, none of its interceptors.
+- **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
+  `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
+  without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
+  `Warn` by default (logged once per transaction), `Throw` (`ManyAggregatesException` naming the aggregates, rolled
+  back) or `Off`. A child counts as its aggregate; Rask's own tables and those marked `b.Infrastructure()` never
+  count. **Behaviour change in tests: a `TestDatabase` runs at `Throw`.** `Db.Record()` records each committed
+  transaction's aggregates for a test (`saves.EachWroteOneAggregate()`). RASK178 flags a block writing two aggregate
+  types with no reason; its quick-fix inserts `manyAggregates: "TODO: why"`.
+- **An operation's `Configure` states its reason and its locks:** `b.Operation(x => x.M, manyAggregates: "…")` runs the
+  generated entry in that transaction; `forUpdate: true` locks the aggregate's row, `forUpdate: s => s.Parts` that
+  child collection's rows, before the load (`UPDLOCK, HOLDLOCK` / `FOR UPDATE`). A typed id one aggregate alone is
+  keyed by gets `await id.Load(version, forUpdate: true)` for a static method of your own.
+- **`await Test.Make<Supply>()` makes a stored aggregate its rules accept** (new package `Rask.Testing.Data`, beside
+  `Rask.Testing`, so a component-only test project stays free of EF Core). It calls the aggregate's own factory — a
+  static method declared on it that returns it, private or not — with a value its rules take for every parameter (a
+  value object from `Test.Make<Vin>()`, a row spec through its constructor, a list of one row; a nullable left null, a
+  default kept), makes and stores first every aggregate it refers to (an aggregate parameter, a typed id, a plain id
+  named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
+  `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
+  it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
+  aggregates and every reference by hand. A new `server` app's `<Name>.Tests` project references `Rask.Testing.Data` beside
+  `Rask.Testing`; a `wasm` one stays on `Rask.Testing`.
+- **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
+  field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
+  validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
+  a row the path names is added, a sub-object made, `given: m => m.Km.Start = 10` fills the other fields, and
+  `Test.FormShows(model, …)` takes a model made by hand. Anything else fails with a `FormAssertionException` that says
+  what the field showed.
+- **`Allocation.Split` splits a total into shares whose sum is the total exactly.** Before: an app rounded each share
+  on its own and lost or invented a cent (TA's `StockChanges.Shares`, Eszaf's per-category rounding). After:
+  `Allocation.Split(total, receivers.Count, step: 0.01m)` for equal parts, `Allocation.Split(total, weights, step,
+  remainder: Remainder.ToLargest)` for weighted ones — each share a whole number of steps and within one of its exact
+  part, the remainder to the first, the last or the largest-remainder parts (`Rask.Values`, docs/data.md).
+- **Rask.Jobs runs a tenant's work one at a time, names "the same work" by a key, and ends a job its host died with.**
+  `Jobs.Enqueue(job).InTenantLane("loads")` (a batch and `Jobs.Run` too; `Jobs.TenantLane("loads")` for `Jobs.Lane`)
+  is a lane per tenant in flight. `.UnlessWaiting(key)` skips the enqueue while a job of the same kind and key waits,
+  whatever else its payload carries. And a job whose host died on its LAST attempt — before: never claimed again and
+  read as running for ever, in the bell and to an awaiting `Jobs.Run` — is swept once a minute into a dead letter
+  that says why, so the bell says Failed, `Jobs.Run` throws `JobFailedException` and the dashboard can retry it. No
+  migration (docs/jobs.md).
+- **Three aggregate-write analyzers, each with a quick-fix (RASK184–RASK186).** Suggestions by default, warnings under
+  `<RaskStrict>` (errors at `errors`), like RASK140–144. RASK184: `throw new InvalidOperationException(m)` or
+  `ArgumentException(m)` inside an aggregate or an entity — a failed request where a form would show a sentence; the
+  fix turns `if (c) throw …;` into `Refuse.When(c, m);` (`Refuse.Unless` for `if (!c)`, `() => x` as the field for an
+  `ArgumentException(m, nameof(x))`) and any other throw into `throw new RaskValidationException(m)`. RASK185: an
+  aggregate held in a local declared before `Db.Transaction` and used inside its work — a read the transaction does not
+  cover and a retry repeats on the same copy; the fix moves the load to the top of the block. RASK186:
+  `X.Update(id, x => x.M(…), version: v)` where `M` has a generated operation entry — the fix calls `X.M(id, v, …)`,
+  which asks the operation's roles as its form does.
+- **`Db.Lock(names)` takes several named locks at once, in an order no two callers can deadlock on.** Before: a save
+  that touched three chip codes locked them one by one in the order it met them, and two saves sharing codes in
+  opposite orders could each hold one the other waited for. After: `await Db.Lock(codes.Select(c => "chip:" + c)).For(30.Seconds)`
+  takes every name in ordinal order (on PostgreSQL in the order of their `hashtext`, the locks it really takes), a
+  duplicate once and none for an empty list, within the one wait — and all or none: a name not granted lets go of the
+  ones already taken before the `TimeoutException`. On SQLite, SQL Server and PostgreSQL, proven by the providers suite.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
@@ -56,6 +160,13 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
+  entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
+  transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,
+  text order, `Db.Lock`, code that runs the same on every database, migrations) and `docs/data-writes.md` (bulk
+  insert, batch updates, moving stored rows). Gone from the docs: the command handler and the page that inject a
+  context factory to save, rules that throw `InvalidOperationException`, and SQL or store types written in the model.
+  Two aggregates in one save is the last resort, both entries inside one `Db.Transaction(…, manyAggregates: "why")`. The rask.sh guides follow.
 - **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
   a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
   sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or

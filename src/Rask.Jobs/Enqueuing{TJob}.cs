@@ -71,6 +71,15 @@ public readonly struct Enqueuing<TJob>
     }
 
     /// <summary>
+    ///     Runs them in their tenant's lane, one at a time with the tenant's other work of <paramref name="lane" />, beside
+    ///     every other tenant's — as <see cref="Enqueuing.InTenantLane" /> does for one job.
+    /// </summary>
+    /// <param name="lane">Which of the tenant's lanes, or null for its one lane.</param>
+    /// <exception cref="InvalidOperationException">No tenant is in flight.</exception>
+    public Enqueuing<TJob> InTenantLane(string? lane = null) =>
+        new(_jobs, _batch, _runAt, _delay, TenantLanes.Of(lane, "Jobs.Enqueue(jobs).InTenantLane()"), _title, _shared, _cancellationToken);
+
+    /// <summary>
     ///     Shows each job to whoever enqueues them, under the title <paramref name="title" /> gives it —
     ///     <c>.Noticed(j =&gt; $"Import of {j.Name}")</c> — as one group in their <c>Ui.WorkNotices</c> bell, with one bar for
     ///     the whole batch and one toast when its last job ends.
