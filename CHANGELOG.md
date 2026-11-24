@@ -60,6 +60,18 @@ them until tagged releases begin.
   `IValidatableObject` and the validation attributes on the app's half of the model run after the fields, an awaited
   attribute is left to the form and to the save, which awaits it on the aggregate's property with the same words, and
   every `ValidationContext` carries the services of the request, live session, handler or job in progress.
+- **A typed id is one line: `public readonly partial record struct VehicleId(int Value);`.** Before: a typed id was
+  converted for EF Core and nothing else, so it printed as `VehicleId { Value = 42 }`, serialized as `{"Value":42}`,
+  could not be a `[RouteParam]` without a hand-written `IParsable`, and an id over an `int` was never the store's
+  identity. After: Rask's generator completes a top-level `readonly partial record struct …Id` with one positional
+  `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
+  `ISpanParsable<T>`), `ToString()` of the value, a scalar JSON converter and route binding; a member written by hand is
+  kept (docs/data.md#strongly-typed-ids).
+- **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
+  Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
+  variable, a static call — configured the column, but the generated model, writes and read face silently acted as
+  if it were never made. After: a warning on the call says to write it directly in the entity's own static
+  `Configure`.
 - **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
   msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
   a form shows under that field — or above the form when none is named — instead of the error page an
@@ -1117,6 +1129,14 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A strongly-typed id over an integer is the store's identity; a `Guid` one in a text column is written lower case.**
+  Before: Rask's key convention marked a `VehicleId(int Value)` key never generated, so `Create(model)` was missing
+  and the factory had to number the row; and a `Guid` id on SQLite was stored as SQLite spells a `Guid`, in upper
+  case. After: an id over an `int` or a `long` keys an identity column exactly as the integer does (`Create(model)`
+  inserts it, `Create(id, model)` is gone unless `Configure` says `ValueGeneratedNever()`), and an id over a `Guid`
+  whose column is text — every `Guid` on SQLite, an existing schema's `nvarchar` key — is written as the id prints it,
+  in lower case. Rows already stored in upper case still load, but a `Where` on them no longer matches: lower-case the
+  column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
 - **BREAKING: a value object's rule is its base record's; a `public static Validate` beside its value is no longer
   asked.** Before: a one-value value object (`record struct DriverName(string Value)`) stated its rule as a
   `public static IEnumerable<string> Validate(string value)` — or a `ValueTask`/`Task` of it — which a form over the

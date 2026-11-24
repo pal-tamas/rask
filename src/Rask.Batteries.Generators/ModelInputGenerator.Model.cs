@@ -290,7 +290,8 @@ public sealed partial class ModelInputGenerator
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
     //    and marks every other Entity<TId> key never-generated, so EF produces nothing else — unless the
     //    aggregate's own Configure says the key is never generated, and then it is the caller's like any other.
-    //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
+    //  * A strongly-typed id over an int or a long — VehicleId(int Value) — is the store's identity too, the same way.
+    //  * Anything else — a string, a strongly-typed id over a string — has no value the row could
     //    be keyed by that the caller did not choose, so only Create(id, model) is generated for it.
     private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType, bool neverGenerated)
     {
@@ -317,14 +318,13 @@ public sealed partial class ModelInputGenerator
             return (KeySource.Guid, "global::System.Guid.CreateVersion7()");
         }
 
-        return ModelRegistryGenerator.StronglyTypedId.For(idType) is
+        return ModelRegistryGenerator.StronglyTypedId.For(idType) switch
         {
-            Problem: null,
-            TypeName: { } typeName,
-            ValueTypeName: "global::System.Guid",
-        }
-            ? (KeySource.Guid, "new " + typeName + "(global::System.Guid.CreateVersion7())")
-            : (KeySource.Caller, null);
+            { Problem: null, TypeName: { } typeName, ValueTypeName: "global::System.Guid" } =>
+                (KeySource.Guid, "new " + typeName + "(global::System.Guid.CreateVersion7())"),
+            { Problem: null, ValueTypeName: "int" or "long" } => (neverGenerated ? KeySource.Caller : KeySource.Store, null),
+            _ => (KeySource.Caller, null),
+        };
     }
 
     /// <summary>
