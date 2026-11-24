@@ -119,7 +119,7 @@ public static class RaskSqliteDbContextOptionsExtensions
         // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
         RaskDbContext.WithSharedWarnings(optionsBuilder);
 
-        // The connection interceptor below registers the collation OrderTextBy names, so the model may use it.
+        // The decimal order, and the collation OrderTextBy names — registered on every open, so the model may use it.
         TextCollationOptionsExtension.Add(optionsBuilder);
 
         // A DateTimeOffset compares, orders and indexes by its instant, as SQL Server's datetimeoffset does — through the
@@ -175,6 +175,11 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// rewrite behind <c>Search</c>.
     /// </para>
     /// <para>
+    /// It also gives that database what makes every Rask SQLite compare and compute alike: the invariant decimal order,
+    /// the text collation a model names with <c>c.OrderTextBy(...)</c> (registered on each open, with <c>instr</c> and
+    /// <c>LIKE</c> compared the same way), and <c>end - start</c> between two dates in a query.
+    /// </para>
+    /// <para>
     /// The index is built by a MIGRATION. <c>EnsureCreated</c> creates no index, and a query against it then fails —
     /// apply migrations (<c>Database.MigrateAsync()</c>) instead.
     /// </para>
@@ -197,6 +202,10 @@ public static class RaskSqliteDbContextOptionsExtensions
         }
 
         AddFullTextSearchModelAndQuery(optionsBuilder);
+
+        // Every SQLite compares and subtracts alike: the decimal and text collations, and `end - start` between dates.
+        TextCollationOptionsExtension.Add(optionsBuilder);
+        SqliteDurationOptionsExtension.Add(optionsBuilder);
         return optionsBuilder;
     }
 

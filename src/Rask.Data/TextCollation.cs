@@ -90,6 +90,43 @@ internal sealed class TextCollation
     /// </summary>
     internal string IcuCollation => (Culture.Name.Length == 0 ? "und" : Culture.Name) + "-x-icu";
 
+    /// <summary>
+    ///     The ICU locale of a nondeterministic collation that compares as this one does — <c>hu-HU-u-ks-level2</c> for
+    ///     <c>Hungarian_100_CI_AS</c> — or null when the comparison tells case and accents apart (or is binary), which a
+    ///     deterministic collation already does.
+    /// </summary>
+    /// <remarks>
+    ///     ICU's strength says what counts: level 1 the letters alone, level 2 their accents too; a case level over
+    ///     level 1 tells case apart while ignoring accents. Kana and width count only from level 3 on, so below it they
+    ///     are ignored, as SQL Server ignores them without <c>KS</c>/<c>WS</c>.
+    /// </remarks>
+    internal string? NondeterministicIcuLocale
+    {
+        get
+        {
+            if (Options == CompareOptions.Ordinal)
+            {
+                return null;
+            }
+
+            var strength = (Options.HasFlag(CompareOptions.IgnoreCase), Options.HasFlag(CompareOptions.IgnoreNonSpace)) switch
+            {
+                (true, false) => "ks-level2",
+                (true, true) => "ks-level1",
+                (false, true) => "ks-level1-kc-true",
+                _ => null,
+            };
+
+            if (strength is null)
+            {
+                return null;
+            }
+
+            var language = Culture.Name.Length == 0 ? "und" : Culture.Name;
+            return $"{language}-u-{strength}";
+        }
+    }
+
     /// <summary>Reads <paramref name="name" />, once per name.</summary>
     /// <exception cref="InvalidOperationException">The name is not a SQL Server collation this can read.</exception>
     internal static TextCollation Parse(string name)

@@ -34,8 +34,8 @@ internal static class WireShape
     ///     Whether a value that holds one value — a one-value <c>Rask.Data</c> value object
     ///     (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>) or a record struct id
     ///     (<c>record struct VehicleId(int Value)</c>) — travels as that value (<c>"ABC-123"</c>, <c>42</c>), and
-    ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> unchecked, as a
-    ///     row is loaded. True for the CQRS codecs, whose two ends are both generated from this walk; false for
+    ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> — checked where a
+    ///     server reads it, loaded as sent where a browser does (<see cref="WireCodecEmitter" />). True for the CQRS codecs, whose two ends are both generated from this walk; false for
     ///     the API client, whose server reads the same body with System.Text.Json, which knows neither rule.
     /// </param>
     public static WireType Classify(
@@ -431,7 +431,8 @@ internal static class WireShape
                 property.Name,
                 WireName(property),
                 member,
-                IsNullable(property.Type, compilation)));
+                IsNullable(property.Type, compilation),
+                IsRequired(property.Type, compilation)));
         }
 
         return result;
@@ -573,7 +574,8 @@ internal static class WireShape
                 property.Name,
                 WireName(property),
                 wire,
-                IsNullable(property.Type, compilation)));
+                IsNullable(property.Type, compilation),
+                IsRequired(property.Type, compilation)));
         }
 
         return result;
@@ -708,6 +710,13 @@ internal static class WireShape
     public static bool IsNullable(ITypeSymbol type, Compilation? compilation) =>
         type.NullableAnnotation == NullableAnnotation.Annotated ||
         (compilation is not null && GeneratedModelShape.NullableUnresolvedModel(type, compilation) is not null);
+
+    /// <summary>
+    ///     Whether a property of <paramref name="type" /> must be given: a reference declared without <c>?</c> in a
+    ///     nullable context (<see cref="WireMember.Required" />).
+    /// </summary>
+    public static bool IsRequired(ITypeSymbol type, Compilation? compilation) =>
+        type.IsReferenceType && type.NullableAnnotation == NullableAnnotation.NotAnnotated && !IsNullable(type, compilation);
 
     // The file type a MESSAGE declares is Rask.Core's IRaskFile - the same one a file input hands a
     // component, on every host. Matched by name because a generator reads symbols: recognising it here

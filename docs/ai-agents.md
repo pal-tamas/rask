@@ -55,7 +55,19 @@ app refuses something on purpose — a closed invoice, a full trailer — it thr
 form's messages, the error page, or the `detail` of a 400 problem on an endpoint. Every other exception stays
 hidden, and a request that is not a page answers an RFC 9457 problem by default, with a reference in place of the
 message; the app gives its own exceptions a status with `server.Answer<T>(status)`. See
-[a refusal is shown](lifecycle.md#a-refusal-is-shown-refusedexception).
+[a refusal is shown](lifecycle.md#a-refusal-is-shown-refusedexception). A refusal about one field of a form is
+`Refuse.When(condition, () => Parts[i].Quantity, "…")`, shown under that field
+([refusing an operation](data.md#refusing-an-operation-refuse)); a test asserts it with
+`Test.Refuses(…).At("Parts[2].Quantity")`.
+
+## Rules live on the aggregate
+
+An assistant should not re-check a rule in a page or a handler before saving. A property's DataAnnotations attribute,
+the aggregate's `IValidatableObject`, its `Validate()` and its `ValidateDelete()` are asked by **every** save —
+`Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:` context — and a refusal reaches the form as a
+`RaskValidationException` with each message under its field. A stored row is asked only about the properties the
+save changes, so old data that a rule tightened since still saves for its other fields. See
+[what every save asks](data.md#what-every-save-asks).
 
 ## How to use it
 

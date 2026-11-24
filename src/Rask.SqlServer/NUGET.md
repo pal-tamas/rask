@@ -55,6 +55,7 @@ o.UseRaskSqlServer(sp, s => s.Retry.Enabled = false);
 | `CommandTimeout` | 30s | SQL Server has **no server-side statement timeout**, so this client-side ceiling is the only bound on a runaway query. Rounded up to whole seconds, because SqlClient reads 0 as "wait forever". |
 | `LockTimeout` | 10s | The analogue of SQLite's `busy_timeout`. Without it a statement stuck behind a lock waits out the command timeout and surfaces as a *slow query*. Must stay below `CommandTimeout`; `TimeSpan.Zero` waits indefinitely (the server default). |
 | `AbortOnError` | `true` | `SET XACT_ABORT ON`. With it off, a statement error inside an explicit transaction leaves that transaction open and holding locks — and in a web app the connection returns to the pool in that state. |
+| `CompatibilityLevel` | read from the server | The level EF Core writes SQL for: the database's own (or, before it exists, its server version's — 2025 → 170, 2022 → 160, 2019/Azure SQL Edge → 150), read once per connection string and kept. An unreachable server leaves EF Core's default and is asked again 30s later. Set it to pin a level and ask nothing. |
 | `Retry.Enabled` / `MaxCount` / `MaxDelay` | on / 6 / 30s | SQL Server's own `EnableRetryOnFailure`, which already knows the transient error numbers, the Azure SQL failover set included. |
 
 SQL Server takes no session settings in the connection string, so `XACT_ABORT` and `LOCK_TIMEOUT` are one batch

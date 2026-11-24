@@ -513,11 +513,16 @@ public sealed record AssignDriver(VehicleId Vehicle, DriverName Driver, KmRange 
   positional parameter) and **a record struct of one value** (`record struct VehicleId(int Value)`, over a `Guid`,
   a `string`, a number, an enum, …) are their value. A record struct of several values, a `Range`, and a value
   object of several members are an object of their members.
-- **A value object is read through its generated `Create`, unchecked** — inside the same loading scope a row read
-  from the database is built in, so a rule tightened on the server never makes an older browser's message, or the
-  server's answer, unreadable. What arrives is what was sent: a handler that must rely on a rule asks it
-  (`DriverName.Create(command.Driver.Value, "Driver")`, refused under the form's field). A typed id is built with
-  its constructor.
+- **A value object is read through its generated `Create`, and the server checks it.** What a browser sends is
+  untrusted, so the server reads every value object in a command, query, event or subscription through its rules:
+  one they refuse never reaches the handler — the request is answered `400` ("Validation failed") with every
+  refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`), which a form shows
+  where it belongs. A member declared without `?` — a value object, a record, a `string`, a list — that the
+  message leaves out or sends as `null` is refused the same way, with the sentence a form's required field says;
+  a member declared `?` stays null. A handler is never given a value its rules refuse, so it need not ask them again. The
+  **browser** reads what the server answers — a result, an event it pushes — inside the loading scope a row read
+  from the database is built in: a value stored before a rule was tightened still reaches the page. A typed id is
+  built with its constructor.
 - A one-value record **class** that is not a value object keeps its object shape (`{"text":"…"}`), as before.
 
 The generated API client (`Rask.Api.Client`) does not unwrap: its server reads the same body with

@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Security
+- **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:
+  the generated CQRS codec rebuilt every value object it read inside the loading scope a row is read in, on BOTH
+  ends — so a command whose `DriverName` broke its `MaxLength` (or any rule) reached the server's handler exactly as
+  the browser sent it, and "no instance exists that its rules refuse" did not hold for untrusted input. After: the
+  server reads a command, query, event or subscription with every value object made through its rules; one they
+  refuse leaves the message unbuilt and the handler uncalled, and the request is answered `400` ("Validation
+  failed") with every refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`).
+  A member declared without `?` (a value object, a record, a `string`, a list) that the message leaves out or sends
+  as `null` is refused the same way, with the sentence a form's required field says (`Rules.Required`); a `?` member
+  stays null.
+  Only the browser's read of what the server answers — a result, a pushed event (`RemoteContract.LoadMessage`) —
+  keeps the loading scope, so a value stored before a rule was tightened still reaches the page. A handler that
+  re-checked with `X.Create` may drop it. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
 - **BREAKING: a remote publish of an event is held to every handler the event has.** Before: the wire contract kept
   the attributes of ONE handler — whichever the generator found last — so an event with an `[AllowAnonymous]`
   handler and an `[Authorize(Roles = "admin")]` one could be published by anyone, running the admin's handler too.
@@ -51,6 +64,106 @@ them until tagged releases begin.
   a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
   hand. Disposing a database clears the process-wide binding only while it is still its own.
 
+- **`OrderTextBy` compares text case-insensitively on PostgreSQL 18+ and in the browser too.** Before: PostgreSQL only
+  ordered by the language's ICU collation, so `Where(x => x.Name == "csaba")` missed `Csaba` there; and a browser
+  app's plain `UseSqlite(…).UseRaskFullTextSearch()` got neither the `RASK_TEXT` collation nor `end - start` between
+  dates. After: through `UseRaskPostgres` a collation that ignores case or accents is a nondeterministic ICU collation
+  `rask_text` (`hu-HU-u-ks-level2` for `Hungarian_100_CI_AS`) that the migration or `EnsureCreated` creates
+  (`IF NOT EXISTS`) before the first table using it, and every text column gets it — equality, unique indexes,
+  `ORDER BY` and `LIKE`/`Contains` compare as SQL Server's do. `LIKE` on a nondeterministic collation needs PostgreSQL 18,
+  so on an older server that statement stops the migration and says why. `UseRaskFullTextSearch()` now adds the decimal
+  and text collations (registered on each open by one service interceptor, which `UseRaskSqlite` shares) and the
+  duration translation, so every Rask SQLite compares and computes alike. Parity: the Postgres class of
+  `TextOrderParityTests` now passes the case-insensitive facts.
+- **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
+  Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
+  aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
+  was written with none of them. After: the save's first step asks, for every row it adds or changes, the attributes of
+  its properties — all of them on a new row, and on a stored one only those the save changes, so an old row a rule
+  tightened since still opens and saves for another field — then its type's attributes and `IValidatableObject` /
+  `IAsyncValidatableObject`, then its `Validate()`; the root's whenever anything in the aggregate changes, a removed
+  row included. A deleted aggregate is asked its `ValidateDelete()`. Both are found by convention — an instance method
+  with no parameters returning `IEnumerable<Problem>` or `IAsyncEnumerable<Problem>`, private is fine and no `partial`
+  is needed — and the save is refused, before anything is stamped or versioned, with one `RaskValidationException`
+  naming each failure under the field the form model names (`Title`, `Lines[2].Quantity`) in the words
+  `Create(model)` uses. A one-value value object is checked by the value it holds. Generated, never reflected.
+- **`Create(model)` / `Update(id, model)` ask the model's own rules, and hand a rule the work's services.** Before:
+  on the server they asked only a field's attributes, with no services — an `AsyncValidationAttribute` was asked
+  synchronously (and threw), the app's `partial class ProductModel : IValidatableObject` was never asked, and a
+  `CustomValidation` or own attribute calling `validationContext.GetService<T>()` got null. After: the model's own
+  `IValidatableObject` and the validation attributes on the app's half of the model run after the fields, an awaited
+  attribute is left to the form and to the save, which awaits it on the aggregate's property with the same words, and
+  every `ValidationContext` carries the services of the request, live session, handler or job in progress.
+- **A typed id is one line: `public readonly partial record struct VehicleId(int Value);`.** Before: a typed id was
+  converted for EF Core and nothing else, so it printed as `VehicleId { Value = 42 }`, serialized as `{"Value":42}`,
+  could not be a `[RouteParam]` without a hand-written `IParsable`, and an id over an `int` was never the store's
+  identity. After: Rask's generator completes a top-level `readonly partial record struct …Id` with one positional
+  `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
+  `ISpanParsable<T>`; a string id refuses `""`), `ToString()` of the value, a scalar JSON converter and route binding;
+  a member written by hand is kept, and the generated `Create(model)` keys a Guid id with its `New()`
+  (docs/data.md#strongly-typed-ids).
+- **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
+  Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
+  variable, a static call — configured the column, but the generated model, writes and read face silently acted as
+  if it were never made. After: a warning on the call says to write it directly in the entity's own static
+  `Configure`.
+- **`Refuse` stops an operation with a sentence under the field it is about.** `Refuse.When(cond, () => Parts[i].Quantity,
+  msg)`, `Refuse.Unless(cond, msg)` and `Refuse.At(() => Km.Start, msg)` (`Rask.Data`) throw a `RaskValidationException`
+  a form shows under that field — or above the form when none is named — instead of the error page an
+  `InvalidOperationException` ends in. The path is read from the lambda only when refusing: members (`Km.Start`), an
+  evaluated index (`Parts[2].Quantity`), a captured local under its form name (`parts` → `Parts`), `this.` dropped
+  ([data](docs/data.md#refusing-an-operation-refuse)).
+- **`Test.Refuses(…)` says where an operation was refused.** `Test.Refuses(() => KmRange.Create(10, 5, "Km")).At("Km.End")`,
+  `(await Test.Refuses(() => Dispatcher.Send(cmd))).Only("Number")`, `.Whole()`; an operation that goes through or throws
+  anything else fails with a `RefusalAssertionException` naming what happened
+  ([testing](docs/testing.md#asserting-a-refusal-testrefuses)).
+- **`Events.Fake()` records what a test published.** `using var events = Events.Fake();` (`Rask.Cqrs`) records every
+  event published in the test's flow — `Dispatcher.Publish`, an injected `IDispatcher`, and the domain events a save
+  publishes after commit — and, as `Jobs.Fake()`, runs nothing until `await events.Run()`;
+  `events.Published<DriverChipsChanged>().Once()`, `.Twice()`, `.None()`, `.Exactly(n)` (the words of every other fake),
+  `.Where(e => …)`, `.Only()`, `.All`
+  ([testing](docs/testing.md#asserting-what-was-published-eventsfake)).
+- **`b.KeepEmpty(c => c.VatNumber)` keeps an empty text as `''`, not `NULL`.** Before: an optional value object (or
+  `string?`) left empty on a generated model was written as `NULL` — `CreateOptional` turns blank text into nothing —
+  so a table whose old rows tell `''` from `NULL` lost the difference on the first save, and an app restored it by
+  hand (reflection over the model before each write). After: a member named by `KeepEmpty` in the aggregate's static
+  `Configure` writes `''` when its field is left empty or emptied (the value object made from `''` past its rules), a
+  new row starts with `''`, and a row holding `NULL` there keeps it while the field stays empty. A filled field
+  still answers to every rule; a member not stored as text throws when the model is built.
+- **An attribute on a value-object property shapes its column, and RASK128 says when it disagrees.** Before: a
+  `[MaxLength]`, `[StringLength]` or `[Precision]` on a property holding a `Text`/`Number` value object was overridden
+  by the value object's own facet without a word. After: the attribute wins for that column (`Configure` still over
+  both), the generated model carries it so a form and `Create(model)`/`Update(id, model)` ask it beside the value
+  object's rule, and [RASK128](docs/diagnostics.md#rask128) warns on the attribute when its literal disagrees with
+  the value object's.
+- **`c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class)` names a legacy schema once, in the app's
+  `IRaskModel`.** Before: a database another tool made (TA's Prisma schema: `countedAt`, tables named after the class)
+  took a `HasColumnName` on every property and a `ToTable` on every entity — hundreds of lines. After: one line names
+  every column and table the model did not name itself. `n.CamelCase`, `n.SnakeCase`, `n.AsDeclared` (EF Core's) and
+  `n.Path` name a column — a value object's after its whole path (`kmStart`, `km_start`), a JSON column but not what it
+  holds, an owned type's after its navigation; `t.Class`, `t.CamelCase`, `t.SnakeCase`, `t.AsDeclared` name a table, a
+  hierarchy's once, an owned type's own table after its class. An explicit `HasColumnName`/`ToTable`/`[Column]`/
+  `[Table]`/`Columns(…)` pattern wins; a one-value value object inside another (`Price_Currency`) is renamed like its
+  siblings, since the generator now names it at convention strength; Rask's battery tables (each battery's configuration
+  records its own) keep their names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
+  stated in. Every provider ([data](docs/data.md#app-wide-model-rules-one-iraskmodel)).
+- **Five domain and data-annotation analyzers, suggestions by default and warnings under `<RaskStrict>`.**
+  [RASK140](docs/diagnostics.md#rask140): `DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` or
+  `.ToLocalTime()` inside an aggregate, an entity or a value object, with a quick-fix to the `Clock` read of the same
+  type (`Clock.Wall`, `Clock.Wall.Date` or `Clock.Today`, `Clock.Now.UtcDateTime`, `Clock.Now`,
+  `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)`). [RASK141](docs/diagnostics.md#rask141): `Current.Service<T>()`
+  inside one. [RASK142](docs/diagnostics.md#rask142): `Task.WhenAll` over database work inside `Db.Transaction`,
+  whose work shares one connection. [RASK143](docs/diagnostics.md#rask143): `[Key]` on an aggregate or an entity,
+  keyed by the `Id` it inherits. [RASK144](docs/diagnostics.md#rask144): `[Compare("X")]` naming no property of its
+  model, which refuses every submit. Under `<RaskStrict>errors</RaskStrict>` they are errors like every other
+  warning; none of them fires in a scaffolded app.
+- **`UseRaskSqlServer` writes SQL for the compatibility level the server reports.** Before: EF Core assumed its own
+  default level whatever the server ran, so an app on SQL Server 2025 pinned 170 by hand (`UseCompatibilityLevel`, a
+  helper of its own) and one on Azure SQL Edge got SQL its 150 database may not run. After: the first options build
+  for a connection string reads the database's level (`sys.databases`, or the server version's — 17 → 170, 16 → 160,
+  15 → 150 — before the database exists) on one unpooled connection, and every later build is a lookup; an
+  unreachable server (an offline `dotnet ef`) keeps EF Core's default, warns once and is asked again after 30 s. The
+  new `SqlServerOptions.CompatibilityLevel` (`Rask:SqlServer:CompatibilityLevel`) pins a level and asks nothing.
 - **`Text(…, Upper: true)` keeps a value object's text in capitals.** Before: a VIN or a plate number declared from
   `Text` kept what was typed, so `"wvwzzz1jzxw000001"` and `"WVWZZZ1JZXW000001"` were two values, and an app wrote its
   own constructor to upper-case it. After: `public sealed partial record Vin(string Value) : Text(Value, MinLength: 17,
@@ -89,11 +202,12 @@ them until tagged releases begin.
   between the browser and the server may hold a `record struct`; a one-value value object
   (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a one-value record struct id
   (`record struct VehicleId(int Value)`, over a `Guid`, a `string`, …) travel as the bare value — `"ABC-123"`, `42`,
-  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. The receiving end
-  rebuilds a value object through its generated `Create` inside the loading scope a row is read in, so it is not
-  checked on arrival (a rule tightened on one end never makes the other unable to read); a handler that relies on
-  a rule asks it with `X.Create`. The generated API client is unchanged, since its server reads with
-  System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+  not `{"value":…}`; a `Range` or a value object of several members as an object of its members. A value object is
+  rebuilt through its generated `Create`: checked by the server, loaded as sent by the browser (see Security above).
+  The generated API client is unchanged, since its server reads with System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+- **A column pattern that makes a C# keyword names only the column.** `b.Columns(n => n.Door, "{Member}")` over a
+  `Gate(int @in, int @out)` named the read face's members `in` and `out`, which do not compile; the face now keeps
+  its own `Doorin`/`Doorout` beside the `in`/`out` columns, as for any pattern that makes no C# name.
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
@@ -123,9 +237,9 @@ them until tagged releases begin.
   `InTextOrder()` now orders by the language's ICU collation (`COLLATE "hu-HU-x-icu"`); equality there stays
   case-sensitive (docs/data.md). A plain `UseSqlite` is unchanged. A collation whose language Rask cannot read is
   refused as the model is built, off SQL Server. Parity: `TextOrderParityTests` on SQL Server, PostgreSQL and SQLite.
-- **`Db.Lock(name, wait)`: one holder at a time, across every host of the app.** Before: a lock that must hold across
+- **`Db.Lock(name).For(wait)`: one holder at a time, across every host of the app.** Before: a lock that must hold across
   hosts (one host at a time talks to a pump) was hand-written `sp_getapplock` SQL on a connection the app kept open
-  itself, SQL Server only. After: `await using var turn = await Db.Lock("pump-" + id, wait: 2.Minutes);` takes it on a
+  itself, SQL Server only. After: `await using var turn = await Db.Lock("pump:" + id).For(2.Minutes);` (no `.For` waits as long as it takes, `.For(TimeSpan.Zero)` not at all) takes it on a
   connection of its own — `sp_getapplock` on SQL Server, `pg_advisory_lock` on PostgreSQL, an in-process lock on
   single-host SQLite — and a wait that runs out throws a `TimeoutException` naming the lock. The jobs battery's key lock
   now spells `sp_getapplock` through the same helper.
@@ -137,6 +251,18 @@ them until tagged releases begin.
   comparing it with a `TimeSpan` (`> 90.Minutes`) and its `TotalDays`…`TotalMilliseconds` run in the database, a
   `DateTimeOffset` measured in UTC — the answers PostgreSQL's provider already gave
   ([Data](docs/data.md#how-long-between-two-dates-in-a-query)).
+- **Computed columns, database defaults and filtered indexes, declared in C# for every database.** Before: a model
+  said `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` and
+  `HasFilter("[TeaorId] IS NOT NULL")` — SQL Server's SQL, which the SQLite the tests run on reads differently or
+  refuses. After: `b.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol)` is a stored computed column on SQL
+  Server, PostgreSQL and SQLite, from a closed C# subset that keeps C#'s null rules (anything outside it fails the model
+  build, naming the node); `b.Default(x => x.Size, 1000)` and `b.Default(x => x.CreatedAt, () => Clock.Now)` are the
+  database's default — the latter its UTC clock — for rows Rask does not write, while Rask always writes the value the
+  entity holds (a `Size` of 0 stays 0); and `HasIndex(…).IsUnique("…").Where(x => x.RevokedAt == null)` is a filtered
+  index on SQL Server and a partial one elsewhere ([Data](docs/data.md#computed-columns-defaults-and-filtered-indexes-in-c)).
+  A unique rule filtered with `Where(…)` is asked as a query before the save (on a schema whose index may be missing)
+  over exactly the rows its C# keeps, and a row it leaves out is not checked; `ConstraintNames`' `Default` kind names
+  the defaults `Default(…)` declares on SQL Server, the clock's among them.
 - **`HasIndex(…).Covering(p => new { p.Amount })`: a covering index in one sentence for every database.** Before: a
   SQL Server app wrote `IncludeProperties(…)` — a SQL Server call that breaks a model built for SQLite tests — and a
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and
@@ -587,6 +713,10 @@ them until tagged releases begin.
   `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL —
   where a `Moment` value object, a wall-clock `DateTime` of `Kind = Unspecified`, is refused on save
   ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
+- **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
+  fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
+  continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —
+  served, but not stored, so the next request drew it again. After: it asks the paint itself whether it is done.
 - **A page hears an event a job published in its own tenant and as its own user.** Before: a component's
   `IEventHandler<T>` was queued in the publisher's flow, so every `AsyncLocal` the publisher held — a job's
   `Tenant.Use(row.Tenant)`, `Tenant.Across()`, its `Current.UseUser(enqueuer)` — won over the page's own session scope
@@ -1056,6 +1186,16 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A strongly-typed id over an integer is the store's identity; a `Guid` one in a text column is written lower case.**
+  Before: Rask's key convention marked a `VehicleId(int Value)` key never generated, so `Create(model)` was missing
+  and the factory had to number the row; and a `Guid` id on SQLite was stored as SQLite spells a `Guid`, in upper
+  case. After: an id over an `int` or a `long` keys an identity column exactly as the integer does (`Create(model)`
+  inserts it, `Create(id, model)` is gone unless `Configure` says `ValueGeneratedNever()`), and an id over a `Guid`
+  whose column is text — every `Guid` on SQLite, an existing schema's `nvarchar` key — is written as the id prints it,
+  in lower case. Rows already stored in upper case still load, and a `Where` still finds them where the column compares
+  case-insensitively — `OrderTextBy` with a `_CI_` collation (`RASK_TEXT` on SQLite through `UseRaskSqlite`), SQL
+  Server's usual collations. Where the column compares as written (SQLite's default `BINARY`, PostgreSQL `text`) it no
+  longer matches: lower-case such a column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
 - **BREAKING: a value object's rule is its base record's; a `public static Validate` beside its value is no longer
   asked.** Before: a one-value value object (`record struct DriverName(string Value)`) stated its rule as a
   `public static IEnumerable<string> Validate(string value)` — or a `ValueTask`/`Task` of it — which a form over the

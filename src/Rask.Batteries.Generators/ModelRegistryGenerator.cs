@@ -765,13 +765,20 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             // complex property cannot.
             if (nested.Count == 0 && self.SingleValue is { } held)
             {
-                source.Append(indent).Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
+                // Named at convention strength, so an app's ColumnNames renames it as it renames its siblings.
+                source.Append(indent);
+                if (self.ColumnPrefix is not null)
+                {
+                    source.Append("global::Rask.Data.ValueObjectColumn.Held(");
+                }
+
+                source.Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
                     .Append(".Property(x => x.").Append(group.Key).Append("), (").Append(self.Types[0])
                     .Append(" v) => v.").Append(held).Append(self.Facets is { } facets ? ", " + facets : "").Append(')');
 
                 if (self.ColumnPrefix is { } prefix)
                 {
-                    source.Append(".HasColumnName(\"").Append(prefix).Append('_').Append(group.Key).Append("\")");
+                    source.Append(", \"").Append(prefix).Append('_').Append(group.Key).Append("\")");
                 }
 
                 source.AppendLine(";");
@@ -819,7 +826,12 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             foreach (var id in ids)
             {
                 source.Append("        configurationBuilder.Properties<").Append(id.TypeName).AppendLine(">()");
-                source.Append("            .HaveConversion<").Append(ConverterName(id)).AppendLine(">();");
+                source.Append("            .HaveConversion<").Append(ConverterName(id)).Append(">()");
+
+                // A Guid's text form, for Rask.Data's GuidIdTextConvention to put in place where the column is text.
+                source.AppendLine(IsGuid(id)
+                    ? "\n            .HaveAnnotation(\"Rask:GuidIdText\", new " + TextConverterName(id) + "());"
+                    : ";");
             }
         }
 
@@ -839,8 +851,36 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             source.AppendLine("        }");
             source.AppendLine("    }");
             source.AppendLine();
+
+            if (IsGuid(id))
+            {
+                EmitTextConverter(source, id);
+            }
         }
     }
+
+    // Lower case, as Guid.ToString() writes it; either case is read.
+    private static void EmitTextConverter(StringBuilder source, StronglyTypedId id)
+    {
+        source.Append("    private sealed class ").Append(TextConverterName(id))
+            .Append(" : global::Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<")
+            .Append(id.TypeName).AppendLine(", string>");
+        source.AppendLine("    {");
+        source.Append("        public ").Append(TextConverterName(id)).AppendLine("()");
+        source.Append("            : base(static id => id.").Append(id.ValueMember)
+            .Append(".ToString(), static text => new ").Append(id.TypeName)
+            .AppendLine("(global::System.Guid.Parse(text)), new global::Microsoft.EntityFrameworkCore.Storage.ValueConversion.ConverterMappingHints(size: 36))");
+        source.AppendLine("        {");
+        source.AppendLine("        }");
+        source.AppendLine("    }");
+        source.AppendLine();
+    }
+
+    private static bool IsGuid(StronglyTypedId id) =>
+        string.Equals(id.ValueTypeName, "global::System.Guid", StringComparison.Ordinal);
+
+    private static string TextConverterName(StronglyTypedId id) =>
+        ConverterName(id).Replace("Converter", "TextConverter");
 
     private static void EmitApplyConfigurations(StringBuilder source, List<Candidate> entities)
     {

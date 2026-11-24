@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Data;
 
 namespace Rask.WebPush;
 
@@ -7,6 +8,9 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
 {
     public void Configure(EntityTypeBuilder<PushSubscriber> entity)
     {
+        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
+        KeptNames.Keep(entity.Metadata.ClrType);
+
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         entity.Ignore(s => s.Version);
         entity.Ignore(s => s.DeletedAt);

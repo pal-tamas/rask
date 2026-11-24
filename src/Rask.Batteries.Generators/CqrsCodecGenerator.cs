@@ -180,7 +180,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             return;
         }
 
-        spc.AddSource("__RaskCqrsCodecs.g.cs", SourceText.From(Build(contracts), Encoding.UTF8));
+        spc.AddSource("__RaskCqrsCodecs.g.cs", SourceText.From(Build(contracts, RequiredSentence(compilation)), Encoding.UTF8));
     }
 
     private static void ApplyAuthorization(
@@ -668,9 +668,24 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static bool IsFileDownload(ITypeSymbol type) =>
         type.Name is "FileDownload" && type.ContainingNamespace?.ToDisplayString() is WireNamespace;
 
-    private static string Build(List<ContractModel> contracts)
+    // The sentence a missing required member is refused with: the one a form's required field says (Rask.Rules, from the
+    // app's catalog), else the value objects' own (Rask.Data, worded by the same catalog once the app wires it), else
+    // the English both of them fall back to.
+    private static string RequiredSentence(Compilation compilation)
     {
-        var emitter = new WireCodecEmitter();
+        if (compilation.GetTypeByMetadataName("Rask.Rules") is { DeclaredAccessibility: Accessibility.Public })
+        {
+            return "global::Rask.Rules.Required";
+        }
+
+        return compilation.GetTypeByMetadataName("Rask.Data.GeneratedValueRules") is { DeclaredAccessibility: Accessibility.Public }
+            ? "global::Rask.Data.GeneratedValueRules.Required()[0]"
+            : WireCodecEmitter.EnglishRequired;
+    }
+
+    private static string Build(List<ContractModel> contracts, string required)
+    {
+        var emitter = new WireCodecEmitter(checksValues: true, required);
         var registrations = new List<(string Field, string Declaration)>();
 
         foreach (var contract in contracts.OrderBy(c => c.WireName, System.StringComparer.Ordinal))
@@ -702,6 +717,10 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.Append(emitter.Methods);
 
+        sb.AppendLine("    // Every field a client sent that its value object refused, in one answer the server endpoint turns into a 400.");
+        sb.AppendLine($"    private static global::System.Exception Refused({Refusals} refusals) =>");
+        sb.AppendLine("        new global::Rask.Cqrs.RaskValidationException(refusals.Failures);");
+        sb.AppendLine();
         AppendServiceLookups(sb);
 
         foreach (var (_, declaration) in registrations)
@@ -740,9 +759,21 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         entry.AppendLine(
             $"            WriteMessage = static (writer, message, files) => W{messageId}(writer, "
             + $"({contract.Message.Fqn})message, files),");
-        entry.AppendLine(
-            $"            ReadMessage = static (ref {Reader} reader, {FileListRead} files) => "
-            + $"R{messageId}(ref reader, files, \"{contract.WireName}\"),");
+        // A message is read by whoever it was sent to: the server, from a client it cannot trust, so its value objects
+        // are checked and every refusal answered at once. An event the server pushes to a browser is loaded instead,
+        // as a result is: what the server holds is read as it holds it.
+        entry.AppendLine($"            ReadMessage = static (ref {Reader} reader, {FileListRead} files) =>");
+        entry.AppendLine("            {");
+        entry.AppendLine($"                var __refusals = new {Refusals}();");
+        entry.AppendLine($"                var __message = R{messageId}(ref reader, files, \"{contract.WireName}\", __refusals);");
+        entry.AppendLine("                return __refusals.Count == 0 ? __message : throw Refused(__refusals);");
+        entry.AppendLine("            },");
+        if (contract.Kind == RemoteKind.Event)
+        {
+            entry.AppendLine(
+                $"            LoadMessage = static (ref {Reader} reader) => "
+                + $"R{messageId}(ref reader, NoFiles, \"{contract.WireName}\", null),");
+        }
 
         if (resultId is not null)
         {
@@ -751,7 +782,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 + $"({contract.Result!.Fqn})result, NoFiles),");
             entry.AppendLine(
                 $"            ReadResult = static (ref {Reader} reader) => "
-                + $"R{resultId}(ref reader, NoFiles, \"result\"),");
+                + $"R{resultId}(ref reader, NoFiles, \"result\", null),");
         }
 
         AppendAuthorization(entry, contract);
@@ -912,6 +943,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     }
 
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";
+    private const string Refusals = "global::Rask.Wire.WireRefusals";
     private const string FileListRead = "global::System.Collections.Generic.IReadOnlyList<global::Rask.Wire.RemoteFile>";
 
     private enum RemoteKind

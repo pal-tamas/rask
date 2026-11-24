@@ -211,12 +211,13 @@ What the rules above settled, so a new package has one place to look rather than
 | Time | `Clock` (static) | `Now`, `Wall`, `Today`, `Zone`; `Clock.Fake(at:)` + `Advance` in tests |
 | Values for people | `Format` (static) | `Day`, `Moment`, `Number` — in the visitor's culture |
 | Text order | `TextOrder` (static) | `Current`, `In("hu")`; `c.OrderTextBy(collation)` in the model, `x.Name.InTextOrder()` in a query |
+| Named lock across hosts | `Db` (static) | `Lock(name)`; `.For(30.Seconds)` — no step waits as long as it takes |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Kept session answers | `Sessions` (static) / `ISessions` | `Forget(user)`, `Forget(userId)` |
 | Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |
 | Is the battery running | every static | `IsOn` |
 | Battery settings | `JobsOptions`, `LogsOptions`, `PushOptions`, `OpsOptions`… | `Retention`, `SweepInterval`, `PollInterval`, `ShutdownGracePeriod`, `DefaultLifetime` |
-| Test fakes | `Jobs.Fake()`, `Mail.Fake()`, `Outbox.Fake()`… | `Run()`, `Enqueued<T>()`, `Sent()`, `Stored<T>()`; `.Once()`, `.Never()` |
+| Test fakes | `Jobs.Fake()`, `Mail.Fake()`, `Outbox.Fake()`, `Events.Fake()`… | `Run()`, `Enqueued<T>()`, `Sent()`, `Stored<T>()`, `Published<T>()`; `.Once()`, `.Twice()`, `.None()`, `.Exactly(n)` |
 
 The browser subscribes through MDN's own `PushManager` from `Rask.Web`; `Push.Subscribe` keeps what its
 `ToJSON()` answers.
