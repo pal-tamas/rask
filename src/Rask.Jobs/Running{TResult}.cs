@@ -46,6 +46,15 @@ public readonly struct Running<TResult>
     }
 
     /// <summary>
+    ///     Runs the job in its tenant's lane, one at a time with the tenant's other work of <paramref name="lane" />, beside
+    ///     every other tenant's — as <see cref="Enqueuing.InTenantLane" /> does for an enqueued job.
+    /// </summary>
+    /// <param name="lane">Which of the tenant's lanes, or null for its one lane.</param>
+    /// <exception cref="InvalidOperationException">No tenant is in flight.</exception>
+    public Running<TResult> InTenantLane(string? lane = null) =>
+        new(_jobs, _job, TenantLanes.Of(lane, "Jobs.Run(job).InTenantLane()"), _within, _notice, _shared, _cancellationToken);
+
+    /// <summary>
     ///     Waits at most <paramref name="wait"/> for the answer, then throws <see cref="TimeoutException"/>: <c>.Within(2.Minutes)</c>.
     ///     It bounds the WAIT, not the job, which still runs — and keeps its answer on its row — with nobody awaiting it.
     /// </summary>
