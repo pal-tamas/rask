@@ -279,6 +279,54 @@ public sealed class CurrentTenantRowTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Two_test_databases_side_by_side_each_read_their_own_row_for_the_same_tenant()
+    {
+        UseTenant<NumberShop, NumberShopRead, int>(static key => row => row.Id == key, static row => row.Id);
+        var firstHasRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondHasRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var otherPath = Path.Combine(Path.GetTempPath(), $"rask-current-tenant-{Guid.NewGuid():N}.db");
+
+        // Each its own flow, as two test classes running in parallel are: the first keeps its tenant 2 before the
+        // second reads its own, and both databases stay open while the other reads.
+        var first = Task.Run(async () =>
+        {
+            await using var database = await StartAsync();
+            await SeedAsync(database, NumberShop.Open(2, "A"));
+            string name;
+            using (Tenant.Use(2))
+            {
+                name = CurrentRows.RequiredTenant<NumberShopRead>().Name;
+                firstHasRead.SetResult();
+                await secondHasRead.Task;
+                name += CurrentRows.RequiredTenant<NumberShopRead>().Name;
+            }
+
+            return name;
+        }, TestContext.Current.CancellationToken);
+        var second = Task.Run(async () =>
+        {
+            await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={otherPath}"));
+            await SeedAsync(database, NumberShop.Open(2, "B"));
+            await firstHasRead.Task;
+            using (Tenant.Use(2))
+            {
+                try
+                {
+                    return CurrentRows.RequiredTenant<NumberShopRead>().Name;
+                }
+                finally
+                {
+                    secondHasRead.SetResult();
+                }
+            }
+        }, TestContext.Current.CancellationToken);
+        var names = await Task.WhenAll(first, second);
+        File.Delete(otherPath);
+
+        Assert.Equal(["AA", "B"], names);
+    }
+
     private static void UseTenant<TAggregate, [DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey>(
         Func<TKey, System.Linq.Expressions.Expression<Func<TRead, bool>>> byKey, Func<TRead, TKey> keyOf)
         where TRead : class, IReadModel =>

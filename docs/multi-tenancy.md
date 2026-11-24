@@ -383,7 +383,9 @@ holding a `Guid` ([kept as text](#tenants-kept-as-text)), and it must be the key
 [RASK113](diagnostics.md#rask113); a project with `PerTenant` tables and no `ITenant` is warned with the line to
 add ([RASK115](diagnostics.md#rask115)).
 
-**It is not a query.** The row is read once per tenant and held for the whole process: the framework reads it as
+**It is not a query.** The row is read once per tenant and held for the whole process — per database, so two apps
+in one process (two tests side by side, each on its own `TestDatabase`, both with a tenant 2) never read each
+other's row: the framework reads it as
 each request, live event, job, mail and outbox message starts, so `Current.Tenant` in a render, a handler or a
 factory is a lookup. Read inside your own `Tenant.Use(id)` before anything has, it is read there and then — one
 synchronous query, counted on the `rask.data.current_row.queries` metric (meter `Rask.Data`) — and held after.

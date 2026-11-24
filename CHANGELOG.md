@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Current.Tenant` and `Current.User` are held per database, not per key alone.** Before: the rows were cached
+  process-wide by the tenant's or user's key, so two tests running in parallel, each on its own
+  `TestDatabase.Start<T>()` with a tenant 2, read each other's row for up to 60 seconds — the wrong settings, or a
+  `MissingTenantException` for a row the test's own database holds — and a host serving several databases from one
+  process could hand one database's tenant row to work on another. After: a row is held for the database the work
+  reads (the scope's read-context factory, else the test database bound to the flow, else the process-wide one), each
+  test database gets a cache of its own that goes with it, and an entry is trusted only under the save generation it
+  was read in, so a read racing a save of the tenant or the user is never served afterwards.
 - **An optional value object whose members are all optional is held in its row's columns.** Before: `Opening? Start`
   over `Opening(DateTime? Date, decimal? Quantity) : Value` failed the model build — EF Core asked for a required member
   or a discriminator column, a column a legacy table does not have — so an app held it as `Opening Start =
