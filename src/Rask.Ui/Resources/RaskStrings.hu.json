@@ -328,5 +328,6 @@
   "EditorDeleted": "Törölve",
   "EditorNotFound": "Ez már nem létezik.",
   "EditorDelete": "Törlés",
-  "EditorDeleteQuestion": "Biztosan törli? Ez nem vonható vissza."
+  "EditorDeleteQuestion": "Biztosan törli? Ez nem vonható vissza.",
+  "ChangeClear": "Törlés"
 }

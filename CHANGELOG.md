@@ -309,6 +309,13 @@ them until tagged releases begin.
   `await Driver.Delete(id, version)`, roles by `b.Operation(nameof(Delete), roles: …)`, `Driver.MayDelete` — and
   `.Wide()` is now `.Flyout()`. The dialog's indexer hands the dialog back, so `.Delete(…)` follows the content. The
   rask.sh data demo edits and deletes its notes this way.
+- **`Change<T>`: an operation's parameter that keeps, clears or sets.** Before: "empty means keep" (a password),
+  "empty means clear" (a note) and "only if changed" were each written by hand in the form and again in the domain.
+  After: `public void Change(Change<Secret> password, Change<Nickname?> nick)` takes `Change<T>` (`Rask.Values`:
+  `Keep`, `Clear`, `Set(value)`, `.Applied(current)`), and its `Form.For` field starts empty, an empty field always
+  keeping the value; a value typed in is set through its value object's rules, and over a nullable value
+  `Ui.Field.Bind` draws a "Clear" (`RaskString.ChangeClear`, "Törlés") beside the control
+  (`RaskValidation.RegisterClearing`). A `Password` value object is never read into a form field.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
