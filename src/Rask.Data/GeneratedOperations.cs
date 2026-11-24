@@ -160,6 +160,32 @@ public static class GeneratedOperations
     }
 
     /// <summary>
+    ///     Makes one argument of an operation from a form's field, keeping what its rules refuse instead of throwing it,
+    ///     so a form hears every field it got wrong at once — what a generated <c>Form.For</c> reads its fields with.
+    /// </summary>
+    /// <typeparam name="T">The argument: a value object made through its rules, or a value as given.</typeparam>
+    /// <param name="make">Makes it: <c>() =&gt; DriverName.Create(input.Name, "Name")</c>.</param>
+    /// <param name="failures">Where a refusal's failures go.</param>
+    /// <returns>What <paramref name="make" /> made, or the default when its rules refused it.</returns>
+    public static T? Given<T>(Func<T> make, ICollection<FieldFailure> failures)
+    {
+        ArgumentNullException.ThrowIfNull(make);
+        ArgumentNullException.ThrowIfNull(failures);
+        try
+        {
+            return make();
+        }
+        catch (RaskValidationException refused)
+        {
+            foreach (var failure in refused.Failures)
+            {
+                failures.Add(failure);
+            }
+            return default;
+        }
+    }
+
+    /// <summary>
     ///     Whether the principal of the work in flight holds one of <paramref name="roles" /> — what a generated
     ///     <c>Supply.MaySetOpening</c> answers.
     /// </summary>

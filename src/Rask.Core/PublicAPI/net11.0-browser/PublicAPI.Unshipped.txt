@@ -20125,3 +20125,9 @@ Rask.Core.Forms.FieldShape.Listed.get -> bool
 Rask.Core.Forms.FieldShape.Listed.init -> void
 Rask.Core.Globalization.RaskString.TableCellYes = 292 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.TableCellNo = 293 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.OperationForm<TInput>
+Rask.Core.Forms.OperationForm<TInput>.this[System.Func<TInput!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! fields].get -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Missing(Rask.Core.Component? missing) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.OnSaved(System.Func<System.Threading.Tasks.Task!>! saved) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForms
+static Rask.Core.Forms.OperationForms.Of<TInput>(object? identity, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TInput?>!>! load, System.Func<TInput!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! submit, System.Func<bool>! may) -> Rask.Core.Forms.OperationForm<TInput!>!
