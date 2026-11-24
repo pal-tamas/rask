@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
+  `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
+  committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
+  `docs/forms.md`'s `Form.For` example and text say a field is tried when it is committed — with the next action, or
+  as it is left with `.Blur()`.
 - **SQLite holds a `decimal` to its declared precision and scale, as SQL Server and PostgreSQL do.** Before: a column
   declared `HasPrecision(18, 2)` kept every digit on SQLite (`1.005m` came back `1.005m`, a server's `1.01m`) and took
   a number too large for it, so a test on SQLite passed on a value production never holds. After: `UseRaskSqlite`
