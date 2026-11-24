@@ -104,7 +104,7 @@ framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
-| `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
+| `Id` | `Entity<TId>` | The key. A `Guid` (or a typed id over one) is assigned in the factory; an integer (or a typed id over one) is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
 | `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
@@ -959,6 +959,9 @@ writes what changed since — it never reads the row again.
   `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
   silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
+- **The domain is asked first** — the changed properties' attributes, `Validate()`, `ValidateDelete()` — and a save
+  it refuses is a `RaskValidationException` with nothing written, stamped or versioned
+  ([what every save asks](#what-every-save-asks)).
 - **The interceptors run** as for any write: times stamped, `Version` bumped, tenant checked, domain events
   published after the commit.
 - **Nothing is held open.** `Find` takes no `db:` and returns the aggregate untracked, so it is safe to keep in a
@@ -977,6 +980,55 @@ writes what changed since — it never reads the row again.
   the aggregate through its own methods.
 
 `Order.Update(id, o => o.Ship("1Z999"))` does the same in one call when there is nothing to show in between.
+
+### What every save asks
+
+Every save — `Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:` context you save yourself — asks the
+domain before anything is written. A rule is written once, on the aggregate, and holds however the row is changed:
+
+```csharp
+public sealed class Voyage : Aggregate<Guid, Versioned, Deletable>
+{
+    private readonly List<Leg> _legs = [];
+
+    [Required, StringLength(80)] public string Title { get; private set; } = "";   // a DataAnnotations rule
+    public bool Sealed { get; private set; }
+    public IReadOnlyCollection<Leg> Legs => _legs;
+
+    public void Seal() => Sealed = true;
+
+    IEnumerable<Problem> Validate()                     // the aggregate's own rule, over its rows
+    {
+        if (Sealed && _legs.Count == 0) yield return Problem.At(Legs, "A sealed voyage needs a leg.");
+    }
+
+    async IAsyncEnumerable<Problem> ValidateDelete()    // asked by a delete, in its place
+    {
+        if (await Booking.Where(b => b.VoyageId == Id).Any()) yield return Problem.Whole("It has bookings.");
+    }
+}
+```
+
+For every row the save adds or changes, in this order:
+
+1. **The validation attributes of its properties** — every one on a new row, but on a stored row only the properties
+   this save changes. A row stored before a rule was tightened still opens, and still saves for another field; the
+   rule is asked again once that field is touched. A one-value value object is checked by the value it holds, as its
+   form field is.
+2. **Its type's attributes, and `IValidatableObject` / `IAsyncValidatableObject`** when it implements one.
+3. **Its `Validate()`** — the root's whenever anything in the aggregate changes, a removed row included, because a
+   rule over the rows is the root's.
+
+A deleted aggregate is asked its `ValidateDelete()` instead. Both are plain methods found by name: an instance method
+with no parameters returning `IEnumerable<Problem>`, or `IAsyncEnumerable<Problem>` when it reads something. Private
+is fine, and the aggregate needs no `partial`.
+
+What they refuse is ONE `RaskValidationException`, with every failure under the field the generated model names —
+`Title`, `Legs`, `Legs[2].Port` — and a built-in attribute worded exactly as `Create(model)` words it, so a form that
+lets the exception through shows each message under its field. It is asked first of every save step, so a refused
+save has been stamped and versioned by nothing: fix the value and `Save()` again. A rule resolves services from the
+request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
+runs no interceptor ([bulk insert](#bulk-insert)).
 
 ### Changing two aggregates together: `db:`
 
@@ -1691,13 +1743,20 @@ than the aggregate's own `Configure`, and one on a row inside an aggregate, are 
 asked beforehand.
 
 A `partial class ProductModel` of your own merges into the generated one, which is the way to add members,
-`IValidatableObject` or display helpers. The build says when it cannot generate: a **hand-written, non-`partial`
+`IValidatableObject` or display helpers. `Create(model)` and `Update(id, model)` run the fields' attributes, then the
+model's own `IValidatableObject` and the validation attributes on your half of it, with the services of the work in
+progress in every `ValidationContext`. An `AsyncValidationAttribute` is awaited by the form, and on the server by the
+save, which asks it of the aggregate's property ([what every save asks](#what-every-save-asks)); an
+`IAsyncValidatableObject` on the model is the form's alone — put a rule that must hold on the server in the aggregate's
+`Validate()`. The build says when it cannot generate: a **hand-written, non-`partial`
 `ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and an aggregate **declared
 inside another class** is a warning and gets no model ([RASK083](diagnostics.md#rask083)).
 
-On the wire a model's properties are **camelCase**. Only validation attributes are copied from the aggregate, so a
-`[JsonPropertyName]` on the aggregate does not rename the model's property; a property you declare yourself on a
-`partial ProductModel` keeps its own pin.
+On the wire a model's properties are **camelCase**. Only DataAnnotations attributes are copied from the aggregate — the
+validation ones, those that describe a field (`[Display]`, `[DataType]`, `[Editable]`, `[DisplayFormat]`, `[UIHint]`…),
+and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[ConcurrencyCheck]`, a Schema attribute
+like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
+property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
 
 ## The current user — `Current`
 
@@ -1959,7 +2018,7 @@ public sealed class OrderLine : Entity<Guid>
 }
 ```
 
-**The entity owns its key.** Rask.Data's key convention leaves an integer key to the database's identity and
+**The entity owns its key.** Rask.Data's key convention leaves an integer key (or a typed id over one) to the database's identity and
 marks every other key never generated, so a `Guid` or a strongly-typed id is assigned where the entity is
 built: `Id = Guid.CreateVersion7()` in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
@@ -2816,24 +2875,69 @@ A *collection* of value objects is not mapped automatically; configure it in the
 
 ## Strongly-typed ids
 
-Use one as the aggregate's key and it is converted to its underlying value automatically — nothing declares
-it as an id:
+A typed id is one line:
 
 ```csharp
-public readonly record struct ProductId(Guid Value);
+public readonly partial record struct VehicleId(int Value);
+public readonly partial record struct DriverId(Guid Value);
+public readonly partial record struct PlateId(string Value);
+public readonly partial record struct ShiftId(Guid Value);
 
-public sealed class Product : Aggregate<ProductId> { }
+public sealed class Vehicle : Aggregate<VehicleId> { }
+public sealed class Shift : Aggregate<ShiftId>
+{
+    public VehicleId Vehicle { get; private set; }   // cannot be handed a DriverId: a compile error
+}
 ```
 
-The converter is registered once for the type, in `ConfigureConventions`, so **every** property of that
-type is converted — the key, a foreign key on another entity, a nullable one — without any of them being
-named. An id the generator cannot build a converter for is reported as
-[RASK073](diagnostics.md#rask073) rather than left to fail at model build.
+**What counts as one.** A top-level, non-generic `readonly partial record struct` whose name ends in `Id`, with
+exactly one positional parameter named `Value` of `int`, `long`, `Guid` or `string`. Leave out `partial` or
+`readonly`, name it otherwise, or wrap another type, and it is an ordinary record struct that Rask still converts
+to its value in the database (below) but does not complete.
 
-Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
+**What Rask completes it with** (the `Rask` package's generator, so a domain library that references only `Rask`
+gets it too):
 
-Like any key that is not an integer, a strongly-typed id is the entity's to assign — `new ProductId(Guid.CreateVersion7())`
-in its factory — because nothing generates one through a converter.
+| Member | Does |
+|---|---|
+| `VehicleId.New()` | a new version-7 `Guid` — an id over a `Guid` only; the others come from the store or the caller |
+| `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
+| `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
+| JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
+| routing | `[RouteParam] public VehicleId Id { get; set; }` binds `/vehicles/42`, and `Routes.VehiclePage(id)` writes `42` back |
+
+A member you write yourself — your own `ToString`, `Parse` or `[JsonConverter]` — is kept, and only the rest is
+generated.
+
+The JSON converter is a `[JsonConverter]` attribute, which `JsonSerializer` finds by reflection. A
+`JsonSerializerContext` of your own (System.Text.Json's source generation) cannot see what another generator added, so
+register it there: `[JsonSourceGenerationOptions(Converters = [typeof(VehicleId.__JsonConverter)])]` — or, simpler, keep
+the reflection serializer for types that hold typed ids. Rask's own wire (commands, events, jobs) carries a typed id as
+its bare value without either.
+
+**In the model.** Use one as the aggregate's key and it is converted to its underlying value automatically. The
+converter is registered once for the type, in `ConfigureConventions`, so **every** property of that type is
+converted — the key, a foreign key on another entity, a nullable one — without any of them being named. An id the
+generator cannot build a converter for is reported as [RASK073](diagnostics.md#rask073) rather than left to fail
+at model build. Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
+
+Who produces the key follows the value it holds:
+
+- **Over an `int` or a `long`** the key is the store's identity, exactly as the integer would be: `Vehicle.Create(model)`
+  inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
+  `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
+- **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
+  `Create(model)` calls `VehicleId.New()` too.
+- **Over a `string`** the caller names it: `Create(id, model)`.
+
+**A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
+existing schema's `nvarchar` key (`HasColumnType("nvarchar(1000)")`) — the id is written as `ToString()` prints it,
+`3e18ad13-d95e-4808-97bd-918b457c006b`, rather than the provider's own spelling (SQLite's is upper case). A row an
+older tool wrote in upper case still loads. Whether a `Where` still finds it is the column's comparison: under
+[`OrderTextBy`](sqlite.md#text-that-compares-as-sql-server-does) with a case-insensitive collation (`Hungarian_100_CI_AS` — on SQLite through `UseRaskSqlite`,
+every text column is `RASK_TEXT`) and on SQL Server's usual `_CI_` collations it does; a column that compares as
+written (SQLite's default `BINARY`, PostgreSQL's `text`) does not, so lower-case such a column once. A column that
+stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
 
 ## Using EF Core the usual way
 
@@ -3033,6 +3137,8 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 ## What the interceptors do
 
+- **`WritableChildrenInterceptor`** — first of all: hands a held collection EF Core can fill, and asks the domain's
+  rules of the save ([what every save asks](#what-every-save-asks)) before any other interceptor touches a row.
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each `Versioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
 - **`SoftDeleteInterceptor`** — for an aggregate that names `SoftDelete`, rewrites a `Deleted`

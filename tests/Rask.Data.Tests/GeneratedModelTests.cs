@@ -220,7 +220,7 @@ public sealed class GeneratedModelTests : IDisposable
         var converter = id.GetValueConverter();
         Assert.NotNull(converter);
         Assert.Equal(typeof(GadgetId), converter.ModelClrType);
-        Assert.Equal(typeof(Guid), converter.ProviderClrType);
+        Assert.Equal(typeof(string), converter.ProviderClrType); // SQLite keeps a Guid as text: lower case, as it prints
     }
 
     [Fact]

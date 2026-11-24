@@ -15,6 +15,9 @@ them until tagged releases begin.
   server reads a command, query, event or subscription with every value object made through its rules; one they
   refuse leaves the message unbuilt and the handler uncalled, and the request is answered `400` ("Validation
   failed") with every refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`).
+  A member declared without `?` (a value object, a record, a `string`, a list) that the message leaves out or sends
+  as `null` is refused the same way, with the sentence a form's required field says (`Rules.Required`); a `?` member
+  stays null.
   Only the browser's read of what the server answers — a result, a pushed event (`RemoteContract.LoadMessage`) —
   keeps the loading scope, so a value stored before a rule was tightened still reaches the page. A handler that
   re-checked with `X.Create` may drop it. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
@@ -41,6 +44,33 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
+  Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
+  aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
+  was written with none of them. After: the save's first step asks, for every row it adds or changes, the attributes of
+  its properties — all of them on a new row, and on a stored one only those the save changes, so an old row a rule
+  tightened since still opens and saves for another field — then its type's attributes and `IValidatableObject` /
+  `IAsyncValidatableObject`, then its `Validate()`; the root's whenever anything in the aggregate changes, a removed
+  row included. A deleted aggregate is asked its `ValidateDelete()`. Both are found by convention — an instance method
+  with no parameters returning `IEnumerable<Problem>` or `IAsyncEnumerable<Problem>`, private is fine and no `partial`
+  is needed — and the save is refused, before anything is stamped or versioned, with one `RaskValidationException`
+  naming each failure under the field the form model names (`Title`, `Lines[2].Quantity`) in the words
+  `Create(model)` uses. A one-value value object is checked by the value it holds. Generated, never reflected.
+- **`Create(model)` / `Update(id, model)` ask the model's own rules, and hand a rule the work's services.** Before:
+  on the server they asked only a field's attributes, with no services — an `AsyncValidationAttribute` was asked
+  synchronously (and threw), the app's `partial class ProductModel : IValidatableObject` was never asked, and a
+  `CustomValidation` or own attribute calling `validationContext.GetService<T>()` got null. After: the model's own
+  `IValidatableObject` and the validation attributes on the app's half of the model run after the fields, an awaited
+  attribute is left to the form and to the save, which awaits it on the aggregate's property with the same words, and
+  every `ValidationContext` carries the services of the request, live session, handler or job in progress.
+- **A typed id is one line: `public readonly partial record struct VehicleId(int Value);`.** Before: a typed id was
+  converted for EF Core and nothing else, so it printed as `VehicleId { Value = 42 }`, serialized as `{"Value":42}`,
+  could not be a `[RouteParam]` without a hand-written `IParsable`, and an id over an `int` was never the store's
+  identity. After: Rask's generator completes a top-level `readonly partial record struct …Id` with one positional
+  `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
+  `ISpanParsable<T>`; a string id refuses `""`), `ToString()` of the value, a scalar JSON converter and route binding;
+  a member written by hand is kept, and the generated `Create(model)` keys a Guid id with its `New()`
+  (docs/data.md#strongly-typed-ids).
 - **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
   Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
   variable, a static call — configured the column, but the generated model, writes and read face silently acted as
@@ -144,6 +174,9 @@ them until tagged releases begin.
   not `{"value":…}`; a `Range` or a value object of several members as an object of its members. A value object is
   rebuilt through its generated `Create`: checked by the server, loaded as sent by the browser (see Security above).
   The generated API client is unchanged, since its server reads with System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+- **A column pattern that makes a C# keyword names only the column.** `b.Columns(n => n.Door, "{Member}")` over a
+  `Gate(int @in, int @out)` named the read face's members `in` and `out`, which do not compile; the face now keeps
+  its own `Doorin`/`Doorout` beside the `in`/`out` columns, as for any pattern that makes no C# name.
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
@@ -1106,6 +1139,16 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A strongly-typed id over an integer is the store's identity; a `Guid` one in a text column is written lower case.**
+  Before: Rask's key convention marked a `VehicleId(int Value)` key never generated, so `Create(model)` was missing
+  and the factory had to number the row; and a `Guid` id on SQLite was stored as SQLite spells a `Guid`, in upper
+  case. After: an id over an `int` or a `long` keys an identity column exactly as the integer does (`Create(model)`
+  inserts it, `Create(id, model)` is gone unless `Configure` says `ValueGeneratedNever()`), and an id over a `Guid`
+  whose column is text — every `Guid` on SQLite, an existing schema's `nvarchar` key — is written as the id prints it,
+  in lower case. Rows already stored in upper case still load, and a `Where` still finds them where the column compares
+  case-insensitively — `OrderTextBy` with a `_CI_` collation (`RASK_TEXT` on SQLite through `UseRaskSqlite`), SQL
+  Server's usual collations. Where the column compares as written (SQLite's default `BINARY`, PostgreSQL `text`) it no
+  longer matches: lower-case such a column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
 - **BREAKING: a value object's rule is its base record's; a `public static Validate` beside its value is no longer
   asked.** Before: a one-value value object (`record struct DriverName(string Value)`) stated its rule as a
   `public static IEnumerable<string> Validate(string value)` — or a `ValueTask`/`Task` of it — which a form over the

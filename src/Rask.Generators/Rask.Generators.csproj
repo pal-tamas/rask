@@ -44,6 +44,8 @@
     <Compile Include="..\Rask.Generators.Shared\ModelCompositeChild.cs" Link="Shared\ModelCompositeChild.cs"/>
     <Compile Include="..\Rask.Generators.Shared\KeyPart.cs" Link="Shared\KeyPart.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdShape.cs" Link="Shared\TypedIdShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdValue.cs" Link="Shared\TypedIdValue.cs"/>
   </ItemGroup>
 
   <ItemGroup>

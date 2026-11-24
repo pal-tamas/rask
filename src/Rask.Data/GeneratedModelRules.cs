@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using Rask.Cqrs;
 using Rask.Wire;
 
@@ -25,6 +26,9 @@ public static class GeneratedModelRules
     ///     the built-in translations), which lives in Rask.Core; until that key exists this constant stands in.
     /// </remarks>
     public const string RequiredMessage = "This field is required.";
+
+    // What a rule that said nothing of its own is shown as: the words Rask.Core's forms use.
+    private const string InvalidMessage = "Invalid value.";
 
     private static readonly string[] RequiredOnly = [RequiredMessage];
 
@@ -102,6 +106,34 @@ public static class GeneratedModelRules
 
         failures ??= new List<FieldFailure>();
         failures.Add(new FieldFailure(message, [path.Length == 0 ? field : path + field]));
+        return failures;
+    }
+
+    /// <summary>
+    ///     Adds what <paramref name="result" /> says — a model's own <c>Validate</c>, or an attribute on its type — under
+    ///     each member it names, or under the row as a whole when it names none.
+    /// </summary>
+    /// <param name="failures">The failures so far, or <see langword="null" /> for none yet.</param>
+    /// <param name="path">What leads to the model from the root — empty, or <c>Lines[2].</c>.</param>
+    /// <param name="result">What the rule said; <see langword="null" /> (<c>ValidationResult.Success</c>) for nothing.</param>
+    /// <returns>The failures, still <see langword="null" /> when nothing was said.</returns>
+    public static IList<FieldFailure>? Said(IList<FieldFailure>? failures, string path, ValidationResult? result)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        if (result is null || result == ValidationResult.Success)
+        {
+            return failures;
+        }
+
+        var fields = result.MemberNames.Where(static m => !string.IsNullOrEmpty(m)).Select(m => path + m).ToList();
+        if (fields.Count == 0 && path.Length > 0)
+        {
+            fields.Add(path.TrimEnd('.'));
+        }
+
+        failures ??= new List<FieldFailure>();
+        failures.Add(new FieldFailure(result.ErrorMessage ?? InvalidMessage, fields));
         return failures;
     }
 

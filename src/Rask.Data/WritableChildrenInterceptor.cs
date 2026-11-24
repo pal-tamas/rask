@@ -7,7 +7,7 @@ namespace Rask.Data;
 /// <summary>
 ///     Hands every entity a query materializes, and every entity a save is about to write, collections of children
 ///     EF Core can fill — see <see cref="WritableChildren" /> — and marks each aggregate among them as having a row
-///     (<see cref="StoredAggregates" />). While one is materialized, the value objects built for it are loaded
+///     (<see cref="StoredAggregates" />), then asks the domain's rules of the save (<see cref="DomainValidation" />). While one is materialized, the value objects built for it are loaded
 ///     without their rules (<see cref="Loading" />).
 /// </summary>
 /// <remarks>
@@ -44,18 +44,35 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    ///     Then asks the domain's rules (<see cref="DomainValidation" />): first of every interceptor, so a refused save
+    ///     has had nothing rewritten, stamped or versioned.
+    /// </remarks>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         Ensure(eventData.Context);
+
+        // The same work as the async path. A synchronous save has no other way to await a rule.
+        if (eventData.Context is { } context)
+        {
+            DomainValidation.CheckAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         return result;
     }
 
     /// <inheritdoc />
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    /// <remarks>Then asks the domain's rules, as <see cref="SavingChanges" /> does.</remarks>
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
         Ensure(eventData.Context);
-        return ValueTask.FromResult(result);
+        if (eventData.Context is { } context)
+        {
+            await DomainValidation.CheckAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />

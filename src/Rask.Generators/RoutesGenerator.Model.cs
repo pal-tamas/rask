@@ -385,7 +385,8 @@ public sealed partial class RoutesGenerator
     {
         var underlying = GetUnderlying(type);
 
-        if (underlying.SpecialType == SpecialType.System_String)
+        // A typed id declared here gets its IParsable from TypedIdGenerator, whose output this generator cannot see.
+        if (underlying.SpecialType == SpecialType.System_String || TypedIdShape.Of(underlying) != TypedIdValue.None)
         {
             return true;
         }
