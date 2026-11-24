@@ -6,9 +6,9 @@ namespace Rask.Cqrs;
 /// </summary>
 /// <typeparam name="TEvent">The kind of event asked about.</typeparam>
 /// <remarks>
-///     The counting steps (<see cref="Once" />, <see cref="Never" />, <see cref="Times" />) are what check, and they throw
-///     a <see cref="PublishedEventsException" /> naming every event that <em>was</em> published — the useful half of a
-///     failing expectation is what happened instead.
+///     The counting steps (<see cref="Once" />, <see cref="Twice" />, <see cref="None" />, <see cref="Exactly" />) are the
+///     same words as every other battery fake's, and they throw a <see cref="PublishedEventsException" /> naming every
+///     event that <em>was</em> published — the useful half of a failing expectation is what happened instead.
 /// </remarks>
 public sealed class PublishedEvents<TEvent>
     where TEvent : IEvent
@@ -44,21 +44,25 @@ public sealed class PublishedEvents<TEvent>
 
     /// <summary>Asserts exactly one matched.</summary>
     /// <exception cref="PublishedEventsException">Not exactly one matched.</exception>
-    public void Once() => Times(1);
+    public void Once() => Exactly(1);
+
+    /// <summary>Asserts exactly two matched.</summary>
+    /// <exception cref="PublishedEventsException">Not exactly two matched.</exception>
+    public void Twice() => Exactly(2);
 
     /// <summary>Asserts none matched.</summary>
     /// <exception cref="PublishedEventsException">One or more matched.</exception>
-    public void Never() => Times(0);
+    public void None() => Exactly(0);
 
-    /// <summary>Asserts exactly <paramref name="count" /> matched.</summary>
-    /// <param name="count">How many are expected.</param>
+    /// <summary>Asserts exactly <paramref name="times" /> matched.</summary>
+    /// <param name="times">How many are expected.</param>
     /// <exception cref="PublishedEventsException">A different number matched.</exception>
-    public void Times(int count)
+    public void Exactly(int times)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (All.Count != count)
+        ArgumentOutOfRangeException.ThrowIfNegative(times);
+        if (All.Count != times)
         {
-            throw new PublishedEventsException(Explain(count));
+            throw new PublishedEventsException(Explain(times));
         }
     }
 

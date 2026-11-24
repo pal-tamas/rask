@@ -306,10 +306,11 @@ Rask.Cqrs.EventsFake.Run(System.Threading.CancellationToken cancellationToken = 
 Rask.Cqrs.PublishedEvents<TEvent>
 Rask.Cqrs.PublishedEvents<TEvent>.All.get -> System.Collections.Generic.IReadOnlyList<TEvent>!
 Rask.Cqrs.PublishedEvents<TEvent>.Count.get -> int
-Rask.Cqrs.PublishedEvents<TEvent>.Never() -> void
+Rask.Cqrs.PublishedEvents<TEvent>.None() -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Twice() -> void
 Rask.Cqrs.PublishedEvents<TEvent>.Once() -> void
 Rask.Cqrs.PublishedEvents<TEvent>.Only() -> TEvent
-Rask.Cqrs.PublishedEvents<TEvent>.Times(int count) -> void
+Rask.Cqrs.PublishedEvents<TEvent>.Exactly(int times) -> void
 Rask.Cqrs.PublishedEvents<TEvent>.Where(System.Func<TEvent, bool>! predicate) -> Rask.Cqrs.PublishedEvents<TEvent>!
 Rask.Cqrs.PublishedEventsException
 Rask.Cqrs.PublishedEventsException.PublishedEventsException() -> void
