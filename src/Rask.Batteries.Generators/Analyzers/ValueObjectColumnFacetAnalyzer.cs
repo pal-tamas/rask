@@ -40,9 +40,6 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
                      + "other, than the rule accepts.",
         helpLinkUri: DiagnosticHelp.Link("RASK128"));
 
-    // The parameters of each base's constructor, in order, for an argument given by position.
-    private static readonly string[] TextParameters = ["Value", "MaxLength", "MinLength", "Pattern", "Message", "Trim"];
-    private static readonly string[] NumberParameters = ["Value", "Min", "Max", "Scale", "Precision"];
     private static readonly string[] NumberFacets = ["Precision", "Scale"];
 
     // The attributes that give a column its length or precision, by the configuration call each stands for.
@@ -71,12 +68,12 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
         var property = (IPropertySymbol)context.Symbol;
         if (property.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is not INamedTypeSymbol valueObject ||
             AggregateShape.ValueBaseOf(valueObject) is not ("Text" or "Number") ||
-            Declared(valueObject) is not { Count: > 0 } declared)
+            ValueObjectBaseArguments.Of(valueObject) is not { Count: > 0 } declared)
         {
             return;
         }
 
-        var text = IsText(valueObject);
+        var text = ValueObjectBaseArguments.IsText(valueObject);
         foreach (var attribute in property.GetAttributes())
         {
             if (attribute.AttributeClass?.ToDisplayString() is not { } name ||
@@ -118,12 +115,12 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
             Configured(property) is not { } configured ||
             configured.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is not INamedTypeSymbol valueObject ||
             AggregateShape.ValueBaseOf(valueObject) is not ("Text" or "Number") ||
-            Declared(valueObject) is not { Count: > 0 } declared)
+            ValueObjectBaseArguments.Of(valueObject) is not { Count: > 0 } declared)
         {
             return;
         }
 
-        var text = IsText(valueObject);
+        var text = ValueObjectBaseArguments.IsText(valueObject);
         var given = Given(call);
         if (given is null || Disagrees(text, declared, call.TargetMethod.Name, given.Value) is not { } said)
         {
@@ -152,36 +149,6 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
         }
 
         return model.GetSymbolInfo(body).Symbol as IPropertySymbol;
-    }
-
-    // The literal arguments the value object hands its base, by parameter name.
-    private static Dictionary<string, int>? Declared(INamedTypeSymbol valueObject)
-    {
-        var names = IsText(valueObject) ? TextParameters : NumberParameters;
-        var arguments = valueObject.DeclaringSyntaxReferences
-            .Select(static r => r.GetSyntax())
-            .OfType<RecordDeclarationSyntax>()
-            .SelectMany(static r => r.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>() ?? [])
-            .Select(static b => b.ArgumentList)
-            .FirstOrDefault();
-
-        if (arguments is null)
-        {
-            return null;
-        }
-
-        var declared = new Dictionary<string, int>(System.StringComparer.Ordinal);
-        for (var i = 0; i < arguments.Arguments.Count; i++)
-        {
-            var argument = arguments.Arguments[i];
-            var name = argument.NameColon?.Name.Identifier.ValueText ?? (i < names.Length ? names[i] : null);
-            if (name is not null && argument.Expression is LiteralExpressionSyntax { Token.Value: int value })
-            {
-                declared[name] = value;
-            }
-        }
-
-        return declared;
     }
 
     // The literal sizes the call gives: (length or precision, scale); null when they are not literals.
@@ -245,9 +212,6 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
             .Where(declared.ContainsKey)
             .Select(name => name + ": " + declared[name].ToString(CultureInfo.InvariantCulture)));
     }
-
-    private static bool IsText(INamedTypeSymbol valueObject) =>
-        string.Equals(AggregateShape.ValueBaseOf(valueObject), "Text", System.StringComparison.Ordinal);
 
     private static string Written(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "none";
 }

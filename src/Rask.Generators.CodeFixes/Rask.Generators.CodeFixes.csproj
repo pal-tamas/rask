@@ -20,6 +20,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- How the analyzers read a FluentValidation rule, shared so RASK130's fix reads the same rules they report on. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Generators.Shared\FluentRules.cs" Link="Shared\FluentRules.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
   </ItemGroup>

@@ -91,6 +91,17 @@ them until tagged releases begin.
   neither. A generated read face now carries `[Display]`, `[DisplayFormat]` and `[ScaffoldColumn]` from the aggregate's
   property and registers its value object's shape at compile time; `FieldShape` gains `Format`, `NullText` and
   `Listed`. Not Flux's: owner-approved. See [ui-kit — columns from the row's members](docs/ui-kit.md#columns-from-the-rows-members).
+- **The in-type FluentValidation rules are checked as they are written (RASK139, RASK181–RASK183).** Before: a `Rules` taking an
+  `InlineValidator` in the wrong shape, a rule on an aggregate's value-object member, a `MaximumLength(200)` on a
+  `[MaxLength(100)]` property, and a value object with both a `Rules()` override and FluentValidation `Rules` all
+  compiled silently. After: RASK139 names why a `Rules` is never registered, RASK181 points a value-object member's
+  rule into the value object, RASK182 says where a rule's length or precision disagrees with the column's, and RASK183
+  refuses a value object that states its rules twice. All four are silent without FluentValidation.
+- **RASK130's quick-fix declares the value object from the rules already written.** Before: RASK130 had no fix.
+  After: "Declare a value object from its rules" turns `[StringLength(200)] public string Name` or
+  `rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200)` into `public SupplierName Name` beside
+  `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);` — `Number`, `Whole` and
+  `Day` likewise — and takes the rules its base arguments now say off the property.
 - **PostgreSQL stores a `Moment` value object.** Before: Npgsql refused to save a wall-clock `DateTime`
   (`Kind=Unspecified`) to its `timestamptz` column, so a `Moment` could not be kept on PostgreSQL at all. After:
   `UseRaskPostgres` stores every `Moment` column as the UTC instant the wall-clock time is in `Clock.Zone` and reads it

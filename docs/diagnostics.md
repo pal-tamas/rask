@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK150, RASK165, RASK170–RASK174, RASK180, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK174, RASK180–RASK183, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -29,6 +29,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK121** | makes the `[JSInvokable]` method `public` |
 | **RASK127** | rewrites `new KmRange(a, b)` into `KmRange.Create(a, b)`, and `km with { End = 5 }` into `KmRange.Create(km.Start, 5)` |
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
+| **RASK130** | declares a value object from the property's rules (`[StringLength(200)]` or `RuleFor(s => s.Name).MaximumLength(200)` → `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);`), types the property as it, and takes off the rules its base arguments now say |
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
@@ -151,6 +152,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
+| [RASK139](#rask139) | Warning | A `Rules` method is not the in-type FluentValidation convention |
 | [RASK140](#rask140) | Info | Domain code reads the machine's clock |
 | [RASK141](#rask141) | Info | Domain code looks up a service |
 | [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
@@ -162,6 +164,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
 | [RASK173](#rask173) | Warning | A factory is public, so its generated entry cannot be called |
+| [RASK181](#rask181) | Warning | A FluentValidation rule rules a value object |
+| [RASK182](#rask182) | Warning | A FluentValidation rule disagrees with its column |
+| [RASK183](#rask183) | Error | A value object declares its rules twice |
 | [RASK174](#rask174) | Info | Two operations take the same parameters, so neither gets a `Form.For` |
 | [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
@@ -3106,7 +3111,7 @@ public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1
 
 ## RASK130
 
-**An aggregate stores a bare value where a value object would hold its rules** · Info (Warning under `<RaskStrict>`)
+**An aggregate stores a bare value where a value object would hold its rules** · Info (Warning under `<RaskStrict>`) · quick-fix
 
 A public property of an aggregate or entity typed `string`, a number, `DateTime`, `DateTimeOffset`, `DateOnly`,
 `TimeOnly` or `Guid` (nullable or not) holds whatever it is given, and every place that sets it has to remember the
@@ -3127,9 +3132,34 @@ public sealed class Delivery : Aggregate<Guid>
 }
 ```
 
-**Fix:** declare a value object for the property and store that. No quick-fix: which base and which rules is the
-app's call. To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the
-project.
+**Fix:** declare a value object for the property and store that (**quick-fix available** — "Declare a value object
+from its rules"). The lightbulb names the record after the type and the property, declares it from the base for what
+the property holds — `Text` for a `string`, `Number` for a `decimal`, `Whole` for an `int` or a `long`, `Day` for a
+`DateOnly` — with the arguments the rules already written for it say, types the property as it, and takes those rules
+off the property:
+
+```csharp
+// before
+[StringLength(200)] public string Name { get; private set; } = "";
+static void Rules(InlineValidator<Supplier> rules) => rules.RuleFor(s => s.Code).NotEmpty().Length(3).Matches("^[A-Z]+$");
+
+// after
+public SupplierName Name { get; private set; } = null!;
+public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200, Required: false);
+// …and for Code: Text(Value, MaxLength: 3, MinLength: 3), the rule left as RuleFor(s => s.Code).Matches("^[A-Z]+$")
+```
+
+`[StringLength]`, `[MaxLength]`, `[MinLength]` and FluentValidation's `MaximumLength`, `MinimumLength` and `Length`
+become `MaxLength`/`MinLength`; `[Range]`, `InclusiveBetween`, `GreaterThanOrEqualTo` and `LessThanOrEqualTo` become
+`Min`/`Max`; `PrecisionScale(p, s, …)` becomes `Precision`/`Scale`. A text no rule says must be filled (`[Required]`,
+`NotEmpty`, a minimum length) gets `Required: false`, so it still accepts an empty one; an optional property becomes an
+optional value object and keeps its `NotEmpty`. A FluentValidation check no base argument says (`Matches`,
+`EmailAddress`, `Must`) stays on the rule, for you to move into the value object. The fix is not offered where the
+value object would not say what was written: a type no base record holds, a name already taken, two rules that
+disagree, a conditional (`When`/`Unless`) rule, a rule in another file, or a DataAnnotations attribute no argument
+carries (`[EmailAddress]`, one with its own `ErrorMessage`), which on a value object would refuse every value.
+
+To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the project.
 
 ## RASK131
 
@@ -3446,6 +3476,92 @@ private static Supply Register(CompanyId company, SupplyDetails details) => …;
 
 **Fix:** make the factory `private` or `internal`. Code that only wants the aggregate built, not saved, calls it from
 inside the aggregate (or the assembly, when it is `internal`).
+
+## RASK139
+
+**A `Rules` method is not the in-type FluentValidation convention** · Warning
+
+FluentValidation rules written inside a type — an aggregate, an entity, a form model or a value object — are found by
+their shape alone: `static void Rules(InlineValidator<T> rules)`, any accessibility, where `T` is the type the method is
+declared in and neither the method nor the type is generic (the registration could not name it). A `Rules` method that
+takes an `InlineValidator` in any other shape reads like rules and is never registered, so they never run. Reported
+only when the app references FluentValidation.
+
+```csharp
+public sealed partial class Supplier : Aggregate<SupplierId>
+{
+    void Rules(InlineValidator<Supplier> rules) { … }                     // ⚠ RASK139 — not static
+    static void Rules(InlineValidator<Order> rules) { … }                 // ⚠ RASK139 — validates another type
+    static void Rules(InlineValidator<Supplier> rules) =>                 // ✓
+        rules.RuleFor(s => s.Name).NotEmpty().MaximumLength(200);
+}
+```
+
+**Fix:** declare it `static void Rules(InlineValidator<T> rules)` on the type it validates, or, for a generic type, write
+an `AbstractValidator<T>` for each closed type instead.
+
+## RASK181
+
+**A FluentValidation rule rules a value object** · Warning
+
+A value object declared from a `Rask.Values` base record checks its own rules as it is made, wherever that is. A
+FluentValidation rule on an aggregate's or entity's value-object member — in its in-type `Rules` or in an
+`AbstractValidator<T>` — restates them on that one owner: the two drift apart, and a value made anywhere else is never
+asked. `NotNull` and `NotEmpty`, which say only that the member is given, are the owner's to say and are not reported.
+
+```csharp
+public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);
+
+static void Rules(InlineValidator<Supplier> rules)
+{
+    rules.RuleFor(s => s.Name).Must(n => !n.Value.Contains('@'));   // ⚠ RASK181
+    rules.RuleFor(s => s.Contact).NotNull();                         // ✓ — whether it is given is the aggregate's
+}
+```
+
+**Fix:** move the rule into the value object — an argument of its base record, its `Rules()` override, or its own static
+`Rules(InlineValidator<SupplierName> rules)`.
+
+## RASK182
+
+**A FluentValidation rule disagrees with its column** · Warning
+
+The FluentValidation analogue of [RASK128](#rask128). A `[MaxLength]`, `[StringLength]` or `[Precision]` on a property —
+and, inside a value object, the `MaxLength`, `Precision` and `Scale` it hands its `Text` or `Number` base — gives the
+column its length and precision. A `MaximumLength`, `Length` or `PrecisionScale` that says otherwise leaves the rule and
+the column disagreeing: a value the rule accepts does not fit, or one that fits is refused. Only constants are
+compared, on both sides.
+
+```csharp
+[MaxLength(100)] public string Name { get; private set; } = "";
+rules.RuleFor(s => s.Name).MaximumLength(200);                      // ⚠ RASK182 — the column holds 100
+
+public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 100)
+{
+    static void Rules(InlineValidator<SupplierName> rules) =>
+        rules.RuleFor(n => n.Value).MaximumLength(200);             // ⚠ RASK182 — its base says 100
+}
+```
+
+**Fix:** make the two agree — or drop one: the attribute (or the base argument) already gives the rule the column has.
+
+## RASK183
+
+**A value object declares its rules twice** · Error
+
+A value object states the rules its base record cannot in one of two ways: a hand-written
+`protected override IEnumerable<Problem> Rules()`, or FluentValidation's `static void Rules(InlineValidator<T> rules)`,
+whose generated half overrides `Rules()` to run them. With both, the record would override `Rules()` twice.
+
+```csharp
+public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200)
+{
+    protected override IEnumerable<Problem> Rules() { … }
+    static void Rules(InlineValidator<SupplierName> rules) { … }    // ⛔ RASK183
+}
+```
+
+**Fix:** keep one. A hand-written `Rules()` is first-class; FluentValidation needs `Rask.Validation.FluentValidation`.
 
 ## RASK174
 
