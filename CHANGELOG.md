@@ -44,6 +44,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **BREAKING: the version a form was filled from reaches the aggregate, and a stale save says so in the form's words.**
+  Before: `Find(id)` took no version, so a form's `Version` could only be checked through `Update(id, model)`;
+  `Update(id, apply)` took only a synchronous `Action<T>`, so `s => s.Distribute(…)` returning a `Task` was dropped
+  unawaited; and every stale save threw EF's `DbUpdateConcurrencyException`, which each page caught by hand. After:
+  `await Supply.Find(id, version)` refuses an aggregate saved since with a `RaskValidationException` about the whole
+  form — "Someone else changed this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`,
+  Hungarian in the kit's catalog) — before anything is changed; `Supply.Update(id, async s => await s.Distribute(…),
+  version: v)` awaits a change that reads first; and the generated `Update`, `Delete` and `Save()` refuse a stale save
+  with that same failure, EF's exception kept as its `InnerException`. A `catch (DbUpdateConcurrencyException)` around
+  a generated write becomes `catch (RaskValidationException)`, or goes: a form shows the failure at its top. A write
+  staged on your own context (`db:`) is still saved, and refused, by your `SaveChangesAsync`.
 - **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
   Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
   aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)

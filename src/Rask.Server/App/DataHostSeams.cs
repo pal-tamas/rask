@@ -33,6 +33,8 @@ internal static class DataHostSeams
         // its own on a server, so the host hands it Rask's.
         HeldRowReference.Sentence = static () =>
             Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString.ValidationNotFound, HeldRowReference.Message);
+        StaleWrite.Sentence = static () =>
+            Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString.ValidationChangedSince, StaleWrite.Message);
 
         // A live session's reads have to see the tenant of the user that session belongs to, and a read
         // is a static call that runs outside any DI scope. This makes the session's own scope ambient

@@ -769,8 +769,8 @@ private async Task Create(ProductModel product)
 
 The model is what the writes on the type take — `Product.Create(model)`, `Product.Update(id, model)` —
 or what a command carries to a handler. It carries no id, so the row an edit saves is the one the page's own route
-names, and it carries the row's `Version` back, so `Update` throws `DbUpdateConcurrencyException` when it
-lost a race rather than overwriting the other one. See
+names, and it carries the row's `Version` back, so `Update` refuses a save that lost a race rather than
+overwriting the other one — a `RaskValidationException` about the whole form, shown at its top. See
 [a create and an edit form](data.md#a-create-and-an-edit-form).
 
 ### An edit page that reads its record

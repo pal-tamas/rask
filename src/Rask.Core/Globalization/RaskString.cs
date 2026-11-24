@@ -914,4 +914,7 @@ public enum RaskString
 
     /// <summary>The badge beside the label of a field that must be filled (<c>Ui.Field</c>, a control's <c>Label</c>).</summary>
     FieldRequired,
+
+    /// <summary>What a save over an aggregate somebody else saved since it was read says, about the whole form (<c>Find(id, version)</c>, <c>Update</c>, <c>Save()</c>).</summary>
+    ValidationChangedSince,
 }
