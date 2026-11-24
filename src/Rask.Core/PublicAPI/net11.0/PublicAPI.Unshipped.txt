@@ -20318,3 +20318,14 @@ Rask.Values.Remainder
 Rask.Values.Remainder.ToFirst = 0 -> Rask.Values.Remainder
 Rask.Values.Remainder.ToLast = 1 -> Rask.Values.Remainder
 Rask.Values.Remainder.ToLargest = 2 -> Rask.Values.Remainder
+Rask.Core.Forms.PickedFile
+Rask.Core.Forms.PickedFile.ContentType.get -> string!
+Rask.Core.Forms.PickedFile.Name.get -> string!
+Rask.Core.Forms.PickedFile.OpenRead() -> System.IO.Stream!
+Rask.Core.Forms.PickedFile.Size.get -> long
+const Rask.Core.Forms.PickedFile.DefaultMaxSize = 52428800 -> long
+override Rask.Core.Forms.PickedFile.ToString() -> string!
+static Rask.Core.Forms.PickedFile.Of(string! name, byte[]! content, string! contentType = "application/octet-stream") -> Rask.Core.Forms.PickedFile!
+static Rask.Core.Forms.PickedFile.Read(Rask.Core.Forms.IRaskFile! file, long maxSize = 52428800, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Forms.PickedFile!>!
+Rask.Core.Globalization.RaskString.FileTooLarge = 305 -> Rask.Core.Globalization.RaskString
+static Rask.Values.Problem.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member, string! message) -> Rask.Values.Problem

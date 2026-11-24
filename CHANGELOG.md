@@ -49,6 +49,14 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Ui.FilePicker` and `Attachment` in forms**: an operation that takes an `Attachment` gets a form field holding a
+  `PickedFile` (read as it is picked, up to `MaxSize`), drawn by `Ui.Field.Bind` as `Ui.FilePicker` — Flux's upload, then
+  the file with its remove button; the store's refusal (size, type) is told under that field.
+  [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
+- **An `Attachment` anywhere in the row takes part in the save**: on a child row, inside a value object, in a list or a
+  JSON column — stored in the operation's transaction, let go after the commit when replaced or removed, refused at its
+  place (`Filed[2]`).
+- **`Problem.At(() => LocalWells[i].Companies[j].DbId, message)`** names a problem by its evaluated path, as `Refuse` does.
 - **`Attachment` — a file the aggregate holds, stored and deleted with its row** (`Rask.Storage`): `public Attachment?
   Document { get; private set; }`, set to `Attachment.Of(Files.Save(…))`, is stored as the aggregate is saved, inside the
   operation's transaction; a failed or rolled-back save leaves no file, a refused file is a `RaskValidationException` on

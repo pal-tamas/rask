@@ -267,3 +267,4 @@ static Rask.Storage.Attachment.Of(Rask.Storage.Saving saving) -> Rask.Storage.At
 static Rask.Storage.Attachment.Of(Rask.Storage.StoredFile! file) -> Rask.Storage.Attachment!
 static Rask.Storage.Attachment.operator !=(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
 static Rask.Storage.Attachment.operator ==(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
+static Rask.Storage.Attachment.Of(Rask.Core.Forms.PickedFile! file, string? field = null) -> Rask.Storage.Attachment!

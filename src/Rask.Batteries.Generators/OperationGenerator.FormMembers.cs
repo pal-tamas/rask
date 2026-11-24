@@ -130,6 +130,15 @@ public sealed partial class OperationGenerator
     /// <param name="name">The C# of its path, under which a refusal is shown: <c>"Name"</c>, <c>__at + ".Tonnes"</c>.</param>
     private static string MadeFrom(FormField field, string given, string name)
     {
+        // A picked file is handed on as an attachment the save stores; a refusal of the store comes back under this field.
+        if (field.Attachment)
+        {
+            var made = given + " is { } __picked ? " + AttachmentFqn + ".Of(__picked, " + name + ") : ";
+            return field.Optional
+                ? made + "null"
+                : "global::Rask.Data.GeneratedOperations.Given(() => " + made + "throw " + Missing(name) + ", failures)!";
+        }
+
         if (field.ValueObject is not { } valueObject)
         {
             return field.Lifted

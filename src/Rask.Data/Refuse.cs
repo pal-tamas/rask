@@ -84,6 +84,6 @@ public static class Refuse
     {
         ArgumentNullException.ThrowIfNull(field);
         ArgumentNullException.ThrowIfNull(message);
-        throw new RaskValidationException([new FieldFailure(message, [RefusedField.PathOf(field)])]);
+        throw new RaskValidationException([new FieldFailure(message, [FieldPath.PathOf(field)])]);
     }
 }

@@ -1,3 +1,5 @@
+using Rask.Core.Forms;
+
 namespace Rask.Storage;
 
 /// <summary>
@@ -20,14 +22,14 @@ namespace Rask.Storage;
 ///         It is a value object of four columns — <c>Document_Id</c>, <c>Document_Name</c>, <c>Document_ContentType</c>,
 ///         <c>Document_Size</c> — so the row says what the file is without a join. Serve it through
 ///         <c>Files.Download(document.Id)</c> or <c>Files.Share(document.Id)</c>, behind the page's own authorization.
-///         It is held on the aggregate or the entity itself; one inside another value object or a list is stored as it
-///         is, without the save taking part.
+///         It may be held anywhere in the row: on the aggregate, on a child row, inside a value object, in a list or a
+///         JSON column — each is stored and let go the same way.
 ///     </para>
 /// </remarks>
 public sealed record Attachment
 {
     // The upload still to store; null once it is stored, and for every attachment read from a row.
-    private readonly Saving? _pending;
+    private Saving? _pending;
 
     private Attachment(Guid id, string name, string contentType, long size)
     {
@@ -37,24 +39,30 @@ public sealed record Attachment
         Size = size;
     }
 
-    private Attachment(Saving pending, string name)
-        : this(Guid.Empty, name, "", 0) =>
+    private Attachment(Saving pending, string name, string? field)
+        : this(Guid.Empty, name, "", 0)
+    {
         _pending = pending;
+        Field = field;
+    }
 
     /// <summary>The stored file's id: what <c>Files.Download</c>, <c>Files.Share</c> and <c>Files.OpenRead</c> take.</summary>
-    public Guid Id { get; private init; }
+    public Guid Id { get; private set; }
 
     /// <summary>The file's display name, reduced to a safe leaf.</summary>
-    public string Name { get; private init; }
+    public string Name { get; private set; }
 
     /// <summary>The media type sniffed from its bytes (or stated with <c>.As(…)</c>), never the browser's claim.</summary>
-    public string ContentType { get; private init; }
+    public string ContentType { get; private set; }
 
     /// <summary>Its size in bytes.</summary>
-    public long Size { get; private init; }
+    public long Size { get; private set; }
 
     /// <summary>Whether it is still to be stored — by the save of the aggregate that holds it.</summary>
     public bool IsPending => _pending is not null;
+
+    // The form field it was picked in, which a refusal of the store is told under; null for the property's own path.
+    internal string? Field { get; }
 
     /// <summary>
     ///     A file to store with the row: <c>Attachment.Of(Files.Save(upload.OpenReadStream, upload.Name, upload.Size))</c>, or
@@ -63,7 +71,21 @@ public sealed record Attachment
     /// </summary>
     /// <param name="saving">The save, still being worded — <c>.Public()</c> and <c>.As(…)</c> are kept.</param>
     /// <returns>The attachment, pending until that save.</returns>
-    public static Attachment Of(Saving saving) => new(saving, saving.Name);
+    public static Attachment Of(Saving saving) => new(saving, saving.Name, null);
+
+    /// <summary>
+    ///     A file the reader picked in a form, to store with the row — what a form over an operation that takes an
+    ///     <see cref="Attachment" /> passes it. A file the store refuses is told under <paramref name="field" />.
+    /// </summary>
+    /// <param name="file">The picked file, read as it was picked.</param>
+    /// <param name="field">The form field it was picked in, or null for the property that holds it.</param>
+    /// <returns>The attachment, pending until the save.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file" /> is null.</exception>
+    public static Attachment Of(PickedFile file, string? field = null)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        return new(Files.Save(file.OpenRead(), file.Name), file.Name, field);
+    }
 
     /// <summary>A file already stored — the <see cref="StoredFile" /> a <c>Files.Save</c> returned.</summary>
     /// <param name="file">The stored file.</param>
@@ -75,10 +97,14 @@ public sealed record Attachment
         return new(file.Id, file.Name, file.ContentType, file.Size);
     }
 
-    /// <summary>Stores the pending file, once, and hands back the attachment naming it.</summary>
-    internal async Task<(Attachment Stored, StoredFile File)> Store(CancellationToken cancellationToken)
+    /// <summary>
+    ///     Stores the pending file, once, and names it from then on — in place, so the attachment is stored wherever it is
+    ///     held: on the row, inside a value object, in a list.
+    /// </summary>
+    internal async Task<StoredFile> Store(CancellationToken cancellationToken)
     {
         var file = await _pending!.Value.In(cancellationToken).AsTask().ConfigureAwait(false);
-        return (Of(file), file);
+        (Id, Name, ContentType, Size, _pending) = (file.Id, file.Name, file.ContentType, file.Size, null);
+        return file;
     }
 }
