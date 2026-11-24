@@ -64,6 +64,10 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A gated member is left off the generated forms while its gate is shut** (F-35 follow-up). `Ui.Field.Bind` draws
+  nothing for a member gated with `b.Gated(…)` on the aggregate's form model and on a `Form.For` over an operation
+  whose parameter writes it; the operation's form does not read the hidden field (a `Change<T>` keeps, anything else
+  is `null`), and the save keeps the stored value as before. New seam: `RaskValidation.RegisterHiddenFields`.
 - **Writes over many rows of one aggregate, on the type: `X.DeleteWhere`, `X.UpdateWhere`, `X.UpdateEach`,
   `X.Upsert`, `X.Import`** (F-25, F-24, F-69). `UpdateWhere`/`DeleteWhere` are one statement that still keeps what a
   save keeps — the tenant and soft-delete filters (a soft delete is stamped), `UpdatedAt` and `Version`, the declared

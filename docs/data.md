@@ -926,6 +926,13 @@ gated member as it was stored, and a row added then stores nothing there; the re
 Only an optional member can be gated. Whether a gate is open is the app's to say, once, per kind of gate; a save
 that writes a gated member with no rule for its kind is refused rather than guessed at.
 
+The generated forms leave it out too. While the gate is shut, `Ui.Field.Bind(() => m.Card)` draws nothing — on the
+aggregate's form model (`Driver.Create(model)`, `Update(id, model)`) and on a `Form.For` over an operation whose
+parameter writes the gated member (`Describe(name, card)`, matched by name) — and the operation's form does not read
+what the field holds: a `Change<T>` parameter is kept, any other is given `null`, and the save keeps what is stored
+either way. A form asks as it renders (`GeneratedGates.IsShut`), so a gate that opens for the signed-in tenant shows
+the field on the next render.
+
 ### What deleting a referenced row says
 
 A row that other rows still point at cannot go, and only the database knows. Say what that means once, on the
