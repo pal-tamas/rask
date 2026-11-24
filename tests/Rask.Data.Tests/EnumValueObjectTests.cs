@@ -34,7 +34,7 @@ public sealed class Pump : Aggregate<int, Model>
 {
     private Pump() { }
 
-    public PumpFuelKind Fuel { get; private set; } = PumpFuelKind.Create(PumpFuel.Diesel);
+    public PumpFuelKind Fuel { get; private set; } = null!;
 
     public PumpFuelKind? Spare { get; private set; }
 
