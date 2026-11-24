@@ -319,7 +319,7 @@ internal static class BulkInsertWriter
 
     // AuditingInterceptor takes its TimeProvider from DI; the writer must read the same clock or a test that
     // freezes time would see two different "now"s depending on which path ran.
-    private static TimeProvider ResolveTimeProvider(DbContext context) =>
+    internal static TimeProvider ResolveTimeProvider(DbContext context) =>
         context.GetService<IDbContextOptions>()
             .FindExtension<CoreOptionsExtension>()?
             .ApplicationServiceProvider?

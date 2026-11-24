@@ -490,7 +490,7 @@ Rask.Data.ComputedColumnBuilderExtensions
 static Rask.Data.ComputedColumnBuilderExtensions.Computed<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.DefaultValueBuilderExtensions
 static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TProperty value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
-static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty, TClock>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TClock>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.FilteredIndexBuilderExtensions
 static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 Rask.Data.Refuse
@@ -564,6 +564,68 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+~Rask.Data.Upserted<T>.<Clone>$() -> Rask.Data.Upserted<T>!
+~Rask.Data.Upserted<T>.Equals(Rask.Data.Upserted<T>? other) -> bool
+~static Rask.Data.Upserted<T>.operator !=(Rask.Data.Upserted<T>? left, Rask.Data.Upserted<T>? right) -> bool
+~static Rask.Data.Upserted<T>.operator ==(Rask.Data.Upserted<T>? left, Rask.Data.Upserted<T>? right) -> bool
+override Rask.Data.RefusedRow<TRow>.Equals(object? obj) -> bool
+override Rask.Data.RefusedRow<TRow>.GetHashCode() -> int
+override Rask.Data.RefusedRow<TRow>.ToString() -> string!
+override Rask.Data.Upserted<T>.Equals(object? obj) -> bool
+override Rask.Data.Upserted<T>.GetHashCode() -> int
+override Rask.Data.Upserted<T>.ToString() -> string!
+Rask.Data.BulkWrites
+Rask.Data.BulkWrites.extension<T>(T!)
+Rask.Data.ImportFailure
+Rask.Data.ImportFailure.Collect = 1 -> Rask.Data.ImportFailure
+Rask.Data.ImportFailure.Stop = 0 -> Rask.Data.ImportFailure
+Rask.Data.ImportOptions<T, TRow>
+Rask.Data.ImportOptions<T, TRow>.BatchSize.get -> int
+Rask.Data.ImportOptions<T, TRow>.BatchSize.set -> void
+Rask.Data.ImportOptions<T, TRow>.OnInvalid.get -> Rask.Data.ImportFailure
+Rask.Data.ImportOptions<T, TRow>.OnInvalid.set -> void
+Rask.Data.ImportOptions<T, TRow>.Upsert<TKey>(System.Linq.Expressions.Expression<System.Func<T!, TKey>!>! key, System.Action<T!, TRow>! update) -> void
+Rask.Data.ImportResult<TRow>
+Rask.Data.ImportResult<TRow>.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.RefusedRow<TRow>!>!
+Rask.Data.ImportResult<TRow>.Inserted.get -> int
+Rask.Data.ImportResult<TRow>.Updated.get -> int
+Rask.Data.RefusedRow<TRow>
+Rask.Data.RefusedRow<TRow>.<Clone>$() -> Rask.Data.RefusedRow<TRow>!
+Rask.Data.RefusedRow<TRow>.Deconstruct(out int Index, out TRow Row, out Rask.Cqrs.RaskValidationException! Refusal) -> void
+Rask.Data.RefusedRow<TRow>.Equals(Rask.Data.RefusedRow<TRow>? other) -> bool
+Rask.Data.RefusedRow<TRow>.Index.get -> int
+Rask.Data.RefusedRow<TRow>.Index.init -> void
+Rask.Data.RefusedRow<TRow>.Refusal.get -> Rask.Cqrs.RaskValidationException!
+Rask.Data.RefusedRow<TRow>.Refusal.init -> void
+Rask.Data.RefusedRow<TRow>.RefusedRow(int Index, TRow Row, Rask.Cqrs.RaskValidationException! Refusal) -> void
+Rask.Data.RefusedRow<TRow>.Row.get -> TRow
+Rask.Data.RefusedRow<TRow>.Row.init -> void
+Rask.Data.Upserted<T>
+Rask.Data.Upserted<T>.Aggregate.get -> T!
+Rask.Data.Upserted<T>.Aggregate.init -> void
+Rask.Data.Upserted<T>.Created.get -> bool
+Rask.Data.Upserted<T>.Created.init -> void
+Rask.Data.Upserted<T>.Deconstruct(out T! Aggregate, out bool Created) -> void
+Rask.Data.Upserted<T>.Upserted(T! Aggregate, bool Created) -> void
+static Rask.Data.BulkWrites.DeleteWhere<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).DeleteWhere(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).Import<TRow>(System.Collections.Generic.IEnumerable<TRow>! rows, System.Func<TRow, T!>! make, System.Action<Rask.Data.ImportOptions<T!, TRow>!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.ImportResult<TRow>!>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateEach(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<T!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateEach(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Func<T!, System.Threading.Tasks.Task!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateWhere(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<T!>!>! set, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).Upsert(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<System.Threading.Tasks.Task<T!>!>! create, System.Func<T!, System.Threading.Tasks.Task!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.extension<T>(T!).Upsert(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<T!>! create, System.Action<T!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.Import<T, TRow>(System.Collections.Generic.IEnumerable<TRow>! rows, System.Func<TRow, T!>! make, System.Action<Rask.Data.ImportOptions<T!, TRow>!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.ImportResult<TRow>!>!
+static Rask.Data.BulkWrites.UpdateEach<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<T!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.UpdateEach<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Func<T!, System.Threading.Tasks.Task!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.UpdateWhere<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<T!>!>! set, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.Upsert<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<System.Threading.Tasks.Task<T!>!>! create, System.Func<T!, System.Threading.Tasks.Task!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.Upsert<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<T!>! create, System.Action<T!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.RefusedRow<TRow>.operator !=(Rask.Data.RefusedRow<TRow>? left, Rask.Data.RefusedRow<TRow>? right) -> bool
+static Rask.Data.RefusedRow<TRow>.operator ==(Rask.Data.RefusedRow<TRow>? left, Rask.Data.RefusedRow<TRow>? right) -> bool
+static Rask.Data.DefaultValueBuilderExtensions.StoredDefault<TEntity, TProperty, TStored>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, TStored value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
+Rask.Data.SearchTextExtensions
+static Rask.Data.SearchTextExtensions.Loosely(this string! text) -> string!
 Rask.Data.ISecrets
 Rask.Data.ISecrets.Protect(string! plaintext) -> string!
 Rask.Data.ISecrets.Unprotect(string! stored) -> string!
@@ -600,3 +662,44 @@ static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskGate<TGate>(this Mic
 Rask.Data.SequenceBuilderExtensions
 static Rask.Data.SequenceBuilderExtensions.FromSequence(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
 static Rask.Data.SequenceBuilderExtensions.FromSequence<TKey>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>!
+Rask.Data.Audited
+Rask.Data.Audited.Audited() -> void
+Rask.Data.AuditAction
+Rask.Data.AuditAction.Insert = 0 -> Rask.Data.AuditAction
+Rask.Data.AuditAction.Update = 1 -> Rask.Data.AuditAction
+Rask.Data.AuditAction.Delete = 2 -> Rask.Data.AuditAction
+Rask.Data.AuditEntry
+Rask.Data.AuditEntry.Action.get -> Rask.Data.AuditAction
+Rask.Data.AuditEntry.After.get -> string?
+Rask.Data.AuditEntry.Aggregate.get -> string!
+Rask.Data.AuditEntry.At.get -> System.DateTime
+Rask.Data.AuditEntry.Before.get -> string?
+Rask.Data.AuditEntry.Id.get -> long
+Rask.Data.AuditEntry.Key.get -> string!
+Rask.Data.AuditEntry.User.get -> string!
+const Rask.Data.AuditEntry.System = "system" -> string!
+Rask.Data.AuditFormat
+Rask.Data.AuditFormat.AuditFormat() -> void
+static Rask.Data.AuditFormat.Default.get -> Rask.Data.AuditFormat!
+virtual Rask.Data.AuditFormat.Value(object! value) -> string!
+virtual Rask.Data.AuditFormat.Values(System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>! values) -> string!
+Rask.Data.AuditValue
+Rask.Data.AuditValue.AuditValue() -> void
+Rask.Data.AuditValue.AuditValue(string! Name, object? Value) -> void
+Rask.Data.AuditValue.Name.get -> string!
+Rask.Data.AuditValue.Name.init -> void
+Rask.Data.AuditValue.Value.get -> object?
+Rask.Data.AuditValue.Value.init -> void
+Rask.Data.TraitSet.Audited = 1024 -> Rask.Data.TraitSet
+~override Rask.Data.AuditValue.Equals(object obj) -> bool
+~override Rask.Data.AuditValue.ToString() -> string
+override Rask.Data.AuditValue.GetHashCode() -> int
+Rask.Data.AuditValue.Deconstruct(out string! Name, out object? Value) -> void
+Rask.Data.AuditValue.Equals(Rask.Data.AuditValue other) -> bool
+static Rask.Data.AuditValue.operator !=(Rask.Data.AuditValue left, Rask.Data.AuditValue right) -> bool
+static Rask.Data.AuditValue.operator ==(Rask.Data.AuditValue left, Rask.Data.AuditValue right) -> bool
+Rask.Data.NumberedBuilderExtensions
+static Rask.Data.NumberedBuilderExtensions.Numbered<TEntity, TNumber, TWithin, TOrder>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TNumber>!>! number, System.Linq.Expressions.Expression<System.Func<TEntity!, TWithin>!>! within, System.Linq.Expressions.Expression<System.Func<TEntity!, TOrder>!>! by, System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>? skip = null) -> Rask.Data.Numbering<TEntity!>!
+Rask.Data.Numbering<TEntity>
+Rask.Data.Numbering<TEntity>.Same<TRow>(System.Linq.Expressions.Expression<System.Func<TEntity!, TRow>!>! row) -> Rask.Data.Numbering<TEntity!>!
+Rask.Data.Numbering<TEntity>.SkipWhen<TOther, TRow>(System.Linq.Expressions.Expression<System.Func<TEntity!, System.Linq.IQueryable<TOther!>!, bool>!>! when, System.Linq.Expressions.Expression<System.Func<TOther!, TRow>!>! row) -> Rask.Data.Numbering<TEntity!>!

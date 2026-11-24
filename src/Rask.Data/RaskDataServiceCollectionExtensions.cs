@@ -60,6 +60,8 @@ public static partial class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, GatedWritesInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
+            AddDeclaredWrites(services);
+
             // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
             // in SavingChanges) sees them whichever interceptor runs first.
             services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
@@ -135,6 +137,15 @@ public static partial class RaskDataServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ProviderFeatureCheck<TContext>>());
 
         return services;
+    }
+
+    // After the stamps and versions, so an Audited aggregate's entry, and a declared numbering, read the rows as they go
+    // out. The audit format is Rask's unless the app registered its own, before or after this call.
+    private static void AddDeclaredWrites(IServiceCollection services)
+    {
+        services.TryAddSingleton(AuditFormat.Default);
+        services.AddSingleton<ISaveChangesInterceptor, AuditTrailInterceptor>();
+        services.AddSingleton<ISaveChangesInterceptor, NumberingInterceptor>();
     }
 
     // Rask.Data's browser build fills this in (Browser/BrowserData.cs); on a server the Rask host wires the same.

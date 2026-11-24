@@ -7,6 +7,7 @@ namespace Rask.Data.Tests;
 
 // A migration's data step — `b.Data(async () => …)` — runs in C# once the schema is migrated, once, recorded in
 // __RaskDataSteps; and every provider writes it into the migration's SQL as nothing but a comment.
+[Collection(DataDbCollection.Name)]
 public sealed class DataStepTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;

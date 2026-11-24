@@ -83,3 +83,4 @@ Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackExce
 Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! message) -> void
 Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! message, System.Exception! innerException) -> void
 Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! sql, int attempt) -> void
+const Rask.SQLite.SqliteCollations.SearchOrder = "RASK_SEARCH" -> string!

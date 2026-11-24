@@ -54,12 +54,21 @@ public sealed partial class OperationGenerator
             var kept = child is null ? null : PropertyNamed(child, member.Name);
             var optional = member.NullableAnnotation == NullableAnnotation.Annotated ||
                            member.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
-            if (MemberField(member.Name, member.Type, optional, kept, held, lift: true) is not { } field)
+            if (MemberField(member.Name, member.Type, optional, kept, held, lift: true) is { } field)
+            {
+                fields.Add(field with { Shape = StatedShape(field, member.Type, kept is null ? null : owner, kept ?? member) });
+                continue;
+            }
+
+            // A value object of several values on a row: a group of its own (`f.Parts[i].Start.Date`), filled from the
+            // child's member of that name and type.
+            var stored = kept is not null && Same(kept.Type, member.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)) ? kept : null;
+            if (GroupOf(member.Name, member.Type, optional, stored, held, input, property + member.Name + "Fields") is not { } group)
             {
                 return null;
             }
 
-            fields.Add(field with { Shape = StatedShape(field, member.Type, kept is null ? null : owner, kept ?? member) });
+            fields.Add(group);
         }
 
         var model = property + "Row";
@@ -165,9 +174,16 @@ public sealed partial class OperationGenerator
         s.AppendLine("            var __before = failures.Count;");
         foreach (var member in rows.Members)
         {
-            s.Append("            var __m_").Append(member.Property).Append(" = ")
-                .Append(MadeFrom(member, "__row." + member.Property, "__at + " + SymbolDisplay.FormatLiteral("." + member.Property, quote: true)))
-                .AppendLine(";");
+            var at = "__at + " + SymbolDisplay.FormatLiteral("." + member.Property, quote: true);
+            var made = member.Group is null
+                ? MadeFrom(member, "__row." + member.Property, at)
+                : operation.Name + field.Property + member.Property + "Made(__row." + member.Property + ", " + at + ", failures)";
+            if (member.Group is not null && !member.Optional)
+            {
+                made += "!";
+            }
+
+            s.Append("            var __m_").Append(member.Property).Append(" = ").Append(made).AppendLine(";");
         }
 
         s.AppendLine("            if (failures.Count == __before)");
@@ -180,5 +196,16 @@ public sealed partial class OperationGenerator
         s.AppendLine();
         s.AppendLine("        return __made;");
         s.AppendLine("    }");
+
+        foreach (var member in rows.Members.Where(static m => m.Group is not null))
+        {
+            AppendGroupMade(s, input, operation, member with { Property = field.Property + member.Property });
+        }
     }
+
+    // The groups a list's rows hold, each with the key it is registered under (`ChangePartsStart`).
+    private static IEnumerable<(string Key, FormField Group)> RowGroups(string operation, FormField field) =>
+        field.Rows is { } rows
+            ? rows.Members.Where(static m => m.Group is not null).Select(m => (operation + field.Property + m.Property, m))
+            : Enumerable.Empty<(string Key, FormField Group)>();
 }

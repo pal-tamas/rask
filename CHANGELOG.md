@@ -16,6 +16,14 @@ them until tagged releases begin.
   reads (the scope's read-context factory, else the test database bound to the flow, else the process-wide one), each
   test database gets a cache of its own that goes with it, and an entry is trusted only under the save generation it
   was read in, so a read racing a save of the tenant or the user is never served afterwards.
+- **`Form.For` over an operation that takes a one-value `: Value` record is generated, and an operation that gets no
+  form says why.** Before: a parameter like `TankSize(int Value) : Value` made the generator skip the operation's form
+  silently — no `VehicleProbeAInput`, no `Form.For`, no diagnostic. After: it is a field held as its value and made
+  through `TankSize.Create`, like any one-value value object — over an `int`, `decimal`, `DateTime` (a `WallMoment`),
+  `DateOnly`, `Guid` or `string` alike. A row spec holding a value object of several values
+  (`record ProbeRow(string? Id, Opening Start)`) is a group of its own on each row (`f.Rows[i].Start.Date`), filled from
+  the child's member of that name and refused under `Rows[i].Start.Quantity`. An operation whose parameter no field can
+  hold (or that takes more than 13) is reported as RASK188 (Info), naming the parameter.
 - **An optional value object whose members are all optional is held in its row's columns.** Before: `Opening? Start`
   over `Opening(DateTime? Date, decimal? Quantity) : Value` failed the model build — EF Core asked for a required member
   or a discriminator column, a column a legacy table does not have — so an app held it as `Opening Start =
@@ -64,6 +72,53 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Writes over many rows of one aggregate, on the type: `X.DeleteWhere`, `X.UpdateWhere`, `X.UpdateEach`,
+  `X.Upsert`, `X.Import`** (F-25, F-24, F-69). `UpdateWhere`/`DeleteWhere` are one statement that still keeps what a
+  save keeps — the tenant and soft-delete filters (a soft delete is stamped), `UpdatedAt` and `Version`, the declared
+  `LockedBy` (the old parent and the one moved to), the unique/referenced messages, the live notices — and counts once
+  (`Pairing (set)`) toward `OneAggregatePerTransaction`; a `DeleteWhere` whose aggregate or child declares a rule only a
+  row can answer (`ValidateDelete()`, a child's `LockedBy`) is refused, naming `X.Delete(id)`. `UpdateEach` loads each
+  matching aggregate, runs its method and saves it with its rules and events, a batch (500) to a transaction that
+  states why it holds many. `Upsert` changes the one aggregate a predicate matches or saves a new one from the
+  factory (`Upserted<T>.Created`). `Import(rows, factory, o => …)` saves rows through the factory a batch at a time
+  from an empty tracker: `ImportFailure.Collect` sets refused rows aside with their position (`result.Failures`),
+  `o.Upsert(key, update)` changes what an earlier import stored. See `docs/data-writes.md#writes-over-many-rows`.
+- **An operation of a `Versioned` aggregate also gets an entry without a version, for a job or an event handler**
+  (F-72): `await Supply.Change(id, details, parts)` runs the operation on the aggregate as it now stands, its roles and
+  rules asked. Not generated for an operation whose first parameter takes a number (`Book(int seats)`), where
+  `Supply.Book(id, 3)` would read both ways.
+- **RASK187: a raw `ExecuteUpdate`/`ExecuteDelete` over an aggregate's rows** points at `X.UpdateWhere`/`X.DeleteWhere`,
+  with a quick-fix for the awaitable form on a set (straight or behind one `Where`). Info by default, a warning under
+  `<RaskStrict>`.
+- **`Audited`: an aggregate's every save leaves its audit entry in that same save.** Before: an app wrote its audit
+  rows in a `SaveChanges` override or an interceptor, after the commit with raw SQL (Eszaf's `DeliveryNoteAudit`) — not
+  atomic, blind to the children, skipping a value that became null, in the current culture. After:
+  `Aggregate<int, Versioned, Audited>` adds an `AuditEntry` (table `Audits`: aggregate, `Insert`/`Update`/`Delete`, key,
+  before and after, user or `system`, UTC moment) to the save itself; a store-generated key is read into it before the
+  commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
+  values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
+  SQL Server and PostgreSQL, proven by the providers suite.
+- **`b.Numbered(…)`: a running number per group, kept by Rask in every save with no SQL in the app.** Before: TA's
+  `FuelingSequence` interceptor renumbered fuelings with a window-function `UPDATE` under one global `sp_getapplock`.
+  After: `b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id }, skip: f => …)`
+  numbers every group a save touches anew from the earliest place it touched, before the commit, under a
+  transaction-scoped lock per group (SQL Server, PostgreSQL); `.Same(f => f.ParentId)` gives a row another's number,
+  and `.SkipWhen<TOther, TRow>(…)` leaves a row out by another table's rows. Pairs with `b.Computed(…)`. On SQLite,
+  SQL Server and PostgreSQL, proven by the providers suite, saves racing into one group included.
+- **`x.Loosely()` searches text case and accents aside on every database.** Before: a picker's search wrote
+  `EF.Functions.Collate(x, "Latin1_General_100_CI_AI").Contains(typed)`, and SQLite answered "no such collation
+  sequence". After: `Where(d => d.Name.Loosely().Contains(typed))` is `COLLATE Latin1_General_100_CI_AI` on SQL Server,
+  `COLLATE "RASK_SEARCH"` (registered on every connection) with `Contains`/`StartsWith`/`EndsWith` matched by
+  `rask_search(…)` on SQLite, and `COLLATE rask_search`, a nondeterministic ICU collation the migrations create, on
+  PostgreSQL 18+. `==` and `OrderBy` compare the same way; nothing reaches the schema on SQL Server and SQLite. RASK177
+  suggests it for `EF.Functions.Collate`.
+- **`b.StoredDefault(p => p.HardwareNumber, 0)` states a default as the column stores it.** Before: `Default` took the
+  value object, so a legacy `0` a `HardwareNumber` (at least 1) refuses could not be said at all. After: the raw value
+  goes in, its type checked against the column's as the model is built.
+- **`Default(x => x.SentAt, () => Clock.Wall)` is the database's wall clock.** Before: refused, leaving
+  `HasDefaultValueSql("CURRENT_TIMESTAMP")`. After: `CURRENT_TIMESTAMP` on SQL Server, `LOCALTIMESTAMP` on PostgreSQL,
+  SQLite's `'localtime'` — the local time of the zone the database server runs in — for a `DateTime` or a value object
+  over one.
 - **Five model traits for the DDD plan's history, tenancy, keys and gates (F-30, F-31, F-32, F-34, F-35).**
   - `SoftRemoved` on a child (`VirtualTank : Entity<VirtualTankId, SoftRemoved>`): a child its aggregate lets go of
     keeps its row, stamped `DeletedAt`, with what it holds — hidden from the aggregate's load and its read face,
@@ -212,6 +267,12 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **BREAKING: `Default(x => x.Size, 1000)` is the column's default SQL, as the docs said.** Before: it was EF Core's
+  `HasDefaultValue(1000)`, so a model moving from `HasDefaultValueSql("1000")` made a migration altering every
+  default. After: Rask writes `HasDefaultValueSql` in the provider's literal (a SQL Server `bit` bare, `0`/`1`), so that
+  move makes an empty migration. A model already on `Default(…)` gets one migration that restates each default, and
+  changes no row. The clock overload now takes the clock's own type (`Default<TEntity, TProperty, TClock>`), which is
+  what lets a value object over a `DateTime` default to it.
 - **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
   entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
   transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,
