@@ -143,12 +143,15 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             StronglyTypedId.For(idType),
             AggregateShape.TraitsOf(symbol),
             AggregateShape.TenantKeyOf(symbol),
+            AggregateShape.TenantParentOf(symbol),
+            new EquatableArray<string>([.. AggregateShape.InForceChildrenOf(symbol)]),
             ValueCollections(symbol),
             ChildTypeNamesOf(symbol),
             ChildFieldsOf(symbol),
             AggregateShape.IsAggregate(symbol),
             unbuildable,
-            referenceValues);
+            referenceValues,
+            SecretsHeldBy(symbol));
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
@@ -600,7 +603,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         var declared = distinct
             .Select(c => (Entity: c, Traits: c.Traits | (partitioned.Contains(c.FullyQualifiedName) ? AggregateShape.PerTenant : 0)))
-            .Where(static d => d.Traits != 0 || d.Entity.Collections.Count > 0 || d.Entity.ChildFields.Count > 0)
+            .Where(static d => d.Traits != 0 || d.Entity.Collections.Count > 0 || d.Entity.ChildFields.Count > 0 ||
+                               d.Entity.InForceChildren.Count > 0)
             .OrderBy(static d => d.Entity.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
@@ -688,6 +692,18 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         {
             source.Append("        global::Rask.Data.ConventionRegistry.DeclareTenantKey(typeof(")
                 .Append(entity.FullyQualifiedName).Append("), typeof(").Append(key).AppendLine("));");
+        }
+
+        if (entity.TenantParent is { } tenantParent)
+        {
+            source.Append("        global::Rask.Data.ConventionRegistry.DeclareTenantParent(typeof(")
+                .Append(entity.FullyQualifiedName).Append("), typeof(").Append(tenantParent).AppendLine("));");
+        }
+
+        foreach (var child in entity.InForceChildren)
+        {
+            source.Append("        global::Rask.Data.ConventionRegistry.DeclareInForce(typeof(")
+                .Append(entity.FullyQualifiedName).Append("), typeof(").Append(child).AppendLine("));");
         }
 
         foreach (var collection in entity.Collections)
@@ -835,6 +851,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             }
         }
 
+        EmitSecretConversions(source, entities);
         source.AppendLine("    }");
         source.AppendLine();
 
@@ -1007,10 +1024,13 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         StronglyTypedId Id,
         int Traits,
         string? TenantKey,
+        string? TenantParent,
+        EquatableArray<string> InForceChildren,
         EquatableArray<ValueCollectionSpec> Collections,
         EquatableArray<string> ChildTypeNames,
         EquatableArray<ChildFieldSpec> ChildFields,
         bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders,
-        EquatableArray<ReferenceValue> ReferenceValues);
+        EquatableArray<ReferenceValue> ReferenceValues,
+        EquatableArray<string> Secrets);
 }

@@ -94,8 +94,15 @@ internal static class ReadModelShape
 
             if (!IsIgnored(property) && !IsCollectionOfEntities(property.Type))
             {
-                var pattern = columns.FirstOrDefault(c => string.Equals(c.Property, property.Name, StringComparison.Ordinal))?.Pattern;
-                AddMember(entity, property, pattern, members, references, valueCollections, cancellationToken);
+                var configured = columns.FirstOrDefault(c => string.Equals(c.Property, property.Name, StringComparison.Ordinal));
+
+                // A value object kept whole as JSON (b.Json(…)) has no columns to flatten into: the face leaves it out.
+                if (configured is { Json: true })
+                {
+                    continue;
+                }
+
+                AddMember(entity, property, configured?.Pattern, members, references, valueCollections, cancellationToken);
             }
         }
 
@@ -121,8 +128,9 @@ internal static class ReadModelShape
         List<ReadValueCollection> valueCollections,
         CancellationToken cancellationToken)
     {
-        // A password is never read back (RASK175 refuses storing one): the face leaves it out.
-        if (AggregateShape.IsPassword(Underlying(property.Type)))
+        // A password is never read back (RASK175 refuses storing one), and a secret is stored but never shown: the face
+        // leaves both out.
+        if (AggregateShape.IsPassword(Underlying(property.Type)) || AggregateShape.IsSecret(property.Type))
         {
             return;
         }
@@ -130,6 +138,12 @@ internal static class ReadModelShape
         // One column, not a set of flattened ones — see ReadValueCollection.
         if (GeneratedModelShape.DescribeValueCollection(entity, property) is { } values)
         {
+            // Its elements would carry a secret onto the face, and from there to a page.
+            if (AggregateShape.HoldsSecret(values.Element))
+            {
+                return;
+            }
+
             valueCollections.Add(new ReadValueCollection(
                 property.Name, TypeOf(values.Element), values.ValueObject is not null));
             return;
@@ -412,7 +426,8 @@ internal static class ReadModelShape
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (IsIgnored(property))
+            // A secret inside a value object is left out as one on the entity is.
+            if (IsIgnored(property) || AggregateShape.HoldsSecret(property.Type))
             {
                 continue;
             }
@@ -477,7 +492,7 @@ internal static class ReadModelShape
             members.Add(new ReadMember("Version", "Version", "Version", "int", false, false));
         }
 
-        if (AggregateShape.SoftDeletes(entity))
+        if (AggregateShape.SoftDeletes(entity) || AggregateShape.SoftRemoves(entity))
         {
             members.Add(new ReadMember("DeletedAt", "DeletedAt", "DeletedAt", "global::System.DateTime", true, false));
         }
@@ -489,6 +504,7 @@ internal static class ReadModelShape
     private static void AddTenantColumn(INamedTypeSymbol entity, List<ReadMember> members)
     {
         if (!AggregateShape.IsAggregate(entity) || !AggregateShape.Has(entity, AggregateShape.PerTenant) ||
+            AggregateShape.TenantParentOf(entity) is not null ||
             members.Exists(static m => string.Equals(m.Name, AggregateShape.TenantColumn, StringComparison.Ordinal)))
         {
             return;

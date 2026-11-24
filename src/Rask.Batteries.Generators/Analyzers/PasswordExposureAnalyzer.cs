@@ -66,7 +66,7 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         if (property is not { IsStatic: false, IsIndexer: false } ||
             !AggregateShape.IsEntity(property.ContainingType) ||
             !IsStored(property) ||
-            PasswordIn(property.Type) is not { } password)
+            PasswordIn(property.Type, stored: true) is not { } password)
         {
             return;
         }
@@ -81,7 +81,7 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         var type = (INamedTypeSymbol)context.Symbol;
         foreach (var (outward, through) in Outward(type))
         {
-            if (PasswordIn(outward) is { } password)
+            if (PasswordIn(outward, stored: false) is { } password)
             {
                 context.ReportDiagnostic(Diagnostic.Create(Rask176, type.Locations.FirstOrDefault(), type.Name, password.Name, through));
                 return;
@@ -117,8 +117,9 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
     }
 
     // The password value object a type is, or holds however deep: in a nullable, an array, a type argument
-    // (List<T>, a dictionary's values) or a public property of a type of the app's own.
-    private static INamedTypeSymbol? PasswordIn(ITypeSymbol type)
+    // (List<T>, a dictionary's values) or a public property of a type of the app's own. A stored one held in a
+    // Secret<T> is kept as its ciphertext, which is what a secret the app must send on (an API key) asks for.
+    private static INamedTypeSymbol? PasswordIn(ITypeSymbol type, bool stored)
     {
         var seen = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
         var pending = new Stack<(ITypeSymbol Type, int Depth)>();
@@ -126,7 +127,7 @@ public sealed class PasswordExposureAnalyzer : DiagnosticAnalyzer
         while (pending.Count > 0)
         {
             var (current, depth) = pending.Pop();
-            if (depth > MaxDepth || !seen.Add(current))
+            if (depth > MaxDepth || !seen.Add(current) || (stored && AggregateShape.IsSecret(current)))
             {
                 continue;
             }

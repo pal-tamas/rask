@@ -242,7 +242,7 @@ MyApp/
   Properties/launchSettings.json
   MyApp.slnx                      the app and its tests, for `dotnet test` and your IDE
   MyApp.Tests/
-    MyApp.Tests.csproj            references the app, Rask.Testing and xUnit v3
+    MyApp.Tests.csproj            references the app, Rask.Testing (+ .Data on server) and xUnit v3
     Features/Home/HomePageTests.cs  renders the home page and checks its greeting
 ```
 
@@ -776,7 +776,7 @@ override with `--project`), and if the EF Core tools aren't installed it install
 | `add <Name>` | `dotnet ef migrations add` | `--output <dir>` sets the migrations folder |
 | `remove` | `dotnet ef migrations remove` | undo the last migration |
 | `list` | `dotnet ef migrations list` | show migrations and applied state |
-| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point. A `RaskApp` applies pending migrations itself on start, so this is for rolling back, for a hand-wired host, and for an app that [turned that off](data.md#migrations-apply-themselves-on-start) |
+| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point. A `RaskApp` applies pending migrations itself on start, so this is for rolling back, for a hand-wired host, and for an app that [turned that off](data.md#migrations-apply-themselves-on-start). A whole update of a `RaskApp` whose migrations declare a [data step](data-writes.md#moving-data-in-c-with-bdata) then runs `dotnet run --no-build -- rask db migrate`, so the app runs the steps in C# |
 | `drop` | `dotnet ef database drop` | drops the database; prompts unless `--yes` |
 | `backup` | — | a consistent copy; `--output/-o` a file or directory, `--remote` for the deployed one |
 | `restore <file>` | — | replaces the database with a copy; prompts unless `--yes` |
@@ -795,6 +795,10 @@ built against, so the app never restores two EFs. A project from `rask new` with
 references it in its csproj, at that same version. `backup` and
 `restore` need none of that: they copy a database rather than migrate one, so they never install
 `dotnet-ef`.
+
+`dotnet App.dll rask db migrate` is the same from a published app, with no SDK on the machine: it applies the
+pending migrations as the app's start would, then their data steps, and exits — the release step for an app that
+turned `MigrateOnStart` off.
 
 ### Backup and restore
 
@@ -840,6 +844,25 @@ go with the old file for the same reason: left behind, SQLite replays them over 
 > Backups are a copy at a moment; [Litestream](sqlite.md#continuous-backup-with-litestream) is continuous
 > replication for when the box dies. They answer different questions — "let me look at what production
 > has" and "the server is gone" — and an app that matters wants both.
+
+## `rask audit` — ask the stored data today's rules
+
+```bash
+rask audit                          # every aggregate
+rask audit --aggregate Driver       # one (repeat it, or Driver,Vehicle)
+rask audit --json > audit.json      # every id, for a script
+rask audit --unique-candidates      # the rows each unique index would refuse, before it is migrated
+rask audit --dry-run                # print what would run
+dotnet App.dll rask audit           # on the server, from the published app
+```
+
+Every stored aggregate asked the rules its type declares now — the rules a save asks, of every row and every field,
+the rules of each value object it holds, and whether each id kept as text is one the app reads — and each one a
+rule refuses reported by rule and field, with the ids alone, never what a row holds. Run it before a migration turns a
+rule or a unique index on. The app answers it itself (`dotnet run -- rask audit`): its host is built and not started,
+and the audit only reads. `--unique-candidates` asks the model's unique indexes instead — the groups of stored rows
+that would stop the migration adding one, by id. Exit code `0` every row passes, `1` some do not. See
+[Auditing stored data](data-writes.md#auditing-stored-data-with-rask-audit).
 
 ## `rask deploy` — ship to a single host over SSH
 

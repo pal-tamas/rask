@@ -9,7 +9,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK165 — a configuration call the generators read from the source — <c>KeepEmpty(…)</c>, <c>Columns(…)</c>,
+///     RASK165 — a configuration call the generators read from the source — <c>KeepEmpty(…)</c>, <c>Columns(…)</c>, <c>Json(…)</c>,
 ///     <c>IsUnique("…")</c> — written where they cannot see it; RASK172 — the same for an operation's roles
 ///     (<c>Operation(x =&gt; x.M, roles: …)</c>), which would leave its generated entry open.
 /// </summary>
@@ -32,7 +32,7 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "KeepEmpty, Columns and IsUnique(message) are read from the entity's own static Configure, as "
+        description: "KeepEmpty, Columns, Json and IsUnique(message) are read from the entity's own static Configure, as "
                      + "written there, because the generated model, writes and read face exist before any EF model "
                      + "is built. Anywhere else the column is still configured, but the generated code acts as if "
                      + "the call were never made.",
@@ -87,6 +87,7 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
     {
         KeepEmpty,
         Columns,
+        Json,
         IsUnique,
         Operation,
     }
@@ -97,6 +98,7 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
         {
             ("Rask.Data.KeepEmptyBuilderExtensions", "KeepEmpty", _) => ReadCall.KeepEmpty,
             ("Rask.Data.ValueObjectColumnsBuilderExtensions", "Columns", _) => ReadCall.Columns,
+            ("Rask.Data.JsonBuilderExtensions", "Json", _) => ReadCall.Json,
             ("Rask.Data.ViolationMessageBuilderExtensions", "IsUnique", 2) => ReadCall.IsUnique,
             ("Rask.Data.OperationBuilderExtensions", "Operation", _) => ReadCall.Operation,
             _ => null,
@@ -134,9 +136,15 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
                 return "its operation is neither a lambda naming a method nor a constant name";
             }
 
-            return RolesOf(arguments) is { } named &&
-                   model.GetConstantValue(named.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
-                ? "its roles are not a constant"
+            if (OperationGenerator.RolesArgument(arguments) is { } named &&
+                model.GetConstantValue(named.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null })
+            {
+                return "its roles are not a constant";
+            }
+
+            return arguments.FirstOrDefault(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "manyAggregates", System.StringComparison.Ordinal)) is { } many &&
+                   model.GetConstantValue(many.Expression, context.CancellationToken) is not { HasValue: true, Value: string or null }
+                ? "its manyAggregates reason is not a constant"
                 : null;
         }
 
@@ -152,8 +160,4 @@ public sealed class UnreadConfigurationAnalyzer : DiagnosticAnalyzer
             : null;
     }
 
-    // The roles argument: named, or the second one given in place.
-    private static ArgumentSyntax? RolesOf(SeparatedSyntaxList<ArgumentSyntax> arguments) =>
-        arguments.Skip(1).FirstOrDefault(static a => string.Equals(a.NameColon?.Name.Identifier.ValueText, "roles", System.StringComparison.Ordinal))
-        ?? (arguments.Count > 1 && arguments[1].NameColon is null ? arguments[1] : null);
 }

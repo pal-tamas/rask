@@ -109,6 +109,10 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services =>
             new CoveringIndexConvention(services.GetService<IDatabaseProvider>()?.Name));
 
+        // A JSON column on SQL Server stays nvarchar(max) at every compatibility level.
+        configurationBuilder.Conventions.Add(static services =>
+            new JsonContainerTextConvention(services.GetService<IDatabaseProvider>()?.Name));
+
         // A typed id over a Guid is written lower case wherever its column is text.
         configurationBuilder.Conventions.Add(static services =>
             new GuidIdTextConvention(services.GetService<IRelationalTypeMappingSource>()));
@@ -117,6 +121,7 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new DatabaseNowConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new FilteredIndexConvention(ModelSql.For(services)));
+        configurationBuilder.Conventions.Add(static services => new SequenceConvention(ModelSql.For(services)));
 
         foreach (var contribution in Contributions.Values)
         {
@@ -176,6 +181,9 @@ public static class ModelRegistry
         // A child partitioned through its parent is settled once more: Configure may have given it a TenantId, or
         // moved the key its filter asks by.
         ModelBuilderExtensions.SettleTenancyThroughParents(modelBuilder, context);
+
+        // OneInForce<TChild> reads the condition the child's own Configure declared.
+        InForceIndexes.Apply(modelBuilder);
 
         return modelBuilder;
     }

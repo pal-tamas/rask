@@ -1,7 +1,11 @@
 # Forms — validation
 
-Write the rule where the field is: `.Validate(…)` on an input, or on the form for a rule that spans
-fields. DataAnnotations and FluentValidation are [also supported](#also-supported-dataannotations).
+**A rule that decides what may be saved lives in the domain**, and a form that writes asks it there: a value object's
+own rule, the aggregate's `Validate()`, an operation's `Refuse` and a unique index are shown under their field by
+[`Form.For(Aggregate.Operation, id)`](forms.md#a-form-over-an-operation) with nothing written on the form
+([rules in a value object](#rules-in-a-value-object), [domain modelling](domain.md)). This page is also how a form
+that writes nothing — a search box, a filter, a sign-in — says its rules: `.Validate(…)` on an input, or on the form
+for a rule that spans fields. DataAnnotations and FluentValidation are [also supported](#also-supported-dataannotations).
 
 ‹ Back to [Forms & validation](forms.md)
 
@@ -49,7 +53,7 @@ Form.Model(_model)
 ### Rules in a value object
 
 A field's simple rules — required, length, format — belong to the value, not to one form. Declare the
-value object from one of Rask's [base records](data.md#declared-from-a-base-record) (`Rask.Values`, in the `Rask` package, so
+value object from one of Rask's [base records](domain.md#declared-from-a-base-record) (`Rask.Values`, in the `Rask` package, so
 a browser app has them too) and its constructor
 checks them — `public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);`
 — and a form bound to the aggregate's generated model asks the same rules
@@ -115,12 +119,12 @@ Input.Bind(() => _model.Name)             // DestinationName's rules run, on thi
 This belongs to the form and the bound field, so a plain `Input`, `Select` or `Textarea` has it exactly
 as `Ui.Input` does.
 
-**A [Rask.Data](data.md#what-a-form-over-the-model-asks-by-itself) aggregate's model is such a model.**
+**A [Rask.Data](domain.md#what-a-form-over-the-model-asks-by-itself) aggregate's model is such a model.**
 A property the aggregate declares non-nullable is required by its type, with no `[Required]` and with the
 automatic validators on or off; a plain property that cannot be null (`int Weight`, `string Plate`) is required
 the same way, in the framework's one sentence — *This field is required.*, in the reader's language.
 
-A value object declared from one of Rask's [base records](data.md#declared-from-a-base-record) —
+A value object declared from one of Rask's [base records](domain.md#declared-from-a-base-record) —
 `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000)` — is asked by every field
 bound to it on the aggregate's generated model (`DeliveryModel.Driver`), with nothing written on the field: its
 rules are the base's arguments and its own `Rules()`, checked by its constructor, and the field runs its generated `DriverName.__Problems`,
@@ -167,7 +171,7 @@ A step written on the control wins over each of them — `.Type(…)`, `.MaxLeng
 `[Editable(false)]`, which a control cannot be talked out of.
 
 **Attribute or value object — the same field either way.** A field's kind can be said with an attribute on a plain
-`string`, or by declaring its value object from the [kind of text](data.md#kinds-of-text-email-phone-url-password-multiline)
+`string`, or by declaring its value object from the [kind of text](domain.md#kinds-of-text-email-phone-url-password-multiline)
 it holds. Both give the identical `FieldShape`, so the bound control is the same; the value object also carries the
 rule to every place the value is made, and gives its column the length:
 
@@ -362,7 +366,7 @@ warning.
 declares with a message, `IsUnique("…")`, is asked this way by a form bound to `DestinationModel` — for
 the current tenant's rows only, and leaving out the row an edit form was filled from. A model written by
 hand is not asked about; its save still is. See
-[what a form over the model asks by itself](data.md#what-a-form-over-the-model-asks-by-itself).
+[what a form over the model asks by itself](domain.md#what-a-form-over-the-model-asks-by-itself).
 
 A store announces its rules for a model with `RaskValidation.RegisterStoreRules(typeof(DestinationModel),
 services => rules)`, where `rules` is an `IStoreRules`: one method, given the model and the path of the
@@ -606,7 +610,7 @@ public sealed class SignUp
 
 .NET 11's asynchronous rules work in a form with nothing declared: an `AsyncValidationAttribute` is awaited
 (`IsValidAsync`), and an `IAsyncValidatableObject`'s `ValidateAsync` runs in place of its `Validate`. A uniqueness
-check is an attribute on the model, its lookup a service from the scope:
+check is an attribute on the model, its lookup the aggregate's read face:
 
 ```csharp
 public sealed class SignUp
@@ -619,14 +623,10 @@ public sealed class UniqueEmailAttribute() : AsyncValidationAttribute("{0} is al
     protected override ValidationResult? IsValid(object? value, ValidationContext context) =>
         throw new NotSupportedException("Looked up asynchronously.");
 
-    protected override async Task<ValidationResult?> IsValidAsync(object? value, ValidationContext context, CancellationToken ct)
-    {
-        var users = context.GetRequiredService<IDbContextFactory<AppDb>>();
-        await using var db = await users.CreateDbContextAsync(ct);
-        return await db.Users.AnyAsync(u => u.Email == (string)value!, ct)
+    protected override async Task<ValidationResult?> IsValidAsync(object? value, ValidationContext context, CancellationToken ct) =>
+        await Member.Where(m => m.Email == (string)value!).Any(ct)
             ? new ValidationResult(FormatErrorMessage((string)value!), [context.MemberName!])
             : ValidationResult.Success;
-    }
 }
 ```
 

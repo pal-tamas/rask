@@ -193,6 +193,10 @@ public static class ModelBuilderExtensions
             ApplyVersion(builder, clrType);
             ApplySoftDelete(builder, clrType);
         }
+        else
+        {
+            ApplySoftRemoved(builder, clrType);
+        }
     }
 
     private static void ApplyTimestamps(EntityTypeBuilder builder, Type clrType)
@@ -237,6 +241,8 @@ public static class ModelBuilderExtensions
         // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
         // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
         // whatever this does; declining one has to say so out loud.
+        RefuseSoftRemovedRoot(clrType);
+
         if (ConventionRegistry.Has(clrType, TraitSet.SoftDelete))
         {
             builder.Property<DateTime?>(Columns.DeletedAt);
@@ -247,6 +253,30 @@ public static class ModelBuilderExtensions
         else
         {
             builder.Ignore(Columns.DeletedAt);
+        }
+    }
+
+    // A child that names SoftRemoved keeps the row its aggregate lets go of: a shadow DeletedAt, stamped by
+    // SoftDeleteInterceptor, and the soft-delete filter, so the aggregate's load and the child's face no longer see it.
+    private static void ApplySoftRemoved(EntityTypeBuilder builder, Type clrType)
+    {
+        if (!ConventionRegistry.Has(clrType, TraitSet.SoftRemoved))
+        {
+            return;
+        }
+
+        builder.Property<DateTime?>(Columns.DeletedAt);
+        builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
+    }
+
+    // SoftRemoved is a child's: a root that names it would be quietly hard-deleted, so the model says so instead.
+    private static void RefuseSoftRemovedRoot(Type clrType)
+    {
+        if (ConventionRegistry.Has(clrType, TraitSet.SoftRemoved))
+        {
+            throw new InvalidOperationException(
+                $"'{clrType.Name}' is an aggregate root and names SoftRemoved, which is a child's trait: what its " +
+                "aggregate lets go of is kept. A root that keeps its deleted rows names SoftDelete.");
         }
     }
 
@@ -307,7 +337,7 @@ public static class ModelBuilderExtensions
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(TenantParents.IsThroughParent).ToList())
         {
-            PartitionByTenant(modelBuilder, entityType, context);
+            PartitionByTenant(modelBuilder, entityType, context, settling: true);
         }
     }
 
@@ -316,23 +346,36 @@ public static class ModelBuilderExtensions
     // Guid?, and is filtered on it. A child that keeps a TenantId column keeps it as data — stamped with its root's
     // tenant and checked against it — and is STILL filtered through its parent: what partitions a table is the
     // PerTenant its root names, never a member's name, so a legacy child row whose column is NULL stays its parent's.
-    private static void PartitionByTenant(ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context)
+    private static void PartitionByTenant(
+        ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context, bool settling = false)
     {
         var clrType = entityType.ClrType;
         var builder = modelBuilder.Entity(clrType);
+        var tenantParent = ConventionRegistry.TenantParentOf(clrType);
 
-        if (!typeof(IAggregate).IsAssignableFrom(clrType))
+        if (!typeof(IAggregate).IsAssignableFrom(clrType) || tenantParent is not null)
         {
             var parents = TenantParents.KeysOf(entityType, TenantParents.IsPartitioned);
+
+            // PerTenantThrough<TParent>'s key may be one the aggregate's own Configure maps, which runs after this:
+            // marked now, and settled once it has run.
+            if (parents.Count == 0 && tenantParent is not null && !settling)
+            {
+                builder.HasAnnotation(TenantParents.Annotation, true);
+                return;
+            }
 
             // Never left unfiltered: a child with no column and no way up to its root would read every tenant.
             if (parents.Count == 0)
             {
-                throw new InvalidOperationException(
-                    $"'{clrType.Name}' is part of a tenant-scoped aggregate, but the model has no relationship from " +
-                    "it up to a tenant-scoped parent, so its rows cannot be told apart by tenant. Hold it in a " +
-                    "collection of its aggregate (or of a child of it) — IReadOnlyList<" + clrType.Name + "> on the " +
-                    "parent — and map that relationship in the same context.");
+                throw new InvalidOperationException(tenantParent is null
+                    ? $"'{clrType.Name}' is part of a tenant-scoped aggregate, but the model has no relationship from " +
+                      "it up to a tenant-scoped parent, so its rows cannot be told apart by tenant. Hold it in a " +
+                      "collection of its aggregate (or of a child of it) — IReadOnlyList<" + clrType.Name + "> on the " +
+                      "parent — and map that relationship in the same context."
+                    : $"'{clrType.Name}' names PerTenantThrough<{tenantParent.Name}>, but the model has no relationship " +
+                      $"from it to '{tenantParent.Name}', so its rows cannot be told apart by tenant. Hold the " +
+                      $"{tenantParent.Name}'s strongly-typed id, or map the foreign key in its Configure.");
             }
 
             builder.HasAnnotation(TenantParents.Annotation, true);

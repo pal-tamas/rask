@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Testing.Data</PackageId>
+    <Title>Rask.Testing.Data — test data for a Rask app's aggregates</Title>
+    <Description>The half of Rask.Testing that needs Rask.Data, so a component-only test project never pulls in EF Core. await Test.Make&lt;Supply&gt;() is a stored aggregate its rules accept: it calls the aggregate's own factory with a value its rules take for every parameter — a value object sampled from its rules, a row spec, a list of one — makes and stores every aggregate it refers to (a Company, the Tank its id names) through their own factories first, and saves it, rules asked, into the test's database. o.Use(acme) hands it one the test made, o.With("parts", parts) a value of the test's own. Reference it beside Rask.Testing from the test project of an app that stores data.</Description>
+    <PackageTags>rask testing unit-test aggregate test-data entity-framework dotnet net11</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview
+       that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test.Make extends Rask.Testing's Test, and samples values with its value-object sampler. -->
+    <ProjectReference Include="..\Rask.Testing\Rask.Testing.csproj"/>
+    <!-- The aggregates, and the save their own writes go through. -->
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+  </ItemGroup>
+
+</Project>

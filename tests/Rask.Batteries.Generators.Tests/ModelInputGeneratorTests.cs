@@ -1388,6 +1388,7 @@ public class ModelInputGeneratorTests
         Assert.Equal((int)global::Rask.Data.TraitSet.SoftDelete, global::Rask.Generators.Shared.AggregateShape.SoftDelete);
         Assert.Equal((int)global::Rask.Data.TraitSet.PerTenant, global::Rask.Generators.Shared.AggregateShape.PerTenant);
         Assert.Equal((int)global::Rask.Data.TraitSet.Broadcast, global::Rask.Generators.Shared.AggregateShape.Broadcast);
+        Assert.Equal((int)global::Rask.Data.TraitSet.SoftRemoved, global::Rask.Generators.Shared.AggregateShape.SoftRemoved);
         Assert.Equal((int)global::Rask.Data.TraitSet.Audited, global::Rask.Generators.Shared.AggregateShape.Audited);
     }
 

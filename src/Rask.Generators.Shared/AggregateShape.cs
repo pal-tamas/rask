@@ -79,7 +79,8 @@ internal static class AggregateShape
     public const int SoftDelete = 64;
     public const int PerTenant = 128;
     public const int Broadcast = 256;
-    public const int Audited = 512;
+    public const int SoftRemoved = 512;
+    public const int Audited = 1024;
 
     /// <summary>
     ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
@@ -113,6 +114,23 @@ internal static class AggregateShape
             .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
             .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
             .FirstOrDefault();
+
+    /// <summary>
+    ///     The aggregate <c>PerTenantThrough&lt;TParent&gt;</c> names, fully qualified, or null when the base names none.
+    /// </summary>
+    public static string? TenantParentOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "PerTenantThrough").FirstOrDefault();
+
+    /// <summary>The children each <c>OneInForce&lt;TChild&gt;</c> the base names, fully qualified.</summary>
+    public static IEnumerable<string> InForceChildrenOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "OneInForce");
+
+    /// <summary>Whether a removed child keeps its row, stamped: its base names <c>SoftRemoved</c>.</summary>
+    public static bool SoftRemoves(INamedTypeSymbol entity) => !IsAggregate(entity) && Has(entity, SoftRemoved);
+
+    private static IEnumerable<string> TypeArgumentOf(INamedTypeSymbol symbol, string trait) =>
+        TraitArguments(symbol)
+            .OfType<INamedTypeSymbol>()
+            .Where(t => string.Equals(t.Name, trait, StringComparison.Ordinal) && t.TypeArguments.Length == 1 && IsRaskDataType(t))
+            .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     /// <summary>Whether the table has <c>CreatedAt</c>: only when its base names <c>Created</c> or <c>Timestamps</c>.</summary>
     public static bool StampsCreated(INamedTypeSymbol entity) => Has(entity, Created);
@@ -158,8 +176,9 @@ internal static class AggregateShape
                 "UpdateModel" => UpdateModel,
                 "Deletable" => Deletable,
                 "SoftDelete" => SoftDelete,
-                "PerTenant" => PerTenant,
+                "PerTenant" or "PerTenantThrough" => PerTenant,
                 "Broadcast" => Broadcast,
+                "SoftRemoved" => SoftRemoved,
                 "Audited" => Audited,
                 _ => 0,
             }
@@ -327,6 +346,38 @@ internal static class AggregateShape
     /// <summary>Whether <paramref name="type" /> is a value object declared from Rask.Values' <c>Password</c>: input only.</summary>
     public static bool IsPassword(ITypeSymbol type) =>
         type is INamedTypeSymbol named && string.Equals(TextKindOf(named), "Password", StringComparison.Ordinal);
+
+    /// <summary>
+    ///     The <c>T</c> of a <c>Rask.Values.Secret&lt;T&gt;</c>, or null for any other type: a value stored as its
+    ///     ciphertext and never read back to a page.
+    /// </summary>
+    public static ITypeSymbol? SecretValueOf(ITypeSymbol type) =>
+        type is INamedTypeSymbol { Name: "Secret", Arity: 1, ContainingType: null } named &&
+        string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Values", StringComparison.Ordinal)
+            ? named.TypeArguments[0]
+            : null;
+
+    /// <summary>Whether <paramref name="type" /> is a <c>Rask.Values.Secret&lt;T&gt;</c>: stored, never shown.</summary>
+    public static bool IsSecret(ITypeSymbol type) => SecretValueOf(type) is not null;
+
+    /// <summary>
+    ///     Whether <paramref name="type" /> is a <c>Secret&lt;T&gt;</c> or holds one — a member of a value object, however
+    ///     deep — so whatever is read for a page leaves it out.
+    /// </summary>
+    public static bool HoldsSecret(ITypeSymbol type) => HoldsSecret(type, 0);
+
+    private static bool HoldsSecret(ITypeSymbol type, int depth)
+    {
+        if (IsSecret(type))
+        {
+            return true;
+        }
+
+        return depth < MaxValueObjectDepth &&
+               type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol named &&
+               IsValueObjectType(named) &&
+               StoredProperties(named).Any(p => HoldsSecret(p.Type, depth + 1));
+    }
 
     /// <summary>
     ///     Whether a value object declared from <c>Text</c> says an empty text is a value: <c>Text(Value, Required: false)</c>,

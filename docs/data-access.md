@@ -1,67 +1,51 @@
 # Data access (EF Core + SQLite)
 
-Rask ships a data layer, [`Rask.Data`](data.md): declare an `Aggregate<TId>` and read and write it off the
-type — `Product.Where(…)`, `Product.Create(model)` — with no `DbContext` to write. **Start there.**
+An app's data code is its [domain](domain.md): aggregates read through their read face (`Product.Where(…)`) and
+changed through their own operations (`Product.Reprice(id, version, price)`), with no `DbContext` to write and none
+to inject. **Start there.** This page is what sits under it — how a context lives in a long-lived session, lazy
+loading, SQLite's decimals — and the wiring for an app that brings a `DbContext` of its own (a schema another tool
+made, a library's tables).
 
-This guide is the other road: **plain EF Core + SQLite**, with a `DbContext` of your own, for an app
-that opts out of the model conventions or entities that do not derive from `Model`. It shows the
-idiomatic way to wire that into a Rask **Server** app: register the context, load data in the
-component lifecycle, and run forms against persisted state. The lifetime rules below hold on either
-road — `Rask.Data` follows them for you.
-
-> WASM note: this is a Server-side pattern — for most apps, keep data access behind the server (a Server
-> host, or an API the WASM app calls). EF Core *does* run in the browser, on a natively relinked build
-> trimmed with EF Core's own assemblies rooted (Rask.Data and Rask.SQLite.EntityFrameworkCore are
-> trim-safe and need nothing), and [`Rask.SQLite.Browser`](sqlite.md#rasksqlitebrowser--keeping-a-browser-database)
-> keeps its database across reloads — [the recipe, and when it fits](sqlite.md#sqlite-in-the-browser-wasm).
+> WASM note: keep data access behind the server for most apps (a Server host, or an API the WASM app calls). EF
+> Core *does* run in the browser, on a natively relinked build trimmed with EF Core's own assemblies rooted
+> (Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe and need nothing), and
+> [`Rask.SQLite.Browser`](sqlite.md#rasksqlitebrowser--keeping-a-browser-database) keeps its database across
+> reloads — [the recipe, and when it fits](sqlite.md#sqlite-in-the-browser-wasm).
 
 ## Register the DbContext with a factory, not a scope
 
 A Rask Server session is **long-lived**: it lives for as long as the browser holds the WebSocket
-open. A `DbContext`, by contrast, is meant to be short-lived and is not thread-safe. So do **not**
-register a scoped `DbContext` and inject it into a component — it would outlive every unit of work
-and be shared across overlapping renders. Register an `IDbContextFactory<T>` instead and open a
-fresh context per operation:
+open. A `DbContext`, by contrast, is meant to be short-lived and is not thread-safe. So a context is never
+injected into a component — it would outlive every unit of work and be shared across overlapping renders. Rask
+opens one per read and one per write, from a factory. An app with a context of its own registers that factory,
+and Rask binds the read faces, the operations' entries and every battery to it:
 
 ```csharp
-builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+builder.Services.AddRaskData<CatalogDbContext>((sp, o) => o.UseRaskSqlite(sp));
 ```
 
-> Production tip: swap `UseSqlite` for `UseRaskSqlite` (the `Rask.SQLite.EntityFrameworkCore` package) to apply
-> the production pragma set — WAL, `foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL`
-> — on every connection. It takes the service provider (`(sp, o) => o.UseRaskSqlite(sp)`) and reads the
-> connection string from `Rask:ConnectionStrings:App`. Set `Rask:Sqlite:Retry:Enabled` for an opt-in
-> fair-interval busy-retry on `SaveChanges`,
-> and use the raw-path `InImmediateTransaction` for a genuinely non-blocking `BEGIN IMMEDIATE`
-> write. See [SQLite production pragmas](sqlite.md#transactions-begin-immediate--a-non-blocking-fair-interval-retry).
-
-```csharp
-await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-var products = await db.Products.AsNoTracking().OrderBy(p => p.Id).ToListAsync(CancellationToken);
-```
-
-`AddDbContextFactory` registers the factory as a singleton; each `CreateDbContextAsync` hands back a
-brand-new context you dispose at the end of the unit of work. Always pass `Component.CancellationToken`
-to the async EF calls so navigating away mid-query cancels cleanly.
+`UseRaskSqlite` (the `Rask.SQLite.EntityFrameworkCore` package) applies the production pragma set — WAL,
+`foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL` — on every connection, and reads the connection string from
+`Rask:ConnectionStrings:App`. Set `Rask:Sqlite:Retry:Enabled` for an opt-in fair-interval busy-retry on
+`SaveChanges`. See [SQLite production pragmas](sqlite.md#transactions-begin-immediate--a-non-blocking-fair-interval-retry)
+and [wiring, when Rask is not hosting](data.md#wiring-when-rask-is-not-hosting).
 
 ## Load in the lifecycle, render the result
 
 Read data in an async lifecycle hook and store it in a field. The async-hook continuation
 re-renders automatically when the `await` completes — no explicit `StateHasChanged()` needed (see
 [lifecycle.md](lifecycle.md)). Use `OnMount` for a one-time load, `OnUpdated` to
-reload when a route/query param changes.
+reload when a route/query param changes. Each read opens and disposes its own context:
 
 ```csharp
-public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
+public sealed partial class ListProductsPage : Component
 {
-    private IReadOnlyList<Product> _products = [];
+    private IReadOnlyList<ProductRead> _products = [];
     private bool _loaded;
 
     protected override async Task OnMount()
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-        _products = await db.Products.AsNoTracking().OrderBy(p => p.Id).ToListAsync(CancellationToken);
+        _products = await Product.OrderBy(p => p.Name);
         _loaded = true;
     }
 
@@ -69,15 +53,14 @@ public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext>
 }
 ```
 
-For an event-handler mutation (e.g. a delete button), just do the work and reload — no
+For an event-handler change (e.g. a discontinue button), run the operation and reload — no
 `StateHasChanged()` needed. An awaited handler re-renders on completion exactly like the async
 lifecycle hook above, so the reloaded list paints automatically:
 
 ```csharp
-private async Task Delete(int id)
+private async Task Discontinue(ProductId id, int version)
 {
-    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-    await db.Products.Where(p => p.Id == id).ExecuteDeleteAsync(CancellationToken);
+    await Product.Discontinue(id, version);   // one aggregate, one transaction
     await Load();
 }
 ```
@@ -112,27 +95,11 @@ lazy loads off either ([forms-validation.md](forms-validation.md)).
 ## How to organise it
 
 Use **vertical slices**: code is grouped by use case (`ProductsPage`, `NewProductPage`,
-`EditProductPage`), each slice owning its page, its own form model, and its own EF Core access — no
-shared repository or service layer. The only shared things are the app shell, a form-error template,
-and the Catalog domain.
-
-The domain applies **DDD tactical patterns**: `Product` is an aggregate root with private setters
-that only changes through `Create` / `Update`, and `Money` / `ProductName` / `StockLevel` are value
-objects. Each value object **owns its rules**: it is declared from one of Rask's base records (`Rask.Values`) and its constructor
-checks them, so no instance exists that they refuse, and a form bound to the aggregate's generated model asks the
-same rules with nothing written on the field ([declared from a base record](data.md#declared-from-a-base-record)):
-
-```csharp
-// The value object: its rules are the base's arguments.
-public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 100);
-
-// In the domain: made only through the generated Create, refused under the field it names.
-Name = ProductName.Create(name, nameof(Name));
-```
-
-The EF Core mapping lives in an `IEntityTypeConfiguration<Product>` (applied with
-`ApplyConfigurationsFromAssembly`), keeping the domain free of persistence attributes. Value objects
-map onto columns with value converters.
+`EditProductPage`), each slice owning its page and the forms over the operations it calls — no
+shared repository and no service layer. The only shared things are the app shell, a form-error template,
+and the domain: the aggregates, their value objects and their typed ids ([domain modelling](domain.md)).
+A mapping rule the conventions do not cover — an index, a relationship — is the aggregate's own static
+`Configure` ([mapping rules](data.md#mapping-rules-the-conventions-dont-cover)).
 
 ## Does SQLite support `decimal`?
 
@@ -211,18 +178,14 @@ the data calls for it — not, any longer, to dodge a correctness problem.
 
 ## Schema & seeding
 
-Calling `EnsureCreatedAsync()` on startup and seeding a few rows through the aggregate's `Create`
-factory (so even seed data honours the invariants) is the simplest correct choice for an app with no
-schema history — a real app with an evolving schema would use
-`Database.MigrateAsync()` with EF Core migrations instead.
+The schema is migrations: `rask db add`, applied as the app starts
+([migrations apply themselves on start](data.md#migrations-apply-themselves-on-start)). Seed rows through the
+aggregate's own factory, so even seed data honours its rules.
 
 ## Testing
 
-Data-access logic is testable without a browser:
-
-- **Unit-test** the value objects and aggregate (validation rules, invariants) directly.
-- **Integration-test** the EF mapping against a real SQLite file: create the context, save a
-  `Product`, reload it in a new context, and assert the round-trip (and the storage shape).
+Tests run on SQLite in memory, a database per test, through the app's own context —
+`TestDatabase.Start<CatalogDbContext>()` — with nothing mocked ([testing the domain](testing.md#testing-the-domain)).
 
 ## Run it
 

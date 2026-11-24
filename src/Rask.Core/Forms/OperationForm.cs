@@ -17,6 +17,12 @@ namespace Rask.Core.Forms;
 ///         refuse is told before it is tried.
 ///     </para>
 ///     <para>
+///         The <c>&lt;form&gt;</c> it draws takes the steps a hand-written <c>Form.Model(m)</c> does —
+///         <see cref="Id" />, <see cref="Class" />, <see cref="Style" />, <c>Data</c>, <c>Attributes</c>,
+///         <see cref="ConfirmLeave" />, <see cref="OnInvalidSubmit" /> — and <see cref="Saved" /> says what its host
+///         (<c>Ui.EditorDialog</c>) toasts once it is saved.
+///     </para>
+///     <para>
 ///         A principal the operation's roles do not admit (<c>Supply.MayChange</c>) sees the form with every control in
 ///         it disabled, the submit among them: the entry would refuse the save anyway.
 ///     </para>
@@ -31,6 +37,9 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     private Func<bool> _may = static () => true;
     private Func<TInput, IEnumerable<Component?>> _fields = static _ => [];
     private Func<Task>? _saved;
+    private Func<TInput, Task>? _invalid;
+    private string? _savedMessage;
+    private OperationFormLook _look = new();
     private Component? _missing;
     private IOperationFormHost? _host;
     private TInput? _input;
@@ -72,6 +81,103 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         return this;
     }
 
+    /// <summary>What is said once a submit has been saved: <c>.Saved("Company saved.")</c>.</summary>
+    /// <remarks>
+    ///     A host the form is in (<c>Ui.EditorDialog</c>) toasts it instead of its own "Saved"; a form with no host
+    ///     toasts it itself.
+    /// </remarks>
+    /// <param name="message">The toast's text.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Saved(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        _savedMessage = message;
+        return this;
+    }
+
+    /// <summary>Runs on a submit the form's own validation refuses, before the operation is tried: <c>.OnInvalidSubmit(m =&gt; …)</c>.</summary>
+    /// <param name="invalid">What follows a refused submit, given the model as it was submitted.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> OnInvalidSubmit(Func<TInput, Task> invalid)
+    {
+        _invalid = invalid;
+        return this;
+    }
+
+    /// <summary>Asks before the reader leaves with the form changed and not saved, as a hand form's does: <c>.ConfirmLeave("Leave without saving?")</c>.</summary>
+    /// <param name="message">The question asked.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> ConfirmLeave(string? message)
+    {
+        _look.ConfirmLeave = message;
+        return this;
+    }
+
+    /// <summary>The <c>&lt;form&gt;</c>'s <c>id</c>.</summary>
+    /// <param name="id">The id.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Id(string? id)
+    {
+        _look.Id = id;
+        return this;
+    }
+
+    /// <summary>The <c>&lt;form&gt;</c>'s classes: <c>.Class("grid gap-4", wide ? "w-full" : null)</c>, null and blank parts left out.</summary>
+    /// <param name="parts">The class names, in order.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Class(params ReadOnlySpan<string?> parts)
+    {
+        _look.Class = BuilderRuntime.JoinClasses(parts);
+        return this;
+    }
+
+    /// <summary>The <c>&lt;form&gt;</c>'s inline <c>style</c>.</summary>
+    /// <param name="style">The declarations.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Style(string? style)
+    {
+        _look.Style = style;
+        return this;
+    }
+
+    /// <summary>Sets one <c>data-{name}</c> attribute on the <c>&lt;form&gt;</c>; a null value renders it bare.</summary>
+    /// <param name="name">The part after <c>data-</c>.</param>
+    /// <param name="value">The value, or null for a bare attribute.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Data(string name, string? value)
+    {
+        _look.Data = new AttrBag(name, value);
+        return this;
+    }
+
+    /// <summary>Sets several <c>data-*</c> attributes on the <c>&lt;form&gt;</c> at once; an empty list sets none.</summary>
+    /// <param name="pairs">Name/value pairs, each name the part after <c>data-</c>.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Data(params ReadOnlySpan<(string Name, string? Value)> pairs)
+    {
+        _look.Data = pairs.IsEmpty ? null : new AttrBag(pairs);
+        return this;
+    }
+
+    /// <summary>Sets one attribute on the <c>&lt;form&gt;</c> verbatim — the escape hatch; a null value renders it bare.</summary>
+    /// <param name="name">The attribute name.</param>
+    /// <param name="value">The value, or null for a bare attribute.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Attributes(string name, string? value)
+    {
+        _look.Attributes = new AttrBag(name, value);
+        return this;
+    }
+
+    /// <summary>Sets several attributes on the <c>&lt;form&gt;</c> verbatim at once; an empty list sets none.</summary>
+    /// <param name="pairs">Name/value pairs.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Attributes(params ReadOnlySpan<(string Name, string? Value)> pairs)
+    {
+        _look.Attributes = pairs.IsEmpty ? null : new AttrBag(pairs);
+        return this;
+    }
+
     // Set by OperationForms.Of each render; the read model and whether it was read stay across renders.
     internal void Wire(
         object? identity, Func<CancellationToken, Task<TInput?>> load, Func<TInput, CancellationToken, Task> submit, Func<bool> may)
@@ -89,7 +195,10 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         _submit = submit;
         _may = may;
         _saved = null;
+        _invalid = null;
+        _savedMessage = null;
         _missing = null;
+        _look = new OperationFormLook();
     }
 
     // What the generated Form.For wired, asked without a render: the tests that drive a generated form read and save
@@ -121,7 +230,8 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         }
 
         var fields = _fields(input);
-        return Form.Model(input).OnSubmit(Save)[
+        var form = _look.Applied(Form.Model(input).OnSubmit(Save));
+        return (_invalid is { } invalid ? form.OnInvalidSubmit(invalid) : form)[
             _may() ? fields : [Fieldset.Disabled(true)[fields]]
         ];
     }
@@ -149,7 +259,11 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
 
         if (_host is { } host)
         {
-            await host.Saved().ConfigureAwait(false);
+            await host.Saved(_savedMessage).ConfigureAwait(false);
+        }
+        else if (_savedMessage is { } message)
+        {
+            Toast.Success(message);
         }
     }
 }

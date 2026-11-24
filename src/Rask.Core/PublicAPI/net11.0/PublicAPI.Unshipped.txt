@@ -20245,11 +20245,21 @@ Rask.Core.Forms.OperationForm<TInput>
 Rask.Core.Forms.OperationForm<TInput>.this[System.Func<TInput!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! fields].get -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForm<TInput>.Missing(Rask.Core.Component? missing) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForm<TInput>.OnSaved(System.Func<System.Threading.Tasks.Task!>! saved) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Attributes(params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Attributes(string! name, string? value) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Class(params System.ReadOnlySpan<string?> parts) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.ConfirmLeave(string? message) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Data(params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Data(string! name, string? value) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Id(string? id) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.OnInvalidSubmit(System.Func<TInput!, System.Threading.Tasks.Task!>! invalid) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Saved(string! message) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Style(string? style) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForms
 static Rask.Core.Forms.OperationForms.Of<TInput>(object? identity, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TInput?>!>! load, System.Func<TInput!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! submit, System.Func<bool>! may) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.IOperationFormHost
 Rask.Core.Forms.IOperationFormHost.Missing.get -> Rask.Core.Component?
-Rask.Core.Forms.IOperationFormHost.Saved() -> System.Threading.Tasks.Task!
+Rask.Core.Forms.IOperationFormHost.Saved(string? message) -> System.Threading.Tasks.Task!
 Rask.Core.Globalization.RaskString.EditorSaved = 299 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.EditorDeleted = 300 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.EditorNotFound = 301 -> Rask.Core.Globalization.RaskString
@@ -20275,3 +20285,36 @@ override Rask.Values.Change<T>.GetHashCode() -> int
 Rask.Values.Change<T>.Equals(Rask.Values.Change<T> other) -> bool
 static Rask.Values.Change<T>.operator !=(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
 static Rask.Values.Change<T>.operator ==(Rask.Values.Change<T> left, Rask.Values.Change<T> right) -> bool
+Rask.Values.Secret
+Rask.Values.Secret<T>
+Rask.Values.Secret<T>.Equals(Rask.Values.Secret<T!>? other) -> bool
+Rask.Values.Secret<T>.Reveal() -> T!
+Rask.Values.ValueList
+Rask.Values.ValueList<T>
+Rask.Values.ValueList<T>.Contains(T item) -> bool
+Rask.Values.ValueList<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Rask.Values.ValueList<T>.Count.get -> int
+Rask.Values.ValueList<T>.Equals(Rask.Values.ValueList<T>? other) -> bool
+Rask.Values.ValueList<T>.GetEnumerator() -> System.Collections.Generic.List<T>.Enumerator
+Rask.Values.ValueList<T>.IndexOf(T item) -> int
+Rask.Values.ValueList<T>.ValueList() -> void
+Rask.Values.ValueList<T>.this[int index].get -> T
+override Rask.Values.Secret<T>.Equals(object? obj) -> bool
+override Rask.Values.Secret<T>.GetHashCode() -> int
+override Rask.Values.Secret<T>.ToString() -> string!
+override Rask.Values.ValueList<T>.Equals(object? obj) -> bool
+override Rask.Values.ValueList<T>.GetHashCode() -> int
+override Rask.Values.ValueList<T>.ToString() -> string!
+static Rask.Values.Secret.Applied<T>(Rask.Values.Change<T!> change, Rask.Values.Secret<T!>? current) -> Rask.Values.Secret<T!>?
+static Rask.Values.Secret.Of<T>(T! value) -> Rask.Values.Secret<T!>!
+static Rask.Values.ValueList.Of<T>(System.Collections.Generic.IEnumerable<T>! items) -> Rask.Values.ValueList<T>!
+static Rask.Values.ValueList.Of<T>(System.ReadOnlySpan<T> items) -> Rask.Values.ValueList<T>!
+Rask.Values.IStoredValue
+Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
+Rask.Values.Allocation
+static Rask.Values.Allocation.Split(decimal total, int parts, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
+static Rask.Values.Allocation.Split(decimal total, System.Collections.Generic.IReadOnlyList<decimal>! weights, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
+Rask.Values.Remainder
+Rask.Values.Remainder.ToFirst = 0 -> Rask.Values.Remainder
+Rask.Values.Remainder.ToLast = 1 -> Rask.Values.Remainder
+Rask.Values.Remainder.ToLargest = 2 -> Rask.Values.Remainder

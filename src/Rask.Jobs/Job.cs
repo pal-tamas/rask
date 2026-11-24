@@ -200,7 +200,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     internal static Job Waiting(string type, string payload, DateTime runAt, string? lane)
     {
         var job = For(type, payload, runAt, lane);
-        job.WaitingKey = JobWaitingKey.Of(type, payload, lane, job.TenantId);
+        job.WaitingKey = JobWaitingKey.Of(type, payload, JobSameWork.Pending, lane, job.TenantId);
         return job;
     }
 

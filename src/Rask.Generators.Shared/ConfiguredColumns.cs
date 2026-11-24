@@ -24,6 +24,8 @@ internal static class ConfiguredColumns
 
     private const string Extensions = "Rask.Data.ValueObjectColumnsBuilderExtensions";
 
+    private const string JsonExtensions = "Rask.Data.JsonBuilderExtensions";
+
     /// <summary>Each property <paramref name="entity" />'s <c>Configure</c> names the columns of, with its pattern.</summary>
     public static IReadOnlyList<ColumnPattern> Of(INamedTypeSymbol entity, Compilation compilation, CancellationToken cancellationToken)
     {
@@ -43,6 +45,11 @@ internal static class ConfiguredColumns
                 {
                     found.Add(pattern);
                 }
+                else if (call is { Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Json" }, ArgumentList.Arguments.Count: >= 1 } &&
+                         ReadJson(call, model, cancellationToken) is { } json)
+                {
+                    found.Add(json);
+                }
             }
         }
 
@@ -51,6 +58,14 @@ internal static class ConfiguredColumns
 
     /// <summary>The column name <paramref name="pattern" /> gives the value object's member <paramref name="name" />.</summary>
     public static string Apply(string pattern, string name) => pattern.Replace(Member, name);
+
+    // b.Json(t => t.Settings, …): the property's value object is one JSON column.
+    private static ColumnPattern? ReadJson(InvocationExpressionSyntax call, SemanticModel model, CancellationToken cancellationToken) =>
+        model.GetSymbolInfo(call, cancellationToken).Symbol is IMethodSymbol method &&
+        string.Equals((method.ReducedFrom ?? method).ContainingType.ToDisplayString(), JsonExtensions, StringComparison.Ordinal) &&
+        call.ArgumentList.Arguments[0].Expression is SimpleLambdaExpressionSyntax { ExpressionBody: MemberAccessExpressionSyntax access }
+            ? new ColumnPattern(access.Name.Identifier.ValueText, "", Json: true)
+            : null;
 
     private static ColumnPattern? Read(InvocationExpressionSyntax call, SemanticModel model, CancellationToken cancellationToken)
     {

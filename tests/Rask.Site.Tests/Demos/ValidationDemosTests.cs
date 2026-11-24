@@ -457,6 +457,19 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     // --- FluentValidation tests ---
 
     [Fact]
+    public async Task FluentRulesInTypeDemo_refuses_an_empty_name_and_a_bad_address_with_the_rules_own_words()
+    {
+        var page = Rask.Testing.Page.Render(() => FluentRulesInTypeDemo);
+
+        await page.On("input[type=\"email\"]").Change("nowhere");
+        await page.On("form").Submit();
+
+        Assert.Contains("&#x27;Name&#x27; must not be empty.", page.Html, StringComparison.Ordinal);
+        Assert.Contains("That is not an e-mail address.", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Saved ", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task OrderValidator_fails_both_an_empty_product_and_a_zero_quantity()
     {
         var v = new OrderValidator();

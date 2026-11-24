@@ -34,6 +34,10 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
 
         // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);
+
+        // An optional value object whose members are all optional is held in its row's columns (OptionalComplexValues).
+        // Added, not tried: the provider registers its own validator, and the last registration wins.
+        services.AddSingleton<IModelValidator, RaskPostgresModelValidator>();
     }
 
     public void Validate(IDbContextOptions options)
