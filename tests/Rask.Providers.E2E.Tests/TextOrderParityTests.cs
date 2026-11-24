@@ -193,26 +193,15 @@ public sealed class SqliteTextOrderTests : CaseInsensitiveTextOrderParityTests
 }
 
 /// <summary>
-///     PostgreSQL orders by the language's ICU collation; a <c>Where</c> still compares as the column does, case-sensitively —
-///     the gap docs/data.md names.
+///     PostgreSQL through <c>UseRaskPostgres</c>: a nondeterministic ICU collation its migrations create (PostgreSQL 18+,
+///     for <c>LIKE</c>), so equality, a unique index and <c>Contains</c> compare as SQL Server's do.
 /// </summary>
 [Collection(PostgresCollection.Name)]
-public sealed class PostgresTextOrderTests : TextOrderParityTests
+public sealed class PostgresTextOrderTests : CaseInsensitiveTextOrderParityTests
 {
     private protected override bool Available => Postgres.Available;
 
     private protected override string SkipReason => Postgres.SkipReason;
-
-    [Fact]
-    public async Task Equality_still_tells_case_apart()
-    {
-        Assert.SkipUnless(Available, SkipReason);
-        await using var db = NewContext();
-
-        var found = await db.Speakers.CountAsync(s => s.Name == "csaba", Ct);
-
-        Assert.Equal(0, found);
-    }
 
     private protected override TextOrderDbContext NewContext() =>
         new(new DbContextOptionsBuilder<TextOrderDbContext>().UseRaskPostgresAt(Postgres.Required).Options);

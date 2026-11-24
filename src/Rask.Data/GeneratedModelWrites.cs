@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Rask.Cqrs;
 
 namespace Rask.Data;
 
@@ -68,7 +70,7 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <returns>The saved aggregate, its version and times refreshed.</returns>
     /// <exception cref="KeyNotFoundException">Its row has been soft-deleted since it was read.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Its row was saved by someone else since it was read.</exception>
+    /// <exception cref="RaskValidationException">Its row was saved by someone else since it was read.</exception>
     public static async Task<TEntity> Save<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         TEntity entity,
         DbContext? db = null,
@@ -108,11 +110,47 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <returns>The updated entity.</returns>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
-    /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
+    /// <exception cref="RaskValidationException">The row's version is no longer <paramref name="version" />.</exception>
     public static Task<TEntity> Update<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
         Action<TEntity> apply,
+        DbContext? db = null,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(apply);
+
+        return Update<TEntity>(key, version, entity =>
+        {
+            apply(entity);
+            return Task.CompletedTask;
+        }, db, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Loads the row with <paramref name="key" />, awaits <paramref name="apply" /> on it and saves — the form of
+    ///     <see cref="Update{TEntity}(object, int?, Action{TEntity}, DbContext?, CancellationToken)" /> for a change that
+    ///     reads first: <c>Supply.Update(id, async s =&gt; await s.Distribute(…), version: m.Version)</c>.
+    /// </summary>
+    /// <param name="key">The primary key of the row to update.</param>
+    /// <param name="version">
+    ///     The <see cref="Columns.Version" /> the caller's copy was read at, or <c>null</c> to skip the
+    ///     optimistic-concurrency check.
+    /// </param>
+    /// <param name="apply">Changes the loaded entity; it may await reads of its own.</param>
+    /// <param name="db">
+    ///     The context to load and change through, or <c>null</c> to open one. A given context is only STAGED
+    ///     — the caller saves it, and it is not disposed; a row it already tracks is the one updated.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
+    /// <returns>The updated entity.</returns>
+    /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
+    /// <exception cref="RaskValidationException">The row's version is no longer <paramref name="version" />.</exception>
+    public static Task<TEntity> Update<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        object key,
+        int? version,
+        Func<TEntity, Task> apply,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
@@ -126,7 +164,7 @@ public static class GeneratedModelWrites
             var entity = await LoadAsync<TEntity>(context, key, cancellationToken).ConfigureAwait(false);
 
             ExpectVersion(context, entity, version);
-            apply(entity);
+            await apply(entity).ConfigureAwait(false);
 
             // At once, not at the save: a caller's context may load or change more before it saves. A refill
             // written `Lines = [.. rows]` left a read-only collection, which the match writes into.
@@ -152,7 +190,7 @@ public static class GeneratedModelWrites
     /// </param>
     /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
-    /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
+    /// <exception cref="RaskValidationException">The row's version is no longer <paramref name="version" />.</exception>
     /// <exception cref="InvalidOperationException">The aggregate names neither <see cref="Deletable" /> nor <see cref="SoftDelete" />.</exception>
     public static Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
@@ -189,7 +227,7 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the save; unset, the work this call belongs to does.</param>
     /// <exception cref="InvalidOperationException">It was never saved, or names neither Deletable nor SoftDelete.</exception>
     /// <exception cref="KeyNotFoundException">Its row has been deleted since it was read, and it has no Version to say so.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Its row was changed or deleted by someone else since it was read.</exception>
+    /// <exception cref="RaskValidationException">Its row was changed or deleted by someone else since it was read.</exception>
     public static async Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         TEntity entity,
         DbContext? db = null,
@@ -210,7 +248,7 @@ public static class GeneratedModelWrites
         var context = Db.CreateContext();
         await using var contextScope = context.ConfigureAwait(false);
         await AggregateSave.StageDeleteAsync(context, entity, cancellationToken).ConfigureAwait(false);
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await StaleWrite.SaveAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -280,6 +318,44 @@ public static class GeneratedModelWrites
         return found;
     }
 
+    /// <summary>
+    ///     Loads the aggregate with <paramref name="key" /> whole, as <see cref="Find{TEntity}(object, CancellationToken)" />
+    ///     does — and refuses it when it is no longer at <paramref name="version" />, the one a form was filled from.
+    /// </summary>
+    /// <param name="key">The primary key of the row to load.</param>
+    /// <param name="version">The <see cref="Columns.Version" /> the caller's copy was read at.</param>
+    /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
+    /// <returns>The aggregate and its children, or <c>null</c> when no row has that key or it is soft-deleted.</returns>
+    /// <exception cref="RaskValidationException">Somebody saved it since <paramref name="version" />.</exception>
+    /// <exception cref="InvalidOperationException">The aggregate does not name <see cref="Versioned" />.</exception>
+    public static async Task<TEntity?> Find<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        object key,
+        int version,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        cancellationToken = Ambient.Or(cancellationToken);
+        ArgumentNullException.ThrowIfNull(key);
+
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
+        var found = await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken, tracked: true)
+            .ConfigureAwait(false);
+
+        if (found is null)
+        {
+            return null;
+        }
+
+        if (VersionToken(context, found, version).CurrentValue is not int read || read != version)
+        {
+            throw StaleWrite.Refusal();
+        }
+
+        AggregateSave.Remember(context, found);
+        return found;
+    }
+
     // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
     private static void RefuseUndeletable<TEntity>()
     {
@@ -311,7 +387,7 @@ public static class GeneratedModelWrites
         await using var contextScope = context.ConfigureAwait(false);
         var result = await write(context).ConfigureAwait(false);
 
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await StaleWrite.SaveAsync(context, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
@@ -346,6 +422,11 @@ public static class GeneratedModelWrites
             return;
         }
 
+        VersionToken(context, entity, expected).OriginalValue = expected;
+    }
+
+    private static PropertyEntry VersionToken(DbContext context, IAggregate entity, int expected)
+    {
         var entry = context.Entry(entity);
 
         if (entry.Metadata.FindProperty(Columns.Version) is null)
@@ -355,6 +436,6 @@ public static class GeneratedModelWrites
                 $"{expected} with. Call the write without a version, or remove the const to keep the check.");
         }
 
-        entry.Property(Columns.Version).OriginalValue = expected;
+        return entry.Property(Columns.Version);
     }
 }

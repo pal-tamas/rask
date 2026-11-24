@@ -64,9 +64,11 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
         !(key.IsOwnership && string.Equals(principal, table, StringComparison.Ordinal));
 
     // A default with no name stated: the metadata setter would overwrite one, so the source is asked first (the builders
-    // used for every other kind ask it themselves).
+    // used for every other kind ask it themselves). Default(x => x.At, () => Clock.Now) counts whichever of the two
+    // conventions runs first: its SQL is written as the model is finalized too.
     private static bool NamesItsDefaultByConvention(IConventionProperty property) =>
-        (property.GetDefaultValueSql() is not null || property.TryGetDefaultValue(out _)) &&
+        (property.GetDefaultValueSql() is not null || property.TryGetDefaultValue(out _)
+         || property.FindAnnotation(DatabaseNowConvention.Annotation) is not null) &&
         property.GetDefaultConstraintNameConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation);
 
     private void Name(

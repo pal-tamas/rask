@@ -915,6 +915,9 @@ public enum RaskString
     /// <summary>The badge beside the label of a field that must be filled (<c>Ui.Field</c>, a control's <c>Label</c>).</summary>
     FieldRequired,
 
+    /// <summary>What a save over an aggregate somebody else saved since it was read says, about the whole form (<c>Find(id, version)</c>, <c>Update</c>, <c>Save()</c>).</summary>
+    ValidationChangedSince,
+
     /// <summary>
     ///     What a value outside a <c>[Range]</c> whose least is exclusive (<c>MinimumIsExclusive = true</c>) says. <c>{0}</c>
     ///     is the least, which it must be greater than, and <c>{1}</c> the greatest it may be.

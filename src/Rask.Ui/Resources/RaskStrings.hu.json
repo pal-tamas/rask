@@ -315,5 +315,6 @@
   "ValidationNumberMax": "Az érték legfeljebb {0} lehet.",
   "ValidationDecimals": "Legfeljebb {0} tizedesjegy adható meg.",
   "ValidationRangeNotBefore": "Nem lehet a kezdet ({0}) előtt.",
-  "ValidationRangeAfter": "A kezdet ({0}) után kell lennie."
+  "ValidationRangeAfter": "A kezdet ({0}) után kell lennie.",
+  "ValidationChangedSince": "Közben más módosította. Töltse be újra, és próbálja meg ismét."
 }

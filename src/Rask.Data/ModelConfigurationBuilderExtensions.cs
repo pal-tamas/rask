@@ -47,15 +47,20 @@ public static class ModelConfigurationBuilderExtensions
     ///         the database's own default collation says.
     ///     </para>
     ///     <para>
-    ///         On SQLite through <c>UseRaskSqlite</c> the database compares as SQL Server would: every connection registers
+    ///         On SQLite through <c>UseRaskSqlite</c> (or a browser's <c>UseSqlite(…).UseRaskFullTextSearch()</c>) the
+    ///         database compares as SQL Server would: every connection registers
     ///         the collation's language and sensitivities as <c>RASK_TEXT</c>, every text column is created with it, and
     ///         <c>Contains</c>, <c>StartsWith</c>, <c>EndsWith</c> and <c>LIKE</c> compare by it too — so <c>"csaba"</c>
     ///         finds <c>Csaba</c>, a unique index refuses <c>CSABA</c> beside it, and <c>"árv"</c> is in <c>Árvíztűrő</c>.
-    ///         A plain <c>UseSqlite</c> (a browser app's) orders by the column as it is.
+    ///         A <c>UseSqlite</c> with nothing of Rask's orders by the column as it is.
     ///     </para>
     ///     <para>
-    ///         On PostgreSQL <c>InTextOrder()</c> orders by the language's ICU collation (<c>"hu-HU-x-icu"</c>); a
-    ///         <c>Where</c> still compares case-sensitively there. Order a list already read with <c>TextOrder.In("hu")</c>.
+    ///         On PostgreSQL 18 or later through <c>UseRaskPostgres</c> a collation that ignores case or accents becomes
+    ///         a nondeterministic ICU collation, <c>rask_text</c>, which the migrations create and every text column is
+    ///         created with — so there too equality, a unique index and <c>LIKE</c> ignore case; an older server stops the
+    ///         migration with the reason. A plain <c>UseNpgsql</c>, or a collation that tells case and accents apart,
+    ///         orders by the language's ICU collation (<c>"hu-HU-x-icu"</c>) alone. Order a list already read with
+    ///         <c>TextOrder.In("hu")</c>.
     ///     </para>
     /// </remarks>
     /// <exception cref="InvalidOperationException">

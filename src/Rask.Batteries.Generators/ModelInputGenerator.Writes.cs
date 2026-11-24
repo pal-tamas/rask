@@ -23,7 +23,7 @@ public sealed partial class ModelInputGenerator
 
     private const string NotFoundDoc = "        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">No row has the id, or it is soft-deleted.</exception>";
 
-    private const string ConflictDoc = "        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">The row was saved by someone else since it was read.</exception>";
+    private const string ConflictDoc = "        /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">The row was saved by someone else since it was read: a failure about the whole form.</exception>";
 
     private const string VersionDoc = "        /// <param name=\"version\">The version last read, to refuse a write to a row saved since; <c>null</c> skips the check.</param>";
 
@@ -180,14 +180,23 @@ public sealed partial class ModelInputGenerator
         Keep(s, formUpdate, updateMark);
     }
 
-    // The write with no form behind it: `Product.Update(id, p => p.ShippedAt = now)`.
+    // The write with no form behind it: `Product.Update(id, p => p.ShippedAt = now)`, and its awaited twin for a change
+    // that reads first: `Supply.Update(id, async s => await s.Distribute(…), version: m.Version)`.
     private static void AppendApplyUpdate(StringBuilder s, Entity entity, string idType)
+    {
+        AppendApplyUpdate(s, entity, idType, "global::System.Action<" + entity.FullyQualifiedName + ">",
+            "Sets the new values on the loaded row.");
+        AppendApplyUpdate(s, entity, idType, "global::System.Func<" + entity.FullyQualifiedName + ", " + TaskFqn + ">",
+            "Changes the loaded row; it may await reads of its own.");
+    }
+
+    private static void AppendApplyUpdate(StringBuilder s, Entity entity, string idType, string applyType, string applyDoc)
     {
         var entityType = entity.FullyQualifiedName;
         s.Append("        /// <summary>Loads the stored <see cref=\"").Append(entityType)
             .AppendLine("\" /> with <paramref name=\"id\" />, applies <paramref name=\"apply\" /> and saves — only the values that changed.</summary>");
         s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
-        s.AppendLine("        /// <param name=\"apply\">Sets the new values on the loaded row.</param>");
+        s.Append("        /// <param name=\"apply\">").Append(applyDoc).AppendLine("</param>");
         if (entity.Versioned)
         {
             s.AppendLine(VersionDoc);
@@ -203,7 +212,7 @@ public sealed partial class ModelInputGenerator
         }
 
         s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Update(")
-            .Append(idType).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ");
+            .Append(idType).Append(" id, ").Append(applyType).Append(" apply, ");
         if (entity.Versioned)
         {
             s.Append("int? version = null, ");
@@ -260,6 +269,25 @@ public sealed partial class ModelInputGenerator
         s.Append("            ").Append(WritesFqn).Append(".Find<").Append(entityType)
             .AppendLine(">(id!, cancellationToken);");
         s.AppendLine();
+
+        if (!entity.Versioned)
+        {
+            return;
+        }
+
+        // The form's version: a row saved since the form was filled is refused here, before anything is changed.
+        s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" />, whole — refused when it is no longer at <paramref name=\"version\" />, the one the form was filled from.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the aggregate.</param>");
+        s.AppendLine("        /// <param name=\"version\">The version the form was filled from.</param>");
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+        s.AppendLine("        /// <returns>The aggregate and its children, or <c>null</c> when none has that id or it is soft-deleted.</returns>");
+        s.AppendLine(ConflictDoc);
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("?> Find(")
+            .Append(idType).Append(" id, int version, ").Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Find<").Append(entityType)
+            .AppendLine(">(id!, version, cancellationToken);");
+        s.AppendLine();
     }
 
     // `product.Save()`: inserted when it has no row yet, otherwise only what changed since Find read it.
@@ -273,7 +301,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">Its row has been soft-deleted since it was read.</exception>");
         if (entity.Versioned)
         {
-            s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was saved by someone else since it was read.</exception>");
+            s.AppendLine("        /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">Its row was saved by someone else since it was read: a failure about the whole form.</exception>");
         }
 
         s.Append("        public ").Append(TaskFqn).Append(" Save(").Append(DbParameter).Append(TokenFqn)
@@ -294,7 +322,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine(DbDoc);
         s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
         s.AppendLine("        /// <exception cref=\"global::System.InvalidOperationException\">It has never been saved.</exception>");
-        s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was changed or deleted by someone else since it was read.</exception>");
+        s.AppendLine("        /// <exception cref=\"global::Rask.Cqrs.RaskValidationException\">Its row was changed or deleted by someone else since it was read.</exception>");
         s.Append("        public ").Append(TaskFqn).Append(" Delete(").Append(DbParameter).Append(TokenFqn)
             .AppendLine(" cancellationToken = default) =>");
         s.Append("            ").Append(WritesFqn).Append(".Delete<").Append(entity.FullyQualifiedName)

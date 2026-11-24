@@ -8,7 +8,7 @@ using Rask.Data;
 namespace Rask.Testing;
 
 /// <summary>
-///     Builds a value object its rules accept (<see cref="Test.Make{T}" />): reads what it hands its base, samples each
+///     Builds a value object its rules accept (<c>Test.Make&lt;T&gt;()</c>): reads what it hands its base, samples each
 ///     member from that, and makes it through its generated <c>Create</c>.
 /// </summary>
 internal static class ValueSample

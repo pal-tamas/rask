@@ -1,9 +1,10 @@
 namespace Rask.Data;
 
 /// <summary>
-///     Marks the options extension of a provider whose every connection registers the text collation
-///     <see cref="ModelConfigurationBuilderExtensions.OrderTextBy" /> names, under <see cref="Collation" /> — so the
-///     model may give its text columns that collation, and a connection opened without it would fail.
+///     Marks the options extension of a provider that provides the text collation
+///     <see cref="ModelConfigurationBuilderExtensions.OrderTextBy" /> names, under <see cref="Collation" /> — SQLite's
+///     registered on every connection, PostgreSQL's created by its migrations — so the model may give its text columns
+///     that collation.
 /// </summary>
 /// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer" />.</remarks>
 internal interface ITextCollationEnforcer
