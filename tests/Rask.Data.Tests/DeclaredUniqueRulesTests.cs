@@ -263,7 +263,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
     [Fact]
     public void A_filter_that_only_rules_out_its_own_nulls_counts_as_none_and_any_other_filter_skips_the_rule()
     {
-        using var context = new BerthContext(new DbContextOptionsBuilder<BerthContext>().UseSqlite("Data Source=:memory:").Options);
+        using var context = new BerthContext(OptionsLayout.LikeAddDbContext<BerthContext>().UseSqlite("Data Source=:memory:").Options);
         var berth = context.Model.FindEntityType(typeof(Berth))!;
 
         var asked = DeclaredUniqueRules.Rules(berth).Select(ColumnsOf).ToList();

@@ -115,7 +115,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await using var callers = new SqliteConnection($"Data Source={_dbPath}");
-        var mine = new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>().UseSqlite(callers).Options);
+        var mine = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(callers).Options);
 
         await Db.Transaction(async () =>
         {

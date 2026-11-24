@@ -85,8 +85,8 @@ public sealed class GeneratedModelTests : IDisposable
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<RaskDbContext>();
-        services.AddDbContextFactory<RaskDbContext>(o => o.UseSqlite($"Data Source={_dbPath}").OneOfManyShapes());
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}").OneOfManyShapes());
+        services.AddDbContextFactory<RaskDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
 
         _provider = services.BuildServiceProvider();
 

@@ -15,6 +15,16 @@ them until tagged releases begin.
   `Check`, `__Problems`, the field shape and the facets were written by Rask.Batteries.Generators, so a component
   library on `Rask` alone could declare `record Plate(string Value) : Text(Value)` and got no `Create`. After: the
   generator is Rask.Generators', which every Rask project runs; the column mapping and the read face stay Rask.Data's.
+- **BREAKING: Rask.Mail's builder is `Mail.Message`, not `Email`.** Before: `await Mail.Send(Email.To(address).Subject(s).Html(b))`,
+  and an app on both Rask.Data and Rask.Mail had two `Email`s imported for it — Rask.Mailing's builder and the
+  `Rask.Values.Email` value-object base — so a bare `Email` was CS0104. After: `await Mail.Send(Mail.Message.To(address).Subject(s).Html(b))`
+  (the builder is nested in the static `Mail`, `Rask.Mailing.Mail.Message`), and `Email` is the value-object base alone.
+  `IMail.Add`, `Mail.Send` and `MailOutbox.Add` take a `Mail.Message`. No shim: replace `Email.To(` with `Mail.Message.To(`.
+- **FluentValidation's `GreaterThan`, `LessThan`, `Length(n)` and `PrecisionScale` speak Rask's catalog too.** Before:
+  `RuleFor(x => x.Age).GreaterThan(17)` said "A(z) 'Age' nagyobb kell, hogy legyen, mint '17'." because the catalog had
+  no sentence for it. After: four new `RaskString` keys — `ValidationAbove`, `ValidationBelow`, `ValidationExactLength`,
+  `ValidationDigits` — say "17 feletti értéket adjon meg." and the like, with Rask.Ui's Hungarian and an app's own
+  translation, like the rules that already did.
 - **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
   `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
   over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
@@ -88,6 +98,12 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
+  Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
+  and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses
+  both on exactly the convention's shape, and a value object's own `Value` is named blank, so the sentence reads "The
+  specified condition was not met.". RASK130's quick-fix is no longer offered while an `AbstractValidator<T>` class
+  rules the same property (it would not compile once the property holds a value object).
 - **Kinds of text as value-object bases: `Email`, `Phone`, `Url`, `Password`, `Multiline` (`Rask.Values`).** Before: an
   email, a phone number or a password was a `Text` plus an attribute on the form's `string`, or a hand-written
   `.Type(InputType.Password)` and `.Validate(X.__Problems)` at the call site. After: `record ContactEmail(string Value) :
@@ -924,6 +940,14 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `RaskDbContext` or `RaskReadDbContext` built from options of its own builds EF Core's internal services once.**
+  Before: EF Core builds a context's services in its constructor from the options it is handed, and again from the
+  ones `OnConfiguring` leaves, so a context given plain options (`new DbContextOptionsBuilder<T>().UseSqlite(…)`,
+  `AddDbContextFactory<T>(o => o.UseSqlite(…))`) cost two of the twenty EF Core allows a process, and a test suite of
+  many context shapes was refused part-way (`ManyServiceProvidersCreatedWarning`, failing whichever test came next).
+  After: the constructors say up front what `OnConfiguring` adds, so the two are one; options a Rask host built are
+  passed on as they are. `TestDatabase`'s contexts are also laid out as `AddDbContext` lays them out, so they share the
+  set the app's registered factory built.
 - **A test project that declares its own context still boots the app on demand.** Before: a `RaskDbContext` subclass
   in a test project that uses Rask.Testing got a generated design-time factory over `UseRaskDatabase`, so the test
   assembly referenced `Rask.Server` and Rask.Testing took the TEST project's entry point (the test SDK's `Main`) for the

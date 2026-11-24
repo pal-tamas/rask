@@ -99,7 +99,7 @@ public partial class TestDatabase
         string named, Action<DbContextOptionsBuilder, string> configure, Func<DbContextOptions<TContext>, TContext> construct)
         where TContext : DbContext
     {
-        var builder = new DbContextOptionsBuilder<TContext>();
+        var builder = OptionsLayout.LikeAddDbContext<TContext>();
         configure(builder, named);
         var probe = construct(builder.Options);
         await using (probe.ConfigureAwait(false))
@@ -111,7 +111,7 @@ public partial class TestDatabase
     private static async Task Drop<TContext>(Action<DbContextOptionsBuilder> configure, Func<DbContextOptions<TContext>, TContext> construct)
         where TContext : DbContext
     {
-        var builder = new DbContextOptionsBuilder<TContext>();
+        var builder = OptionsLayout.LikeAddDbContext<TContext>();
         configure(builder);
         var context = construct(builder.Options);
         await using (context.ConfigureAwait(false))

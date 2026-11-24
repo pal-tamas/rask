@@ -109,7 +109,7 @@ public sealed class FullTextSearchDeclarationTests
 
     private static Microsoft.EntityFrameworkCore.Metadata.IModel BuildModel(Action<ModelBuilder> configure)
     {
-        var options = new DbContextOptionsBuilder<DocContext>().UseSqlite("Data Source=:memory:").Options;
+        var options = OptionsLayout.LikeAddDbContext<DocContext>().UseSqlite("Data Source=:memory:").Options;
         using var db = new DocContext(options, configure);
         return db.Model;
     }

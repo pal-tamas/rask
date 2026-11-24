@@ -192,7 +192,7 @@ public sealed class ModelQueryableTests : IDisposable
     private ContextTally ConfigureCountingContexts()
     {
         var tally = new ContextTally();
-        var options = new DbContextOptionsBuilder<RaskReadDbContext>()
+        var options = OptionsLayout.LikeAddDbContext<RaskReadDbContext>()
             .UseSqlite($"Data Source={_dbPath}").Options;
 
         ReadDb.Configure(() => new DisposalCountingReadContext(options, tally));

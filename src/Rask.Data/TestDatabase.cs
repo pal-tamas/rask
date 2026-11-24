@@ -193,7 +193,7 @@ public partial class TestDatabase : IAsyncDisposable
 
         TContext Create()
         {
-            var builder = new DbContextOptionsBuilder<TContext>();
+            var builder = OptionsLayout.LikeAddDbContext<TContext>();
             configure(builder);
 
             // Said up front, as a Rask host says it: options the context's OnConfiguring would change get EF Core's
@@ -208,7 +208,7 @@ public partial class TestDatabase : IAsyncDisposable
         // mirrors the write model and so needs the write side already pointed somewhere.
         RaskReadDbContext CreateRead()
         {
-            var builder = new DbContextOptionsBuilder<RaskReadDbContext>();
+            var builder = OptionsLayout.LikeAddDbContext<RaskReadDbContext>();
             configure(builder);
             RaskReadDbContext.Prepare(builder);
             return new RaskReadDbContext(builder.Options);

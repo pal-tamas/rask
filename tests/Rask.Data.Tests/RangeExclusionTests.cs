@@ -166,7 +166,7 @@ public sealed class RangeExclusionTests
 
     private static IModel BuildModel(Action<ModelBuilder> configure)
     {
-        var options = new DbContextOptionsBuilder<ProbeContext>()
+        var options = OptionsLayout.LikeAddDbContext<ProbeContext>()
             .UseSqlite("Data Source=:memory:")
             .Options;
 

@@ -8,7 +8,7 @@ namespace Rask.Mailing;
 /// </summary>
 /// <remarks>
 ///     <code>
-///     await Mail.Send(Email.To(user.Email).Subject("Welcome").Body(new WelcomeEmail(user.Name)));
+///     await Mail.Send(Mail.Message.To(user.Email).Subject("Welcome").Body(new WelcomeEmail(user.Name)));
 ///     await Mail.Send(reminder).In(24.Hours);
 ///     await Mail.Send(digest).At(mondayMorning);
 ///     </code>
@@ -18,10 +18,10 @@ namespace Rask.Mailing;
 ///         there instead.
 ///     </para>
 /// </remarks>
-public static class Mail
+public static partial class Mail
 {
     /// <summary>Queues <paramref name="email" /> to go out as soon as the processor next polls.</summary>
-    public static Sending Send(Email email, CancellationToken cancellationToken = default) =>
+    public static Sending Send(Mail.Message email, CancellationToken cancellationToken = default) =>
         new(null, email, null, null, cancellationToken);
 
     /// <summary>

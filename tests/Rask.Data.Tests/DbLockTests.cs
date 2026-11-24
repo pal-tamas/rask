@@ -13,7 +13,7 @@ public sealed class DbLockTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        Db.Configure(() => new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>()
+        Db.Configure(() => new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>()
             .UseSqlite($"Data Source={_dbPath}")
             .AddInterceptors(AmbientTransactionInterceptor.Instance)
             .Options));

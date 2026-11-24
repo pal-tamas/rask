@@ -5,7 +5,7 @@ namespace Rask.Auth;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         HTML rather than a Rask component, and that is the point: <c>Email.Body(Component)</c> is
+///         HTML rather than a Rask component, and that is the point: <c>Mail.Message.Body(Component)</c> is
 ///         the one member of <c>Rask.Mail</c> that reaches into <c>Rask.Core</c>, so an accounts
 ///         battery that went through it could not run on a host with no renderer (#1069).
 ///     </para>

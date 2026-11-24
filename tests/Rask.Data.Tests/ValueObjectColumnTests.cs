@@ -124,7 +124,7 @@ public sealed class ValueObjectColumnTests : IDisposable
     public async Task The_table_has_the_columns_the_complex_mapping_gave_it()
     {
         await using var database = await StartDatabaseAsync();
-        using var complex = new ComplexContactContext(new DbContextOptionsBuilder<ComplexContactContext>().UseSqlite("Data Source=:memory:").Options);
+        using var complex = new ComplexContactContext(OptionsLayout.LikeAddDbContext<ComplexContactContext>().UseSqlite("Data Source=:memory:").Options);
 
         var now = ColumnsOf(database.Context);
         var before = ColumnsOf(complex);

@@ -124,7 +124,7 @@ public sealed class UniqueViolationFieldTests : IDisposable
     [Fact]
     public async Task A_collision_on_a_complex_propertys_member_is_shown_under_its_path()
     {
-        await using var db = new LogsheetContext(new DbContextOptionsBuilder<LogsheetContext>()
+        await using var db = new LogsheetContext(OptionsLayout.LikeAddDbContext<LogsheetContext>()
             .UseSqlite($"Data Source={_dbPath}")
             .AddInterceptors(new ViolationMessageInterceptor())
             .Options);

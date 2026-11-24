@@ -1585,7 +1585,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   set that category to `Debug` to watch a battery claim its batch.
   An app with a hand-written `IDbContextFactory<T>`, or a context that cannot be constructed from options alone, keeps its own factory and its old logging — noisy but correct beats quiet but wrong.
 - [Transactional email](docs/mail.md): the `Rask.Mail` package (in `Rask.Server`, on by default) — durable transactional email queued on the app's own EF Core database (no broker/Redis).
-  Compose with a fluent `Email` builder (`Email.To(addr,name?).AndTo/.Cc/.Bcc/.ReplyTo/.From/.Subject/.Body(Component)/.Html(string html)/.PlainText/.Attach`);
+  Compose with the fluent `Mail.Message` builder (`Mail.Message.To(addr,name?).AndTo/.Cc/.Bcc/.ReplyTo/.From/.Subject/.Body(Component)/.Html(string html)/.PlainText/.Attach`);
   `.Body(Component)` renders a Rask component to HTML IMMEDIATELY (Component.ToHtml()) so the persisted row is self-contained (no source generator, no Rask.Cqrs dependency — nothing is rehydrated at send time).
   Addresses are validated at the call site (MimeKit MailboxAddress.TryParse) so a malformed address throws on build, not after MaxAttempts.
   `await Mail.Send(email)` (asap) / `.In(24.Hours)` / `.At(runAt)` (delayed), with `IMail` injectable where there is no ambient scope — writes one `QueuedMail` row (envelope + already-rendered HTML) via IDbContextFactory, defaulting From from MailOptions.

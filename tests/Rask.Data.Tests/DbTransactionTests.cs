@@ -272,7 +272,7 @@ public sealed class DbTransactionTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var otherPath = Path.Combine(Path.GetTempPath(), $"rask-transaction-other-{Guid.NewGuid():N}.db");
-        await using var other = new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={otherPath}").Options);
+        await using var other = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={otherPath}").Options);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(
             () => GeneratedModelWrites.Create(Widget.Create("elsewhere"), db: other, cancellationToken: TestContext.Current.CancellationToken),

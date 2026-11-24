@@ -97,7 +97,7 @@ public class LegacyContext(DbContextOptions options) : DbContext(options)
 
     public static TContext Open<TContext>(SqliteConnection connection, Func<DbContextOptions, TContext> create)
         where TContext : DbContext =>
-        create(new DbContextOptionsBuilder<TContext>().UseSqlite(connection).Options);
+        create(OptionsLayout.LikeAddDbContext<TContext>().UseSqlite(connection).Options);
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -307,7 +307,7 @@ public sealed class NamingConventionTests : IDisposable
     public void A_one_value_value_object_inside_another_is_renamed_like_its_siblings()
     {
         using var db = new CamelGondolaContext(
-            new DbContextOptionsBuilder<CamelGondolaContext>().UseSqlite("Data Source=:memory:").Options);
+            OptionsLayout.LikeAddDbContext<CamelGondolaContext>().UseSqlite("Data Source=:memory:").Options);
         var gondola = Model(db).FindEntityType(typeof(Gondola))!;
         var store = StoreObjectIdentifier.Table("Gondolas");
 

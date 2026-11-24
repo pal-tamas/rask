@@ -7,9 +7,10 @@ namespace Rask;
 
 // Which RaskStrings sentence a FluentValidation built-in rule says: the one the equivalent DataAnnotations attribute
 // says through Rask (AttributeMessages) — NotEmpty what [Required] says, MaximumLength what [StringLength]/[MaxLength]
-// says, InclusiveBetween what [Range] says. A catalog sentence numbers its values ({0}, {1}) and FluentValidation names
+// says, InclusiveBetween what [Range] says; GreaterThan, LessThan, Length(n) and PrecisionScale, which no attribute has,
+// say sentences of their own (ValidationAbove, ValidationBelow, ValidationExactLength, ValidationDigits). A catalog sentence numbers its values ({0}, {1}) and FluentValidation names
 // them, so each key also lists the placeholder each number stands for. A rule the catalog has no sentence for
-// (GreaterThan, ExactLength, ScalePrecision, Must …) is not here, and keeps FluentValidation's own words.
+// (Must, Equal, Empty …) is not here, and keeps FluentValidation's own words.
 internal static class CatalogSentences
 {
     private static readonly Dictionary<string, (RaskString Key, string[] Values)> _sentences = new(StringComparer.Ordinal)
@@ -22,9 +23,13 @@ internal static class CatalogSentences
         ["MinimumLength_Simple"] = (RaskString.ValidationTooShort, ["MinLength"]),
         ["LengthValidator"] = (RaskString.ValidationLength, ["MinLength", "MaxLength"]),
         ["Length_Simple"] = (RaskString.ValidationLength, ["MinLength", "MaxLength"]),
+        ["ExactLengthValidator"] = (RaskString.ValidationExactLength, ["MaxLength"]),
         ["InclusiveBetweenValidator"] = (RaskString.ValidationBetween, ["From", "To"]),
         ["InclusiveBetween_Simple"] = (RaskString.ValidationBetween, ["From", "To"]),
         ["ExclusiveBetweenValidator"] = (RaskString.ValidationAboveAndBelow, ["From", "To"]),
+        ["GreaterThanValidator"] = (RaskString.ValidationAbove, ["ComparisonValue"]),
+        ["LessThanValidator"] = (RaskString.ValidationBelow, ["ComparisonValue"]),
+        ["ScalePrecisionValidator"] = (RaskString.ValidationDigits, ["ExpectedPrecision", "ExpectedScale"]),
         ["GreaterThanOrEqualValidator"] = (RaskString.ValidationNumberMin, ["ComparisonValue"]),
         ["LessThanOrEqualValidator"] = (RaskString.ValidationNumberMax, ["ComparisonValue"]),
         ["EmailValidator"] = (RaskString.ValidationEmail, []),

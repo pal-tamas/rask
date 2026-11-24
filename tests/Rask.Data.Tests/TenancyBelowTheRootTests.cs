@@ -134,7 +134,7 @@ public sealed class TenancyBelowTheRootTests : IDisposable
     public async Task A_child_with_no_way_up_to_its_root_is_a_model_error_naming_it()
     {
         await using var context = new DropsOnlyContext(
-            new DbContextOptionsBuilder<DropsOnlyContext>().UseSqlite("Data Source=:memory:").Options);
+            OptionsLayout.LikeAddDbContext<DropsOnlyContext>().UseSqlite("Data Source=:memory:").Options);
 
         var refused = Assert.Throws<InvalidOperationException>(() => context.Model);
 

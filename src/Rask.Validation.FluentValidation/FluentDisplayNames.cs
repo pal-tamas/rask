@@ -21,6 +21,20 @@ internal static class FluentDisplayNames
 
         var previous = ValidatorOptions.Global.DisplayNameResolver;
         ValidatorOptions.Global.DisplayNameResolver = (type, member, expression) =>
-            previous?.Invoke(type, member, expression) ?? (member is null ? null : DisplayNames.Of(member));
+            previous?.Invoke(type, member, expression) ?? NameOf(type, member);
+    }
+
+    // A value object's own Value is named blank: the field it is bound to has the label, and a sentence about it reads
+    // without one (UnnamedValue).
+    private static string? NameOf(Type type, System.Reflection.MemberInfo? member)
+    {
+        if (member is null)
+        {
+            return null;
+        }
+
+        return typeof(Rask.Values.Value).IsAssignableFrom(type) && string.Equals(member.Name, "Value", StringComparison.Ordinal)
+            ? ""
+            : DisplayNames.Of(member);
     }
 }

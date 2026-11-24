@@ -116,6 +116,27 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("A handle has no spaces.", messages);
     }
 
+    [Theory]
+    [InlineData("", "The specified condition was not met.")]
+    [InlineData("hu-HU", "A megadott feltétel nem teljesült.")]
+    public void A_value_objects_own_value_is_not_named_in_a_rules_own_sentence(string culture, string said)
+    {
+        var before = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(culture);
+        try
+        {
+            var refused = Test.Refuses(() => _ = new Slug("Upper"));
+
+            var message = Assert.Single(refused.Failures).Message;
+
+            Assert.Equal(said, message);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = before;
+        }
+    }
+
     [Fact]
     public void A_value_object_its_rules_accept_is_made()
     {
@@ -203,4 +224,10 @@ public sealed partial record Handle(string Value) : Rask.Values.Text(Value, MaxL
 {
     static void Rules(InlineValidator<Handle> rules) =>
         rules.RuleFor(h => h.Value).MinimumLength(3).Must(static v => !v.Contains(' ', StringComparison.Ordinal)).WithMessage("A handle has no spaces.");
+}
+
+public sealed partial record Slug(string Value) : Rask.Values.Text(Value, MaxLength: 40)
+{
+    static void Rules(InlineValidator<Slug> rules) =>
+        rules.RuleFor(s => s.Value).Must(static v => string.Equals(v, v.ToLowerInvariant(), StringComparison.Ordinal));
 }

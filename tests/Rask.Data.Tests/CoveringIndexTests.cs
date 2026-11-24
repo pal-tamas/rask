@@ -169,5 +169,5 @@ public sealed class CoveringIndexTests
 
     private static DbContextOptions<TContext> Options<TContext>()
         where TContext : DbContext =>
-        new DbContextOptionsBuilder<TContext>().UseSqlite("Data Source=:memory:").Options;
+        OptionsLayout.LikeAddDbContext<TContext>().UseSqlite("Data Source=:memory:").Options;
 }

@@ -20,7 +20,7 @@ namespace Rask.Mailing;
 public sealed class QueuedMail : Aggregate<long, Timestamps>
 {
     /// <summary>The row for <paramref name="email" />, sent from <paramref name="from" /> once <paramref name="runAt" /> comes.</summary>
-    internal static QueuedMail For(Email email, EmailAddress from, DateTime runAt) => new()
+    internal static QueuedMail For(Mail.Message email, EmailAddress from, DateTime runAt) => new()
     {
         From = MailSerializer.SerializeAddress(from),
         To = JsonSerializer.Serialize(email.ToRecipients, MailSerializer.Options),

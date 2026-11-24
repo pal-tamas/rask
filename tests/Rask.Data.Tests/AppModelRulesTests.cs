@@ -115,7 +115,7 @@ public sealed class PayrollModelFixture
 
     /// <summary>A context over <paramref name="connection" />, translating violations as AddRaskData's does.</summary>
     public static PayrollContext Open(string connection) =>
-        new(new DbContextOptionsBuilder<PayrollContext>()
+        new(OptionsLayout.LikeAddDbContext<PayrollContext>()
             .UseSqlite(connection)
             .AddInterceptors(new ViolationMessageInterceptor())
             .Options);

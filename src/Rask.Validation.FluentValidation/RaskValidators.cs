@@ -141,9 +141,10 @@ public static class RaskValidators
             return [];
         }
 
-        return validator.Validate(new ValidationContext<object>(value)).Errors.Select(static e => new Problem(
-            string.IsNullOrEmpty(e.PropertyName) || string.Equals(e.PropertyName, "Value", StringComparison.Ordinal) ? null : e.PropertyName,
-            e.ErrorMessage));
+        return validator.Validate(new ValidationContext<object>(value)).Errors.Select(static e =>
+            string.IsNullOrEmpty(e.PropertyName) || string.Equals(e.PropertyName, "Value", StringComparison.Ordinal)
+                ? new Problem(null, UnnamedValue.Said(e.ErrorMessage))
+                : new Problem(e.PropertyName, e.ErrorMessage));
     }
 
     /// <summary>

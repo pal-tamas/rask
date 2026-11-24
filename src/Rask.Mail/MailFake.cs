@@ -41,7 +41,7 @@ public sealed class MailFake : IMail, IDisposable
     /// <summary>Puts the real mail battery back.</summary>
     public void Dispose() => Mail.Faked.Value = _previous;
 
-    Task IMail.Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken)
+    Task IMail.Add(Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(email);
         var record = new SentEmail(
