@@ -9,6 +9,7 @@ public class CqrsCodecValueTypesTests
     private const string Contracts = """
         using Rask.Cqrs;
         using Rask.Data;
+        using Rask.Values;
 
         namespace Fleet.Contracts
         {
@@ -73,7 +74,7 @@ public class CqrsCodecValueTypesTests
     {
         var codec = Run(Contracts).GeneratedSource("__RaskCqrsCodecs");
 
-        Assert.Contains("using var __loading = global::Rask.Data.GeneratedValueRules.Loading();", codec, StringComparison.Ordinal);
+        Assert.Contains("using var __loading = global::Rask.Values.GeneratedValueRules.Loading();", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.DriverName.Create(held);", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.Litres.Create(held);", codec, StringComparison.Ordinal);
         Assert.Contains("return global::Fleet.Contracts.KmRange.Create(v_Start, v_End);", codec, StringComparison.Ordinal);

@@ -10,12 +10,13 @@ public class ValueObjectCodeFixTests
     // The generated half's Create, written by hand: the analyzer runs without the generator.
     private static string Source(string elsewhere) => $$"""
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10)
         {
             public static Plate Create(string Value, string? field = null) => new(Value);
         }
-        public sealed partial record Km(int Start, int End) : Rask.Data.Range(Start, End)
+        public sealed partial record Km(int Start, int End) : Rask.Values.Range(Start, End)
         {
             public static Km Create(int Start, int End, string? field = null) => new(Start, End);
         }
@@ -40,7 +41,7 @@ public class ValueObjectCodeFixTests
     private static Task<string> Fix129(string declaration) =>
         CodeFixHarness.ApplyGeneratorFixAsync(
             new ValueObjectFactoryGenerator(), new ValueObjectModifiersCodeFixProvider(), "RASK129",
-            "using Rask.Data;\nnamespace Shop;\n" + declaration + "\n", "Rask.Data", "Rask.Cqrs");
+            "using Rask.Data;\nusing Rask.Values;\nnamespace Shop;\n" + declaration + "\n", "Rask.Data", "Rask.Cqrs");
 
     [Theory]
     [InlineData("public static Plate Make(string v) => new Plate(v);", "public static Plate Make(string v) => Plate.Create(v);")]
@@ -84,7 +85,7 @@ public class ValueObjectCodeFixTests
     [InlineData("public record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
     [InlineData("public partial record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
     [InlineData("public sealed record Plate(string Value) : Text(Value, MaxLength: 10);", "public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10);")]
-    [InlineData("record Plate(int Start, int End) : Rask.Data.Range(Start, End);", "sealed partial record Plate(int Start, int End) : Rask.Data.Range(Start, End);")]
+    [InlineData("record Plate(int Start, int End) : Rask.Values.Range(Start, End);", "sealed partial record Plate(int Start, int End) : Rask.Values.Range(Start, End);")]
     public async Task The_RASK129_fix_adds_sealed_and_partial(string declaration, string expected)
     {
         var source = declaration;

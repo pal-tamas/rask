@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one decimal number:
@@ -51,7 +51,7 @@ public abstract record Number : Value
         }
 
         this.Value = Value;
-        if (!Loading.IsOn)
+        if (!RowLoading.IsOn)
         {
             Check(Problems(Value, Min, Max, Scale, Precision));
         }

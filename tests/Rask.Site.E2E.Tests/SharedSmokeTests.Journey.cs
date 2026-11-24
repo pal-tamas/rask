@@ -1382,6 +1382,10 @@ public abstract partial class SharedSmokeTests
         // says nothing until Save: the message is the value object's own, it goes at the first key of the
         // correction, and a name it accepts reaches the submit handler.
         var destination = Page.Locator("form:has(#v-vo-name)");
+        // Declared `: Text(Value, MaxLength: 255, Pattern: …)`: an empty name is the base's own "required".
+        await destination.Locator("button[type=submit]").ClickAsync();
+        await Expect(destination.GetByText("This field is required."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await destination.Locator("#v-vo-name").FillAsync("9 lives");
         await destination.Locator("button[type=submit]").ClickAsync();
         await Expect(destination.GetByText("A name starts with a letter."))

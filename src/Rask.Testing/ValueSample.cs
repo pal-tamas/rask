@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Testing;
 

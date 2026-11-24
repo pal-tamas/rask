@@ -1,7 +1,7 @@
 namespace Rask.Data.Tests;
 
 /// <summary>
-/// A value object declared from a Rask.Data base record checks its rules as it is made: what each base refuses, the
+/// A value object declared from a Rask base record checks its rules as it is made: what each base refuses, the
 /// field a refusal is shown under, and the generated Create, TryCreate and CreateOptional.
 /// </summary>
 public sealed class BaseRecordValueObjectRuleTests

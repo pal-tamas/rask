@@ -3159,7 +3159,7 @@ public readonly record struct DriverName(string Value)
 ```
 
 > 'DriverName.Validate(string)' on value object 'DriverName' is never asked: no form and no generated write runs a
-> value object's Validate, only the rules of one declared from a Rask.Data base record — declare it 'public sealed
+> value object's Validate, only the rules of one declared from a Rask base record — declare it 'public sealed
 > partial record DriverName(string Value) : Text(Value, …);' with its rules as the base's arguments, or ': Value'
 > with them in 'protected override IEnumerable<Problem> Rules()', and make it with 'DriverName.Create(…)'
 

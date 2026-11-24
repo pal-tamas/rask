@@ -1,9 +1,12 @@
 <Project>
   <ItemGroup>
     <Using Include="Rask.Data"/>
-    <!-- `record KmRange(int Start, int End) : Range(Start, End)` names Rask.Data's base, which System's implicit using
-         would otherwise make ambiguous with System.Range (CS0104). An alias wins over both namespace imports; the
-         `..` operator keeps building System.Range, which the compiler finds without a name. -->
-    <Using Include="Rask.Data.Range" Alias="Range"/>
+    <!-- The value-object bases this package maps to columns are the `Rask` package's (Rask.Values): a data app sees them
+         as it always has, and a browser app with no data layer imports the namespace itself. `record KmRange(int Start,
+         int End) : Range(Start, End)` names Rask's base, which System's implicit using would otherwise make ambiguous
+         with System.Range (CS0104). An alias wins over both namespace imports; the `..` operator keeps building
+         System.Range, which the compiler finds without a name. -->
+    <Using Include="Rask.Values"/>
+    <Using Include="Rask.Values.Range" Alias="Range"/>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>What a <see cref="Range" /> was handed.</summary>
 /// <param name="Strict">Whether the end must be after the start, not only not before it.</param>

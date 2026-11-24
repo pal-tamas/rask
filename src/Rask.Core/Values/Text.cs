@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one text, with its rules declared where it is:
@@ -57,7 +57,7 @@ public abstract record Text : Value
             DeclaredRules.Note(new TextRules(MaxLength, MinLength, Pattern));
         }
 
-        if (Loading.IsOn)
+        if (RowLoading.IsOn)
         {
             this.Value = Value ?? "";
             return;

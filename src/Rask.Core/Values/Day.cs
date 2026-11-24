@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one calendar day:
@@ -37,7 +37,7 @@ public abstract record Day : Value
         }
 
         this.Value = Value;
-        if (!Loading.IsOn)
+        if (!RowLoading.IsOn)
         {
             Check(Problems(Value, NotBefore, NotAfter, NotAfterToday));
         }

@@ -2350,8 +2350,11 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 ### Declared from a base record
 
-A value object is declared from the Rask.Data base record of what it holds, with its rules as the base's
-arguments, and is checked as it is made — no instance exists that its rules refuse. Rask writes the rest:
+A value object is declared from the base record of what it holds, with its rules as the base's arguments, and is
+checked as it is made — no instance exists that its rules refuse. Rask writes the rest. The bases — `Value`, `Text`,
+`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), so a browser app
+with no data layer declares its values the same way with a `using Rask.Values;`; Rask.Data maps them to columns and
+imports the namespace for you, with `Range` aliased over `System.Range`:
 
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);

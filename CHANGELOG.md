@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING: the value-object bases moved from Rask.Data into the `Rask` package, namespace `Rask.Values`.** Before:
+  `Value`, `Text`, `Number`, `Whole`, `Day`, `Range` and `Problem` were `Rask.Data`'s, so a browser app or the site,
+  with no EF Core, could not declare a value object from them. After: they are Rask.Core's (with `Moment`, the declared-rules
+  reader and `ValueLoading`), a browser app writes `using Rask.Values;`, and Rask.Data — which now depends on `Rask` —
+  imports the namespace for a data app as before (`Range` still aliased over `System.Range`) and keeps only the
+  column mapping and the loading switch's EF Core half. `RaskValidationException` and
+  `RequestValidationError` moved assembly with them, into Rask.Wire, keeping the `Rask.Cqrs` namespace. A file that
+  named `Rask.Data.Range` or `Rask.Data.Text` writes `Rask.Values.…`; a value is now worded from Rask's strings catalog
+  directly, so the generated `__RaskValueWords` module initializer is gone. The site's `DestinationName` demo is
+  declared `: Text(Value, MaxLength: 255, Pattern: …)`, and says *This field is required.* for an empty name.
+
 ### Security
 - **BREAKING: a remote publish of an event is held to every handler the event has.** Before: the wire contract kept
   the attributes of ONE handler — whichever the generator found last — so an event with an `[AllowAnonymous]`

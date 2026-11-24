@@ -89,7 +89,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal((10, 5), (loaded!.Km.Start, loaded.Km.End));
         Assert.Equal(" padded ", loaded.Driver.Value);
         Assert.Equal(tooLong, queried.Driver.ToString());
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
     }
 
     [Fact]
@@ -121,14 +121,14 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         await row.Save(cancellationToken: token);
         await WritePastTheRulesAsync(database, typeof(Sealed), "\"Seal_Count\" = {0}", -1);
         var raw = Record.Exception(() => database.Context.Set<Sealed>().AsNoTracking().ToList());
-        var afterTheRawQuery = Loading.IsOn;
+        var afterTheRawQuery = RowLoading.IsOn;
 
         var read = await Record.ExceptionAsync(() => database.Load<Sealed>(row.Id, token));
 
         Assert.IsType<InvalidOperationException>(raw);
         Assert.IsType<InvalidOperationException>(read);
         Assert.False(afterTheRawQuery);
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
         Assert.Throws<RaskValidationException>(() => RigKm.Create(5, 1));
     }
 

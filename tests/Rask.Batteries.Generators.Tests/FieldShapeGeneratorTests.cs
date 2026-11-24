@@ -13,7 +13,8 @@ public class FieldShapeGeneratorTests
         using System;
         using System.ComponentModel.DataAnnotations;
         using Rask.Data;
-        using Range = Rask.Data.Range;
+        using Rask.Values;
+        using Range = Rask.Values.Range;
         namespace Shop;
 
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100, MinLength: 2);

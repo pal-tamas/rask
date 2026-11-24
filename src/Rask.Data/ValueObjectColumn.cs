@@ -144,7 +144,7 @@ public static class ValueObjectColumn
                 v => Copy(read, rebuild, v)));
     }
 
-    // A value object that checks its rules as it is made (Rask.Data.Value) is rebuilt from its column inside a loading
+    // A value object that checks its rules as it is made (Rask.Values.Value) is rebuilt from its column inside a loading
     // scope, so a row stored before a rule was tightened still loads, and a snapshot of it still copies. An expression
     // tree cannot hold a `using`, so the build is a call to a method that does.
     private static Expression<Func<TValue, TValueObject>> Loaded<TValueObject, TValue>(Expression<Func<TValue, TValueObject>> build)
@@ -160,7 +160,7 @@ public static class ValueObjectColumn
 
     private static TValueObject Load<TValueObject, TValue>(Func<TValue, TValueObject> build, TValue value)
     {
-        using (Loading.Begin())
+        using (RowLoading.Begin())
         {
             return build(value);
         }

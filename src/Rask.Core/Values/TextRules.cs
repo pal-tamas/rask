@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>What a <see cref="Text" /> was handed.</summary>
 /// <param name="MaxLength">The most characters; 0 for no limit.</param>

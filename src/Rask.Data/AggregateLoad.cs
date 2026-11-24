@@ -37,7 +37,7 @@ internal static class AggregateLoad
         DbContext context, object?[] keyValues, CancellationToken cancellationToken, bool tracked = false)
         where TEntity : class, IAggregate
     {
-        using var loading = Loading.Read();
+        using var loading = RowLoading.Read();
         var primaryKey = context.Model.FindEntityType(typeof(TEntity))?.FindPrimaryKey()
                          ?? throw new InvalidOperationException(
                              $"'{typeof(TEntity).Name}' is not mapped with a primary key by the configured " +

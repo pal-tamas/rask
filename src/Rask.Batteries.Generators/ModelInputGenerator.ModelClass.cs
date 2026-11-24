@@ -370,7 +370,7 @@ public sealed partial class ModelInputGenerator
             // becomes `Km.End`, the field the form shows it under.
             if (member.ValueObject is { SingleValue: false, Checked: true })
             {
-                value = "global::Rask.Data.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")";
+                value = "global::Rask.Values.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")";
             }
 
             s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)

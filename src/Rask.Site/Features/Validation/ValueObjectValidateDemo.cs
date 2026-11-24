@@ -11,7 +11,7 @@ public sealed partial class ValueObjectValidateDemo : Component
             Ui.Input.Bind(() => _model.Name).Label("Destination")
                 .Id("v-vo-name")
                 .MaxLength(DestinationName.MaxLength)
-                .Validate(DestinationName.Validate),
+                .Validate(name => DestinationName.TryCreate(name, out _, out var problems) ? [] : problems.Select(p => p.Message)),
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Save"]
             ]

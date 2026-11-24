@@ -525,3 +525,26 @@ override Rask.Wire.ActInTenantRequest.GetHashCode() -> int
 override Rask.Wire.ActInTenantRequest.ToString() -> string!
 static Rask.Wire.ActInTenantRequest.operator !=(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool
 static Rask.Wire.ActInTenantRequest.operator ==(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool
+Rask.Cqrs.RaskValidationException
+Rask.Cqrs.RaskValidationException.Errors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>!
+Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>! errors) -> void
+Rask.Cqrs.RequestValidationError
+Rask.Cqrs.RequestValidationError.Deconstruct(out string! Field, out string! Message) -> void
+Rask.Cqrs.RequestValidationError.Equals(Rask.Cqrs.RequestValidationError other) -> bool
+Rask.Cqrs.RequestValidationError.Field.get -> string!
+Rask.Cqrs.RequestValidationError.Field.init -> void
+Rask.Cqrs.RequestValidationError.Message.get -> string!
+Rask.Cqrs.RequestValidationError.Message.init -> void
+Rask.Cqrs.RequestValidationError.RequestValidationError() -> void
+Rask.Cqrs.RequestValidationError.RequestValidationError(string! Field, string! Message) -> void
+override Rask.Cqrs.RequestValidationError.GetHashCode() -> int
+static Rask.Cqrs.RequestValidationError.operator !=(Rask.Cqrs.RequestValidationError left, Rask.Cqrs.RequestValidationError right) -> bool
+static Rask.Cqrs.RequestValidationError.operator ==(Rask.Cqrs.RequestValidationError left, Rask.Cqrs.RequestValidationError right) -> bool
+~override Rask.Cqrs.RequestValidationError.Equals(object obj) -> bool
+~override Rask.Cqrs.RequestValidationError.ToString() -> string
+Rask.Cqrs.RaskValidationException.RaskValidationException() -> void
+Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>! errors, System.Exception! innerException) -> void
+Rask.Cqrs.RaskValidationException.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
+Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures, System.Exception? innerException = null) -> void
+Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
+Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
