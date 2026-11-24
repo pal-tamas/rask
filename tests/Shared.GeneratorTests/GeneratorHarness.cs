@@ -82,7 +82,15 @@ internal static class GeneratorHarness
         IIncrementalGenerator generator,
         string[] excludedAssemblies,
         params string[] extraAssemblies) =>
-        Run(source, [generator], globalOptions: null, excludedAssemblies, extraAssemblies);
+        RunWithout(source, [generator], excludedAssemblies, extraAssemblies);
+
+    /// <summary>Runs SEVERAL generators in one driver with <paramref name="excludedAssemblies"/> left out of the compilation.</summary>
+    public static GeneratorRun RunWithout(
+        string source,
+        IIncrementalGenerator[] generators,
+        string[] excludedAssemblies,
+        params string[] extraAssemblies) =>
+        Run(source, generators, globalOptions: null, excludedAssemblies, extraAssemblies);
 
     private static GeneratorRun Run(
         string source,

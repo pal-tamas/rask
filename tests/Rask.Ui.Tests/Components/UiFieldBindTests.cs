@@ -19,6 +19,7 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
             nameof(Leg.Tank) => new FieldShape(FieldKind.Number, Min: 1, Max: 500, Scale: 2),
             nameof(Leg.Axles) => new FieldShape(FieldKind.Whole, Min: 2, Max: 9),
             nameof(Leg.Day) => new FieldShape(FieldKind.Day, NotAfterToday: true),
+            nameof(Leg.Fueled) => new FieldShape(FieldKind.Moment, NotAfterNow: true),
             nameof(Leg.Level) or nameof(Leg.Fixed) => new FieldShape(FieldKind.Choice, Options: Levels),
             nameof(Leg.Vehicle) => new FieldShape(FieldKind.Id),
             nameof(Leg.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Whole),
@@ -92,6 +93,18 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Ui.Field.Bind(() => leg.Day));
 
+        Assert.Contains("\"max\":\"2025-03-14\"", page.Find("[data-rask-calendar]").Attribute("data-rask-calendar"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_moment_that_may_not_be_after_now_is_a_day_and_time_ending_now()
+    {
+        var leg = new Leg();
+        using var clock = Clock.Fake(at: new DateTimeOffset(2025, 3, 14, 12, 0, 0, TimeSpan.Zero));
+
+        var page = Page.Render(() => Ui.Field.Bind(() => leg.Fueled));
+
+        Assert.True(page.Exists("[data-ui-day-and-time] > [data-ui-time-picker]"));
         Assert.Contains("\"max\":\"2025-03-14\"", page.Find("[data-rask-calendar]").Attribute("data-rask-calendar"), StringComparison.Ordinal);
     }
 
@@ -225,6 +238,8 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
         public int? Axles { get; set; }
 
         public DateOnly? Day { get; set; }
+
+        public DateTime? Fueled { get; set; }
 
         public Level? Level { get; set; }
 

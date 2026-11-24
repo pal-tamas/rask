@@ -21,6 +21,12 @@ internal enum WireKind
     /// <summary>A string-keyed map, encoded as a JSON object.</summary>
     Dictionary,
 
+    /// <summary>
+    ///     A type that holds one value — a one-value value object, a record struct id — encoded as that value:
+    ///     <see cref="WireType.Inner" /> is its shape, the one <see cref="WireType.Members" /> entry the property read.
+    /// </summary>
+    OneValue,
+
     /// <summary>A composite with properties, encoded as a JSON object.</summary>
     Object,
 
