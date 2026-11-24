@@ -1486,6 +1486,7 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
+| `Audited` | an `AuditEntry` written in every save — see [Who changed what](#who-changed-what-audited) |
 
 With neither `Deletable` nor `SoftDelete` there is no `Delete` at all — calling it is a compile error, which is
 what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
@@ -1542,6 +1543,38 @@ the other server catches up on its next refetch.
 **Why a type argument and not an attribute.** The base is part of the type, so the generator reads it at
 compile time and can never quietly miss it, and a trait in the wrong place is a compile error at the
 declaration. Nothing is reflected over at run time, so a trimmed publish has the same shape as a debug build.
+
+### Who changed what: `Audited`
+
+An aggregate that names `Audited` leaves one `AuditEntry` in **every save that writes it — in that same save**, so
+the entry and the change commit or roll back together:
+
+```csharp
+public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, Audited> { … }
+```
+
+| column | holds |
+|---|---|
+| `Aggregate` | the aggregate's type name, `DeliveryNote` |
+| `Action` | `Insert`, `Update` or `Delete` (a soft delete is a `Delete`) |
+| `Key` | `Id=42` — read once the rows went out when the database generates it, before the commit |
+| `Before` / `After` | `Number=W-1 \|\| Km.Start=1200 \|\| Fuellings[0].Litres=12.5`: an insert every value it stores, a delete every value it held, an update the ones that changed — a value that became null among them, left out of the side where it is null |
+| `User` | the signed-in user's id as their claim reads, `system` for a job, a hosted service or startup |
+| `At` | when the save was made, in UTC (Rask's clock, so `Clock.Fake` moves it) |
+
+- **Its children are part of it.** A line added, changed or removed is recorded in its aggregate's entry, under the
+  place its form shows it at (`Fuellings[1].Quantity`), and only the aggregate's key names the entry.
+- **The values are the stored ones**, a one-value value object as its value, written in the **invariant culture** —
+  a decimal without trailing zeros (`1.5`, whatever scale the column keeps), a moment as `2026-11-24T13:05:00.0000000Z` —
+  so the same save writes the same text on SQLite, SQL Server and PostgreSQL.
+- **The table is `Audits`**, mapped in every model with an `Audited` aggregate and nowhere else, and its names stay
+  as they are under the app's `TableNames`/`ColumnNames`. Map it onto a table you already have in your `IRaskModel`
+  (`b.Entity<AuditEntry>().Property(a => a.Aggregate).HasColumnName("TableName")`).
+- **The text is replaceable.** Register an `AuditFormat` of your own — `services.AddSingleton<AuditFormat, LegacyFormat>()`
+  — and override `Values` for the whole text or `Value` for one value's, when the old rows of a table were written
+  another way.
+- A save that fails writes no entry, and its retry writes one. A raw `ExecuteUpdate`/`ExecuteDelete` writes no
+  entry: it never passes through a save.
 
 **The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
@@ -2718,6 +2751,39 @@ All three are read as the model is finalized by every `RaskDbContext` (a plain `
 `ModelRegistry.ApplyConventions`), and the model a migration is made from carries the provider's SQL alone —
 `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` — as if you had written it. A provider other than the
 three refuses the model; say it in that provider's own SQL there.
+
+### A running number: `Numbered`
+
+A number every row has among its group — the fuelings of a pistol, counted by moment — kept by Rask in every save,
+with no SQL in the app (D18):
+
+```csharp
+static void Configure(EntityTypeBuilder<Fueling> b)
+{
+    b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId);
+    b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id },
+            skip: f => f.MergedParentId != null)
+        .Same(f => f.ParentId)                                                      // an IBC part has its fill's number
+        .SkipWhen<Distribution, string>((f, shares) => shares.Any(s => s.FromFuelingId == f.Id), s => s.FromFuelingId);
+}
+```
+
+- **What it keeps.** Each row of a group is numbered 1, 2, 3 … in the order `by` says, the first member first; a row
+  `skip` leaves out has none (null), and the rows after it close up. A row whose group is null has none.
+- **When.** A save that adds, deletes or moves a row — changes its group, a member of `by`, `skip` or `Same` — numbers
+  each group it touched anew from the earliest place it touched, counting on from the last number before it, and
+  writes only the numbers that changed — before the save's transaction commits, so a rollback takes them back too.
+  The rows the context holds are told their new numbers and stay unchanged.
+- **`Same(f => f.ParentId)`**: a row that names another takes that row's number instead of a place of its own, and
+  follows it when it moves.
+- **`SkipWhen<TOther, TRow>(when, row)`**: another table's rows leave a row out — a fueling distributed from is not
+  counted. A save that adds, changes or deletes a `TOther` row numbers anew the group of the row `row` names.
+- **One numbering of a group at a time, on every database.** SQL Server takes `sp_getapplock` owned by the save's
+  transaction and PostgreSQL `pg_advisory_xact_lock`, per group, in a sorted order, before the rows go out; SQLite's
+  one writer already keeps saves apart. Saves racing into one group leave it numbered without a gap or a twin.
+- `by` is a member, or several as an anonymous type (`new { f.Moment, f.Id }`): plain values, or one-value value objects compared by their value. The
+  number is a whole number — nullable when a row can have none — or a one-value value object over one. The entity's
+  key is one column. A raw `ExecuteUpdate` passes no save, so it numbers nothing.
 
 ### What deleting a referenced row says
 

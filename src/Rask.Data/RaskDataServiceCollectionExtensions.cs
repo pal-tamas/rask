@@ -45,6 +45,14 @@ public static partial class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
+            // After the stamps and versions, so an Audited aggregate's entry records the rows as they go out. The format is
+            // Rask's unless the app registered its own, before or after this call.
+            services.TryAddSingleton(AuditFormat.Default);
+            services.AddSingleton<ISaveChangesInterceptor, AuditTrailInterceptor>();
+
+            // After the stamps too: what a save touches of a declared numbering is read as its rows go out.
+            services.AddSingleton<ISaveChangesInterceptor, NumberingInterceptor>();
+
             // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
             // in SavingChanges) sees them whichever interceptor runs first.
             services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();

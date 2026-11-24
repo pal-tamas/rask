@@ -39,4 +39,7 @@ public enum TraitSet
 
     /// <summary><see cref="Rask.Data.Broadcast" />.</summary>
     Broadcast = 256,
+
+    /// <summary><see cref="Rask.Data.Audited" />.</summary>
+    Audited = 512,
 }

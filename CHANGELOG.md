@@ -28,6 +28,21 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Audited`: an aggregate's every save leaves its audit entry in that same save.** Before: an app wrote its audit
+  rows in a `SaveChanges` override or an interceptor, after the commit with raw SQL (Eszaf's `DeliveryNoteAudit`) — not
+  atomic, blind to the children, skipping a value that became null, in the current culture. After:
+  `Aggregate<int, Versioned, Audited>` adds an `AuditEntry` (table `Audits`: aggregate, `Insert`/`Update`/`Delete`, key,
+  before and after, user or `system`, UTC moment) to the save itself; a store-generated key is read into it before the
+  commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
+  values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
+  SQL Server and PostgreSQL, proven by the providers suite.
+- **`b.Numbered(…)`: a running number per group, kept by Rask in every save with no SQL in the app.** Before: TA's
+  `FuelingSequence` interceptor renumbered fuelings with a window-function `UPDATE` under one global `sp_getapplock`.
+  After: `b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id }, skip: f => …)`
+  numbers every group a save touches anew from the earliest place it touched, before the commit, under a
+  transaction-scoped lock per group (SQL Server, PostgreSQL); `.Same(f => f.ParentId)` gives a row another's number,
+  and `.SkipWhen<TOther, TRow>(…)` leaves a row out by another table's rows. Pairs with `b.Computed(…)`. On SQLite,
+  SQL Server and PostgreSQL, proven by the providers suite, saves racing into one group included.
 - **`Db.Lock(names)` takes several named locks at once, in an order no two callers can deadlock on.** Before: a save
   that touched three chip codes locked them one by one in the order it met them, and two saves sharing codes in
   opposite orders could each hold one the other waited for. After: `await Db.Lock(codes.Select(c => "chip:" + c)).For(30.Seconds)`
