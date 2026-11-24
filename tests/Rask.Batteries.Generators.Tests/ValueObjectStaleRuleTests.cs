@@ -39,6 +39,7 @@ public class ValueObjectStaleRuleTests
     [InlineData("string", "Text")]
     [InlineData("decimal", "Number")]
     [InlineData("long", "Whole")]
+    [InlineData("int", "Whole")]
     [InlineData("DateOnly", "Day")]
     public void A_Validate_beside_the_value_names_the_base_record_that_takes_the_value(string held, string declaredFrom)
     {
@@ -61,7 +62,7 @@ public class ValueObjectStaleRuleTests
     }
 
     [Theory]
-    [InlineData("int")]
+    [InlineData("short")]
     [InlineData("Guid")]
     public void A_value_no_base_record_takes_is_told_to_derive_from_Value_with_its_own_rules(string held)
     {

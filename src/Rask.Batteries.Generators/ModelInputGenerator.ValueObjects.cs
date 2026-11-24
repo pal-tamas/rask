@@ -341,7 +341,7 @@ public sealed partial class ModelInputGenerator
     // The value object built from one value per member, in whichever way this value object is built.
     // `optional`: the value object may be absent, so one declared from a base record is built by CreateOptional,
     // which keeps blank text as nothing rather than refusing it.
-    private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value, bool optional = false)
+    private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value, bool optional = false, string? field = null)
     {
         string InConstructorOrder() =>
             string.Join(", ", shape.ConstructorOrder.Select(name => value(shape.Members.First(m => string.Equals(m.Name, name, StringComparison.Ordinal)))));
@@ -352,7 +352,8 @@ public sealed partial class ModelInputGenerator
             ModelValueObjectBuild.Initializer => "new " + shape.TypeName + " { " + string.Join(", ",
                 shape.Members.Select(m => m.Name + " = " + value(m))) + " }",
             ModelValueObjectBuild.AccessorConstructor => "__New" + shape.ModelName + "(" + InConstructorOrder() + ")",
-            ModelValueObjectBuild.Factory => shape.TypeName + (optional ? ".CreateOptional(" : ".Create(") + value(shape.Members[0]) + ")",
+            ModelValueObjectBuild.Factory => shape.TypeName + (optional ? ".CreateOptional(" : ".Create(") + value(shape.Members[0]) +
+                                             (field is null ? "" : ", \"" + field + "\"") + ")",
             _ => "__Build" + shape.ModelName + "(" + string.Join(", ", shape.Members.Select(value)) + ")",
         };
     }

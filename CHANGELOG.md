@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A `: Value` record of one member is a one-value value object, and `Whole` holds an `int` too.** Before:
+  `record Rank(int Value) : Value { … Rules() … }` was built with `new` by the generated model, its rules ran only
+  on save and a refusal named no field; `Whole` took only a `long Value`. After: it gets `__Problems`, the form asks it
+  under its field as it does a `Text`, and a refusal on save carries the field (`Rank`); `record Seats(int Value) :
+  Whole(Value, Min: 1)` keeps its own `int`. BREAKING: `Whole` no longer declares `Value` — the derived record does.
 - **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
   `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
   runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value
@@ -64,6 +69,16 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`b.LockedBy(n => n.Period, (Period p) => p.Closed, message)`: a row closed by its parent, held by every save.**
+  Before: "a closed period's notes stay as they were" was a hand-written save hook per app, reading tables by name
+  with provider SQL, blind to a child-only change or a move between parents, and checked outside the save's
+  transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
+  changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
+  holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`).
+  `forUpdate: true` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL Server,
+  `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none. See
+  [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
   hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods
