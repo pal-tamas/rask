@@ -117,7 +117,8 @@ public sealed partial class ModelInputGenerator
             location,
             Refusal.None,
             null,
-            new EquatableArray<Member>(shape.Members.Select((m, index) => ToMember(m, index, converted))),
+            new EquatableArray<Member>(KeepingEmpty(
+                shape.Members.Select((m, index) => ToMember(m, index, converted)), KeptEmpty(symbol, cancellationToken))),
             new EquatableArray<ValueObjectShape>(shape.ValueObjects.Select(v => ToShape(v, converted))),
             GeneratedModelShape.IsChildEntity(symbol),
             new EquatableArray<ChildShape>(shape.Children

@@ -323,7 +323,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool KeyPart = false,
         string? DeclaredOn = null,
         string? Named = null,
-        string? Shape = null);
+        string? Shape = null,
+        bool KeepsEmpty = false);
 
     private sealed record Write(
         ModelWriteKind Kind,

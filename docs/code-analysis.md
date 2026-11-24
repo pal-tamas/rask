@@ -45,6 +45,7 @@ clean under it. An app made before that writes it in its own `Directory.Build.pr
 | `EnforceCodeStyleInBuild`: the `.editorconfig`'s IDE rules report in `dotnet build` | ✓ | ✓ |
 | A documentation file, so IDE0005 (an unused `using`) runs in the build; CS1591 (no XML comment) stays off | ✓ | ✓ |
 | [RASK116](diagnostics.md#rask116), a test named as a sentence, in every `*.Tests` / `IsTestProject` project | ✓ | ✓ |
+| The domain rules, suggestions until strict: [RASK140](diagnostics.md#rask140) (the machine's clock in an aggregate, entity or value object — quick-fix to `Clock`), [RASK141](diagnostics.md#rask141) (`Current.Service<T>()` there), [RASK142](diagnostics.md#rask142) (`Task.WhenAll` over database work in `Db.Transaction`), [RASK143](diagnostics.md#rask143) (`[Key]` on an entity), [RASK144](diagnostics.md#rask144) (`[Compare]` naming no property) | ✓ | ✓ |
 | Off: CA1716 (a Visual Basic keyword such as `Shared` in a name), and CA1707 (underscores) in a test project | ✓ | ✓ |
 | `TreatWarningsAsErrors`: every warning above, and Rask's own RASK warnings, fail the build | | ✓ |
 | …except a NuGet audit finding (NU1901–NU1904, a dependency with a known vulnerability), which stays a warning — appended to the app's own `WarningsNotAsErrors` | | ✓ |
