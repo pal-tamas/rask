@@ -21,6 +21,7 @@ dotnet_diagnostic.RASK130.severity = warning
 #   RASK184  throw new InvalidOperationException / ArgumentException inside an aggregate — Refuse.When / Unless
 #   RASK185  an aggregate loaded before Db.Transaction and changed inside it — load it inside the block
 #   RASK186  X.Update(id, x => x.M(…)) where M has a generated entry — X.M(id, …), which asks its roles
+#   RASK187  ExecuteUpdate / ExecuteDelete over an aggregate's rows — X.UpdateWhere / X.DeleteWhere
 dotnet_diagnostic.RASK140.severity = warning
 dotnet_diagnostic.RASK141.severity = warning
 dotnet_diagnostic.RASK142.severity = warning
@@ -30,6 +31,7 @@ dotnet_diagnostic.RASK178.severity = warning
 dotnet_diagnostic.RASK184.severity = warning
 dotnet_diagnostic.RASK185.severity = warning
 dotnet_diagnostic.RASK186.severity = warning
+dotnet_diagnostic.RASK187.severity = warning
 
 # Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,
 # ExecuteSql*, SqlQuery*), SQL in the model (HasColumnType, UseCollation, HasDefaultValueSql, HasComputedColumnSql,

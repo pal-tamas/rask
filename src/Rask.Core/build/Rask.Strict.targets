@@ -17,9 +17,9 @@
       - RASK130 a warning (rask-strict.globalconfig): an aggregate storing a bare string, number, moment or Guid
       - RASK140-RASK144 warnings (rask-strict.globalconfig): the machine's clock, Current.Service or [Key] in domain
         code, Task.WhenAll over database work in Db.Transaction, a [Compare] naming no property
-      - RASK184-RASK186 warnings (rask-strict.globalconfig): an aggregate throwing InvalidOperationException or
+      - RASK184-RASK187 warnings (rask-strict.globalconfig): an aggregate throwing InvalidOperationException or
         ArgumentException, an aggregate loaded before the Db.Transaction that changes it, an Update that only runs an
-        operation with a generated entry
+        operation with a generated entry, a raw ExecuteUpdate/ExecuteDelete over an aggregate's rows
       - RASK177 a warning (rask-strict.globalconfig): code written for one database — a provider's API, EF.Functions,
         raw SQL, SQL in the model — outside migrations and the call that selects the provider
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a

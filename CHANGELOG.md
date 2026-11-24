@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` over an operation that takes a one-value `: Value` record is generated, and an operation that gets no
+  form says why.** Before: a parameter like `TankSize(int Value) : Value` made the generator skip the operation's form
+  silently — no `VehicleProbeAInput`, no `Form.For`, no diagnostic. After: it is a field held as its value and made
+  through `TankSize.Create`, like any one-value value object — over an `int`, `decimal`, `DateTime` (a `WallMoment`),
+  `DateOnly`, `Guid` or `string` alike. A row spec holding a value object of several values
+  (`record ProbeRow(string? Id, Opening Start)`) is a group of its own on each row (`f.Rows[i].Start.Date`), filled from
+  the child's member of that name and refused under `Rows[i].Start.Quantity`. An operation whose parameter no field can
+  hold (or that takes more than 13) is reported as RASK188 (Info), naming the parameter.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and
@@ -28,6 +36,24 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Writes over many rows of one aggregate, on the type: `X.DeleteWhere`, `X.UpdateWhere`, `X.UpdateEach`,
+  `X.Upsert`, `X.Import`** (F-25, F-24, F-69). `UpdateWhere`/`DeleteWhere` are one statement that still keeps what a
+  save keeps — the tenant and soft-delete filters (a soft delete is stamped), `UpdatedAt` and `Version`, the declared
+  `LockedBy` (the old parent and the one moved to), the unique/referenced messages, the live notices — and counts once
+  (`Pairing (set)`) toward `OneAggregatePerTransaction`; a `DeleteWhere` whose aggregate or child declares a rule only a
+  row can answer (`ValidateDelete()`, a child's `LockedBy`) is refused, naming `X.Delete(id)`. `UpdateEach` loads each
+  matching aggregate, runs its method and saves it with its rules and events, a batch (500) to a transaction that
+  states why it holds many. `Upsert` changes the one aggregate a predicate matches or saves a new one from the
+  factory (`Upserted<T>.Created`). `Import(rows, factory, o => …)` saves rows through the factory a batch at a time
+  from an empty tracker: `ImportFailure.Collect` sets refused rows aside with their position (`result.Failures`),
+  `o.Upsert(key, update)` changes what an earlier import stored. See `docs/data.md#writes-over-many-rows`.
+- **An operation of a `Versioned` aggregate also gets an entry without a version, for a job or an event handler**
+  (F-72): `await Supply.Change(id, details, parts)` runs the operation on the aggregate as it now stands, its roles and
+  rules asked. Not generated for an operation whose first parameter takes a number (`Book(int seats)`), where
+  `Supply.Book(id, 3)` would read both ways.
+- **RASK187: a raw `ExecuteUpdate`/`ExecuteDelete` over an aggregate's rows** points at `X.UpdateWhere`/`X.DeleteWhere`,
+  with a quick-fix for the awaitable form on a set (straight or behind one `Where`). Info by default, a warning under
+  `<RaskStrict>`.
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection

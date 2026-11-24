@@ -1214,6 +1214,11 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   one aggregate alone is keyed by, it loads the aggregate whole (`KeyNotFoundException` when there is none, the
   stale-version refusal as `Find(id, version)`), and refuses a lock outside a `Db.Transaction`, which would hold
   nothing.
+- **A job or an event handler, which read no version:** `await Supply.Change(id, details, parts)` — the same entry
+  without the `version`, generated beside it for a `Versioned` aggregate — loads the aggregate as it now stands and
+  runs the operation on that, its roles and rules asked as ever. It is the system actor's call (a rematch, an
+  ingest), never a form's: a person changes what they read. An operation whose first parameter takes a number
+  (`Book(int seats)`) gets none, since `Supply.Book(id, 3)` would read both ways — pass the version it loaded.
 - **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
   to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
   whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
@@ -1366,9 +1371,11 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
 - **What counts** is what the transaction's saves wrote, each aggregate once: a child counts as its aggregate (a
   changed `SupplyPart` is its `Supply`), the same aggregate saved twice is one, and two rows of one type are two.
   Rask's own tables — outbox, jobs, mail, sessions, passkeys, stored files, cache, push subscribers — are no aggregate
-  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A bulk
-  write (`ExecuteUpdate`, `BulkInsert`) is not a save and is not counted. A save refused for another reason counts
-  nothing.
+  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A
+  [set write](#writes-over-many-rows) (`X.UpdateWhere`, `X.DeleteWhere`) counts once, as `Pairing (set)`, whatever
+  rows it touched; a batch of `X.UpdateEach` or `X.Import` states its own reason — each row is an aggregate of its
+  own — and is let through. A raw `ExecuteUpdate` and a `BulkInsert` are not saves and are not counted
+  ([RASK187](diagnostics.md#rask187) points at the first). A save refused for another reason counts nothing.
 - **Nested blocks are one transaction.** The outermost counts, and a nested `Db.Transaction(…, manyAggregates: …)`
   states the reason for all of it.
 - **The build says it first.** [RASK178](diagnostics.md#rask178) points at a `Db.Transaction` whose work writes two
@@ -3659,6 +3666,62 @@ await db.SaveChangesAsync(ct); // throws DbUpdateConcurrencyException if someone
 When two edits race, the second throws and writes nothing — [the edit form above](#a-create-and-an-edit-form)
 catches it with the reader's changes still on screen. A delete pins the version the same way before
 `db.Remove(product)`, so it loses to an edit it has not seen.
+
+## Writes over many rows
+
+Five writes on every aggregate type, for when one row at a time is the wrong shape:
+
+```csharp
+await Pairing.DeleteWhere(p => p.Pump == pumpId);                                        // one DELETE
+await Period.UpdateWhere(p => p.Id == id, s => s.SetProperty(p => p.Closed, true));      // one UPDATE
+await Fueling.UpdateEach(f => codes.Contains(f.DriverChip), f => f.Match(plan));         // each loaded, changed, saved
+var kept = await Fueling.Upsert(f => f.Pump == r.Pump && f.Number == r.Number,
+    () => Taken(r), f => f.AsThePumpHoldsIt(r.Moment));                                  // the one, or a new one
+var loaded = await Transaction.Import(lines, line => Loaded(file, line), o =>
+{
+    o.OnInvalid = ImportFailure.Collect;                                                 // set aside, not stopped
+    o.Upsert(t => t.SourceId, (t, line) => t.Follow(line));                              // met again: changed
+});
+```
+
+**A set write — `UpdateWhere`, `DeleteWhere` — is one statement**, so no row is loaded and the aggregate's methods
+and `Validate()` do not run: it is for what no rule is about — a flag, a stamp, an infrastructure row (a login
+session, a pairing a pump re-sends). What a save keeps it still keeps:
+
+- the tenant and soft-delete filters (a `SoftDelete` aggregate's `DeleteWhere` stamps `DeletedAt` instead);
+- `UpdatedAt` stamped and `Version` bumped by `UpdateWhere`, so a form read before it is refused as stale;
+- the declared locks ([`LockedBy`](#a-row-closed-by-its-parent-lockedby)): a row whose parent is locked is refused — the old parent
+  before the statement, the one `UpdateWhere` moved it to after it, still inside the transaction it rolls back;
+- the unique and still-referenced messages, under the field a form shows;
+- the data-changed notices a live page repaints on, after the commit;
+- the [one-aggregate rule](#one-aggregate-per-transaction-manyaggregates), counted as one write of the type.
+
+What it cannot keep it refuses: a `ValidateDelete()` asks each row in C#, as does a lock declared on a child the
+delete would cascade to, so `DeleteWhere` on such an aggregate throws and names `X.Delete(id)`, which asks them.
+Both run in a `Db.Transaction` of their own, or join the one in progress, and hand back how many rows they wrote.
+
+**`UpdateEach` goes through the aggregate**: the keys the predicate matches are read first, then each aggregate is
+loaded whole, changed by its own method and saved — its rules, events and notices as for one — `batchSize` (500) to a
+transaction, each batch saved in one go. A batch says why it writes many aggregates (each is valid on its own), so
+`OneAggregatePerTransaction` lets it through. A refused batch rolls back alone and the refusal is thrown; the batches
+before it stay committed, so the change should be one that can run twice — which an event handler's is anyway.
+
+**`Upsert` is the static, one-root "make it or change it"**: the one aggregate the predicate matches is changed
+through its method, or the factory makes a new one, in one transaction; `Upserted<T>` says which. A predicate that
+matches two is refused. Back the predicate with a unique index — two upserts at once would otherwise both make one;
+with it, the second is refused under its field.
+
+**`Import` is the large load through the factory** ([`BulkInsert`](#bulk-insert) is the one past it): each row is made
+by the aggregate's factory and saved through its rules — `Validate()`, the unique checks, `LockedBy`, events —
+`BatchSize` (500) to a transaction, each batch from an empty change tracker, so memory stays flat. A row refused by
+its factory or its rules stops the import by default (the batches before stay committed); `ImportFailure.Collect`
+sets it aside in `result.Failures` — its `Index` among the rows, the row, the `RaskValidationException` — and saves
+the rest: the refused batch is run again a row at a time, each in a transaction of its own, which holds on every
+database alike (a unique violation ends PostgreSQL's transaction). `o.Upsert(key, update)` matches each row to the
+stored aggregate with the same natural key, and to an earlier row of the same import, and changes that one;
+`result.Inserted` and `result.Updated` count them. A factory may be called again for a retried batch: it builds, it
+does not write. `Collect` commits a batch at a time, so inside a `Db.Transaction` it is refused; `Stop` there makes
+the import part of that transaction.
 
 ## Bulk insert
 

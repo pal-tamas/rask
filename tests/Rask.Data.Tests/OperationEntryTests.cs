@@ -48,6 +48,19 @@ public sealed class OperationEntryTests : IDisposable
     }
 
     [Fact]
+    public async Task An_entry_without_a_version_changes_the_aggregate_as_it_now_stands()
+    {
+        await using var database = await StartDatabaseAsync();
+        var expedition = await PlannedAsync();
+        await Expedition.Book(expedition.Id, 0, 7, Token);
+
+        await Expedition.Rename(expedition.Id, "North", Token);
+
+        var stored = await database.Load<Expedition>(expedition.Id, Token);
+        Assert.Equal(("North", 7), (stored!.Title, stored.Seats));
+    }
+
+    [Fact]
     public async Task An_entry_at_a_stale_version_is_refused_before_the_method_runs()
     {
         await using var database = await StartDatabaseAsync();

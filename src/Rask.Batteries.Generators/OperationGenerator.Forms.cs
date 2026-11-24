@@ -39,6 +39,19 @@ public sealed partial class OperationGenerator
                      + "neither gets a form; a value object per meaning (FullName) tells them apart.",
         helpLinkUri: DiagnosticHelp.Link("RASK174"));
 
+    internal static readonly DiagnosticDescriptor Rask188 = new(
+        "RASK188",
+        "An operation gets no Form.For, as one of its parameters is no field a form holds",
+        "'{0}.{1}' gets no 'Form.For({0}.{1}, …)': {2}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Info,
+        true,
+        description: "Form.For(Supply.Change, id) is a form whose fields are the operation's parameters: a value (text, "
+                     + "number, day, bool, enum, id), a value object of one value, a value object of several values, a list "
+                     + "of rows. An operation that takes anything else — or more than 13 parameters, which no entry delegate "
+                     + "holds — gets no form, and this says which parameter keeps it from one.",
+        helpLinkUri: DiagnosticHelp.Link("RASK188"));
+
     /// <summary>One parameter as a field of the operation's form, or null for a type no form field holds.</summary>
     /// <param name="Property">The field's name: the parameter's, capitalised, as the aggregate names what it sets.</param>
     /// <param name="PropertyType">What the field holds: the parameter's own type, or a value object's one value.</param>
@@ -121,14 +134,25 @@ public sealed partial class OperationGenerator
             : field;
     }
 
-    // The one value a value object declared from Text, Number, Whole, Day or Moment holds: its positional parameter.
+    // The one value a value object holds: the positional parameter of one declared from Text, Number, Whole, Day or
+    // Moment, or of a one-member `record TankSize(int Value) : Value` — whose value is one a field holds as it is.
     private static ITypeSymbol? OneValueOf(INamedTypeSymbol type) =>
-        AggregateShape.DeclaredValueBaseOf(type) is "Text" or "Number" or "Whole" or "Day" or "Moment"
-            ? type.InstanceConstructors
-                .Where(c => c.Parameters.Length == 1 && !SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, type))
-                .Select(static c => c.Parameters[0].Type)
-                .FirstOrDefault()
-            : null;
+        AggregateShape.DeclaredValueBaseOf(type) switch
+        {
+            "Text" or "Number" or "Whole" or "Day" or "Moment" => PositionalValueOf(type),
+            "Value" when AggregateShape.HoldsOneValue(type) && PositionalValueOf(type) is { } held && IsFormValue(held) => held,
+            _ => null,
+        };
+
+    private static ITypeSymbol? PositionalValueOf(INamedTypeSymbol type) =>
+        type.InstanceConstructors
+            .Where(c => c.Parameters.Length == 1 && !SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, type))
+            .Select(static c => c.Parameters[0].Type)
+            .FirstOrDefault();
+
+    // Only the bases a control is drawn for declare what it is told (`__Field`); a `: Value` one declares nothing.
+    private static bool DeclaresShape(INamedTypeSymbol type) =>
+        AggregateShape.DeclaredValueBaseOf(type) is "Text" or "Number" or "Whole" or "Day" or "Moment";
 
     // A value a field holds as it is: text, a number, a day, a bool, an enum, an id — any value type, and a string.
     private static bool IsFormValue(ITypeSymbol type) =>
@@ -178,9 +202,10 @@ public sealed partial class OperationGenerator
         return counts;
     }
 
-    private static string? RenderForms(OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous)
+    private static string? RenderForms(
+        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous, List<Unformed> unformed)
     {
-        var formed = Formed(aggregate, signatures, ambiguous);
+        var formed = Formed(aggregate, signatures, ambiguous, unformed);
         var deleting = aggregate.Dialog && aggregate.Delete is not null;
         if (formed.Count == 0 && !deleting)
         {
@@ -236,13 +261,14 @@ public sealed partial class OperationGenerator
 
     // The operations a form can be told apart for: every parameter one a field holds, and no other entry alike.
     private static List<(Operation Operation, string Entry)> Formed(
-        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous)
+        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous, List<Unformed> unformed)
     {
         var formed = new List<(Operation Operation, string Entry)>();
         foreach (var operation in aggregate.Operations)
         {
             if (EntryDelegate(aggregate, operation) is not { } entry)
             {
+                unformed.Add(new Unformed(aggregate.Name, operation.Name, WhyUnformed(operation), operation.Location));
                 continue;
             }
 
@@ -258,12 +284,24 @@ public sealed partial class OperationGenerator
         return formed;
     }
 
+    // What keeps an operation from a form, for RASK188: the first parameter no field holds, or too many of them.
+    private static string WhyUnformed(Operation operation) =>
+        operation.Parameters.FirstOrDefault(static p => p.Field is null) is { } parameter
+            ? "its parameter '" + parameter.Name.TrimStart('@') + "' (" + parameter.Type.Replace("global::", "") +
+              ") is no value, value object or list of rows a field holds — take a value object of it, or a value"
+            : "it takes " + operation.Parameters.Count + " parameters, and a form's entry holds at most " + MostFormParameters +
+              " — gather some into a value object of several values";
+
+    /// <summary>An operation no <c>Form.For</c> is generated for, and why (RASK188).</summary>
+    private sealed record Unformed(string Aggregate, string Operation, string Why, SymbolLocation? Location);
+
     // The helpers a shape above is written with, once each: a range's end, a value object's lengths its attributes tighten.
     private static void AppendShapeHelpers(StringBuilder s, List<(Operation Operation, string Entry)> formed)
     {
         var shapes = formed
             .SelectMany(static f => f.Operation.Parameters.Select(static p => p.Field!))
             .SelectMany(static f => (f.Group?.Members ?? f.Rows?.Members ?? new EquatableArray<FormField>([])).Append(f))
+            .SelectMany(static f => (f.Group?.Members ?? new EquatableArray<FormField>([])).Append(f))
             .Select(static f => f.Shape)
             .OfType<string>()
             .ToList();
@@ -306,6 +344,17 @@ public sealed partial class OperationGenerator
             {
                 s.Append("        ").Append(ValidationFqn).Append(".RegisterOptionalFields(typeof(").Append(input).Append("), static property => property is ")
                     .Append(string.Join(" or ", optional.Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)))).AppendLine(");");
+            }
+
+            foreach (var rows in operation.Parameters.Select(static p => p.Field!.Rows).OfType<FormRows>())
+            {
+                var optionalGroups = rows.Members.Where(static m => m is { Group: not null, Optional: true }).ToList();
+                if (optionalGroups.Count > 0)
+                {
+                    s.Append("        ").Append(ValidationFqn).Append(".RegisterOptionalFields(typeof(").Append(input).Append('.').Append(rows.Model)
+                        .Append("), static property => property is ")
+                        .Append(string.Join(" or ", optionalGroups.Select(static f => SymbolDisplay.FormatLiteral(f.Property, quote: true)))).AppendLine(");");
+                }
             }
 
             s.Append("        ").Append(ValidationFqn).Append(".RegisterStoreRules(typeof(").Append(input).Append("), static _ => new ").Append(operation.Name).AppendLine("Rules());");
@@ -405,6 +454,10 @@ public sealed partial class OperationGenerator
             else if (field.Rows is { } rows)
             {
                 AppendNested(s, rows.Model, "One row of <c>" + field.Property + "</c>: add one with <c>" + field.Property + ".Add(new())</c>.", rows.Members);
+                foreach (var (_, member) in RowGroups(operation.Name, field))
+                {
+                    AppendNested(s, member.Group!.Model, "The fields of a row's <c>" + member.Property + "</c>: one per member of the value object.", member.Group.Members);
+                }
             }
         }
 
@@ -610,6 +663,11 @@ public sealed partial class OperationGenerator
             {
                 AppendShapesAndRequired(s, operation.Name + field.Property, [.. members]);
             }
+
+            foreach (var (key, member) in RowGroups(operation.Name, field))
+            {
+                AppendShapesAndRequired(s, key, [.. member.Group!.Members]);
+            }
         }
     }
 
@@ -641,6 +699,11 @@ public sealed partial class OperationGenerator
             if ((field.Group?.Model ?? field.Rows?.Model) is { } model)
             {
                 yield return (operation.Name + field.Property, input + "." + model);
+            }
+
+            foreach (var (key, member) in RowGroups(operation.Name, field))
+            {
+                yield return (key, input + "." + member.Group!.Model);
             }
         }
     }

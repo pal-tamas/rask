@@ -562,3 +562,62 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+~Rask.Data.Upserted<T>.<Clone>$() -> Rask.Data.Upserted<T>!
+~Rask.Data.Upserted<T>.Equals(Rask.Data.Upserted<T>? other) -> bool
+~static Rask.Data.Upserted<T>.operator !=(Rask.Data.Upserted<T>? left, Rask.Data.Upserted<T>? right) -> bool
+~static Rask.Data.Upserted<T>.operator ==(Rask.Data.Upserted<T>? left, Rask.Data.Upserted<T>? right) -> bool
+override Rask.Data.RefusedRow<TRow>.Equals(object? obj) -> bool
+override Rask.Data.RefusedRow<TRow>.GetHashCode() -> int
+override Rask.Data.RefusedRow<TRow>.ToString() -> string!
+override Rask.Data.Upserted<T>.Equals(object? obj) -> bool
+override Rask.Data.Upserted<T>.GetHashCode() -> int
+override Rask.Data.Upserted<T>.ToString() -> string!
+Rask.Data.BulkWrites
+Rask.Data.BulkWrites.extension<T>(T!)
+Rask.Data.ImportFailure
+Rask.Data.ImportFailure.Collect = 1 -> Rask.Data.ImportFailure
+Rask.Data.ImportFailure.Stop = 0 -> Rask.Data.ImportFailure
+Rask.Data.ImportOptions<T, TRow>
+Rask.Data.ImportOptions<T, TRow>.BatchSize.get -> int
+Rask.Data.ImportOptions<T, TRow>.BatchSize.set -> void
+Rask.Data.ImportOptions<T, TRow>.OnInvalid.get -> Rask.Data.ImportFailure
+Rask.Data.ImportOptions<T, TRow>.OnInvalid.set -> void
+Rask.Data.ImportOptions<T, TRow>.Upsert<TKey>(System.Linq.Expressions.Expression<System.Func<T!, TKey>!>! key, System.Action<T!, TRow>! update) -> void
+Rask.Data.ImportResult<TRow>
+Rask.Data.ImportResult<TRow>.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.RefusedRow<TRow>!>!
+Rask.Data.ImportResult<TRow>.Inserted.get -> int
+Rask.Data.ImportResult<TRow>.Updated.get -> int
+Rask.Data.RefusedRow<TRow>
+Rask.Data.RefusedRow<TRow>.<Clone>$() -> Rask.Data.RefusedRow<TRow>!
+Rask.Data.RefusedRow<TRow>.Deconstruct(out int Index, out TRow Row, out Rask.Cqrs.RaskValidationException! Refusal) -> void
+Rask.Data.RefusedRow<TRow>.Equals(Rask.Data.RefusedRow<TRow>? other) -> bool
+Rask.Data.RefusedRow<TRow>.Index.get -> int
+Rask.Data.RefusedRow<TRow>.Index.init -> void
+Rask.Data.RefusedRow<TRow>.Refusal.get -> Rask.Cqrs.RaskValidationException!
+Rask.Data.RefusedRow<TRow>.Refusal.init -> void
+Rask.Data.RefusedRow<TRow>.RefusedRow(int Index, TRow Row, Rask.Cqrs.RaskValidationException! Refusal) -> void
+Rask.Data.RefusedRow<TRow>.Row.get -> TRow
+Rask.Data.RefusedRow<TRow>.Row.init -> void
+Rask.Data.Upserted<T>
+Rask.Data.Upserted<T>.Aggregate.get -> T!
+Rask.Data.Upserted<T>.Aggregate.init -> void
+Rask.Data.Upserted<T>.Created.get -> bool
+Rask.Data.Upserted<T>.Created.init -> void
+Rask.Data.Upserted<T>.Deconstruct(out T! Aggregate, out bool Created) -> void
+Rask.Data.Upserted<T>.Upserted(T! Aggregate, bool Created) -> void
+static Rask.Data.BulkWrites.DeleteWhere<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).DeleteWhere(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).Import<TRow>(System.Collections.Generic.IEnumerable<TRow>! rows, System.Func<TRow, T!>! make, System.Action<Rask.Data.ImportOptions<T!, TRow>!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.ImportResult<TRow>!>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateEach(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<T!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateEach(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Func<T!, System.Threading.Tasks.Task!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).UpdateWhere(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<T!>!>! set, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.extension<T>(T!).Upsert(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<System.Threading.Tasks.Task<T!>!>! create, System.Func<T!, System.Threading.Tasks.Task!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.extension<T>(T!).Upsert(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<T!>! create, System.Action<T!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.Import<T, TRow>(System.Collections.Generic.IEnumerable<TRow>! rows, System.Func<TRow, T!>! make, System.Action<Rask.Data.ImportOptions<T!, TRow>!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.ImportResult<TRow>!>!
+static Rask.Data.BulkWrites.UpdateEach<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<T!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.UpdateEach<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Func<T!, System.Threading.Tasks.Task!>! apply, int batchSize = 500, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.UpdateWhere<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! where, System.Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<T!>!>! set, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkWrites.Upsert<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<System.Threading.Tasks.Task<T!>!>! create, System.Func<T!, System.Threading.Tasks.Task!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.BulkWrites.Upsert<T>(System.Linq.Expressions.Expression<System.Func<T!, bool>!>! match, System.Func<T!>! create, System.Action<T!>! change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.Upserted<T!>!>!
+static Rask.Data.RefusedRow<TRow>.operator !=(Rask.Data.RefusedRow<TRow>? left, Rask.Data.RefusedRow<TRow>? right) -> bool
+static Rask.Data.RefusedRow<TRow>.operator ==(Rask.Data.RefusedRow<TRow>? left, Rask.Data.RefusedRow<TRow>? right) -> bool

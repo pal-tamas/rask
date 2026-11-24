@@ -39,7 +39,7 @@ public sealed partial class OperationGenerator
                 text,
                 AggregateShape.IsPassword(named) ? null : FillOf(held, owner, named, inner))
             {
-                Shape = valueObject + ".__Field",
+                Shape = DeclaresShape(named) ? valueObject + ".__Field" : null,
             };
         }
 

@@ -68,6 +68,28 @@ internal sealed class WrittenAggregates
         return added;
     }
 
+    /// <summary>
+    ///     Counts a set write (<c>UpdateWhere</c>, <c>DeleteWhere</c>) of <paramref name="type" />'s rows: one write of the
+    ///     set, named <c>Pairing (set)</c>, whatever rows it touched; a table of infrastructure not at all.
+    /// </summary>
+    /// <returns>True when it is a write not counted before.</returns>
+    internal bool NoteSet(IEntityType type)
+    {
+        if (IsInfrastructure(type))
+        {
+            return false;
+        }
+
+        var named = type.ClrType.Name + " (set)";
+        if (!_seen.Add(named))
+        {
+            return false;
+        }
+
+        _written.Add(named);
+        return true;
+    }
+
     /// <summary>Forgets what <see cref="Stage" /> noted for a save that failed.</summary>
     internal void Abandon(DbContext context) => _pending.Remove(context);
 

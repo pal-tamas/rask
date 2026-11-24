@@ -164,6 +164,22 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         _deferred.GetValue(context, static _ => []).UnionWith(types);
     }
 
+    /// <summary>
+    ///     Tells what a set write (<c>UpdateWhere</c>, <c>DeleteWhere</c>) of <paramref name="type" /> wrote on
+    ///     <paramref name="context" />, as a save's are told: once its <c>Db.Transaction</c> commits.
+    /// </summary>
+    internal void SetWritten(DbContext context, IEntityType type)
+    {
+        HashSet<Type> types = [RootOf(type)];
+        if (AmbientTransaction.Of(context) is { } ambient)
+        {
+            ambient.AfterCommit(() => Notify(types));
+            return;
+        }
+
+        Notify(types);
+    }
+
     private void Flush(DbContext? context)
     {
         if (context is null || !_deferred.TryGetValue(context, out var types))
