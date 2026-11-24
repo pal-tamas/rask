@@ -7,7 +7,9 @@ namespace Rask.Data;
 /// <summary>
 ///     Hands every entity a query materializes, and every entity a save is about to write, collections of children
 ///     EF Core can fill — see <see cref="WritableChildren" /> — and marks each aggregate among them as having a row
-///     (<see cref="StoredAggregates" />), then asks the domain's rules of the save (<see cref="DomainValidation" />). While one is materialized, the value objects built for it are loaded
+///     (<see cref="StoredAggregates" />), then asks the domain's rules of the save (<see cref="DomainValidation" />), its declared locks included — whose
+///     update-locked read it writes in the database's words (<see cref="ForUpdateSql" />) and whose transaction it ends
+///     with the save (<see cref="SaveTransaction" />). While one is materialized, the value objects built for it are loaded
 ///     without their rules (<see cref="Loading" />).
 /// </summary>
 /// <remarks>
@@ -15,7 +17,8 @@ namespace Rask.Data;
 ///     so a refill the other interceptors match is already writable, and added by <see cref="RaskDbContext" /> to a
 ///     context configured without it.
 /// </remarks>
-internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMaterializationInterceptor, IDbTransactionInterceptor
+internal sealed class WritableChildrenInterceptor
+    : SaveChangesInterceptor, IMaterializationInterceptor, IDbTransactionInterceptor, IDbCommandInterceptor
 {
     /// <summary>The one instance: a materialization interceptor is part of EF Core's service-provider cache key.</summary>
     internal static readonly WritableChildrenInterceptor Instance = new();
@@ -55,7 +58,7 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         // The same work as the async path. A synchronous save has no other way to await a rule.
         if (eventData.Context is { } context)
         {
-            DomainValidation.CheckAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+            CheckAsync(context, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         return result;
@@ -69,7 +72,7 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         Ensure(eventData.Context);
         if (eventData.Context is { } context)
         {
-            await DomainValidation.CheckAsync(context, cancellationToken).ConfigureAwait(false);
+            await CheckAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
         return result;
@@ -79,14 +82,54 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
         Remember(eventData.Context);
+        SaveTransaction.Close(eventData.Context, commit: true);
         return result;
     }
 
     /// <inheritdoc />
-    public override ValueTask<int> SavedChangesAsync(
+    public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
         Remember(eventData.Context);
+        await SaveTransaction.Close(eventData.Context, commit: true, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) =>
+        SaveTransaction.Close(eventData.Context, commit: false);
+
+    /// <inheritdoc />
+    /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
+    public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default) =>
+        SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
+    public override void SaveChangesCanceled(DbContextEventData eventData) =>
+        SaveTransaction.Close(eventData.Context, commit: false);
+
+    /// <inheritdoc />
+    /// <remarks>Rolls back the transaction the domain step opened for the save (<see cref="SaveTransaction" />).</remarks>
+    public override Task SaveChangesCanceledAsync(DbContextEventData eventData, CancellationToken cancellationToken = default) =>
+        SaveTransaction.Close(eventData.Context, commit: false, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>A parent read under an update lock is written in the database's own words here (<see cref="ForUpdateSql" />).</remarks>
+    InterceptionResult<DbDataReader> IDbCommandInterceptor.ReaderExecuting(
+        DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result)
+    {
+        ForUpdateSql.Apply(command, eventData.Context);
+        return result;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>As <see cref="IDbCommandInterceptor.ReaderExecuting" />.</remarks>
+    ValueTask<InterceptionResult<DbDataReader>> IDbCommandInterceptor.ReaderExecutingAsync(
+        DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken)
+    {
+        ForUpdateSql.Apply(command, eventData.Context);
         return ValueTask.FromResult(result);
     }
 
@@ -120,6 +163,20 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         if (context is not null)
         {
             AggregateSave.RememberSaved(context);
+        }
+    }
+
+    // A refused save never starts, so nothing later rolls back what the domain step opened for it.
+    private static async Task CheckAsync(DbContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await DomainValidation.CheckAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await SaveTransaction.Close(context, commit: false, CancellationToken.None).ConfigureAwait(false);
+            throw;
         }
     }
 

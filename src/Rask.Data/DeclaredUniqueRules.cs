@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Rask.Wire;
@@ -41,9 +40,6 @@ internal static class DeclaredUniqueRules
     private static readonly MethodInfo ExistsMethod =
         ((MethodCallExpression)((Expression<Func<DbContext, Task<bool>>>)(c => AnyOfAsync<object>(c, null!, default))).Body)
         .Method.GetGenericMethodDefinition();
-
-    private static readonly FieldInfo BoxedValue =
-        typeof(StrongBox<object?>).GetField(nameof(StrongBox<object?>.Value))!;
 
     private static readonly char[] Quoting = ['[', ']', '"', '`', '(', ')'];
     private static readonly string[] And = [" AND "];
@@ -177,17 +173,13 @@ internal static class DeclaredUniqueRules
     {
         try
         {
-            return Expression.Equal(StoredProperty.Of(row, property), Parameter(value, property.ClrType));
+            return Expression.Equal(StoredProperty.Of(row, property), QueryParameter.Of(value, property.ClrType));
         }
         catch (InvalidOperationException)
         {
             return null;
         }
     }
-
-    // Read through a box rather than inlined, so EF Core sees a parameter: one cached plan, not one per value.
-    private static UnaryExpression Parameter(object? value, Type type) =>
-        Expression.Convert(Expression.Field(Expression.Constant(new StrongBox<object?>(value)), BoxedValue), type);
 
     [UnconditionalSuppressMessage("Trimming", "IL2060",
         Justification = "The type argument is an entity type of the context's model, which EF Core already roots.")]

@@ -44,6 +44,16 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`b.LockedBy(n => n.Period, (Period p) => p.Closed, message)`: a row closed by its parent, held by every save.**
+  Before: "a closed period's notes stay as they were" was a hand-written save hook per app, reading tables by name
+  with provider SQL, blind to a child-only change or a move between parents, and checked outside the save's
+  transaction. After: one line in `Configure`; the save's domain step reads, for every row of the type it adds,
+  changes or deletes — and for an aggregate whose child it writes — the parent the row was read with AND the one it
+  holds now, one query per lock for the whole save, and refuses with one `RaskValidationException` under the parent
+  field (a new or moved row) or about the row. `message` may be made from the parent (`p => $"{p.Name} is closed."`).
+  `forUpdate: true` reads the parents under an update lock to the end of the save — `UPDLOCK, HOLDLOCK` on SQL Server,
+  `FOR UPDATE` on PostgreSQL, nothing on SQLite — in a transaction the save opens when its caller has none. See
+  [LockedBy](docs/data.md#a-row-closed-by-its-parent-lockedby).
 - **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
   Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
   aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
