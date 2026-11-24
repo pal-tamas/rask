@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
+  `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
+  runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value
+  shown to a reader goes through the UI or `Format`.
+- **`Text(Value, Required: false)` lets a text be empty.** Before: every `Text` refused an empty text, so a chip or a
+  note that may be left blank needed its own `: Value` record. After: `: Text(Value, MaxLength: 1000, Required: false)`
+  makes `Create("")` the value `""`; a filled one is still held to its lengths and pattern, a field bound to it on the
+  generated model is neither refused nor announced as required and saves `""`, and `CreateOptional("")` is still null.
 - **BREAKING: the value-object bases moved from Rask.Data into the `Rask` package, namespace `Rask.Values`.** Before:
   `Value`, `Text`, `Number`, `Whole`, `Day`, `Range` and `Problem` were `Rask.Data`'s, so a browser app or the site,
   with no EF Core, could not declare a value object from them. After: they are Rask.Core's (with `Moment`, the declared-rules

@@ -46,9 +46,9 @@ public abstract record Day : Value
     /// <summary>The day it holds.</summary>
     public DateOnly Value { get; }
 
-    /// <summary>The day it holds, written in the current culture.</summary>
+    /// <summary>The day it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The day as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     private static List<Problem>? Problems(DateOnly day, DateOnly? notBefore, DateOnly? notAfter, bool notAfterToday)
     {

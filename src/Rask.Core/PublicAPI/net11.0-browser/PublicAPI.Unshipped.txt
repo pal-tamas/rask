@@ -20081,7 +20081,7 @@ virtual Rask.Values.Value.Rules() -> System.Collections.Generic.IEnumerable<Rask
 ~override Rask.Values.Problem.ToString() -> string
 ~override Rask.Values.ValueFacets.Equals(object obj) -> bool
 ~override Rask.Values.ValueFacets.ToString() -> string
-Rask.Values.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false) -> void
+Rask.Values.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
 Rask.Values.ValueLoading
 Rask.Values.ValueLoading.Dispose() -> void
 Rask.Values.ValueLoading.ValueLoading() -> void

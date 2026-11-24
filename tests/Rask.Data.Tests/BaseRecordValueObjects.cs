@@ -12,6 +12,9 @@ public sealed partial record RigDriver(string Value) : Text(Value, MaxLength: 20
 /// <summary>A text kept as typed, its length named by a constant.</summary>
 public sealed partial record RigChip(string Value) : Text(Value, MaxLength: RigLimits.Chip, Trim: false);
 
+/// <summary>A text that may be left empty, at most 5 characters when filled.</summary>
+public sealed partial record RigNote(string Value) : Text(Value, MaxLength: 5, Required: false);
+
 /// <summary>A text kept in capitals, of exactly 17 characters.</summary>
 public sealed partial record RigVin(string Value) : Text(Value, MinLength: 17, MaxLength: 17, Upper: true);
 
@@ -108,6 +111,14 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 }
 
 /// <summary>An aggregate holding value objects of several members, stored as complex values.</summary>
+/// <summary>An aggregate holding a text that may be left empty, written through its generated model.</summary>
+public sealed class Notebook : Aggregate<int, Model>
+{
+    private Notebook() { }
+
+    public RigNote Note { get; private set; } = RigNote.Create("");
+}
+
 /// <summary>An aggregate written through its generated model, holding a range that checks itself.</summary>
 public sealed class Leg : Aggregate<int, Model>
 {

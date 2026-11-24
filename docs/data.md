@@ -2631,7 +2631,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
+| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
@@ -2656,9 +2656,15 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
-`FuelingChip { Value = C-17 }`. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it
-generated, a number or a date written culture-invariant (`1234.5` on every machine); a `ToString` the record
-declares itself is kept.
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number`, `Whole`, `Day` and `Moment` too
+(`1234.5` on every machine, never `1234,5`): it is the value's text, and showing it to a reader is the UI's and
+`Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
+way; a `ToString` the record declares itself is kept.
+
+**`Required: false` lets a text be empty**: `public sealed partial record FuelingChip(string Value) : Text(Value,
+MaxLength: 1000, Required: false);` makes `FuelingChip.Create("")` (or only blanks) the value `""` with no problem, while
+a filled one is still held to its lengths and its pattern. A field bound to it on the generated model is neither
+refused nor announced as required when left empty, and saves `""`; `CreateOptional("")` is still nothing.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written

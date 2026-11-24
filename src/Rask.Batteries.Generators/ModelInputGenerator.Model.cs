@@ -511,7 +511,8 @@ public sealed partial class ModelInputGenerator
             DeclaresRules(valueObject),
             new EquatableArray<StaleRule>(StaleRulesOf(valueObject)),
             Checked: AggregateShape.DeclaredValueBaseOf(valueObject.Type) is not null,
-            ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type));
+            ValueBase: AggregateShape.DeclaredValueBaseOf(valueObject.Type),
+            AllowsEmpty: AggregateShape.AllowsEmptyText(valueObject.Type));
 
         converted[valueObject] = shape;
         return shape;
