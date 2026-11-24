@@ -61,6 +61,7 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         ("Loads the navigation at <paramref name=\"navigationPropertyPath\" /> with each row.",
             "{Q} Include(string navigationPropertyPath)", "Include(navigationPropertyPath)"),
         ("Includes soft-deleted rows.", "{Q} IgnoreQueryFilters()", "IgnoreQueryFilters()"),
+        ("Reads every tenant's rows; <paramref name=\"reason\" /> says why.", "{Q} Across(string reason)", "Across(reason)"),
         ("Loads included collections in separate queries.", "{Q} AsSplitQuery()", "AsSplitQuery()"),
         ("Projects each row through <paramref name=\"selector\" />.",
             "global::Rask.Data.Projection<{R}, TResult> Select<TResult>(global::System.Linq.Expressions.Expression<global::System.Func<{R}, TResult>> selector)",

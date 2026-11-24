@@ -20,6 +20,9 @@
       - RASK184-RASK187 warnings (rask-strict.globalconfig): an aggregate throwing InvalidOperationException or
         ArgumentException, an aggregate loaded before the Db.Transaction that changes it, an Update that only runs an
         operation with a generated entry, a raw ExecuteUpdate/ExecuteDelete over an aggregate's rows
+        operation with a generated entry
+      - RASK133 a warning (rask-strict.globalconfig): an aggregate added, updated or removed on a DbContext and
+        saved there, around its generated entries
       - RASK177 a warning (rask-strict.globalconfig): code written for one database — a provider's API, EF.Functions,
         raw SQL, SQL in the model — outside migrations and the call that selects the provider
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a

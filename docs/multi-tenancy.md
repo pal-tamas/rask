@@ -13,7 +13,7 @@ table has nothing to configure.
 ## Declaring a tenant-scoped table
 
 One trait on the base partitions a table by tenant — `PerTenant`, one of the family that
-[chooses what a table carries](data.md#choosing-what-a-table-carries):
+[chooses what a table carries](domain.md#choosing-what-a-table-carries):
 
 ```csharp
 public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
@@ -182,6 +182,39 @@ editing one is not refused for it. **A member's name never turns tenant filterin
 declared or shadow, a `TenantId` on a child is data; only `PerTenant` on the aggregate root partitions. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
 reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
 the property if the column should stay.
+
+### An aggregate that belongs to another one's tenant: `PerTenantThrough<T>`
+
+Some aggregates are not held in a collection and keep no tenant of their own, but belong to whoever owns the
+aggregate they point at — a distribution of a supply, a pairing of a fueling. Name that aggregate on the base:
+
+```csharp
+public sealed class Distribution : Aggregate<DistributionId, Versioned, PerTenantThrough<Supply>>
+{
+    public SupplyId Supply { get; private set; }     // the key the tenant is read through
+}
+```
+
+It gets no `TenantId` column. Its filter is the child's: an `EXISTS` on the `Supply` its key names, through the
+supply's own filters, and a save under another tenant's supply is refused as a child's is. The relationship is the
+strongly-typed id's, or a foreign key its `Configure` maps (`b.HasOne<Supply>().WithMany().HasForeignKey(…)`); a
+model with neither is refused when it is built. A row whose key is NULL belongs to nobody.
+
+### One read across tenants: `X.Across(reason)`
+
+A rule sometimes has to see every tenant's rows — a sign-in name unique across all of them, a chip lent to another
+partner. Say so on the one query, with the reason:
+
+```csharp
+if (await User.Across("a user name is unique across every partner").Any(u => u.Username == Username && u.Id != Id))
+    yield return Problem.At(Username, Texts.UsernameTaken);
+```
+
+It lifts the tenant filter — and only that one — from every table the query reads: a child read through its
+parent, and a `PerTenantThrough` aggregate, are read across too, while a soft-deleted row stays hidden. The reason
+is required and never empty, so each crossing says what it is for where a reviewer reads it. It only reads: a row it
+hands back is still saved in the tenant it belongs to. `Tenant.Across()` remains for a block of work — an admin
+tool, a migration — that spans tenants as a whole.
 
 ## Where the tenant comes from
 
@@ -374,6 +407,41 @@ sees it within 60 seconds, which is how long a held row is trusted.
 `Current.Tenant` used to be the tenant's `Guid`. The framework keeps that internally — a job's row, a cache key, a
 stored file still record it — and your code reads the row's `Id` instead.
 
+### Every table points at its tenant: `TenantReferences<T>()`
+
+A tenant that still has rows should not be deletable, and only the database can refuse that for every table at
+once. Say it once, in the app's `IRaskModel`:
+
+```csharp
+public static void Conventions(ModelConfigurationBuilder c) =>
+    c.TenantReferences<Partner>();      // every PerTenant table's TenantId → the Partner's key
+```
+
+```csharp
+public static void Configure(EntityTypeBuilder<Partner> b) =>
+    b.WhenReferenced("A partner that still has data is not removed.");   // what a refused delete says
+```
+
+Every `PerTenant` table that keeps a `TenantId` column gets a foreign key to the tenant's key — `NO ACTION` on
+delete, named by your [`ConstraintNames`](data.md#app-wide-model-rules-one-iraskmodel) rule
+(`ConstraintKind.ForeignKey`, so `{Table}_{column}_fkey` gives `Driver_tenantId_fkey`) or else
+`FK_{table}_{tenant}_{column}`. The migrations make it on SQL Server and PostgreSQL, and a database made from the
+model makes it on all three — so `TestDatabase.Start<T>()`'s SQLite refuses `Partner.Delete` just as production
+does, and the refusal is the `WhenReferenced` sentence. A row written for a tenant that is not there is refused too,
+so a test makes its tenant before its rows.
+
+It is the database's key and **not a relationship of the model**: EF Core relates only properties of one type, and
+a tenant kept as text is a `Guid` to its tables and a `string` to its own row. So a save does not order its
+commands by it, nor delete a tenant's rows with it; it is carried in the model snapshot as an annotation
+(`Rask:TenantReference`), and Rask's providers (`UseRaskSqlite`, `UseRaskSqlServer`, `UseRaskPostgres`) write it.
+SQLite makes a foreign key only with its table, so there a migration that adds it to an existing table adds
+nothing; a new table, or a database made from the model, has it.
+
+**A database that already has these keys** — made by another tool, or by a hand-written migration — keeps them:
+the first migration after `TenantReferences<T>()` adds one `AddForeignKey` per table; with your naming rule giving
+the names the database already has, delete those operations from its `Up` and `Down` (the snapshot keeps the
+declaration) and the migrations agree with the database from then on.
+
 ## Saying which tenant explicitly
 
 ```csharp
@@ -532,7 +600,7 @@ Put `TenantId` first in an index that holds per tenant: the filtered query reads
 `Configure`, an `[Index]` attribute, a context of your own — with its [message](data.md#what-a-unique-indexs-violation-says),
 its `HasDatabaseName("…")` and its filter, so a violation is recognised by the name the database reports.
 
-Its unique rule is asked the same way — by [a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself)
+Its unique rule is asked the same way — by [a form bound to the generated model](domain.md#what-a-form-over-the-model-asks-by-itself)
 and by [the check before the save](data.md#when-the-index-may-not-be-there) — over exactly the index's columns:
 one that names `TenantId` about the row's tenant, one that does not about every tenant's rows, so a name another
 tenant holds is refused at the field and at the save with the index's message, and never tells the caller whose

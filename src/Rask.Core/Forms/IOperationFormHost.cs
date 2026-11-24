@@ -13,6 +13,7 @@ public interface IOperationFormHost
     Component? Missing { get; }
 
     /// <summary>Told once a form inside has saved: a toast, the dialog closed.</summary>
+    /// <param name="message">What the form said to toast (<c>.Saved("…")</c>); null for the host's own word.</param>
     /// <returns>A task that completes once the host has done so.</returns>
-    Task Saved();
+    Task Saved(string? message);
 }

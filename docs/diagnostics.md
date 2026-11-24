@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK188, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK178, RASK180–RASK188, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -31,6 +31,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
 | **RASK130** | declares a value object from the property's rules (`[StringLength(200)]` or `RuleFor(s => s.Name).MaximumLength(200)` → `public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);`), types the property as it, and takes off the rules its base arguments now say |
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
+| **RASK133** | calls the factory's generated entry: `await using var db = …; db.Add(Product.Place(n)); await db.SaveChangesAsync(t);` → `await Product.Place(n, cancellationToken: t);` |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
@@ -156,6 +157,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK130](#rask130) | Info | An aggregate stores a bare value where a value object would hold its rules |
 | [RASK131](#rask131) | Warning | A property is named by `[DisplayName]`, which Rask never reads |
 | [RASK132](#rask132) | Warning | A value object's `Validate` is never asked: declare it from a base record |
+| [RASK133](#rask133) | Info | An aggregate is written on a DbContext around its own operations |
 | [RASK139](#rask139) | Warning | A `Rules` method is not the in-type FluentValidation convention |
 | [RASK140](#rask140) | Info | Domain code reads the machine's clock |
 | [RASK141](#rask141) | Info | Domain code looks up a service |
@@ -1150,7 +1152,7 @@ renaming a member does not break the wire), `byte[]` (base64), `Nullable<T>` of 
 and `List`/`IReadOnlyList`/`IEnumerable`/`ICollection`/`IList` of them, `Dictionary` keyed by `string`,
 and records, record structs or classes composed of the same. A composite needs either a public constructor whose
 parameters all match properties — which every positional record has — or a public parameterless
-constructor with settable properties. A one-value [value object](data.md#value-objects)
+constructor with settable properties. A one-value [value object](domain.md#value-objects)
 (`record DriverName(string Value) : Text(Value, MaxLength: 1000)`) and a record struct of one value
 (`record struct VehicleId(int Value)`) travel as that value — see [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
@@ -1700,7 +1702,7 @@ type split across several files, or a member that already has the field's name.
 **Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
 An aggregate that names `Model` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
-([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` starts from a new, empty
+([data guide](domain.md#writing-create-update-delete)). `Product.Create(model)` starts from a new, empty
 aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
@@ -1757,7 +1759,7 @@ public sealed class Order : Aggregate<Guid>
 ```
 
 **Fix, when it really is part of the order** — derive it from `Entity<TId>`, and it becomes a child that *is*
-loaded, saved and deleted with its root ([data guide](data.md#children)):
+loaded, saved and deleted with its root ([data guide](domain.md#children)):
 
 ```csharp
 public sealed class OrderLine : Entity<Guid>   // ✓ a part: no version, no soft delete, no writes of its own
@@ -1800,7 +1802,7 @@ It is an error rather than a warning because the alternative is worse than eithe
 **Child collection cannot be synced, so a save cannot add or remove one** · Warning
 
 A child collection on a form model is editable: what the posted list holds is what the aggregate holds after
-the save ([data guide](data.md#children)). Writing it needs something to add to and remove from — either the
+the save ([data guide](domain.md#children)). Writing it needs something to add to and remove from — either the
 property's own type is an `ICollection<T>`, or there is exactly one field behind it holding the children, or the
 property has a setter a new list can be written back through (`IReadOnlyList<OrderLine> Lines { get; private set; } = []`).
 
@@ -2013,7 +2015,7 @@ public static Component Spacer => Div.Class("gap");
 
 **A value object compares by reference** · Error
 
-What an aggregate holds that is not an entity is a [value object](data.md#value-objects): it is its values, so two
+What an aggregate holds that is not an entity is a [value object](domain.md#value-objects): it is its values, so two
 with the same values are the same. A `record` or a `record struct` compares that way as written. A plain class
 compares by reference, so the app's own code would find two equal amounts different — EF Core still saves it right,
 which is why nothing else would notice.
@@ -2062,7 +2064,7 @@ and a `TransactionId` of those aggregates' own key types, and an `Id` that is th
 must be `partial`, each part must have a name, and nothing else may hold those names. A grandchild names the child
 that holds it — `Entity<(ReportColumn, int TotalColumnId)>` — and gets one generated property per part of that
 child's key (`ReportColumnReportId`, `ReportColumnColumnId`). See
-[A key of several columns](data.md#a-key-of-several-columns).
+[A key of several columns](domain.md#a-key-of-several-columns).
 
 ```csharp
 public sealed class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)> { }   // ✗ RASK106: not partial
@@ -2084,7 +2086,7 @@ Reported when:
 - the entity is an **aggregate root** — a key of several columns is for a child its aggregate holds;
 - an aggregate whose **form** (its base names `Model`, `CreateModel` or `UpdateModel`) would carry such a child it
   cannot carry. A form carries a link as a list of ids (`ActivityIds`) and a row with fields of its own as a list of
-  rows (`Columns`) — see [Link tables and child rows on the form](data.md#link-tables-and-child-rows-on-the-form) —
+  rows (`Columns`) — see [Link tables and child rows on the form](domain.md#link-tables-and-child-rows-on-the-form) —
   and refuses, rather than leaving the child out:
   - rows that hold rows of their own (`ReportColumn` holding `Totals`);
   - a row with no parameterless constructor, so the form cannot add one;
@@ -2607,7 +2609,7 @@ naming both.
 
 **A collection of value objects with no list behind it is a NULL column** · Warning
 
-A [collection of value objects](data.md#collections-of-values) is one JSON column, `NOT NULL` where the property is
+A [collection of value objects](domain.md#collections-of-values) is one JSON column, `NOT NULL` where the property is
 non-nullable. EF Core reads and writes that column through an `IList<T>`, so the property needs one behind it. A get-only
 `IReadOnlyList<T>` auto-property has none: its backing field is the same read-only view. Rask then maps it the old way,
 as an owned collection, and EF Core makes that column NULL whatever the model says.
@@ -3128,7 +3130,7 @@ public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1
 
 A public property of an aggregate or entity typed `string`, a number, `DateTime`, `DateTimeOffset`, `DateOnly`,
 `TimeOnly` or `Guid` (nullable or not) holds whatever it is given, and every place that sets it has to remember the
-rules. A value object declared from a [base record](data.md#declared-from-a-base-record) checks them as it is made,
+rules. A value object declared from a [base record](domain.md#declared-from-a-base-record) checks them as it is made,
 gives its column its length and a bound input its `maxlength`. The framework's own members (`Id`, `Version`,
 `CreatedAt`, `UpdatedAt`, `DeletedAt`, `TenantId`) are not reported, nor a `bool`, an enum, a strongly-typed id, a
 value object, a collection, or a property computed from others.
@@ -3204,10 +3206,10 @@ as `[Display(Name = "X")]`, adds `using System.ComponentModel.DataAnnotations;` 
 
 **A value object's `Validate` is never asked: declare it from a base record** · Warning
 
-A value object states its rules in its constructor: one [declared from a base record](data.md#declared-from-a-base-record)
+A value object states its rules in its constructor: one [declared from a base record](domain.md#declared-from-a-base-record)
 — `Text`, `Number`, `Whole`, `Day`, `Range`, or `Value` with its own `Rules()` — is checked as it is made, and a
 form bound to the aggregate's generated model asks the same rules
-[with nothing written on the field](data.md#what-a-form-over-the-model-asks-by-itself). A `public static Validate`
+[with nothing written on the field](domain.md#what-a-form-over-the-model-asks-by-itself). A `public static Validate`
 beside the value it holds was the earlier way to say it, and nothing reads it any more: no form asks it, and
 neither do the generated `Create(model)` and `Update(id, model)`. A rule that is never asked looks exactly like one
 that was asked and passed, so a one-value value object an aggregate holds, not declared from a base record, with a
@@ -3253,15 +3255,54 @@ not a value object held by an aggregate — so a static method a hand-written fo
 
 RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
 
+## RASK133
+
+**An aggregate is written on a DbContext around its own operations** · Info (Warning under `<RaskStrict>`) · quick-fix
+
+App code hands an aggregate to a `DbContext` — `db.Products.Add(p)`, `db.Update(order)`, `db.Remove(supply)`, their
+`Range` and `Async` forms — and the same method saves the context (`SaveChanges`, `SaveChangesAsync`). That write goes
+around everything the aggregate was drawn for: its [factory and operations](domain.md#operations-what-the-aggregate-does),
+the roles their generated entries ask, and [the rules every save asks](domain.md#what-every-save-asks) of a `Find` and
+`Save()`. The aggregate is [the transaction boundary](domain.md#the-transaction-boundary), so the write goes through it:
+
+```csharp
+db.Products.Add(Product.Place(name, price));     // ℹ RASK133
+await db.SaveChangesAsync();
+
+await Product.Place(name, price);                 // ✓ the factory's generated entry: roles, rules, one transaction
+await Order.Ship(id, version, tracking);          // ✓ an operation's entry, in place of db.Update(order)
+await Supply.Delete(id, version);                 // ✓ in place of db.Remove(supply)
+await Db.Transaction(async () =>                  // ✓ a check and the writes it guards, by hand
+{
+    var order = await Order.Find(id, version) ?? throw new KeyNotFoundException();
+    order.Ship(tracking);
+    await order.Save();
+});
+```
+
+Not reported: a context that only stages a write for its caller to save (no `SaveChanges` in the same method — a
+generated write's `db:` works that way); a write of an entity that is not an aggregate; a seed (a method or a type
+whose name says `Seed`, the work of `UseSeeding`/`UseAsyncSeeding`; `HasData` writes no `Add`); a migration (a
+`Migrations` folder, a `Migration` or a `ModelSnapshot`); a test (a `*.Tests` assembly, a method or a class with a
+test attribute); and generated code, Rask's own generated entries among it.
+
+**Fix:** call the generated entry the message names — the factory's `X.Register(…)`, the operation's
+`X.M(id, version, …)`, `X.Delete(id, version)` — or `Find`, the operation and `Save()` inside `Db.Transaction`. The
+**quick-fix** is offered where the rewrite is mechanical: `db.Add(X.F(…))` followed at once by
+`await db.SaveChangesAsync(…)` on a context local the method uses for nothing else, where `F` is a factory with a
+generated entry. It calls `await X.F(…, cancellationToken: …)` — the token passed by name, which is what binds the
+call to the entry rather than to the factory — and drops the context. A suggestion by default; a warning under
+`<RaskStrict>`.
+
 ## RASK140
 
 **Domain code reads the machine's clock** · Info (Warning under `<RaskStrict>`) · quick-fix
 
 `DateTime.Now`, `DateTime.Today`, `DateTime.UtcNow`, `DateTimeOffset.Now`, `DateTimeOffset.UtcNow` or `.ToLocalTime()`
-inside an aggregate, an entity or a value object declared from a [base record](data.md#declared-from-a-base-record)
+inside an aggregate, an entity or a value object declared from a [base record](domain.md#declared-from-a-base-record)
 (and any type nested in one). The machine's clock is not the app's: a test's `Clock.Fake(at: …)` does not freeze it,
 and its zone is the server's — a container's is UTC — not the one the app named with `AddRask(timeZone: …)` or
-`c.TimeZone`. Rask's [`Clock`](data.md#time-in-the-domain) is both.
+`c.TimeZone`. Rask's [`Clock`](domain.md#time-in-the-domain) is both.
 
 ```csharp
 public sealed class Delivery : Aggregate<Guid>
@@ -3304,7 +3345,7 @@ raise a domain event and let its handler use the service. No quick-fix: which of
 
 **Database work run side by side inside a transaction** · Info (Warning under `<RaskStrict>`)
 
-`Task.WhenAll` inside the work of a [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction)
+`Task.WhenAll` inside the work of a [`Db.Transaction(…)`](domain.md#a-check-and-the-writes-it-guards-dbtransaction)
 over database work: an entity's generated reads and writes (`Order.Find`, `Tank.Count`, `order.Save()` …), a
 Rask.Data call or an EF Core one — in the `WhenAll`'s arguments, a method handed on (`ids.Select(Tank.Find)`), or the
 initializer of a local it names. The transaction's work runs on its one connection, which takes one command at a
@@ -3340,7 +3381,7 @@ public sealed class Order : Aggregate<Guid>
 **Fix:** remove the attribute. A value that may not repeat is a unique index with a message in the aggregate's own
 `Configure` (`builder.HasIndex(o => o.Number).IsUnique("…")`, see
 [what a unique index's violation says](data.md#what-a-unique-indexs-violation-says)); a child keyed by the pair of
-aggregates it joins is [a key of several columns](data.md#a-key-of-several-columns).
+aggregates it joins is [a key of several columns](domain.md#a-key-of-several-columns).
 
 ## RASK144
 
@@ -3387,6 +3428,9 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 **Fix:** initialize it with `null!` and set it where the aggregate is made (its factory, or the generated
 `Delivery.Create(model)`); the form then starts the field empty, and required. The quick-fix writes the `null!`.
+A placeholder that stands for "none" — `Opening Start = Opening.None` over `Opening(DateTime? Date, decimal? Quantity)`
+— is an optional value: declare it `Opening? Start` with no initializer. A row with every one of its columns `NULL`
+loads it as `null` ([domain.md](domain.md#declared-from-a-base-record)).
 
 ## RASK165
 
@@ -3394,7 +3438,8 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 The generated model, writes and read face exist before any EF model is built, so three calls are read from the
 source of the entity's own static `Configure`, as written there: `KeepEmpty(c => c.Member)` (an empty text kept as
-`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members) and
+`''`), `Columns(c => c.Member, "{Member}Km")` (the columns of a value object of several members), `Json(c => c.Member)`
+(a value object kept whole in one JSON column, which the read face then leaves out) and
 `IsUnique("message")` on an aggregate's index (a form asks the store before it saves). Written anywhere else — a
 helper method, another class, `OnModelCreating`, an `IEntityTypeConfiguration` — or called as a static method, with
 the member in a variable rather than a lambda, or with a pattern that is not a constant, the call still configures
@@ -3635,7 +3680,7 @@ public sealed record FindLogin(Guid Id) : IQuery<Login>;                        
 App code that only one database understands: an API of the SQL Server, PostgreSQL or SQLite provider or of its
 driver (`IncludeProperties`, `IsClustered`, `SqlException`, `PostgresException`, `SqliteConnection`, …),
 `EF.Functions.*`, raw SQL (`FromSql`/`FromSqlRaw`/`FromSqlInterpolated`, `ExecuteSql*`, `SqlQuery`/`SqlQueryRaw`,
-`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `UseCollation`,
+`MigrationBuilder.Sql` outside a migration) and SQL in the model (`HasColumnType`, `SetContainerColumnType`, `UseCollation`,
 `HasDefaultValueSql`, `HasComputedColumnSql` and `HasFilter` given SQL, `ToSqlQuery`). An app's tests run on SQLite
 in memory ([testing](testing.md)), and Rask proves what it translates behaves the same on SQLite, SQL Server and
 PostgreSQL; code written for one of them is outside that proof — green on the database the tests run on, different
@@ -3655,10 +3700,10 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
 `EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
+/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
-`ForUpdate()` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
+`X.Where(…).ForUpdate()` inside `Db.Transaction` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the
 message on `OnDelete(…)`, which every database turns into the same `RaskValidationException`.
 
 **Not reported:** a migration — a type derived from `Migration` or `ModelSnapshot`, or any file under a `Migrations`
@@ -3673,7 +3718,7 @@ at `<RaskStrict>errors</RaskStrict>`. No quick-fix: each replacement is a differ
 
 **A transaction writes two aggregates without saying why** · Info (Warning under `<RaskStrict>`)
 
-A [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction) whose work — nested lambdas
+A [`Db.Transaction(…)`](domain.md#a-check-and-the-writes-it-guards-dbtransaction) whose work — nested lambdas
 included — writes two different aggregates and states no `manyAggregates:` reason. A write is a generated one: an
 aggregate's `Create`, `Update` or `Delete`, an instance's `Save()` or `Delete()`, or an operation's entry (the static
 `Supply.Change(id, version, …)` beside the method `Change`, or the factory entry `Supply.Register(…)`). Reads (`Find`,
@@ -3734,7 +3779,7 @@ supply.Take(part);                                           // ✓
 
 `throw new InvalidOperationException(…)` or `throw new ArgumentException(…)` inside an aggregate or an entity (and any
 type nested in one). A rule that says no is a sentence for the person at the screen, and a form shows a
-[`Refuse`](data.md#refusing-an-operation-refuse) under the field it names or above the form; those two exceptions are a
+[`Refuse`](domain.md#refusing-an-operation-refuse) under the field it names or above the form; those two exceptions are a
 failed request instead — an error toast that says nothing useful, or an error page. Only those two exact types are
 reported: `ArgumentNullException`, `ArgumentOutOfRangeException` and the other subclasses guard against a caller's
 mistake, not a rule.
@@ -3759,7 +3804,7 @@ default; a warning under `<RaskStrict>`.
 
 **An aggregate is loaded outside the transaction that changes it** · Info (Warning under `<RaskStrict>`) · quick-fix
 
-The work of a [`Db.Transaction(…)`](data.md#a-check-and-the-writes-it-guards-dbtransaction) uses an aggregate held
+The work of a [`Db.Transaction(…)`](domain.md#a-check-and-the-writes-it-guards-dbtransaction) uses an aggregate held
 in a local declared before the block. That read was not part of the transaction: the isolation the block asks for
 does not cover it, so a check the work makes on the copy is a check on what was there before the transaction began —
 and on a retrying context the work runs again on the same copy, which on a `Versioned` aggregate is a conflict no
@@ -3791,7 +3836,7 @@ a load that awaits needs an `async` work. A suggestion by default; a warning und
 
 **An update runs an operation that has a generated entry** · Info (Warning under `<RaskStrict>`) · quick-fix
 
-`X.Update(id, x => x.M(…))` where `M` is an [operation](data.md#an-operation-run-as-one-write) of a `partial`
+`X.Update(id, x => x.M(…))` where `M` is an [operation](domain.md#an-operation-run-as-one-write) of a `partial`
 aggregate, which has a generated entry `X.M(id, version, …)`. The entry loads, runs and saves in one transaction just
 as the update does — and also asks the roles the aggregate's `Configure` names for the operation, which the update
 does not. It is the call the operation's form makes, so code and form go through the same door.
@@ -3813,9 +3858,9 @@ entry takes no `null`); and the updated aggregate the update hands back is not u
 **A raw ExecuteUpdate or ExecuteDelete writes an aggregate's rows** · Info (Warning under `<RaskStrict>`) · quick-fix
 
 EF Core's `ExecuteUpdate`/`ExecuteDelete` over the rows of an aggregate. Every aggregate has its own
-[set write](data.md#writes-over-many-rows) — `X.UpdateWhere(…)`, `X.DeleteWhere(…)` — the same one statement, which
+[set write](data-writes.md#writes-over-many-rows) — `X.UpdateWhere(…)`, `X.DeleteWhere(…)` — the same one statement, which
 also stamps `UpdatedAt` and bumps `Version`, asks the aggregate's `LockedBy`, refuses a delete its `ValidateDelete()`
-would have to ask row by row, counts toward [one aggregate per transaction](data.md#one-aggregate-per-transaction-manyaggregates)
+would have to ask row by row, counts toward [one aggregate per transaction](domain.md#one-aggregate-per-transaction-manyaggregates)
 and tells the live pages showing the rows. The raw statement does none of it.
 
 ```csharp
@@ -3835,7 +3880,7 @@ default; a warning under `<RaskStrict>`.
 
 **An operation gets no Form.For, as one of its parameters is no field a form holds** · Info
 
-`Form.For(Supply.Change, id)` is a form whose fields are the [operation](data.md#an-operation-run-as-one-write)'s
+`Form.For(Supply.Change, id)` is a form whose fields are the [operation](domain.md#an-operation-run-as-one-write)'s
 parameters: a value (text, number, day, bool, enum, id), a value object of one value — declared from `Text`, `Number`,
 `Whole`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
 list of rows. An operation that takes anything else, or more than 13 parameters, gets no form, and this names the

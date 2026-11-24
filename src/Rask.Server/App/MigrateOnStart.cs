@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 using Rask.Server;
 
 namespace Rask;
@@ -28,12 +29,14 @@ internal sealed class MigrateOnStart<TContext>(
     IDbContextFactory<TContext> contexts,
     ILoggerFactory loggers,
     OwnedSchema<TContext>? owned = null)
-    : IHostedLifecycleService
+    : IHostedLifecycleService, IAppMigration
     where TContext : DbContext
 {
     private readonly ILogger _log = loggers.CreateLogger("Rask.Migrations");
 
-    public async Task StartingAsync(CancellationToken cancellationToken)
+    public Task StartingAsync(CancellationToken cancellationToken) => MigrateAsync(cancellationToken);
+
+    public async Task MigrateAsync(CancellationToken cancellationToken)
     {
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -70,15 +73,34 @@ internal sealed class MigrateOnStart<TContext>(
             }
 
             var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
-            if (pending.Count == 0)
+            if (pending.Count > 0)
             {
-                return;
+                var names = string.Join(", ", pending);
+                MigrateOnStartLog.Applying(_log, pending.Count, names);
+
+                await ApplyAsync(db, names, cancellationToken).ConfigureAwait(false);
             }
 
-            var names = string.Join(", ", pending);
-            MigrateOnStartLog.Applying(_log, pending.Count, names);
+            // With nothing pending too: a migration `dotnet ef` applied ran none of its C#.
+            await RunDataStepsAsync(db, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
-            await ApplyAsync(db, names, cancellationToken).ConfigureAwait(false);
+    private async Task RunDataStepsAsync(TContext db, CancellationToken cancellationToken)
+    {
+        try
+        {
+            foreach (var migration in await DataSteps.RunPendingAsync(db, cancellationToken).ConfigureAwait(false))
+            {
+                MigrateOnStartLog.RanDataSteps(_log, migration);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            throw new InvalidOperationException(
+                $"A data step of a migration failed, so the app did not start: {e.Message} The schema is migrated; the step "
+                + "runs again on the next start (or `rask db migrate`), so fix its cause and start again.",
+                e);
         }
     }
 

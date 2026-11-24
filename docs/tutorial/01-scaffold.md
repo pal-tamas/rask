@@ -81,8 +81,8 @@ The `server` template is deliberately small — a handful of files, no example p
   develop.
 - **No database context.** Rask's own, `RaskAppDbContext`, maps every aggregate you declare plus every
   battery's tables — those are what the first migration created — so there is no `DbSet` property or
-  configuration class to add as you go. Code that needs the context itself injects
-  `IDbContextFactory<RaskAppDbContext>`; you'll meet that in [Chapter 4](04-background-jobs.md).
+  configuration class to add as you go, and nothing injects it: a page reads an aggregate through its read face and
+  changes it through the aggregate's own operation ([domain modelling](../domain.md)).
 - **`Features/Shared/App.cs`** — the **root component**: `Render() => Router`, which is where the current page
   appears, and a `Title` that puts the page's own `PageTitle` in the browser's tab. Rask builds the document around it — the charset, the viewport, the UI kit's
   stylesheet and theme, your `Styles/app.css` — and fills `<head>` from every component's `HeadAssets`. It lives in `Features/Shared/` — the bucket for cross-cutting code the

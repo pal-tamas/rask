@@ -529,3 +529,7 @@ Rask.Background.Enqueuing<TJob>.InTenantLane(string? lane = null) -> Rask.Backgr
 Rask.Background.Running.InTenantLane(string? lane = null) -> Rask.Background.Running
 Rask.Background.Running<TResult>.InTenantLane(string? lane = null) -> Rask.Background.Running<TResult>
 static Rask.Background.Jobs.TenantLane(string? lane = null) -> string!
+static Rask.Background.JobReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!

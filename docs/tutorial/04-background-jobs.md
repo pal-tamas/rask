@@ -75,10 +75,9 @@ defaults, so there is nothing for it in `appsettings.json` yet. To change one, a
 Both values are the defaults, so this changes nothing until you edit a number.
 
 The jobs live in two tables — `Job` and `RecurringJobState` — in the same `app.db`. `RaskAppDbContext` maps
-them, and the first migration `rask new` applied already created them, so there is nothing to migrate. When a
-handler needs the context itself — to save several things in one transaction — it injects
-`IDbContextFactory<RaskAppDbContext>` and opens one per job. Never a scoped `DbContext`: the worker is
-long-lived, and a scoped context would outlive any unit of work.
+them, and the first migration `rask new` applied already created them, so there is nothing to migrate. A handler
+that changes data calls the aggregate's own operation, exactly as a page does — one aggregate, one transaction
+([domain modelling](../domain.md#operations-what-the-aggregate-does)) — and injects no context.
 
 ## 3. Enqueue from your code
 

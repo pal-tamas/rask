@@ -24,7 +24,7 @@ namespace Rask;
 ///     </code>
 ///     <para>
 ///     A form over an aggregate's operation inside it (<c>Form.For</c>) reports to the dialog: once it saves, the dialog
-///     says "Saved" in a toast and closes, and an id no row has shows "It is not there any more." instead of the form.
+///     says "Saved" (or the form's own <c>.Saved("Driver saved.")</c>) in a toast and closes, and an id no row has shows "It is not there any more." instead of the form.
 ///     <c>.Delete(Driver.Delete)</c> — a generated step for an aggregate that can be deleted — adds a Delete button for
 ///     a stored record whose roles admit the reader (<c>Driver.MayDelete</c>). Pressed, it first tries the delete
 ///     (<c>Driver.DryRunDelete</c>: its <c>ValidateDelete()</c>) and shows what that refuses instead of asking;
@@ -142,9 +142,9 @@ public sealed partial class UiEditorDialog : Component, IOperationFormHost
     }
 
     /// <inheritdoc />
-    Task IOperationFormHost.Saved()
+    Task IOperationFormHost.Saved(string? message)
     {
-        Toast.Success(RaskStrings.Get(RaskString.EditorSaved, "Saved"));
+        Toast.Success(message ?? RaskStrings.Get(RaskString.EditorSaved, "Saved"));
         Close();
         return Task.CompletedTask;
     }

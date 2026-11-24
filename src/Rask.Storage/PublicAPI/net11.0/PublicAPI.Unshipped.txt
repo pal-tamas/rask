@@ -252,3 +252,20 @@ static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Sin
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
 static Rask.Storage.StoredFileReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Storage.Attachment
+Rask.Storage.Attachment.<Clone>$() -> Rask.Storage.Attachment!
+Rask.Storage.Attachment.ContentType.get -> string!
+Rask.Storage.Attachment.Equals(Rask.Storage.Attachment? other) -> bool
+Rask.Storage.Attachment.Id.get -> System.Guid
+Rask.Storage.Attachment.IsPending.get -> bool
+Rask.Storage.Attachment.Name.get -> string!
+Rask.Storage.Attachment.Size.get -> long
+override Rask.Storage.Attachment.Equals(object? obj) -> bool
+override Rask.Storage.Attachment.GetHashCode() -> int
+override Rask.Storage.Attachment.ToString() -> string!
+static Rask.Storage.Attachment.Of(Rask.Storage.Saving saving) -> Rask.Storage.Attachment!
+static Rask.Storage.Attachment.Of(Rask.Storage.StoredFile! file) -> Rask.Storage.Attachment!
+static Rask.Storage.Attachment.operator !=(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
+static Rask.Storage.Attachment.operator ==(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
+static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
