@@ -414,8 +414,14 @@ internal static class ReadModelShape
     private static (string Member, string Column) Patterned(string memberPrefix, string pattern, string name)
     {
         var column = ConfiguredColumns.Apply(pattern, name);
-        return (Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(column) ? column : memberPrefix + name, column);
+        return (IsDeclarable(column) ? column : memberPrefix + name, column);
     }
+
+    // A name C# takes as a member as it is: a valid identifier that is no reserved keyword (`class`, `in`), which only an
+    // @ could declare. A contextual one (`value`, `record`) is an ordinary name there.
+    private static bool IsDeclarable(string name) =>
+        Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(name)
+        && Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(name) == Microsoft.CodeAnalysis.CSharp.SyntaxKind.None;
 
     /// <summary>
     ///     What a value object's members are named under — the read face's, the column's, the write model's path, and the

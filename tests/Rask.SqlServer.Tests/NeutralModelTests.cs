@@ -65,6 +65,11 @@ public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : R
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        Declare(modelBuilder);
+    }
+
+    internal static void Declare(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<Meter>(b =>
         {
             b.Computed(m => m.CountedAt, m => m.ModifiedPistol ?? m.Pistol);
@@ -83,6 +88,22 @@ public sealed class NeutralContext(DbContextOptions<NeutralContext> options) : R
             b.Default(v => v.CreatedAt, () => Clock.Now);
             b.Default(v => v.CountedAt, () => Clock.Now.UtcDateTime);
         });
+    }
+}
+
+/// <summary>The same declarations, under an app's own constraint names — TA's.</summary>
+public sealed class NamedNeutralContext(DbContextOptions<NamedNeutralContext> options) : RaskDbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.ConstraintNames(n => n.Kind == ConstraintKind.Default ? $"{n.Table}_{n.Columns[0]}_df" : null);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        NeutralContext.Declare(modelBuilder);
     }
 }
 
@@ -154,6 +175,22 @@ public sealed class NeutralModelTests
         Assert.Contains("[Size] int NOT NULL DEFAULT 1000", script, StringComparison.Ordinal);
         Assert.Contains("[CreatedAt] datetimeoffset NOT NULL DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))", script, StringComparison.Ordinal);
         Assert.Contains("[CountedAt] datetime2 NOT NULL DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_app_s_constraint_names_name_the_defaults_too_the_clock_s_among_them()
+    {
+        using var context = new NamedNeutralContext(
+            new DbContextOptionsBuilder<NamedNeutralContext>().UseSqlServer("Server=unused;Database=unused").Options);
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("[Size] int NOT NULL CONSTRAINT [Vessel_Size_df] DEFAULT 1000", script, StringComparison.Ordinal);
+        Assert.Contains(
+            "[CreatedAt] datetimeoffset NOT NULL CONSTRAINT [Vessel_CreatedAt_df] DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains("CONSTRAINT [Vessel_CountedAt_df] DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
     }
 
     private static DbContextOptions<NeutralContext> Options() =>

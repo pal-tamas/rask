@@ -1,28 +1,30 @@
-using Rask.Wire;
-
 namespace Rask.Data;
 
 public static partial class Db
 {
     /// <summary>
-    ///     Takes the lock named <paramref name="name" /> in the app's database, held until the returned handle is
-    ///     disposed — so while one host of the app holds it, no other host, and no other caller on this one, gets it.
+    ///     The lock named <paramref name="name" /> in the app's database, taken when awaited and held until the returned
+    ///     handle is disposed — so while one host of the app holds it, no other host, and no other caller on this one, gets
+    ///     it: <c>await using var turn = await Db.Lock("pump:7").For(30.Seconds);</c>
     /// </summary>
-    /// <param name="name">What is locked, e.g. <c>"pump-" + pumpId</c>. On SQL Server at most 255 characters.</param>
-    /// <param name="wait">
-    ///     How long to wait for another holder to let go; <see langword="null" /> waits as long as it takes,
-    ///     <see cref="TimeSpan.Zero" /> not at all.
-    /// </param>
+    /// <param name="name">What is locked, e.g. <c>"pump:" + pumpId</c>. On SQL Server at most 255 characters.</param>
     /// <param name="cancellationToken">Cancels the wait; unset, the work this call belongs to does.</param>
-    /// <returns>The held lock. Disposing it lets go; disposing it again does nothing.</returns>
+    /// <returns>
+    ///     The lock still being worded. Awaited as it is, it waits for another holder as long as it takes;
+    ///     <c>.For(30.Seconds)</c> waits at most that long and then throws <see cref="TimeoutException" />, and
+    ///     <c>.For(TimeSpan.Zero)</c> does not wait at all. Awaiting it hands back the held lock: disposing that lets go,
+    ///     and disposing it again does nothing.
+    /// </returns>
     /// <exception cref="ArgumentException"><paramref name="name" /> is blank, or too long for SQL Server.</exception>
-    /// <exception cref="TimeoutException">Another holder still had the lock when <paramref name="wait" /> ran out.</exception>
-    /// <exception cref="NotSupportedException">The app's database has no named locks Rask knows.</exception>
     /// <remarks>
     ///     <code>
-    /// await using var turn = await Db.Lock("pump-" + pumpId, wait: 2.Minutes);
+    /// await using var turn = await Db.Lock("pump:" + pumpId).For(2.Minutes);
     /// await pump.Talk();
     ///     </code>
+    ///     <para>
+    ///         Awaiting it throws <see cref="TimeoutException" /> when another holder still has the lock once the wait
+    ///         runs out, and <see cref="NotSupportedException" /> on a database with no named locks Rask knows.
+    ///     </para>
     ///     <para>
     ///         The lock is the database's, on a connection of its own that it keeps for as long as it is held — never the
     ///         connection of a <c>Db.Transaction</c> in progress, so it outlives that transaction's commit or rollback,
@@ -35,14 +37,9 @@ public static partial class Db
     ///         process's own, one per database and name.
     ///     </para>
     /// </remarks>
-    public static Task<IAsyncDisposable> Lock(string name, TimeSpan? wait = null, CancellationToken cancellationToken = default)
+    public static Locking Lock(string name, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (wait < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(wait), wait, "A lock's wait is zero or more; null waits without end.");
-        }
-
-        return NamedLock.Take(name, wait, Ambient.Or(cancellationToken));
+        return new Locking(name, wait: null, cancellationToken);
     }
 }

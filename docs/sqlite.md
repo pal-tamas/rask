@@ -212,8 +212,10 @@ and mean what they would on the server:
 What it costs. Each comparison is a managed callback, as `EF_DECIMAL`'s is, and a `LIKE` pattern cannot use an index
 (it could not under SQLite's own `LIKE` either). The collation's name is in the schema: a tool that opens the file
 without registering it — the `sqlite3` shell, a viewer — answers `no such collation sequence: RASK_TEXT` for those
-columns. Rask's own connections always register it; a plain `UseSqlite` (a browser app's) does not, so there
-`OrderTextBy` leaves the columns as they are and `InTextOrder()` orders by the column as it is.
+columns. Rask's own connections always register it — `UseRaskSqlite` on a server, and `UseRaskFullTextSearch()` on a
+browser app's plain `UseSqlite(BrowserSqlite.ConnectionString(…))`, so every Rask SQLite compares alike (the invariant
+decimal order and `end - start` come with it there too). A `UseSqlite` with neither leaves the columns as they are,
+and `InTextOrder()` orders by the column as it is.
 
 ## Full-text search — FTS5 through EF Core
 

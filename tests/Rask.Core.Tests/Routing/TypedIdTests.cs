@@ -59,6 +59,20 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_string_id_refuses_the_empty_string_and_keeps_whitespace()
+    {
+        var empty = PlateId.TryParse("", out _);
+        var blank = PlateId.TryParse(" ", out var spaced);
+
+        var thrown = Assert.Throws<FormatException>(() => PlateId.Parse(""));
+
+        Assert.False(empty);
+        Assert.True(blank);
+        Assert.Equal(new PlateId(" "), spaced);
+        Assert.Contains("empty", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_Guid_id_is_new_each_time_and_time_ordered()
     {
         var first = DriverId.New();

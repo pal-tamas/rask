@@ -15,6 +15,9 @@ them until tagged releases begin.
   server reads a command, query, event or subscription with every value object made through its rules; one they
   refuse leaves the message unbuilt and the handler uncalled, and the request is answered `400` ("Validation
   failed") with every refusal under the field it was read at (`Driver.Name`, `Seats[1].Driver`, `Reserves[night]`).
+  A member declared without `?` (a value object, a record, a `string`, a list) that the message leaves out or sends
+  as `null` is refused the same way, with the sentence a form's required field says (`Rules.Required`); a `?` member
+  stays null.
   Only the browser's read of what the server answers — a result, a pushed event (`RemoteContract.LoadMessage`) —
   keeps the loading scope, so a value stored before a rule was tightened still reaches the page. A handler that
   re-checked with `X.Create` may drop it. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
@@ -41,6 +44,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`OrderTextBy` compares text case-insensitively on PostgreSQL 18+ and in the browser too.** Before: PostgreSQL only
+  ordered by the language's ICU collation, so `Where(x => x.Name == "csaba")` missed `Csaba` there; and a browser
+  app's plain `UseSqlite(…).UseRaskFullTextSearch()` got neither the `RASK_TEXT` collation nor `end - start` between
+  dates. After: through `UseRaskPostgres` a collation that ignores case or accents is a nondeterministic ICU collation
+  `rask_text` (`hu-HU-u-ks-level2` for `Hungarian_100_CI_AS`) that the migration or `EnsureCreated` creates
+  (`IF NOT EXISTS`) before the first table using it, and every text column gets it — equality, unique indexes,
+  `ORDER BY` and `LIKE`/`Contains` compare as SQL Server's do. `LIKE` on a nondeterministic collation needs PostgreSQL 18,
+  so on an older server that statement stops the migration and says why. `UseRaskFullTextSearch()` now adds the decimal
+  and text collations (registered on each open by one service interceptor, which `UseRaskSqlite` shares) and the
+  duration translation, so every Rask SQLite compares and computes alike. Parity: the Postgres class of
+  `TextOrderParityTests` now passes the case-insensitive facts.
 - **Every save asks the domain first: DataAnnotations, `IValidatableObject`, `Validate()` and `ValidateDelete()`.**
   Before: only the generated `Create(model)` / `Update(id, model)` ran a property's validation attributes, and an
   aggregate changed through its own methods and `Save()` (or `Update(id, apply)`, or a `db:` context the caller saves)
@@ -65,8 +79,9 @@ them until tagged releases begin.
   could not be a `[RouteParam]` without a hand-written `IParsable`, and an id over an `int` was never the store's
   identity. After: Rask's generator completes a top-level `readonly partial record struct …Id` with one positional
   `Value` of `int`, `long`, `Guid` or `string` with `New()` (a `Guid`'s only), `Parse`/`TryParse` (`IParsable<T>` and
-  `ISpanParsable<T>`), `ToString()` of the value, a scalar JSON converter and route binding; a member written by hand is
-  kept (docs/data.md#strongly-typed-ids).
+  `ISpanParsable<T>`; a string id refuses `""`), `ToString()` of the value, a scalar JSON converter and route binding;
+  a member written by hand is kept, and the generated `Create(model)` keys a Guid id with its `New()`
+  (docs/data.md#strongly-typed-ids).
 - **RASK165 warns when a `KeepEmpty`, `Columns` or `IsUnique("…")` is written where the generators cannot see it.**
   Before: one made in a helper, another class or `OnModelCreating` — or with a non-constant pattern, a member in a
   variable, a static call — configured the column, but the generated model, writes and read face silently acted as
@@ -170,6 +185,9 @@ them until tagged releases begin.
   not `{"value":…}`; a `Range` or a value object of several members as an object of its members. A value object is
   rebuilt through its generated `Create`: checked by the server, loaded as sent by the browser (see Security above).
   The generated API client is unchanged, since its server reads with System.Text.Json. See [the wire codecs](docs/cqrs.md#wire-codecs-and-rask053).
+- **A column pattern that makes a C# keyword names only the column.** `b.Columns(n => n.Door, "{Member}")` over a
+  `Gate(int @in, int @out)` named the read face's members `in` and `out`, which do not compile; the face now keeps
+  its own `Doorin`/`Doorout` beside the `in`/`out` columns, as for any pattern that makes no C# name.
 - **`Moment`, the value-object base of a wall-clock moment, beside `Day`.** Before: a moment of the day — when a
   fueling happened — was a bare `DateTime` or a `: Value` record with hand-written rules, and nothing kept a UTC time
   out of a column of wall-clock ones. After: `public sealed partial record FuelingMoment(DateTime Value) :
@@ -199,9 +217,9 @@ them until tagged releases begin.
   `InTextOrder()` now orders by the language's ICU collation (`COLLATE "hu-HU-x-icu"`); equality there stays
   case-sensitive (docs/data.md). A plain `UseSqlite` is unchanged. A collation whose language Rask cannot read is
   refused as the model is built, off SQL Server. Parity: `TextOrderParityTests` on SQL Server, PostgreSQL and SQLite.
-- **`Db.Lock(name, wait)`: one holder at a time, across every host of the app.** Before: a lock that must hold across
+- **`Db.Lock(name).For(wait)`: one holder at a time, across every host of the app.** Before: a lock that must hold across
   hosts (one host at a time talks to a pump) was hand-written `sp_getapplock` SQL on a connection the app kept open
-  itself, SQL Server only. After: `await using var turn = await Db.Lock("pump-" + id, wait: 2.Minutes);` takes it on a
+  itself, SQL Server only. After: `await using var turn = await Db.Lock("pump:" + id).For(2.Minutes);` (no `.For` waits as long as it takes, `.For(TimeSpan.Zero)` not at all) takes it on a
   connection of its own — `sp_getapplock` on SQL Server, `pg_advisory_lock` on PostgreSQL, an in-process lock on
   single-host SQLite — and a wait that runs out throws a `TimeoutException` naming the lock. The jobs battery's key lock
   now spells `sp_getapplock` through the same helper.
@@ -222,6 +240,9 @@ them until tagged releases begin.
   database's default — the latter its UTC clock — for rows Rask does not write, while Rask always writes the value the
   entity holds (a `Size` of 0 stays 0); and `HasIndex(…).IsUnique("…").Where(x => x.RevokedAt == null)` is a filtered
   index on SQL Server and a partial one elsewhere ([Data](docs/data.md#computed-columns-defaults-and-filtered-indexes-in-c)).
+  A unique rule filtered with `Where(…)` is asked as a query before the save (on a schema whose index may be missing)
+  over exactly the rows its C# keeps, and a row it leaves out is not checked; `ConstraintNames`' `Default` kind names
+  the defaults `Default(…)` declares on SQL Server, the clock's among them.
 - **`HasIndex(…).Covering(p => new { p.Amount })`: a covering index in one sentence for every database.** Before: a
   SQL Server app wrote `IncludeProperties(…)` — a SQL Server call that breaks a model built for SQLite tests — and a
   PostgreSQL one Npgsql's own `IncludeProperties`. After: `Covering` is written `INCLUDE (…)` on SQL Server and
@@ -1150,8 +1171,10 @@ them until tagged releases begin.
   case. After: an id over an `int` or a `long` keys an identity column exactly as the integer does (`Create(model)`
   inserts it, `Create(id, model)` is gone unless `Configure` says `ValueGeneratedNever()`), and an id over a `Guid`
   whose column is text — every `Guid` on SQLite, an existing schema's `nvarchar` key — is written as the id prints it,
-  in lower case. Rows already stored in upper case still load, but a `Where` on them no longer matches: lower-case the
-  column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
+  in lower case. Rows already stored in upper case still load, and a `Where` still finds them where the column compares
+  case-insensitively — `OrderTextBy` with a `_CI_` collation (`RASK_TEXT` on SQLite through `UseRaskSqlite`), SQL
+  Server's usual collations. Where the column compares as written (SQLite's default `BINARY`, PostgreSQL `text`) it no
+  longer matches: lower-case such a column once (`UPDATE … SET Id = lower(Id)`, and every column referencing it).
 - **BREAKING: a value object's rule is its base record's; a `public static Validate` beside its value is no longer
   asked.** Before: a one-value value object (`record struct DriverName(string Value)`) stated its rule as a
   `public static IEnumerable<string> Validate(string value)` — or a `ValueTask`/`Task` of it — which a form over the
