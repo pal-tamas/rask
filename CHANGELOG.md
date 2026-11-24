@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **[RASK150](docs/diagnostics.md#rask150) warns of a required value object that starts from a placeholder.** Before:
+  `public DriverName Driver { get; private set; } = DriverName.Create("Unknown");` compiled silently, so every new form
+  over the generated model showed *Unknown* and the save's rules were asked about a value nobody entered. After: the
+  warning names the property, and its quick-fix writes `= null!` (docs/data.md's `Delivery` example now does).
 - **A value object of several values is asked as the form is filled.** Before: only a `Range`'s ends were checked
   live; a `: Value` record of several members — `Opening(DateOnly? Date, decimal? Quantity)` with its own `Rules()` —
   spoke only on save. After: every member of its nested model asks the record's generated `TryCreate` beside the
@@ -77,6 +81,13 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **FluentValidation's built-in rules speak Rask's catalog.** Before: `RuleFor(x => x.Name).NotEmpty()` said
+  "A(z) 'Name' nem lehet üres." where `[Required]` on the same field said "Kötelező kitölteni.". After: `NotEmpty`,
+  `NotNull`, `MaximumLength`, `MinimumLength`, `Length`, `EmailAddress`, `Matches`, `CreditCard`, `InclusiveBetween`,
+  `ExclusiveBetween`, `GreaterThanOrEqualTo`, `LessThanOrEqualTo`, `NotEqual` and `IsInEnum` say the `RaskStrings`
+  sentence the equivalent DataAnnotations attribute says, in the reader's language; a rule with no catalog sentence,
+  or a language the catalog does not speak, keeps FluentValidation's own text, `WithMessage` still wins, and a
+  `ValidatorOptions.Global.LanguageManager` the app sets itself replaces Rask's.
 - **`Children<TEntity, TSpec>`: an aggregate's children as one read-only property, made what a form's rows say by `Sync`.**
   Before: every aggregate wrote a private `List<T>`, a public view and the same add/change/remove loop by hand (TA's
   `Supply.Change`, `ChipHolding`, `Tank.Change`…). After: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`

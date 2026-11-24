@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK173, RASK180, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK150, RASK165, RASK170–RASK173, RASK180, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -31,6 +31,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK129** | adds the missing `sealed` / `partial` to the value object's declaration |
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
+| **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -155,6 +156,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
 | [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
 | [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
+| [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
@@ -3315,6 +3317,32 @@ public sealed class SignUp
 ```
 
 **Fix:** name the property with `nameof(…)`, which the compiler checks.
+
+## RASK150
+
+**A required value object starts from a placeholder** · Warning
+
+A non-nullable value-object property of an aggregate or an entity — declared from one of Rask's base records — with
+an initializer that makes a value. The initializer is what every new row holds before anything sets it, so it is
+what a new form over the generated model starts from (the field already says `Unknown`), and what the save's rules
+are asked about when a path forgets to set it: a made-up value passing as a real one. A nullable property, a
+get-only one (a constant of the type), one initialized with `null!`, and any type that is not an entity are left
+alone.
+
+```csharp
+public sealed class Delivery : Aggregate<Guid, Model>
+{
+    public DriverName Driver { get; private set; } = DriverName.Create("Unknown");   // ⚠ RASK150
+    public DriverName? Mate { get; private set; }                                     // ✓ optional
+    public Litres Fuel { get; private set; } = null!;                                 // ✓ no value until one is given
+}
+```
+
+> 'Driver' on 'Delivery' starts as a made-up 'DriverName': a new form shows it and the rules are asked about it —
+> initialize it with 'null!' and set it in the factory
+
+**Fix:** initialize it with `null!` and set it where the aggregate is made (its factory, or the generated
+`Delivery.Create(model)`); the form then starts the field empty, and required. The quick-fix writes the `null!`.
 
 ## RASK165
 

@@ -82,15 +82,15 @@ public sealed class Rig : Aggregate<int, Model, Deletable>
 {
     private Rig() { }
 
-    public RigDriver Driver { get; private set; } = RigDriver.Create("Nobody");
+    public RigDriver Driver { get; private set; } = null!;
 
     public RigChip? Chip { get; private set; }
 
-    public RigPlate Plate { get; private set; } = RigPlate.Create("AAA-000");
+    public RigPlate Plate { get; private set; } = null!;
 
-    public RigLitres Tank { get; private set; } = RigLitres.Create(1);
+    public RigLitres Tank { get; private set; } = null!;
 
-    public RigAxles Axles { get; private set; } = RigAxles.Create(2);
+    public RigAxles Axles { get; private set; } = null!;
 
     public RigInspected? Inspected { get; private set; }
 
@@ -151,7 +151,7 @@ public sealed class Notebook : Aggregate<int, Model>
 {
     private Notebook() { }
 
-    public RigNote Note { get; private set; } = RigNote.Create("");
+    public RigNote Note { get; private set; } = null!;
 }
 
 /// <summary>An aggregate written through its generated model, holding a range that checks itself.</summary>
@@ -159,7 +159,7 @@ public sealed class Leg : Aggregate<int, Model>
 {
     private Leg() { }
 
-    public RigKm Km { get; private set; } = RigKm.Create(0, 1);
+    public RigKm Km { get; private set; } = null!;
 }
 
 public sealed class Haul : Aggregate<int>
