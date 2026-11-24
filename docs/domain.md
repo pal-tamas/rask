@@ -1965,10 +1965,6 @@ public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, 
   entry: it never passes through a save.
 
 **The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
-converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
-it can actually be expressed.
-
-**The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](data.md#mapping-rules-the-conventions-dont-cover), which is where
 it can actually be expressed.
 
