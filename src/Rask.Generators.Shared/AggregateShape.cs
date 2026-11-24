@@ -25,6 +25,7 @@ internal static class AggregateShape
     public const string TenantColumn = "TenantId";
 
     private const string RaskDataNamespace = "Rask.Data";
+    private const string RaskValuesNamespace = "Rask.Values";
     private const string EntityBase = "Entity";
     private const string AggregateBase = "Aggregate";
 
@@ -248,27 +249,27 @@ internal static class AggregateShape
 
     /// <summary>
     ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
-    ///     <c>Day</c> or <c>Moment</c> of Rask.Data, derived from directly — or null for any other type.
+    ///     <c>Day</c> or <c>Moment</c> of Rask.Values, derived from directly — or null for any other type.
     /// </summary>
     public static string? ValueBaseOf(INamedTypeSymbol type) =>
         DeclaredValueBaseOf(type) is ("Text" or "Number" or "Whole" or "Day" or "Moment") and var valueBase ? valueBase : null;
 
     /// <summary>
-    ///     The Rask.Data base record a value object checked as it is made derives from directly — <c>Value</c>,
+    ///     The Rask.Values base record a value object checked as it is made derives from directly — <c>Value</c>,
     ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
     /// </summary>
     public static string? DeclaredValueBaseOf(INamedTypeSymbol type) =>
         type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
-        IsRaskDataType(valueBase)
+        IsRaskValuesType(valueBase)
             ? valueBase.Name
             : null;
 
-    /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Data's <c>Value</c>.</summary>
+    /// <summary>Whether <paramref name="type" /> derives, at any depth, from Rask.Values' <c>Value</c>.</summary>
     public static bool IsValueRecord(INamedTypeSymbol type)
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
-            if (current is { Name: "Value", Arity: 0, ContainingType: null } && IsRaskDataType(current))
+            if (current is { Name: "Value", Arity: 0, ContainingType: null } && IsRaskValuesType(current))
             {
                 return true;
             }
@@ -323,6 +324,9 @@ internal static class AggregateShape
 
     private static bool IsRaskDataType(INamedTypeSymbol type) =>
         string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskDataNamespace, StringComparison.Ordinal);
+
+    private static bool IsRaskValuesType(INamedTypeSymbol type) =>
+        string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskValuesNamespace, StringComparison.Ordinal);
 
     private static bool HasBackingField(IPropertySymbol property)
     {

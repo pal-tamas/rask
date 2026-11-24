@@ -44,7 +44,6 @@
         <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj" />
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj" />
         <Project Path="src/Rask.Testing/Rask.Testing.csproj" />
-        <Project Path="src/Rask.Testing.Data/Rask.Testing.Data.csproj" />
         <Project Path="src/Rask.Testing.Playwright/Rask.Testing.Playwright.csproj" />
         <Project Path="src/Rask.Web/Rask.Web.csproj" />
         <Project Path="src/Rask.WebPush/Rask.WebPush.csproj" />

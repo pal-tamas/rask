@@ -20,7 +20,7 @@ public sealed partial class BindTimingDemo : Component
                     .Id("bt-name")
                     .Description("Sent and checked as you type.")
                     .Live()
-                    .Validate(DestinationName.Validate)
+                    .Validate(name => DestinationName.TryCreate(name, out _, out var problems) ? [] : problems.Select(p => p.Message))
                     .Validate(NameIsFree),
                 Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
                     .Id("bt-notes")

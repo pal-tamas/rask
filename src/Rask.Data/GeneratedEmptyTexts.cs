@@ -20,7 +20,7 @@ public static class GeneratedEmptyTexts
     {
         ArgumentNullException.ThrowIfNull(make);
 
-        using (Loading.Begin())
+        using (RowLoading.Begin())
         {
             return make();
         }

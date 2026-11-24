@@ -48,8 +48,9 @@ Form.Model(_model)
 
 ### Rules in a value object
 
-A field's simple rules — required, length, format — belong to the value, not to one form. With
-[Rask.Data](data.md#declared-from-a-base-record), declare the value object from a base record and its constructor
+A field's simple rules — required, length, format — belong to the value, not to one form. Declare the
+value object from one of Rask's [base records](data.md#declared-from-a-base-record) (`Rask.Values`, in the `Rask` package, so
+a browser app has them too) and its constructor
 checks them — `public sealed partial record DestinationName(string Value) : Text(Value, MinLength: 2, MaxLength: 255);`
 — and a form bound to the aggregate's generated model asks the same rules
 [by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
@@ -123,7 +124,7 @@ A property the aggregate declares non-nullable is required by its type, with no 
 automatic validators on or off; a plain property that cannot be null (`int Weight`, `string Plate`) is required
 the same way, in the framework's one sentence — *This field is required.*, in the reader's language.
 
-A value object declared from one of Rask.Data's [base records](data.md#declared-from-a-base-record) —
+A value object declared from one of Rask's [base records](data.md#declared-from-a-base-record) —
 `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000)` — is asked by every field
 bound to it on the aggregate's generated model (`DeliveryModel.Driver`), with nothing written on the field: its
 rules are the base's arguments and its own `Rules()`, checked by its constructor, and the field runs its generated `DriverName.__Problems`,

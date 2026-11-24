@@ -56,7 +56,7 @@ internal static class FailedMaterializations
         {
             if (string.Equals(value.Key, Failed, StringComparison.Ordinal))
             {
-                Loading.Abandon();
+                RowLoading.Abandon();
             }
         }
 

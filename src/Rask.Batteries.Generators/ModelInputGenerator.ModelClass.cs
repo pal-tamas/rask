@@ -416,7 +416,7 @@ public sealed partial class ModelInputGenerator
         // A value object that checks itself as it is made (Range, Value) refuses under its own members: `End`
         // becomes `Km.End`, the field the form shows it under.
         return member.ValueObject is { SingleValue: false, Checked: true }
-            ? "global::Rask.Data.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")"
+            ? "global::Rask.Values.GeneratedValueRules.Under(\"" + member.Name + "\", () => " + value + ")"
             : value;
     }
 

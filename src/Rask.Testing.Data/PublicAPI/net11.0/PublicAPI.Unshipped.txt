@@ -1,5 +1,0 @@
-#nullable enable
-Rask.Testing.TestMakes
-Rask.Testing.TestMakes.extension(Rask.Testing.Test!)
-static Rask.Testing.TestMakes.Make<T>() -> T!
-static Rask.Testing.TestMakes.extension(Rask.Testing.Test!).Make<T>() -> T!

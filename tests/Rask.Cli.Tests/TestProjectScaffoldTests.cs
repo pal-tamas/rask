@@ -19,21 +19,9 @@ public sealed class TestProjectScaffoldTests
         var csproj = files["Shop.Tests/Shop.Tests.csproj"];
         Assert.Contains("""<ProjectReference Include="..\Shop.csproj"/>""", csproj, StringComparison.Ordinal);
         Assert.Contains($"""<PackageReference Include="Rask.Testing" Version="{Version}"/>""", csproj, StringComparison.Ordinal);
-        Assert.Contains($"""<PackageReference Include="Rask.Testing.Data" Version="{Version}"/>""", csproj, StringComparison.Ordinal);
         Assert.Contains("""<PackageReference Include="Microsoft.NET.Test.Sdk" """, csproj, StringComparison.Ordinal);
         Assert.Contains("""<PackageReference Include="xunit.v3" """, csproj, StringComparison.Ordinal);
         Assert.Contains("""<PackageReference Include="xunit.runner.visualstudio" """, csproj, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_new_wasm_app_tests_without_the_data_half_of_the_testing_package()
-    {
-        var files = Wasm(off: []);
-
-        var csproj = files["Shop.Tests/Shop.Tests.csproj"];
-
-        Assert.Contains("""<PackageReference Include="Rask.Testing" """, csproj, StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Testing.Data", csproj, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -143,7 +131,6 @@ public sealed class TestProjectScaffoldTests
 
         Assert.Contains("dotnet test", with.Notes, StringComparison.Ordinal);
         Assert.Contains("Rask.Testing", with.Packages);
-        Assert.Contains("Rask.Testing.Data", with.Packages);
         Assert.DoesNotContain("dotnet test", without.Notes, StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Testing", without.Packages);
     }

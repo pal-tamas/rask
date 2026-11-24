@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK127 — a value object declared from a Rask.Data base record is made with <c>new</c> or copied with
+///     RASK127 — a value object declared from a Rask base record (Rask.Values) is made with <c>new</c> or copied with
 ///     <c>with</c> outside its own type.
 /// </summary>
 /// <remarks>
@@ -23,7 +23,7 @@ public sealed class ValueObjectCreationAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask127 = new(
         "RASK127",
         "A value object declared from a base record is made past its rules",
-        "'{0}' is declared from Rask.Data.{1}, so it is made only by '{0}.Create(…)', which checks its rules under the field it names — {2}",
+        "'{0}' is declared from Rask.Values.{1}, so it is made only by '{0}.Create(…)', which checks its rules under the field it names — {2}",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,

@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING: the value-object bases moved from Rask.Data into the `Rask` package, namespace `Rask.Values`.** Before:
+  `Value`, `Text`, `Number`, `Whole`, `Day`, `Range` and `Problem` were `Rask.Data`'s, so a browser app or the site,
+  with no EF Core, could not declare a value object from them. After: they are Rask.Core's (with `Moment`, the declared-rules
+  reader and `ValueLoading`), a browser app writes `using Rask.Values;`, and Rask.Data — which now depends on `Rask` —
+  imports the namespace for a data app as before (`Range` still aliased over `System.Range`) and keeps only the
+  column mapping and the loading switch's EF Core half. `RaskValidationException` and
+  `RequestValidationError` moved assembly with them, into Rask.Wire, keeping the `Rask.Cqrs` namespace. A file that
+  named `Rask.Data.Range` or `Rask.Data.Text` writes `Rask.Values.…`; a value is now worded from Rask's strings catalog
+  directly, so the generated `__RaskValueWords` module initializer is gone. The site's `DestinationName` demo is
+  declared `: Text(Value, MaxLength: 255, Pattern: …)`, and says *This field is required.* for an empty name.
+
 ### Security
 - **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:
   the generated CQRS codec rebuilt every value object it read inside the loading scope a row is read in, on BOTH
@@ -193,19 +205,13 @@ them until tagged releases begin.
   MaxLength: 17, Upper: true);` keeps it culture-invariant in capitals (Hungarian `ő` → `Ő` included), after the trim
   and before the lengths and the pattern are checked. A stored value still loads as stored; the bound input is not
   drawn in capitals yet.
-- **`Test.Make<T>()` (Rask.Testing.Data) is a value object its rules accept.** Before: a test that needed a `Vin`, a
+- **`Test.Make<T>()` (Rask.Testing) is a value object its rules accept.** Before: a test that needed a `Vin`, a
   `KmRange` or a `TaxNumber` wrote a literal that matched today's rules, and broke when a rule was tightened. After:
   `Test.Make<Vin>()` reads the rules the record hands its base — `Text` lengths and a simple `Pattern`, `Number`/`Whole`
   `Min`/`Max`/`Scale`, `Day` and `Moment` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
   makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
   member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
-  at `X.Create(…)`.
-- **`Rask.Testing.Data` is a new package, and `Rask.Testing` no longer brings Rask.Data or EF Core.** Before: making
-  `Test.Make<T>()` part of Rask.Testing made it reference Rask.Data, so a test project that only renders components
-  restored EF Core and its providers. After: `Test.Make<T>()` ships in `Rask.Testing.Data` (still called
-  `Test.Make<Vin>()`, a static extension of `Test`), and Rask.Testing is back to the core alone. The `server`
-  template's test project references both; a wasm one stays on Rask.Testing. Add `dotnet add package
-  Rask.Testing.Data` to a test project that calls `Test.Make`.
+  at `X.Create(…)`. It reads the rules Rask.Core's bases were handed, so Rask.Testing still needs no Rask.Data or EF Core.
 - **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
   several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
   `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the
