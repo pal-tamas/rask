@@ -16,8 +16,8 @@ public sealed class DatabaseDefaultTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Size\" INTEGER NOT NULL DEFAULT 1000", script, StringComparison.Ordinal);
-        Assert.Contains("\"Kind\" INTEGER NOT NULL DEFAULT 1", script, StringComparison.Ordinal);
+        Assert.Contains("\"Size\" INTEGER NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
+        Assert.Contains("\"Kind\" INTEGER NOT NULL DEFAULT (1)", script, StringComparison.Ordinal);
         Assert.Contains("\"CreatedAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00')", script, StringComparison.Ordinal);
         Assert.Contains("\"CountedAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))", script, StringComparison.Ordinal);
     }
@@ -82,13 +82,92 @@ public sealed class DatabaseDefaultTests
     }
 
     [Fact]
-    public void The_wall_clock_is_refused_since_the_database_does_not_know_the_app_s_zone()
+    public void Every_default_is_the_SQL_a_hand_written_HasDefaultValueSql_would_have_said()
+    {
+        using var context = new NeutralContext(Options());
+
+        var tank = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(StorageTank))!;
+        var size = tank.FindProperty(nameof(StorageTank.Size))!;
+
+        Assert.Equal("1000", size.GetDefaultValueSql());
+        Assert.False(size.TryGetDefaultValue(out _));
+    }
+
+    [Fact]
+    public void A_stored_default_the_value_object_refuses_is_written_as_the_column_stores_it()
+    {
+        using var context = new NeutralContext(Options());
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("\"Number\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
+        Assert.Contains("\"Locked\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_stored_default_of_another_type_than_the_column_s_fails_the_model_build_naming_it()
+    {
+        using var context = RefusedContext.Declaring(m => m.Entity<PumpNozzle>(b =>
+        {
+            ValueObjectColumn.Map<NozzleNumber, int>(b.Property(n => n.Number), v => v.Value);
+            ValueObjectColumn.Map<NozzleSent, DateTime>(b.Property(n => n.Sent), v => v.Value);
+            b.StoredDefault(n => n.Number, "0");
+        }));
+
+        var refused = Assert.Throws<InvalidOperationException>(() => context.Model);
+
+        Assert.Contains("StoredDefault(x => x.Number, 0)", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("stores a Int32, and the default is a String", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_wall_clock_is_the_database_s_local_time_for_a_date_time_and_a_value_object_over_one()
+    {
+        using var context = new NeutralContext(Options());
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("\"Sent\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
+        Assert.Contains("\"SeenAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_row_written_without_a_number_reads_back_the_legacy_zero_and_the_local_time()
+    {
+        await using var connection = await Open();
+        await using var context = new NeutralContext(Options(connection));
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        var before = DateTime.Now.AddMinutes(-1);
+
+        await context.Database.ExecuteSqlRawAsync(
+            "INSERT INTO \"PumpNozzle\" (\"Id\") VALUES ('7d3f4b1e-0000-0000-0000-000000000002')", TestContext.Current.CancellationToken);
+
+        var row = await context.Database.SqlQueryRaw<int>("SELECT \"Number\" AS \"Value\" FROM \"PumpNozzle\"")
+            .SingleAsync(TestContext.Current.CancellationToken);
+        var sent = await context.Database.SqlQueryRaw<DateTime>("SELECT \"SeenAt\" AS \"Value\" FROM \"PumpNozzle\"")
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, row);
+        Assert.InRange(sent, before, DateTime.Now.AddMinutes(1));
+    }
+
+    [Fact]
+    public void The_wall_clock_is_refused_for_a_moment_with_an_offset()
+    {
+        using var context = RefusedContext.Declaring(m => m.Entity<StorageTank>().Default(t => t.CreatedAt, () => Clock.Wall));
+
+        var refused = Assert.Throws<InvalidOperationException>(() => context.Model);
+
+        Assert.Contains("a wall-clock time has no offset", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Today_is_refused_since_the_database_keeps_no_calendar_day()
     {
         var tank = new ModelBuilder().Entity<StorageTank>();
 
-        var refused = Assert.Throws<ArgumentException>(() => tank.Default(t => t.CountedAt, () => Clock.Wall));
+        var refused = Assert.Throws<ArgumentException>(() => tank.Default(t => t.CountedAt, () => Clock.Today));
 
-        Assert.Contains("the database does not know the app's time zone", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("() => Clock.Wall", refused.Message, StringComparison.Ordinal);
     }
 
     private static async Task<SqliteConnection> Open()

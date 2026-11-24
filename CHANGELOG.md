@@ -56,6 +56,20 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`x.Loosely()` searches text case and accents aside on every database.** Before: a picker's search wrote
+  `EF.Functions.Collate(x, "Latin1_General_100_CI_AI").Contains(typed)`, and SQLite answered "no such collation
+  sequence". After: `Where(d => d.Name.Loosely().Contains(typed))` is `COLLATE Latin1_General_100_CI_AI` on SQL Server,
+  `COLLATE "RASK_SEARCH"` (registered on every connection) with `Contains`/`StartsWith`/`EndsWith` matched by
+  `rask_search(…)` on SQLite, and `COLLATE rask_search`, a nondeterministic ICU collation the migrations create, on
+  PostgreSQL 18+. `==` and `OrderBy` compare the same way; nothing reaches the schema on SQL Server and SQLite. RASK177
+  suggests it for `EF.Functions.Collate`.
+- **`b.StoredDefault(p => p.HardwareNumber, 0)` states a default as the column stores it.** Before: `Default` took the
+  value object, so a legacy `0` a `HardwareNumber` (at least 1) refuses could not be said at all. After: the raw value
+  goes in, its type checked against the column's as the model is built.
+- **`Default(x => x.SentAt, () => Clock.Wall)` is the database's wall clock.** Before: refused, leaving
+  `HasDefaultValueSql("CURRENT_TIMESTAMP")`. After: `CURRENT_TIMESTAMP` on SQL Server, `LOCALTIMESTAMP` on PostgreSQL,
+  SQLite's `'localtime'` — the local time of the zone the database server runs in — for a `DateTime` or a value object
+  over one.
 - **Five model traits for the DDD plan's history, tenancy, keys and gates (F-30, F-31, F-32, F-34, F-35).**
   - `SoftRemoved` on a child (`VirtualTank : Entity<VirtualTankId, SoftRemoved>`): a child its aggregate lets go of
     keeps its row, stamped `DeletedAt`, with what it holds — hidden from the aggregate's load and its read face,
@@ -204,6 +218,12 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **BREAKING: `Default(x => x.Size, 1000)` is the column's default SQL, as the docs said.** Before: it was EF Core's
+  `HasDefaultValue(1000)`, so a model moving from `HasDefaultValueSql("1000")` made a migration altering every
+  default. After: Rask writes `HasDefaultValueSql` in the provider's literal (a SQL Server `bit` bare, `0`/`1`), so that
+  move makes an empty migration. A model already on `Default(…)` gets one migration that restates each default, and
+  changes no row. The clock overload now takes the clock's own type (`Default<TEntity, TProperty, TClock>`), which is
+  what lets a value object over a `DateTime` default to it.
 - **The data docs teach one way: the domain.** `docs/data.md` is split in three — `docs/domain.md` (aggregates,
   entities, value objects, typed ids, children, operations and their entries, `Refuse`, `LockedBy`, events, the
   transaction boundary, testing on SQLite in memory), `docs/data.md` (storage: the read face, mapping rules, indexes,

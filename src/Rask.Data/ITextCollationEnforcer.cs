@@ -11,4 +11,10 @@ internal interface ITextCollationEnforcer
 {
     /// <summary>The name the collation is registered under on each connection, as the schema and the SQL write it.</summary>
     string Collation { get; }
+
+    /// <summary>
+    ///     The name of the collation <see cref="SearchTextExtensions.Loosely" /> compares by — case, accents, kana and width
+    ///     aside — as the provider registers or creates it.
+    /// </summary>
+    string SearchCollation { get; }
 }
