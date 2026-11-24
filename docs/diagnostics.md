@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK172, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK173, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -159,6 +159,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
+| [RASK173](#rask173) | Warning | A factory is public, so its generated entry cannot be called |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3201,7 +3202,7 @@ the form, or in the aggregate's unique rule (`IsUnique("…")`), which a form ov
 **Not reported:** a value object declared from a base record, whatever else it declares; an instance `Validate`, or
 one that implements an interface (`IValidatableObject`); a value object of several values; and any type that is
 not a value object held by an aggregate — so a static method a hand-written form names on a field
-(`.Validate(DestinationName.Validate)`) is left alone.
+(`.Validate(Rules.Destination)`) is left alone; a value object's own rule is its generated `X.Check`.
 
 RASK102 said a `Validate` was not the shape of a rule while that convention was read; it is retired with it.
 
@@ -3398,3 +3399,20 @@ public static void Configure(EntityTypeBuilder<Supply> b)
 
 **Fix:** write the call directly in the aggregate's own static `Configure`, the operation as a lambda and the roles as
 a `const string` or a literal.
+
+## RASK173
+
+**A factory is public, so its generated entry cannot be called** · Warning
+
+A static method of a `partial` aggregate that returns it is its factory, and gets a public static entry of the same
+name that builds it, asks its roles and rules, saves it in one transaction and returns its id. The entry takes the same
+parameters, so a public factory wins every call — `await Supply.Register(…)` would not even compile — and no entry is
+generated for it.
+
+```csharp
+public static Supply Register(CompanyId company, SupplyDetails details) => …;    // ⚠ RASK173
+private static Supply Register(CompanyId company, SupplyDetails details) => …;   // ✓ SupplyId id = await Supply.Register(…)
+```
+
+**Fix:** make the factory `private` or `internal`. Code that only wants the aggregate built, not saved, calls it from
+inside the aggregate (or the assembly, when it is `internal`).

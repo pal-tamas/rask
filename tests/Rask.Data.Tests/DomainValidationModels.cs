@@ -4,7 +4,7 @@ namespace Rask.Data.Tests;
 
 // An aggregate written the DataAnnotations way, with a rule of its own over its rows and one about its delete: what
 // every save of it is asked (DomainValidationTests).
-public sealed partial class Voyage : Aggregate<Guid, Versioned, Model, Deletable>
+public sealed class Voyage : Aggregate<Guid, Versioned, Model, Deletable>
 {
     private readonly List<VoyageLeg> _legs = [];
 
@@ -36,10 +36,6 @@ public sealed partial class Voyage : Aggregate<Guid, Versioned, Model, Deletable
     }
 
     public void Remove(VoyageLeg leg) => _legs.Remove(leg);
-
-    // Only a captain or an admiral seals a voyage through its generated entry (OperationEntryTests).
-    public static void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Voyage> b) =>
-        b.Operation(v => v.Seal, roles: "Captain,Admiral");
 
     private IEnumerable<Problem> Validate()
     {

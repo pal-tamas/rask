@@ -80,6 +80,18 @@ public static class SqliteCollations
     public const string TextOrder = "RASK_TEXT";
 
     /// <summary>
+    /// The name of the collating sequence every <see cref="DateTimeOffset"/> column of a <c>UseRaskSqlite</c> model is
+    /// created with: two moments compare by the instant they name, whatever offset each was written in — as SQL
+    /// Server's <c>datetimeoffset</c> compares them.
+    /// </summary>
+    /// <remarks>
+    /// The value is stored exactly as EF Core stores it (<c>2026-03-04 10:00:00+02:00</c>, the offset kept); only how
+    /// two of them compare changes. The name is in the schema, so a tool that opens the file without registering it
+    /// answers <c>no such collation sequence: RASK_MOMENT</c> for those columns.
+    /// </remarks>
+    public const string MomentOrder = "RASK_MOMENT";
+
+    /// <summary>
     /// Registers Rask's collating sequences on an open <paramref name="connection"/>, replacing any
     /// same-named sequence already registered on it. Call on every open.
     /// </summary>
@@ -89,6 +101,53 @@ public static class SqliteCollations
         ArgumentNullException.ThrowIfNull(connection);
 
         connection.CreateCollation(DecimalOrder, static (x, y) => CompareDecimal(x, y));
+        connection.CreateCollation(MomentOrder, static (x, y) => CompareMoment(x, y));
+    }
+
+    /// <summary>
+    /// Orders two values from a <see cref="DateTimeOffset"/> column by the instant each names, reading both with
+    /// <see cref="CultureInfo.InvariantCulture"/>; the same instant in two offsets is equal.
+    /// </summary>
+    /// <remarks>
+    /// Total and non-throwing for the reason <see cref="CompareDecimal"/> is: text that is not a moment sorts after
+    /// every moment, and such values among themselves compare ordinally.
+    /// </remarks>
+    internal static int CompareMoment(string? x, string? y)
+    {
+        if (ReferenceEquals(x, y))
+        {
+            return 0;
+        }
+
+        if (x is null)
+        {
+            return -1;
+        }
+
+        if (y is null)
+        {
+            return 1;
+        }
+
+        var xIsMoment = DateTimeOffset.TryParse(x, CultureInfo.InvariantCulture, DateTimeStyles.None, out var xValue);
+        var yIsMoment = DateTimeOffset.TryParse(y, CultureInfo.InvariantCulture, DateTimeStyles.None, out var yValue);
+
+        if (xIsMoment && yIsMoment)
+        {
+            return xValue.UtcTicks.CompareTo(yValue.UtcTicks);
+        }
+
+        if (xIsMoment)
+        {
+            return -1;
+        }
+
+        if (yIsMoment)
+        {
+            return 1;
+        }
+
+        return string.CompareOrdinal(x, y);
     }
 
     /// <summary>
