@@ -95,6 +95,51 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
     }
 
     [Fact]
+    public async Task The_newest_notes_checklist_is_a_list_of_rows_kept_across_a_reload_and_a_blank_row_is_refused_under_itself()
+    {
+        var context = await playwright.Browser.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenAsync(page);
+        await Expect(page.Locator("#add-item")).ToBeVisibleAsync(new() { Timeout = 15_000 });
+
+        // Form.For(Note.Checklist, id): rows added with the mouse, typed into, saved through Note.Checklist(id, version, items).
+        await page.ClickAsync("#add-item");
+        await page.ClickAsync("#item-0");
+        await page.Keyboard.TypeAsync("Milk");
+        await page.ClickAsync("#add-item");
+        await page.ClickAsync("#item-1");
+        await page.Keyboard.TypeAsync("Bread");
+        await page.ClickAsync("#save-checklist");
+
+        // The note's children now: read back as a row each, after the database has been kept and restored. The rows come
+        // back in the order the store loads the children in, which it does not promise, so they are read as a set.
+        await page.WaitForTimeoutAsync(3_000);
+        await page.ReloadAsync();
+        await Expect(page.Locator("#item-1")).ToHaveCountAsync(1, Boot);
+        string[] items = [await page.InputValueAsync("#item-0"), await page.InputValueAsync("#item-1")];
+        Assert.Equal(["Bread", "Milk"], items.Order(StringComparer.Ordinal));
+
+        // A row emptied and left: the operation's dry run says what Checklist refuses, under that row alone.
+        await page.ClickAsync("#item-1");
+        await page.Keyboard.PressAsync("ControlOrMeta+A");
+        await page.Keyboard.PressAsync("Backspace");
+        await page.Keyboard.PressAsync("Tab");
+        await Expect(page.Locator("#item-1-error")).ToContainTextAsync("An item says something.", new() { Timeout = 15_000 });
+        await Expect(page.Locator("#item-0-error")).ToBeHiddenAsync();
+
+        // Taken away instead: the row goes, and the save keeps only the other.
+        await page.ClickAsync("#remove-item-1");
+        await Expect(page.Locator("#item-1")).ToHaveCountAsync(0, Count);
+        await page.ClickAsync("#save-checklist");
+        await page.WaitForTimeoutAsync(3_000);
+        await page.ReloadAsync();
+        await Expect(page.Locator("#item-0")).ToHaveValueAsync(items[0], new() { Timeout = 60_000 });
+        await Expect(page.Locator("#item-1")).ToHaveCountAsync(0, Count);
+
+        await context.CloseAsync();
+    }
+
+    [Fact]
     public async Task A_note_is_edited_in_a_dialog_over_the_list_and_deleted_unless_its_rules_keep_it()
     {
         var context = await playwright.Browser.NewContextAsync();

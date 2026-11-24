@@ -107,6 +107,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             term.Length > 0 ? Results(term, hits) : Recent(notes),
 
             notes.Data is [var newest, ..] ? Rename(newest.Id) : null,
+            notes.Data is [var first, ..] ? Checklist(first.Id) : null,
 
             Editor(),
             Ui.Confirm,
@@ -141,6 +142,29 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             Form.For(Note.Rename, newest)[f => [
                 Ui.Field.Bind(() => f.Title).Blur().Label("New title"),
                 Ui.Button.Id("rename-note").Type(Ui.ButtonType.Submit)["Rename"]
+            ]]
+        ];
+
+    // A form over an operation that takes rows: Checklist(IReadOnlyList<NoteItemSpec>) is an editable list, a row per
+    // item the note holds, each row's field told under that row what Checklist refuses (Items[1].Text) as it is left.
+    private static Component Checklist(Guid newest) =>
+        Section.Aria("label", "The newest note's checklist")[
+            H2["The newest note's checklist"],
+            Form.For(Note.Checklist, newest)[f => [
+                Ui.Table.Id("checklist")[
+                    Ui.TableColumns[Ui.TableColumn["Item"], Ui.TableColumn.End[""]],
+                    Ui.TableRows[f.Items.Select((row, i) => Ui.TableRow.Key(i)[
+                        Ui.TableCell[
+                            Ui.Input.Bind(() => row.Text).Id($"item-{i}").Attributes(("aria-label", $"Item {i + 1}")),
+                            Ui.Error.For(() => row.Text).Id($"item-{i}-error")
+                        ],
+                        Ui.TableCell.End[
+                            Ui.Button.Ghost.Sm.Id($"remove-item-{i}").OnClick(() => f.Items.Remove(row))["Remove"]
+                        ]
+                    ])]
+                ],
+                Ui.Button.Id("add-item").OnClick(() => f.Items.Add(new()))["Add an item"],
+                Ui.Button.Primary.Id("save-checklist").Type(Ui.ButtonType.Submit)["Save the checklist"]
             ]]
         ];
 

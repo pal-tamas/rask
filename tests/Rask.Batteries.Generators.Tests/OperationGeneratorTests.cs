@@ -401,6 +401,133 @@ public class OperationGeneratorTests
         Assert.Contains(": global::Rask.Values.Change<global::Shop.Secret>.Keep", forms, StringComparison.Ordinal);
     }
 
+    private const string Cargo = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        using Rask.Values;
+
+        namespace Shop
+        {
+            public sealed partial record Tonnage(decimal Value) : Number(Value, Min: 0.1m, Scale: 2);
+            public sealed partial record Hold(string Value) : Text(Value, MaxLength: 8);
+            public sealed record CargoPartSpec(Guid? Id, Hold Hold, Tonnage Tonnes, int Crates, bool Fragile);
+
+            public sealed partial class Cargo : Aggregate<Guid, Versioned>
+            {
+                public Children<CargoPart, CargoPartSpec> Parts { get; } = new();
+                public void Load(IReadOnlyList<CargoPartSpec> parts) => Parts.Sync(parts, s => s.Id, CargoPart.For, (p, s) => p.Take(s));
+            }
+
+            public sealed class CargoPart : Entity<Guid>
+            {
+                public Hold Hold { get; private set; } = null!;
+                public decimal Tonnes { get; private set; }
+                public int Crates { get; private set; }
+                internal static CargoPart For(CargoPartSpec spec) { var part = new CargoPart { Id = Guid.CreateVersion7() }; part.Take(spec); return part; }
+                internal void Take(CargoPartSpec spec) => (Hold, Tonnes, Crates) = (spec.Hold, spec.Tonnes.Value, spec.Crates);
+            }
+        }
+        """;
+
+    [Fact]
+    public void A_list_of_rows_is_an_editable_list_filled_from_the_children_each_row_made_under_its_place()
+    {
+        var run = RunWithForms(Cargo);
+
+        var forms = run.GeneratedSource("Shop.Cargo.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::System.Collections.Generic.List<PartsRow> Parts { get; set; } = [];", forms, StringComparison.Ordinal);
+        Assert.Contains("public sealed class PartsRow", forms, StringComparison.Ordinal);
+        Assert.Contains("public global::System.Guid? Id { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public int? Crates { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public bool Fragile { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("Parts = [.. global::System.Linq.Enumerable.Select(aggregate.Parts, static __PartsChild => new CargoLoadInput.PartsRow { Id = __PartsChild.Id, Hold = __PartsChild.Hold.Value, Tonnes = __PartsChild.Tonnes, Crates = __PartsChild.Crates })]", forms, StringComparison.Ordinal);
+        Assert.Contains("parts = [.. LoadPartsMade(input.Parts, \"Parts\", failures)];", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.Tonnage.Create(__given, __at + \".Tonnes\")", forms, StringComparison.Ordinal);
+        Assert.Contains("__made.Add(new global::Shop.CargoPartSpec(Id: __m_Id, Hold: __m_Hold, Tonnes: __m_Tonnes, Crates: __m_Crates, Fragile: __m_Fragile));", forms, StringComparison.Ordinal);
+        Assert.Contains("RegisterFieldShapes(typeof(CargoLoadInput.PartsRow), LoadPartsShapeOf);", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Hold\" or \"Tonnes\" or \"Crates\";", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Crates\" => global::Rask.Core.Forms.StatedRules.Shape(typeof(global::Shop.CargoPart), \"Crates\", new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Whole)),", forms, StringComparison.Ordinal);
+        Assert.Contains("DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties, typeof(CargoLoadInput.PartsRow))", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_list_whose_rows_hold_a_member_no_field_holds_gets_no_form()
+    {
+        var run = RunWithForms(Tagged("""
+            public sealed record Pair(int A, int B);
+            public sealed record TagSpec(Guid? Id, Pair Pair);
+            public void Retag(System.Collections.Generic.IReadOnlyList<TagSpec> tags) { }
+            """));
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.False(run.HasGeneratedSource(".OperationForms"));
+    }
+
+    private const string Depot = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        using Rask.Values;
+
+        namespace Shop
+        {
+            public sealed partial record KmRange(int Start, int End) : Rask.Values.Range(Start, End, Strict: true, Min: 0);
+
+            public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
+            {
+                protected override IEnumerable<Problem> Rules()
+                {
+                    if (Quantity < 0)
+                    {
+                        yield return Problem.At(Quantity, "An opening is never below zero.");
+                    }
+                }
+            }
+
+            public sealed partial class Depot : Aggregate<Guid, Versioned>
+            {
+                public KmRange Km { get; private set; } = null!;
+                public Opening? Opening { get; private set; }
+                public void Reach(KmRange km) => Km = km;
+                public void Open(Opening? opening) => Opening = opening;
+            }
+        }
+        """;
+
+    [Fact]
+    public void A_value_object_of_several_values_is_a_group_of_fields_made_through_its_create()
+    {
+        var run = RunWithForms(Depot);
+
+        var forms = run.GeneratedSource("Shop.Depot.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public KmFields Km { get; set; } = new();", forms, StringComparison.Ordinal);
+        Assert.Contains("public int? Start { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("Km = aggregate.Km is { } __Km ? new DepotReachInput.KmFields { Start = __Km.Start, End = __Km.End } : new()", forms, StringComparison.Ordinal);
+        Assert.Contains("km = ReachKmMade(input.Km, \"Km\", failures)!;", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.KmRange.Create(__m_Start, __m_End, at)", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Km\" => global::Shop.KmRange.__Field,", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Start\" => __EndOf(global::Shop.KmRange.__Field),", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Start\" or \"End\";", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_value_object_that_may_be_absent_is_nothing_when_its_group_is_left_empty()
+    {
+        var run = RunWithForms(Depot);
+
+        var forms = run.GeneratedSource("Shop.Depot.OperationForms");
+
+        Assert.Contains("opening = OpenOpeningMade(input.Opening, \"Opening\", failures);", forms, StringComparison.Ordinal);
+        Assert.Contains("if (given.Date is null && given.Quantity is null)", forms, StringComparison.Ordinal);
+        Assert.Contains("RegisterOptionalFields(typeof(DepotOpenInput), static property => property is \"Opening\");", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Quantity\" => global::Rask.Core.Forms.StatedRules.Shape(typeof(global::Shop.Opening), \"Quantity\", new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Number)),", forms, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_password_is_never_read_from_the_aggregate_into_its_form()
     {

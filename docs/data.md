@@ -202,7 +202,9 @@ one of its public properties — one its row left as it was is not there), `Remo
 changed), which is what a rule over old rows asks so a row stored before the rule was tightened is let be. The key
 is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two rows naming one part, or a key of another
 type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
-carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`.
+carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`, and
+the form over such a method is `Form.For(Supply.Change, id)` — a row per part, refused under its place
+([a form over an operation](forms.md#a-form-over-an-operation)).
 
 Children matched by something other than their `Id` — a delivery note's fuellings by their transaction — take a key
 of their own on both sides, with the same refusal of a key named twice:
