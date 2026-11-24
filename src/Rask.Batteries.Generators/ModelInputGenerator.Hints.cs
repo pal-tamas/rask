@@ -58,9 +58,9 @@ public sealed partial class ModelInputGenerator
 
     // A property's shape: its value object's or its enum's, tightened and told what its attributes say; a property of
     // neither is given one of its type's kind only when its attributes say something.
-    private static string? AnnotatedShapeOf(IPropertySymbol property, ValueObjectShape? valueObject)
+    private static string? AnnotatedShapeOf(IPropertySymbol property, ITypeSymbol held, ValueObjectShape? valueObject)
     {
-        var shaped = ShapeOf(property.Type, valueObject);
+        var shaped = ShapeOf(held, valueObject);
         var hints = HintsOf(property.GetAttributes());
         if (!hints.Says)
         {

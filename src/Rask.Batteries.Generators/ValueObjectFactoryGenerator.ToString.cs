@@ -46,12 +46,13 @@ public sealed partial class ValueObjectFactoryGenerator
     private static bool DeclaresToString(INamedTypeSymbol type) =>
         type.GetMembers("ToString").OfType<IMethodSymbol>().Any(static m => m is { Parameters.Length: 0, IsImplicitlyDeclared: false });
 
-    // IFormattable, itself or under Nullable<T>: printed through ToString(null, culture).
+    // IFormattable, itself or under Nullable<T>: printed through ToString(null, culture). An enum is IFormattable too,
+    // but its provider is obsolete and never read: it prints its member's name through ToString().
     private static bool IsFormattable(ITypeSymbol type)
     {
         var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
             ? nullable.TypeArguments[0]
             : type;
-        return held.AllInterfaces.Any(static i => string.Equals(i.ToDisplayString(), "System.IFormattable", System.StringComparison.Ordinal));
+        return held.TypeKind != TypeKind.Enum && held.AllInterfaces.Any(static i => string.Equals(i.ToDisplayString(), "System.IFormattable", System.StringComparison.Ordinal));
     }
 }
