@@ -75,5 +75,62 @@ public sealed class TallyClaim : Aggregate<Guid>
     public void FileIn(TallyPeriodId? period) => Period = period;
 
     public static void Configure(EntityTypeBuilder<TallyClaim> builder) =>
-        builder.LockedBy(c => c.Period, (TallyPeriod p) => p.Closed, p => $"{p.Name} is closed.", forUpdate: true);
+        builder.LockedBy(c => c.Period, (TallyPeriod p) => p.Closed, p => $"{p.Name} is closed.", LockRead.ForUpdate);
+}
+
+// HeldTransactions' shape: a refund, filed while it has a filing not taken back, holds its transactions as filed.
+public sealed class TallyRefund : Aggregate<Guid>
+{
+    private readonly List<TallyFiling> _filings = [];
+
+    private TallyRefund() { } // EF materialization
+
+    public string Name { get; private set; } = "";
+
+    public IReadOnlyList<TallyFiling> Filings => _filings;
+
+    public static TallyRefund Named(string name) => new() { Id = Guid.CreateVersion7(), Name = name };
+
+    public void FileAt(string office) => _filings.Add(TallyFiling.At(office));
+}
+
+public sealed class TallyFiling : Entity<Guid>
+{
+    private TallyFiling() { } // EF materialization
+
+    public string Office { get; private set; } = "";
+
+    public DateTime? UnfiledAt { get; private set; }
+
+    internal static TallyFiling At(string office) => new() { Id = Guid.CreateVersion7(), Office = office };
+}
+
+// A transaction a refund claims: a claim (either refund column) may take it over, nothing else may touch it while filed.
+public sealed class TallyTransaction : Aggregate<Guid>
+{
+    private TallyTransaction() { } // EF materialization
+
+    public Guid? RefundId { get; private set; }
+
+    public Guid? ForeignRefundId { get; private set; }
+
+    public decimal Litres { get; private set; }
+
+    public static TallyTransaction Of(decimal litres) => new() { Id = Guid.CreateVersion7(), Litres = litres };
+
+    public void ClaimFor(Guid? refund) => RefundId = refund;
+
+    public void ClaimForeign(Guid? refund) => ForeignRefundId = refund;
+
+    public void Measure(decimal litres) => Litres = litres;
+
+    public static void Configure(EntityTypeBuilder<TallyTransaction> builder) =>
+        builder.LockedBy(
+                t => t.RefundId,
+                (TallyRefund r) => r.Filings.Any(f => f.UnfiledAt == null),
+                (r, write) => write.Kind == LockedWriteKind.Delete
+                    ? $"{r.Name}, filed at {r.Filings[0].Office}, keeps its transactions."
+                    : $"{r.Name}, filed at {r.Filings[0].Office}, holds these {write.Row.Litres} litres as filed.")
+            .Except(t => t.RefundId, t => t.ForeignRefundId)
+            .Including(r => r.Filings);
 }

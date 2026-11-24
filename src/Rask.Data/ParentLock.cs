@@ -16,25 +16,39 @@ internal abstract class ParentLock(string property)
 
     /// <summary>The failures of the <paramref name="writes" /> whose old or new parent is locked.</summary>
     internal abstract Task<IReadOnlyList<FieldFailure>> Check(
-        DbContext context, IReadOnlyList<LockedWrite> writes, CancellationToken cancellationToken);
+        DbContext context, IReadOnlyList<LockTarget> writes, CancellationToken cancellationToken);
 }
 
-/// <summary>A lock whose parent is a <typeparamref name="TParent" />.</summary>
+/// <summary>A lock on a <typeparamref name="T" /> whose parent is a <typeparamref name="TParent" />.</summary>
+/// <typeparam name="T">The row that is locked.</typeparam>
 /// <typeparam name="TParent">The parent.</typeparam>
-internal sealed class ParentLock<[DynamicallyAccessedMembers(DataTrimming.Entity)] TParent>(
+internal sealed class ParentLock<T, [DynamicallyAccessedMembers(DataTrimming.Entity)] TParent>(
     string property,
     Expression<Func<TParent, bool>> locked,
-    Func<TParent, string> message,
-    bool forUpdate) : ParentLock(property)
+    Func<TParent, LockedWrite<T>, string> message,
+    LockRead read) : ParentLock(property)
+    where T : class
     where TParent : class
 {
     // Parents read per query: one parameter each, well inside SQL Server's 2100.
     private const int PerQuery = 500;
 
+    private readonly List<Func<IQueryable<TParent>, IQueryable<TParent>>> _includes = [];
+
+    /// <summary>The row's properties a change may touch alone, under a locked parent too (<see cref="LockedByBuilder{T,TParent}.Except" />).</summary>
+    internal HashSet<string> Excepted { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Loads a navigation of each locked parent, for the message to read.</summary>
+    internal void Include(Func<IQueryable<TParent>, IQueryable<TParent>> include) => _includes.Add(include);
+
     internal override async Task<IReadOnlyList<FieldFailure>> Check(
-        DbContext context, IReadOnlyList<LockedWrite> writes, CancellationToken cancellationToken)
+        DbContext context, IReadOnlyList<LockTarget> writes, CancellationToken cancellationToken)
     {
-        var held = writes.Select(w => (Write: w, Keys: KeysOf(w.Entry))).Where(static w => w.Keys.Count > 0).ToList();
+        var held = writes
+            .Where(w => !OnlyExcepted(w.Entry))
+            .Select(w => (Write: w, Keys: KeysOf(w.Entry)))
+            .Where(static w => w.Keys.Count > 0)
+            .ToList();
         if (held.Count == 0)
         {
             return [];
@@ -61,7 +75,7 @@ internal sealed class ParentLock<[DynamicallyAccessedMembers(DataTrimming.Entity
                     continue;
                 }
 
-                var failure = Failure(write, message(parent));
+                var failure = Failure(write, parent);
                 if (said.Add(failure.Message + '\u001f' + string.Join('\u001f', failure.Fields)))
                 {
                     failures.Add(failure);
@@ -72,35 +86,31 @@ internal sealed class ParentLock<[DynamicallyAccessedMembers(DataTrimming.Entity
         return failures;
     }
 
-    /// <summary>The parents of <paramref name="keys" />, past every query filter: what the check reads.</summary>
-    internal static IQueryable<TParent> Touched(DbContext context, IProperty key, IReadOnlyList<object> keys)
-    {
-        var row = Expression.Parameter(typeof(TParent), "p");
-        var stored = StoredProperty.Of(row, key);
-        return context.Set<TParent>()
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Where(Expression.Lambda<Func<TParent, bool>>(AnyOf(stored, key.ClrType, keys, 0, keys.Count), row));
-    }
-
-    /// <summary>
-    ///     The read that takes the update lock on the parents of <paramref name="keys" />: a bare <c>SELECT 1</c>, so the
-    ///     parents' table is the first a rewrite finds (<see cref="ForUpdateSql" />).
-    /// </summary>
-    internal static IQueryable<int> ForUpdate(DbContext context, IProperty key, IReadOnlyList<object> keys) =>
-        Touched(context, key, keys).TagWith(ForUpdateSql.Tag).Select(static p => 1);
-
     // Under an update lock first, every touched parent whether locked or not — the one a concurrent close would write.
     private async Task<List<TParent>> Locked(DbContext context, IProperty key, IReadOnlyList<object> keys, CancellationToken cancellationToken)
     {
-        if (forUpdate)
+        if (read == LockRead.ForUpdate)
         {
             await SaveTransaction.Open(context, cancellationToken).ConfigureAwait(false);
-            await ForUpdate(context, key, keys).ToListAsync(cancellationToken).ConfigureAwait(false);
+            await ParentRead<TParent>.ForUpdate(context, key, keys).ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return await Touched(context, key, keys).Where(locked).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var query = ParentRead<TParent>.Touched(context, key, keys).Where(locked);
+        foreach (var include in _includes)
+        {
+            query = include(query);
+        }
+
+        return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    // A change to nothing but the excepted columns passes; an add, a delete, or a change through a child never does.
+    private bool OnlyExcepted(EntityEntry entry) =>
+        Excepted.Count > 0 &&
+        entry.State == EntityState.Modified &&
+        entry.Properties.Where(static p => p.IsModified).Select(static p => p.Metadata.Name)
+            .Concat(entry.ComplexProperties.Where(static p => p.IsModified).Select(static p => p.Metadata.Name))
+            .All(Excepted.Contains);
 
     // The parent the row was read with and the one it holds now: a move out of a locked parent is a write to it too. A
     // new row has none before; a key the store has not handed out yet is no stored parent's.
@@ -129,18 +139,25 @@ internal sealed class ParentLock<[DynamicallyAccessedMembers(DataTrimming.Entity
     }
 
     // Under the parent field when the save writes the row's parent; about the row (or the whole form, for a root) otherwise.
-    private FieldFailure Failure(LockedWrite write, string text)
+    private FieldFailure Failure(LockTarget write, TParent parent)
     {
-        var entry = write.Entry;
-        var writesParent = entry.State == EntityState.Added ||
-                           (entry.State == EntityState.Modified && entry.Property(Property).IsModified);
-        if (writesParent)
+        var kind = KindOf(write.Entry);
+        var text = message(parent, new LockedWrite<T>(kind, (T)write.Entry.Entity));
+        if (kind is LockedWriteKind.Add or LockedWriteKind.Move)
         {
             return new FieldFailure(text, [write.Path + Property]);
         }
 
         return new FieldFailure(text, write.Path.Length == 0 ? [] : [write.Path.TrimEnd('.')]);
     }
+
+    private LockedWriteKind KindOf(EntityEntry entry) => entry.State switch
+    {
+        EntityState.Added => LockedWriteKind.Add,
+        EntityState.Deleted => LockedWriteKind.Delete,
+        EntityState.Modified when entry.Property(Property).IsModified => LockedWriteKind.Move,
+        _ => LockedWriteKind.Change,
+    };
 
     private IProperty KeyOf(DbContext context, EntityEntry entry)
     {
@@ -153,12 +170,4 @@ internal sealed class ParentLock<[DynamicallyAccessedMembers(DataTrimming.Entity
                 $"{entry.Metadata.ClrType.Name}.LockedBy holds its parent in '{Property}' ({held.Name}), which is not " +
                 $"{typeof(TParent).Name}'s key: name the property that holds a {typeof(TParent).Name}'s single key.");
     }
-
-    // key = @a OR key = @b …, split in halves so a long list makes a shallow tree.
-    private static BinaryExpression AnyOf(Expression stored, Type type, IReadOnlyList<object> keys, int from, int count) =>
-        count == 1
-            ? Expression.Equal(stored, QueryParameter.Of(keys[from], type))
-            : Expression.OrElse(
-                AnyOf(stored, type, keys, from, count / 2),
-                AnyOf(stored, type, keys, from + (count / 2), count - (count / 2)));
 }

@@ -471,8 +471,6 @@ Rask.Data.ValueObjectColumnsBuilderExtensions
 static Rask.Data.ValueObjectColumnsBuilderExtensions.Columns<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue>!>! member, string! pattern) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ValueObjectColumn.Held(Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder! property, string! column) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexTypePropertyBuilder!
 Rask.Data.LockedByBuilderExtensions
-static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, string! message, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
-static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, bool forUpdate = false) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
 static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Func<TEntity!, System.Threading.Tasks.Task!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, int version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.GeneratedOperations
@@ -495,3 +493,23 @@ static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, s
 static Rask.Data.OperationBuilderExtensions.Operation<TAggregate>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, string! operation, string? roles = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
 static Rask.Data.GeneratedOperations.Try<TAggregate>(object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.TryBuild<TAggregate>(System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+Rask.Data.Children<TEntity, TSpec>.Add(TEntity! item) -> void
+Rask.Data.Children<TEntity, TSpec>.Remove(TEntity! item) -> bool
+Rask.Data.Children<TEntity, TSpec>.Sync<TKey>(System.Collections.Generic.IEnumerable<TSpec>! specs, System.Func<TSpec, TKey?>! specKey, System.Func<TEntity!, TKey>! childKey, System.Func<TSpec, TEntity!>! add, System.Action<TEntity!, TSpec>! update, System.Action<TEntity!>? remove = null) -> Rask.Data.SyncResult<TEntity!>!
+Rask.Data.LockedByBuilder<T, TParent>
+Rask.Data.LockedByBuilder<T, TParent>.Except(params System.Linq.Expressions.Expression<System.Func<T!, object?>!>![]! columns) -> Rask.Data.LockedByBuilder<T!, TParent!>!
+Rask.Data.LockedByBuilder<T, TParent>.Including<TProperty>(System.Linq.Expressions.Expression<System.Func<TParent!, TProperty>!>! navigation) -> Rask.Data.LockedByBuilder<T!, TParent!>!
+Rask.Data.LockedWrite<T>
+Rask.Data.LockedWrite<T>.Kind.get -> Rask.Data.LockedWriteKind
+Rask.Data.LockedWrite<T>.Row.get -> T
+Rask.Data.LockedWriteKind
+Rask.Data.LockedWriteKind.Add = 0 -> Rask.Data.LockedWriteKind
+Rask.Data.LockedWriteKind.Change = 1 -> Rask.Data.LockedWriteKind
+Rask.Data.LockedWriteKind.Delete = 2 -> Rask.Data.LockedWriteKind
+Rask.Data.LockedWriteKind.Move = 3 -> Rask.Data.LockedWriteKind
+Rask.Data.LockRead
+Rask.Data.LockRead.ForUpdate = 1 -> Rask.Data.LockRead
+Rask.Data.LockRead.Plain = 0 -> Rask.Data.LockRead
+static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, string! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
+static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, Rask.Data.LockedWrite<T!>!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
+static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
