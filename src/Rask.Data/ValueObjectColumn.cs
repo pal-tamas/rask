@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -106,6 +108,23 @@ public static class ValueObjectColumn
 
         Declare(facets, length => property.HasMaxLength(length), (precision, scale) => property.HasPrecision(precision, scale));
 
+        return property;
+    }
+
+    /// <summary>
+    ///     Names <paramref name="property" />'s column as the complex mapping named it — <c>Price_Currency</c> — at
+    ///     convention strength, so the app's <c>ColumnNames</c> renames it as it renames its siblings. Called by generated
+    ///     code.
+    /// </summary>
+    /// <param name="property">A one-value value object's column inside another value object.</param>
+    /// <param name="column">The column EF Core's complex mapping would give it.</param>
+    /// <returns>The same builder.</returns>
+    public static ComplexTypePropertyBuilder Held(ComplexTypePropertyBuilder property, string column)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        ArgumentException.ThrowIfNullOrEmpty(column);
+
+        ((IConventionProperty)property.Metadata).Builder.HasColumnName(column);
         return property;
     }
 

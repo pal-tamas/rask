@@ -37,8 +37,10 @@ them until tagged releases begin.
   every column and table the model did not name itself. `n.CamelCase`, `n.SnakeCase`, `n.AsDeclared` (EF Core's) and
   `n.Path` name a column — a value object's after its whole path (`kmStart`, `km_start`), a JSON column but not what it
   holds, an owned type's after its navigation; `t.Class`, `t.CamelCase`, `t.SnakeCase`, `t.AsDeclared` name a table, a
-  hierarchy's once. An explicit `HasColumnName`/`ToTable`/`[Column]`/`[Table]` wins, Rask's battery tables keep their
-  names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
+  hierarchy's once, an owned type's own table after its class. An explicit `HasColumnName`/`ToTable`/`[Column]`/
+  `[Table]`/`Columns(…)` pattern wins; a one-value value object inside another (`Price_Currency`) is renamed like its
+  siblings, since the generator now names it at convention strength; Rask's battery tables (each battery's configuration
+  records its own) keep their names, and both apply before `ConstraintNames` and every other rule that reads a name, whatever the order they are
   stated in. Every provider ([data](docs/data.md#app-wide-model-rules-one-iraskmodel)).
 - **Five domain and data-annotation analyzers, suggestions by default and warnings under `<RaskStrict>`.**
   [RASK140](docs/diagnostics.md#rask140): `DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` or
