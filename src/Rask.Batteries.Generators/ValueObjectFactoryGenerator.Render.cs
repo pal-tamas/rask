@@ -234,7 +234,8 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>The length, precision and scale it declares: what its column is given.</summary>");
         s.AppendLine(Hidden);
-        s.Append("    public static global::Rask.Values.ValueFacets __Facets => new(").Append(string.Join(", ", named)).AppendLine(");");
+        s.Append("    public static global::Rask.Values.ValueFacets __Facets => global::Rask.Core.Forms.StatedRules.Facets(typeof(")
+            .Append(value.Name).Append("), \"Value\", new(").Append(string.Join(", ", named)).AppendLine("));");
     }
 
     private static void AddFacet(List<string> named, string name, int? value)

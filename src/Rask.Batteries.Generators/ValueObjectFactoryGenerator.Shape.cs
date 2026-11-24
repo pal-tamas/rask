@@ -127,9 +127,12 @@ public sealed partial class ValueObjectFactoryGenerator
         s.AppendLine();
         s.AppendLine("    /// <summary>What a control bound to it is told: the kind of value it holds and the rules it declares.</summary>");
         s.AppendLine(Hidden);
+        // With what its own static Rules (FluentValidation) state for its value, the tightest of both; a kind of text
+        // adds what its input is told (Told).
         var init = Told(value.TextKind, facets);
-        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => new(").Append(string.Join(", ", named))
-            .AppendLine(init.Count > 0 ? ") { " + string.Join(", ", init) + " };" : ");");
+        s.Append("    public static ").Append(FieldShapeType).Append(" __Field => global::Rask.Core.Forms.StatedRules.Shape(typeof(")
+            .Append(value.Name).Append("), \"Value\", new ").Append(FieldShapeType).Append('(').Append(string.Join(", ", named))
+            .AppendLine(init.Count > 0 ? ") { " + string.Join(", ", init) + " });" : "));");
     }
 
     // What a kind of text tells its input, as the attribute it stands for does ([EmailAddress] an email input), and

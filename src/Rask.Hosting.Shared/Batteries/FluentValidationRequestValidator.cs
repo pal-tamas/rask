@@ -27,32 +27,39 @@ internal sealed class FluentValidationRequestValidator<TRequest> : IRequestValid
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
-        if (request is null || !RequestValidationSwitch.Validates
-            || RaskValidators.Find(typeof(TRequest)) is not { } factory)
+        if (request is null || !RequestValidationSwitch.Validates)
         {
             return [];
         }
 
-        if (factory(_services) is not IValidator validator)
+        var errors = new List<RequestValidationError>();
+        if (RaskValidators.Find(typeof(TRequest)) is { } factory && factory(_services) is IValidator validator)
         {
-            return [];
+            await Add(errors, validator, request).ConfigureAwait(false);
         }
 
+        // A generated form model the request carries borrows its aggregate's rules (RaskValidators.BorrowsRules): they are
+        // asked of what arrived, as its DataAnnotations attributes are, so the wire refuses what the form would have.
+        foreach (var node in ModelGraphWalker.Walk(request).Skip(1).Where(static n => RaskValidators.BorrowsRules(n.GetType())))
+        {
+            if (RaskValidators.Find(node.GetType())?.Invoke(_services) is IValidator borrowed)
+            {
+                await Add(errors, borrowed, node).ConfigureAwait(false);
+            }
+        }
+
+        return errors;
+    }
+
+    private static async Task Add(List<RequestValidationError> errors, IValidator validator, object instance)
+    {
         var result = await validator
-            .ValidateAsync(new ValidationContext<object>(request), Ambient.CancellationToken)
+            .ValidateAsync(new ValidationContext<object>(instance), Ambient.CancellationToken)
             .ConfigureAwait(false);
 
-        if (result.IsValid)
-        {
-            return [];
-        }
-
-        var errors = new List<RequestValidationError>(result.Errors.Count);
         foreach (var failure in result.Errors)
         {
             errors.Add(new RequestValidationError(failure.PropertyName ?? string.Empty, failure.ErrorMessage));
         }
-
-        return errors;
     }
 }

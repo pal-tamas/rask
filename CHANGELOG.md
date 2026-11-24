@@ -95,6 +95,21 @@ them until tagged releases begin.
   a query's or a command's result, a subscription's item or an event; the read face leaves it out. `Test.Make` builds
   an address, a number or a URL in the format its kind checks. Both paths — attribute and value object — are tabled
   side by side in docs/forms-validation.md and docs/data.md, with a site example.
+- **FluentValidation rules inside the type, asked exactly where a DataAnnotations attribute is.** Before: an
+  `AbstractValidator<T>` ran only on a form over `T` itself — not on the generated form model of an aggregate, not at
+  the save, and it gave no hint and no column. After: a type may state its rules in its own
+  `static void Rules(InlineValidator<T> rules)` (any accessibility, found at compile time, trim-safe), and those rules —
+  or a separate `AbstractValidator<Supplier>`, which works the same and may sit beside them — run on the generated
+  `SupplierModel`'s form live (`MustAsync` included; a row's under `Parts[1].Quantity`), on a request that carries the
+  model, and at every save (every rule of a new row, only the changed members of a stored one), so `Create(model)`,
+  `Update(id, model)` and `Test.Refuses` refuse under the same fields. Their descriptors give the hints and columns the
+  attribute twin gives: `NotEmpty()` → required + NOT NULL, `MaximumLength`/`Length` → `maxlength`/`minlength` + column
+  length, `EmailAddress()` → `type="email"`, `InclusiveBetween`/`GreaterThanOrEqualTo`… → `min`/`max`,
+  `PrecisionScale` → `step` + `decimal(p, s)`; a rule under `When`/`Unless` gives none, and an attribute on the property
+  wins for its column. A value object may state its rules the same way: they run as it is made, after its base
+  record's own, never for a value loaded from a row. New seam: `Rask.Core.Forms.StatedRules` / `IStatedRules` /
+  `StatedFacets`. BREAKING: `RaskValidators.Replace` takes `ValidatorEntry`s (`RaskValidators.Entry<T>`, `Inline<T>`,
+  `Project<TModel, TOwner>`, all generated).
 - **A table's heading and cell can be bound to a row's member.** Before: every `Ui.TableColumn` was given its words and
   every `Ui.TableCell` its value written out by hand (`Ui.TableCell.End[Format.Number(tank.Size)]`), and
   `[DisplayFormat(DataFormatString)]`, `NullDisplayText` and `[ScaffoldColumn]` were read by nothing. After:

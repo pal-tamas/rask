@@ -41,14 +41,14 @@ public class TextKindGeneratorTests
             ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
 
     [Theory]
-    [InlineData("ContactEmail", Kind + ".Text, MaxLength: 200) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\" };")]
-    [InlineData("AnyEmail", Kind + ".Text, MaxLength: 254) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\" };")]
-    [InlineData("ContactPhone", Kind + ".Text, MaxLength: 32) { Input = global::Rask.Core.InputType.Tel, AutoComplete = \"tel\", InputMode = global::Rask.Core.InputMode.Tel };")]
-    [InlineData("Homepage", Kind + ".Text, MaxLength: 2048) { Input = global::Rask.Core.InputType.Url };")]
-    [InlineData("SignInPassword", Kind + ".Text, MinLength: 8) { Input = global::Rask.Core.InputType.Password, AutoComplete = \"current-password\" };")]
-    [InlineData("ChosenPassword", Kind + ".Text, MinLength: 12) { Input = global::Rask.Core.InputType.Password, AutoComplete = \"new-password\" };")]
-    [InlineData("Remark", Kind + ".Text, MaxLength: 4000) { Hint = global::Rask.Core.Forms.FieldHints.MultilineText };")]
-    [InlineData("Code", Kind + ".Text, MaxLength: 254) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\", Upper = true };")]
+    [InlineData("ContactEmail", Kind + ".Text, MaxLength: 200) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\" });")]
+    [InlineData("AnyEmail", Kind + ".Text, MaxLength: 254) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\" });")]
+    [InlineData("ContactPhone", Kind + ".Text, MaxLength: 32) { Input = global::Rask.Core.InputType.Tel, AutoComplete = \"tel\", InputMode = global::Rask.Core.InputMode.Tel });")]
+    [InlineData("Homepage", Kind + ".Text, MaxLength: 2048) { Input = global::Rask.Core.InputType.Url });")]
+    [InlineData("SignInPassword", Kind + ".Text, MinLength: 8) { Input = global::Rask.Core.InputType.Password, AutoComplete = \"current-password\" });")]
+    [InlineData("ChosenPassword", Kind + ".Text, MinLength: 12) { Input = global::Rask.Core.InputType.Password, AutoComplete = \"new-password\" });")]
+    [InlineData("Remark", Kind + ".Text, MaxLength: 4000) { Hint = global::Rask.Core.Forms.FieldHints.MultilineText });")]
+    [InlineData("Code", Kind + ".Text, MaxLength: 254) { Input = global::Rask.Core.InputType.Email, AutoComplete = \"email\", Upper = true });")]
     public void Each_kind_of_text_tells_its_field_what_the_matching_attribute_would(string name, string shape)
     {
         var run = Run();
@@ -56,15 +56,15 @@ public class TextKindGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("public static global::Rask.Core.Forms.FieldShape __Field => new(" + shape, generated, StringComparison.Ordinal);
+        Assert.Contains("\"Value\", new global::Rask.Core.Forms.FieldShape(" + shape, generated, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("ContactEmail", "__Facets => new(MaxLength: 200);")]
-    [InlineData("AnyEmail", "__Facets => new(MaxLength: 254);")]
-    [InlineData("ContactPhone", "__Facets => new(MaxLength: 32);")]
-    [InlineData("Homepage", "__Facets => new(MaxLength: 2048);")]
-    [InlineData("Remark", "__Facets => new(MaxLength: 4000);")]
+    [InlineData("ContactEmail", "\"Value\", new(MaxLength: 200));")]
+    [InlineData("AnyEmail", "\"Value\", new(MaxLength: 254));")]
+    [InlineData("ContactPhone", "\"Value\", new(MaxLength: 32));")]
+    [InlineData("Homepage", "\"Value\", new(MaxLength: 2048));")]
+    [InlineData("Remark", "\"Value\", new(MaxLength: 4000));")]
     public void A_kind_of_text_gives_its_column_the_length_it_declares_or_its_bases_default(string name, string facets)
     {
         var run = Run();

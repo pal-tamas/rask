@@ -3,9 +3,20 @@ Rask.FluentValidationFieldValidator
 Rask.FluentValidationFieldValidator.FluentValidationFieldValidator(FluentValidation.IValidator! validator) -> void
 Rask.FluentValidationFieldValidator.Validate(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.FluentValidationFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Rask.ModelProjection
+Rask.ModelProjection<TModel, TOwner>
+Rask.ModelProjection<TModel, TOwner>.Member<TValue>(System.Linq.Expressions.Expression<System.Func<TModel, TValue>!>! member, string! owner) -> Rask.ModelProjection<TModel, TOwner>!
+Rask.ModelProjection<TModel, TOwner>.Rows<TRow>(System.Linq.Expressions.Expression<System.Func<TModel, System.Collections.Generic.IEnumerable<TRow>!>!>! rows) -> Rask.ModelProjection<TModel, TOwner>!
+Rask.ModelProjection<TModel, TOwner>.Value<TValue>(System.Linq.Expressions.Expression<System.Func<TModel, TValue?>!>! member, string! owner) -> Rask.ModelProjection<TModel, TOwner>!
 Rask.RaskValidators
+Rask.ValidatorEntry
 RaskBuilderSettersRask_Validation_FluentValidation
+static Rask.RaskValidators.Entry<T>(System.Func<System.IServiceProvider?, FluentValidation.IValidator<T>!>! factory) -> Rask.ValidatorEntry!
 static Rask.RaskValidators.Find(System.Type! modelType) -> System.Func<System.IServiceProvider?, object!>?
+static Rask.RaskValidators.Inline<T>(System.Action<FluentValidation.InlineValidator<T>!>! rules) -> Rask.ValidatorEntry!
+static Rask.RaskValidators.Problems(object! value) -> System.Collections.Generic.IEnumerable<Rask.Values.Problem>!
+static Rask.RaskValidators.Project<TModel, TOwner>(System.Action<Rask.ModelProjection<TModel, TOwner>!>! members) -> Rask.ValidatorEntry!
 static Rask.RaskValidators.Register(System.Type! modelType, System.Func<System.IServiceProvider?, object!>! factory) -> void
-static Rask.RaskValidators.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Model, System.Func<System.IServiceProvider?, object!>! Factory)>! entries) -> void
+static Rask.RaskValidators.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.ValidatorEntry!>! entries) -> void
 static Rask.RaskValidators.Service<T>(System.IServiceProvider? services) -> T
+static Rask.RaskValidators.BorrowsRules(System.Type! modelType) -> bool

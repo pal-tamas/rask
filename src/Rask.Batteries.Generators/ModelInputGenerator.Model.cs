@@ -412,7 +412,8 @@ public sealed partial class ModelInputGenerator
             IsRequiredByType(member, valueObject, property),
             DeclaredOn: CrefTypeOf(property.ContainingType),
             Named: ValidationAttributeSource.NameOf(property),
-            Shape: AnnotatedShapeOf(property, HeldType(member.ValueObject, property.Type), valueObject));
+            Shape: AnnotatedShapeOf(property, HeldType(member.ValueObject, property.Type), valueObject),
+            Stated: valueObject is null && member.Role == ModelMemberRole.Value ? StatedStep(property.Type) : null);
     }
 
     // What a control is bound to: the one value a value object of one value holds — the enum of `FuelKind(Fuel Value)` —
