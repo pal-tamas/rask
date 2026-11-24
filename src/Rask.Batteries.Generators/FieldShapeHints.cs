@@ -11,7 +11,7 @@ namespace Rask.Batteries.Generators;
 // What a property's DataAnnotations attributes tell a control bound to it, or a list that shows it, read at compile time
 // so nothing reflects over a generated model or read face — the reading Core makes at run time of a hand-written model
 // (AnnotatedShapes): the lengths ([StringLength], [MaxLength], [MinLength], [Length]), the input ([EmailAddress], [Phone],
-// [Url], [DataType]), whether it is edited ([Editable(false)]), [DisplayFormat]'s empty text, format and null text, the
+// [Url], [DataType]), the pattern it must match ([RegularExpression]), whether it is edited ([Editable(false)]), [DisplayFormat]'s empty text, format and null text, the
 // control it names ([UIHint]) and whether a list shows it ([ScaffoldColumn]). On a value object's property the lengths
 // tighten what the value object declares: the input takes the tighter of the two.
 internal static class FieldShapeHints
@@ -139,6 +139,7 @@ internal static class FieldShapeHints
         private int? _most;
         private int? _least;
         private string? _input;
+        private string? _pattern;
         private string? _hint;
         private string? _format;
         private string? _nullText;
@@ -159,6 +160,7 @@ internal static class FieldShapeHints
             {
                 var init = new List<string>();
                 Assign(init, "Input", _input is { } input ? InputTypeName + "." + input : null);
+                Assign(init, "Pattern", _pattern is { } pattern ? Quoted(pattern) : null);
                 Assign(init, "ReadOnly", _readOnly ? "true" : null);
                 Assign(init, "KeepEmpty", _keepEmpty ? "true" : null);
                 Assign(init, "Hint", _hint is { } hint ? Quoted(hint) : null);
@@ -176,6 +178,7 @@ internal static class FieldShapeHints
             _least = least is { } l and > 0 ? Math.Max(_least ?? l, l) : _least;
             _input ??= InputOf(attribute, data);
             _hint ??= HintOf(attribute, data);
+            _pattern ??= string.Equals(attribute, "RegularExpressionAttribute", StringComparison.Ordinal) ? Argument(data, 0) as string : null;
             _readOnly |= string.Equals(attribute, "EditableAttribute", StringComparison.Ordinal) && Argument(data, 0) is false;
             _unlisted |= string.Equals(attribute, "ScaffoldColumnAttribute", StringComparison.Ordinal) && Argument(data, 0) is false;
             if (string.Equals(attribute, "DisplayFormatAttribute", StringComparison.Ordinal))

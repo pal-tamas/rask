@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Rask.Generators;
@@ -31,7 +32,9 @@ public sealed partial class ValueObjectFactoryGenerator
         string? End = null,
         string? Ends = null,
         bool Upper = false,
-        bool New = false);
+        bool New = false,
+        string? Pattern = null,
+        bool Trim = false);
 
     private static ShapeFacets ReadShape(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
     {
@@ -83,6 +86,8 @@ public sealed partial class ValueObjectFactoryGenerator
             ("NotAfterNow", bool notAfter) => shape with { NotAfterNow = notAfter },
             ("Strict", bool strict) => shape with { Strict = strict },
             ("Upper", bool upper) => shape with { Upper = upper },
+            ("Pattern", string pattern) => shape with { Pattern = pattern },
+            ("Trim", bool trim) => shape with { Trim = trim },
             ("New", bool chosen) => shape with { New = chosen },
             ("Min", _) when AsDecimal(value) is { } min => shape with { Min = min },
             ("Max", _) when AsDecimal(value) is { } max => shape with { Max = max },
@@ -135,8 +140,8 @@ public sealed partial class ValueObjectFactoryGenerator
             .AppendLine(init.Count > 0 ? ") { " + string.Join(", ", init) + " });" : "));");
     }
 
-    // What a kind of text tells its input, as the attribute it stands for does ([EmailAddress] an email input), and
-    // a text kept in capitals that it is.
+    // What a kind of text tells its input, as the attribute it stands for does ([EmailAddress] an email input), a
+    // text kept in capitals that it is, and any other the pattern it must match.
     private static List<string> Told(string? kind, ShapeFacets facets)
     {
         const string Input = "Input = global::Rask.Core.InputType.";
@@ -153,6 +158,13 @@ public sealed partial class ValueObjectFactoryGenerator
         if (facets.Upper)
         {
             init.Add("Upper = true");
+        }
+        else if (facets.Pattern is { } pattern)
+        {
+            // A pattern the text must contain, as the whole-text one an input is told (HtmlPattern.Found); a text kept in
+            // capitals is matched once it is, so what is typed in small letters would be refused by the browser alone.
+            init.Add("Pattern = global::Rask.Core.Forms.HtmlPattern.Found(" + SymbolDisplay.FormatLiteral(pattern, quote: true) + ", trimmed: "
+                     + (facets.Trim ? "true" : "false") + ")");
         }
 
         return init;

@@ -19,6 +19,8 @@ public class FieldShapeGeneratorTests
 
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100, MinLength: 2);
         public sealed partial record Plate(string Value) : Text(Value, MaxLength: 20, Upper: true);
+        public sealed partial record PostCode(string Value) : Text(Value, Pattern: @"^\d{4}$");
+        public sealed partial record Grade(string Value) : Text(Value, Pattern: "^[A-F]$", Upper: true);
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Max: 999.5m, Scale: 2);
         public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
@@ -54,6 +56,8 @@ public class FieldShapeGeneratorTests
             [DataType(DataType.Date)] public DateTime Started { get; private set; }
             [Phone, Editable(false)] public Fuel Spare { get; private set; }
             public Plate Plate { get; private set; } = Plate.Create("ABC123");
+            public PostCode Post { get; private set; } = PostCode.Create("1234");
+            [RegularExpression("^[A-Z]{2}$")] public string Country { get; private set; } = "HU";
             [Display(Name = "Distance"), DisplayFormat(DataFormatString = "{0:N1}", NullDisplayText = "n/a"), ScaffoldColumn(false)]
             public decimal? Distance { get; private set; }
         }
@@ -88,6 +92,33 @@ public class FieldShapeGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("\"Value\", new global::Rask.Core.Forms.FieldShape(" + shape, generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_value_objects_pattern_is_told_as_one_the_whole_trimmed_text_matches()
+    {
+        var run = Run();
+
+        var post = run.GeneratedSource("PostCode.Value.g.cs");
+        var grade = run.GeneratedSource("Grade.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "new global::Rask.Core.Forms.FieldShape(" + Kind + ".Text) { Pattern = global::Rask.Core.Forms.HtmlPattern.Found(\"^\\\\d{4}$\", trimmed: true) });",
+            post, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pattern =", grade, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_regular_expression_attribute_registers_its_pattern()
+    {
+        var run = Run();
+
+        var model = run.GeneratedSource("TripModel.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "\"Country\" => new global::Rask.Core.Forms.FieldShape(" + Kind + ".Text) { Pattern = \"^[A-Z]{2}$\" },", model, StringComparison.Ordinal);
     }
 
     [Fact]

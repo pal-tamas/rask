@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using Rask.Core.Forms;
 using Rask.Values;
@@ -61,6 +62,20 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("aria-required=\"true\"", name, StringComparison.Ordinal);
         Assert.Contains("type=\"email\"", email, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-required", email, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_matches_rule_states_its_pattern_unless_its_options_read_otherwise()
+    {
+        var plate = StatedRules.FacetsOf(typeof(Supplier), nameof(Supplier.Plate));
+        var tag = StatedRules.FacetsOf(typeof(Supplier), nameof(Supplier.Tag));
+
+        var m = new Supplier();
+        var html = Input.Bind(() => m.Plate).ToHtml();
+
+        Assert.Equal(new StatedFacets(Pattern: "[A-Z]{3}"), plate);
+        Assert.Null(tag.Pattern);
+        Assert.Contains("pattern=\"[A-Z]{3}\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -184,6 +199,10 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
 
         public bool Special { get; set; }
 
+        public string? Plate { get; set; }
+
+        public string? Tag { get; set; }
+
         static void Rules(InlineValidator<Supplier> rules)
         {
             rules.RuleFor(s => s.Name).NotEmpty().WithMessage("Name is required.").Length(2, 200);
@@ -192,6 +211,8 @@ public partial class InlineRulesTests : global::Rask.Core.RaskMarkup
             rules.RuleFor(s => s.Price).PrecisionScale(10, 2, false).GreaterThanOrEqualTo(0);
             rules.RuleFor(s => s.Stock).GreaterThan(0);
             rules.RuleFor(s => s.Note).NotEmpty().MaximumLength(10).When(s => s.Special);
+            rules.RuleFor(s => s.Plate).Matches("^[A-Z]{3}$");
+            rules.RuleFor(s => s.Tag).Matches("^[a-z]+$", RegexOptions.IgnoreCase);
         }
     }
 

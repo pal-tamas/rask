@@ -1932,7 +1932,8 @@ What each one does, where it is read — on the aggregate's property, a generate
 | --- | --- | --- | --- | --- |
 | `[Required]` | checked; `aria-required` and the *Required* badge | checked | checked | `NOT NULL` (EF Core's) |
 | `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | checked; a text input's `maxlength`/`minlength` — on a value object's property, the tighter of the attribute and the value object's own | checked | checked | `[MaxLength]`/`[StringLength]` the length (EF Core's; RASK128 when it and the value object disagree) |
-| `[Range]`, `[RegularExpression]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
+| `[RegularExpression]` | checked; a text input's `pattern` when the browser reads the expression the same way (none otherwise) | checked | checked | – |
+| `[Range]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
 | `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
 | `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
 | `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |

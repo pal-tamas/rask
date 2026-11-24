@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A bound text input is told its field's regular expression as its `pattern`.** Before: `[RegularExpression("^[A-Z]{2,3}$")]`,
+  a value object's `Text(Value, Pattern: …)` and FluentValidation's `Matches(…)` were checked only once the value was
+  sent. After: `Input.Bind`/`Ui.Input`/`Ui.Field.Bind` write `pattern="[A-Z]{2,3}"` on a text, search, url, tel, email or
+  password input — but only where the browser (a `v`-flag RegExp over the whole text) reads the expression exactly as
+  .NET does, so it never refuses a text the field takes: a lookbehind, a named group, an inline option, `\w`, `\b`,
+  `\S`, a class subtraction, a counted run of anything (`.{2,10}`), a case-insensitive `Matches` or a value object kept
+  `Upper` tells none; `\d` is written `\p{Nd}` and `.` `[^\n]`, as .NET reads them. A `.Pattern(…)` on the control wins.
+  Forms are not `novalidate`, so the browser refuses a submit that breaks it, as it already does a `minlength`.
 - **BREAKING: a `Day` prints `2026-01-31` and a `Moment` `2026-01-31T14:05:00`.** Before: both wrote the invariant
   culture's default, `01/31/2026` and `01/31/2026 14:05:00`. After: ISO 8601, and the generated `ToString` of a
   one-member `: Value` record holding a `DateOnly` or a `DateTime` does the same.
