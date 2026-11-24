@@ -17,11 +17,17 @@ dotnet_diagnostic.RASK130.severity = warning
 #   RASK142  Task.WhenAll over database work inside Db.Transaction, whose work shares one connection
 #   RASK143  [Key] on an aggregate or an entity, which is keyed by the Id it inherits
 #   RASK144  [Compare("X")] naming a property the model does not have
+#   RASK184  throw new InvalidOperationException / ArgumentException inside an aggregate — Refuse.When / Unless
+#   RASK185  an aggregate loaded before Db.Transaction and changed inside it — load it inside the block
+#   RASK186  X.Update(id, x => x.M(…)) where M has a generated entry — X.M(id, …), which asks its roles
 dotnet_diagnostic.RASK140.severity = warning
 dotnet_diagnostic.RASK141.severity = warning
 dotnet_diagnostic.RASK142.severity = warning
 dotnet_diagnostic.RASK143.severity = warning
 dotnet_diagnostic.RASK144.severity = warning
+dotnet_diagnostic.RASK184.severity = warning
+dotnet_diagnostic.RASK185.severity = warning
+dotnet_diagnostic.RASK186.severity = warning
 
 # Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,
 # ExecuteSql*, SqlQuery*), SQL in the model (HasColumnType, UseCollation, HasDefaultValueSql, HasComputedColumnSql,
