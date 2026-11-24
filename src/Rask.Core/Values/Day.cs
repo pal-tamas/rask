@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one calendar day:
@@ -37,7 +37,7 @@ public abstract record Day : Value
         }
 
         this.Value = Value;
-        if (!Loading.IsOn)
+        if (!RowLoading.IsOn)
         {
             Check(Problems(Value, NotBefore, NotAfter, NotAfterToday));
         }
@@ -46,9 +46,9 @@ public abstract record Day : Value
     /// <summary>The day it holds.</summary>
     public DateOnly Value { get; }
 
-    /// <summary>The day it holds, written in the current culture.</summary>
+    /// <summary>The day it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The day as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     private static List<Problem>? Problems(DateOnly day, DateOnly? notBefore, DateOnly? notAfter, bool notAfterToday)
     {

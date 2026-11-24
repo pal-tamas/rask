@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Rask.Cqrs;
 using Rask.Wire;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     A value object being made by the generated <c>TryCreate</c>: while it is open, a refused value records its

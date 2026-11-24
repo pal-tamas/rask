@@ -44,6 +44,8 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Cqrs"/>
     <Using Include="Rask.Data"/>
+    <Using Include="Rask.Values"/>
+    <Using Include="Rask.Values.Range" Alias="Range"/>
     <Using Include="Rask.Background"/>
     <Using Include="Rask.Postgres"/>
   </ItemGroup>

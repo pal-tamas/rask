@@ -5,7 +5,7 @@ using Rask.Batteries.Generators.Analyzers;
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// A value object declared from a Rask.Data base record — <c>record KmRange(int Start, int End) : Range(Start, End)</c>:
+/// A value object declared from a Rask base record — <c>record KmRange(int Start, int End) : Range(Start, End)</c>:
 /// its generated half, how a generated model builds and asks it, the column facets the registry hands EF Core, and
 /// RASK127–130.
 /// </summary>
@@ -15,7 +15,8 @@ public class ValueObjectFactoryGeneratorTests
         using System;
         using System.Collections.Generic;
         using Rask.Data;
-        using Range = Rask.Data.Range;
+        using Rask.Values;
+        using Range = Rask.Values.Range;
         namespace Shop;
 
         """;
@@ -136,18 +137,63 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
-    public void Messages_are_worded_from_the_catalog_where_the_compilation_has_one()
+    public void Every_generated_member_is_documented_for_an_app_that_writes_its_documentation_file()
     {
-        var withCatalog = Run(ValueObjects, "Rask.Core");
-        var without = GeneratorHarness.RunWithout(
-            Usings + ValueObjects, new ValueObjectFactoryGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Rask.Wire");
+        // An app with GenerateDocumentationFile and warnings as errors failed on CS1573 in the generated half: Create
+        // documented its field and none of the value object's own parameters.
+        var parse = new CSharpParseOptions(LanguageVersion.Latest, DocumentationMode.Diagnose);
+        var run = Run(ValueObjects.Replace(
+            "public sealed partial record", "/// <summary>A value.</summary>\npublic sealed partial record", StringComparison.Ordinal));
+        var source = run.Compilation.SyntaxTrees.Single();
 
-        var words = withCatalog.GeneratedSource("__RaskValueWords");
+        var documented = run.RunResult.GeneratedTrees
+            .Where(t => t.FilePath.EndsWith(".Value.g.cs", StringComparison.Ordinal))
+            .Select(t => CSharpSyntaxTree.ParseText(
+                t.GetText(TestContext.Current.CancellationToken), parse, t.FilePath, TestContext.Current.CancellationToken))
+            .ToList();
+        var compilation = run.Compilation
+            .ReplaceSyntaxTree(source, source.WithRootAndOptions(source.GetRoot(TestContext.Current.CancellationToken), parse))
+            .AddSyntaxTrees(documented);
+        var findings = compilation.GetDiagnostics(TestContext.Current.CancellationToken)
+            .Where(d => d.Id.StartsWith("CS15", StringComparison.Ordinal) && d.Location.SourceTree is { } tree && documented.Contains(tree))
+            .Select(d => d.Id + " " + d.GetMessage(System.Globalization.CultureInfo.InvariantCulture))
+            .ToList();
 
-        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", words, StringComparison.Ordinal);
-        Assert.Contains("RaskString.ValidationRangeAfter, problem.Template, problem.Limit", words, StringComparison.Ordinal);
-        Assert.Empty(withCatalog.GeneratedCompileErrors());
-        Assert.False(without.HasGeneratedSource("__RaskValueWords"));
+        Assert.Equal(9, documented.Count);
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void Only_a_value_of_one_member_declared_from_Value_without_its_own_ToString_gets_one()
+    {
+        var run = Run("""
+            public sealed partial record Chip(string Value) : Value;
+            public sealed partial record Reading(decimal? Value) : Value;
+            public sealed partial record Sign(int Value) : Value { public override string ToString() => "#"; }
+            public sealed partial record Driver(string Value) : Text(Value);
+            public sealed partial record Pair(int A, int B) : Value;
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public override string ToString() => Value;", run.GeneratedSource("Chip.Value.g.cs"), StringComparison.Ordinal);
+        Assert.Contains(
+            "ToString() => Value?.ToString(null, global::System.Globalization.CultureInfo.InvariantCulture) ?? \"\";",
+            run.GeneratedSource("Reading.Value.g.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Sign.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Driver.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("ToString()", run.GeneratedSource("Pair.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_module_initializer_is_written_since_the_bases_word_their_rules_from_the_catalog_themselves()
+    {
+        var run = Run(ValueObjects, "Rask.Core");
+
+        var initializer = run.HasGeneratedSource("__RaskValueWords");
+
+        Assert.False(initializer);
+        Assert.Empty(run.GeneratedCompileErrors());
     }
 
     [Fact]
@@ -200,7 +246,7 @@ public class ValueObjectFactoryGeneratorTests
         var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK129");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("'Plate' is declared from Rask.Data." + valueBase + ", so it must be " + lacks, diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'Plate' is declared from Rask.Values." + valueBase + ", so it must be " + lacks, diagnostic.GetMessage(), StringComparison.Ordinal);
         Assert.DoesNotContain(run.RunResult.Results.SelectMany(r => r.GeneratedSources), s => s.HintName.Contains("Plate", StringComparison.Ordinal));
     }
 
@@ -233,7 +279,8 @@ public class ValueObjectFactoryGeneratorTests
 
     private const string Plate = """
         using Rask.Data;
-        using Range = Rask.Data.Range;
+        using Rask.Values;
+        using Range = Rask.Values.Range;
         namespace Shop;
         public sealed partial record Plate(string Value) : Text(Value, MaxLength: 10)
         {
@@ -259,7 +306,7 @@ public class ValueObjectFactoryGeneratorTests
 
         Assert.Equal("RASK127", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains($"'{name}' is declared from Rask.Data.{valueBase}, so it is made only by '{name}.Create(…)'", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains($"'{name}' is declared from Rask.Values.{valueBase}, so it is made only by '{name}.Create(…)'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -293,6 +340,7 @@ public class ValueObjectFactoryGeneratorTests
             using Microsoft.EntityFrameworkCore;
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
+            using Rask.Values;
             namespace Shop;
             public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
             public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2, Precision: 9);
@@ -350,6 +398,7 @@ public class ValueObjectFactoryGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Microsoft.EntityFrameworkCore;
             using Rask.Data;
+            using Rask.Values;
             namespace Shop;
             public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
             public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2, Precision: 9);
@@ -398,6 +447,7 @@ public class ValueObjectFactoryGeneratorTests
         using System;
         using System.Collections.Generic;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public enum Kind { A, B }
         public readonly record struct CustomerId(Guid Value);

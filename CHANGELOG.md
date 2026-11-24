@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING: every value-object base prints culture-invariant.** Before: `Number`, `Whole`, `Day` and `Moment` wrote
+  `ToString()` in the current culture, so `$"{litres}"` was `1234,5` on a Hungarian machine and `1234.5` on a CI
+  runner. After: all of them write it with the invariant culture, like the generated one-member `ToString`; a value
+  shown to a reader goes through the UI or `Format`.
+- **`Text(Value, Required: false)` lets a text be empty.** Before: every `Text` refused an empty text, so a chip or a
+  note that may be left blank needed its own `: Value` record. After: `: Text(Value, MaxLength: 1000, Required: false)`
+  makes `Create("")` the value `""`; a filled one is still held to its lengths and pattern, a field bound to it on the
+  generated model is neither refused nor announced as required and saves `""`, and `CreateOptional("")` is still null.
+- **BREAKING: the value-object bases moved from Rask.Data into the `Rask` package, namespace `Rask.Values`.** Before:
+  `Value`, `Text`, `Number`, `Whole`, `Day`, `Range` and `Problem` were `Rask.Data`'s, so a browser app or the site,
+  with no EF Core, could not declare a value object from them. After: they are Rask.Core's (with `Moment`, the declared-rules
+  reader and `ValueLoading`), a browser app writes `using Rask.Values;`, and Rask.Data — which now depends on `Rask` —
+  imports the namespace for a data app as before (`Range` still aliased over `System.Range`) and keeps only the
+  column mapping and the loading switch's EF Core half. `RaskValidationException` and
+  `RequestValidationError` moved assembly with them, into Rask.Wire, keeping the `Rask.Cqrs` namespace. A file that
+  named `Rask.Data.Range` or `Rask.Data.Text` writes `Rask.Values.…`; a value is now worded from Rask's strings catalog
+  directly, so the generated `__RaskValueWords` module initializer is gone. The site's `DestinationName` demo is
+  declared `: Text(Value, MaxLength: 255, Pattern: …)`, and says *This field is required.* for an empty name.
+
 ### Security
 - **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:
   the generated CQRS codec rebuilt every value object it read inside the loading scope a row is read in, on BOTH
@@ -66,6 +86,49 @@ them until tagged releases begin.
   a `TestDatabase` or holds one as a public property; `TestRun.Begin(fixtures)`), and `TestDatabase.Bind()` does it by
   hand. Disposing a database clears the process-wide binding only while it is still its own.
 
+- **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
+  name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
+  hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods
+  (`[Authorize]`). After: `public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts)` gets
+  `await Supply.Change(id, version, details, parts)` — the roles of `b.Operation(s => s.Change, roles: Roles.Admin)`
+  in its `Configure` asked first (a `ForbiddenException` before anything is read), then `Find(id, version)`, the
+  method and `Save()` with its rules, all in one `Db.Transaction`, any refusal rolling the whole operation back. A
+  method that returns an answer (`bool IsOpen()`) gets none. New diagnostics: [RASK170](docs/diagnostics.md#rask170)
+  (a bare call to the entry inside the aggregate), [RASK171](docs/diagnostics.md#rask171) (an operation parameter
+  named `id`, `version` or `cancellationToken`) and the error [RASK172](docs/diagnostics.md#rask172) (roles written
+  where the entry cannot read them, which would leave it open). See
+  [an operation, run as one write](docs/data.md#an-operation-run-as-one-write).
+- **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
+  object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
+  reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
+  `[UIHint]` were copied onto the generated model and read by nothing. After: `FieldShape` carries `Input`,
+  `ReadOnly`, `KeepEmpty`, `Upper` and `Hint`, which a generated model registers at compile time for its plain
+  properties too and Core reads off a hand-written model's property: `[StringLength]`/`[MaxLength]`/`[MinLength]`/
+  `[Length]` → `maxlength`/`minlength` (on a value object's property the tighter of the attribute and the value
+  object), `[EmailAddress]`/`[Phone]`/`[Url]`/`[DataType]` → the input's `type` (a `[DataType(DataType.Date)]`
+  `DateTime` is a date input showing its day), `[Editable(false)]` → `readonly` on every bound `Input`/`Textarea`/
+  `Ui.Input` (no write wired), `[DisplayFormat(ConvertEmptyStringToNull = false)]` → an emptied `string?` is written
+  `""`, and `[UIHint(FieldHints.Switch | RadioGroup | MultilineText)]` / `[DataType(DataType.MultilineText)]` →
+  `Ui.Field.Bind` draws a `Ui.Switch`, a `Ui.RadioGroup` or a `Ui.Textarea`. A value object declared
+  `Text(Value, Upper: true)` draws its bound `Ui.Input`, `Ui.Textarea` (`uppercase`) and bare `Input`/`Textarea` (`text-transform:uppercase`) in capitals. A model that registers its shapes by hand gives the
+  whole answer for a property it answers (add `ReadOnly = true` where it relied on `[Editable(false)]` beside it).
+  See [forms validation — what a member's attributes tell its control](docs/forms-validation.md) and the per-attribute
+  table in [data](docs/data.md).
+- **An exclusive `[Range]` is worded in the reader's language.** Before: a `[Range]` with `MinimumIsExclusive` or
+  `MaximumIsExclusive` kept .NET's English text in every language. After: three catalog keys say it —
+  `ValidationAboveAndAtMost`, `ValidationAtLeastAndBelow`, `ValidationAboveAndBelow` — with Hungarian in Rask.Ui
+  (*0 feletti, legfeljebb 10 értéket adjon meg.*). See [localization](docs/localization.md).
+- **BREAKING: the version a form was filled from reaches the aggregate, and a stale save says so in the form's words.**
+  Before: `Find(id)` took no version, so a form's `Version` could only be checked through `Update(id, model)`;
+  `Update(id, apply)` took only a synchronous `Action<T>`, so `s => s.Distribute(…)` returning a `Task` was dropped
+  unawaited; and every stale save threw EF's `DbUpdateConcurrencyException`, which each page caught by hand. After:
+  `await Supply.Find(id, version)` refuses an aggregate saved since with a `RaskValidationException` about the whole
+  form — "Someone else changed this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`,
+  Hungarian in the kit's catalog) — before anything is changed; `Supply.Update(id, async s => await s.Distribute(…),
+  version: v)` awaits a change that reads first; and the generated `Update`, `Delete` and `Save()` refuse a stale save
+  with that same failure, EF's exception kept as its `InnerException`. A `catch (DbUpdateConcurrencyException)` around
+  a generated write becomes `catch (RaskValidationException)`, or goes: a form shows the failure at its top. A write
+  staged on your own context (`db:`) is still saved, and refused, by your `SaveChangesAsync`.
 - **`OrderTextBy` compares text case-insensitively on PostgreSQL 18+ and in the browser too.** Before: PostgreSQL only
   ordered by the language's ICU collation, so `Where(x => x.Name == "csaba")` missed `Csaba` there; and a browser
   app's plain `UseSqlite(…).UseRaskFullTextSearch()` got neither the `RASK_TEXT` collation nor `end - start` between
@@ -178,7 +241,7 @@ them until tagged releases begin.
   `Min`/`Max`/`Scale`, `Day` and `Moment` bounds, a `Range`'s `Min` one step on, a `: Value` record's members each sampled — and
   makes it through the generated `Create`, so its own `Rules()` agree too; one it cannot build (a lookahead pattern, a
   member type it has no sample for, a sample its rules refuse) is an `InvalidOperationException` naming it and pointing
-  at `X.Create(…)`. Rask.Testing now references Rask.Data.
+  at `X.Create(…)`. It reads the rules Rask.Core's bases were handed, so Rask.Testing still needs no Rask.Data or EF Core.
 - **`b.Columns(n => n.Km, "{Member}Km")` keeps a value object's legacy column names.** Before: a value object of
   several members was stored in EF Core's `Km_Start`/`Km_End`, so moving an entity's `StartKm`/`EndKm` into a
   `KmRange` meant a column rename (breaking reports and raw SQL) or a `HasColumnName` per member — and even then the
@@ -715,6 +778,21 @@ them until tagged releases begin.
   `Kind = Unspecified` on the first two, a microsecond, a UTC `DateTime` and a UTC-only `DateTimeOffset` on PostgreSQL —
   where a `Moment` value object, a wall-clock `DateTime` of `Kind = Unspecified`, is refused on save
   ([Dates and moments](docs/data.md#dates-and-moments-what-each-database-keeps)).
+- **A value object's generated half is fully documented.** Before: `X.Create(…)` documented only its `field`
+  parameter, so an app building its documentation file with warnings as errors failed on CS1573 in a file it never
+  wrote (TA had to `NoWarn` CS1573 project-wide). After: `Create`, `TryCreate`, `CreateOptional` and `__Problems`
+  document every parameter and their result; a generator test compiles the output with documentation on.
+- **An optional complex value object reads back as `null` on the read face.** Before: `public Opening? Start` over
+  `Opening(DateTime Date, Amount Quantity) : Value` gave the read face a non-nullable `StartQuantity` (a nested value
+  object lost the outer `?`) and mapped every column under `Start` as required, so reading any row with no opening
+  threw `SqlNullValueException` (SQLite: "The data is NULL at ordinal …"). After: every column under an optional value
+  object is nullable on the read face, however deep, and is mapped as EF Core stores it; the aggregate and the
+  generated `Create(model)`/`Update(id, model)` store and clear it as before. See
+  [data.md](docs/data.md#declared-from-a-base-record).
+- **A one-member value object declared straight from `Value` prints its value.** Before: `FuelingChip(string Value) :
+  Value` printed `FuelingChip { Value = C-17 }` in `$"{chip}"`. After: the generated half gives it `ToString()` — the
+  value, a number or a date culture-invariant, empty for none — unless the record declares its own. Text, Number,
+  Whole, Day and Moment already printed their value.
 - **A `Cached[…]` region whose data lands during the first `GET` is stored by the render that shows it.** Before: the
   fragment counted its components' work off in a continuation of its own on that work's paint, and the wave loop's
   continuation on the same paint could run first and draw the loaded markup while the count still said "loading" —

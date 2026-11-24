@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one text, with its rules declared where it is:
@@ -38,10 +38,16 @@ public abstract record Text : Value
     ///     <c>"ő"</c> <c>"Ő"</c> — after it is trimmed and before it is checked, so the lengths and the pattern see it
     ///     as it is kept. Culture-invariant: the same text is kept on every machine.
     /// </param>
+    /// <param name="Required">
+    ///     Whether the text must be filled. With <c>false</c> an empty text (or only blanks) is a value of its own,
+    ///     kept as <c>""</c> and asked only its own <c>Rules()</c>; the lengths and the pattern are checked for a filled one.
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException">A length is negative, or the fewest exceed the most.</exception>
     /// <exception cref="Rask.Cqrs.RaskValidationException">A rule refuses the text.</exception>
 #pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Text(Value, MaxLength: 1000)`, like an attribute's named argument
-    protected Text(string Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false)
+    protected Text(
+        string Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false,
+        bool Required = true)
 #pragma warning restore IDE1006
         : base(checkNow: false)
     {
@@ -54,10 +60,10 @@ public abstract record Text : Value
 
         if (DeclaredRules.IsReading)
         {
-            DeclaredRules.Note(new TextRules(MaxLength, MinLength, Pattern));
+            DeclaredRules.Note(new TextRules(MaxLength, MinLength, Pattern, Required));
         }
 
-        if (Loading.IsOn)
+        if (RowLoading.IsOn)
         {
             this.Value = Value ?? "";
             return;
@@ -66,9 +72,18 @@ public abstract record Text : Value
         var given = Value ?? "";
         var trimmed = Trim ? given.Trim() : given;
         this.Value = Upper ? trimmed.ToUpperInvariant() : trimmed;
-        Check(string.IsNullOrWhiteSpace(Value)
-            ? [Say(ValueProblemKind.Required)]
-            : Problems(this.Value, MaxLength, MinLength, Pattern, Message));
+        if (string.IsNullOrWhiteSpace(Value))
+        {
+            if (!Required)
+            {
+                this.Value = "";
+            }
+
+            Check(Required ? [Say(ValueProblemKind.Required)] : null);
+            return;
+        }
+
+        Check(Problems(this.Value, MaxLength, MinLength, Pattern, Message));
     }
 
     /// <summary>The text it holds.</summary>

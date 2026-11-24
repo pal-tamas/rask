@@ -118,6 +118,19 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     private bool _saidRequired;
     private bool _saidMaxLength;
     private bool _saidMinLength;
+    private bool _saidReadOnly;
+    private bool _saidUpper;
+
+    // What the bound field is, said up front: invalid, required, its lengths, whether it is edited at all, in capitals.
+    private void SayShape(ExpressionAccessor.Accessor acc, EditContext? bindCtx)
+    {
+        SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
+        SayRequired(acc, ref _saidRequired);
+        MaxLength = SaidMaxLength(acc, MaxLength, applies: true, ref _saidMaxLength);
+        MinLength = SaidMinLength(acc, MinLength, applies: true, ref _saidMinLength);
+        ReadOnly = SaidReadOnly(acc, ReadOnly, applies: true, ref _saidReadOnly);
+        Style = SaidUpper(acc, applies: true, ref _saidUpper);
+    }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -129,10 +142,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             acc = ExpressionAccessor.Parse(Bind);
             bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
             _content = BindingHelpers.FormatValue(acc.Getter());
-            SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
-            SayRequired(acc, ref _saidRequired);
-            MaxLength = SaidMaxLength(acc, MaxLength, applies: true, ref _saidMaxLength);
-            MinLength = SaidMinLength(acc, MinLength, applies: true, ref _saidMinLength);
+            SayShape(acc, bindCtx);
         }
         else if (Value is not null)
         {

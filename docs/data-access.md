@@ -118,7 +118,7 @@ and the Catalog domain.
 
 The domain applies **DDD tactical patterns**: `Product` is an aggregate root with private setters
 that only changes through `Create` / `Update`, and `Money` / `ProductName` / `StockLevel` are value
-objects. Each value object **owns its rules**: it is declared from a Rask.Data base record and its constructor
+objects. Each value object **owns its rules**: it is declared from one of Rask's base records (`Rask.Values`) and its constructor
 checks them, so no instance exists that they refuse, and a form bound to the aggregate's generated model asks the
 same rules with nothing written on the field ([declared from a base record](data.md#declared-from-a-base-record)):
 

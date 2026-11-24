@@ -89,7 +89,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal((10, 5), (loaded!.Km.Start, loaded.Km.End));
         Assert.Equal(" padded ", loaded.Driver.Value);
         Assert.Equal(tooLong, queried.Driver.ToString());
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
     }
 
     [Fact]
@@ -121,14 +121,14 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         await row.Save(cancellationToken: token);
         await WritePastTheRulesAsync(database, typeof(Sealed), "\"Seal_Count\" = {0}", -1);
         var raw = Record.Exception(() => database.Context.Set<Sealed>().AsNoTracking().ToList());
-        var afterTheRawQuery = Loading.IsOn;
+        var afterTheRawQuery = RowLoading.IsOn;
 
         var read = await Record.ExceptionAsync(() => database.Load<Sealed>(row.Id, token));
 
         Assert.IsType<InvalidOperationException>(raw);
         Assert.IsType<InvalidOperationException>(read);
         Assert.False(afterTheRawQuery);
-        Assert.False(Loading.IsOn);
+        Assert.False(RowLoading.IsOn);
         Assert.Throws<RaskValidationException>(() => RigKm.Create(5, 1));
     }
 
@@ -177,6 +177,57 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Empty(chip(""));
         Assert.Equal(["Enter at most 12 characters."], chip(new string('x', 13)));
         Assert.Equal(["Enter 2 or more."], axles(1));
+    }
+
+    [Fact]
+    public void A_text_that_is_not_required_keeps_an_empty_value_and_still_checks_a_filled_one()
+    {
+        var blank = RigNote.Create("   ");
+        var tooLong = RigNote.TryCreate("123456", out _, out var problems);
+        var optional = RigNote.CreateOptional("");
+
+        Assert.Equal("", blank.Value);
+        Assert.False(tooLong);
+        Assert.Equal(["Enter at most 5 characters."], problems.Select(p => p.Message));
+        Assert.Null(optional);
+    }
+
+    [Fact]
+    public async Task A_field_holding_a_text_that_is_not_required_is_neither_refused_nor_announced_and_saves_empty()
+    {
+        await using var database = await StartDatabaseAsync();
+        var rule = (Rask.Core.Forms.Validate<string?>)Generated<Func<string, Delegate?>>("Root_RuleOf", typeof(NotebookModel))("Note")!;
+
+        var empty = rule(null);
+        var tooLong = rule("123456");
+        var created = await Notebook.Create(new NotebookModel(), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Empty(empty);
+        Assert.Equal(["Enter at most 5 characters."], tooLong);
+        Assert.Null(typeof(RigModel).Assembly.GetTypes().Single(t => t.Name.EndsWith("__NotebookModelRules", StringComparison.Ordinal))
+            .GetMethod("Root_IsRequired", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+        Assert.Equal("", created.Note.Value);
+    }
+
+    [Fact]
+    public void Every_base_prints_its_value_culture_invariant_whatever_the_culture()
+    {
+        var before = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("hu-HU");
+        try
+        {
+            var litres = RigLitres.Create(1234.5m).ToString();
+            var axles = RigAxles.Create(9).ToString();
+            var day = RigInspected.Create(new DateOnly(2026, 1, 31)).ToString();
+
+            Assert.Equal("1234.5", litres);
+            Assert.Equal("9", axles);
+            Assert.Equal("01/31/2026", day);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
     }
 
     [Fact]
@@ -242,6 +293,58 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal(
             new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Range, Strict: true, Start: "Start", End: "End", Ends: Rask.Core.Forms.FieldKind.Whole),
             km);
+    }
+
+    [Fact]
+    public async Task An_optional_complex_value_left_empty_reads_back_as_none_on_both_faces()
+    {
+        await using var database = await StartDatabaseAsync();
+        var empty = Tankyard.Of("Empty");
+        var opened = Tankyard.Of("Opened");
+        opened.Open(new DateTime(2026, 3, 1), 1234.5678901234567891m);
+        await empty.Save(cancellationToken: TestContext.Current.CancellationToken);
+        await opened.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        var storedEmpty = await database.Load<Tankyard>(empty.Id, TestContext.Current.CancellationToken);
+        var storedOpened = await database.Load<Tankyard>(opened.Id, TestContext.Current.CancellationToken);
+        var rows = await Tankyard.OrderBy(d => d.Name);
+        var withStart = await Tankyard.Count(d => d.StartQuantity > 1000m, TestContext.Current.CancellationToken);
+
+        Assert.Null(storedEmpty!.Start);
+        Assert.Equal(RigStart.Create(new DateTime(2026, 3, 1), RigQuantity.Create(1234.5678901234567891m)), storedOpened!.Start);
+        Assert.Equal(["Empty", "Opened"], rows.Select(r => r.Name));
+        Assert.Equal((null, null), (rows[0].StartDate, rows[0].StartQuantity));
+        Assert.Equal((new DateTime(2026, 3, 1), 1234.5678901234567891m), (rows[1].StartDate, rows[1].StartQuantity));
+        Assert.Equal(1, withStart);
+    }
+
+    [Fact]
+    public async Task The_generated_writes_store_an_optional_complex_value_and_take_it_away_again()
+    {
+        await using var database = await StartDatabaseAsync();
+        var token = TestContext.Current.CancellationToken;
+
+        var created = await Tankyard.Create(new TankyardModel { Name = "Yard" }, cancellationToken: token);
+        var opened = await Tankyard.Update(
+            created.Id, new TankyardModel { Name = "Yard", Start = new() { Date = new DateTime(2026, 3, 1), Quantity = 50m } }, cancellationToken: token);
+        var closed = await Tankyard.Update(created.Id, new TankyardModel { Name = "Yard" }, cancellationToken: token);
+        var row = await Tankyard.Where(t => t.Id == created.Id).First(token);
+
+        Assert.Null(created.Start);
+        Assert.Equal(RigStart.Create(new DateTime(2026, 3, 1), RigQuantity.Create(50m)), opened.Start);
+        Assert.Null(closed.Start);
+        Assert.Equal((null, null), (row.StartDate, row.StartQuantity));
+    }
+
+    [Fact]
+    public async Task A_value_object_held_inside_a_complex_value_shapes_its_column_as_it_does_on_its_own()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var start = database.Context.Model.FindEntityType(typeof(Tankyard))!.FindComplexProperty(nameof(Tankyard.Start))!.ComplexType;
+        var quantity = start.FindProperty(nameof(RigStart.Quantity))!;
+
+        Assert.Equal((32, 16), (quantity.GetPrecision(), quantity.GetScale()));
     }
 
     // Written past the rules on purpose: a row stored before a rule was tightened. The table name comes from the

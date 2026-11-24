@@ -917,9 +917,16 @@ published after the commit.
 - **Values that do not come from the form** go in an optional lambda, which runs after the model's values are
   written, so it has the last word: `Product.Create(model, p => p.AssignTo(user.Id))`. With private setters
   the lambda calls the aggregate's methods, and so the rules in those methods run.
-- **A stale edit is refused** on a `Versioned` aggregate. `Update(id, model)` checks the `Version` the model carries and throws
-  `DbUpdateConcurrencyException` when someone saved since; a model whose `Version` is `null` skips the check.
-  `Update(id, p => …)` and `Delete(id)` take an optional `version:` for the same check.
+- **A stale edit is refused** on a `Versioned` aggregate. `Update(id, model)` checks the `Version` the model carries and
+  refuses the save when someone saved since — a `RaskValidationException` about the whole form, "Someone else changed
+  this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`, translated by the kit's
+  catalog), which a form shows at its top with nothing to catch; EF's `DbUpdateConcurrencyException` is its
+  `InnerException`, for the log. A model whose `Version` is `null` skips the check. `Update(id, p => …)` and
+  `Delete(id)` take an optional `version:` for the same check, and `Update(id, async p => await p.Distribute(…),
+  version: v)` awaits a change that reads first.
+- **The version a form was filled from** goes to `Find` as well: `await Supply.Find(id, version)` loads the
+  aggregate and refuses it with that same sentence when it has moved on, before anything is changed. A write
+  STAGED on your own context (`db:`) is saved by your `SaveChangesAsync`, which throws EF's exception as it is.
 - **A missing row**, never created or soft-deleted, is `KeyNotFoundException`, naming the aggregate and the key.
 
 A write refreshes what is on screen: once it commits, every `Rask.Query` query about that aggregate —
@@ -955,8 +962,8 @@ writes what changed since — it never reads the row again.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
   updated.
 - **Changed underneath is refused, never written over.** The `Version` compared is the one `Find` read, so on a
-  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is
-  `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
+  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is refused with the
+  whole-form `RaskValidationException` above. So is a save whose row, or a changed child's, has been deleted outright: nothing is
   silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
 - **The domain is asked first** — the changed properties' attributes, `Validate()`, `ValidateDelete()` — and a save
@@ -970,7 +977,7 @@ writes what changed since — it never reads the row again.
 - **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
   file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
   read first: an aggregate that names `SoftDelete` is stamped, any other has its row and its children removed. The
-  `Version` read is compared, so a row changed or deleted since is `DbUpdateConcurrencyException` (an unversioned
+  `Version` read is compared, so a row changed or deleted since is the same whole-form refusal (an unversioned
   soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
   `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
   transaction — a rollback leaves the row and its children, and its events go out after the commit. The static
@@ -1029,6 +1036,45 @@ lets the exception through shows each message under its field. It is asked first
 save has been stamped and versioned by nothing: fix the value and `Save()` again. A rule resolves services from the
 request, live session, handler or job in progress (`validationContext.GetService<T>()`). Bulk insert asks nothing — it
 runs no interceptor ([bulk insert](#bulk-insert)).
+
+### An operation, run as one write
+
+A `partial` aggregate's public methods are its **operations**, and each gets a static entry of the same name that
+runs it as one write — the load, the method and the save in one `Db.Transaction`:
+
+```csharp
+public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
+{
+    public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
+    public void SetOpening(Opening opening) { … }                                           // an operation
+    public bool IsOpen() => …;                                                              // a question: no entry
+
+    public static void Configure(EntityTypeBuilder<Supply> b) =>
+        b.Operation(s => s.SetOpening, roles: Roles.Admin);
+}
+
+await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+```
+
+- **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
+  parameter, that returns `void`, `Task`, `ValueTask` or the aggregate itself (a fluent `Driver Change(…)`). A method
+  that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
+  method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
+  entries, because they are static overloads in its own class.
+- **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
+  principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
+  `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
+  whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
+  anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
+  the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+- **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
+  in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
+  entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
+  called on an aggregate in hand is your own code and runs as written.
+- **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
+  to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
+  whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
 
 ### Changing two aggregates together: `db:`
 
@@ -1256,7 +1302,6 @@ public sealed partial class EditProductPage : Component
     [RouteParam] public Guid Id { get; set; }
 
     private ProductModel? _product;
-    private string? _conflict;
 
     protected override async Task OnMount() =>
         _product = await Product.Model(Id);
@@ -1264,7 +1309,6 @@ public sealed partial class EditProductPage : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnSubmit(Save)[
-            _conflict is null ? null : Ui.Callout.Warning.Role("alert").Text(_conflict),
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
             Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),
@@ -1273,15 +1317,8 @@ public sealed partial class EditProductPage : Component
 
     private async Task Save(ProductModel edit)
     {
-        try
-        {
-            await Product.Update(Id, edit);        // Version checked
-            Routes.ProductsPage().Go();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _conflict = "Someone saved this product while you were editing it.";
-        }
+        await Product.Update(Id, edit);        // Version checked: a stale one is shown at the form's top
+        Routes.ProductsPage().Go();
     }
 }
 ```
@@ -1378,8 +1415,8 @@ row was solving that problem a second time, worse, while charging every query a 
 
 The version check is scaffolded because **a lost delete is visible and a lost update is not**. A deleted row is
 gone and somebody notices; two people editing one form both see "Saved" and the second silently erases the
-first. The cost that would normally argue for turning it off — an unhandled `DbUpdateConcurrencyException` —
-Rask already absorbs: the scaffolded edit page catches it and says somebody else changed the row.
+first. The cost that would normally argue for turning it off — an unhandled concurrency exception — Rask already
+absorbs: a stale save is a `RaskValidationException` about the whole form, which the form shows at its top.
 
 #### An entity that knows its own time
 
@@ -1758,6 +1795,24 @@ validation ones, those that describe a field (`[Display]`, `[DataType]`, `[Edita
 and any `ValidationAttribute` of your own — never `[Key]`, `[Timestamp]` or `[ConcurrencyCheck]`, a Schema attribute
 like `[Column]`, or a `[JsonPropertyName]`. So a `[JsonPropertyName]` on the aggregate does not rename the model's
 property; a property you declare yourself on a `partial ProductModel` keeps its own pin.
+
+What each one does, where it is read — on the aggregate's property, a generated model's, or a hand-written form model's:
+
+| Attribute | The form and its control | `Create(model)` / `Update(id, model)` | Every save | The column |
+| --- | --- | --- | --- | --- |
+| `[Required]` | checked; `aria-required` and the *Required* badge | checked | checked | `NOT NULL` (EF Core's) |
+| `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]` | checked; a text input's `maxlength`/`minlength` — on a value object's property, the tighter of the attribute and the value object's own | checked | checked | `[MaxLength]`/`[StringLength]` the length (EF Core's; RASK128 when it and the value object disagree) |
+| `[Range]`, `[RegularExpression]`, `[CreditCard]`, `[FileExtensions]`, `[EnumDataType]`, `[Base64String]`, `[AllowedValues]`, `[DeniedValues]`, `[Compare]`, your own `ValidationAttribute` | checked | checked | checked | – |
+| `[EmailAddress]`, `[Phone]`, `[Url]` | checked; the input's `type` (`email`, `tel`, `url`) | checked | checked | – |
+| `[DataType]` | the input's `type`: `Password`, `EmailAddress`, `PhoneNumber`, `Url`/`ImageUrl`; `Date` on a `string` or a `DateTime` (the day of it), `Time`/`DateTime` on a `string`; `MultilineText` a textarea | – | – | – |
+| `[Editable(false)]` | a read-only input (any other kit control disabled), which wires no write | – | – | – |
+| `[DisplayFormat(ConvertEmptyStringToNull = false)]` | an emptied `string?` is written `""`, not `null` | – | – | – |
+| `[UIHint]` | `Ui.Field.Bind` draws the kit control it names where one fits — `FieldHints.Switch` on a `bool`, `FieldHints.RadioGroup` on an enum, `FieldHints.MultilineText` on a text; any other name is kept as `FieldShape.Hint` | – | – | – |
+| `[Display]` | the label, help text, placeholder, and the `{0}` of every message | the `{0}` of its messages | the `{0}` of its messages | – |
+
+`[Editable(false)]` keeps the reader from changing the field; it does not stop the aggregate's own method from changing
+the property. `[DisplayFormat]`'s `DataFormatString` and `[ScaffoldColumn]` are copied and read by nothing yet: no
+Rask.Ui list or table builds its columns from a model's members.
 
 ## The current user — `Current`
 
@@ -2621,8 +2676,11 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 ### Declared from a base record
 
-A value object is declared from the Rask.Data base record of what it holds, with its rules as the base's
-arguments, and is checked as it is made — no instance exists that its rules refuse. Rask writes the rest:
+A value object is declared from the base record of what it holds, with its rules as the base's arguments, and is
+checked as it is made — no instance exists that its rules refuse. Rask writes the rest. The bases — `Value`, `Text`,
+`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), so a browser app
+with no data layer declares its values the same way with a `using Rask.Values;`; Rask.Data maps them to columns and
+imports the namespace for you, with `Range` aliased over `System.Range`:
 
 ```csharp
 public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 1000);
@@ -2658,7 +2716,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 | Base | Holds | Rules |
 |---|---|---|
-| `Text` | `string Value` | filled, `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
+| `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern` (with its own `Message`), `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits) |
 | `Whole` | `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
@@ -2682,7 +2740,16 @@ over the primary constructor's parameters:
 [RASK127](diagnostics.md#rask127) refuses both outside the type, tests included, and its quick-fix writes the
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
-same type and hold the same values; a one-value record's `ToString()` is its value.
+same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number`, `Whole`, `Day` and `Moment` too
+(`1234.5` on every machine, never `1234,5`): it is the value's text, and showing it to a reader is the UI's and
+`Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
+way; a `ToString` the record declares itself is kept.
+
+**`Required: false` lets a text be empty**: `public sealed partial record FuelingChip(string Value) : Text(Value,
+MaxLength: 1000, Required: false);` makes `FuelingChip.Create("")` (or only blanks) the value `""` with no problem, while
+a filled one is still held to its lengths and its pattern. A field bound to it on the generated model is neither
+refused nor announced as required when left empty, and saves `""`; `CreateOptional("")` is still nothing.
 
 **`Upper: true` keeps the text in capitals**, culture-invariant (`"wvwzzz1jzxw000001"` → `"WVWZZZ1JZXW000001"`,
 `"árvíztűrő"` → `"ÁRVÍZTŰRŐ"`): after the trim and before the lengths and the pattern, so a `Pattern` is written
@@ -2722,6 +2789,18 @@ column a length or precision other than the value object's, since a value the ru
 The generated model carries the attribute like any other (`[Required]` included, which also makes the column
 `NOT NULL`), so a form and `Create(model)`/`Update(id, model)` ask it beside the value object's rule: the tighter
 of the two refuses.
+
+**A value object held inside another keeps its own column shape.** `Opening(DateTime Date, Amount Quantity) : Value`
+with `Amount : Number(Value, Scale: 16, Precision: 32)` stores `Start_Quantity` as `decimal(32,16)` — the `Amount`
+says so, and no `HasPrecision` in `Configure` is needed; a plain `decimal Quantity` member has no rules to read, so
+it keeps EF Core's default.
+
+**An optional complex value is null when its row has none.** `public Opening? Start { get; private set; }` is an EF
+Core optional complex property: every column under it is nullable, a row with no opening holds `NULL` in all of
+them and loads `Start` as `null`, and the read face's `StartDate` and `StartQuantity` are `DateTime?` and
+`decimal?` however `Opening`'s own members are declared. EF Core needs one member that is not nullable to tell
+"none" from "all empty" — an `Opening(DateTime? Date, decimal? Quantity)` held as `Opening?` is refused when the
+model is built; declare a member required, or hold it as `Opening` and let its members be empty.
 
 **An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
 into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses

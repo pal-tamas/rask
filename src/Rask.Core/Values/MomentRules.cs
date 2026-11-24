@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>What a <see cref="Moment" /> was handed.</summary>
 /// <param name="NotBefore">The earliest moment it may be, or null.</param>

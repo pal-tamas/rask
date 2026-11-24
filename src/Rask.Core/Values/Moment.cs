@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one moment, as the clock on the wall shows it:
@@ -46,7 +46,7 @@ public abstract record Moment : Value
         }
 
         this.Value = OnTheWall(Value);
-        if (!Loading.IsOn)
+        if (!RowLoading.IsOn)
         {
             Check(Problems(this.Value, NotBefore, NotAfter, NotAfterNow));
         }
@@ -58,9 +58,9 @@ public abstract record Moment : Value
     /// <summary>The day of the moment, as the calendar on the wall shows it.</summary>
     public DateOnly Day => DateOnly.FromDateTime(Value);
 
-    /// <summary>The moment it holds, written in the current culture.</summary>
+    /// <summary>The moment it holds, written culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The moment as text.</returns>
-    public sealed override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+    public sealed override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     // A wall-clock time stays as given; a UTC or machine-local one is moved onto the app's wall clock. The conversion
     // hands back Utc or Local where the zone is one of those, so the kind is set after it.

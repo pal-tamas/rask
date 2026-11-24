@@ -13,6 +13,7 @@ public class ModelRulesGeneratorTests
         using Microsoft.EntityFrameworkCore;
         using Microsoft.EntityFrameworkCore.Metadata.Builders;
         using Rask.Data;
+        using Rask.Values;
         namespace Shop;
         public sealed partial record Sku(string Value) : Text(Value, MinLength: 3);
         public sealed partial record Stock(long Value) : Whole(Value, Min: 0);
@@ -34,9 +35,25 @@ public class ModelRulesGeneratorTests
             [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
             ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
 
+    // A library on Rask.Data whose compilation leaves out Rask.Core's forms and catalog: it declares no value object
+    // from a base record, since the bases are Rask.Core's too.
+    private const string ShopWithoutValues = """
+        using System;
+        using System.Collections.Generic;
+        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore.Metadata.Builders;
+        using Rask.Data;
+        namespace Shop;
+        public sealed record Barcode(string Value)
+        {
+            public static IEnumerable<string> Validate(string value) => value.Length < 3 ? ["Too short."] : [];
+        }
+
+        """;
+
     private static GeneratorRun RunWithoutForms(string source) =>
         GeneratorHarness.RunWithout(
-            Shop + source,
+            ShopWithoutValues + source,
             [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
             ["Rask.Core"],
             "Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore");
@@ -506,12 +523,20 @@ public class ModelRulesGeneratorTests
     [Fact]
     public void A_library_that_models_its_data_and_references_no_forms_is_generated_without_either()
     {
-        var run = RunWithoutForms(Product);
+        var run = RunWithoutForms("""
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            {
+                private Product() { }
+                public Barcode Barcode { get; private set; } = new("");
+                public int Weight { get; private set; }
+                public string Title { get; private set; } = "";
+            }
+            """);
 
         var source = run.GeneratedSource("Shop.ProductModel");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.DoesNotContain("RaskValidation", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Core.Forms.RaskValidation", source, StringComparison.Ordinal);
         Assert.DoesNotContain("__ProductModelRules", source, StringComparison.Ordinal);
     }
 }

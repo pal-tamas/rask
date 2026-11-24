@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     Whether the value objects made right now are being loaded from the database, so their rules are not asked:
@@ -7,19 +7,19 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         Two switches. The per-thread depth covers a synchronous stretch — EF Core materializing one entity
-///         (<see cref="WritableChildrenInterceptor" />, between <c>CreatingInstance</c> and
+///         (Rask.Data's interceptor, between <c>CreatingInstance</c> and
 ///         <c>InitializedInstance</c>), a column's converter rebuilding one value — and costs nothing per row. The
 ///         flowing flag covers one of Rask's own reads from start to end (<see cref="Read" />), so a projection that
 ///         builds a value object outside any entity is loaded the same way.
 ///     </para>
 ///     <para>
 ///         A materialization that throws between the two interceptor calls would leave the depth up on its thread.
-///         EF Core reports the failure as it happens, and <see cref="FailedMaterializations" /> puts the depth back
+///         EF Core reports the failure as it happens, and Rask.Data's watch on failed materializations puts the depth back
 ///         to zero there; every read Rask runs also ends with <see cref="ReadScope.Dispose" />, which does the same —
 ///         so the next <c>Create</c> on that thread checks its rules again.
 ///     </para>
 /// </remarks>
-internal static class Loading
+internal static class RowLoading
 {
     [ThreadStatic]
     private static int t_depth;
@@ -50,7 +50,7 @@ internal static class Loading
         }
     }
 
-    /// <summary>A materialization on this thread failed: whatever it began is over (<see cref="FailedMaterializations" />).</summary>
+    /// <summary>A materialization on this thread failed: whatever it began is over (Rask.Data's watch on failed materializations).</summary>
     public static void Abandon() => t_depth = 0;
 
     /// <summary>One of Rask's reads, from its start to its end — awaits included.</summary>

@@ -32,6 +32,8 @@
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core"/>
     <InternalsVisibleTo Include="Rask.Cqrs"/>
+    <!-- FieldFailureMap: the endpoint writes a refusal's failures as the wire's errors dictionary. -->
+    <InternalsVisibleTo Include="Rask.Cqrs.Server"/>
     <InternalsVisibleTo Include="Rask.Data"/>
     <InternalsVisibleTo Include="Rask.Query"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>

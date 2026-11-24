@@ -1,8 +1,8 @@
-using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Testing;
 
-/// <summary>The ends a <see cref="Rask.Data.Range" /> accepts: from its least (or the type's first sample), one step on, within its greatest.</summary>
+/// <summary>The ends a <see cref="Rask.Values.Range" /> accepts: from its least (or the type's first sample), one step on, within its greatest.</summary>
 internal static class RangeSample
 {
     public static object?[] For(string name, Type ends, RangeRules rules)

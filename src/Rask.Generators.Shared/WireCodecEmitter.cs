@@ -488,7 +488,7 @@ internal sealed class WireCodecEmitter
     private static string Literal(string value) =>
         Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
-    private const string Rules = "global::Rask.Data.GeneratedValueRules";
+    private const string Rules = "global::Rask.Values.GeneratedValueRules";
     private const string Refusals = "global::Rask.Wire.WireRefusals";
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";

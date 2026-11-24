@@ -125,6 +125,7 @@ public sealed partial class ModelInputGenerator
             s.AppendLine("        };");
         }
 
+        AppendWithin(s, shaped);
         if (shaped.Exists(static m => m.Fields.Exists(static f => f.Shape.StartsWith(EndsOf, StringComparison.Ordinal))))
         {
             s.AppendLine();

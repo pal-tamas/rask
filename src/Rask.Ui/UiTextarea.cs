@@ -156,8 +156,12 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
                 UiInputLook.Outline,
                 rows.Count is null ? "field-sizing-content" : null,
                 ResizeClass(Resize ?? Ui.TextareaResize.Vertical),
+                KeptUpper ? UiInputLook.Upper : null,
                 Class));
     }
+
+    // Whether the bound field is kept in capitals, so the textarea draws its text in them, as Ui.Input does.
+    private bool KeptUpper => Bind is { } bind && RaskValidation.ShapeOf(ExpressionAccessor.Parse(bind)) is { Upper: true };
 
     private static string ResizeClass(Ui.TextareaResize resize) => resize switch
     {

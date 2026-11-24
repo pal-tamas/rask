@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>What a <see cref="Number" /> was handed.</summary>
 /// <param name="Min">The least it may be, or null.</param>

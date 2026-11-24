@@ -1,4 +1,4 @@
-namespace Rask.Data;
+namespace Rask.Values;
 
 /// <summary>
 ///     Reads the rules a value object hands its base, by making one while a read is open: the base notes what it was
@@ -29,7 +29,7 @@ internal static class DeclaredRules
         t_noted = null;
         try
         {
-            using (Loading.Begin())
+            using (RowLoading.Begin())
             {
                 make();
             }

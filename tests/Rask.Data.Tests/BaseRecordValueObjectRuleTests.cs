@@ -1,7 +1,7 @@
 namespace Rask.Data.Tests;
 
 /// <summary>
-/// A value object declared from a Rask.Data base record checks its rules as it is made: what each base refuses, the
+/// A value object declared from a Rask base record checks its rules as it is made: what each base refuses, the
 /// field a refusal is shown under, and the generated Create, TryCreate and CreateOptional.
 /// </summary>
 public sealed class BaseRecordValueObjectRuleTests
@@ -15,6 +15,28 @@ public sealed class BaseRecordValueObjectRuleTests
         Assert.Equal("Ada", driver.Value);
         Assert.Equal(" C1 ", chip.Value);
         Assert.Equal("Ada", driver.ToString());
+    }
+
+    [Fact]
+    public void A_value_of_one_member_declared_from_Value_prints_the_value_it_holds_culture_invariant()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("hu-HU");
+
+        try
+        {
+            var tag = RigTag.Create("C-17");
+            var reading = RigReading.Create(1234.5m);
+            var sign = RigSign.Create(7);
+
+            Assert.Equal("C-17", $"{tag}");
+            Assert.Equal("1234.5", reading.ToString());
+            Assert.Equal("#7", sign.ToString());
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]
