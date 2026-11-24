@@ -81,6 +81,12 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **A private `static void Rules(InlineValidator<T>)` is not called unused, and a value object's rules name no field.**
+  Before: Sonar's S1144 / the IDE's IDE0051 flagged the convention method, which only the generated registry calls,
+  and a value object's `Must` without `WithMessage` said "… was not met for 'Value'.". After: RASKSUP002 suppresses
+  both on exactly the convention's shape, and a value object's own `Value` is named blank, so the sentence reads "The
+  specified condition was not met.". RASK130's quick-fix is no longer offered while an `AbstractValidator<T>` class
+  rules the same property (it would not compile once the property holds a value object).
 - **Kinds of text as value-object bases: `Email`, `Phone`, `Url`, `Password`, `Multiline` (`Rask.Values`).** Before: an
   email, a phone number or a password was a `Text` plus an attribute on the form's `string`, or a hand-written
   `.Type(InputType.Password)` and `.Validate(X.__Problems)` at the call site. After: `record ContactEmail(string Value) :

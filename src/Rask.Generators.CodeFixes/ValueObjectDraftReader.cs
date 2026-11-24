@@ -45,6 +45,13 @@ internal static class ValueObjectDraftReader
             return null;
         }
 
+        // A rule about the property anywhere but its type's own Rules — an AbstractValidator<T> class — would not compile
+        // once the property holds a value object, and this fix does not rewrite it: no fix rather than a broken build.
+        if (RuledElsewhere(model.Compilation, property, cancellationToken))
+        {
+            return null;
+        }
+
         var arguments = new BaseArguments();
         var attributes = ReadAttributes(property, node.SyntaxTree, valueBase, arguments, cancellationToken);
         var chains = attributes is null ? null : ReadRules(model, property, node.SyntaxTree, valueBase, nullable, arguments, cancellationToken);
@@ -132,6 +139,38 @@ internal static class ValueObjectDraftReader
             if (string.Equals(current.ToDisplayString(), DataAnnotations + "ValidationAttribute", StringComparison.Ordinal))
             {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Whether a RuleFor outside the type's in-type Rules names the property.
+    private static bool RuledElsewhere(Compilation compilation, IPropertySymbol property, CancellationToken cancellationToken)
+    {
+        foreach (var tree in compilation.SyntaxTrees)
+        {
+            if (!tree.GetText(cancellationToken).ToString().Contains("RuleFor", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var treeModel = compilation.GetSemanticModel(tree);
+            foreach (var invocation in tree.GetRoot(cancellationToken).DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (treeModel.GetEnclosingSymbol(invocation.SpanStart, cancellationToken) is IMethodSymbol enclosing &&
+                    FluentRules.IsInlineRules(enclosing) &&
+                    SymbolEqualityComparer.Default.Equals(enclosing.ContainingType, property.ContainingType))
+                {
+                    continue;
+                }
+
+                if (treeModel.GetOperation(invocation, cancellationToken) is IInvocationOperation ruleFor &&
+                    FluentRules.ValidatedBy(ruleFor) is not null &&
+                    SymbolEqualityComparer.Default.Equals(FluentRules.RuledProperty(ruleFor), property))
+                {
+                    return true;
+                }
             }
         }
 

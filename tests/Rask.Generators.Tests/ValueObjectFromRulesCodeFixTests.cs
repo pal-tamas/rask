@@ -141,4 +141,20 @@ public class ValueObjectFromRulesCodeFixTests
 
         Assert.False(offered);
     }
+
+    [Fact]
+    public async Task No_fix_is_offered_while_a_validator_class_rules_the_same_property()
+    {
+        var source = Supplier("[StringLength(200)] public string Name { get; private set; } = \"\";") + """
+
+            public sealed class SupplierValidator : FluentValidation.AbstractValidator<Shop.Supplier>
+            {
+                public SupplierValidator() => RuleFor(s => s.Name).Must(n => n.Length > 0);
+            }
+            """;
+
+        var offered = await Offered(source);
+
+        Assert.False(offered);
+    }
 }
