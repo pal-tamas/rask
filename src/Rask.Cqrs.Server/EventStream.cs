@@ -139,6 +139,12 @@ internal static class EventStream
         {
             subscription = null;
         }
+        catch (RaskValidationException refused)
+        {
+            // What it watches holds a value object its rules refuse: no watch policy is asked about it.
+            await RaskCqrsEndpointExtensions.ValidationFailedAsync(context, refused).ConfigureAwait(false);
+            return (false, null);
+        }
 
         if (subscription is null)
         {

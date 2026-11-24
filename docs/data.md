@@ -2171,8 +2171,10 @@ public sealed class AppModel : IRaskModel
   | a JSON column (`ToJson()`, a value-object collection) | the column yes, the properties inside it no |
   | an owned type in its owner's table | yes, after its navigation (`depotStreet`); its key stays its owner's column |
   | a hierarchy in one table, its discriminator | the table once, after its root; `discriminator` too |
-  | an owned type's own table, a view's name | no |
-  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — they keep the names their migrations have |
+  | an owned type in a table of its own | yes, after its class (`t.Class` is `Leg`) |
+  | a one-value value object inside another (`Price_Currency`) | yes, like its siblings (`priceCurrency`) |
+  | a view (`ToView` always names it) | no |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — each battery's configuration records its tables, and they keep the names their migrations have; the app's own user class (`AddRaskAuth<TUser>`) is the app's table and is named |
 
   Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
   unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work
@@ -2330,6 +2332,74 @@ builder.HasIndex(p => p.PayeeId).Covering(p => new { p.Amount, p.Note });   // o
 
 It is read as the model is finalized by every `RaskDbContext`. A plain `DbContext` gets it by calling
 `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
+
+### Computed columns, defaults and filtered indexes, in C#
+
+A model that says `HasComputedColumnSql("CONCAT(Year,'.',Month)")`, `HasDefaultValueSql("CURRENT_TIMESTAMP")` or
+`HasFilter("[TeaorId] IS NOT NULL")` is written in one database's SQL, and the SQLite the tests run on reads it
+differently or not at all. Say the same three things in C#, and Rask writes each provider's own SQL as the model is
+finalized:
+
+```csharp
+static void Configure(EntityTypeBuilder<Fueling> b)
+{
+    b.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol);   // a column the database computes
+    b.Computed(f => f.Period, f => f.Year + "." + f.Month);
+    b.Default(f => f.Size, 1000);                                       // what a row written without it gets
+    b.Default(f => f.CreatedAt, () => Clock.Now);                       // the database's clock, UTC
+    b.HasIndex(f => f.Partner).IsUnique("This partner has a live grant.").Where(f => f.RevokedAt == null);
+}
+```
+
+**`Computed(property, value)`** is a stored computed column: `PERSISTED` on SQL Server, `GENERATED ALWAYS AS (…)
+STORED` on PostgreSQL and SQLite. The database keeps it with the row, it can be indexed, and a save reads it back
+into the entity (give the property a `private set`). The value is a closed subset, chosen because it means the same
+on all three databases as it does in C#:
+
+| Takes | Written as |
+|---|---|
+| the entity's mapped members, a value object's too (`f.Amount.Value`) | the column |
+| constants, captured fields, enums, strongly-typed ids | a literal, as the column stores it |
+| `a ?? b`, `x.GetValueOrDefault()`, `x.GetValueOrDefault(v)` | `COALESCE` |
+| `+ - * / %` and unary `-` on whole numbers and doubles; `Math.Abs` | the same operators; `ABS` |
+| text joined with `+` (or `string.Concat`), whole numbers among it | `+` on SQL Server, `\|\|` elsewhere; a number `CAST` to text, a null as no text — as C# joins it |
+| `== != < <= > >=`, `&&`, `\|\|`, `!`, `x.HasValue` | a condition that is true or false, never unknown: `a == b` is true for two nulls and `a != 5` for a null, as in C# |
+| `c ? a : b`, and a condition in a value's place | `CASE WHEN … END` |
+
+Anything else fails the model build, naming the node and the declaration: a method call (`ToUpper()`), `.Value` off a
+nullable (C# throws on a null, SQL does not — write `??`), arithmetic on a `decimal` (SQLite computes it as a double),
+a `double` or a date joined into text (each database writes it its own way), and a property outside the row
+(`DateTime.Now` would be read once, as the model is built). Text compares as the column's collation does
+([`OrderTextBy`](#app-wide-model-rules-one-iraskmodel)); integer overflow and division by zero are the database's.
+
+**`Default(property, value)`** is the database's default: it fills a row written by something other than Rask — a
+script, another app — and the rows a migration finds when it adds the column. **Rask always writes the value the
+entity holds**: a `Size` of `0` is saved as `0`, where EF Core's own `HasDefaultValue` would leave a column holding
+its type's default to the database and save `1000`. The entity's own starting value is its initializer or its
+factory's. The constant is written as its column stores it — an enum's number, a strongly-typed id's key.
+
+`Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
+clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
+PostgreSQL, `strftime('%Y-%m-%d %H:%M:%f', 'now')` on SQLite — the text a `DateTime` is stored as there. It is the
+moment the database writes the row, on the database server; `Clock.Fake` does not move it. A row Rask writes takes
+its moment from the entity, which reads `Clock.Now` — an aggregate's `Timestamps` are stamped that way. Any other
+lambda is refused where it is written; `Clock.Wall` and `Clock.Today` too, since the database does not know the
+app's time zone.
+
+**`HasIndex(…).Where(rows)`** is a filtered index on SQL Server and a partial one on PostgreSQL and SQLite; a unique
+one holds among the rows the filter keeps — one live grant per partner, however many revoked. The filter is the
+plainest condition, because SQL Server's filtered index takes no other:
+
+- columns compared with constants or `null`, joined by `&&`; a boolean column as itself (`x => x.Active`) or with `!`
+- `||`, two columns compared, and a `!=` on a nullable column fail the model build — C# keeps the nulls for
+  `x.Level != 3`, a filtered index leaves them out, so say it in both: `x.Level != null && x.Level != 3`
+- on SQL Server a unique index also leaves out the rows with a NULL in a nullable key column, as EF Core's own unique
+  index there does, so NULLs never collide on any of the three
+
+All three are read as the model is finalized by every `RaskDbContext` (a plain `DbContext` calls
+`ModelRegistry.ApplyConventions`), and the model a migration is made from carries the provider's SQL alone —
+`HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` — as if you had written it. A provider other than the
+three refuses the model; say it in that provider's own SQL there.
 
 ### What deleting a referenced row says
 
@@ -2517,9 +2587,10 @@ a row leaves the next `Create` checking again. Only what the code makes goes thr
 **Over remote dispatch it travels as what it holds.** A command, query, event or result crossing between the
 browser and the server (`Rask.Cqrs.Client`/`Rask.Cqrs.Server`) may carry one: a one-value record is its bare value
 on the wire — `"ABC-123"`, `12.5`, never `{"value":"ABC-123"}` — and a `Range` or `Value` record an object of its
-members. The receiving end rebuilds it through the generated `Create` **unchecked**, as a loaded row is, so a rule
-tightened on one end never makes the other unable to read; a handler that must rely on the rules asks them
-(`DriverName.Create(command.Driver.Value, "Driver")`). See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
+members. The server rebuilds what a browser sent through the generated `Create` **with its rules asked**, so no handler is
+given a value they refuse: the request is answered `400` with each refusal under its field (`Driver.Name`). The
+browser rebuilds what the server answers as a loaded row is, unchecked, so a value stored before a rule was
+tightened still reaches the page. See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
 **The column takes what the value object declares**, read from its base arguments when the app is compiled —
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,

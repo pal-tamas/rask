@@ -23,8 +23,8 @@ public sealed class EventsFake : IDisposable
 
     /// <summary>
     ///     Asks about what was published: <c>events.Published&lt;OrderPlaced&gt;().Once()</c>,
-    ///     <c>events.Published&lt;OrderPlaced&gt;().Where(e =&gt; e.Id == id).Times(2)</c>,
-    ///     <c>events.Published&lt;OrderCancelled&gt;().Never()</c>. <c>All</c> and <c>Only()</c> hand back the events
+    ///     <c>events.Published&lt;OrderPlaced&gt;().Where(e =&gt; e.Id == id).Exactly(2)</c>,
+    ///     <c>events.Published&lt;OrderCancelled&gt;().None()</c>. <c>All</c> and <c>Only()</c> hand back the events
     ///     themselves.
     /// </summary>
     /// <typeparam name="TEvent">The event to ask about; a base type or interface counts every event it covers.</typeparam>

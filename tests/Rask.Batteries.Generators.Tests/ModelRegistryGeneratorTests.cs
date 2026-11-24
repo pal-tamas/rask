@@ -202,7 +202,7 @@ public class ModelRegistryGeneratorTests
         // refuses at startup compiles just as well (#1244).
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            "global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Currency), (global::Shop.Currency v) => v.Value).HasColumnName(\"Limit_Currency\");",
+            "ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Currency), (global::Shop.Currency v) => v.Value), \"Limit_Currency\");",
             registry,
             StringComparison.Ordinal);
     }
@@ -274,10 +274,10 @@ public class ModelRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("ValueObjectColumn.Map(__Shop_Parcel.Property(x => x.Sku), (global::Shop.Sku v) => v.Value);", registry, StringComparison.Ordinal);
-        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Code), (global::Shop.Sku v) => v.Value).HasColumnName(\"Label_Code\");", registry, StringComparison.Ordinal);
-        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Alias), (global::Shop.Sku v) => v.Value).HasColumnName(\"Label_Alias\");", registry, StringComparison.Ordinal);
-        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Tare), (global::Shop.Weight v) => v.Value).HasColumnName(\"Label_Tare\");", registry, StringComparison.Ordinal);
-        Assert.Contains("ValueObjectColumn.Map(b1.Property(x => x.Code), (global::Shop.Sku v) => v.Value).HasColumnName(\"Route_Label_Code\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Code), (global::Shop.Sku v) => v.Value), \"Label_Code\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Alias), (global::Shop.Sku v) => v.Value), \"Label_Alias\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Tare), (global::Shop.Weight v) => v.Value), \"Label_Tare\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Held(global::Rask.Data.ValueObjectColumn.Map(b1.Property(x => x.Code), (global::Shop.Sku v) => v.Value), \"Route_Label_Code\");", registry, StringComparison.Ordinal);
         Assert.DoesNotContain(".Property(v => v.Value)", registry, StringComparison.Ordinal);
     }
 
