@@ -361,6 +361,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         // A value object declared from Number, Whole or Range: the app's generated module initializer words its rules.
         nameof(RaskString.ValidationNumberMin), nameof(RaskString.ValidationNumberMax), nameof(RaskString.ValidationDecimals),
         nameof(RaskString.ValidationRangeNotBefore), nameof(RaskString.ValidationRangeAfter),
+        // A value object declared from Url: Core's value words say it.
+        nameof(RaskString.ValidationWebAddress),
         // A form's .ConfirmLeave() with no question of its own: Core's chain step asks it.
         nameof(RaskString.ConfirmLeaveQuestion),
     ];

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK172, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK132, RASK140–RASK144, RASK165, RASK170–RASK174, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -159,6 +159,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
 | [RASK171](#rask171) | Warning | An operation's parameter takes a name its generated entry needs |
 | [RASK172](#rask172) | Error | The roles of an operation are written where its generated entry cannot read them |
+| [RASK173](#rask173) | Error | An aggregate stores a password |
+| [RASK174](#rask174) | Error | A password is sent back |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3398,3 +3400,40 @@ public static void Configure(EntityTypeBuilder<Supply> b)
 
 **Fix:** write the call directly in the aggregate's own static `Configure`, the operation as a lambda and the roles as
 a `const string` or a literal.
+
+## RASK173
+
+**An aggregate stores a password** · Error
+
+A value object declared from `Rask.Values.Password` holds a password as it was typed. An aggregate or an entity that
+keeps one — as a property, inside a value object it holds, or in a list — would write it to a column and show it on the
+generated read face. Found however deep it sits; a computed property is not state and is not reported.
+
+```csharp
+public sealed partial record SignInPassword(string Value) : Password(Value, MinLength: 8);
+
+public sealed class User : Aggregate<Guid>
+{
+    public SignInPassword Password { get; private set; }   // ⛔ RASK173
+    public string PasswordHash { get; private set; } = ""; // ✓
+}
+```
+
+**Fix:** hash the password where it is checked and store the hash; keep the `Password` value object on the form or
+the command that brings it in.
+
+## RASK174
+
+**A password is sent back** · Error
+
+A `Password` value object is input only: a form or a command brings it to the server. A query's result
+(`IQuery<T>`), a command's result (`ICommand<T>`), a subscription's item (`ISubscription<T>`) and an event (`IEvent`)
+are written outward — to the browser, a log, another service — so none of them may hold one, at any depth.
+
+```csharp
+public sealed record SignIn(ContactEmail Email, SignInPassword Password) : ICommand<Token>;   // ✓ it comes in
+public sealed record Login(ContactEmail Email, SignInPassword Password);
+public sealed record FindLogin(Guid Id) : IQuery<Login>;                                      // ⛔ RASK174
+```
+
+**Fix:** leave the password out of what is sent back; send what the reader needs instead (a token, a flag).

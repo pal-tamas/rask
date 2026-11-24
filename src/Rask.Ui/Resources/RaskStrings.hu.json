@@ -304,6 +304,7 @@
   "ValidationEmail": "Érvényes e-mail-címet adjon meg.",
   "ValidationPhone": "Érvényes telefonszámot adjon meg.",
   "ValidationUrl": "Érvényes webcímet adjon meg (http, https vagy ftp).",
+  "ValidationWebAddress": "Érvényes webcímet adjon meg (http vagy https).",
   "ValidationCreditCard": "Érvényes bankkártyaszámot adjon meg.",
   "ValidationPattern": "A megadott érték formátuma nem megfelelő.",
   "ValidationMatch": "Nem egyezik a következővel: {0}.",

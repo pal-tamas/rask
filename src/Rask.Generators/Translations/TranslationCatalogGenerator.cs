@@ -264,6 +264,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ValidationEmail", 0),
         ("ValidationPhone", 0),
         ("ValidationUrl", 0),
+        ("ValidationWebAddress", 0),
         ("ValidationCreditCard", 0),
         ("ValidationPattern", 0),
         ("ValidationMatch", 1),

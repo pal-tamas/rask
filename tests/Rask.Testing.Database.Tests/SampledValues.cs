@@ -15,6 +15,15 @@ public sealed partial record Plate(string Value) : Text(Value, Pattern: @"^(?:[A
 /// <summary>A pattern no simple sample meets: a lookahead.</summary>
 public sealed partial record Password(string Value) : Text(Value, Pattern: @"^(?=.*\d).{8,}$");
 
+/// <summary>An email address longer than the usual sample.</summary>
+public sealed partial record MailAddress(string Value) : Email(Value, MinLength: 24);
+
+/// <summary>A phone number.</summary>
+public sealed partial record Mobile(string Value) : Phone(Value);
+
+/// <summary>A web address.</summary>
+public sealed partial record Homepage(string Value) : Url(Value);
+
 /// <summary>A decimal with a least below one step of its scale.</summary>
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 0.005m, Scale: 2);
 

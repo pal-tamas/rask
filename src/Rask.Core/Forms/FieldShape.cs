@@ -46,9 +46,23 @@ public sealed record FieldShape(
     ///     The input a text is typed into, where the member's attributes ask for one: <c>[EmailAddress]</c> an
     ///     <see cref="InputType.Email" />, <c>[Phone]</c> a <see cref="InputType.Tel" />, <c>[Url]</c> a
     ///     <see cref="InputType.Url" />, <c>[DataType(DataType.Password)]</c> a <see cref="InputType.Password" />,
-    ///     <c>[DataType(DataType.Date)]</c> a <see cref="InputType.Date" />. Null for the input the member's type calls for.
+    ///     <c>[DataType(DataType.Date)]</c> a <see cref="InputType.Date" /> — or its value object's kind of text, the same
+    ///     way: <c>Email</c>, <c>Phone</c>, <c>Url</c>, <c>Password</c>. Null for the input the member's type calls for.
     /// </summary>
     public InputType? Input { get; init; }
+
+    /// <summary>
+    ///     What the browser may fill the input with — its <c>autocomplete</c>: <c>"email"</c> for a value object declared
+    ///     from <c>Email</c>, <c>"tel"</c> from <c>Phone</c>, <c>"current-password"</c> or <c>"new-password"</c> from
+    ///     <c>Password</c>. Null for none; an <c>Autocomplete</c> the author sets wins.
+    /// </summary>
+    public string? AutoComplete { get; init; }
+
+    /// <summary>
+    ///     The keyboard a touch screen shows for the input — its <c>inputmode</c>: <see cref="Core.InputMode.Tel" /> for a
+    ///     value object declared from <c>Phone</c>. Null for the keyboard its type calls for; an <c>InputMode</c> the author sets wins.
+    /// </summary>
+    public InputMode? InputMode { get; init; }
 
     /// <summary>Whether the member is <c>[Editable(false)]</c>: shown, never changed by the reader.</summary>
     public bool ReadOnly { get; init; }
@@ -66,7 +80,8 @@ public sealed record FieldShape(
     public bool Upper { get; init; }
 
     /// <summary>
-    ///     The control the member names — its <c>[UIHint]</c>, or <c>"MultilineText"</c> for
+    ///     The control the member names — its <c>[UIHint]</c>, or <c>"MultilineText"</c> for a value object declared from
+    ///     <c>Multiline</c> and for
     ///     <c>[DataType(DataType.MultilineText)]</c> — or null. A bound field draws the kit control of that name where
     ///     one fits what the member holds (<see cref="FieldHints" />), and its usual control otherwise.
     /// </summary>

@@ -49,67 +49,81 @@ public abstract record Text : Value
         string Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false,
         bool Required = true)
 #pragma warning restore IDE1006
+        : this(Value, new TextDeclared(MaxLength, MinLength, Pattern, Message, Trim, Upper, Required))
+    {
+    }
+
+    // What the bases of one kind of text (Email, Phone, Url, Password, Multiline) hand on: Text's rules and the kind,
+    // which adds its own format check and tells a bound input what it is typed into.
+    private protected Text(string value, TextDeclared declared)
         : base(checkNow: false)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(MaxLength);
-        ArgumentOutOfRangeException.ThrowIfNegative(MinLength);
-        if (MaxLength > 0)
+        if (declared.MaxLength < 0 || declared.MinLength < 0 || (declared.MaxLength > 0 && declared.MinLength > declared.MaxLength))
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(MinLength, MaxLength);
+            throw new ArgumentOutOfRangeException(
+                nameof(declared), declared, "A length is never negative, and the fewest characters never exceed the most.");
         }
 
         if (DeclaredRules.IsReading)
         {
-            DeclaredRules.Note(new TextRules(MaxLength, MinLength, Pattern, Required));
+            DeclaredRules.Note(new TextRules(declared.MaxLength, declared.MinLength, declared.Pattern, declared.Required, declared.Kind));
         }
 
         if (RowLoading.IsOn)
         {
-            this.Value = Value ?? "";
+            Value = value ?? "";
             return;
         }
 
-        var given = Value ?? "";
-        var trimmed = Trim ? given.Trim() : given;
-        this.Value = Upper ? trimmed.ToUpperInvariant() : trimmed;
-        if (string.IsNullOrWhiteSpace(Value))
+        var given = value ?? "";
+        var trimmed = declared.Trim ? given.Trim() : given;
+        Value = declared.Upper ? trimmed.ToUpperInvariant() : trimmed;
+        if (string.IsNullOrWhiteSpace(value))
         {
-            if (!Required)
+            if (!declared.Required)
             {
-                this.Value = "";
+                Value = "";
             }
 
-            Check(Required ? [Say(ValueProblemKind.Required)] : null);
+            Check(declared.Required ? [Say(ValueProblemKind.Required)] : null);
             return;
         }
 
-        Check(Problems(this.Value, MaxLength, MinLength, Pattern, Message));
+        Check(Problems(Value, declared));
     }
 
     /// <summary>The text it holds.</summary>
     public string Value { get; }
 
-    /// <summary>The text it holds.</summary>
-    /// <returns><see cref="Value" />.</returns>
-    public sealed override string ToString() => Value;
+    /// <summary>The text it holds — a <see cref="Password" />'s masked, so a log line or an interpolation never shows it.</summary>
+    /// <returns><see cref="Value" />, or <c>"••••"</c> for a password.</returns>
+    public sealed override string ToString() => Shown();
 
-    private static List<Problem>? Problems(string text, int maxLength, int minLength, string? pattern, string? message)
+    // What ToString says: the text, or the mask a password puts over it.
+    private protected virtual string Shown() => Value;
+
+    private static List<Problem>? Problems(string text, TextDeclared declared)
     {
         List<Problem>? problems = null;
 
-        if (text.Length < minLength)
+        if (text.Length < declared.MinLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooShort, minLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooShort, declared.MinLength));
         }
 
-        if (maxLength > 0 && text.Length > maxLength)
+        if (declared.MaxLength > 0 && text.Length > declared.MaxLength)
         {
-            (problems ??= []).Add(Say(ValueProblemKind.TooLong, maxLength));
+            (problems ??= []).Add(Say(ValueProblemKind.TooLong, declared.MaxLength));
         }
 
-        if (pattern is not null && !Matches(pattern, text))
+        if (declared.Pattern is { } pattern && !Matches(pattern, text))
         {
-            (problems ??= []).Add(Say(ValueProblemKind.Pattern, null, message));
+            (problems ??= []).Add(Say(ValueProblemKind.Pattern, null, declared.Message));
+        }
+
+        if (TextFormats.Refusal(declared.Kind, text) is { } format)
+        {
+            (problems ??= []).Add(Say(format, null, declared.Message));
         }
 
         return problems;

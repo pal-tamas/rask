@@ -935,4 +935,7 @@ public enum RaskString
     ///     greater than, and <c>{1}</c> the greatest, which it must be less than.
     /// </summary>
     ValidationAboveAndBelow,
+
+    /// <summary>What a value object declared from <c>Url</c> says of text that is no absolute http or https address.</summary>
+    ValidationWebAddress,
 }

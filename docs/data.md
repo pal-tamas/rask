@@ -2679,6 +2679,44 @@ public sealed class Delivery : Aggregate<Guid, Model>
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)`; with ONE member it is a one-value value object: one column, asked on its field, refused under it |
 
+#### Kinds of text: Email, Phone, Url, Password, Multiline
+
+Five bases are a `Text` that also knows what kind of text it holds — its format rule and the input it is typed into.
+Each takes `Text`'s arguments (`MaxLength`, `MinLength`, `Message`, `Trim`, `Upper`, `Required`; `Password` and
+`Multiline` a `Pattern` too), is made, stored and asked exactly as a `Text`, and gives the control bound to it on the
+generated model what the matching DataAnnotations attribute would give a plain `string`:
+
+```csharp
+public sealed partial record ContactEmail(string Value) : Email(Value, MaxLength: 200);
+public sealed partial record ContactPhone(string Value) : Phone(Value);
+public sealed partial record Homepage(string Value) : Url(Value, Required: false);
+public sealed partial record SignInPassword(string Value) : Password(Value, MinLength: 8);
+public sealed partial record ChosenPassword(string Value) : Password(Value, MinLength: 12, New: true);
+public sealed partial record Remark(string Value) : Multiline(Value, MaxLength: 4000);
+
+Ui.Field.Bind(() => m.Email)    // <input type="email" maxlength="200" autocomplete="email">, the email rule on change, on submit, on save
+```
+
+| Base | Its rule | Column | A bound control | Attribute path |
+|---|---|---|---|---|
+| `Email` | `[EmailAddress]`'s own check: one `@`, neither first nor last | 254 unless declared | `type="email"`, `autocomplete="email"` | `[EmailAddress]` |
+| `Phone` | `[Phone]`'s own check | 32 unless declared | `type="tel"`, `inputmode="tel"`, `autocomplete="tel"` | `[Phone]` |
+| `Url` | an absolute `http` or `https` address (`[Url]` also lets `ftp` and anything that only starts like one through) | 2048 unless declared | `type="url"` | `[Url]` |
+| `Password` | its lengths, its pattern and its `Rules()`; not trimmed unless `Trim: true` | — never stored | `type="password"`, `autocomplete="current-password"` (`New: true`: `"new-password"`), its value never written by the server | `[DataType(DataType.Password)]` |
+| `Multiline` | as `Text` | as declared | `Ui.Field.Bind` draws a `Ui.Textarea` | `[DataType(DataType.MultilineText)]`, `[UIHint("MultilineText")]` |
+
+The two paths give the identical `FieldShape` (`Input`, `AutoComplete`, `InputMode`, `Hint`, the lengths), so a
+control cannot tell them apart; the value-object path also checks the rule wherever the value is made — a command,
+a job, an import — not only where a form posts it. The format messages are the strings catalog's
+(`ValidationEmail`, `ValidationPhone`, `ValidationWebAddress`), or the record's own `Message`.
+
+**A password is input only.** Its `ToString()` and its debugger view say `••••`, so a log line or `$"{password}"`
+never shows it; read `.Value` where it is checked or hashed. An aggregate or entity that stores one — directly, in a
+value object or in a list — is [RASK173](diagnostics.md#rask173) (store the hash), and the generated read face leaves
+it out; a query's or a command's result, a subscription's item or an event that carries one is
+[RASK174](diagnostics.md#rask174). A command that takes one in — `record SignIn(ContactEmail Email, SignInPassword
+Password) : ICommand<Token>` — is what it is for.
+
 The record's positional parameter `Value` is the base's get-only `Value` (so `name with { Value = … }` does not
 compile); a `Range` or `Value` record keeps its own typed members. The constructor asks the rules and throws a
 `RaskValidationException` — one failure per problem, under the member it names — and the generated half adds,

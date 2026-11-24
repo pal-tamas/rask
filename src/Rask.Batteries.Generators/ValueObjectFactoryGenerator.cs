@@ -89,6 +89,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             type.Name,
             type.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : "",
             valueBase,
+            AggregateShape.TextKindOf(type),
             new EquatableArray<string>([.. containers]),
             type.IsGenericType,
             ReadParameters(ctx.SemanticModel, node, token),
@@ -154,20 +155,10 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
     // here so the column is shaped without building an instance (which would check its rules).
     private static ColumnFacets ReadFacets(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
     {
-        var call = node.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().FirstOrDefault();
-        if (call is null || model.GetSymbolInfo(call, token).Symbol is not IMethodSymbol constructor)
-        {
-            return new ColumnFacets(null, null, null);
-        }
-
         int? maxLength = null, precision = null, scale = null;
-        for (var i = 0; i < call.ArgumentList.Arguments.Count; i++)
+        foreach (var (name, constant) in BaseArguments(model, node, token))
         {
-            var argument = call.ArgumentList.Arguments[i];
-            var name = argument.NameColon?.Name.Identifier.ValueText ??
-                       (i < constructor.Parameters.Length ? constructor.Parameters[i].Name : null);
-            var constant = model.GetConstantValue(argument.Expression, token);
-            if (!constant.HasValue || constant.Value is not int value)
+            if (constant is not int value)
             {
                 continue;
             }
@@ -187,6 +178,49 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         }
 
         return new ColumnFacets(maxLength, precision, scale);
+    }
+
+    // What the record hands its base, as constants by parameter name: the base constructor's own defaults first —
+    // `Email(Value)` is 254 characters at most without saying so — then each argument the record writes, which wins.
+    private static List<(string Name, object Value)> BaseArguments(SemanticModel model, RecordDeclarationSyntax node, CancellationToken token)
+    {
+        var call = node.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().FirstOrDefault();
+        if (call is null || model.GetSymbolInfo(call, token).Symbol is not IMethodSymbol constructor)
+        {
+            return [];
+        }
+
+        var given = new Dictionary<string, object>(System.StringComparer.Ordinal);
+        foreach (var parameter in constructor.Parameters)
+        {
+            if (parameter is { HasExplicitDefaultValue: true, ExplicitDefaultValue: { } fallback })
+            {
+                given[parameter.Name] = fallback;
+            }
+        }
+
+        for (var i = 0; i < call.ArgumentList.Arguments.Count; i++)
+        {
+            var argument = call.ArgumentList.Arguments[i];
+            var name = argument.NameColon?.Name.Identifier.ValueText ??
+                       (i < constructor.Parameters.Length ? constructor.Parameters[i].Name : null);
+            var constant = model.GetConstantValue(argument.Expression, token);
+            if (name is null)
+            {
+                continue;
+            }
+
+            if (constant is { HasValue: true, Value: { } value })
+            {
+                given[name] = value;
+            }
+            else
+            {
+                given.Remove(name);
+            }
+        }
+
+        return [.. given.Select(static g => (g.Key, g.Value))];
     }
 
     // What the declaration lacks, in the words of the message: "sealed partial", "sealed" or "partial".
@@ -227,7 +261,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         {
             if (value.Problem is { } problem)
             {
-                context.ReportDiagnostic(Diagnostic.Create(Rask129, value.Location?.ToLocation(), value.Name, value.ValueBase, "'" + problem + "'"));
+                context.ReportDiagnostic(Diagnostic.Create(Rask129, value.Location?.ToLocation(), value.Name, value.TextKind ?? value.ValueBase, "'" + problem + "'"));
                 continue;
             }
 
@@ -254,6 +288,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         string Name,
         string Namespace,
         string ValueBase,
+        string? TextKind,
         EquatableArray<string> Containers,
         bool Generic,
         EquatableArray<Parameter> Parameters,

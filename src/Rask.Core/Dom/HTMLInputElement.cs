@@ -152,6 +152,24 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidMinLength;
     private bool _saidReadOnly;
     private bool _saidUpper;
+    private bool _saidAutocomplete;
+    private bool _saidInputMode;
+    private bool _saidMin;
+    private bool _saidMax;
+    private string? _shapedStep;
+
+    // What the bound field's shape tells the input beyond its lengths: a text its autocomplete and its keyboard (a
+    // value object declared from Email, Phone or Password), a number its bounds and its step (from Number's Scale).
+    // Each is the author's when set; the framework's goes again once the shape stops saying it.
+    private void SayShaped(FieldShape? shape, string? resolvedType, bool takesText)
+    {
+        Autocomplete = SaidByShape.Text(takesText ? shape?.AutoComplete : null, Autocomplete, ref _saidAutocomplete);
+        InputMode = SaidByShape.Value(takesText ? shape?.InputMode : null, InputMode, ref _saidInputMode);
+        var numbered = resolvedType is "number" or "range" ? shape : null;
+        Min = SaidByShape.Text(ShapedNumber.Min(numbered), Min, ref _saidMin);
+        Max = SaidByShape.Text(ShapedNumber.Max(numbered), Max, ref _saidMax);
+        _shapedStep = ShapedNumber.Step(numbered);
+    }
 
     // The input types the HTML spec gives maxlength and minlength to: the text-like ones (no type at all is text).
     private static bool TakesLength(string? type) =>
@@ -199,6 +217,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             MinLength = SaidMinLength(acc, MinLength, takesLength, ref _saidMinLength);
             ReadOnly = SaidReadOnly(acc, ReadOnly, BindingHelpers.IsTypedInto(resolvedType), ref _saidReadOnly);
             Style = SaidUpper(acc, takesLength, ref _saidUpper);
+            SayShaped(RaskValidation.ShapeOf(acc), resolvedType, takesLength);
         }
 
         base.WriteAttributes(sb);
@@ -307,7 +326,9 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         // An explicit Step always wins. Otherwise a fractional bound type needs step="any": HTML defaults
         // to step="1", so the browser's own constraint validation rejects 42.50 and never fires submit —
         // silently, with no validation message and nothing thrown. Same hazard on a range input.
-        var step = Step ?? (resolvedType is "number" or "range" ? BindingHelpers.DefaultStep(typeof(T)) : null);
+        // A bound number's shape steps it first: 0.01 for a Number of two decimals, 1 for a Whole.
+        var shapedStep = acc is null ? null : _shapedStep;
+        var step = Step ?? (resolvedType is "number" or "range" ? shapedStep ?? BindingHelpers.DefaultStep(typeof(T)) : null);
         if (step is not null)
         {
             AppendAttr(sb, "step", step);

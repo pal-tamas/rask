@@ -166,7 +166,30 @@ attributes):
 | `[UIHint("…")]`, `[DataType(DataType.MultilineText)]` | `Hint` | `Ui.Field.Bind` draws `Ui.Switch` for `FieldHints.Switch` on a `bool`, `Ui.RadioGroup` for `FieldHints.RadioGroup` on an enum, `Ui.Textarea` for `FieldHints.MultilineText` |
 
 A step written on the control wins over each of them — `.Type(…)`, `.MaxLength(…)`, `.MinLength(…)`,
-`Ui.Field.Bind(…).Multiline(false)` — except `[Editable(false)]`, which a control cannot be talked out of.
+`.Autocomplete(…)`, `.InputMode(…)`, `.Min(…)`/`.Max(…)`/`.Step(…)`, `Ui.Field.Bind(…).Multiline(false)` — except
+`[Editable(false)]`, which a control cannot be talked out of.
+
+**Attribute or value object — the same field either way.** A field's kind can be said with an attribute on a plain
+`string`, or by declaring its value object from the [kind of text](data.md#kinds-of-text-email-phone-url-password-multiline)
+it holds. Both give the identical `FieldShape`, so the bound control is the same; the value object also carries the
+rule to every place the value is made, and gives its column the length:
+
+| DataAnnotations attribute | Value-object base | `FieldShape` | The bound control |
+|---|---|---|---|
+| `[EmailAddress]` | `Email(Value, …)` — at most 254 unless declared | `Input = Email`, `AutoComplete = "email"` | `type="email" autocomplete="email"` |
+| `[Phone]` | `Phone(Value, …)` — at most 32 unless declared | `Input = Tel`, `InputMode = Tel`, `AutoComplete = "tel"` | `type="tel" inputmode="tel" autocomplete="tel"` |
+| `[Url]` | `Url(Value, …)` — at most 2048, absolute `http`/`https` only | `Input = Url` | `type="url"` |
+| `[DataType(DataType.Password)]` | `Password(Value, …)`, `New: true` for a chosen one; never trimmed, stored or sent back | `Input = Password`, `AutoComplete = "current-password"` / `"new-password"` | `type="password"`, its value never written |
+| `[DataType(DataType.MultilineText)]`, `[UIHint("MultilineText")]` | `Multiline(Value, …)` | `Hint = FieldHints.MultilineText` | `Ui.Field.Bind` draws a `Ui.Textarea` |
+| `[StringLength(100, MinimumLength = 2)]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `Text(Value, MaxLength: 100, MinLength: 2)` (and every kind above) | `MaxLength`, `MinLength` | `maxlength`, `minlength` |
+| `[Range]` — checked on submit, tells the input nothing | `Number(Value, Min: 1, Max: 999.5m, Scale: 2)` | `Min`, `Max`, `Scale` | `type="number" min="1" max="999.5" step="0.01"` |
+| `[Range]` — likewise | `Whole(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
+| a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` |
+| a `DateTime` member | `Moment(Value, …)` | `Kind = Moment` | `type="datetime-local"`; `Ui.Field.Bind` a `Ui.DayAndTime` |
+| — | `Range(Start, End, …)` | `Kind = Range`, its ends | `Ui.Field.Bind` draws two controls under one label |
+
+A number's bounds and step, the autocomplete and the keyboard are said by the bound input itself — Core's `Input`,
+and so `Ui.Input.Bind` and `Ui.Field.Bind` alike.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type

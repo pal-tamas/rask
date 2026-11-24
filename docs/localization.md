@@ -838,6 +838,7 @@ they say when you set nothing.
 | `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
 | `ValidationPhone` | Validation — `[Phone]` | `Enter a valid phone number.` |
 | `ValidationUrl` | Validation — `[Url]` | `Enter a valid http, https or ftp address.` |
+| `ValidationWebAddress` | Validation — a value object declared from `Url` | `Enter a valid http or https address.` |
 | `ValidationCreditCard` | Validation — `[CreditCard]` | `Enter a valid card number.` |
 | `ValidationPattern` | Validation — `[RegularExpression]` | `Enter a value in the expected format.` |
 | `ValidationMatch` | Validation — `[Compare]`; `{0}` is the other field | `Must match {0}.` |

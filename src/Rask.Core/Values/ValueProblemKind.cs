@@ -15,6 +15,15 @@ internal enum ValueProblemKind
     /// <summary>A text that does not match its pattern.</summary>
     Pattern,
 
+    /// <summary>A text of an <see cref="Values.Email" /> that is no email address.</summary>
+    Email,
+
+    /// <summary>A text of a <see cref="Values.Phone" /> that is no phone number.</summary>
+    Phone,
+
+    /// <summary>A text of a <see cref="Values.Url" /> that is no absolute http or https address.</summary>
+    Url,
+
     /// <summary>A number below its least, the <see cref="ValueProblem.Limit" />.</summary>
     BelowMin,
 

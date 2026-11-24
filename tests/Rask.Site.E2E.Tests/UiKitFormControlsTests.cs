@@ -17,7 +17,7 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
     protected override string ServerLog => app.ServerLog;
 
     [Theory]
-    [InlineData("field", "Field", "ui-field|ui-field-shorthand|ui-field-trailing|ui-field-badge|ui-field-split|ui-field-fieldset|ui-bound|ui-field-auto")]
+    [InlineData("field", "Field", "ui-field|ui-field-shorthand|ui-field-trailing|ui-field-badge|ui-field-split|ui-field-fieldset|ui-bound|ui-field-auto|ui-field-kinds")]
     [InlineData("input", "Input", "ui-input|ui-input-shorthand|ui-input-class|ui-input-types|ui-input-file|ui-input-sm|ui-input-disabled|ui-input-readonly|ui-input-invalid|ui-input-mask|ui-input-icons|ui-input-icon-buttons|ui-input-clearable|ui-input-kbd|ui-input-button|ui-input-group|ui-input-affixes|ui-input-group-label")]
     [InlineData("textarea", "Textarea", "ui-textarea-bare|ui-textarea|ui-textarea-rows|ui-textarea-auto|ui-textarea-resize")]
     [InlineData("checkbox", "Checkbox", "ui-checkbox|ui-checkbox-group|ui-checkbox-descriptions|ui-checkbox-fieldset|ui-checkbox-all|ui-checkbox-checked|ui-checkbox-disabled|ui-checkbox-cards|ui-checkbox-vertical|ui-checkbox-card-icons|ui-checkbox-custom|ui-checkbox-pills|ui-checkbox-buttons")]
@@ -113,6 +113,39 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
         await Expect(state).ToContainTextAsync("newsletter yes");
         await scope.Locator("[data-ui-checkbox]").ClickAsync();
         await Expect(state).ToContainTextAsync("agreed yes");
+    });
+
+    [Fact]
+    public Task A_value_object_field_draws_the_input_of_its_kind_and_asks_its_rule() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("field", "Field");
+        var scope = Page.Locator("[data-testid='ui-field-kinds']");
+        var state = Page.Locator("[data-testid='ui-field-kinds-state']");
+
+        // Each kind of text tells its input what the matching attribute would.
+        var email = scope.Locator("input[type='email']");
+        await Expect(email).ToHaveAttributeAsync("autocomplete", "email");
+        await Expect(email).ToHaveAttributeAsync("maxlength", "120");
+        var phone = scope.Locator("input[type='tel']");
+        await Expect(phone).ToHaveAttributeAsync("inputmode", "tel");
+        await Expect(phone).ToHaveAttributeAsync("autocomplete", "tel");
+        await Expect(scope.Locator("input[type='url']")).ToHaveCountAsync(1);
+        var password = scope.Locator("input[type='password']");
+        await Expect(password).ToHaveAttributeAsync("autocomplete", "new-password");
+        await Expect(password).ToHaveAttributeAsync("minlength", "10");
+        await Expect(scope.Locator("textarea")).ToHaveAttributeAsync("maxlength", "500");
+
+        // The value object's own rule answers in the field: Email's check, the message under it.
+        await email.FillAsync("not-an-address");
+        await email.BlurAsync();
+        await Expect(scope.Locator("[data-ui-error]").First).ToContainTextAsync("Enter a valid email address.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await email.FillAsync("ada@example.com");
+        await Expect(state).ToContainTextAsync("ada@example.com");
+
+        // A password reaches C#, and is never written back into the page.
+        await password.FillAsync("correct horse battery");
+        await Expect(state).ToContainTextAsync("password typed");
+        Assert.DoesNotContain("correct horse battery", await scope.InnerHTMLAsync(), StringComparison.Ordinal);
     });
 
     [Fact]

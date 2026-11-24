@@ -121,6 +121,12 @@ internal static class ReadModelShape
         List<ReadValueCollection> valueCollections,
         CancellationToken cancellationToken)
     {
+        // A password is never read back (RASK173 refuses storing one): the face leaves it out.
+        if (AggregateShape.IsPassword(Underlying(property.Type)))
+        {
+            return;
+        }
+
         // One column, not a set of flattened ones — see ReadValueCollection.
         if (GeneratedModelShape.DescribeValueCollection(entity, property) is { } values)
         {

@@ -11,6 +11,15 @@ internal static class TextSample
 
     public static string For(string name, TextRules rules)
     {
+        if (Formatted(rules) is { } formatted)
+        {
+            return Fits(formatted, rules)
+                ? formatted
+                : throw new InvalidOperationException(
+                    $"Test.Make<{name}>() built \"{formatted}\" as its {rules.Kind}, which its lengths refuse. "
+                    + $"Make this one by hand, with {name}.Create(…).");
+        }
+
         if (rules.Pattern is not { } pattern)
         {
             return Filled(Length(rules));
@@ -26,6 +35,28 @@ internal static class TextSample
             : throw new InvalidOperationException(
                 $"Test.Make<{name}>() built \"{sample}\" for the pattern {pattern}, which its lengths refuse. "
                 + $"Make this one by hand, with {name}.Create(…).");
+    }
+
+    // An email address, a phone number or a web address its format accepts, as long as the fewest characters ask:
+    // the part that may grow is padded (the name before the @, the digits, the path). Null for a kind with no format.
+    private static string? Formatted(TextRules rules)
+    {
+        var (start, end) = rules.Kind switch
+        {
+            TextKind.Email => ("sample", "@example.com"),
+            TextKind.Phone => ("+36 1 234 567", ""),
+            TextKind.Url => ("https://example.com/", ""),
+            _ => ((string?)null, ""),
+        };
+
+        if (start is null)
+        {
+            return null;
+        }
+
+        var missing = rules.MinLength - start.Length - end.Length;
+        var padding = rules.Kind == TextKind.Phone ? new string('8', Math.Max(missing, 0)) : Filled(Math.Max(missing, 0)).ToLowerInvariant();
+        return start + padding + end;
     }
 
     private static int Length(TextRules rules)

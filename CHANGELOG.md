@@ -69,6 +69,20 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **Kinds of text as value-object bases: `Email`, `Phone`, `Url`, `Password`, `Multiline` (`Rask.Values`).** Before: an
+  email, a phone number or a password was a `Text` plus an attribute on the form's `string`, or a hand-written
+  `.Type(InputType.Password)` and `.Validate(X.__Problems)` at the call site. After: `record ContactEmail(string Value) :
+  Email(Value, MaxLength: 200)` checks exactly what `[EmailAddress]` checks (`Phone` what `[Phone]` does, `Url` an
+  absolute http/https address), its column is 254/32/2048 characters unless declared, and a control bound to it on the
+  generated model is `type="email" autocomplete="email"` — `tel` with `inputmode="tel"`, `url`, `password` with
+  `autocomplete="current-password"` (`New: true`: `"new-password"`), and `Ui.Field.Bind` draws a `Ui.Textarea` for
+  `Multiline` — the identical `FieldShape` the attribute gives. `FieldShape` gains `AutoComplete` and `InputMode`, and
+  Core's bound `Input` (so `Ui.Input.Bind` too) now writes them, and a `Number`/`Whole` field's `min`, `max` and `step`
+  (from `Scale`), which only `Ui.Field.Bind` wrote before. A `Password` is not trimmed, prints `••••` from `ToString()`
+  and the debugger, and is input only: RASK173 (error) refuses one stored on an aggregate or entity, RASK174 (error) one in
+  a query's or a command's result, a subscription's item or an event; the read face leaves it out. `Test.Make` builds
+  an address, a number or a URL in the format its kind checks. Both paths — attribute and value object — are tabled
+  side by side in docs/forms-validation.md and docs/data.md, with a site example.
 - **A public method of a `partial` aggregate is an operation, run as one write by a generated static entry of its
   name.** Before: every change of an aggregate repeated `Find(id)` → a check of who may → the method → `Save()` by
   hand, outside a transaction unless the page opened one, and Rask guarded only a component's methods

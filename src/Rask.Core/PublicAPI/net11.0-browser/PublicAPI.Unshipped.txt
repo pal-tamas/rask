@@ -20117,3 +20117,68 @@ const Rask.Core.Forms.FieldHints.Switch = "Switch" -> string!
 Rask.Core.Globalization.RaskString.ValidationAboveAndAtMost = 289 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAtLeastAndBelow = 290 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationAboveAndBelow = 291 -> Rask.Core.Globalization.RaskString
+Rask.Core.Forms.FieldShape.AutoComplete.get -> string?
+Rask.Core.Forms.FieldShape.AutoComplete.init -> void
+Rask.Core.Forms.FieldShape.InputMode.get -> Rask.Core.InputMode?
+Rask.Core.Forms.FieldShape.InputMode.init -> void
+Rask.Core.Globalization.RaskString.ValidationWebAddress = 292 -> Rask.Core.Globalization.RaskString
+Rask.Values.Email
+Rask.Values.Email.Email(Rask.Values.Email! original) -> void
+Rask.Values.Email.Email(string! Value, int MaxLength = 254, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Multiline
+Rask.Values.Multiline.Multiline(Rask.Values.Multiline! original) -> void
+Rask.Values.Multiline.Multiline(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Password
+Rask.Values.Password.Password(Rask.Values.Password! original) -> void
+Rask.Values.Password.Password(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = false, bool Upper = false, bool Required = true, bool New = false) -> void
+Rask.Values.Phone
+Rask.Values.Phone.Phone(Rask.Values.Phone! original) -> void
+Rask.Values.Phone.Phone(string! Value, int MaxLength = 32, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+Rask.Values.Url
+Rask.Values.Url.Url(Rask.Values.Url! original) -> void
+Rask.Values.Url.Url(string! Value, int MaxLength = 2048, int MinLength = 0, string? Message = null, bool Trim = true, bool Upper = false, bool Required = true) -> void
+override Rask.Values.Email.EqualityContract.get -> System.Type!
+override Rask.Values.Email.Equals(object? obj) -> bool
+override Rask.Values.Email.GetHashCode() -> int
+override Rask.Values.Email.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Multiline.EqualityContract.get -> System.Type!
+override Rask.Values.Multiline.Equals(object? obj) -> bool
+override Rask.Values.Multiline.GetHashCode() -> int
+override Rask.Values.Multiline.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Password.EqualityContract.get -> System.Type!
+override Rask.Values.Password.Equals(object? obj) -> bool
+override Rask.Values.Password.GetHashCode() -> int
+override Rask.Values.Password.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Phone.EqualityContract.get -> System.Type!
+override Rask.Values.Phone.Equals(object? obj) -> bool
+override Rask.Values.Phone.GetHashCode() -> int
+override Rask.Values.Phone.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Url.EqualityContract.get -> System.Type!
+override Rask.Values.Url.Equals(object? obj) -> bool
+override Rask.Values.Url.GetHashCode() -> int
+override Rask.Values.Url.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override abstract Rask.Values.Email.<Clone>$() -> Rask.Values.Email!
+override abstract Rask.Values.Multiline.<Clone>$() -> Rask.Values.Multiline!
+override abstract Rask.Values.Password.<Clone>$() -> Rask.Values.Password!
+override abstract Rask.Values.Phone.<Clone>$() -> Rask.Values.Phone!
+override abstract Rask.Values.Url.<Clone>$() -> Rask.Values.Url!
+override sealed Rask.Values.Email.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Multiline.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Password.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Phone.Equals(Rask.Values.Text? other) -> bool
+override sealed Rask.Values.Url.Equals(Rask.Values.Text? other) -> bool
+static Rask.Values.Email.operator !=(Rask.Values.Email? left, Rask.Values.Email? right) -> bool
+static Rask.Values.Email.operator ==(Rask.Values.Email? left, Rask.Values.Email? right) -> bool
+static Rask.Values.Multiline.operator !=(Rask.Values.Multiline? left, Rask.Values.Multiline? right) -> bool
+static Rask.Values.Multiline.operator ==(Rask.Values.Multiline? left, Rask.Values.Multiline? right) -> bool
+static Rask.Values.Password.operator !=(Rask.Values.Password? left, Rask.Values.Password? right) -> bool
+static Rask.Values.Password.operator ==(Rask.Values.Password? left, Rask.Values.Password? right) -> bool
+static Rask.Values.Phone.operator !=(Rask.Values.Phone? left, Rask.Values.Phone? right) -> bool
+static Rask.Values.Phone.operator ==(Rask.Values.Phone? left, Rask.Values.Phone? right) -> bool
+static Rask.Values.Url.operator !=(Rask.Values.Url? left, Rask.Values.Url? right) -> bool
+static Rask.Values.Url.operator ==(Rask.Values.Url? left, Rask.Values.Url? right) -> bool
+virtual Rask.Values.Email.Equals(Rask.Values.Email? other) -> bool
+virtual Rask.Values.Multiline.Equals(Rask.Values.Multiline? other) -> bool
+virtual Rask.Values.Password.Equals(Rask.Values.Password? other) -> bool
+virtual Rask.Values.Phone.Equals(Rask.Values.Phone? other) -> bool
+virtual Rask.Values.Url.Equals(Rask.Values.Url? other) -> bool
