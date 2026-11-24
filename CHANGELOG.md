@@ -28,6 +28,21 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Attachment` — a file the aggregate holds, stored and deleted with its row** (`Rask.Storage`): `public Attachment?
+  Document { get; private set; }`, set to `Attachment.Of(Files.Save(…))`, is stored as the aggregate is saved, inside the
+  operation's transaction; a failed or rolled-back save leaves no file, a refused file is a `RaskValidationException` on
+  the property, and a file replaced, cleared or deleted with its row goes once the save commits. Four columns
+  (`Document_Id`, `_Name`, `_ContentType`, `_Size`), no join. [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
+- **`ValueList<T>` — a list that is a value** (`Rask.Values`): equal by its elements in order, frozen once read, made
+  from `[a, b]`; on an aggregate it is the primitive or JSON column an `IReadOnlyList<T>` is.
+- **`b.Json(t => t.Settings, column: "LocalSettings")` keeps a value object whole in one JSON column** — its lists,
+  nested value objects and secrets inside — on SQLite, SQL Server and PostgreSQL alike (`JsonValueParityTests`), with
+  filters on its members translated in the database. The read face leaves it out.
+- **`Secret<T>` — a stored value nobody reads back**: an API key is kept as ciphertext through `ISecrets` (Rask.Server:
+  the host's Data Protection key ring), on its own column or inside a JSON column; `ToString()` and the debugger mask
+  it, a serializer writes `{}`, and the read face and the generated model leave it out, so no form is prefilled with it
+  and no browser receives it. Set it with `Secret.Applied(Change<T>, current)`. A `Secret<T>` of a password value
+  object is not RASK175. [docs/data.md](docs/data.md#secrets-secrett)
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):

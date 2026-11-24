@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -71,6 +72,10 @@ public static class RaskStorageServiceCollectionExtensions
         services.TryAddSingleton(sp => new TemporaryUrlProtector(sp.GetRequiredService<IDataProtectionProvider>()));
         services.TryAddSingleton<StorageRuntime>();
         services.TryAddSingleton<IFiles, FileStore<TContext>>();
+
+        // An Attachment an aggregate holds is stored, replaced and deleted with its row — on every context that takes
+        // the host's ISaveChangesInterceptor services, as Rask.Data's own interceptors are.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ISaveChangesInterceptor, AttachmentInterceptor>());
 
         // In order: the model check names the missing mapping, the startup check validates configuration, and
         // only then does the sweep start. AddHostedService uses TryAddEnumerable, so a repeat call adds none.

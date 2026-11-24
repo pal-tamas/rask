@@ -183,6 +183,39 @@ them) and never a row with no bytes. Once the save returns, the file exists what
 save and the entity that refers to it in one `Db.Transaction`, and a failed save of the entity takes the file with
 it.
 
+### A file the aggregate holds: `Attachment`
+
+When a file belongs to a row — a vehicle's registration scan, an invoice's PDF, the files a filing sent — hold it on
+the aggregate as an **`Attachment`**, and the row and the file are one write with nothing to coordinate:
+
+```csharp
+public sealed partial class Vehicle : Aggregate<VehicleId, PerTenant<TenantId>, Versioned>
+{
+    public Attachment? Registration { get; private set; }
+
+    public void Attach(Attachment file) => Registration = file;
+    public void Detach() => Registration = null;
+}
+
+// The page: nothing is stored yet — the operation's save stores it.
+await Vehicle.Attach(id, version, Attachment.Of(Files.Save(upload.OpenReadStream, upload.Name, upload.Size)));
+```
+
+- **Stored with the row.** `Attachment.Of(Files.Save(…))` — any `Save`, with `.Public()` or `.As(…)` — is pending: the
+  bytes are written when the aggregate is saved, inside the operation's transaction, under the rules above. A save
+  that fails or rolls back leaves no file; outside a `Db.Transaction`, a failed save deletes what it stored itself.
+  Save with `SaveChangesAsync` (every generated operation does); `SaveChanges` refuses a pending attachment.
+- **Refused like a rule.** A file larger than `MaxFileSize`, or of a type `AllowedTypes` does not name, is a
+  `RaskValidationException` on the property (`Registration`), shown under the field.
+- **Let go after the commit.** A file the save replaces or clears, and the file of a row deleted for good, is deleted
+  once the save has gone through — the row now, the bytes after the commit. A soft-deleted row keeps its file.
+- **Four columns, no join.** `Registration_Id`, `Registration_Name`, `Registration_ContentType`, `Registration_Size`:
+  the row says what the file is. Serve it with `Files.Download(vehicle.Registration.Id)` or `Files.Share(…)` behind the
+  page's own check. `Attachment.Of(storedFile)` holds a file saved before.
+
+An attachment is followed on the aggregate or entity that holds it; one inside another value object or a list is
+stored as it is, without the save taking part.
+
 ### Size limits along the way
 
 `MaxFileSize` (50 MB by default) is checked twice: before reading, when the upload declared its size, and
