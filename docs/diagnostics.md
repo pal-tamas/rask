@@ -3384,6 +3384,9 @@ public sealed class Delivery : Aggregate<Guid, Model>
 
 **Fix:** initialize it with `null!` and set it where the aggregate is made (its factory, or the generated
 `Delivery.Create(model)`); the form then starts the field empty, and required. The quick-fix writes the `null!`.
+A placeholder that stands for "none" — `Opening Start = Opening.None` over `Opening(DateTime? Date, decimal? Quantity)`
+— is an optional value: declare it `Opening? Start` with no initializer. A row with every one of its columns `NULL`
+loads it as `null` ([domain.md](domain.md#declared-from-a-base-record)).
 
 ## RASK165
 

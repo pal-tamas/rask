@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **An optional value object whose members are all optional is held in its row's columns.** Before: `Opening? Start`
+  over `Opening(DateTime? Date, decimal? Quantity) : Value` failed the model build — EF Core asked for a required member
+  or a discriminator column, a column a legacy table does not have — so an app held it as `Opening Start =
+  Opening.None`, which RASK150 flags. After: every `RaskDbContext` (and a plain `DbContext` through `UseRaskSqlite`,
+  `UseRaskSqlServer` or `UseRaskPostgres`) holds it with no column added: every column `NULL` loads as `null`, a row
+  holding only one member loads as that value, and `Where(p => p.Start == null)` asks every column. An all-empty value
+  saved reads back as `null`. Proven on SQLite and PostgreSQL by `OptionalValueObjectParityTests`.
 - **`Form.For` takes every step a hand form does, and says its own saved message.** Before: the `OperationForm<T>` a
   generated `Form.For(Company.Change, id)` hands back had only `.Missing` and `.OnSaved`, so `.Class(…)` and
   `.ConfirmLeave(…)` failed with CS0311/CS0411 and moving a hand form to it lost them, and `Ui.EditorDialog` always

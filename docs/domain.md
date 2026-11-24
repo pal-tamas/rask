@@ -350,9 +350,16 @@ it keeps EF Core's default.
 **An optional complex value is null when its row has none.** `public Opening? Start { get; private set; }` is an EF
 Core optional complex property: every column under it is nullable, a row with no opening holds `NULL` in all of
 them and loads `Start` as `null`, and the read face's `StartDate` and `StartQuantity` are `DateTime?` and
-`decimal?` however `Opening`'s own members are declared. EF Core needs one member that is not nullable to tell
-"none" from "all empty" — an `Opening(DateTime? Date, decimal? Quantity)` held as `Opening?` is refused when the
-model is built; declare a member required, or hold it as `Opening` and let its members be empty.
+`decimal?` however `Opening`'s own members are declared. When a member is not nullable, that one column tells a
+row with an opening from one without. **When every member is optional** — `Opening(DateTime? Date, decimal? Quantity)`
+held as `Opening?`, the shape a legacy table with two nullable columns has — every column `NULL` is none: a row
+holding only a date, or only a quantity, loads as that `Opening`, a row holding neither loads as `null`, and
+`Where(p => p.Start == null)` asks that every column is `NULL`. No column is added for it, so a schema another tool
+made is read as it is. An `Opening(null, null)` saved is therefore read back as `null`: a value whose members are all
+empty is no value. EF Core alone refuses such a property (it asks for a discriminator column); every
+`RaskDbContext` holds it on any relational provider, and `UseRaskSqlite`, `UseRaskSqlServer` and `UseRaskPostgres`
+hold it on a plain `DbContext` too. Don't start it from a placeholder (`= Opening.None`, which
+[RASK150](diagnostics.md#rask150) flags): leave it `null`.
 
 **An empty text, or nothing?** A nullable text left empty is stored as nothing: `CreateOptional` turns blank text
 into `null`, and the column holds `NULL`. A table whose rows tell `''` from `NULL` — an older client that refuses
