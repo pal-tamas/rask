@@ -13,6 +13,7 @@ public partial class UiFieldPatternTests : global::Rask.Core.RaskMarkup
         var html = Ui.Input.Bind(() => vehicle.Plate).Label("Plate").ToHtml();
 
         Assert.Contains("pattern=\"[A-Z]{3}\\p{Nd}{3}\"", html, StringComparison.Ordinal);
+        Assert.Contains(" data-rask-pattern", html, StringComparison.Ordinal);
     }
 
     private sealed class Vehicle

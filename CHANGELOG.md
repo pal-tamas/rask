@@ -16,6 +16,12 @@ them until tagged releases begin.
   `\S`, a class subtraction, a counted run of anything (`.{2,10}`), a case-insensitive `Matches` or a value object kept
   `Upper` tells none; `\d` is written `\p{Nd}` and `.` `[^\n]`, as .NET reads them. A `.Pattern(…)` on the control wins.
   Forms are not `novalidate`, so the browser refuses a submit that breaks it, as it already does a `minlength`.
+- **A mismatch of a pattern Rask wrote is refused in the page's words, not the browser's.** Before: a text breaking
+  the `pattern` told from `[RegularExpression]`, `Text(Value, Pattern: …)` or `Matches(…)` was refused by the
+  browser's own bubble ("Please match the requested format."), and the rule's message never showed. After: such an
+  input carries `data-rask-pattern`, the runtime calls the bubble off as it does for a number it cannot read, and the
+  submit goes for the page to refuse with the rule's message under the field (`Ui.Error`). A `.Pattern(…)` the author
+  wrote is still the browser's to enforce.
 - **BREAKING: a `Day` prints `2026-01-31` and a `Moment` `2026-01-31T14:05:00`.** Before: both wrote the invariant
   culture's default, `01/31/2026` and `01/31/2026 14:05:00`. After: ISO 8601, and the generated `ToString` of a
   one-member `: Value` record holding a `DateOnly` or a `DateTime` does the same.

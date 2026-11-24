@@ -233,6 +233,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var isCheckbox = string.Equals(resolvedType, "checkbox", StringComparison.Ordinal)
                          || (string.Equals(resolvedType, "radio", StringComparison.Ordinal) && typeof(T) == typeof(bool));
         WriteValueAttributes(sb, acc, resolvedType, isCheckbox);
+        MarkShapedPattern(sb);
 
         if (LiveRenderContext.CurrentSync is not { } ctx)
         {
@@ -253,6 +254,16 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         {
             AppendAttr(sb, "data-rask-on-files",
                 ctx.RegisterHandler(ArgumentIgnoringHandler<IReadOnlyList<RaskFileType>>.Fed(files)));
+        }
+    }
+
+    // A pattern the framework wrote is the field's own rule, which the page checks on submit with its own sentence:
+    // the runtime lets a mismatch through to it rather than leave it to the browser's bubble (rask-input.ts).
+    private void MarkShapedPattern(StringBuilder sb)
+    {
+        if (_saidPattern)
+        {
+            AppendAttr(sb, "data-rask-pattern", null);
         }
     }
 

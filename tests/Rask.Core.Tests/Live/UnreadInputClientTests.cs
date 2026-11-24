@@ -151,6 +151,30 @@ public sealed class UnreadInputClientTests
     }
 
     [Fact]
+    public void A_pattern_the_framework_wrote_from_the_fields_rule_is_submitted_for_the_page_to_refuse()
+    {
+        var root = Run();
+
+        var calledOff = root.GetProperty("ownPatternCalledOff").GetBoolean();
+        var sent = Sent(root, "ownPatternSubmitted");
+
+        Assert.True(calledOff);
+        Assert.Equal(["change:abc", "submit:form"], sent);
+    }
+
+    [Fact]
+    public void A_pattern_the_author_wrote_stays_the_browsers_to_refuse()
+    {
+        var root = Run();
+
+        var calledOff = root.GetProperty("authorPatternCalledOff").GetBoolean();
+        var submits = root.GetProperty("authorPatternSubmits").GetInt32();
+
+        Assert.False(calledOff);
+        Assert.Equal(0, submits);
+    }
+
+    [Fact]
     public void A_step_the_app_wrote_an_unbound_field_and_a_number_out_of_its_range_stay_the_browsers()
     {
         var root = Run();

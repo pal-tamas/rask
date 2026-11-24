@@ -1398,6 +1398,18 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.GetByText("Saved: Lisbon"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
+        // A [RegularExpression] is the input's pattern too, marked as the framework's: the browser does not refuse
+        // the mismatch in its own words, the page does in the attribute's.
+        var license = Page.Locator("form:has(#v8-code)");
+        await Expect(license.Locator("#v8-code")).ToHaveAttributeAsync("data-rask-pattern", "");
+        await license.Locator("#v8-code").FillAsync("abc-123");
+        Assert.True(await license.Locator("#v8-code").EvaluateAsync<bool>("el => el.validity.patternMismatch"),
+            "the browser did not read the field's pattern, so the step below proves nothing about its bubble.");
+        await license.Locator("button[type=submit]").ClickAsync();
+        await Expect(license.GetByText("Use the ABC-123 format."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.GetByText("Activated: abc-123")).ToHaveCountAsync(0);
+
         // The store says no: the field has no rule, the save handler throws a failure that names it. The
         // message lands under the field, the reader stays, the first key of a correction clears it and the
         // next save lands.

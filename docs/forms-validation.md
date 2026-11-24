@@ -518,8 +518,11 @@ overrides or translates them in `Resources/RaskStrings.{culture}.json` ([localiz
 input holding `1.5` when the step is whole, or over a date half typed, and says so in its own words and its
 own language; and it reports such a field's value as empty. Rask's runtime tells the page the field held
 something it would not hand over, calls the bubble off and lets the submit go, so the page refuses it with
-the sentence above. That applies only to what Rask can speak for: a constraint you wrote yourself
-(`required`, `pattern`, `min`, `max`, a `step` of your own) is still the browser's to enforce — and so is
+the sentence above. A `pattern` Rask wrote from the field's own rule (`[RegularExpression]`, a value object's
+`Pattern`, FluentValidation's `Matches`; marked `data-rask-pattern`) goes the same way: a mismatch is refused
+with that rule's message under the field, not the browser's generic one. That applies only to what Rask can
+speak for: a constraint you wrote yourself (`required`, a `.Pattern(…)` of your own, `min`, `max`, a `step`
+of your own) is still the browser's to enforce — and so is
 the whole form when its handler is `OnAnySubmit`, which takes what was posted whatever the rules say.
 
 **How a number is spelled.** A number input always sends digits and a dot, whatever the reader typed:
