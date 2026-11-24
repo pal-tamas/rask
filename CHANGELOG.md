@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **An index's `Where(…)` and `Computed(…)` read a one-value value object as its column.** Before:
+  `HasIndex(f => f.PistolId).Where(f => f.Number.Value > 0)` over a `record FuelingNumber(int Value) : Value` failed the
+  model build ("Number … is not a value object Fueling maps"), and `Where(f => f.Number != FuelingNumber.Unset)` failed
+  with "SqlServer has no column type for FuelingNumber", so the filter stayed a provider-specific `HasFilter`. After:
+  `.Value` is the column, compared with a plain number, and a value object constant is written as the column stores
+  it — `[Number] > 0` on SQL Server, `"Number" > 0` on PostgreSQL and SQLite.
 - **The rask.sh data demo's rename form says what the domain refuses as the field is left.** Before: its
   `Ui.Field.Bind(() => f.Title)` waited for the next action, as every bound field does, so emptying it and tabbing away
   committed nothing and `Rename`'s "A note needs a title." appeared only on submit. After: the field is `.Blur()`, and

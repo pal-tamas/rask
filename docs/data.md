@@ -2726,7 +2726,7 @@ on all three databases as it does in C#:
 
 | Takes | Written as |
 |---|---|
-| the entity's mapped members, a value object's too (`f.Amount.Value`) | the column |
+| the entity's mapped members, a value object's too (`f.Amount.Value`, a one-value one stored in a column of its own included) | the column |
 | constants, captured fields, enums, strongly-typed ids | a literal, as the column stores it |
 | `a ?? b`, `x.GetValueOrDefault()`, `x.GetValueOrDefault(v)` | `COALESCE` |
 | `+ - * / %` and unary `-` on whole numbers and doubles; `Math.Abs` | the same operators; `ABS` |
@@ -2762,6 +2762,9 @@ one holds among the rows the filter keeps — one live grant per partner, howeve
 plainest condition, because SQL Server's filtered index takes no other:
 
 - columns compared with constants or `null`, joined by `&&`; a boolean column as itself (`x => x.Active`) or with `!`
+- a one-value value object is its column: `x => x.Number.Value > 0` compares the number it holds, and
+  `x => x.Number != FuelingNumber.Unset` writes the constant as the column stores it — both `[Number] > 0`-shaped, the
+  same text a hand-written `HasFilter` had
 - `||`, two columns compared, and a `!=` on a nullable column fail the model build — C# keeps the nulls for
   `x.Level != 3`, a filtered index leaves them out, so say it in both: `x.Level != null && x.Level != 3`
 - on SQL Server a unique index also leaves out the rows with a NULL in a nullable key column, as EF Core's own unique
