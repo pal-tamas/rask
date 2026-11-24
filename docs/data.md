@@ -35,7 +35,7 @@ and no provider API — the same model, the same queries and the same tests run 
 | `b.Computed(…)`, `b.Default(…)`, `HasIndex(…).Where(x => …)` | `HasComputedColumnSql`, `HasDefaultValueSql`, `HasFilter` | [computed columns, defaults and filtered indexes](#computed-columns-defaults-and-filtered-indexes-in-c) |
 | `end - start` | `EF.Functions.DateDiff*` | [how long between two dates](#how-long-between-two-dates-in-a-query) |
 | `IsUnique("…")`, `OnDelete(…)` with a message | catching a driver's `SqlException` | [a unique index's violation](#what-a-unique-indexs-violation-says) |
-| `Db.Lock(name)`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
+| `Db.Lock(name)`, `X.Where(…).ForUpdate()`, `LockRead.ForUpdate` | `sp_getapplock`, `UPDLOCK`, `FOR UPDATE` | [Db.Lock](#one-holder-at-a-time-across-hosts-dblock), [rows read for update](#rows-read-for-update-forupdate), [LockedBy](domain.md#a-row-closed-by-its-parent-lockedby) |
 | a LINQ query, a change through the aggregate | `FromSql`, `ExecuteSql*`, `SqlQuery` | [the read face](#reading-the-read-face), [operations](domain.md#operations-what-the-aggregate-does) |
 
 Code only one database understands is [RASK177](diagnostics.md#rask177) — a suggestion, a warning under
@@ -284,6 +284,32 @@ var byMonth = await Product.Query((q, ct) =>
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
 ```
+
+### Rows read for update: `ForUpdate()`
+
+A check and the write it guards — "is the month still open?", then a claim into it — need the rows to stay as they
+were read until the write commits. `ForUpdate()` reads them under an update lock held to the end of the
+`Db.Transaction` the read runs in, so a second writer of the same rows waits for the commit instead of reading what
+the first is about to change:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    var month = await Month.Where(m => m.Id == id).ForUpdate().Single();
+    Refuse.When(month.Closed, "The month is closed.");
+    await Claim.Into(id).Save();
+});
+```
+
+- It is written in each database's own words: `WITH (UPDLOCK, HOLDLOCK)` on the query's first table on SQL Server,
+  `FOR UPDATE OF` it on PostgreSQL, and as it is on SQLite, whose one writer serializes the transactions already.
+  Every terminal reads under it — awaiting the query, `First`, `Single`, a `Select(…)` — and the rows of a table it
+  joins (an `Include`) are not locked: lock them by a query of their own.
+- **Outside a `Db.Transaction` it is refused** where it runs: the lock would end with the read and hold nothing.
+- **A `Count()` or `Any()` of a locked query is refused** on every database — a lock is held on the rows a read
+  hands back, and PostgreSQL holds none for an aggregate. Read the rows, and count them in memory.
+- An operation that only needs its own aggregate's row locked says so where it is declared —
+  `b.Operation(x => x.M, forUpdate: true)`, or `await id.Load(version, forUpdate: true)` ([operations](domain.md#operations-what-the-aggregate-does)).
 
 ### A reusable query: a scope
 
@@ -987,7 +1013,7 @@ PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): tex
 (`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
 (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
 indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
-(`ParentLockParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
+(`ParentLockParityTests`), a read face's `ForUpdate()` (`ReadForUpdateParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
 `ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
 is what lets an app run its own tests on SQLite in memory alone.
 

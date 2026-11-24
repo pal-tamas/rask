@@ -34,6 +34,20 @@ public sealed class ForUpdateSqlServerReadTests
         Assert.Equal(written, command.CommandText);
     }
 
+    [Fact]
+    public void A_read_rewritten_by_two_interceptors_takes_its_lock_once()
+    {
+        using var db = Open();
+        using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = db.Set<Period>().TagWith(ForUpdateSql.Tag).Where(p => p.Closed).ToQueryString();
+
+        ForUpdateSql.Apply(command, db);
+        ForUpdateSql.Apply(command, db);
+
+        Assert.Equal(2, command.CommandText.Split("WITH (UPDLOCK, HOLDLOCK)").Length);
+        Assert.StartsWith("-- rask:for-update, locked", command.CommandText, StringComparison.Ordinal);
+    }
+
     private static Microsoft.EntityFrameworkCore.Metadata.IProperty Key(DbContext db) =>
         db.Model.FindEntityType(typeof(Period))!.FindPrimaryKey()!.Properties[0];
 

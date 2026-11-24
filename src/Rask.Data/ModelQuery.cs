@@ -41,15 +41,19 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     // after it has to keep working — as the ordering itself — rather than fail exactly while the search box is empty.
     private readonly bool _unrankedSearch;
 
+    // ForUpdate(): the rows are read under the update lock, which only a Db.Transaction holds past the read.
+    private readonly bool _forUpdate;
+
     internal ModelQuery()
     {
     }
 
-    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool unrankedSearch)
+    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool unrankedSearch, bool forUpdate)
     {
         _compose = compose;
         _ordered = ordered;
         _unrankedSearch = unrankedSearch;
+        _forUpdate = forUpdate;
     }
 
     /// <summary>Filters the query. Composes with any filter already applied.</summary>
@@ -75,7 +79,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
             return Then(q => q.Search(text), ordered: true);
         }
 
-        return _ordered ? this : new ModelQuery<TEntity>(_compose, _ordered, unrankedSearch: true);
+        return _ordered ? this : new ModelQuery<TEntity>(_compose, _ordered, unrankedSearch: true, _forUpdate);
     }
 
     /// <summary>Orders the query ascending, replacing any ordering already applied.</summary>
@@ -157,6 +161,28 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// <summary>Splits the query's joins into separate round trips.</summary>
     public ModelQuery<TEntity> AsSplitQuery() => Then(q => q.AsSplitQuery(), _ordered, _unrankedSearch);
 
+    /// <summary>
+    ///     Reads the rows under an update lock, held to the end of the <c>Db.Transaction</c> the read runs in:
+    ///     <c>await Product.Where(p =&gt; p.Id == id).ForUpdate()</c>. Another writer of the same rows waits for the
+    ///     commit instead of reading what this one is about to change.
+    /// </summary>
+    /// <returns>The same query, read under the lock.</returns>
+    /// <remarks>
+    ///     <para>
+    ///         Written in each database's own words: <c>WITH (UPDLOCK, HOLDLOCK)</c> on the query's first table on SQL
+    ///         Server, <c>FOR UPDATE OF</c> it on PostgreSQL, and as it is on SQLite, whose one writer serializes the
+    ///         transaction already. The rows of a joined table (an <c>Include</c>) are not locked: lock them by their
+    ///         own query.
+    ///     </para>
+    ///     <para>
+    ///         It locks the rows a read hands back, so a count or an <c>Any</c> of a locked query is refused — PostgreSQL
+    ///         locks no rows of an aggregate. Read the rows, and count them in memory.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The query runs outside a <c>Db.Transaction</c>.</exception>
+    public ModelQuery<TEntity> ForUpdate() =>
+        new(_compose, _ordered, _unrankedSearch, forUpdate: true);
+
     /// <summary>Projects each row, giving a query that returns <typeparamref name="TResult" />.</summary>
     /// <remarks>
     ///     The point of projecting in the database rather than after awaiting the query is that the
@@ -166,7 +192,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Projection<TEntity, TResult> Select<TResult>(Expression<Func<TEntity, TResult>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        return new Projection<TEntity, TResult>(Apply, selector);
+        return new Projection<TEntity, TResult>(Apply, selector, _forUpdate ? Subject : null);
     }
 
     /// <summary>
@@ -267,8 +293,11 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 #pragma warning restore CA1720
 
     /// <summary>How many rows match.</summary>
-    public Task<int> Count(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+    public Task<int> Count(CancellationToken cancellationToken = default)
+    {
+        RefuseAggregate(nameof(Count));
+        return RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+    }
 
     /// <summary>How many rows match <paramref name="predicate" />.</summary>
     public Task<int> Count(
@@ -280,12 +309,18 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     }
 
     /// <summary>How many rows match, as a <see cref="long" />.</summary>
-    public Task<long> LongCount(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.LongCountAsync(ct), cancellationToken);
+    public Task<long> LongCount(CancellationToken cancellationToken = default)
+    {
+        RefuseAggregate(nameof(LongCount));
+        return RunAsync(static (q, ct) => q.LongCountAsync(ct), cancellationToken);
+    }
 
     /// <summary>Whether the query matches any row.</summary>
-    public Task<bool> Any(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
+    public Task<bool> Any(CancellationToken cancellationToken = default)
+    {
+        RefuseAggregate(nameof(Any));
+        return RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
+    }
 
     /// <summary>Whether any row matches <paramref name="predicate" />.</summary>
     public Task<bool> Any(
@@ -339,10 +374,32 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
     // Untracked is decided at the head of the query rather than composed, so every read — through this
     // type, a projection, or AsQueryable — starts from the same no-tracking source.
+    // A locked read is tagged first, so its SQL starts with the tag ForUpdateSql rewrites by.
     internal IQueryable<TEntity> Apply(IQueryable<TEntity> source)
     {
         var head = source.AsNoTracking();
+        if (_forUpdate)
+        {
+            GeneratedLocks.DemandTransaction($"{Subject}.Where(…).ForUpdate()");
+            head = head.TagWith(ForUpdateSql.Tag);
+        }
+
         return _compose is null ? head : _compose(head);
+    }
+
+    // What the read face is called where the app writes it: Product, for the ProductRead the query reads.
+    private static string Subject =>
+        typeof(TEntity).Name is var name && name.EndsWith("Read", StringComparison.Ordinal) && name.Length > 4
+            ? name[..^4]
+            : typeof(TEntity).Name;
+
+    // A lock is held on the rows a read hands back, and PostgreSQL holds none for an aggregate: refused on every database.
+    private void RefuseAggregate(string terminal)
+    {
+        if (_forUpdate)
+        {
+            throw ForUpdateSql.Aggregate(Subject, terminal);
+        }
     }
 
     // The query over the context's own set, with every model query its lambdas use — another read face's
@@ -356,7 +413,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         bool unrankedSearch = false)
     {
         var previous = _compose;
-        return new ModelQuery<TEntity>(previous is null ? step : q => step(previous(q)), ordered, unrankedSearch);
+        return new ModelQuery<TEntity>(previous is null ? step : q => step(previous(q)), ordered, unrankedSearch, _forUpdate);
     }
 
     private void RequireOrdering(string member)

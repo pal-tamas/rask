@@ -49,6 +49,12 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A read face reads its rows for update: `await Month.Where(m => m.Id == id).ForUpdate()`.** Before: the update lock
+  existed only inside `LockedBy(…, LockRead.ForUpdate)` and an operation's `forUpdate:`, and RASK177 told an app with
+  `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE` in raw SQL to use a `ForUpdate()` it could not call. After: `ModelQuery<T>.ForUpdate()`
+  reads the rows under `WITH (UPDLOCK, HOLDLOCK)` on SQL Server, `FOR UPDATE OF` on PostgreSQL and as written on SQLite
+  (its one writer serializes), held to the end of the `Db.Transaction`; outside one it is refused, and so is a
+  `Count()`/`Any()` of it on every database. RASK177's message names `X.Where(…).ForUpdate()` inside `Db.Transaction`.
 - **`c.TenantReferences<Partner>()` gives every `PerTenant` table a foreign key to its tenant.** Before: a tenant kept
   as text (a `Guid` `TenantId` on the tables, a `string` key on the tenant's row) could not be a relationship of the
   model, so a database made from it — a test's SQLite — had no reference, and `Partner.Delete` passed there while
