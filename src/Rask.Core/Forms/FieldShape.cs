@@ -21,6 +21,7 @@ namespace Rask.Core.Forms;
 ///     <see cref="FieldKind.Day" />; null for ends of any other type — a moment (<c>DateTime</c>), a time of day.
 /// </param>
 /// <param name="Options">The values a <see cref="FieldKind.Choice" /> may take, in declaration order, or null.</param>
+/// <param name="NotAfterNow">Whether a <see cref="FieldKind.Moment" /> may not be after now.</param>
 public sealed record FieldShape(
     FieldKind Kind,
     int? MaxLength = null,
@@ -33,4 +34,5 @@ public sealed record FieldShape(
     string? Start = null,
     string? End = null,
     FieldKind? Ends = null,
-    IReadOnlyList<FieldOption>? Options = null);
+    IReadOnlyList<FieldOption>? Options = null,
+    bool NotAfterNow = false);

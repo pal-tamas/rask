@@ -12,7 +12,7 @@ run it again before you merge.
 
 At the last edit the highest allocated here was RASK107 (an entity made with `new` outside the type that guards it, `EntityCreationAnalyzer` in `Rask.Batteries.Generators`; RASK106 a key of several columns that cannot be built, `CompositeKeyGenerator` in `Rask.Batteries.Generators`; RASK105 a value object that compares by reference, in `Rask.Batteries.Generators`; RASK104 a static member keeping a component built from a chain
 entry, `StaticChainEntryAnalyzer` in `Rask.Generators`; RASK103 a constructor-built value object holding a value object
-of several values, in `Rask.Batteries.Generators`; RASK102 a value object's `Validate` that is not the shape of a
+of several values, in `Rask.Batteries.Generators`; RASK102 (retired) a value object's `Validate` that is not the shape of a
 rule, in `Rask.Batteries.Generators`; RASK101 an authorization attribute the CQRS generators cannot
 read, in `Rask.Batteries.Generators`; RASK100 a `[BlazorParameter]` naming no hosted parameter;
 RASK098/099 the browser-targets analyzer, RASK097 the route-helper name collision, all in `Rask.Generators`),
@@ -20,7 +20,7 @@ so the next free is **RASK108** — and note this line once said RASK092 while
 RASK092–094 were already taken, once said RASK087 while
 RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
 were first written as RASK077–081 while another generator held RASK077–080 on main, which is the staleness it
-warns about; RASK025/027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 are retired and
+warns about; RASK025/027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100/102 are retired and
 never recycled — a retired id is absent from the grep below, so never take one for a gap. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 
 ```bash

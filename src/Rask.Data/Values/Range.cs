@@ -59,6 +59,11 @@ public abstract record Range : Value
 
         var least = Aligned(Min, type, nameof(Min));
         var most = Aligned(Max, type, nameof(Max));
+        if (DeclaredRules.IsReading)
+        {
+            DeclaredRules.Note(new RangeRules(Strict, least, most));
+        }
+
         if (Loading.IsOn)
         {
             return;

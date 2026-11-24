@@ -84,6 +84,8 @@
     <Compile Include="..\Rask.Generators.Shared\ReadNavigation.cs" Link="Shared\ReadNavigation.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadRelationship.cs" Link="Shared\ReadRelationship.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ConfiguredRelationships.cs" Link="Shared\ConfiguredRelationships.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ConfiguredColumns.cs" Link="Shared\ConfiguredColumns.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ColumnPattern.cs" Link="Shared\ColumnPattern.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadChildCollection.cs" Link="Shared\ReadChildCollection.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadValueCollection.cs" Link="Shared\ReadValueCollection.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadShape.cs" Link="Shared\ReadShape.cs"/>

@@ -352,6 +352,8 @@ static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsof
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, long?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.ValueObject.operator !=(Rask.Data.ValueObject? left, Rask.Data.ValueObject? right) -> bool
 static Rask.Data.ValueObject.operator ==(Rask.Data.ValueObject? left, Rask.Data.ValueObject? right) -> bool
+static Rask.Data.ViolationMessageBuilderExtensions.Field(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, string! field) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.Field<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, string! field) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 static Rask.Data.ViolationMessageBuilderExtensions.OnDelete(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder! relationship, Microsoft.EntityFrameworkCore.DeleteBehavior deleteBehavior, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder!
@@ -493,7 +495,7 @@ Rask.Data.Problem.Problem(string? Field, string! Message) -> void
 Rask.Data.Range
 Rask.Data.Range.Range(Rask.Data.Range! original) -> void
 Rask.Data.Range.Range(System.IComparable! Start, System.IComparable? End, bool Strict = false, System.IComparable? Min = null, System.IComparable? Max = null, string! startMember = "", string! endMember = "") -> void
-Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true) -> void
+Rask.Data.Text.Text(string! Value, int MaxLength = 0, int MinLength = 0, string? Pattern = null, string? Message = null, bool Trim = true, bool Upper = false) -> void
 Rask.Data.Value
 Rask.Data.Value.Value() -> void
 Rask.Data.Value.Value(Rask.Data.Value! original) -> void
@@ -583,3 +585,24 @@ static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this 
 static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.FilteredIndexBuilderExtensions
 static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.ValueLoading
+Rask.Data.ValueLoading.Dispose() -> void
+Rask.Data.ValueLoading.ValueLoading() -> void
+static Rask.Data.GeneratedValueRules.Loading() -> Rask.Data.ValueLoading
+Rask.Data.Moment
+Rask.Data.Moment.Day.get -> System.DateOnly
+Rask.Data.Moment.Moment(Rask.Data.Moment! original) -> void
+Rask.Data.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false) -> void
+Rask.Data.Moment.Value.get -> System.DateTime
+override Rask.Data.Moment.Equals(object? obj) -> bool
+override Rask.Data.Moment.GetHashCode() -> int
+override sealed Rask.Data.Moment.ToString() -> string!
+override Rask.Data.Moment.EqualityContract.get -> System.Type!
+override Rask.Data.Moment.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override abstract Rask.Data.Moment.<Clone>$() -> Rask.Data.Moment!
+override sealed Rask.Data.Moment.Equals(Rask.Data.Value? other) -> bool
+static Rask.Data.Moment.operator !=(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
+static Rask.Data.Moment.operator ==(Rask.Data.Moment? left, Rask.Data.Moment? right) -> bool
+virtual Rask.Data.Moment.Equals(Rask.Data.Moment? other) -> bool
+Rask.Data.ValueObjectColumnsBuilderExtensions
+static Rask.Data.ValueObjectColumnsBuilderExtensions.Columns<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue>!>! member, string! pattern) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
