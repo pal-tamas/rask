@@ -585,6 +585,30 @@ static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this 
 static Rask.Data.DefaultValueBuilderExtensions.Default<TEntity, TProperty>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! property, System.Linq.Expressions.Expression<System.Func<TProperty>!>! now) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TProperty>!
 Rask.Data.FilteredIndexBuilderExtensions
 static Rask.Data.FilteredIndexBuilderExtensions.Where<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, System.Linq.Expressions.Expression<System.Func<TEntity, bool>!>! rows) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
+Rask.Data.Refuse
+static Rask.Data.Refuse.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.Unless(bool condition, string! message) -> void
+static Rask.Data.Refuse.Unless<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+static Rask.Data.Refuse.When(bool condition, string! message) -> void
+static Rask.Data.Refuse.When<T>(bool condition, System.Linq.Expressions.Expression<System.Func<T>!>! field, string! message) -> void
+Rask.Data.KeepEmptyBuilderExtensions
+Rask.Data.GeneratedEmptyTexts
+static Rask.Data.GeneratedEmptyTexts.Of<TValue>(System.Func<TValue>! make) -> TValue
+static Rask.Data.KeepEmptyBuilderExtensions.KeepEmpty<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+Rask.Data.ColumnName
+Rask.Data.ColumnName.AsDeclared.get -> string!
+Rask.Data.ColumnName.CamelCase.get -> string!
+Rask.Data.ColumnName.Path.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.ColumnName.SnakeCase.get -> string!
+Rask.Data.ColumnName.Table.get -> string!
+Rask.Data.NamingConventionExtensions
+Rask.Data.TableName
+Rask.Data.TableName.AsDeclared.get -> string!
+Rask.Data.TableName.CamelCase.get -> string!
+Rask.Data.TableName.Class.get -> string!
+Rask.Data.TableName.SnakeCase.get -> string!
+static Rask.Data.NamingConventionExtensions.ColumnNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.ColumnName!, string!>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.NamingConventionExtensions.TableNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.TableName!, string!>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 Rask.Data.ValueLoading
 Rask.Data.ValueLoading.Dispose() -> void
 Rask.Data.ValueLoading.ValueLoading() -> void

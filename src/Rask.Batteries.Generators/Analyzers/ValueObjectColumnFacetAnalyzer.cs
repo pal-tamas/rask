@@ -14,13 +14,15 @@ namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
 ///     RASK128 — the EF configuration gives a column a length or precision other than the one its value object
-///     declares: <c>builder.Property(x =&gt; x.Name).HasMaxLength(200)</c> on a <c>Text(MaxLength: 1000)</c>.
+///     declares: <c>builder.Property(x =&gt; x.Name).HasMaxLength(200)</c>, or <c>[MaxLength(200)]</c> on the
+///     property, for a <c>Text(MaxLength: 1000)</c>.
 /// </summary>
 /// <remarks>
-///     Rask gives the column the value object's own length and precision; a call in <c>Configure</c> still wins,
-///     because it runs after, so the column and the rule then disagree: a name the rule accepts does not fit. Only
-///     literal arguments are compared, on both sides — the value object's base arguments and the call's — so the
-///     warning is never a guess.
+///     Rask gives the column the value object's own length and precision; an attribute on the property —
+///     <c>[MaxLength]</c>, <c>[StringLength]</c>, <c>[Precision]</c> — wins over that, and a call in <c>Configure</c>
+///     over both, because it runs after. Either way the column and the rule then disagree: a name the rule accepts
+///     does not fit. Only literal arguments are compared, on both sides — the value object's base arguments and the
+///     call's or the attribute's — so the warning is never a guess.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
@@ -28,19 +30,28 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask128 = new(
         "RASK128",
         "A column is configured differently from its value object",
-        "'{0}' holds a '{1}', which declares {2}, but '{3}' gives its column {4} — change the value object, or drop the call",
+        "'{0}' holds a '{1}', which declares {2}, but {3} gives its column {4} — change the value object, or drop {3}",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "A value object declared from Text or Number gives its column the length, precision and scale it "
-                     + "declares. A HasMaxLength, HasPrecision or HasColumnType in Configure overrides that, and the "
-                     + "column then holds less, or other, than the rule accepts.",
+                     + "declares. A [MaxLength], [StringLength] or [Precision] on the property, and a HasMaxLength, "
+                     + "HasPrecision or HasColumnType in Configure, override that, and the column then holds less, or "
+                     + "other, than the rule accepts.",
         helpLinkUri: DiagnosticHelp.Link("RASK128"));
 
     // The parameters of each base's constructor, in order, for an argument given by position.
     private static readonly string[] TextParameters = ["Value", "MaxLength", "MinLength", "Pattern", "Message", "Trim"];
     private static readonly string[] NumberParameters = ["Value", "Min", "Max", "Scale", "Precision"];
     private static readonly string[] NumberFacets = ["Precision", "Scale"];
+
+    // The attributes that give a column its length or precision, by the configuration call each stands for.
+    private static readonly Dictionary<string, string> FacetAttributes = new(System.StringComparer.Ordinal)
+    {
+        ["System.ComponentModel.DataAnnotations.MaxLengthAttribute"] = "HasMaxLength",
+        ["System.ComponentModel.DataAnnotations.StringLengthAttribute"] = "HasMaxLength",
+        ["Microsoft.EntityFrameworkCore.PrecisionAttribute"] = "HasPrecision",
+    };
 
     private static readonly Regex Sizes = new(@"\(\s*(?<first>\d+|max)\s*(?:,\s*(?<second>\d+)\s*)?\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, System.TimeSpan.FromSeconds(1));
 
@@ -51,6 +62,52 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterOperationAction(Analyze, OperationKind.Invocation);
+        context.RegisterSymbolAction(AnalyzeAttributes, SymbolKind.Property);
+    }
+
+    // [MaxLength(200)] public DriverName Driver { get; private set; } on a Text(MaxLength: 1000).
+    private static void AnalyzeAttributes(SymbolAnalysisContext context)
+    {
+        var property = (IPropertySymbol)context.Symbol;
+        if (property.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is not INamedTypeSymbol valueObject ||
+            AggregateShape.ValueBaseOf(valueObject) is not ("Text" or "Number") ||
+            Declared(valueObject) is not { Count: > 0 } declared)
+        {
+            return;
+        }
+
+        var text = IsText(valueObject);
+        foreach (var attribute in property.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() is not { } name ||
+                !FacetAttributes.TryGetValue(name, out var method) ||
+                Disagrees(text, declared, method, GivenBy(attribute)) is not { } said ||
+                attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken) is not { } syntax)
+            {
+                continue;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask128, syntax.GetLocation(), property.Name, valueObject.Name, Describe(text, declared),
+                AttributeName(attribute.AttributeClass), said));
+        }
+    }
+
+    // [MaxLength], as the property is written with it.
+    private static string AttributeName(INamedTypeSymbol attribute) =>
+        "[" + attribute.Name.Substring(0, attribute.Name.Length - nameof(System.Attribute).Length) + "]";
+
+    // The sizes an attribute gives — (length or precision, scale) — always constants; none at all is no length.
+    private static (int? First, int? Second) GivenBy(AttributeData attribute)
+    {
+        var arguments = attribute.ConstructorArguments;
+        if (arguments.Length == 0)
+        {
+            return (-1, null);
+        }
+
+        var scale = arguments.Length > 1 ? arguments[1].Value as int? : null;
+        return (arguments[0].Value as int?, scale);
     }
 
     private static void Analyze(OperationAnalysisContext context)
@@ -74,7 +131,7 @@ public sealed class ValueObjectColumnFacetAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask128, call.Syntax.GetLocation(), configured.Name, valueObject.Name, Describe(text, declared), call.TargetMethod.Name, said));
+            Rask128, call.Syntax.GetLocation(), configured.Name, valueObject.Name, Describe(text, declared), "'" + call.TargetMethod.Name + "'", said));
     }
 
     // What the call is made on: its instance, or the first argument of an extension (HasColumnType is relational's).

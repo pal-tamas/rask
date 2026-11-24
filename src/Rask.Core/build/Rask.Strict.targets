@@ -15,6 +15,8 @@
       - a documentation file, so IDE0005 (an unused using) runs in the build, without CS1591 (Rask.Strict.props)
       - CA1716 off (rask-strict.globalconfig): a Visual Basic keyword in a C# app's name, Features/Shared included
       - RASK130 a warning (rask-strict.globalconfig): an aggregate storing a bare string, number, moment or Guid
+      - RASK140-RASK144 warnings (rask-strict.globalconfig): the machine's clock, Current.Service or [Key] in domain
+        code, Task.WhenAll over database work in Db.Transaction, a [Compare] naming no property
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a
         sentence is joined with (rask-strict-tests.globalconfig)
       - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors; a NuGet audit
