@@ -42,7 +42,7 @@ namespace Rask.Batteries.Generators;
 /// </para>
 /// </remarks>
 [Generator]
-public sealed class OperationGenerator : IIncrementalGenerator
+public sealed partial class OperationGenerator : IIncrementalGenerator
 {
     /// <summary>The tool name every entry's <c>[GeneratedCode]</c> carries, which RASK170 recognises it by.</summary>
     internal const string Tool = "Rask.Operations";
@@ -151,7 +151,7 @@ public sealed class OperationGenerator : IIncrementalGenerator
                 method.Name,
                 factory ? FactoryCallOf(method, symbol)! : CallOf(method, symbol)!,
                 named?.Roles,
-                new EquatableArray<OperationParameter>(method.Parameters.Select(Parameter)),
+                new EquatableArray<OperationParameter>(method.Parameters.Select(p => Parameter(p, symbol))),
                 factory));
         }
 
@@ -167,7 +167,8 @@ public sealed class OperationGenerator : IIncrementalGenerator
             idType.ToDisplayString(TypeFormat),
             AggregateShape.HasVersion(symbol),
             new EquatableArray<Operation>(operations),
-            new EquatableArray<OperationProblem>(problems));
+            new EquatableArray<OperationProblem>(problems),
+            ctx.SemanticModel.Compilation.GetTypeByMetadataName(OperationFormType) is not null);
     }
 
     private static bool IsOperation(IMethodSymbol method, INamedTypeSymbol aggregate) =>
@@ -233,8 +234,8 @@ public sealed class OperationGenerator : IIncrementalGenerator
         };
     }
 
-    private static OperationParameter Parameter(IParameterSymbol parameter) =>
-        new(parameter.Type.ToDisplayString(TypeFormat), Identifier(parameter.Name), DefaultOf(parameter));
+    private static OperationParameter Parameter(IParameterSymbol parameter, INamedTypeSymbol aggregate) =>
+        new(parameter.Type.ToDisplayString(TypeFormat), Identifier(parameter.Name), DefaultOf(parameter), FieldOf(parameter, aggregate));
 
     private static string Identifier(string name) =>
         SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
@@ -317,6 +318,7 @@ public sealed class OperationGenerator : IIncrementalGenerator
 
     private static void Emit(SourceProductionContext context, ImmutableArray<OperatedAggregate> all)
     {
+        var signatures = SignatureCounts(all.Distinct());
         foreach (var aggregate in all.Distinct())
         {
             foreach (var problem in aggregate.Problems)
@@ -333,6 +335,17 @@ public sealed class OperationGenerator : IIncrementalGenerator
 
             var hint = aggregate.FullyQualifiedName.Replace("global::", "") + ".Operations.g.cs";
             context.AddSource(hint, SourceText.From(Render(aggregate), Encoding.UTF8));
+
+            var ambiguous = new List<string>();
+            if (aggregate.Forms && RenderForms(aggregate, signatures, ambiguous) is { } forms)
+            {
+                context.AddSource(aggregate.FullyQualifiedName.Replace("global::", "") + ".OperationForms.g.cs", SourceText.From(forms, Encoding.UTF8));
+            }
+
+            foreach (var operation in ambiguous)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(Rask174, Location.None, operation));
+            }
         }
     }
 
@@ -530,11 +543,12 @@ public sealed class OperationGenerator : IIncrementalGenerator
         string IdType,
         bool Versioned,
         EquatableArray<Operation> Operations,
-        EquatableArray<OperationProblem> Problems);
+        EquatableArray<OperationProblem> Problems,
+        bool Forms);
 
     private sealed record Operation(string Name, string Call, string? Roles, EquatableArray<OperationParameter> Parameters, bool Factory);
 
-    private sealed record OperationParameter(string Type, string Name, string? Default);
+    private sealed record OperationParameter(string Type, string Name, string? Default, FormField? Field);
 
     private sealed record OperationProblem(string Id, string Method, string Clash, SymbolLocation? Location);
 

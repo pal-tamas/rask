@@ -256,6 +256,75 @@ public class OperationGeneratorTests
         Assert.DoesNotContain(diagnostics, static d => d.Id == "RASK172");
     }
 
+    private const string Driver = """
+        using System;
+        using System.Threading.Tasks;
+        using Rask.Data;
+        using Rask.Values;
+
+        namespace Shop
+        {
+            public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 40);
+            public sealed partial record Nickname(string Value) : Text(Value, MaxLength: 10);
+
+            public sealed partial class Driver : Aggregate<Guid, Versioned>
+            {
+                public DriverName Name { get; private set; } = null!;
+                public Nickname? Nick { get; private set; }
+                public int Seats { get; private set; }
+
+                public void Change(DriverName name, Nickname? nick, int seats) => (Name, Nick, Seats) = (name, nick, seats);
+                private static Driver Hire(DriverName name) => new() { Id = Guid.CreateVersion7(), Name = name };
+            }
+        }
+        """;
+
+    [Fact]
+    public void An_operation_gets_a_form_over_its_parameters_that_compiles()
+    {
+        var run = RunWithForms(Driver);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public sealed class DriverChangeInput", forms, StringComparison.Ordinal);
+        Assert.Contains("public string? Name { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("public int Seats { get; set; }", forms, StringComparison.Ordinal);
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::System.Guid, int, global::Shop.DriverName, global::Shop.Nickname?, int, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operation, global::System.Guid id)", forms, StringComparison.Ordinal);
+        Assert.Contains("Name = aggregate.Name.Value, Nick = aggregate.Nick?.Value, Seats = aggregate.Seats", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Name\" => global::Shop.DriverName.__Field,", forms, StringComparison.Ordinal);
+        Assert.Contains("property is \"Name\";", forms, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.Nickname.CreateOptional(input.Nick, \"Nick\")", forms, StringComparison.Ordinal);
+        Assert.Contains("DryRunChange(input.Id, input.Version, name, nick, seats, cancellationToken)", forms, StringComparison.Ordinal);
+        Assert.Contains("static () => global::Shop.Driver.MayChange", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_factory_gets_a_form_that_starts_empty_and_saves_through_its_entry()
+    {
+        var run = RunWithForms(Driver);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::Shop.DriverName, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<global::System.Guid>> operation)", forms, StringComparison.Ordinal);
+        Assert.Contains("Task.FromResult<DriverHireInput?>(new DriverHireInput())", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_operations_that_take_the_same_parameters_get_no_form_and_RASK174_says_why()
+    {
+        var run = RunWithForms(Tagged("""
+            public int Level { get; private set; }
+            public int Floor { get; private set; }
+            public void Bump(int level) => Level = level;
+            public void Lower(int floor) => Floor = floor;
+            """));
+
+        Assert.Equal(2, run.RunResult.Diagnostics.Count(static d => d.Id == "RASK174"));
+        Assert.False(run.HasGeneratedSource(".OperationForms"));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
     [Fact]
     public async Task A_bare_call_inside_the_aggregate_that_lands_on_the_entry_is_RASK170()
     {
@@ -289,6 +358,12 @@ public class OperationGeneratorTests
             source,
             [new OperationGenerator()],
             "Rask.Data", "Rask.Wire", "Rask.Cqrs", "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.Relational");
+
+    private static GeneratorRun RunWithForms(string source) =>
+        GeneratorHarness.Run(
+            source,
+            [new OperationGenerator(), new ValueObjectFactoryGenerator()],
+            "Rask.Data", "Rask.Wire", "Rask.Cqrs", "Rask.Core", "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.Relational");
 
     // A partial, versioned Tag around the members given.
     private static string Tagged(string members) => $$"""
