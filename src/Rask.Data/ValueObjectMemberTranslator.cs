@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Rask.Data;
 
@@ -31,27 +32,34 @@ internal sealed class ValueObjectMemberTranslator(IRelationalTypeMappingSource t
         Type returnType,
         IDiagnosticsLogger<DbLoggerCategory.Query> logger)
     {
-        if (instance is not ColumnExpression { TypeMapping: { } stored } column || !StoresAs(column, stored, member))
+        if (instance is not ColumnExpression { TypeMapping: { } stored } column || OwnOf(column, stored, member) is not { } own)
         {
             return null;
         }
 
+        // The value, stored the way the column stores it: a wall-clock moment as UTC where the provider keeps only UTC.
         var held = Nullable.GetUnderlyingType(returnType) ?? returnType;
         var mapping = typeMappings.FindMapping(held, stored.StoreType) ?? typeMappings.FindMapping(held);
+        if (mapping is not null && OneValueConverters.StoredAs(own) is { } through)
+        {
+            mapping = (RelationalTypeMapping)mapping.WithComposedConverter(through, null, null, null, null);
+        }
+
         return mapping is null
             ? null
             : new ColumnExpression(column.Name, column.TableAlias, column.Column, returnType, mapping, column.IsNullable);
     }
 
-    // The column's own property says how it is stored; the type mapping says it too, unless the provider composed a
-    // converter of its own after Rask's — an enum held as a value object is stored through EF Core's enum-to-number.
-    private static bool StoresAs(ColumnExpression column, RelationalTypeMapping stored, MemberInfo member)
+    // Rask's own converter of the column, which reads `member`: the type mapping's, unless the provider composed one of
+    // its own after it (an enum held as a value object is stored through EF Core's enum-to-number), then its property's.
+    private static ValueConverter? OwnOf(ColumnExpression column, RelationalTypeMapping stored, MemberInfo member)
     {
         if (OneValueConverters.StoresAs(stored.Converter, member))
         {
-            return true;
+            return stored.Converter;
         }
 
-        return column.Column?.PropertyMappings.Any(m => OneValueConverters.StoresAs(m.Property.GetValueConverter(), member)) == true;
+        return column.Column?.PropertyMappings.Select(m => m.Property.GetValueConverter())
+            .FirstOrDefault(c => OneValueConverters.StoresAs(c, member));
     }
 }

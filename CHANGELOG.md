@@ -77,6 +77,12 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **PostgreSQL stores a `Moment` value object.** Before: Npgsql refused to save a wall-clock `DateTime`
+  (`Kind=Unspecified`) to its `timestamptz` column, so a `Moment` could not be kept on PostgreSQL at all. After:
+  `UseRaskPostgres` stores every `Moment` column as the UTC instant the wall-clock time is in `Clock.Zone` and reads it
+  back onto the wall clock — a converter of the app's own on the property is composed with it — so SQL Server, SQLite
+  and PostgreSQL save, read, compare and order the same moment (PostgreSQL to the microsecond); `.Value` in a query is
+  converted the same way. The parity suite runs the moment on all three.
 - **A write-side query reads a value object's value as its column, and orders and compares the value object itself.**
   Before: `db.Set<Transaction>().Sum(t => t.Quantity.Value)`, `Where(t => t.Quantity.Value > 0)` and
   `OrderBy(f => f.Moment.Value)` were "could not be translated" on a converter-mapped one-value value object, and a

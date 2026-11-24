@@ -89,6 +89,13 @@ opened yourself outside it: wrap a hand-written `BeginTransaction` in
 `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `Rask:Postgres:Retry:Enabled` to `false`.
 `SaveChanges`, and Rask's jobs, mail, outbox and cache, need nothing.
 
+## Moments
+
+A `Moment` value object holds a wall-clock time (`Kind = Unspecified`), which Npgsql refuses to write to a
+`timestamptz` column. `UseRaskPostgres` stores each one as the UTC instant it is in `Clock.Zone` and reads it back
+onto the wall clock, so the same moment is saved, compared and ordered as on SQL Server and SQLite — to the
+microsecond, which is what PostgreSQL keeps.
+
 ## What stays behind
 
 Litestream continuous backup and file snapshots (`Rask.SQLite.Litestream`, `Rask.SQLite.Snapshots`) are

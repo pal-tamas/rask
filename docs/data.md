@@ -2716,7 +2716,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 | A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
-| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | refused: Npgsql writes a `DateTime` only as UTC |
+| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | kept to the microsecond, orders by its time: `UseRaskPostgres` stores it as the UTC instant it is in `Clock.Zone` and reads it back onto the wall clock |
 
 SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
 `OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
@@ -2726,6 +2726,13 @@ moment, as on SQL Server. A property the model gives a converter of its own (`Da
 Unix time) keeps that column. A `DateTime` needs nothing: its text, written to the tick in one format, orders as the
 time does. An existing SQLite database with `DateTimeOffset` columns gets the collation through one migration
 (`rask db add MomentOrder`); the stored values do not change.
+
+A `Moment` value object is the same moment on all three. Npgsql writes a `DateTime` to `timestamptz` only as UTC, so
+`UseRaskPostgres` gives every column of one a conversion: the wall-clock time is turned into its UTC instant through
+`Clock.Zone` as it is written, and back onto the wall clock as it is read — the value object and every query see the
+wall-clock time (`Where(f => f.Moment.Value > since)` included), the column holds UTC. A wall time the clock skips
+when summer time begins is stored as the instant just after the jump; one it shows twice in autumn, as its
+standard-time instant. A bare `DateTime` property is left as Npgsql maps it.
 
 ## Value objects
 

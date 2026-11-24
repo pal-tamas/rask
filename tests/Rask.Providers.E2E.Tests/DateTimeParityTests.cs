@@ -17,7 +17,7 @@ public sealed class TimedRow
 /// <summary>A moment on the wall clock, as an app declares one: Rask.Data's <see cref="Moment" /> base.</summary>
 public sealed partial record ParityFueled(DateTime Value) : Moment(Value);
 
-/// <summary>A row holding a <see cref="Moment" /> value object, mapped as the generated model maps one: one converted column.</summary>
+/// <summary>A row holding a <see cref="Moment" /> value object, mapped as the generated model maps one: Rask's own converted column.</summary>
 public sealed class FueledRow
 {
     public int Id { get; set; }
@@ -44,7 +44,7 @@ public sealed class DateTimeParityDbContext(DbContextOptions<DateTimeParityDbCon
         }
 
         modelBuilder.Entity<TimedRow>().HasIndex(r => r.Code).IsUnique();
-        modelBuilder.Entity<FueledRow>().Property(r => r.Fueled).HasConversion(v => v.Value, v => ParityFueled.Create(v));
+        ValueObjectColumn.Map<ParityFueled, DateTime>(modelBuilder.Entity<FueledRow>().Property(r => r.Fueled), v => v.Value);
     }
 }
 
@@ -197,9 +197,9 @@ public abstract class DateTimeParityTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_wall_clock_moment_comes_back_to_the_tick_and_orders_by_its_time()
+    public async Task A_wall_clock_moment_comes_back_as_the_database_keeps_it_and_orders_by_its_time()
     {
-        Assert.SkipUnless(Available && KeepsWallClockMoments, SkipReason);
+        Assert.SkipUnless(Available, SkipReason);
         var noon = new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Unspecified);
         await using (var db = NewContext())
         {
@@ -214,16 +214,10 @@ public abstract class DateTimeParityTests : IAsyncLifetime
         var read = await fresh.FueledRows.Where(r => r.Code == "ticked").Select(r => r.Fueled).SingleAsync(Ct);
         var ordered = await fresh.FueledRows.OrderBy(r => r.Fueled).Select(r => r.Code).ToListAsync(Ct);
 
-        Assert.Equal(noon.AddTicks(1_234_567), read.Value);
+        Assert.Equal(noon.AddTicks(1_234_567 - (1_234_567 % TicksKept)), read.Value);
         Assert.Equal(DateTimeKind.Unspecified, read.Value.Kind);
         Assert.Equal(["first", "ticked", "later"], ordered);
     }
-
-    /// <summary>
-    ///     Whether a <see cref="Moment" /> — a wall-clock time, <see cref="DateTimeKind.Unspecified" /> — can be stored.
-    ///     Npgsql maps <see cref="DateTime" /> to <c>timestamptz</c> and refuses any kind but UTC.
-    /// </summary>
-    private protected virtual bool KeepsWallClockMoments => true;
 
     private protected static FueledRow Fueled(string code, DateTime at) => new() { Code = code, Fueled = ParityFueled.Create(at) };
 
@@ -299,18 +293,25 @@ public sealed class PostgresDateTimeParityTests : DateTimeParityTests
 
     private protected override bool KeepsTheOffset => false;
 
-    private protected override bool KeepsWallClockMoments => false;
-
     [Fact]
-    public async Task A_wall_clock_moment_is_refused_as_a_time_of_no_zone()
+    public async Task A_wall_clock_moment_is_stored_as_the_UTC_instant_it_is_and_queried_by_its_value()
     {
         Assert.SkipUnless(Available, SkipReason);
-        await using var db = NewContext();
-        db.FueledRows.Add(Fueled("noon", new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Unspecified)));
+        var noon = new DateTime(2026, 7, 4, 12, 0, 0, DateTimeKind.Unspecified);
+        await using (var db = NewContext())
+        {
+            db.FueledRows.Add(Fueled("noon", noon));
+            await db.SaveChangesAsync(Ct);
+        }
 
-        var refused = await Assert.ThrowsAnyAsync<Exception>(() => db.SaveChangesAsync(Ct));
+        await using var fresh = NewContext();
+        var stored = await fresh.Database
+            .SqlQueryRaw<DateTime>($"SELECT \"Fueled\" AS \"Value\" FROM {DateTimeParityDbContext.Schema}.\"FueledRows\"")
+            .SingleAsync(Ct);
+        var later = await fresh.FueledRows.CountAsync(r => r.Fueled.Value > noon.AddMinutes(-1), Ct);
 
-        Assert.Contains("Kind=Unspecified", refused.ToString(), StringComparison.Ordinal);
+        Assert.Equal(TimeZoneInfo.ConvertTimeToUtc(noon, Clock.Zone), stored);
+        Assert.Equal(1, later);
     }
 
     [Fact]

@@ -125,3 +125,31 @@ public sealed class ValueObjectQueryTests : IDisposable
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 }
+
+/// <summary>A wall-clock moment stored as the UTC instant it is, for a database that keeps only UTC.</summary>
+public sealed class WallClockInUtcTests
+{
+    [Fact]
+    public void A_wall_clock_time_goes_to_UTC_and_comes_back_as_it_was()
+    {
+        var noon = new DateTime(2026, 7, 4, 12, 0, 0, DateTimeKind.Unspecified);
+
+        var utc = WallClockInUtc.ToUtc(noon);
+        var back = WallClockInUtc.ToWall(utc);
+
+        Assert.Equal((TimeZoneInfo.ConvertTimeToUtc(noon, Clock.Zone), DateTimeKind.Utc), (utc, utc.Kind));
+        Assert.Equal((noon, DateTimeKind.Unspecified), (back, back.Kind));
+    }
+
+    [Fact]
+    public void A_wall_time_the_clock_skips_is_stored_as_the_instant_after_the_jump()
+    {
+        var skipped = Enumerable.Range(0, 366 * 24).Select(h => new DateTime(2026, 1, 1).AddHours(h).AddMinutes(30))
+            .Where(Clock.Zone.IsInvalidTime).Take(1).ToList();
+
+        var stored = skipped.Select(WallClockInUtc.ToUtc).ToList();
+
+        Assert.All(stored, s => Assert.Equal(DateTimeKind.Utc, s.Kind));
+        Assert.All(stored, s => Assert.False(Clock.Zone.IsInvalidTime(WallClockInUtc.ToWall(s))));
+    }
+}
