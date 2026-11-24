@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
 
 namespace Rask.SQLite;
@@ -10,8 +12,9 @@ namespace Rask.SQLite;
 ///     collation <c>OrderTextBy</c> names — so its text columns may be created with it.
 /// </summary>
 /// <remarks>
-///     It registers no service: <see cref="RaskSqliteConnectionInterceptor" /> does the registering, from the annotation
-///     the model then carries. A plain <c>UseSqlite</c> has neither, and its columns stay as they are.
+///     Its one service, <see cref="SqliteCollationInterceptor" />, does the registering on each open, from the annotation
+///     the model then carries. <c>UseRaskSqlite</c> adds it, and so does <c>UseRaskFullTextSearch</c> on a browser's plain
+///     <c>UseSqlite</c>; a <c>UseSqlite</c> with neither keeps its columns as they are.
 /// </remarks>
 internal sealed class TextCollationOptionsExtension : IDbContextOptionsExtension, ITextCollationEnforcer
 {
@@ -21,9 +24,8 @@ internal sealed class TextCollationOptionsExtension : IDbContextOptionsExtension
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
-    public void ApplyServices(IServiceCollection services)
-    {
-    }
+    public void ApplyServices(IServiceCollection services) =>
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor>(SqliteCollationInterceptor.Instance));
 
     public void Validate(IDbContextOptions options)
     {

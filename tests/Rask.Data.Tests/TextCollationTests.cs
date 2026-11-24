@@ -65,6 +65,22 @@ public sealed class TextCollationTests
         Assert.True(letters < 0);
     }
 
+    [Theory]
+    [InlineData("Hungarian_100_CI_AS", "hu-HU-u-ks-level2")]
+    [InlineData("Hungarian_100_CI_AI", "hu-HU-u-ks-level1")]
+    [InlineData("French_CS_AI", "fr-FR-u-ks-level1-kc-true")]
+    [InlineData("SQL_Latin1_General_CP1_CI_AS", "und-u-ks-level2")]
+    [InlineData("Hungarian_100_CS_AS", null)]
+    [InlineData("Latin1_General_100_BIN2", null)]
+    public void What_a_comparison_ignores_is_an_ICU_strength_on_a_nondeterministic_collation(string name, string? locale)
+    {
+        var collation = TextCollation.Parse(name);
+
+        var icu = collation.NondeterministicIcuLocale;
+
+        Assert.Equal(locale, icu);
+    }
+
     [Fact]
     public void A_language_Rask_cannot_tell_is_refused_with_the_call_that_named_it()
     {

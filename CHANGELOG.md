@@ -31,6 +31,17 @@ them until tagged releases begin.
   tracked steps). The generated source is unchanged. `WireType` no longer holds a symbol and compares by value.
 
 ### Added
+- **`OrderTextBy` compares text case-insensitively on PostgreSQL 18+ and in the browser too.** Before: PostgreSQL only
+  ordered by the language's ICU collation, so `Where(x => x.Name == "csaba")` missed `Csaba` there; and a browser
+  app's plain `UseSqlite(…).UseRaskFullTextSearch()` got neither the `RASK_TEXT` collation nor `end - start` between
+  dates. After: through `UseRaskPostgres` a collation that ignores case or accents is a nondeterministic ICU collation
+  `rask_text` (`hu-HU-u-ks-level2` for `Hungarian_100_CI_AS`) that the migration or `EnsureCreated` creates
+  (`IF NOT EXISTS`) before the first table using it, and every text column gets it — equality, unique indexes,
+  `ORDER BY` and `LIKE`/`Contains` compare as SQL Server's do. `LIKE` on a nondeterministic collation needs PostgreSQL 18,
+  so on an older server that statement stops the migration and says why. `UseRaskFullTextSearch()` now adds the decimal
+  and text collations (registered on each open by one service interceptor, which `UseRaskSqlite` shares) and the
+  duration translation, so every Rask SQLite compares and computes alike. Parity: the Postgres class of
+  `TextOrderParityTests` now passes the case-insensitive facts.
 - **`TestDatabase.Start<AppDbContext>()` with nothing to configure is SQLite in memory, and tests run side by side.**
   Before: a test named its provider (`o => o.UseSqlite($"Data Source={path}")`) and a file per test, since
   `:memory:` died with its first connection; and the model surface was process-wide, so every test with a database
