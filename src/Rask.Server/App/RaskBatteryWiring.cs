@@ -537,14 +537,18 @@ internal static class RaskBatteryWiring
         // The app's pending migrations, applied before any worker below starts — see MigrateOnStart. c.Data.OwnsSchema
         // says how they apply, the same OwnedSchema a hand-wired host's AddRaskData(…).OwnsSchema(…) registers; with
         // MigrateOnStart off nothing applies at start, so there is nothing for it to take over either.
+        // Registered either way: `dotnet App.dll rask db migrate` (AppCommand) migrates the way a start would, for a
+        // release step that applies migrations with MigrateOnStart off.
+        if (options.Data.Ownership is { } ownership)
+        {
+            services.AddSingleton(new OwnedSchema<TContext>(ownership, RaskDatabase.MigrateOnStartOff));
+        }
+
+        services.TryAddSingleton<MigrateOnStart<TContext>>();
+        services.TryAddSingleton<IAppMigration>(static sp => sp.GetRequiredService<MigrateOnStart<TContext>>());
         if (migrate)
         {
-            if (options.Data.Ownership is { } ownership)
-            {
-                services.AddSingleton(new OwnedSchema<TContext>(ownership, RaskDatabase.MigrateOnStartOff));
-            }
-
-            services.AddHostedService<MigrateOnStart<TContext>>();
+            services.AddHostedService(static sp => sp.GetRequiredService<MigrateOnStart<TContext>>());
         }
 
         WireLogStore<TContext>(services, options, provider);

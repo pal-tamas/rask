@@ -30,6 +30,7 @@ internal sealed class CliApplication
             new NewCommand(console, fileSystem, process, Environment.CurrentDirectory) { Feed = PackageFeed.NuGetOrg },
             new DevCommand(console, process, fileSystem, new BrowserLauncher(process), Environment.CurrentDirectory),
             new DbCommand(console, fileSystem, process, Environment.CurrentDirectory),
+            new AuditCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory) { ShareSshConnection = true, ReadEnvironment = Environment.GetEnvironmentVariable },
             new HostCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new InfoCommand(console, process),

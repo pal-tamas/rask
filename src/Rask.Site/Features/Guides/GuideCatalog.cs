@@ -110,15 +110,25 @@ public static class GuideCatalog
         },
 
         // ---- Data ----
-        new("data", "Rask.Data", "Declare aggregates, write them off the type, query their generated read faces, bind generated form models.", "Data")
+        new("domain", "Domain modelling", "Aggregates, entities and value objects: operations, rules, typed ids, one aggregate per transaction.", "Data")
         {
-            SearchTitle = "EF Core aggregates without writing a DbContext in C#",
-            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core: query read faces, map value collections to JSON, partition tables by tenant.",
+            SearchTitle = "DDD aggregates and value objects in C# with EF Core",
+            Description = "Model a C# domain the DDD way on EF Core: one-line value objects that carry their rules, typed ids, and aggregate operations that are each one transaction.",
         },
-        new("data-access", "Data access", "EF Core + SQLite, vertical slices, DDD patterns.", "Data")
+        new("data", "Rask.Data — storage", "Read faces, mapping rules, indexes, text order, locks and migrations, the same on every database.", "Data")
+        {
+            SearchTitle = "EF Core read models, indexes and migrations in C#",
+            Description = "Query generated read faces with inferred joins, map aggregates to tables, and run one model, its indexes and text order on SQLite, SQL Server and PostgreSQL.",
+        },
+        new("data-writes", "Writing many rows", "Bulk insert, batch update and delete, and moving existing rows.", "Data")
+        {
+            SearchTitle = "EF Core bulk insert and batch updates in C#",
+            Description = "Load thousands of rows with BulkInsert, run ExecuteUpdate and ExecuteDelete knowing what they skip, and move stored rows through aggregate operations.",
+        },
+        new("data-access", "Data access", "EF Core + SQLite under the domain: context lifetime, your own DbContext, decimals.", "Data")
         {
             SearchTitle = "Data access with EF Core and SQLite",
-            Description = "Wire EF Core and SQLite into a server app: register the DbContext with a factory for long-lived sessions, load data in the lifecycle, seed and test it.",
+            Description = "How EF Core and SQLite sit under a C# domain: a context per read and write in a long-lived session, your own DbContext, lifecycle loading and SQLite decimals.",
         },
         new("query", "Rask.Query", "The dispatcher wrapped in a cache: dedup, staleness, invalidation.", "Data")
         {

@@ -144,8 +144,8 @@ WASM templates differ mainly in `Program.cs`):
 
 - **No database context to write.** `RaskAppDbContext` maps every aggregate you declare plus the tables of
   the batteries that are on — turning one on later is a migration (`rask db add`), turning one off never drops
-  its tables ([Configuration](configuration.md#battery-tables)); code that needs the context itself injects
-  `IDbContextFactory<RaskAppDbContext>` ([Rask.Data](data.md)).
+  its tables ([Configuration](configuration.md#battery-tables)). Nothing in the app injects it: a page reads an
+  aggregate through its read face and changes it through the aggregate's own operation ([domain modelling](domain.md)).
 
 - **`Features/Shared/App.cs`** — the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router` where the current page appears.
@@ -434,8 +434,8 @@ shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
 1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) builds a database-backed
-   Products catalog by hand: declare the entity, read it off its face (`Product.Where(…)`), write through
-   commands whose handlers save with EF Core, build list, create, edit and delete pages, then `rask db add` —
+   Products catalog by hand: declare the aggregate and its value objects, read it off its face
+   (`Product.Where(…)`), build list, create, edit and delete pages, then `rask db add` —
    the app applies the migration itself when it starts. The database is a
    battery like the rest, so there is nothing to register.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
@@ -445,14 +445,17 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
-- **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input.Bind(() => model.X)`, validation.
+- **Model the business** → [domain modelling](domain.md) — aggregates, one-line value objects that carry their
+  rules, typed ids, operations as the aggregate's methods, one aggregate per transaction, no service layer.
+- **Build a form** → [forms](forms.md) — `Form.For(Product.Reprice, id)` over an operation, `Ui.Field.Bind(() => f.Price)`.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Go`.
-- **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
-  [plain EF Core](data-access.md) with a `DbContext` of your own.
+- **Query and store it** → [Rask.Data — storage](data.md) — the read face, mapping rules, indexes, migrations, the
+  same model on SQLite, SQL Server and PostgreSQL.
 - **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount`.
 - **Share state without prop-drilling** → [composition](composition.md) — context, callbacks, `VirtualizeModel`.
 - **Add a login** → [authentication](authentication.md) — cookie sessions and OIDC on Server and WASM.
-- **Test your components** → [testing](testing.md) — unit-testing components and rendered HTML.
+- **Test it** → [testing](testing.md) — the domain on SQLite in memory (`TestDatabase.Start<T>()`,
+  `Test.Refuses`), components and rendered HTML.
 - **Write idiomatic Rask** → [best practices](best-practices.md) — patterns and pitfalls that keep an app correct, secure, and fast.
 - **Decode a build error** → [diagnostics](diagnostics.md) — every RASK0xx analyzer ID and its fix.
 
