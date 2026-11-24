@@ -28,6 +28,12 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Db.Lock(names)` takes several named locks at once, in an order no two callers can deadlock on.** Before: a save
+  that touched three chip codes locked them one by one in the order it met them, and two saves sharing codes in
+  opposite orders could each hold one the other waited for. After: `await Db.Lock(codes.Select(c => "chip:" + c)).For(30.Seconds)`
+  takes every name in ordinal order (on PostgreSQL in the order of their `hashtext`, the locks it really takes), a
+  duplicate once and none for an empty list, within the one wait — and all or none: a name not granted lets go of the
+  ones already taken before the `TimeoutException`. On SQLite, SQL Server and PostgreSQL, proven by the providers suite.
 - **An `ExecuteUpdate` that writes a duplicate fails with the unique index's message**, under its fields, on every
   provider — as a save's duplicate does. Before: the provider's own exception.
 - **One conformance suite per behaviour on SQLite, SQL Server and PostgreSQL** (`tests/Rask.Providers.E2E.Tests`):
