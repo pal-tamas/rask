@@ -1048,13 +1048,19 @@ public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
     public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
     public void SetOpening(Opening opening) { … }                                           // an operation
     public bool IsOpen() => …;                                                              // a question: no entry
+    private static Supply Register(CompanyId company, SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) => …;   // a factory
 
-    public static void Configure(EntityTypeBuilder<Supply> b) =>
+    public static void Configure(EntityTypeBuilder<Supply> b)
+    {
         b.Operation(s => s.SetOpening, roles: Roles.Admin);
+        b.Operation(nameof(Register), roles: Roles.Buyer);
+    }
 }
 
-await Supply.Change(id, version, details, parts);   // generated: Find(id, version) → Change → Save()
-await Supply.SetOpening(id, version, opening);      // and first: is the signed-in user an Admin?
+await Supply.Change(id, version, details, parts);           // generated: Find(id, version) → Change → Save()
+await Supply.SetOpening(id, version, opening);              // and first: is the signed-in user an Admin?
+SupplyId id = await Supply.Register(company, details, parts);   // generated: Register → Save(), the id handed back
+if (Supply.MaySetOpening) { … }                             // generated: may the signed-in user run it?
 ```
 
 - **What is an operation.** A public instance method declared on the aggregate, not generic, with no `ref`/`out`/`in`
@@ -1062,6 +1068,13 @@ await Supply.SetOpening(id, version, opening);      // and first: is the signed-
   that returns anything else answers a question and gets no entry; neither do `Validate`, `ValidateDelete`, `On` or a
   method named like a write (`Create`, `Find`, `Update`, `Delete`, `Save`, `Model`). Only a `partial` aggregate gets
   entries, because they are static overloads in its own class.
+- **A factory** is a static method declared on the aggregate that returns it (or a `Task` of it), of any accessibility
+  — written `private` or `internal`, because its generated entry takes the public name: `await Supply.Register(…)`
+  asks its roles, builds the aggregate, saves it (its rules asked) in one `Db.Transaction` and hands back its id. A
+  factory left public would win every call over its entry, so it gets none ([RASK173](diagnostics.md#rask173)). Its
+  roles are named with `nameof`, since its method group holds the entry too: `b.Operation(nameof(Register), roles: …)`.
+- **`Supply.May…`** answers, for every operation and factory, whether the signed-in principal holds one of its roles —
+  always `true` for one that names none — so a page hides or disables what the entry would refuse.
 - **What the entry does**, in order: the roles of `b.Operation(x => x.M, roles: …)` are asked of the signed-in
   principal — any one of them admits, comma-separated as `[Authorize(Roles = …)]` takes them — and anyone else is a
   `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's

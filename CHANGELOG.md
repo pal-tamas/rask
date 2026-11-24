@@ -76,6 +76,12 @@ them until tagged releases begin.
   named `id`, `version` or `cancellationToken`) and the error [RASK172](docs/diagnostics.md#rask172) (roles written
   where the entry cannot read them, which would leave it open). See
   [an operation, run as one write](docs/data.md#an-operation-run-as-one-write).
+- **A non-public factory is born through a generated entry, and every operation says who may run it.** A static method
+  of a `partial` aggregate that returns it — written `private`/`internal` — gets `SupplyId id = await
+  Supply.Register(company, details, parts)`: its roles (`b.Operation(nameof(Register), roles: …)`) asked, the aggregate
+  built and saved with its rules in one `Db.Transaction`, the id handed back. A factory left public gets none and is
+  the warning [RASK173](docs/diagnostics.md#rask173). Each operation and factory also gets `Supply.MayChange` — whether
+  the signed-in principal holds one of its roles, `true` when it names none — for a page to hide what it may not do.
 - **A member's DataAnnotations attributes tell its bound control what it is, up front.** Before: only a value
   object's facets reached a control (`maxlength`), and `Ui.Field.Bind` alone read `[EmailAddress]`/`[Editable]` by
   reflection; a plain `[StringLength(60)]` property drew no `maxlength`, and `[DataType]`, `[DisplayFormat]` and
