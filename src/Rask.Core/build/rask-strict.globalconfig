@@ -9,3 +9,16 @@ dotnet_diagnostic.CA1716.severity = none
 # (RASK130). A suggestion everywhere else; under <RaskStrict> a warning — at errors too, where it does not fail the
 # build (Rask.Strict.targets keeps it out of TreatWarningsAsErrors).
 dotnet_diagnostic.RASK130.severity = warning
+
+# Domain code (an aggregate, an entity, a value object) and its data rules: suggestions everywhere else, warnings under
+# <RaskStrict> — and, at errors, errors like every other warning. Each names one line to change.
+#   RASK140  the machine's clock (DateTime.Now, Today, UtcNow, DateTimeOffset.Now, ToLocalTime) — Clock.Now / Wall / Today
+#   RASK141  Current.Service<T>() inside an aggregate, an entity or a value object
+#   RASK142  Task.WhenAll over database work inside Db.Transaction, whose work shares one connection
+#   RASK143  [Key] on an aggregate or an entity, which is keyed by the Id it inherits
+#   RASK144  [Compare("X")] naming a property the model does not have
+dotnet_diagnostic.RASK140.severity = warning
+dotnet_diagnostic.RASK141.severity = warning
+dotnet_diagnostic.RASK142.severity = warning
+dotnet_diagnostic.RASK143.severity = warning
+dotnet_diagnostic.RASK144.severity = warning
