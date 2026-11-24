@@ -39,7 +39,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
         {
             await WriteUncommittedAsync(database);
             inside = await ReadAsync(TestContext.Current.CancellationToken);
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(new Seen(InTransaction: true, Consignments: 1), inside);
     }
@@ -54,7 +54,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
         {
             await WriteUncommittedAsync(database);
             await session.RequestRender();
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(Outside, session.Rendered);
     }
@@ -72,7 +72,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
             await WriteUncommittedAsync(database);
             handler.Post(static _ => { }, null);
             await handler.DrainAsync();
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(Outside, session.Repainted);
     }
@@ -90,7 +90,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
             using var stock = client.Query(QueryKey.Of("stock"), ReadAsync);
             await stock.Reload(TestContext.Current.CancellationToken);
             fetched = stock.Data;
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(Outside, fetched);
     }
@@ -108,7 +108,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
             using var feed = client.Subscribe(() => 1, (_, ct) => Stream(pushed, ct));
             _ = feed.Data; // opens at its first read, as a render's would
             await pushed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(Outside, await pushed.Task);
     }
@@ -125,7 +125,7 @@ public sealed class DbTransactionSpawnedWorkTests : IDisposable
             await WriteUncommittedAsync(database);
             await session.RequestRender();
             after = await ReadAsync(TestContext.Current.CancellationToken);
-        }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, manyAggregates: "A supplier and its first consignment", IsolationLevel.Serializable, TestContext.Current.CancellationToken);
 
         Assert.Equal(new Seen(InTransaction: true, Consignments: 1), after);
     }

@@ -33,16 +33,35 @@ internal sealed class AmbientTransaction
     private readonly List<AdmittedContext> _admitted = [];
     private bool _ended;
 
-    private AmbientTransaction(DbContext owner, DbTransaction transaction, IsolationLevel? isolation)
+    private AmbientTransaction(DbContext owner, DbTransaction transaction, IsolationLevel? isolation, string? manyAggregates)
     {
         _connection = owner.Database.GetDbConnection();
         _connectionString = owner.Database.GetConnectionString();
         _transaction = transaction;
         Isolation = isolation;
+        ManyAggregates = manyAggregates;
     }
 
     /// <summary>The level the outermost call asked for, or <see langword="null" /> for the database's default.</summary>
     internal IsolationLevel? Isolation { get; }
+
+    /// <summary>
+    ///     Why this transaction may write more than one aggregate — the <c>manyAggregates:</c> its outermost call, or a
+    ///     call that joined it, stated — or <see langword="null" /> while none has.
+    /// </summary>
+    internal string? ManyAggregates { get; private set; }
+
+    /// <summary>The aggregates its saves have written so far, each once (<see cref="OneAggregatePerTransactionInterceptor" />).</summary>
+    internal WrittenAggregates Written { get; } = new();
+
+    /// <summary>Whether a <see cref="TransactionRecording" /> waits for this transaction, so its writes are counted.</summary>
+    internal bool Recorded { get; private set; }
+
+    /// <summary>
+    ///     Lets a joined <c>Db.Transaction(…, manyAggregates: …)</c> state its reason for the whole transaction: a nested
+    ///     block is not a transaction of its own, so what it writes is the outermost one's to answer for.
+    /// </summary>
+    internal void AllowManyAggregates(string? reason) => ManyAggregates ??= reason;
 
     /// <summary>
     ///     The transaction in progress in this flow, or <see langword="null" />. One that has ended — a task started
@@ -58,7 +77,8 @@ internal sealed class AmbientTransaction
             : null;
 
     /// <summary>Makes <paramref name="transaction" /> the one every context in this flow joins, until disposed.</summary>
-    internal static Scope Enter(DbContext owner, IDbContextTransaction transaction, IsolationLevel? isolation)
+    internal static Scope Enter(
+        DbContext owner, IDbContextTransaction transaction, IsolationLevel? isolation, string? manyAggregates = null)
     {
         // An event published inside reaches the live pages that handle it once this commits, and not on a rollback.
         LiveEvents.DeferUntilCommit ??= DeferUntilCommit;
@@ -66,7 +86,15 @@ internal sealed class AmbientTransaction
         // What Rask starts from inside — a repaint, a render a StateHasChanged asks for, a query's fetch — runs outside.
         SpawnedWork.Leave ??= Leave;
 
-        var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation);
+        var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation, manyAggregates);
+
+        // A test's Db.Record() hears of the transaction once it commits, with what it wrote.
+        if (TransactionRecording.Current is { } recording)
+        {
+            entered.Recorded = true;
+            entered.AfterCommit(() => recording.Add(new RecordedTransaction([.. entered.Written.All], entered.ManyAggregates)));
+        }
+
         return new Scope(entered);
     }
 

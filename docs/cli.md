@@ -242,7 +242,7 @@ MyApp/
   Properties/launchSettings.json
   MyApp.slnx                      the app and its tests, for `dotnet test` and your IDE
   MyApp.Tests/
-    MyApp.Tests.csproj            references the app, Rask.Testing and xUnit v3
+    MyApp.Tests.csproj            references the app, Rask.Testing (+ .Data on server) and xUnit v3
     Features/Home/HomePageTests.cs  renders the home page and checks its greeting
 ```
 

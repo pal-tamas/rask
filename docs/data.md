@@ -1204,6 +1204,16 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the
   entry would ask nothing, so the build stops ([RASK172](diagnostics.md#rask172)). Only the entry asks: the method
   called on an aggregate in hand is your own code and runs as written.
+- **Two aggregates, or a row held while it runs:** `b.Operation(x => x.M, manyAggregates: "why")` runs the entry
+  in `Db.Transaction(…, manyAggregates: "why")` ([one aggregate per transaction](#one-aggregate-per-transaction-manyaggregates));
+  `forUpdate: true` reads the aggregate's row under an update lock before the load, and
+  `forUpdate: s => s.Parts` the rows of that child collection — `UPDLOCK, HOLDLOCK` on SQL Server, `FOR UPDATE` on
+  PostgreSQL, nothing more on SQLite, whose one writer serializes already — so a second operation on the same rows
+  waits for the first to commit instead of being refused as stale. The reason is a constant, read like the roles. In
+  a static method of your own, `await id.Load(version, forUpdate: true)` does the same: generated on a typed id that
+  one aggregate alone is keyed by, it loads the aggregate whole (`KeyNotFoundException` when there is none, the
+  stale-version refusal as `Find(id, version)`), and refuses a lock outside a `Db.Transaction`, which would hold
+  nothing.
 - **Inside the aggregate, call the method, not the entry.** A bare `Change(id, version, …)` written in `Supply` binds
   to the entry and saves ANOTHER copy in a transaction of its own ([RASK170](diagnostics.md#rask170)); an operation
   whose parameter is named `id`, `version` or `cancellationToken` gets no entry ([RASK171](diagnostics.md#rask171)).
@@ -1333,6 +1343,45 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.
+
+#### One aggregate per transaction: `manyAggregates:`
+
+An aggregate is the transaction boundary. A `Db.Transaction` that writes a second one is a decision, so it says
+why, where it is made:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    await filling.Save();
+    foreach (var withdrawal in withdrawals) await withdrawal.Save();
+}, manyAggregates: "The IBC filling and its withdrawals are only valid together");
+
+builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.Throw);   // Off | Warn | Throw
+```
+
+- **What a second aggregate without a reason meets** is `RaskDataOptions.OneAggregatePerTransaction`: `Warn` by
+  default (a warning in the log naming the aggregates, once per transaction), `Throw` — a `ManyAggregatesException`
+  naming them (`Supply 42, Tank 7`), the transaction rolled back — or `Off`. **A `TestDatabase` runs at `Throw`**, so
+  a test finds the transaction that owes a reason; a test's own `services:` can set it back.
+- **What counts** is what the transaction's saves wrote, each aggregate once: a child counts as its aggregate (a
+  changed `SupplyPart` is its `Supply`), the same aggregate saved twice is one, and two rows of one type are two.
+  Rask's own tables — outbox, jobs, mail, sessions, passkeys, stored files, cache, push subscribers — are no aggregate
+  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A bulk
+  write (`ExecuteUpdate`, `BulkInsert`) is not a save and is not counted. A save refused for another reason counts
+  nothing.
+- **Nested blocks are one transaction.** The outermost counts, and a nested `Db.Transaction(…, manyAggregates: …)`
+  states the reason for all of it.
+- **The build says it first.** [RASK178](diagnostics.md#rask178) points at a `Db.Transaction` whose work writes two
+  aggregate types with no `manyAggregates:`, and its quick-fix writes `manyAggregates: "TODO: why"` for you to fill in.
+- **A test asks it outright:** `Db.Record()` records every transaction that commits in the flow until disposed —
+  `saves.Transactions` holds each one's aggregates and reason — and `saves.EachWroteOneAggregate()` fails on one that
+  wrote more, reason or not:
+
+  ```csharp
+  using var saves = Db.Record();
+  await DeliveryNote.Write(note, 0);
+  saves.EachWroteOneAggregate();
+  ```
 
 ### One holder at a time, across hosts: `Db.Lock`
 
@@ -2330,6 +2379,10 @@ await database.Context.SaveChangesAsync();
 
 Assert.Equal(2, await Order.Count());
 ```
+
+A test that needs an aggregate to work on and does not care which asks `await Test.Make<Order>()`
+(`Rask.Testing.Data`): it is made through the aggregate's own factory, what it refers to is made and stored first, and
+it is saved with its rules asked ([testing](testing.md#a-stored-aggregate-its-rules-accept-await-testmakesupply)).
 
 `TestDatabase.Start<AppDbContext>` builds the app's context the way the app does — through its constructor
 taking `DbContextOptions<AppDbContext>` — so what its `OnModelCreating` adds (`b.AddRaskOutbox()`, a table of

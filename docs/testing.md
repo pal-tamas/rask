@@ -342,6 +342,10 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
   text there as that SQL Server collation does — `"csaba"` finds `Csaba`, `Contains("árv")` finds `Árvíztűrő`, a
   unique index refuses `CSABA` beside it ([data](data.md#app-wide-model-rules-one-iraskmodel));
+- a second context type of the app's — one that reads the tables as the database has them, a host's context with
+  interceptors of its own — opens on the same database with **`database.Options<TOther>()`**: the provider exactly as
+  the fixture's contexts have it (`UseRaskSqlite` on the same in-memory database), none of the fixture's interceptors,
+  so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
 - disposing it lets the database go.
 
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
@@ -394,6 +398,64 @@ A value object it cannot build — a pattern with a lookahead, a member of a typ
 its own `Rules()` refuse — is an `InvalidOperationException` naming it and saying to make it by hand with
 `X.Create(…)`. A value object has no `with` outside its type ([RASK127](diagnostics.md#rask127)), so there is
 nothing to tweak a made one with: a test that cares about the value writes `Vin.Create("…")`.
+
+### A stored aggregate its rules accept: `await Test.Make<Supply>()`
+
+With **`Rask.Testing.Data`** referenced beside `Rask.Testing` (it brings `Rask.Data`, so a component-only test
+project stays free of EF Core), a test that needs an aggregate to work on, and does not care which, asks for one
+instead of hand-building it and everything it refers to — seeded through the aggregates, as the app seeds them:
+
+```csharp
+await using var database = await TestDatabase.Start<AppDbContext>();
+
+var supply = await Test.Make<Supply>();                              // its company and its part's tank made and stored first
+var acme   = await Test.Make<Company>();
+var other  = await Test.Make<Supply>(o => o.Use(acme));              // Acme's, and so is its tank
+var big    = await Test.Make<Supply>(o => o.With("parts", parts));   // the factory's own parameter, as the test says
+var ticket = await Test.Make<Ticket>(o => o.Factory = nameof(Ticket.Season));   // one of several factories
+```
+
+- **Through its own factory.** The aggregate is made by a static method declared on it that returns it (or a task of
+  it) — a partial aggregate's private factory, not its generated entry, so no role is asked — and saved as
+  `supply.Save()` saves it, its rules asked.
+- **Every parameter a value its rules take**: a value object made by `Test.Make<Vin>()` (above), a text, 1, today, an
+  enum's first member, a row spec through its public constructor (each member sampled the same way), a list or an
+  array of one row. A nullable parameter is left null, and one with a default keeps it.
+- **What it refers to is made first**, the same way, and stored: a parameter that is an aggregate (`Company company`),
+  a typed id (`TankId tank` — the aggregate keyed by `TankId`), or a plain id named after its aggregate
+  (`Guid companyId`). Each is made **once per call**, so a supply and the tank its part names share one company;
+  `o.Use(acme)` hands over one the test made, for every parameter of its type or naming its id.
+- **What it cannot make says so**: no factory, several and none named, a parameter with no sample, a circle of
+  references, or a made aggregate its rules refuse is an `InvalidOperationException` that names it and the option
+  that helps (`o.With("…", …)`, `o.Factory = "…"`, `o.Use(…)`).
+
+### The form says what the domain says: `Test.FormShows`
+
+One line per feature proves the reader is told a rule where they type it — the rule's own test proves the domain
+refuses, this one that the form shows it:
+
+```csharp
+[Fact]
+public Task A_part_of_no_litres_is_refused_on_the_form() =>
+    Test.FormShows<SupplyRegisterInput>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle);
+
+[Fact]
+public Task The_km_end_comes_after_its_start_on_the_form() =>
+    Test.FormShows<DeliveryNoteModel>(m => m.Km.End, value: 5, given: m => m.Km.Start = 10, KmRange.EndNotPastStart);
+```
+
+- **A real form.** The model is put in a `Form.Model(model)`, so the rules asked are the ones the page asks: the
+  attributes, the validators found for the model, and the store's rules — on an operation's form
+  ([`Form.For`](forms.md#a-form-over-an-operation)) that is the operation's dry run, `Refuse` and `Validate()` among
+  it, so it needs the test's database (`TestDatabase.Start`).
+- **The value is put in, then the field is left** — its rules asked as a control's commit asks them — and, when that
+  showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
+- **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
+  sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
+- A model that takes constructor arguments — an operation form over an aggregate, `new SupplyChangeInput(id,
+  version)` — goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`.
+- The message not shown fails the test with a `FormAssertionException` that says what the field showed instead, what
+  the top of the form showed, and why the store's rules could not be asked when they threw.
 
 ### A real database server, when the machine has one
 
@@ -546,6 +608,22 @@ refused**, handing back that refusal to assert on as `Test.Refuses` does. Both g
 exception, or the two still running after 30 seconds (two operations waiting on each other) fails the test with a
 `RefusalAssertionException` that says which. It is how a test proves a version check, a unique index, a
 `ForUpdate()` read or a `Db.Lock` keeps two writers apart, on the SQLite in memory the tests run on.
+
+### One aggregate per transaction: `Db.Record`
+
+A `TestDatabase` runs at `OneAggregatePerTransaction = AggregatePolicy.Throw`: a `Db.Transaction` that writes a second
+aggregate without `manyAggregates: "why"` fails the test with a `ManyAggregatesException` naming both
+([data.md](data.md#one-aggregate-per-transaction-manyaggregates)). To say outright that a feature is one aggregate's:
+
+```csharp
+using var saves = Db.Record();
+await DeliveryNote.Write(note, 0);
+saves.EachWroteOneAggregate();   // fails on a transaction that wrote more, reason or not
+```
+
+`saves.Transactions` holds every transaction that committed in the test's flow while the recording was open, each with
+its `Aggregates` (`DeliveryNote 7`) and its `ManyAggregates` reason. A test that means to write several without a
+reason sets the policy back in its `services:` — `s => s.Configure<RaskDataOptions>(o => o.OneAggregatePerTransaction = AggregatePolicy.Off)`.
 
 ---
 

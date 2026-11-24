@@ -31,7 +31,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
             await mine.Database.ExecuteSqlRawAsync("UPDATE Widget SET Name = 'renamed' WHERE Name = 'anvil'", TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["hammer", "renamed", "tongs"], await Names());
     }
@@ -49,7 +49,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
             seen = await mine.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM Widget").SingleAsync(TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(1, seen);
         Assert.Equal(["anvil", "hammer"], await Names());
@@ -68,7 +68,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
             seen = await mine.Set<Widget>().FromSqlRaw("SELECT * FROM Widget").Select(w => w.Name).ToListAsync(TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["anvil"], seen);
         Assert.Equal(["anvil", "hammer"], await Names());

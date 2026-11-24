@@ -80,6 +80,43 @@ public sealed partial class ModelInputGenerator
         {
             AppendSave(s, entity);
         }
+
+        if (entity.LoadsById)
+        {
+            AppendLoad(s, entity);
+        }
+    }
+
+    // `await id.Load(version, forUpdate: true)` on a typed id one root alone is keyed by: the aggregate loaded whole
+    // inside a static operation that writes it, its row locked first when asked.
+    private static void AppendLoad(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        s.Append("    extension(").Append(entity.IdTypeName!.TrimEnd('?')).AppendLine(" id)");
+        s.AppendLine("    {");
+        s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with this id, whole — its row locked first, to the end of the Db.Transaction, when <paramref name=\"forUpdate\" /> is true.</summary>");
+        if (entity.Versioned)
+        {
+            s.AppendLine("        /// <param name=\"version\">The version the caller read, refused when it has moved on; <c>null</c> asks none.</param>");
+        }
+
+        s.AppendLine("        /// <param name=\"forUpdate\">Locks its row first, so nobody changes it before this transaction has.</param>");
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+        s.AppendLine("        /// <returns>The aggregate and its children.</returns>");
+        s.AppendLine(NotFoundDoc);
+        if (entity.Versioned)
+        {
+            s.AppendLine(ConflictDoc);
+        }
+
+        s.AppendLine("        /// <exception cref=\"global::System.InvalidOperationException\"><paramref name=\"forUpdate\" /> outside a Db.Transaction.</exception>");
+        s.Append("        public ").Append(TaskFqn).Append('<').Append(entityType).Append("> Load(")
+            .Append(entity.Versioned ? "int? version = null, " : "")
+            .Append("bool forUpdate = false, ").Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Load<").Append(entityType).Append(">(id!, ")
+            .Append(entity.Versioned ? "version" : "null").AppendLine(", forUpdate, cancellationToken);");
+        s.AppendLine("    }");
     }
 
     private static void AppendIdLessCreates(StringBuilder s, Entity entity, bool formCreate)

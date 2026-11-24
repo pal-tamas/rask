@@ -34,6 +34,39 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
+  app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
+  in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
+  string, since `UseRaskSqlite(string, SqliteOptions)` is internal. After: `new LegacyDb(database.Options<LegacyDb>().Options)`
+  — the provider configured as the fixture's own contexts are, none of its interceptors.
+- **One aggregate per transaction: a `Db.Transaction` that writes a second aggregate says why.** New overload
+  `Db.Transaction(async () => …, manyAggregates: "The IBC filling and its withdrawals are only valid together")`;
+  without the reason, a second aggregate meets `AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.…)` —
+  `Warn` by default (logged once per transaction), `Throw` (`ManyAggregatesException` naming the aggregates, rolled
+  back) or `Off`. A child counts as its aggregate; Rask's own tables and those marked `b.Infrastructure()` never
+  count. **Behaviour change in tests: a `TestDatabase` runs at `Throw`.** `Db.Record()` records each committed
+  transaction's aggregates for a test (`saves.EachWroteOneAggregate()`). RASK178 flags a block writing two aggregate
+  types with no reason; its quick-fix inserts `manyAggregates: "TODO: why"`.
+- **An operation's `Configure` states its reason and its locks:** `b.Operation(x => x.M, manyAggregates: "…")` runs the
+  generated entry in that transaction; `forUpdate: true` locks the aggregate's row, `forUpdate: s => s.Parts` that
+  child collection's rows, before the load (`UPDLOCK, HOLDLOCK` / `FOR UPDATE`). A typed id one aggregate alone is
+  keyed by gets `await id.Load(version, forUpdate: true)` for a static method of your own.
+- **`await Test.Make<Supply>()` makes a stored aggregate its rules accept** (new package `Rask.Testing.Data`, beside
+  `Rask.Testing`, so a component-only test project stays free of EF Core). It calls the aggregate's own factory — a
+  static method declared on it that returns it, private or not — with a value its rules take for every parameter (a
+  value object from `Test.Make<Vin>()`, a row spec through its constructor, a list of one row; a nullable left null, a
+  default kept), makes and stores first every aggregate it refers to (an aggregate parameter, a typed id, a plain id
+  named after its aggregate), once each per call, and saves it as `Save()` does, its rules asked.
+  `o.Use(acme)`, `o.With("parts", parts)` and `o.Factory = nameof(Ticket.Season)` say what the test cares about; what
+  it cannot make is an `InvalidOperationException` naming the option that helps. Before: each app's tests built their
+  aggregates and every reference by hand. A new `server` app's `<Name>.Tests` project references `Rask.Testing.Data` beside
+  `Rask.Testing`; a `wasm` one stays on `Rask.Testing`.
+- **`Test.FormShows<TModel>(m => m.Parts[0].Quantity, 0m, Litres.TooLittle)` proves the form shows a rule under its
+  field** (`Rask.Testing`). The model is put in a real `Form.Model(model)`, so the attributes, the discovered
+  validators and an operation form's dry run are asked as the page asks them — as the field is left, then on submit;
+  a row the path names is added, a sub-object made, `given: m => m.Km.Start = 10` fills the other fields, and
+  `Test.FormShows(model, …)` takes a model made by hand. Anything else fails with a `FormAssertionException` that says
+  what the field showed.
 - **`Allocation.Split` splits a total into shares whose sum is the total exactly.** Before: an app rounded each share
   on its own and lost or invented a cent (TA's `StockChanges.Shares`, Eszaf's per-category rounding). After:
   `Allocation.Split(total, receivers.Count, step: 0.01m)` for equal parts, `Allocation.Split(total, weights, step,
