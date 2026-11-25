@@ -37,7 +37,7 @@ public sealed partial class OperationGenerator
                 optional,
                 !optional && !(text && AggregateShape.AllowsEmptyText(named)),
                 text,
-                AggregateShape.IsPassword(named) ? null : FillOf(held, owner, named, inner))
+                AggregateShape.IsPassword(named) ? null : FillOf(held, owner, named, inner, nullable: true))
             {
                 Shape = DeclaresShape(named) ? valueObject + ".__Field" : null,
             };
@@ -51,23 +51,26 @@ public sealed partial class OperationGenerator
         // A bool is never empty — an unticked box is false — so it is held as it is.
         var lifted = lift && !optional && type.IsValueType && type.SpecialType != SpecialType.System_Boolean && type.TypeKind != TypeKind.Error;
         var declared = type.ToDisplayString(TypeFormat);
+        var fieldType = lifted ? declared + "?" : declared;
         // A plain value is the domain's to refuse (its Refuse, its attributes), told by the dry run: no required rule of
         // the form's own, unless it is held lifted and so may be left empty.
         return new FormField(
             property,
-            lifted ? declared + "?" : declared,
+            fieldType,
             null,
             optional,
             Required: lifted,
             type.SpecialType == SpecialType.System_String,
-            FillOf(held, owner, type, null))
+            FillOf(held, owner, type, null, fieldType.EndsWith("?", System.StringComparison.Ordinal)))
         {
             Lifted = lifted,
         };
     }
 
-    // What the owner holds alike, read for the field: the same type, or a value object's one value (`.Value`).
-    private static string? FillOf(IPropertySymbol? held, string owner, ITypeSymbol type, ITypeSymbol? inner)
+    // What the owner holds alike, read for the field: the same type, a value object's one value (`.Value`) for a field
+    // of that value object, or for a field of the plain value (`decimal? totalSum` read off `Amount? TotalSum`) — null
+    // where it holds none, so a field that may not be empty is only filled off a value object it always holds.
+    private static string? FillOf(IPropertySymbol? held, string owner, ITypeSymbol type, ITypeSymbol? inner, bool nullable)
     {
         if (held is null)
         {
@@ -75,19 +78,32 @@ public sealed partial class OperationGenerator
         }
 
         var path = owner + "." + held.Name;
+        var optional = held.NullableAnnotation == NullableAnnotation.Annotated ||
+                       held.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+        var valueOf = path + (optional ? "?.Value" : ".Value");
         if (inner is not null && Same(held.Type, type))
         {
-            var optional = held.NullableAnnotation == NullableAnnotation.Annotated ||
-                           held.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
-            return path + (optional ? "?.Value" : ".Value");
+            return valueOf;
         }
 
-        var taken = inner ?? type;
-        var bare = taken is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
-            ? nullable.TypeArguments[0]
-            : taken;
-        return Same(held.Type, taken) || Same(held.Type, bare) ? path : null;
+        var bare = Bare(inner ?? type);
+        // A value object's field is held nullable, so it takes a plain value that may be null as well (`decimal? Paid`).
+        if (Same(held.Type, inner ?? type) || Same(held.Type, bare) || (inner is not null && Same(Bare(held.Type), bare)))
+        {
+            return path;
+        }
+
+        return inner is null && Bare(held.Type) is INamedTypeSymbol heldType && OneValueOf(heldType) is { } heldValue &&
+               Same(Bare(heldValue), bare) && (nullable || !optional)
+            ? valueOf
+            : null;
     }
+
+    // A nullable value type's underlying type; any other type as it is.
+    private static ITypeSymbol Bare(ITypeSymbol type) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
 
     private static bool Same(ITypeSymbol left, ITypeSymbol right) =>
         SymbolEqualityComparer.Default.Equals(

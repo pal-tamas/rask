@@ -146,7 +146,6 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
         var day = Ui.DatePicker
             .Value(UiDayAndTimeValue.Day(moment) ?? default)
             .OnChange(DayAsync)
-            .Typed()
             .Key("day")
             .Id(field.ControlId)
             .Locale(Locale)
@@ -154,8 +153,13 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
             .Min(UiDayAndTimeValue.Day(Min))
             .Max(UiDayAndTimeValue.Day(Max))
             .Disabled(locked)
-            .Invalid(field.Invalid)
-            .Class(DayWidth);
+            .Invalid(field.Invalid);
+        if (_dayAlone is { } alone)
+        {
+            return field.Wrap(Context.Provide(new UiUnreadRelay(UnreadAsync))[DayAlone(day, alone)]);
+        }
+
+        day = day.Typed().Class(DayWidth);
         var time = Ui.TimePicker
             .Value(UiDayAndTimeValue.Time(moment))
             .OnChange(TimeAsync)

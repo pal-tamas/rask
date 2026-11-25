@@ -20,8 +20,9 @@ namespace Rask;
 ///     <para>
 ///         The label is the member's <c>[Display(Name)]</c>, the help text its <c>[Display(Description)]</c>, the
 ///         placeholder its <c>[Display(Prompt)]</c>; each step of the same name wins. <c>[Editable(false)]</c> makes a text
-///         or number input read-only and every other control disabled. <c>[DataType(DataType.Date)]</c> on a
-///         <c>DateTime</c> is a date input, <c>[DataType(DataType.MultilineText)]</c> a textarea, and <c>[UIHint]</c> picks
+///         or number input read-only and every other control disabled. A <c>DateTime</c> its shape says is a day
+///         (<c>[DataType(DataType.Date)]</c>, a <see cref="FieldKind.Day" /> shape) is a <c>Ui.DatePicker</c> alone, a day
+///         picked keeping the time of day the value had; <c>[DataType(DataType.MultilineText)]</c> a textarea, and <c>[UIHint]</c> picks
 ///         the kit control of that name where it fits (<see cref="FieldHints" />): a <c>Ui.Switch</c> for a <c>bool</c>, a
 ///         <c>Ui.RadioGroup</c> for an enum. <c>Ui.Field[…]</c> with parts of your own is still the field you compose by hand.
 ///     </para>

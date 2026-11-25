@@ -3,6 +3,9 @@ namespace Rask.Data.Tests;
 /// <summary>What a truck of a convoy carries: at least one tonne.</summary>
 public sealed partial record ConvoyLoad(decimal Value) : Number(Value, Min: 1);
 
+/// <summary>What a convoy pays at a toll gate: a value object of one value, declared from <c>Value</c>.</summary>
+public sealed partial record ConvoyToll(decimal Value) : Value;
+
 /// <summary>When a convoy leaves, and for how many days: a day it must have, a length it may.</summary>
 public sealed partial record ConvoyWindow(DateOnly From, int? Days) : Value
 {
@@ -51,6 +54,13 @@ public sealed partial class Convoy : Aggregate<Guid, Versioned>
     public void Plan(ConvoyWindow? window) => Window = window;
 
     public void Measure(RigKm km) => Km = km;
+
+    public ConvoyToll? Toll { get; private set; }
+
+    public decimal? Fee { get; private set; }
+
+    // A plain parameter over a value object of one value, and a value object over a plain value: each read off the other.
+    public void Charge(decimal? toll, ConvoyToll? fee) => (Toll, Fee) = (toll is { } paid ? ConvoyToll.Create(paid) : null, fee?.Value);
 
     public int RestDays { get; private set; }
 

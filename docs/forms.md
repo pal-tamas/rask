@@ -912,7 +912,9 @@ text and placeholder are the member's `[Display(Name, Description, Prompt)]`, it
 model, else its type. Text is a `Ui.Input` (`email`/`tel`/`url`/`password` from `[EmailAddress]`, `[Phone]`,
 `[Url]`, `[DataType(DataType.Password)]`; its `maxlength`/`minlength` from `[StringLength]`, `[MaxLength]`,
 `[MinLength]`, `[Length]`; drawn in capitals for a value object declared `Upper: true`; `.Multiline()` or
-`[DataType(DataType.MultilineText)]` a `Ui.Textarea`), a `DateTime` that is `[DataType(DataType.Date)]` a date input,
+`[DataType(DataType.MultilineText)]` a `Ui.Textarea`), a `DateTime` its shape says is a day (`[DataType(DataType.Date)]`,
+a `FieldKind.Day` shape) a `Ui.DatePicker` alone — a day picked keeps the time of day the value had, a first one is
+midnight —
 `[UIHint(FieldHints.Switch)]` on a `bool` a `Ui.Switch` and `[UIHint(FieldHints.RadioGroup)]` on an enum a
 `Ui.RadioGroup` ([what a member's attributes tell its control](forms-validation.md)), a number an input with its
 `min`/`max` and a step of its scale, a day a `Ui.DatePicker` (ending today when it may not be after it), a moment
@@ -1008,13 +1010,18 @@ Form.For(Note.Rename, id)[f => [
 ```
 
 - **The fields are the parameters**, each named as the parameter, capitalised — `title` is `f.Title` — and filled from
-  the aggregate's property of that name and type when it has one. A value object of one value (`DriverName(string
+  the aggregate's property of that name and type when it has one — or of that name holding the same value one side
+  of a value object of one value: a `decimal? totalSum` is filled from `Amount? TotalSum` (`TotalSum?.Value`, empty for
+  none), an `Amount? paid` from `decimal? Paid`. A value object of one value (`DriverName(string
   Value) : Text(…)`) is its value on the form, with its rules told to the control (`maxlength`, `min`, …) and made
   through `Create` on submit, every refusal under its field at once; a nullable one through `CreateOptional`. A text or a
   bool is taken as it is; a number, a day, an enum or an id is held empty until one is typed — never a `0` nobody
   chose — and refused as required when left so. An operation's form still starts from what the aggregate holds; only
   a factory's, or a parameter the aggregate has nothing alike for, starts from the parameter's declared default
   (`int count = 3` shows 3) — or empty, when it declares none or a null one.
+- **A parameter's attributes tell its field**, as a model property's do: `[DataType(DataType.Date)] WallMoment? deliveredAt`
+  (a `Moment` value object, or a plain `DateTime?`) is drawn by `Ui.Field.Bind` as a `Ui.DatePicker` alone, not a
+  day and a time.
 - **The domain's rules are the form's.** As each field is committed — with the next action, or as it is left with
   `.Blur()` ([bind timing](#bind-timing)) — the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](domain.md#an-operation-run-as-one-write)) and what it would be refused for —

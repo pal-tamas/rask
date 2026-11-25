@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` prefills a plain parameter from the one-value value object of its name, and back.** Before: an operation
+  taking `decimal? totalSum` over an aggregate holding `Amount? TotalSum` (`record Amount(decimal Value) : Value`, or any
+  one-value base) started empty, and so did an `Amount? paid` over a `decimal? Paid`. Now the first is filled with
+  `aggregate.TotalSum?.Value` (empty where it holds none) and the second with `aggregate.Paid`, for any value a field holds.
+- **A `DateTime` held as a day is a date picker.** Before: `Ui.Field.Bind` over a `DateTime`/`DateTime?` whose shape is a
+  day threw ("no control"), and one that is `[DataType(DataType.Date)]` drew the browser's `<input type="date">`. Now both
+  draw `Ui.DatePicker` alone, as a `DateOnly` does: a day picked keeps the time of day the value had (its seconds and
+  its `Kind`), a first one is midnight, and a `Moment` without the attribute is still `Ui.DayAndTime`. An operation
+  parameter's own attributes now tell its `Form.For` field too, so `[DataType(DataType.Date)] WallMoment? deliveredAt`
+  is a day.
 - **A child two aggregates may hold counts as the aggregate its row is held by.** Before: a `Chip` listed by both
   `Driver.Chips` and `Vehicle.Chips` (nullable `DriverId` and `VehicleId`) was named after the first parent key its type
   declares, so saving a vehicle with one chip inside a `Db.Transaction` was refused by `OneAggregatePerTransaction` as

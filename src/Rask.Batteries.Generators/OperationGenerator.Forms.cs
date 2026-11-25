@@ -183,6 +183,13 @@ public sealed partial class OperationGenerator
         var held = aggregate.GetMembers(property).OfType<IPropertySymbol>().FirstOrDefault(static p => !p.IsStatic);
         // A declared default (`int count = 3`) is what the field starts from where nothing is read into it; a null one is empty.
         var field = MemberField(property, parameterType, optional, held, "aggregate", lift: true);
+        // What the parameter's own attributes say of its field: `[DataType(DataType.Date)] WallMoment? at` is a day.
+        if (field is not null)
+        {
+            var value = parameterType is INamedTypeSymbol named && OneValueOf(named) is { } inner ? inner : parameterType;
+            field = field with { Shape = FieldShapeHints.Annotated(parameter, value, field.Shape) };
+        }
+
         return field is { ValueObject: null } && parameter is { HasExplicitDefaultValue: true, ExplicitDefaultValue: not null }
             ? field with { Default = DefaultOf(parameter) }
             : field;

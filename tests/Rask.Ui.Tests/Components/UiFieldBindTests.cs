@@ -243,17 +243,6 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_moment_typed_as_a_date_is_a_date_input()
-    {
-        var leg = new Leg { Started = new DateTime(2025, 3, 14, 8, 30, 0, DateTimeKind.Unspecified) };
-
-        var page = Page.Render(() => Ui.Field.Bind(() => leg.Started));
-
-        var input = page.Find("input#f-started");
-        Assert.Equal(("date", "2025-03-14"), (input.Attribute("type"), input.Attribute("value")));
-    }
-
-    [Fact]
     public void A_text_kept_in_capitals_draws_its_input_in_capitals_bare_or_in_a_field()
     {
         var leg = new Leg();
@@ -330,9 +319,6 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
 
         [DataType(DataType.MultilineText)]
         public string? Story { get; set; }
-
-        [DataType(DataType.Date)]
-        public DateTime Started { get; set; }
 
         public string? Vin { get; set; }
     }

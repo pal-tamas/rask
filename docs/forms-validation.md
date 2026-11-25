@@ -186,7 +186,7 @@ rule to every place the value is made, and gives its column the length:
 | `[RegularExpression("^[A-Z]{2,3}$")]` | `Text(Value, Pattern: "^[A-Z]{2,3}$")` — found anywhere in the trimmed text, so an unanchored one is told as `[\s\S]*(?:…)[\s\S]*`; none with `Upper: true` | `Pattern` | `pattern="[A-Z]{2,3}"` where the browser reads it alike |
 | `[Range]` — checked on submit, tells the input nothing | `Number(Value, Min: 1, Max: 999.5m, Scale: 2)` | `Min`, `Max`, `Scale` | `type="number" min="1" max="999.5" step="0.01"` |
 | `[Range]` — likewise | `Whole(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
-| a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` |
+| a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` (over a `DateTime`, keeping its time of day) |
 | a `DateTime` member | `Moment(Value, …)` | `Kind = Moment` | `type="datetime-local"`; `Ui.Field.Bind` a `Ui.DayAndTime` |
 | — | `Range(Start, End, …)` | `Kind = Range`, its ends | `Ui.Field.Bind` draws two controls under one label |
 

@@ -68,6 +68,29 @@ public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     [Fact]
+    public async Task A_plain_parameter_is_read_off_the_one_value_value_object_of_its_name_and_a_value_object_off_the_plain_value()
+    {
+        await using var database = await StartDatabaseAsync();
+        var convoy = await StoredAsync();
+        await Convoy.Charge(convoy.Id, 0, 12.5m, ConvoyToll.Create(3m), Token);
+
+        var input = (await Form.For(Convoy.Charge, convoy.Id).Read(Token))!;
+
+        Assert.Equal((12.5m, 3m), (input.Toll, input.Fee));
+    }
+
+    [Fact]
+    public async Task A_plain_parameter_whose_value_object_holds_nothing_is_read_empty()
+    {
+        await using var database = await StartDatabaseAsync();
+        var convoy = await StoredAsync();
+
+        var input = (await Form.For(Convoy.Charge, convoy.Id).Read(Token))!;
+
+        Assert.Equal((null, null), (input.Toll, input.Fee));
+    }
+
+    [Fact]
     public async Task A_value_object_of_several_values_is_read_into_its_group_and_refused_under_its_member()
     {
         await using var database = await StartDatabaseAsync();

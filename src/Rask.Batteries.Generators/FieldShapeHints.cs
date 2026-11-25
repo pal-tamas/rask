@@ -30,9 +30,16 @@ internal static class FieldShapeHints
     ///     A property's shape: <paramref name="shaped" /> — its value object's or its enum's — tightened and told what its
     ///     attributes say; for a property of neither, one of its type's kind only when its attributes say something.
     /// </summary>
-    internal static string? Annotated(IPropertySymbol property, string? shaped)
+    internal static string? Annotated(IPropertySymbol property, string? shaped) => Annotated(property, property.Type, shaped);
+
+    /// <summary>
+    ///     The shape of <paramref name="member" /> — a property, or an operation's parameter — holding <paramref name="held" />:
+    ///     <paramref name="shaped" /> told what its attributes say, or one of the kind of <paramref name="held" /> when only
+    ///     they say something (<c>[DataType(DataType.Date)] DateTime? day</c>: a moment drawn as a day).
+    /// </summary>
+    internal static string? Annotated(ISymbol member, ITypeSymbol held, string? shaped)
     {
-        var hints = Read(property.GetAttributes());
+        var hints = Read(member.GetAttributes());
         if (!hints.Says)
         {
             return shaped;
@@ -42,7 +49,7 @@ internal static class FieldShapeHints
         var withInit = init.Count > 0 ? " { " + string.Join(", ", init) + " }" : "";
         if (shaped is null)
         {
-            var named = new List<string> { FieldKindType + "." + PlainKindOf(property.Type) };
+            var named = new List<string> { FieldKindType + "." + PlainKindOf(held) };
             AddLength(named, "MaxLength", hints.MaxLength);
             AddLength(named, "MinLength", hints.MinLength);
             return "new " + FieldShapeType + "(" + string.Join(", ", named) + ")" + withInit;

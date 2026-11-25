@@ -21,7 +21,7 @@ internal static class UiBoundControl
             FieldKind.Id => throw UiBoundMember.NoChoices(bind),
             FieldKind.Choice when Hinted(shape, FieldHints.RadioGroup) => Radios(bind, look, shape?.Options ?? OptionsOf(type)),
             FieldKind.Choice => Chosen(bind, look, shape?.Options ?? OptionsOf(type)),
-            _ when ShapedInput.For(shape, type) is InputType.Date && type == typeof(DateTime) => Text(bind, look),
+            _ when IsDayOfMoment(shape, type) => MomentDay(bind, shape, look),
             FieldKind.Day => Day(bind, shape, look),
             FieldKind.Moment => Moment(bind, shape, look),
             FieldKind.Number or FieldKind.Whole => Number(bind, shape!, look),
@@ -94,6 +94,27 @@ internal static class UiBoundControl
             .Label(look.Label)
             .Description(look.Description)
             .Placeholder(look.Placeholder)
+            .Badge(look.Badge)
+            .ShowValidation(look.ShowValidation)
+            .Disabled(look.Locked)
+            .Live(look.Timing.Live);
+
+    // A DateTime the shape says is a day: a FieldKind.Day, or a moment typed as a date ([DataType(DataType.Date)]).
+    private static bool IsDayOfMoment(FieldShape? shape, Type type) =>
+        type == typeof(DateTime) && (shape?.Kind == FieldKind.Day || ShapedInput.For(shape, type) is InputType.Date);
+
+    // A moment asked as its day alone: latest today, or now, where the shape says so.
+    private static UiDayAndTime<T> MomentDay<T>(Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look) =>
+        Ui.DayAndTime.Bind(bind)
+            .DayAlone(look.Placeholder)
+            .Max(shape switch
+            {
+                { NotAfterToday: true } => Clock.Today.ToDateTime(TimeOnly.MaxValue),
+                { NotAfterNow: true } => Clock.Wall,
+                _ => null,
+            })
+            .Label(look.Label)
+            .Description(look.Description)
             .Badge(look.Badge)
             .ShowValidation(look.ShowValidation)
             .Disabled(look.Locked)

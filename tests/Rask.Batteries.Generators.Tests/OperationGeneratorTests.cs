@@ -383,6 +383,61 @@ public class OperationGeneratorTests
         Assert.DoesNotContain("TankSize.__Field", forms, StringComparison.Ordinal);
     }
 
+    private const string Delivering = """
+        using System;
+        using System.ComponentModel.DataAnnotations;
+        using Rask.Data;
+        using Rask.Values;
+
+        namespace Shop
+        {
+            public sealed partial record Amount(decimal Value) : Value;
+            public sealed partial record Litres(decimal Value) : Number(Value, Min: 0);
+            public sealed partial record Note(string Value) : Text(Value, MaxLength: 40);
+            public sealed partial record WallMoment(DateTime Value) : Moment(Value);
+
+            public sealed partial class Supply : Aggregate<Guid, Versioned>
+            {
+                public Amount? TotalSum { get; private set; }
+                public Litres Volume { get; private set; } = null!;
+                public Note? Remark { get; private set; }
+                public Note Title { get; private set; } = null!;
+                public decimal? Paid { get; private set; }
+                public WallMoment? DeliveredAt { get; private set; }
+
+                public void Change(decimal? totalSum, decimal volume, string remark, string title, Amount? paid) =>
+                    (TotalSum, Volume, Remark, Title, Paid) = (totalSum is { } sum ? Amount.Create(sum) : null, Litres.Create(volume), Note.Create(remark), Note.Create(title), paid?.Value);
+
+                public void Deliver([DataType(DataType.Date)] WallMoment? deliveredAt, [DataType(DataType.Date)] DateTime? invoicedAt) =>
+                    DeliveredAt = deliveredAt ?? (invoicedAt is { } on ? WallMoment.Create(on) : null);
+            }
+        }
+        """;
+
+    [Fact]
+    public void A_plain_parameter_is_prefilled_from_the_one_value_value_object_of_its_name_and_a_value_object_from_a_plain_value()
+    {
+        var run = RunWithForms(Delivering);
+
+        var forms = run.GeneratedSource("Shop.Supply.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("TotalSum = aggregate.TotalSum?.Value, Volume = aggregate.Volume.Value, Title = aggregate.Title.Value, Paid = aggregate.Paid", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remark = aggregate.Remark", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_parameter_declared_a_date_tells_its_field_so_over_a_moment_value_object_and_a_plain_moment()
+    {
+        var run = RunWithForms(Delivering);
+
+        var forms = run.GeneratedSource("Shop.Supply.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("\"DeliveredAt\" => global::Shop.WallMoment.__Field with { Input = global::Rask.Core.InputType.Date },", forms, StringComparison.Ordinal);
+        Assert.Contains("\"InvoicedAt\" => new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Moment) { Input = global::Rask.Core.InputType.Date },", forms, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void An_operation_with_a_parameter_no_field_holds_gets_no_form_and_RASK188_names_the_parameter()
     {
