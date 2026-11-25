@@ -53,9 +53,7 @@ public sealed partial class TutorialChapterBuildE2ETests
         var ch10 = Fences("10-ops.md");
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-        // Through the real path: macOS's temp directory is under /var, a link to /private/var, and a restore run through
-        // the link left Shop.Tests without its reference to Shop — so the tests lost every package the app brings.
-        var temp = Path.Combine(Unlinked(Path.GetTempPath()), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
+        var temp = Path.Combine(Path.GetTempPath(), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
         var projectDir = Path.Combine(temp, "Shop");
 
         try
@@ -262,21 +260,6 @@ public sealed partial class TutorialChapterBuildE2ETests
 
         Assert.True(lines.Count > fs.ReadAllText(path).Split('\n').Length, $"{Path.GetFileName(path)} has no '{anchor}' for the chapter's line to follow.");
         fs.WriteAllText(path, string.Join('\n', lines));
-    }
-
-    // The path with its first linked directory resolved (/var/folders/… → /private/var/folders/…).
-    private static string Unlinked(string path)
-    {
-        var full = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
-        for (var dir = full; !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
-        {
-            if (new DirectoryInfo(dir).ResolveLinkTarget(returnFinalTarget: true) is { } target)
-            {
-                return Path.Combine(target.FullName, Path.GetRelativePath(dir, full));
-            }
-        }
-
-        return full;
     }
 
     private static string TutorialDirectory()

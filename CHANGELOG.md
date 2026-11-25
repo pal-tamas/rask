@@ -19,6 +19,10 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A scaffold under a symlinked folder restores its tests with the app.** Before: under a path through a link
+  (macOS's `/tmp` and `/var` are links into `/private`) NuGet's default restore recorded the app as two different
+  paths and dropped `Shop.Tests`' reference to `Shop`, so the tests lost every package the app brings. Now every
+  template's `Directory.Build.props` turns on `RestoreUseStaticGraphEvaluation`, which keeps the paths as written.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
