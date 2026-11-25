@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A handler that captures only a local re-renders the component that wrote it.** Before: a click handler written
+  in a component's `Render` that closed over a local and nothing of the component (`var rows = Rows; …
+  .OnClick(() => rows.Add(row))`) carried nothing naming its owner, so inside a composite (a card, a kit button) the
+  event re-rendered the composite and the rows it added were never drawn. Now the component rendering as the
+  handler is set is its owner: an element's handler is noted as it is set, and a component's event callback is
+  wrapped for it, as one that captures `this` always was.
+- **The sign-in throttle and the account slowdown hold at most 10 000 keys.** Before: each dropped only the keys
+  whose failures had expired, so a spray of distinct addresses or clients inside one window — every one of them
+  failing just now — grew both tables without bound, and the old sweep walked the whole table on every attempt
+  past 10 000. Now, at the bound, the expired keys go and then the stalest, down to nine tenths of it, so the next
+  sweep is a thousand new keys away; a key that failed just now is still counted.
+- **A live sign-in that names the sign-in page or Rask's own endpoints as its return address lands on the root.**
+  Before: a live handler's sign-in with the return address `/login?returnUrl=…` sent the reader who just signed in back to the sign-in form, and a
+  return address under `/_rask/` (the ticket redeem is a POST) loaded an error page. Now both fall back to `/`, in
+  any language; a sign-out may still land on the sign-in page.
 - **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
   began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
   retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
