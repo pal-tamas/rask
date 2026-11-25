@@ -87,7 +87,8 @@ Select.Bind(() => _m.Country).Live()                         // as soon as it is
 | *(none)* | `wire:model` | with the next action |
 | `.Live()` | `wire:model.live` | as the reader types, 150 ms after the last key; at once for a checkbox, a radio, a select, a range |
 | `.Debounce(300.Milliseconds)` | `wire:model.live.debounce.300ms` | as the reader types, after that pause. Implies `.Live()`; `TimeSpan.Zero` sends every keystroke |
-| `.Blur()` | `wire:model.live.blur` (`.blur` before v4) | on leaving the field |
+| `.Blur()` | `wire:model.live.blur` (`.blur` before v4) | on leaving the field — the default in a `Form.For` |
+| `.Defer()` | `wire:model.defer` (v2) | with the next action, in a `Form.For` too |
 
 **Say `.Live()` on a control you read while the reader is still in the form**: a greeting that echoes a
 name, a character count, a total, a select that fills a second select, a checkbox that shows a section, a
@@ -126,8 +127,24 @@ filter. A control you only read in the submit handler needs nothing.
   waits for the answers.
 - **`AfterBind`** runs when the value is written — with the action for a control that waits.
 
-`.Live()` is on every bound control of Core: `Input`, `Textarea`, `Select`. `.Debounce(…)` and `.Blur()`
-are on `Input`, `Textarea`, `Ui.Input` and `Ui.Textarea`, for a field that is typed into — text, number,
+**In a form over an operation the default is `.Blur()`.** A field typed into under
+[`Form.For(Note.Rename, id)`](#a-form-over-an-operation) — `Ui.Field`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`,
+`Ui.Composer`, Core's `Input` and `Textarea`, in a `Ui.EditorDialog` or not — that names no step commits as the
+reader leaves it, so the operation's dry run tells what the save would refuse right then, not with the next click.
+A step it does name wins: `.Live()` and `.Debounce(…)` as above, and `.Defer()` — Livewire's old
+`wire:model.defer` — to wait for the next action all the same (a field asked of the database, say). A hand form,
+`Form.Model(m)`, keeps waiting; a control that is chosen rather than typed into waits in both.
+
+```csharp
+Form.For(Note.Rename, id)[f => [
+    Ui.Field.Bind(() => f.Title),               // commits as it is left: Rename's Refuse shows then
+    Ui.Field.Bind(() => f.Slug).Defer(),        // waits for the next action, as in a hand form
+]]
+```
+
+`.Live()` is on every bound control of Core: `Input`, `Textarea`, `Select`. `.Debounce(…)`, `.Blur()` and `.Defer()`
+are on `Input`, `Textarea`, `Ui.Input`, `Ui.Textarea` and `Ui.Field` (`.Defer()` on `Ui.Phone` and `Ui.Composer`
+too), for a field that is typed into — text, number,
 date. A checkbox, a radio, a range and a colour are chosen rather than typed: with either step they
 simply write as they are chosen. A file input's files travel with the submit, as in any form; `OnFiles`
 is an event of its own and is not bound. One thing defeats a pause, by sending the value early: an
@@ -1004,7 +1021,7 @@ public sealed partial class Note : Aggregate<Guid, Versioned>
 }
 
 Form.For(Note.Rename, id)[f => [
-    Ui.Field.Bind(() => f.Title).Blur().Label("New title"),
+    Ui.Field.Bind(() => f.Title).Label("New title"),
     Ui.Button.Primary.Submit["Rename"],
 ]]
 ```
@@ -1022,8 +1039,8 @@ Form.For(Note.Rename, id)[f => [
 - **A parameter's attributes tell its field**, as a model property's do: `[DataType(DataType.Date)] WallMoment? deliveredAt`
   (a `Moment` value object, or a plain `DateTime?`) is drawn by `Ui.Field.Bind` as a `Ui.DatePicker` alone, not a
   day and a time.
-- **The domain's rules are the form's.** As each field is committed — with the next action, or as it is left with
-  `.Blur()` ([bind timing](#bind-timing)) — the operation is tried
+- **The domain's rules are the form's.** As each field is committed — a field typed into commits as it is left
+  here, unless it says `.Live()`, `.Debounce(…)` or `.Defer()` ([bind timing](#bind-timing)) — the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](domain.md#an-operation-run-as-one-write)) and what it would be refused for —
   a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
   entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is

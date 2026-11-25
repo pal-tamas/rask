@@ -2252,7 +2252,8 @@ declared in a helper method or an `IEntityTypeConfiguration` is enforced at save
 so is one without a message. Every index `Configure` declares with a message is
 asked of the database when a bound field is [committed](forms-validation.md#the-database-said-no) and again on
 submit. With the default binding a field is committed with the reader's next action — a click, a submit — and a
-`.Blur()` field on leaving it; a unique-ruled field keeps the default binding, so a taken name is told at Save.
+`.Blur()` field on leaving it; in a [form over an operation](forms.md#bind-timing) a field typed into is committed on
+leaving it unless it says `.Defer()`, so a taken name is told as the field is left there and at Save elsewhere.
 The message shows under the field, or under each field of an index over several:
 
 - over **exactly the index's columns**: one that names `TenantId` about the current tenant's rows — the tenant is

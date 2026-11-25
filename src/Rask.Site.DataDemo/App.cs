@@ -134,20 +134,19 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         ];
 
     // A form straight over the aggregate's operation: its field is Rename's parameter, filled from the note, told what
-    // Rename's Refuse and the note's [MaxLength] say as it is left, and saved through Note.Rename(id, version, …). Blur():
-    // a bound field otherwise waits for the next action, so leaving it would commit nothing to try.
+    // Rename's Refuse and the note's [MaxLength] say as it is left — a field of Form.For commits as it is left — and
+    // saved through Note.Rename(id, version, …).
     private static Component Rename(Guid newest) =>
         Section.Aria("label", "Rename the newest note")[
             H2["Rename the newest note"],
             Form.For(Note.Rename, newest)[f => [
-                Ui.Field.Bind(() => f.Title).Blur().Label("New title"),
+                Ui.Field.Bind(() => f.Title).Label("New title"),
                 Ui.Button.Id("rename-note").Type(Ui.ButtonType.Submit)["Rename"]
             ]]
         ];
 
     // A form over an operation that takes rows: Checklist(IReadOnlyList<NoteItemSpec>) is an editable list, a row per
     // item the note holds, each row's field told under that row what Checklist refuses (Items[1].Text) as it is left.
-    // Blur(), as on the rename field: a bound field otherwise waits for the next action, so leaving it would try nothing.
     private static Component Checklist(Guid newest) =>
         Section.Aria("label", "The newest note's checklist")[
             H2["The newest note's checklist"],
@@ -156,7 +155,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                     Ui.TableColumns[Ui.TableColumn["Item"], Ui.TableColumn.End[""]],
                     Ui.TableRows[f.Items.Select((row, i) => Ui.TableRow.Key(i)[
                         Ui.TableCell[
-                            Ui.Input.Bind(() => row.Text).Blur().Id($"item-{i}").Attributes(("aria-label", $"Item {i + 1}")),
+                            Ui.Input.Bind(() => row.Text).Id($"item-{i}").Attributes(("aria-label", $"Item {i + 1}")),
                             Ui.Error.For(() => row.Text).Id($"item-{i}-error")
                         ],
                         Ui.TableCell.End[

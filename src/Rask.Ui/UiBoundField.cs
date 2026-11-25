@@ -67,6 +67,9 @@ public sealed partial class UiBoundField<T> : Component
     /// <summary>Writes the model once typing has paused this long. A text field's only.</summary>
     public TimeSpan? Debounce { get; set; }
 
+    /// <summary>Waits for the next action even in a form over an operation, which commits a text field as it is left. A text field's only.</summary>
+    public bool? Defer { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -102,5 +105,5 @@ public sealed partial class UiBoundField<T> : Component
             Disabled == true,
             shape?.ReadOnly == true,
             Multiline ?? string.Equals(shape?.Hint, FieldHints.MultilineText, StringComparison.Ordinal),
-            new UiBoundTiming(Live, Blur, Debounce));
+            new UiBoundTiming(Live, Blur, Debounce, Defer));
 }
