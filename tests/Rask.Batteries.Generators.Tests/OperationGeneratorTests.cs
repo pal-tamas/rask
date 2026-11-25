@@ -452,6 +452,47 @@ public class OperationGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
+    // Fifteen parameters: a factory's entry (16 with the token) still fits a Func, an operation's (18 with id, version
+    // and token) does not, and gets a delegate of its own its method group converts to.
+    private static readonly string FifteenParameters = string.Join(", ", Enumerable.Range(1, 15).Select(static i => "int p" + i));
+
+    private static readonly string FifteenArguments = string.Join(" + ", Enumerable.Range(1, 15).Select(static i => "p" + i));
+
+    [Fact]
+    public void A_factory_of_fifteen_parameters_gets_a_form_whose_call_compiles()
+    {
+        var run = RunWithForms(Tagged($$"""
+            public int Level { get; private set; }
+            private static Tag Register({{FifteenParameters}}) => new() { Id = Guid.CreateVersion7(), Level = {{FifteenArguments}} };
+            public static object Open(Rask.Core.RaskSeed_Form form) => form.For(Tag.Register);
+            """));
+
+        var forms = run.GeneratedSource("Shop.Tag.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(run.RunResult.Diagnostics, static d => d.Id == "RASK188");
+        Assert.Contains("public sealed class TagRegisterInput", forms, StringComparison.Ordinal);
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<global::System.Guid>> operation)", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_operation_of_fifteen_parameters_gets_a_form_over_an_entry_delegate_of_its_own_whose_call_compiles()
+    {
+        var run = RunWithForms(Tagged($$"""
+            public int Level { get; private set; }
+            public void Change({{FifteenParameters}}) => Level = {{FifteenArguments}};
+            public static object Edit(Rask.Core.RaskSeed_Form form, Guid id) => form.For(Tag.Change, id);
+            """));
+
+        var forms = run.GeneratedSource("Shop.Tag.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(run.RunResult.Diagnostics, static d => d.Id == "RASK188");
+        Assert.Contains("public delegate global::System.Threading.Tasks.Task ChangeEntry(global::System.Guid id, int version, int p1, ", forms, StringComparison.Ordinal);
+        Assert.Contains(", int p15, global::System.Threading.CancellationToken cancellationToken);", forms, StringComparison.Ordinal);
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, ChangeEntry operation, global::System.Guid id)", forms, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Two_operations_that_take_the_same_parameters_get_no_form_and_RASK174_says_why()
     {

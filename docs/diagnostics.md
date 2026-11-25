@@ -3907,8 +3907,9 @@ default; a warning under `<RaskStrict>`.
 `Form.For(Supply.Change, id)` is a form whose fields are the [operation](domain.md#an-operation-run-as-one-write)'s
 parameters: a value (text, number, day, bool, enum, id), a value object of one value — declared from `Text`, `Number`,
 `Whole`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
-list of rows. An operation that takes anything else, or more than 13 parameters, gets no form, and this names the
-parameter that keeps it from one rather than leaving the form silently missing.
+list of rows. An operation that takes anything else gets no form, and this names the parameter that keeps it from one
+rather than leaving the form silently missing. How many parameters it takes never does: an entry past the sixteen a
+`Func` holds is given as a delegate the form declares (`ChangeEntry`), which its method group converts to just the same.
 
 ```csharp
 public void Weigh(Stream scale) { … }          // ℹ RASK188: 'scale' (System.IO.Stream) is no field a form holds

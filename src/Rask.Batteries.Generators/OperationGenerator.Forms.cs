@@ -22,8 +22,8 @@ public sealed partial class OperationGenerator
     private const string ValidationFqn = "global::Rask.Core.Forms.RaskValidation";
     private const string HiddenFqn = "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
-    // The most parameters an operation's form takes: its entry, id, version and token included, is a Func of at most 16.
-    private const int MostFormParameters = 13;
+    // The most a Func takes; an entry that takes more is given as a delegate of its own the form declares (`ChangeEntry`).
+    private const int MostFuncParameters = 16;
 
     internal static readonly DiagnosticDescriptor Rask174 = new(
         "RASK174",
@@ -48,8 +48,8 @@ public sealed partial class OperationGenerator
         true,
         description: "Form.For(Supply.Change, id) is a form whose fields are the operation's parameters: a value (text, "
                      + "number, day, bool, enum, id), a value object of one value, a value object of several values, a list "
-                     + "of rows. An operation that takes anything else — or more than 13 parameters, which no entry delegate "
-                     + "holds — gets no form, and this says which parameter keeps it from one.",
+                     + "of rows. An operation that takes anything else gets no form, and this says which parameter keeps it "
+                     + "from one.",
         helpLinkUri: DiagnosticHelp.Link("RASK188"));
 
     /// <summary>One parameter as a field of the operation's form, or null for a type no form field holds.</summary>
@@ -222,28 +222,61 @@ public sealed partial class OperationGenerator
     private static string Capitalised(string name) =>
         name.Length == 0 ? name : char.ToUpperInvariant(name[0]) + name.Substring(1);
 
-    // The entry a form calls, as the delegate a method group of it converts to.
-    private static string? EntryDelegate(OperatedAggregate aggregate, Operation operation)
+    // The entry a form calls, as the delegate a method group of it converts to — and what tells two operations apart.
+    private static string? EntryDelegate(OperatedAggregate aggregate, Operation operation) =>
+        FormEntryParameters(aggregate, operation) is { } parameters
+            ? "global::System.Func<" + string.Join(", ", parameters.Select(static p => p.Type).Append(EntryResult(aggregate, operation))) + ">"
+            : null;
+
+    // What the entry takes, in order — the id and version an operation is told, its parameters, the token — or null when
+    // a parameter is no field a form holds.
+    private static List<(string Type, string Name)>? FormEntryParameters(OperatedAggregate aggregate, Operation operation)
     {
-        if (operation.Parameters.Count > MostFormParameters || operation.Parameters.Any(static p => p.Field is null))
+        if (operation.Parameters.Any(static p => p.Field is null))
         {
             return null;
         }
 
-        var types = new List<string>();
+        var parameters = new List<(string Type, string Name)>();
         if (!operation.Factory)
         {
-            types.Add(aggregate.IdType);
+            parameters.Add((aggregate.IdType, "id"));
             if (aggregate.Versioned)
             {
-                types.Add("int");
+                parameters.Add(("int", "version"));
             }
         }
 
-        types.AddRange(operation.Parameters.Select(static p => p.Type));
-        types.Add(TokenFqn);
-        types.Add(operation.Factory ? TaskFqn + "<" + aggregate.IdType + ">" : TaskFqn);
-        return "global::System.Func<" + string.Join(", ", types) + ">";
+        parameters.AddRange(operation.Parameters.Select(static p => (p.Type, p.Name)));
+        parameters.Add((TokenFqn, "cancellationToken"));
+        return parameters;
+    }
+
+    private static string EntryResult(OperatedAggregate aggregate, Operation operation) =>
+        operation.Factory ? TaskFqn + "<" + aggregate.IdType + ">" : TaskFqn;
+
+    // Whether the entry takes more than a Func holds, and so is given as `{Operation}Entry`, a delegate the form declares.
+    private static bool EntryOutgrowsFunc(OperatedAggregate aggregate, Operation operation) =>
+        FormEntryParameters(aggregate, operation) is { Count: > MostFuncParameters };
+
+    // `public delegate Task ChangeEntry(Guid id, int version, …, CancellationToken cancellationToken);`: the entry of an
+    // operation past Func's sixteen, which its method group converts to just as it would to a Func.
+    private static void AppendEntryDelegate(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        var parameters = FormEntryParameters(aggregate, operation)!;
+        s.Append("    /// <summary>The entry <c>").Append(aggregate.Name).Append('.').Append(operation.Name)
+            .AppendLine("</c>, which takes more than a Func holds: what its method group converts to in <c>Form.For</c>.</summary>");
+        foreach (var (_, name) in parameters)
+        {
+            var bare = name.TrimStart('@');
+            s.Append("    /// <param name=\"").Append(bare).Append("\">What the entry is given as <c>").Append(bare).AppendLine("</c>.</param>");
+        }
+
+        s.AppendLine("    /// <returns>The write, done.</returns>");
+        s.Append("    ").AppendLine(HiddenFqn);
+        s.Append("    public delegate ").Append(EntryResult(aggregate, operation)).Append(' ').Append(operation.Name).Append("Entry(")
+            .Append(string.Join(", ", parameters.Select(static p => p.Type + " " + p.Name))).AppendLine(");");
+        s.AppendLine();
     }
 
     private static Dictionary<string, int> SignatureCounts(IEnumerable<OperatedAggregate> all)
@@ -345,13 +378,13 @@ public sealed partial class OperationGenerator
         return formed;
     }
 
-    // What keeps an operation from a form, for RASK188: the first parameter no field holds, or too many of them.
-    private static string WhyUnformed(Operation operation) =>
-        operation.Parameters.FirstOrDefault(static p => p.Field is null) is { } parameter
-            ? "its parameter '" + parameter.Name.TrimStart('@') + "' (" + parameter.Type.Replace("global::", "") +
-              ") is no value, value object or list of rows a field holds — take a value object of it, or a value"
-            : "it takes " + operation.Parameters.Count + " parameters, and a form's entry holds at most " + MostFormParameters +
-              " — gather some into a value object of several values";
+    // What keeps an operation from a form, for RASK188: the first parameter no field holds.
+    private static string WhyUnformed(Operation operation)
+    {
+        var parameter = operation.Parameters.First(static p => p.Field is null);
+        return "its parameter '" + parameter.Name.TrimStart('@') + "' (" + parameter.Type.Replace("global::", "") +
+               ") is no value, value object or list of rows a field holds — take a value object of it, or a value";
+    }
 
     /// <summary>An operation no <c>Form.For</c> is generated for, and why (RASK188).</summary>
     private sealed record Unformed(string Aggregate, string Operation, string Why, SymbolLocation? Location);
@@ -577,6 +610,11 @@ public sealed partial class OperationGenerator
     {
         var input = InputName(aggregate, operation);
         var form = OperationFormFqn + "<" + input + ">";
+        if (EntryOutgrowsFunc(aggregate, operation))
+        {
+            AppendEntryDelegate(s, aggregate, operation);
+            entry = operation.Name + "Entry";
+        }
 
         s.Append("        /// <summary>A form over <c>").Append(aggregate.Name).Append('.').Append(operation.Name)
             .AppendLine("(…)</c>, whose fields are its parameters: filled from what is stored, checked as it is filled in, saved through the entry.</summary>");
