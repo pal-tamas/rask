@@ -698,6 +698,25 @@ shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the
 does not know, Cancel is the list as given: a way back never leads to where the reader stands. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
+**The app's own way back to a list is `.AsLeft()`** on the list's route (`UiListRoutes`): Rask notes every address a
+session moves to, so `Routes.SuppliersPage().AsLeft()` is the list as this reader last saw it — its filters, sort, page
+and search, an editor dialog's key left out — and the route as given when the session has not shown it. A save on a
+page of its own, a "Cancel" the page draws itself, and an old form address sending the reader on write it, with no
+list-address service of the app's own:
+
+```csharp
+// Before: an app service noting every address, injected into every form.
+Ui.Button.Ghost.Href(_lists.Back(Routes.LandParcelsPage()))["Mégse"]
+_lists.Back(Routes.SuppliersPage()).Go().Replacing();
+
+// After: Rask remembers it.
+Ui.Button.Ghost.Href(Routes.LandParcelsPage().AsLeft())["Mégse"]
+Routes.SuppliersPage().AsLeft().Go().Replacing();
+Go.To(Routes.DriversPage().AsLeft().With("edit", id)).Replacing();   // an old form address, on to the dialog
+```
+
+`Ui.FormButtons`' Cancel, `Ui.AppFrame`'s trail and a closing `Ui.EditorDialog` go there by themselves.
+
 ```csharp
 // Before: each app kept a FormButtons, a RowActions and a ListTable of its own.
 ListTable.Of([ColumnWidth.Rest, ColumnWidth.Day, ColumnWidth.Actions])[

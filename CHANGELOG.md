@@ -127,6 +127,12 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Routes.X().AsLeft()`: the way back to a list as the reader left it.** Rask already noted every address a session
+  moves to for `Ui.FormButtons`' Cancel and `Ui.AppFrame`'s trail; the app's own code now asks for it too —
+  `Routes.SuppliersPage().AsLeft().Go().Replacing()` after a save, `Ui.Button.Ghost.Href(Routes.X().AsLeft())` for a
+  Cancel of its own, `Go.To(Routes.DriversPage().AsLeft().With("edit", id))` from an old form address — with its
+  filters, sort, page and search, an editor dialog's key left out. Every `Ui.Table` now starts the session's memory,
+  not only one keeping its sort or page in the address. Replaces the apps' own `ListAddresses` service.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face

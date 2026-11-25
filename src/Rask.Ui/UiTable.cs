@@ -215,6 +215,12 @@ public sealed partial class UiTable : UiElement, IUiHost
 
         // A list keeping its sort and page in the address renders again whenever the address moves.
         var route = _address is null ? null : UiTableAddress.Route();
+        // Every list is remembered as it is left, from the first one shown on: a way back asked for later finds it.
+        if (_address is null && UiTableAddress.Route() is { } session)
+        {
+            _ = UiListAddresses.Of(session);
+        }
+
         if (_address is { } address)
         {
             LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
