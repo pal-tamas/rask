@@ -175,6 +175,17 @@ public sealed class XlsxWriteTests
     }
 
     [Fact]
+    public void A_decimal_carrying_scale_zeros_is_written_without_them()
+    {
+        var file = Invoices(Row("A-1", null, 3485.0000000000000000m), Row("A-2", null, 2342467.3800000000000000m));
+
+        var book = new OpenedWorkbook(file);
+
+        Assert.Equal("3485", book.Cell(1, "C2").Element(M + "v")!.Value);
+        Assert.Equal("2342467.38", book.Cell(1, "C3").Element(M + "v")!.Value);
+    }
+
+    [Fact]
     public void More_than_twenty_six_columns_get_Excels_letters()
     {
         var headings = Enumerable.Range(0, 28).Select(i => $"H{i}").ToList();

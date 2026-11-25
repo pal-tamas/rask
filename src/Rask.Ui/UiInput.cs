@@ -157,6 +157,17 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         set => _timing.Debounce = value;
     }
 
+    /// <summary>
+    ///     Waits for the next action even in a form over an operation, which otherwise has the field commit as it is
+    ///     left: <c>Ui.Input.Bind(() =&gt; m.Name).Defer()</c>. Livewire's <c>wire:model.defer</c>. A <c>.Live()</c>,
+    ///     <c>.Blur()</c> or <c>.Debounce(…)</c> beside it wins.
+    /// </summary>
+    public bool? Defer
+    {
+        get => _timing.Defer;
+        set => _timing.Defer = value;
+    }
+
     private BindTiming _timing;
 
     /// <summary>Runs on every keystroke with the raw text, which is often not yet a valid <typeparamref name="T" />.</summary>
@@ -300,7 +311,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     {
         // Bind and Value are the two openings of Core's input, and both hand back the same element.
         var input = Bind is { } bind
-            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce)
+            ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce).Defer(Defer)
             : Input.Value(Masked(Value)).OnChange(Writable(Changed));
 
         if (Host is not null)

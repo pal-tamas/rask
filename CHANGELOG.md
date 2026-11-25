@@ -7,7 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Documentation
+- **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
+  `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
+  provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,
+  `Form.For`, events and `manyAggregates:`, `rask audit` before a unique index, data moved in C# — with what each
+  quick-fix does and what is left by hand.
+- **Domain and bulk-write docs checked against the code.** `domain.md` now shows an aggregate's `static Task On(E e)`
+  handler and `HandlerInTransaction` under domain events and in the transaction boundary, links `Attachment` and
+  `X.Across(reason)`; `data-writes.md` teaches `UpdateWhere`/`DeleteWhere` for batch work (a raw `ExecuteUpdate` is
+  RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
+
 ### Fixed
+- **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
+  began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
+  retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
+  save commits — at once outside a transaction, at the commit of a `BeginTransaction` or of a `Db.Transaction` — and a
+  failed save or a rollback drops it.
 - **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
   no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
   before anything else"). Now a factory of fifteen fits a `Func` as before, and an entry past the sixteen a `Func`
@@ -383,6 +399,23 @@ them until tagged releases begin.
   which the site's copy is held to character for character. The back-end cards gain *Domain model* and *Domain tests*,
   the forms card is `Form.For`, the guide catalog's domain, data, data-writes, forms, testing and tutorial entries say
   the same, `/llms.txt` states the style before any guide, and the home page's JSON-LD names it in a `featureList`.
+- **The SQL Server and PostgreSQL provider tests run in CI on Testcontainers, and need no Docker on a dev machine.**
+  Before: `scripts/run-providers-local.sh` started the servers with `docker run`, and only a release (or a
+  `ci/release/**` branch) ran the gate. After: `tests/Rask.Providers.E2E.Tests` starts one SQL Server 2022 and one
+  PostgreSQL 19 per run itself (`Testcontainers.MsSql`/`Testcontainers.PostgreSql` 4.17.0), on first use; the
+  `providers` gate runs on every push that touches the data stack and in the daily full run. Outside CI the server
+  facts are SKIPPED with the reason unless `RASK_PROVIDERS_LOCAL=1`; `RASK_MSSQL_TEST_DB` / `RASK_PG_TEST_DB` still
+  point a leg at a server you have. The server legs are pruned to what Rask writes or translates per provider
+  (collations, locks, sequences, convention DDL, decimals, constraint violations, the batteries' SQL, migrations);
+  the provider-independent suites (audit rows, the bulk writes' rules, read-face shapes, value objects EF Core
+  translates, transactions' hand-back and raw SQL) run on SQLite alone. The unused Redis container is gone.
+- **A field of `Form.For` commits as it is left.** Before: a typed field under a form over an operation (`Form.For`,
+  `Ui.EditorDialog`'s forms) with no timing step waited for the next action, like any bound field, so the operation's
+  dry run said nothing when the reader left a field it refuses — two demos needed a hand `.Blur()`. After: such a
+  field (`Ui.Field`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, `Ui.Composer`, Core's `Input`/`Textarea`) commits on
+  leaving it, as `.Blur()` does, and the refusal shows then. `.Live()` and `.Debounce(…)` still win, and the new
+  `.Defer()` (Livewire's `wire:model.defer`) keeps a field waiting for the next action. `Form.Model(m)` and chosen
+  controls (a checkbox, a select, a picker) are unchanged. A `.Blur()` under `Form.For` is now redundant.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —

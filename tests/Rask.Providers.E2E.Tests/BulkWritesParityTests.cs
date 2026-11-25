@@ -53,11 +53,10 @@ public sealed class SlipDbContext(DbContextOptions<SlipDbContext> options) : DbC
 }
 
 /// <summary>
-///     <c>UpdateWhere</c>, <c>DeleteWhere</c>, <c>UpdateEach</c> and <c>Import</c> the same on every provider: the set
-///     statement keeps its stamps and asks its locks in the database's own SQL, and an import that meets a unique index
-///     sets the row aside and saves the rest — on PostgreSQL too, whose transaction ends at the first error.
+///     <c>UpdateWhere</c>, <c>DeleteWhere</c> and <c>UpdateEach</c>: the set statement keeps its stamps and asks its locks.
+///     The statements are EF Core's and the rules Rask's, the same on every provider, so this runs on SQLite alone.
 /// </summary>
-public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipDbContext>(leg)
+public abstract class BulkWritesParityTests(ProviderLeg leg) : SlipParityTests(leg)
 {
     [Fact]
     public async Task DeleteWhere_deletes_an_open_months_slips_and_refuses_a_closed_ones()
@@ -112,7 +111,14 @@ public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipD
         Assert.Equal(2, updated);
         Assert.Equal([10, 20], await db.Set<Slip>().OrderBy(s => s.Label).Select(s => s.Litres).ToListAsync(Ct));
     }
+}
 
+/// <summary>
+///     An <c>Import</c> that meets a unique index sets the row aside and saves the rest of its batch — on every provider,
+///     because the refusal is each server's own error, translated, and PostgreSQL ends a transaction at its first error.
+/// </summary>
+public abstract class ImportViolationParityTests(ProviderLeg leg) : SlipParityTests(leg)
+{
     [Fact]
     public async Task Import_sets_aside_a_row_the_unique_index_refuses_and_saves_the_rest_of_its_batch()
     {
@@ -129,11 +135,15 @@ public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipD
         Assert.Equal([Slip.LabelTaken], result.Failures[0].Refusal.Errors["Label"]);
         Assert.Equal(["a1", "b1", "b2"], await db.Set<Slip>().OrderBy(s => s.Label).Select(s => s.Label).ToListAsync(Ct));
     }
+}
 
+/// <summary>The slips and their months on one leg, and the writes on the type pointed at it.</summary>
+public abstract class SlipParityTests(ProviderLeg leg) : ParityTests<SlipDbContext>(leg)
+{
     private protected override SlipDbContext Open() => Leg.Open<SlipDbContext>(o => new SlipDbContext(o));
 
     // The writes on the type reach the database through Db's surface, pointed at this leg for the call.
-    private async Task<T> OnTheSurface<T>(Func<Task<T>> work)
+    private protected async Task<T> OnTheSurface<T>(Func<Task<T>> work)
     {
         Db.Configure(Open);
         try
@@ -146,7 +156,7 @@ public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipD
         }
     }
 
-    private async Task<int> MonthAsync(string name, bool close)
+    private protected async Task<int> MonthAsync(string name, bool close)
     {
         await using var db = Open();
         var month = SlipMonth.Open(name);
@@ -160,13 +170,13 @@ public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipD
         return month.Id;
     }
 
-    private async Task CloseAsync(int month)
+    private protected async Task CloseAsync(int month)
     {
         await using var db = Open();
         await db.Set<SlipMonth>().Where(m => m.Id == month).ExecuteUpdateAsync(s => s.SetProperty(m => m.Closed, true), Ct);
     }
 
-    private async Task SlipsAsync(params Slip[] slips)
+    private protected async Task SlipsAsync(params Slip[] slips)
     {
         await using var db = Open();
         db.AddRange(slips);
@@ -174,11 +184,15 @@ public abstract class BulkWritesParityTests(ProviderLeg leg) : ParityTests<SlipD
     }
 }
 
+// Db.Configure is process-wide, so the SQLite legs run in a collection that runs alone, as the servers' do.
 [Collection(SqlServerCollection.Name)]
 public sealed class SqliteBulkWritesParityTests() : BulkWritesParityTests(ProviderLeg.Sqlite("bulk-writes"));
 
 [Collection(SqlServerCollection.Name)]
-public sealed class SqlServerBulkWritesParityTests() : BulkWritesParityTests(ProviderLeg.SqlServer("rask_e2e_bulk_writes"));
+public sealed class SqliteImportViolationParityTests() : ImportViolationParityTests(ProviderLeg.Sqlite("import-violation"));
+
+[Collection(SqlServerCollection.Name)]
+public sealed class SqlServerImportViolationParityTests() : ImportViolationParityTests(ProviderLeg.SqlServer("rask_e2e_import_violation"));
 
 [Collection(PostgresCollection.Name)]
-public sealed class PostgresBulkWritesParityTests() : BulkWritesParityTests(ProviderLeg.Postgres(SlipDbContext.Schema));
+public sealed class PostgresImportViolationParityTests() : ImportViolationParityTests(ProviderLeg.Postgres(SlipDbContext.Schema));

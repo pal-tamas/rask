@@ -7,7 +7,8 @@ namespace Rask.Core;
 public abstract partial class Component
 {
     // A bound field that is typed into, wired for when it speaks (BindTiming). Unset it waits for the next
-    // action, and `.Blur()` for the field to be left: both render ONE handler on `change`, and
+    // action — in a form over an operation it is sent as it is left, so the dry run answers then — and `.Blur()`
+    // for the field to be left: both render ONE handler on `change`, and
     // `data-rask-bind-on` tells the runtime which of the two sends it. `.Live()` and `.Debounce(…)` render that
     // handler on `input`, held back in the browser for `data-rask-debounce` milliseconds. While a message
     // shows, `data-rask-on-edit` asks to hear the first keystroke, which is all C# hears of the typing: the
@@ -17,6 +18,7 @@ public abstract partial class Component
         EditContext? bindCtx, Func<Task>? afterBind, bool text, IFieldNumbers? money = null,
         bool secret = false)
     {
+        timing = timing.Under(bindCtx);
         if (timing.AtEveryKey && text)
         {
             WriteKeystrokeBind(sb, ctx, acc, bindCtx, afterBind, money);

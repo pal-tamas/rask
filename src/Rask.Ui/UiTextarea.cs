@@ -112,6 +112,17 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
         set => _timing.Debounce = value;
     }
 
+    /// <summary>
+    ///     Waits for the next action even in a form over an operation, which otherwise has the field commit as it is
+    ///     left: <c>Ui.Textarea.Bind(() =&gt; m.Notes).Defer()</c>. Livewire's <c>wire:model.defer</c>. A <c>.Live()</c>,
+    ///     <c>.Blur()</c> or <c>.Debounce(…)</c> beside it wins.
+    /// </summary>
+    public bool? Defer
+    {
+        get => _timing.Defer;
+        set => _timing.Defer = value;
+    }
+
     private BindTiming _timing;
 
     /// <inheritdoc cref="UiInput{T}.OnInput" />
@@ -138,7 +149,7 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
 
         // Bind and Value are the two openings of Core's textarea, and both hand back the same element.
         var textarea = Bind is { } bind
-            ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Blur(Blur).Debounce(Debounce)
+            ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Blur(Blur).Debounce(Debounce).Defer(Defer)
             : Textarea.Value(Value).OnChange(Writable(OnChange));
 
         return field.Wrap(textarea

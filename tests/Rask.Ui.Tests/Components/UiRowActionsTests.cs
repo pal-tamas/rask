@@ -103,6 +103,27 @@ public partial class UiRowActionsTests : RaskMarkup
         Assert.DoesNotContain("href=\"/suppliers/1/edit\"", page.Html, StringComparison.Ordinal);
     }
 
+    // A row whose menu edits is no double-click target: the row and its cells wire nothing, so a click meant to select
+    // text or a press on a cell edits nothing. Only the menu's own item does.
+    [Fact]
+    public async Task A_row_whose_menu_edits_writes_no_click_on_the_row_or_its_cells_so_only_the_menu_item_edits()
+    {
+        var edited = new List<string>();
+        var page = Page.Render(() => Ui.Table[Ui.TableRows[Ui.TableRow[
+            Ui.TableCell["Aminoff Freight"],
+            Ui.TableCell["Stockholm"],
+            Ui.RowActions.OnEdit(() => edited.Add("Aminoff Freight")).Remove(() => { })
+        ]]]);
+
+        await page.On("[data-rask-key=\"edit\"][role=\"menuitem\"]").Click();
+
+        var rowAndCells = page.FindAll("tbody tr").Concat(page.FindAll("tbody tr > td")).ToList();
+        var wired = rowAndCells.SelectMany(node => node.Attributes.Keys.Where(name => name.StartsWith("data-rask-on-", StringComparison.Ordinal)));
+        Assert.Equal(4, rowAndCells.Count);
+        Assert.Empty(wired);
+        Assert.Equal(["Aminoff Freight"], edited);
+    }
+
     [Fact]
     public async Task Yes_in_the_menu_deletes_its_own_row()
     {

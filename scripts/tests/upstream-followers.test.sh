@@ -21,7 +21,7 @@ files=(scripts/upstream/upstream.py scripts/upstream/npm.py scripts/upstream/ima
        scripts/upstream/cldr.py scripts/upstream/cldr-plurals.py
        src/Rask.Ui/UiDatetimePickerJoins.g.cs src/Rask.Ui/Resources/cldr.LICENSE.txt tests/Rask.Generators.Tests/cldr-plurals.json
        src/Rask.Cli/Commands/DeployCommand.cs src/Rask.Cli/Commands/DbCommand.Backup.cs tests/Rask.Cli.Tests/DeployCommandTests.cs
-       tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs scripts/run-providers-local.sh src/Rask.Templates/wasm/Dockerfile
+       tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs tests/Rask.Providers.E2E.Tests/ProviderServer.cs src/Rask.Templates/wasm/Dockerfile
        src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets
        src/Rask.Templates/server/Dockerfile src/Rask.Templates/wasm-hosted/Dockerfile
        src/Rask.Core/build/Rask.Core.targets src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs

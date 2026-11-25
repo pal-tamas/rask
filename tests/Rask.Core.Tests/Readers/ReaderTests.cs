@@ -81,9 +81,11 @@ public sealed class ReaderTests
         var reader = new Reader();
 
         var network = reader.Network;
+        var ofNoAddress = Reader.NetworkOf(null);
 
         Assert.Null(reader.Address);
         Assert.Equal("unknown", network);
+        Assert.Equal("unknown", ofNoAddress);
     }
 
     [Fact]
