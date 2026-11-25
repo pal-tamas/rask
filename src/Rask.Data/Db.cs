@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
@@ -49,10 +50,10 @@ public static partial class Db
     public static bool IsOn => Flow.Value?.Write is not null || _factory is not null;
 
     /// <summary>
-    ///     How many times the model surface has been pointed at a database. Part of the read context's
-    ///     model cache key — see <see cref="RaskReadDbContext" />.
+    ///     How many times the process-wide model surface has been pointed at a database. Part of the read context's
+    ///     model cache key outside a flow's own database — see <see cref="RaskReadDbContext" />.
     /// </summary>
-    internal static int Generation => Flow.Value?.ReadModelKey ?? Volatile.Read(ref _generation);
+    internal static int Generation => Volatile.Read(ref _generation);
 
     /// <summary>The database a test started in this flow, or null — see <see cref="BindFlow" />.</summary>
     internal static FlowDatabase? InFlow => Flow.Value;
@@ -405,10 +406,32 @@ public static partial class Db
     /// <summary>A test's database, bound to the flow that started it.</summary>
     /// <param name="Write">Opens a write context on it; null leaves the write side to the process-wide factory.</param>
     /// <param name="Read">Opens a read context on it; null leaves the read side to the process-wide factory.</param>
-    /// <param name="ReadModelKey">Its own generation, so the read model mirrored from its write model is its own.</param>
+    /// <param name="ReadModelKey">Its own generation: what keys its read model when it has no write side of its own.</param>
     /// <param name="Services">
     ///     The services its saves publish through — the app a host-less test has, which a fake's <c>Run()</c> reaches.
     /// </param>
     internal sealed record FlowDatabase(
-        Func<DbContext>? Write, Func<DbContext>? Read, int ReadModelKey, IServiceProvider? Services = null);
+        Func<DbContext>? Write, Func<DbContext>? Read, int ReadModelKey, IServiceProvider? Services = null)
+    {
+        private object? _readModelIdentity;
+
+        /// <summary>
+        ///     What its read model is cached by: the write model that read model mirrors — so every test on one model
+        ///     shares one read model, built once, rather than each building its own under EF Core's model lock — or, with
+        ///     no write side of its own, its generation.
+        /// </summary>
+        /// <remarks>Asked from two threads at once, both find the same model; either answer is kept.</remarks>
+        internal object ReadModelIdentity => _readModelIdentity ??= WriteModel() ?? (object)ReadModelKey;
+
+        private IModel? WriteModel()
+        {
+            if (Write is null)
+            {
+                return null;
+            }
+
+            using var context = Write();
+            return context.Model;
+        }
+    }
 }

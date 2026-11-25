@@ -127,7 +127,8 @@ public class RaskReadDbContext : DbContext, ITenantScoped
         // write context was ambient when it was first built. One cache entry would therefore pin the first
         // write model the process ever saw — right in an app with one database, and wrong the moment there
         // are two, or a test suite that points Db somewhere new per class. Keying on Db's generation
-        // rebuilds the mirror exactly when the write side moved, and never otherwise.
+        // rebuilds the mirror exactly when the write side moved, and never otherwise; a test's own database
+        // (Db.Use, TestDatabase) keys it on the write model it mirrors, which tests on one model share.
         optionsBuilder.ReplaceService<IModelCacheKeyFactory, ReadModelCacheKeyFactory>();
 
         // A read face's ForUpdate() is written in the database's own words as it runs.
@@ -156,7 +157,8 @@ public class RaskReadDbContext : DbContext, ITenantScoped
         public object Create(DbContext context, bool designTime)
         {
             ArgumentNullException.ThrowIfNull(context);
-            return (context.GetType(), designTime, Db.Generation);
+            var flow = Db.InFlow;
+            return (context.GetType(), designTime, flow?.ReadModelIdentity, flow is null ? Db.Generation : 0);
         }
     }
 }

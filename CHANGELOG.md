@@ -523,8 +523,9 @@ them until tagged releases begin.
   (`InitializeAsync`, being async, hands nothing on). A database a class or collection fixture started is reached
   through `database.Bind()`, which Rask.Testing's xUnit hook calls before each test; one used without either is no
   longer found. `Db.Configure` is unchanged for an app, and `TestDatabase.FromEnvironment` still binds the process, one
-  at a time. Rask's own `Rask.Data`, `Rask.Jobs`, `Rask.Outbox` and `Rask.Storage` suites now run their classes in
-  parallel.
+  at a time. Tests on one model now share its read model, built once, instead of each building its own under EF
+  Core's model lock. Rask's own `Rask.Data`, `Rask.Jobs`, `Rask.Outbox` and `Rask.Storage` suites now run their classes
+  in parallel (`Rask.Data.Tests`: 60 s serial → 36 s).
 - **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
   bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
   components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote
