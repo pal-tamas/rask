@@ -29,6 +29,10 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
     // identities.
     internal bool IsSignedIn { get; private set; }
 
+    // When Current's sign-in lapses by its own exp claim (SignInExpiry), worked out as it is set: every event compares
+    // it with the clock. Null when it carries none, or nobody is signed in.
+    internal DateTimeOffset? LapsesAt { get; private set; }
+
     /// <summary>
     ///     Raised when <see cref="Current" /> is replaced by a different principal, so UI that depends on
     ///     who is signed in re-renders. Setting the same instance again raises nothing.
@@ -48,6 +52,7 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
         var prev = Current;
         Current = user;
         IsSignedIn = user.Identity?.IsAuthenticated == true;
+        LapsesAt = IsSignedIn ? SignInExpiry.LapsesAt(user) : null;
         if (IsSignedIn)
         {
             LastSignedIn = user;
@@ -65,6 +70,7 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
     {
         Current = same;
         IsSignedIn = same.Identity?.IsAuthenticated == true;
+        LapsesAt = IsSignedIn ? SignInExpiry.LapsesAt(same) : null;
         if (IsSignedIn)
         {
             LastSignedIn = same;

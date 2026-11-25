@@ -138,19 +138,21 @@ public sealed partial class SessionStaysItsUsersTests
     }
 
     // The docs' own revalidator: nobody once the token's `exp` has passed. The browser was issued a new token in
-    // time, and the open socket never saw it.
+    // time, and the open socket never saw it. The dates are after the host's stopped clock (2026-01-01), which the
+    // session reads an `exp` against too.
     [Fact]
     public async Task A_token_issued_again_in_time_keeps_an_open_page_signed_in_past_the_first_one_s_expiry()
     {
+        const long stoppedAt = 1_767_225_600;
         using var host = CreateHost<FollowApp>(more: services => services.AddSingleton<ISessionRevalidator, Lapsing>());
         var directory = host.Services.GetRequiredService<Directory>();
-        directory.TokenExpires = 100;
+        directory.TokenExpires = stoppedAt + 100;
         var page = await OpenAsync(host, "/open", "alice");
         using var ws = await AttachAsync(host, page.SessionId, "alice");
 
-        directory.TokenExpires = 200;
+        directory.TokenExpires = stoppedAt + 200;
         using var who = await WhoAsync(host, page.SessionId, "alice");
-        directory.Now = 150;
+        directory.Now = stoppedAt + 150;
         await ClickAsync(host, ws, page.Save);
 
         Assert.Equal(Same, await who.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));

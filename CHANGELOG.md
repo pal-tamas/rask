@@ -31,6 +31,12 @@ them until tagged releases begin.
   `RaskValidationException(message)` — now carries its sentence under the empty key of `Errors` as well as in
   `Failures`, so a WASM client, an API caller and a form behind a remote dispatch get it as a failure under no field
   (the form's summary, else a toast) rather than a bare "failed on the server". Before: `Errors` was empty.
+- **A live page honours its principal's `exp` claim, with or without an `ISessionRevalidator`.** Before: an app that
+  registered no revalidator kept a JWT-signed-in page acting for its reader long after the token had expired, for
+  as long as the socket stayed open. Now the session works out the earliest `exp` as it takes the principal, and
+  every handler, navigation, script call, attach and server-started render compares it with the app's
+  `TimeProvider` (five minutes of clock skew, as JWT validation allows): a lapsed sign-in runs nothing and goes to
+  the sign-in page. A principal without `exp` is unchanged.
 - **A sign-in challenge no longer grows its `returnUrl` until the server answers 431.** Before: a challenge of the
   sign-in page itself (a layout guarding `/login`, a cookie the scheme kept refusing) wrapped the address it already
   carried, escaped once more each round — `/login?returnUrl=%2Flogin%3FreturnUrl%3D%252F…` — until the request was
