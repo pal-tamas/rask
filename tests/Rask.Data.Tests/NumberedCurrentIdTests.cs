@@ -19,7 +19,6 @@ public sealed class Teller : Aggregate<int, Model, PerTenant<int>>
 /// The generated <c>Current.UserId</c> and <c>Current.TenantId</c> of an app whose user and tenant are keyed by a
 /// number: the claim names the number, the framework carries it as a Guid, and the app reads its own number back.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class NumberedCurrentIdTests : IDisposable
 {
     private static readonly Guid Twelve = new("00000000-0000-0000-0000-00000000000c");

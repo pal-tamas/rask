@@ -10,7 +10,6 @@ namespace Rask.Data.Tests;
 ///     over exactly the rows the filtered index would hold.
 /// </summary>
 /// <remarks>The partial index is DROPPED, so a refusal here is the check's, never the database's.</remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class FilteredUniqueRuleTests : IAsyncLifetime
 {
     private static readonly DateTime Revoked = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -18,7 +17,11 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public FilteredUniqueRuleTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -30,8 +33,11 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync("DROP INDEX \"IX_PartnerGrant_Partner\"", TestContext.Current.CancellationToken);
@@ -39,7 +45,7 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

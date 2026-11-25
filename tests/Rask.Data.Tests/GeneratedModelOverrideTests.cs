@@ -27,7 +27,6 @@ public sealed class Ticket : Aggregate<Guid, Timestamps, Versioned, Model, SoftD
         throw new InvalidOperationException("A ticket is closed, never deleted.");
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class GeneratedModelOverrideTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 /// The read <c>LockedBy(…, forUpdate: true)</c> makes of a save's parents, as SQL Server is sent it — checked as SQL,
 /// offline: the parents' table takes <c>UPDLOCK, HOLDLOCK</c>, held to the end of the save's transaction.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ForUpdateSqlServerReadTests
 {
     [Fact]

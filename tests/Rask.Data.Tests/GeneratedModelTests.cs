@@ -74,11 +74,14 @@ public sealed class Doodad : Aggregate<Guid, Timestamps, Versioned, Model, SoftD
     public static Doodad Create(string label) => new() { Id = Guid.NewGuid(), Label = label };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class GeneratedModelTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
     private readonly ServiceProvider _provider;
+
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): the constructor runs in the
+    // flow its test does.
+    private readonly IDisposable _db;
 
     public GeneratedModelTests()
     {
@@ -95,14 +98,12 @@ public sealed class GeneratedModelTests : IDisposable
             db.Database.EnsureCreated();
         }
 
-        Db.Configure(_provider);
-        ReadDb.Configure(_provider);
+        _db = Db.Use(_provider);
     }
 
     public void Dispose()
     {
-        Db.Reset();
-        ReadDb.Reset();
+        _db.Dispose();
         _provider.Dispose();
         _sqlite.Dispose();
     }

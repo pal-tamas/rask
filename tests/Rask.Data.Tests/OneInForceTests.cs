@@ -49,7 +49,6 @@ public sealed class ReturnFiled : Entity<Guid>
 /// F-32: <see cref="OneInForce{TChild}" /> keeps one child in force — a partial unique index the database holds, the
 /// history beside it, and InForce / Put / End asking the same condition in memory.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class OneInForceTests : IDisposable
 {
     private static readonly DateTime March = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);

@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 ///     <c>Db.Transaction</c>: every read and write the work makes without a <c>db:</c> runs on one connection, in one
 ///     transaction, committed when the work completes and rolled back when it throws.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-transaction-{Guid.NewGuid():N}.db");
@@ -373,13 +372,20 @@ public sealed class DbTransactionTests : IDisposable
         return basket.Id;
     }
 
-    private async Task<TestDatabase> StartDatabaseAsync()
+    // Not async: a TestDatabase binds the flow that starts it, and a binding made inside an async helper ends when the
+    // helper returns — so the database is started here, in the test's flow, and only the seeding awaits.
+    private Task<TestDatabase> StartDatabaseAsync()
     {
-        var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_isolation));
+        return Started(TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_isolation)));
 
-        // Creating the schema began one of its own.
-        _isolation.Started.Clear();
-        return database;
+        async Task<TestDatabase> Started(Task<TestDatabase> starting)
+        {
+            var database = await starting;
+
+            // Creating the schema began one of its own.
+            _isolation.Started.Clear();
+            return database;
+        }
     }
 
     // Stands in for a commit the database refuses: a deferred constraint, a serialization failure, a lost connection.

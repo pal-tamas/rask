@@ -22,7 +22,6 @@ public sealed class RangeDesk : Aggregate<int, Timestamps, Versioned, Model, Del
 
 // Unit tests for the provider-agnostic half of HasNonOverlappingRange: what lands on the model, and the
 // spec's round-trip through the string form migrations and model snapshots store it as.
-[Collection(DataDbCollection.Name)]
 public sealed class RangeExclusionTests
 {
     [Fact]

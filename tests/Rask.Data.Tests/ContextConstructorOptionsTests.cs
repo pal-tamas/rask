@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 /// ones <c>OnConfiguring</c> leaves. A Rask context handed plain options is configured before the first, so the two
 /// are one set — EF Core compares them with the options' own equality.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ContextConstructorOptionsTests
 {
     [Fact]

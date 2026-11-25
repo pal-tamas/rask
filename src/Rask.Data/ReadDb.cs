@@ -28,7 +28,7 @@ public static class ReadDb
     private static Func<DbContext>? _factory;
 
     /// <summary>Whether the read side has been pointed at a database.</summary>
-    public static bool IsOn => Db.InFlow is not null || _factory is not null;
+    public static bool IsOn => Db.InFlow?.Read is not null || _factory is not null;
 
     /// <summary>Points the read faces at the read context the host registered.</summary>
     /// <remarks>
@@ -43,22 +43,10 @@ public static class ReadDb
     ///         Deferring it is also what <see cref="Db" /> does, through its own binding.
     ///     </para>
     /// </remarks>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
-        Justification = "IDbContextFactory<RaskReadDbContext> keeps the context's constructors, which carry EF Core's "
-                        + "own [RequiresUnreferencedCode]. Nothing is constructed here unless the app registered that "
-                        + "factory, and the registration (AddDbContextFactory<RaskReadDbContext>) already reports EF's "
-                        + "IL2026 to the app — the same warning, at the line that chose EF.")]
     public static void Configure(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-
-        _factory = () =>
-            (services.GetService<IDbContextFactory<RaskReadDbContext>>()
-             ?? throw new InvalidOperationException(
-                 "No read context is registered, so the generated read faces have nothing to open. "
-                 + "A Rask host registers it beside the application's own context; elsewhere call "
-                 + "services.AddDbContextFactory<RaskReadDbContext>((sp, o) => o.UseRaskDatabase(sp))."))
-            .CreateDbContext();
+        _factory = FactoryIn(services);
     }
 
     /// <summary>Points the read faces at <paramref name="createContext" />, which returns a fresh context each call.</summary>
@@ -71,11 +59,41 @@ public static class ReadDb
         Ambient.DeclineTestApp();
     }
 
+    /// <summary>
+    ///     Points the read faces at <paramref name="createContext" /> for the calling flow alone, until the returned binding
+    ///     is disposed — the form a test uses, as <see cref="Db.Use(IServiceProvider)" /> is for both halves.
+    /// </summary>
+    /// <remarks>Not async, so it binds the flow of whatever calls it; the write side stays where it was.</remarks>
+    /// <param name="createContext">Opens a fresh read context.</param>
+    /// <returns>The binding; dispose it to let go of it.</returns>
+    public static IDisposable Use(Func<RaskReadDbContext> createContext)
+    {
+        ArgumentNullException.ThrowIfNull(createContext);
+        return Db.UseRead(createContext);
+    }
+
     /// <summary>Forgets the configured factory. Test seam, like <see cref="Db.Reset" />.</summary>
     public static void Reset() => _factory = null;
 
     /// <summary>Forgets the configured factory if it is still <paramref name="factory" /> — a test database letting go of its own.</summary>
     internal static void ResetIf(Func<RaskReadDbContext> factory) => Interlocked.CompareExchange(ref _factory, null, factory);
+
+    /// <summary>
+    ///     Opens a read context from the factory <paramref name="services" /> registered — resolved at the first open, not
+    ///     here (see <see cref="Configure(IServiceProvider)" />).
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "IDbContextFactory<RaskReadDbContext> keeps the context's constructors, which carry EF Core's "
+                        + "own [RequiresUnreferencedCode]. Nothing is constructed here unless the app registered that "
+                        + "factory, and the registration (AddDbContextFactory<RaskReadDbContext>) already reports EF's "
+                        + "IL2026 to the app — the same warning, at the line that chose EF.")]
+    internal static Func<DbContext> FactoryIn(IServiceProvider services) =>
+        () => (services.GetService<IDbContextFactory<RaskReadDbContext>>()
+               ?? throw new InvalidOperationException(
+                   "No read context is registered, so the generated read faces have nothing to open. "
+                   + "A Rask host registers it beside the application's own context; elsewhere call "
+                   + "services.AddDbContextFactory<RaskReadDbContext>((sp, o) => o.UseRaskDatabase(sp))."))
+            .CreateDbContext();
 
     /// <summary>
     ///     A fresh context for whichever side <typeparamref name="TEntity" /> belongs to.
@@ -106,7 +124,7 @@ public static class ReadDb
     ///     of rows keyed by it never hands one app's — or one test database's — row to another reading the same key.
     /// </remarks>
     internal static object IdentityFor(IServiceProvider? scope) =>
-        ScopedFactory(scope) ?? (object?)Db.InFlow ?? _factory ?? Unconfigured;
+        ScopedFactory(scope) ?? (object?)(Db.InFlow is { Read: not null } flow ? flow : null) ?? _factory ?? Unconfigured;
 
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "
@@ -123,7 +141,9 @@ public static class ReadDb
         return (Db.InFlow?.Read ?? _factory ?? throw new InvalidOperationException(
             "The read faces have not been pointed at a database. A Rask app gets this from the host, beside "
             + "Db.Configure(app.Services); elsewhere call ReadDb.Configure(app.Services) once after building "
-            + "the container."))();
+            + "the container. In a test, a TestDatabase (or Db.Use) binds the test that starts it and never the process: "
+            + "start it in the test or its constructor, not inside an async helper, whose binding ends when it returns — "
+            + "or bind it where it is read, `using var bound = database.Bind();`."))();
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",

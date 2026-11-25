@@ -20,7 +20,6 @@ public sealed class Skiff : Aggregate<int, Timestamps, Versioned, Model, Deletab
 /// plans. These prove the two never answer for each other, in either order and under interleaving threads, that
 /// the tenant itself is still a parameter, and that the filter still reaches every way a table is read.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantFilterPlanTests : IDisposable
 {
     private const int Acme = 7;
@@ -247,9 +246,13 @@ public sealed class TenantFilterPlanTests : IDisposable
     }
 
     // Budapest and Szeged for Acme, Vienna for Globex, and a row that belongs to no tenant.
-    private async Task<TestDatabase> SeedAsync()
+    // Not async: a TestDatabase binds the flow that starts it, and a binding made inside an async helper ends when the
+    // helper returns — so the database is started here, in the test's flow, and only the seeding awaits.
+    private Task<TestDatabase> SeedAsync() => Seeded(StartAsync());
+
+    private static async Task<TestDatabase> Seeded(Task<TestDatabase> starting)
     {
-        var database = await StartAsync();
+        var database = await starting;
         using (Tenant.Use(Acme))
         {
             await Destination.Named("Budapest").Save(cancellationToken: TestContext.Current.CancellationToken);

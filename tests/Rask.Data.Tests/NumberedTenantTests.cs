@@ -87,7 +87,6 @@ public sealed class DisagreeingNumberedTenant
 /// Each test that proves isolation writes rows for TWO tenants and reads as one, so a filter that compared
 /// nothing — or the wrong thing — returns the other customer's row and fails the test.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class NumberedTenantTests : IDisposable
 {
     private const int Acme = 7;

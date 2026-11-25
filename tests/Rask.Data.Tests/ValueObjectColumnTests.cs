@@ -97,7 +97,6 @@ public sealed class ComplexContactContext(DbContextOptions<ComplexContactContext
 /// A value object that holds one value is stored as that value's column — a converted scalar — so it can be
 /// indexed and made unique like any other column, and the table is the one the old complex mapping produced.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ValueObjectColumnTests : IDisposable
 {
     private const int Acme = 7;
@@ -208,26 +207,19 @@ public sealed class ValueObjectColumnTests : IDisposable
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
         await using var app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(app);
-        try
-        {
-            await using var context = await app.GetRequiredService<IDbContextFactory<DomainContext>>()
-                .CreateDbContextAsync(TestContext.Current.CancellationToken);
-            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            await context.Database.ExecuteSqlAsync(
-                $"DROP INDEX \"IX_Contacts_Name_TenantId\"", TestContext.Current.CancellationToken);
-            await SaveAsync(Acme, Contact.Named("Ada"));
+        using var db = Db.Use(app);
+        await using var context = await app.GetRequiredService<IDbContextFactory<DomainContext>>()
+            .CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        await context.Database.ExecuteSqlAsync(
+            $"DROP INDEX \"IX_Contacts_Name_TenantId\"", TestContext.Current.CancellationToken);
+        await SaveAsync(Acme, Contact.Named("Ada"));
 
-            var refused = await Assert.ThrowsAsync<RaskValidationException>(() => SaveAsync(Acme, Contact.Named("Ada")));
-            await SaveAsync(Globex, Contact.Named("Ada"));
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => SaveAsync(Acme, Contact.Named("Ada")));
+        await SaveAsync(Globex, Contact.Named("Ada"));
 
-            Assert.Equal(["Name"], Assert.Single(refused.Failures).Fields);
-            Assert.Null(refused.InnerException);
-        }
-        finally
-        {
-            Db.Reset();
-        }
+        Assert.Equal(["Name"], Assert.Single(refused.Failures).Fields);
+        Assert.Null(refused.InnerException);
     }
 
     [Fact]
@@ -367,7 +359,7 @@ public sealed class ValueObjectColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var id = await SaveAsync(Acme, Contact.Named("Ada", rank: 1));
-        var commands = new CommandCount();
+        var commands = new CommandCount(_sqlite.ConnectionString);
         using var listening = commands.Listen();
         var model = new ContactModel { Name = "", Rank = null };
 
@@ -419,7 +411,10 @@ public sealed class ValueObjectColumnTests : IDisposable
             .Select(c => $"{c.Name} {c.StoreType} {(c.IsNullable ? "NULL" : "NOT NULL")}")];
 
     /// <summary>Counts every command EF Core sends while it listens.</summary>
-    private sealed class CommandCount : IObserver<System.Diagnostics.DiagnosticListener>, IObserver<KeyValuePair<string, object?>>
+    // EF Core's listener is the process's: it hears every test running beside this one, so it counts only the commands
+    // sent to this test's own database.
+    private sealed class CommandCount(string connectionString)
+        : IObserver<System.Diagnostics.DiagnosticListener>, IObserver<KeyValuePair<string, object?>>
     {
         private int _count;
 
@@ -437,7 +432,9 @@ public sealed class ValueObjectColumnTests : IDisposable
 
         public void OnNext(KeyValuePair<string, object?> value)
         {
-            if (value.Key == RelationalEventId.CommandExecuting.Name)
+            if (value.Key == RelationalEventId.CommandExecuting.Name
+                && value.Value is CommandEventData { Command.Connection.ConnectionString: var sent }
+                && sent == connectionString)
             {
                 Interlocked.Increment(ref _count);
             }

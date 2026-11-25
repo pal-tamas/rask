@@ -77,7 +77,6 @@ public sealed class HopperBin : Entity<Guid>
 /// a column it keeps, never a filter of its own. Only a type that names <see cref="PerTenant" /> itself — an
 /// aggregate root, the one base that takes the trait — is filtered by its own column.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ChildTenantMemberTests : IDisposable
 {
     private const int Acme = 7;

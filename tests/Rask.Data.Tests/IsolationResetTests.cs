@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 ///     Server keeps a level past the transaction — the provider gate proves the reset there — so nothing else pays the
 ///     round trip.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class IsolationResetTests
 {
     [Theory]

@@ -5,7 +5,6 @@ namespace Rask.Data.Tests;
 
 // Every save asks the domain first: the attributes of what it changes, the type's own IValidatableObject, Validate()
 // and ValidateDelete() — and refuses with one RaskValidationException, each failure under the field a form names.
-[Collection(DataDbCollection.Name)]
 public sealed class DomainValidationTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

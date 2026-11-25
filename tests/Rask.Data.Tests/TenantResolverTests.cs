@@ -14,7 +14,6 @@ namespace Rask.Data.Tests;
 /// as empty and refuses a write, and never returns every tenant's rows. Each of those tests has other
 /// tenants' rows — and a row that belongs to nobody — in the table while it reads.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantResolverTests : IDisposable
 {
     private const int Acme = 7;

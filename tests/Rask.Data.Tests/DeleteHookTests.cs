@@ -20,7 +20,6 @@ public sealed partial class Hauler : Aggregate<Guid, SoftDelete>
 ///     An aggregate's <c>private void OnDelete()</c> runs in every save that deletes it, so what it raises is stored and
 ///     published with the delete — the generated <c>X.Delete</c> included — and never on a rollback.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DeleteHookTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

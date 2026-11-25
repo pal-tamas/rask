@@ -20,7 +20,6 @@ namespace Rask.Data.Tests;
 ///     Each read here is a read face on the read context, and the block has written a consignment it has not
 ///     committed: a read that joined the transaction counts it, one outside does not.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionSpawnedWorkTests : IDisposable
 {
     private static readonly Seen Outside = new(InTransaction: false, Consignments: 0);

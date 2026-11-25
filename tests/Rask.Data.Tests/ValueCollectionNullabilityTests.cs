@@ -18,7 +18,6 @@ namespace Rask.Data.Tests;
 /// nullable and refuses to be told otherwise ("cannot be configured as required since it was configured as a
 /// collection"). An app adopting a <c>Files nvarchar(max) NOT NULL</c> column had no way to say so.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class ValueCollectionNullabilityTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

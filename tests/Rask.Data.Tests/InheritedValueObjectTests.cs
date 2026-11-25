@@ -91,7 +91,6 @@ public sealed class ForeignFiling : Filing
 /// generated mapping, and EF Core refused the model at startup for the one-value value object it could not
 /// store — until the app converted it by hand in its own Configure.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class InheritedValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

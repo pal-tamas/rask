@@ -48,7 +48,6 @@ public sealed class DepotBay : Entity<int>
 /// An aggregate that declined its stamps and its version is created, changed and deleted like any other —
 /// the framework's interceptors skip the columns it does not map instead of asking the entry for them.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class UnversionedAggregateTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

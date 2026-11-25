@@ -13,7 +13,6 @@ namespace Rask.Data.Tests;
 // HasNonOverlappingRange is metadata a provider has to turn into DDL. On a provider that does not, the app used
 // to build, migrate and quietly accept the overlapping rows the rule was declared to stop. These pin the boot
 // check that refuses that, without opening a connection.
-[Collection(DataDbCollection.Name)]
 public sealed class RangeExclusionCheckTests
 {
     [Fact]

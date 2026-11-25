@@ -67,7 +67,6 @@ public sealed class OfferPlan : Aggregate<int, Model, Deletable>
 /// column of the value it holds, a nullable field of that value on the form model, and never required — what a
 /// nullable reference-type value object has always been.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class OptionalStructValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

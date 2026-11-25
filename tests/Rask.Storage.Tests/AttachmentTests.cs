@@ -67,11 +67,8 @@ public sealed class AttachmentDbContext(DbContextOptions<AttachmentDbContext> op
 ///     An <see cref="Attachment" /> is one write with the row that holds it: stored as the row is saved, deleted once a
 ///     save replaces, clears or deletes it, and gone again when the save fails or rolls back.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
-public sealed class AttachmentTests : IDisposable
+public sealed class AttachmentTests
 {
-    public void Dispose() => Db.Reset();
-
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
 
     private static Attachment Scan(string name = "scan.png") => Attachment.Of(Files.Save(new MemoryStream(Samples.Png()), name));
@@ -173,7 +170,7 @@ public sealed class AttachmentTests : IDisposable
     {
         await using var harness = new StorageHarness<AttachmentDbContext>();
         using var work = Ambient.Enter(harness.Services);
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {

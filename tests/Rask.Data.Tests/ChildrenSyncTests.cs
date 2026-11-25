@@ -4,7 +4,6 @@ namespace Rask.Data.Tests;
 
 // Children<TEntity, TSpec>: an aggregate's children as one read-only property, made what the form's rows say by Sync —
 // and mapped by EF Core as the aggregate's collection, so the save writes exactly what Sync changed.
-[Collection(DataDbCollection.Name)]
 public sealed class ChildrenSyncTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

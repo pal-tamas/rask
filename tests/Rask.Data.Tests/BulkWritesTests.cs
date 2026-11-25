@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 ///     statement that still keeps the stamps, the locks and the one-aggregate rule; <c>UpdateEach</c>, <c>Upsert</c> and
 ///     <c>Import</c> through the aggregate itself, its rules asked.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class BulkWritesTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

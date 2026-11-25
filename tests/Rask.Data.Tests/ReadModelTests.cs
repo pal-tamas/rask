@@ -73,7 +73,6 @@ public sealed class ConsignmentLine : Entity<Guid>
         new() { Id = Guid.NewGuid(), Product = product, Quantity = quantity };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class ReadModelTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

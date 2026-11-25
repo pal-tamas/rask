@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 /// <c>@flag = 1 OR TenantId = @p</c> cannot be answered from an index on SQL Server, so a read of a large
 /// table scans it (measured: 600 ms against 3 ms over 591 136 rows).
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantFilterShapeTests : IDisposable
 {
     private const int Acme = 7;

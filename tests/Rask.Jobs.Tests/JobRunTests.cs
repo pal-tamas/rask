@@ -71,7 +71,6 @@ public sealed class AwaitOwnLaneHandler(Recorder recorder) : IJobHandler<AwaitOw
 /// <c>await Jobs.Run(job).InLane(key)</c>: the job is stored and run like any lane job - one at a time with that lane's
 /// other jobs - and the caller awaits its answer or its failure. Giving up the wait never gives up the job.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
 public sealed class JobRunTests
 {
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(300);
@@ -267,22 +266,15 @@ public sealed class JobRunTests
     public async Task Run_inside_Db_Transaction_is_refused_because_the_job_could_never_be_seen()
     {
         await using var h = new JobsHarness();
-        Db.Configure(h.Get<IDbContextFactory<JobsDbContext>>());
-        try
-        {
-            var run = () => Db.Transaction(
-                async () => await h.Queue.Run(new Calibrate("pump-7"), TestContext.Current.CancellationToken).InLane("pump-7"),
-                cancellationToken: TestContext.Current.CancellationToken);
+        using var facade = Db.Use(h.Get<IDbContextFactory<JobsDbContext>>());
+        var run = () => Db.Transaction(
+            async () => await h.Queue.Run(new Calibrate("pump-7"), TestContext.Current.CancellationToken).InLane("pump-7"),
+            cancellationToken: TestContext.Current.CancellationToken);
 
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(run);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(run);
 
-            Assert.Contains("Db.Transaction", error.Message, StringComparison.Ordinal);
-            Assert.Equal(0, await h.CountJobsAsync());
-        }
-        finally
-        {
-            Db.Reset();
-        }
+        Assert.Contains("Db.Transaction", error.Message, StringComparison.Ordinal);
+        Assert.Equal(0, await h.CountJobsAsync());
     }
 
     [Fact]

@@ -71,7 +71,6 @@ public sealed class BoardingPass : Entity<string>
 ///     A child two aggregates may hold is counted, touched and reported as the aggregate its ROW is held by — never as
 ///     whichever parent its type declares first, which names a parent with no key for every row of the other one.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TwoParentChildTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -4,7 +4,6 @@ namespace Rask.Data.Tests;
 
 // b.Projects(g => new { g.Level, g.Tank }, changed => …): a save that adds, removes, or moves a watched
 // member of a meter raises one event, made from the rows it changed, as the meter's own.
-[Collection(DataDbCollection.Name)]
 public sealed class ProjectionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -27,7 +27,6 @@ public sealed class HeldShopRead : IReadModel
 /// A job runs in the tenant its row recorded, and its handler reads that tenant's own row — read ahead by the
 /// processor, so the handler's <c>Current.Tenant</c> never blocks on a query.
 /// </summary>
-[Collection(CurrentRowsCollection.Name)]
 public sealed class JobTenantRowTests : IDisposable
 {
     public void Dispose() => CurrentRows.Reset();

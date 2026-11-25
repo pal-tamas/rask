@@ -47,7 +47,6 @@ public sealed class Refill : Aggregate<Guid, Model, Deletable>
 /// The read side joins by id to another aggregate's child: a refill's <c>NozzleId</c> reaches the nozzle under its
 /// dispenser, so a tank's refills are one query — while the refill itself still holds nothing but the id.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ChildReferenceReadTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

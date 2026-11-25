@@ -10,7 +10,6 @@ namespace Rask.Data.Tests;
 /// Rows keyed by several columns on an aggregate's form: a link table as the list of the other part's ids, saved as a
 /// set, and a row with fields of its own as a list of rows matched by key — both in the aggregate's one save.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CompositeFormTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -21,7 +20,11 @@ public sealed class CompositeFormTests : IAsyncLifetime
     private ServiceProvider _app = null!;
     private int[] _teaors = [];
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public CompositeFormTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -34,8 +37,11 @@ public sealed class CompositeFormTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
@@ -50,7 +56,7 @@ public sealed class CompositeFormTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }
@@ -146,8 +152,7 @@ public sealed class CompositeFormTests : IAsyncLifetime
     public async Task A_refused_id_is_told_in_the_sentence_the_host_handed_over()
     {
         var company = await CreateAsync(Acme, new CompanyModel { Name = "Acme", ActivityIds = [_teaors[0]] });
-        var english = HeldRowReference.Sentence;
-        HeldRowReference.Sentence = static () => "Az itt kiválasztott elem nem létezik.";
+        HeldRowReference.SayInFlow(static () => "Az itt kiválasztott elem nem létezik.");
 
         RaskValidationException refused;
         try
@@ -157,7 +162,7 @@ public sealed class CompositeFormTests : IAsyncLifetime
         }
         finally
         {
-            HeldRowReference.Sentence = english;
+            HeldRowReference.SayInFlow(null);
         }
 
         Assert.Equal("Az itt kiválasztott elem nem létezik.", Assert.Single(refused.Failures).Message);

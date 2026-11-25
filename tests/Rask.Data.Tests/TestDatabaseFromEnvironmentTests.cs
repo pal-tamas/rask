@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-[Collection(DataDbCollection.Name)]
+[Collection(ProcessWideDbCollection.Name)]
 public sealed class TestDatabaseFromEnvironmentTests : IDisposable
 {
     private readonly string _variable = $"RASK_TEST_DB_{Guid.NewGuid():N}";

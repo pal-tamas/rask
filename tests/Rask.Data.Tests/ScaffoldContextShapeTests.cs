@@ -30,7 +30,7 @@ internal sealed class RaskShapedContext(DbContextOptions<RaskShapedContext> opti
 
 // Collected like every other class here: both cases below build a context, and EF's model cache is per
 // process, so running in parallel with another such class drives one IModel from two threads.
-[Collection(DataDbCollection.Name)]
+[Collection(ProcessWideDbCollection.Name)]
 public sealed class ScaffoldContextShapeTests
 {
     [Fact]

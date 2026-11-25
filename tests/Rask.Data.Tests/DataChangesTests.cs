@@ -5,7 +5,6 @@ namespace Rask.Data.Tests;
 /// <summary>
 ///     A save tells the current session which aggregates it wrote — once it is durable, and only a session.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DataChangesTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -5,7 +5,6 @@ namespace Rask.Data.Tests;
 // The provider-neutral half of full-text search: what HasFullTextSearch records, what Search(text) turns typed text
 // into, and what the markers do when nothing translates them. The SQLite half is covered end to end in
 // Rask.SQLite.EntityFrameworkCore.Tests.
-[Collection(DataDbCollection.Name)]
 public sealed class FullTextSearchDeclarationTests
 {
     [Theory]

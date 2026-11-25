@@ -32,7 +32,6 @@ public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, Soft
 
 public sealed record InvoiceTotal(decimal Amount, string Currency);
 
-[Collection(DataDbCollection.Name)]
 public sealed class GeneratedInputModelTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 4, 1, 9, 0, 0, TimeSpan.Zero);

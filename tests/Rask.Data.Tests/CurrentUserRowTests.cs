@@ -21,7 +21,6 @@ public sealed class Member : Aggregate<Guid, Model, Deletable>
 /// <c>Current.User</c> is the signed-in user's own row: read by <c>Current.UserId</c>, held per user, dropped on a
 /// save, and never somebody else's or a row that is gone.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CurrentUserRowTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
@@ -158,13 +157,21 @@ public sealed class CurrentUserRowTests : IDisposable
         where TRead : class, IReadModel =>
         CurrentRows.Use(new CurrentRow<TRead, TKey>(kind, aggregate, byKey, keyOf));
 
-    private async Task<TestDatabase> StartAsync()
+    // Not async: a TestDatabase, and the rows registered, bind the flow that makes them, and a binding made inside an async helper ends when the
+    // helper returns — so the database is started here, in the test's flow, and only the seeding awaits.
+    private Task<TestDatabase> StartAsync()
     {
-        var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
-        database.Context.AddRange(Member.Join(_ada, "Ada"), Member.Join(_bob, "Bob"));
-        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        database.Context.ChangeTracker.Clear();
+        var starting = TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
         Use(CurrentRowKind.User, typeof(Member), static (Guid key) => (MemberRead row) => row.Id == key, static (MemberRead row) => row.Id);
-        return database;
+        return Seeded(starting);
+
+        async Task<TestDatabase> Seeded(Task<TestDatabase> started)
+        {
+            var database = await started;
+            database.Context.AddRange(Member.Join(_ada, "Ada"), Member.Join(_bob, "Bob"));
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            database.Context.ChangeTracker.Clear();
+            return database;
+        }
     }
 }

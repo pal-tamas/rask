@@ -4,7 +4,6 @@ namespace Rask.Data.Tests;
 
 // F-47: an operation tried on a copy of the aggregate, its rules asked as a save asks them, and nothing written, locked
 // or announced — what a form over the operation asks while it is filled in.
-[Collection(DataDbCollection.Name)]
 public sealed class DryRunTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

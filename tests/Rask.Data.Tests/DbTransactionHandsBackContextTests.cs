@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 ///     A context handed into <c>Db.Transaction</c> as <c>db:</c> is the caller's: once the transaction ends — commit,
 ///     rollback or retry — it is back on its own connection, in no transaction, exactly as it was handed in.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionHandsBackContextTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

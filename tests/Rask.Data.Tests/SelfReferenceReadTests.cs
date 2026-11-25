@@ -16,7 +16,6 @@ public sealed class Totalizer : Aggregate<int, Timestamps, Model, Deletable>
     public void SumUpIn(Totalizer sum) => SumTotalizerId = sum.Id;
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class SelfReferenceReadTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

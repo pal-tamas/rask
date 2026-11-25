@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 /// A value object declared from a base record, stored: one column for one value and complex columns for several,
 /// the length and precision it declares, a stored value loaded as it is, and the rules a generated model asks.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class BaseRecordValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

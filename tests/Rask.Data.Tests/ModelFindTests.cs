@@ -5,7 +5,6 @@ namespace Rask.Data.Tests;
 // TestDatabase.Load<T>(key): an untracked query by primary key, built from the EF model's key metadata. The
 // key parameter is typed object (a key may be composite, and its type cannot be inferred at a static call
 // site), so what the compiler cannot check — the count, the nulls, the type — is checked here instead.
-[Collection(DataDbCollection.Name)]
 public sealed class ModelFindTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -10,7 +10,6 @@ namespace Rask.Data.Tests;
 /// A row with no id is added, a row whose id matches a stored child updates it, and a stored child nobody posted
 /// is removed.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class ChildFormSyncTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

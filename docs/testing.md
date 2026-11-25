@@ -282,9 +282,12 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 }
 ```
 
-`TestDatabase.Start<CrmContext>()` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
+`TestDatabase.Start<CrmContext>()` — or a `Db.Use(…)` the test makes — is the test's say: its reads and writes
 go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
 (with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start()`.
+`Db.Use(app.Services)` (or `Db.Use(factory)`, `ReadDb.Use(() => ctx)`) is `Db.Configure` for the calling test alone,
+until disposed: call it in the test or its constructor — `InitializeAsync` is async, so a binding made there is gone
+before the test runs. `Db.Configure` points the whole process, which is an app's startup and never a test's.
 
 **In memory is the way to test a model** — and the only database an app's tests need. With nothing to configure, `Start` makes a SQLite database in memory for
 the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFrameworkCore`, which `Rask.Server` brings):

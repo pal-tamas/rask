@@ -41,7 +41,6 @@ public sealed class Carrier : Aggregate<Guid, Timestamps, Versioned, Model, Dele
 /// An index on a tenant-scoped table is exactly what the app wrote, wherever it was declared: one that names the
 /// tenant holds within a tenant, one that does not holds across every tenant. Nothing puts the tenant in front.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantIndexTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

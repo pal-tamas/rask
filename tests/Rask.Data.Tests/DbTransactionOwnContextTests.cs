@@ -11,13 +11,16 @@ namespace Rask.Data.Tests;
 ///     inside it — a LINQ read, a change, <c>SaveChangesAsync</c> — joins the transaction at its first command, with no
 ///     <c>db:</c> anywhere.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionOwnContextTests : IAsyncLifetime
 {
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public DbTransactionOwnContextTests()
     {
         // A short busy timeout, so a save left on its own connection fails on the transaction's lock in 2 s, not 30.
         Action<DbContextOptionsBuilder> provider = o => o.UseSqlite($"{_sqlite.ConnectionString};Default Timeout=2");
@@ -30,8 +33,11 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
         });
         services.AddDbContextFactory<RaskReadDbContext>(provider);
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var schema = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
         await schema.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         schema.Add(Widget.Create("anvil"));
@@ -40,7 +46,7 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

@@ -91,7 +91,6 @@ public static class CofferConverters
 /// The read face reads a column through every converter the write model put on it — including one that keeps
 /// the type, which a face holding the stored type used to skip, handing back the compressed or sealed value.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ReadFaceConverterTests : IDisposable
 {
     private static readonly byte[] Original = [.. Enumerable.Repeat((byte)'r', 512), 1, 2, 3];

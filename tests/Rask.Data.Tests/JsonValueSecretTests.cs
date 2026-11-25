@@ -54,19 +54,13 @@ public sealed class WellPartner : Aggregate<Guid>
 ///     A value list is a column of values, a value object holding one is kept whole as JSON with <c>b.Json(…)</c>, and a
 ///     secret — on the row or inside that JSON — is stored as its ciphertext and read back as what it held.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class JsonValueSecretTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly ISecrets? _before = SecretKeeping.Default;
+    // The test's own secrets, for its flow alone: the constructor runs in the flow the test does.
+    public JsonValueSecretTests() => SecretKeeping.UseInFlow(new ReversedSecrets());
 
-    public JsonValueSecretTests() => SecretKeeping.Default = new ReversedSecrets();
-
-    public void Dispose()
-    {
-        SecretKeeping.Default = _before;
-        _sqlite.Dispose();
-    }
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
 

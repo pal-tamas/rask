@@ -16,7 +16,6 @@ namespace Rask.Data.Tests;
 // string literal to MySQL. These run on SQLite with a generation helper that spells both differently (SQLite
 // accepts [x] identifiers and $p0 parameters), so a writer that ignored the provider would be caught here
 // rather than on the first MySQL deployment.
-[Collection(DataDbCollection.Name)]
 public sealed class BulkInsertProviderSpellingTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

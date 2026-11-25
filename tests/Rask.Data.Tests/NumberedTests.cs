@@ -106,7 +106,6 @@ public sealed class LaneReading : Aggregate<Guid>
 }
 
 /// <summary><c>b.Numbered(…)</c>: the running number Rask keeps in every save, with no SQL in the app.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class NumberedTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 /// save (<c>Update[10000]</c>) and the failed command (<c>Database.Command[20102]</c>) — are not written. A
 /// failure the model has no sentence for is logged exactly as before.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class QuietRefusalTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

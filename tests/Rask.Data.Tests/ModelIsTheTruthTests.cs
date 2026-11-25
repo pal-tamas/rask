@@ -82,7 +82,6 @@ public sealed class Harbor : Aggregate<int, Model, Deletable>
 /// The model is the truth: a save stores what the nested model of a value object holds. A member it leaves
 /// empty is stored empty — never kept from the row — and one that cannot be empty is refused under its path.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ModelIsTheTruthTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

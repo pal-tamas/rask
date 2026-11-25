@@ -29,8 +29,9 @@ public partial class TestDatabase
     ///         <see cref="TestDatabaseOptions" />).
     ///     </para>
     ///     <para>
-    ///         Either way one environment database is open at a time in a process — <see cref="Db" /> is process-wide —
-    ///         so a second one waits for the first to be disposed. The skip is xUnit v3's dynamic skip; under another
+    ///         Either way one environment database is open at a time in a process: it is reached only after an await,
+    ///         which no flow binding survives, so it points the process-wide <see cref="Db" /> at itself — and a second one
+    ///         waits for the first to be disposed. The skip is xUnit v3's dynamic skip; under another
     ///         framework the test fails with the same reason.
     ///     </para>
     /// </remarks>
@@ -76,7 +77,7 @@ public partial class TestDatabase
                 turn.DropOnEnd(() => Drop(Configure, construct));
             }
 
-            return await Open(Configure, construct, timeProvider: null, addServices: null, SchemaStep.Migrate, turn, cancellationToken).ConfigureAwait(false);
+            return await Open(Configure, construct, timeProvider: null, addServices: null, SchemaStep.Migrate, turn, cancellationToken, processWide: true).ConfigureAwait(false);
         }
         catch
         {

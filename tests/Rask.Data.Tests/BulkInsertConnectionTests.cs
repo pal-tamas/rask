@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 // The SkipChangeTracking writer used to open the DbConnection itself. EF's connection interceptors only fire on
 // an open EF performs, so UseRaskSqlite's pragmas — and any interceptor an app registered — never ran for the
 // rows it wrote. These pin that the writer opens through EF, and that it leaves a caller's open connection open.
-[Collection(DataDbCollection.Name)]
 public sealed class BulkInsertConnectionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

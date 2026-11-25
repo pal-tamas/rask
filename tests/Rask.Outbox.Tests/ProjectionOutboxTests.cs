@@ -6,7 +6,6 @@ namespace Rask.Outbox.Tests;
 
 // A declared projection's event is stored in the outbox in the save that changed its rows — committed with them, or not
 // at all.
-[Collection(DbFacadeCollection.Name)]
 public sealed class ProjectionOutboxTests : IDisposable
 {
     private readonly ShippingLog _log = new();

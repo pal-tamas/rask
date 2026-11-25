@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 // F-42 + F-16: a public method of a partial aggregate is run by its generated static entry as one write — loaded at
 // the caller's version, the roles its Configure names asked first, the method called, the aggregate saved with its
 // rules asked — and nothing of it is written when any part refuses. A non-public factory is born the same way.
-[Collection(DataDbCollection.Name)]
 public sealed class OperationEntryTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

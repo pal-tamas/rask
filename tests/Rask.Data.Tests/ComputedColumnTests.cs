@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 /// <summary><c>Computed(…)</c> on SQLite: a stored generated column, computing what the C# says.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ComputedColumnTests
 {
     [Fact]

@@ -150,7 +150,6 @@ public sealed class Fob : Entity<string>
 /// Every child below is held under Acme and points at something of Globex's (and the reverse), so a filter that
 /// counted a pointed-at aggregate as a parent shows the row to both tenants and fails the test.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class TenancyThroughHeldParentTests : IDisposable
 {
     private static readonly Guid Acme = new("6b1e0c4a-93d2-4f5e-8a71-0c2d9e4b3f18");

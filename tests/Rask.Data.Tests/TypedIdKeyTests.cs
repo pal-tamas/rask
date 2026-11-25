@@ -30,7 +30,6 @@ public sealed class Barrel : Aggregate<BarrelId>
     public static Barrel At(TerminalId terminal) => new() { Id = new BarrelId(Guid.CreateVersion7()), Terminal = terminal };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class TypedIdKeyTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -12,7 +12,6 @@ namespace Rask.Data.Tests;
 /// The unique rules an aggregate declares, asked about its form model BEFORE the save — what a form bound to
 /// the generated model does by itself. Asked here through the very thing the generator announced.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class StoreRulesBeforeTheSaveTests : IDisposable
 {
     private const int Acme = 7;
@@ -181,8 +180,6 @@ public sealed class StoreRulesBeforeTheSaveTests : IDisposable
     [Fact]
     public void With_no_database_to_ask_there_are_no_rules_and_the_form_asks_nothing()
     {
-        Db.Reset();
-
         var rules = Rules();
 
         Assert.Null(rules);

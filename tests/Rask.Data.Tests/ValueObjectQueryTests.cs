@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 /// A value object of one value is its column in a query: its <c>.Value</c> is filtered, summed and ordered by, the
 /// value object itself is compared and ordered by, and an <c>ExecuteUpdate</c> sets it.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ValueObjectQueryTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
@@ -112,9 +111,13 @@ public sealed class ValueObjectQueryTests : IDisposable
         Assert.Throws<ArgumentException>(() => ((IComparable)RigLitres.Create(1)).CompareTo(RigAxles.Create(2)));
     }
 
-    private async Task<TestDatabase> StartWithRigsAsync()
+    // Not async: a TestDatabase binds the flow that starts it, and a binding made inside an async helper ends when the
+    // helper returns — so the database is started here, in the test's flow, and only the seeding awaits.
+    private Task<TestDatabase> StartWithRigsAsync() => WithRigs(StartDatabaseAsync());
+
+    private static async Task<TestDatabase> WithRigs(Task<TestDatabase> starting)
     {
-        var database = await StartDatabaseAsync();
+        var database = await starting;
         var token = TestContext.Current.CancellationToken;
         await Rig.Of("Ada", "ABC-123", 10.5m, 3, fueled: new DateTime(2024, 1, 1)).Save(cancellationToken: token);
         await Rig.Of("Bea", "ABC-124", 20, 3, fueled: new DateTime(2024, 3, 1)).Save(cancellationToken: token);

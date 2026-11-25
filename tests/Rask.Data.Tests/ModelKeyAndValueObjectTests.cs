@@ -91,7 +91,6 @@ public sealed record ParcelWeight
     public static ParcelWeight Of(decimal amount, string unit) => new(amount, unit);
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class ModelKeyAndValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

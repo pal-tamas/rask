@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 /// <summary>An index's <c>Where(…)</c> on SQLite: a partial index, holding the rows the C# keeps.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class FilteredIndexTests
 {
     [Fact]

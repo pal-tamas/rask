@@ -29,7 +29,6 @@ public sealed class Trucker : Aggregate<Guid, Versioned>
 /// F-35: a member gated with <c>b.Gated(…)</c> is written only while its gate is open — a save with it shut keeps the
 /// stored value, an add stores none — and a gate nothing says anything about refuses the save.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class GatedTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

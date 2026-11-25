@@ -7,7 +7,6 @@ namespace Rask.Storage.Tests;
 ///     A file saved inside <c>Db.Transaction</c> takes part in it: in the database its rows commit with the work, and on
 ///     a disk its bytes are written at once and removed again when the work rolls back. A delete waits for the commit.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
 public sealed class StorageDbTransactionTests : IDisposable
 {
     private static readonly Action<StorageOptions> InTheDatabase = o => o.Provider = StorageProvider.Database;
@@ -19,17 +18,13 @@ public sealed class StorageDbTransactionTests : IDisposable
 
     private string InAFile => $"Data Source={_file};Pooling=False";
 
-    public void Dispose()
-    {
-        Db.Reset();
-        File.Delete(_file);
-    }
+    public void Dispose() => File.Delete(_file);
 
     [Fact]
     public async Task A_file_saved_to_the_database_in_a_rolled_back_transaction_leaves_no_row_and_no_bytes()
     {
         await using var harness = new StorageHarness(InTheDatabase);
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
@@ -45,7 +40,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     public async Task A_file_saved_to_the_database_in_a_transaction_is_seen_only_once_it_commits()
     {
         await using var harness = new StorageHarness(InTheDatabase, connectionString: InAFile);
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
         var seenBeforeCommit = -1;
 
         await Db.Transaction(async () =>
@@ -63,7 +58,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     public async Task A_file_saved_to_disk_in_a_rolled_back_transaction_has_its_bytes_deleted()
     {
         await using var harness = new StorageHarness();
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
         var writtenBeforeRollback = 0;
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
@@ -82,7 +77,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     public async Task A_file_saved_to_disk_in_a_committed_transaction_keeps_its_bytes_and_its_row()
     {
         await using var harness = new StorageHarness(connectionString: InAFile);
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
         var seenBeforeCommit = -1;
 
         var file = await Db.Transaction(async () =>
@@ -101,7 +96,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     public async Task A_file_deleted_in_a_transaction_keeps_its_bytes_until_the_commit()
     {
         await using var harness = new StorageHarness();
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
         var file = await harness.Files.Save(new MemoryStream(Samples.Png()), "scan.png", TestContext.Current.CancellationToken);
         var bytesBeforeCommit = 0;
 
@@ -120,7 +115,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     public async Task A_file_deleted_in_a_rolled_back_transaction_keeps_its_row_and_its_bytes()
     {
         await using var harness = new StorageHarness(InTheDatabase);
-        Db.Configure(harness.NewContext);
+        using var facade = Db.Use(harness.NewContext);
         var file = await harness.Files.Save(new MemoryStream(Samples.Png()), "scan.png", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
@@ -138,7 +133,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     {
         await using var harness = new StorageHarness();
         await using var elsewhere = new StorageHarness();
-        Db.Configure(elsewhere.NewContext);
+        using var facade = Db.Use(elsewhere.NewContext);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
             await harness.Files.Save(new MemoryStream(Samples.Png()), "scan.png", TestContext.Current.CancellationToken),

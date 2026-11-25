@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 ///     A <c>Db.Transaction</c> attempt that rolls back takes back what its saves changed on the objects they wrote, so the
 ///     retry saves them as if the failed attempt had never run — even an aggregate loaded or made before the block.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionRetryTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
@@ -104,29 +103,22 @@ public sealed class DbTransactionRetryTests : IDisposable
             await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
-        Db.Configure(provider);
-        try
-        {
-            await using var session = provider.CreateAsyncScope();
-            using var bound = Db.UseScope(session.ServiceProvider);
-            var anvil = Widget.Create("anvil");
-            var attempts = 0;
+        using var model = Db.Use(provider);
+        await using var session = provider.CreateAsyncScope();
+        using var bound = Db.UseScope(session.ServiceProvider);
+        var anvil = Widget.Create("anvil");
+        var attempts = 0;
 
-            await Db.Transaction(async () =>
-            {
-                attempts++;
-                await GeneratedModelWrites.Create(anvil, cancellationToken: TestContext.Current.CancellationToken);
-                FailTheFirst(attempts);
-            }, cancellationToken: TestContext.Current.CancellationToken);
-
-            Assert.Equal(2, attempts);
-            Assert.Equal(new WidgetCreated(anvil.Id), Assert.Single(events.Events));
-            Assert.Empty(anvil.DomainEvents);
-        }
-        finally
+        await Db.Transaction(async () =>
         {
-            Db.Reset();
-        }
+            attempts++;
+            await GeneratedModelWrites.Create(anvil, cancellationToken: TestContext.Current.CancellationToken);
+            FailTheFirst(attempts);
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, attempts);
+        Assert.Equal(new WidgetCreated(anvil.Id), Assert.Single(events.Events));
+        Assert.Empty(anvil.DomainEvents);
     }
 
     // The first attempt's saves are written, then a transient failure rolls it back and the strategy runs it again.

@@ -11,7 +11,6 @@ namespace Rask.Data.Tests;
 /// column of the length they declare (or their base's), and shaped for the control bound to them as the attribute
 /// would shape it; a password never shown.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TextKindValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

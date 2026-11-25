@@ -77,7 +77,6 @@ public sealed class ExciseContext(DbContextOptions<ExciseContext> options) : Ras
 /// A navigation goes where <c>Configure</c> says it goes: to the configured table when the id's name ends in another
 /// aggregate's, and at all when the id keeps a legacy name — on a composite-keyed row under a per-tenant parent.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -85,7 +84,11 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public ConfiguredRelationshipReadTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -97,8 +100,11 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await _app.GetRequiredService<IDbContextFactory<ExciseContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
@@ -126,7 +132,7 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

@@ -49,7 +49,6 @@ public sealed class TextShop : Aggregate<string>
 /// <c>Current.Tenant</c> is the app's own tenant row: read by the key in flight, held per key, dropped on a save, and
 /// never another tenant's, nobody's, or a row that is gone.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CurrentTenantRowTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

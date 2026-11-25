@@ -55,7 +55,6 @@ public sealed class Skid : Aggregate<int, Deletable>
 /// A collection of values is one column, and the read face reads that column exactly as the write side writes it —
 /// whatever converter the write side put on each ELEMENT.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ReadFaceElementConverterTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

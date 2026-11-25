@@ -46,7 +46,6 @@ public sealed class Clerk : Aggregate<string, Model, Deletable, PerTenant>
 /// tenant's rows (TA's sign-in name), with it within one tenant (an Eszaf-style badge). Nothing adds the
 /// tenant, and the name, message and filter the app gave an index are kept as written.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class IndexAsWrittenTests : IDisposable
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");

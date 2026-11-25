@@ -37,8 +37,10 @@ public static class CurrentRows
         "Current.Tenant or Current.User read with nothing held for its key, and answered by a synchronous query. "
         + "Work the framework starts reads the row ahead, so a steady count means work it did not start.");
 
-    private static CurrentRow? _tenant;
-    private static CurrentRow? _user;
+    // The rows the app registered, for the whole process — and a test's own, for its flow alone (see Use).
+    private static readonly AsyncLocal<Registrations?> InFlow = new();
+    private static CurrentRow? _registeredTenant;
+    private static CurrentRow? _registeredUser;
 
     /// <summary>Names the app's tenant aggregate and how its read face is found by key. Generated code calls this.</summary>
     /// <typeparam name="TAggregate">The aggregate that says <see cref="ITenant" />.</typeparam>
@@ -53,7 +55,7 @@ public static class CurrentRows
     {
         ArgumentNullException.ThrowIfNull(byKey);
         ArgumentNullException.ThrowIfNull(keyOf);
-        _tenant = new CurrentRow<TRead, TKey>(CurrentRowKind.Tenant, typeof(TAggregate), byKey, keyOf);
+        _registeredTenant = new CurrentRow<TRead, TKey>(CurrentRowKind.Tenant, typeof(TAggregate), byKey, keyOf);
     }
 
     /// <summary>Names the app's user aggregate and how its read face is found by key. Generated code calls this.</summary>
@@ -69,7 +71,7 @@ public static class CurrentRows
     {
         ArgumentNullException.ThrowIfNull(byKey);
         ArgumentNullException.ThrowIfNull(keyOf);
-        _user = new CurrentRow<TRead, TKey>(CurrentRowKind.User, typeof(TAggregate), byKey, keyOf);
+        _registeredUser = new CurrentRow<TRead, TKey>(CurrentRowKind.User, typeof(TAggregate), byKey, keyOf);
     }
 
     /// <summary>The tenant's row, or <see langword="null" /> when the work belongs to no tenant. <c>Current.Tenant</c>.</summary>
@@ -78,7 +80,7 @@ public static class CurrentRows
     /// <exception cref="MissingTenantException">The tenant in flight has no row.</exception>
     public static TRead? Tenant<TRead>()
         where TRead : class =>
-        Data.Tenant.Key is { } key ? (TRead)Registered(_tenant, CurrentRowKind.Tenant).Read(key) : null;
+        Data.Tenant.Key is { } key ? (TRead)Registered(TenantRow, CurrentRowKind.Tenant).Read(key) : null;
 
     /// <summary>The tenant's row, or a thrown exception when the work belongs to no tenant. <c>Current.RequiredTenant</c>.</summary>
     /// <typeparam name="TRead">The tenant's read face.</typeparam>
@@ -87,7 +89,7 @@ public static class CurrentRows
     /// <exception cref="MissingTenantException">The tenant in flight has no row.</exception>
     public static TRead RequiredTenant<TRead>()
         where TRead : class =>
-        (TRead)Registered(_tenant, CurrentRowKind.Tenant).Read(Data.Tenant.RequiredKey);
+        (TRead)Registered(TenantRow, CurrentRowKind.Tenant).Read(Data.Tenant.RequiredKey);
 
     /// <summary>The user's row, or <see langword="null" /> when the work is for nobody. <c>Current.User</c>.</summary>
     /// <typeparam name="TRead">The user's read face.</typeparam>
@@ -95,7 +97,7 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">The user in flight has no row.</exception>
     public static TRead? User<TRead>()
         where TRead : class =>
-        CurrentUser.Id is { } key ? (TRead)Registered(_user, CurrentRowKind.User).Read(key) : null;
+        CurrentUser.Id is { } key ? (TRead)Registered(UserRow, CurrentRowKind.User).Read(key) : null;
 
     /// <summary>The user's row, or a thrown exception when the work is for nobody. <c>Current.RequiredUser</c>.</summary>
     /// <typeparam name="TRead">The user's read face.</typeparam>
@@ -103,7 +105,7 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">Nobody is signed in, or the user in flight has no row.</exception>
     public static TRead RequiredUser<TRead>()
         where TRead : class =>
-        (TRead)Registered(_user, CurrentRowKind.User).Read(CurrentUser.RequiredId);
+        (TRead)Registered(UserRow, CurrentRowKind.User).Read(CurrentUser.RequiredId);
 
     /// <summary>
     ///     The id of the user the work in flight is for, as the number the app's user is keyed by, or
@@ -115,7 +117,7 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">The user in flight is an identifier that carries no such number.</exception>
     public static TKey? UserId<TKey>()
         where TKey : struct =>
-        CurrentUser.Id is { } id ? CurrentKey.Of<TKey>(id, CurrentRowKind.User, KeyedBy(_user, "The user")) : null;
+        CurrentUser.Id is { } id ? CurrentKey.Of<TKey>(id, CurrentRowKind.User, KeyedBy(UserRow, "The user")) : null;
 
     /// <summary>
     ///     The id of the user the work in flight is for, as the number the app's user is keyed by, or a thrown
@@ -128,7 +130,7 @@ public static class CurrentRows
     /// </exception>
     public static TKey RequiredUserId<TKey>()
         where TKey : struct =>
-        CurrentKey.Of<TKey>(CurrentUser.RequiredId, CurrentRowKind.User, KeyedBy(_user, "The user"));
+        CurrentKey.Of<TKey>(CurrentUser.RequiredId, CurrentRowKind.User, KeyedBy(UserRow, "The user"));
 
     /// <summary>
     ///     Makes the user keyed <paramref name="userId" /> the current user until the returned scope is disposed.
@@ -151,7 +153,7 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">The tenant in flight is an identifier that carries no such number.</exception>
     public static TKey? TenantId<TKey>()
         where TKey : struct =>
-        Data.Tenant.Key is { } key ? CurrentKey.Of<TKey>(key, CurrentRowKind.Tenant, KeyedBy(_tenant, "The tenant")) : null;
+        Data.Tenant.Key is { } key ? CurrentKey.Of<TKey>(key, CurrentRowKind.Tenant, KeyedBy(TenantRow, "The tenant")) : null;
 
     /// <summary>
     ///     The id of the tenant the work in flight belongs to, as the app's tenant is keyed, or a thrown exception
@@ -173,17 +175,17 @@ public static class CurrentRows
                 "work is for inside it — Tenant.Use(id).");
         }
 
-        return CurrentKey.Of<TKey>(Data.Tenant.RequiredKey, CurrentRowKind.Tenant, KeyedBy(_tenant, "The tenant"));
+        return CurrentKey.Of<TKey>(Data.Tenant.RequiredKey, CurrentRowKind.Tenant, KeyedBy(TenantRow, "The tenant"));
     }
 
     /// <summary>Whether the app's user aggregate is keyed by a number, so a numeric user claim names a user.</summary>
-    internal static bool NumberedUser => _user?.IsNumbered == true;
+    internal static bool NumberedUser => UserRow?.IsNumbered == true;
 
     /// <summary>Whether the app's tenant aggregate is keyed by a number, so a numeric tenant claim names a tenant.</summary>
-    internal static bool NumberedTenant => _tenant?.IsNumbered == true;
+    internal static bool NumberedTenant => TenantRow?.IsNumbered == true;
 
     /// <summary>Whether the app named a tenant or a user aggregate, so there is anything to read ahead or drop.</summary>
-    internal static bool IsOn => _tenant is not null || _user is not null;
+    internal static bool IsOn => TenantRow is not null || UserRow is not null;
 
     /// <summary>Reads the rows of the tenant and the user the work in flight is for, unless they are held already.</summary>
     /// <remarks>Completes synchronously, allocating nothing, when there is nothing to read.</remarks>
@@ -208,8 +210,8 @@ public static class CurrentRows
                         + "throws whatever this would have, at the line that wanted the row.")]
     internal static ValueTask Prime(IServiceProvider? scope, CancellationToken cancellationToken)
     {
-        var tenant = _tenant;
-        var user = _user;
+        var tenant = TenantRow;
+        var user = UserRow;
         if (tenant is null && user is null)
         {
             return default;
@@ -240,8 +242,8 @@ public static class CurrentRows
     /// <summary>Drops the rows held for any of <paramref name="saved" />: a save of the tenant or the user changed them.</summary>
     internal static void Saved(IEnumerable<Type> saved)
     {
-        var tenant = _tenant;
-        var user = _user;
+        var tenant = TenantRow;
+        var user = UserRow;
         if (tenant is null && user is null)
         {
             return;
@@ -262,30 +264,37 @@ public static class CurrentRows
     }
 
     /// <summary>Whether a save of <paramref name="type" /> drops a held row: it is the tenant or the user aggregate.</summary>
-    internal static bool Watches(Type type) => _tenant?.Aggregate == type || _user?.Aggregate == type;
+    internal static bool Watches(Type type) => TenantRow?.Aggregate == type || UserRow?.Aggregate == type;
 
     /// <summary>Counts a read answered by a synchronous query.</summary>
     internal static void CountQuery(CurrentRowKind kind) =>
         Queries.Add(1, new KeyValuePair<string, object?>("row", kind is CurrentRowKind.Tenant ? "tenant" : "user"));
 
-    /// <summary>Registers <paramref name="row" /> as the generated code does. Test seam: a test assembly cannot say ITenant four times.</summary>
+    /// <summary>
+    ///     Registers <paramref name="row" /> as the generated code does, for the calling flow alone — the test that calls it
+    ///     and what it awaits — so tests side by side each read their own rows. Test seam: a test assembly cannot say
+    ///     ITenant four times.
+    /// </summary>
+    /// <remarks>
+    ///     The flow then sees only what it registered: a kind it did not register is none, not the process's. Not async,
+    ///     so it registers in the flow of whatever calls it.
+    /// </remarks>
     internal static void Use(CurrentRow row)
     {
-        if (row.Kind is CurrentRowKind.Tenant)
-        {
-            _tenant = row;
-        }
-        else
-        {
-            _user = row;
-        }
+        var current = InFlow.Value ?? Registrations.None;
+        InFlow.Value = row.Kind is CurrentRowKind.Tenant ? current with { ForTenant = row } : current with { ForUser = row };
     }
 
-    /// <summary>Forgets both registrations and everything held. Test seam, like <see cref="Db.Reset" />.</summary>
-    internal static void Reset()
+    /// <summary>Forgets what <see cref="Use" /> registered in this flow. Test seam, like <see cref="Db.Reset" />.</summary>
+    internal static void Reset() => InFlow.Value = null;
+
+    private static CurrentRow? TenantRow => InFlow.Value is { } flow ? flow.ForTenant : _registeredTenant;
+
+    private static CurrentRow? UserRow => InFlow.Value is { } flow ? flow.ForUser : _registeredUser;
+
+    private sealed record Registrations(CurrentRow? ForTenant, CurrentRow? ForUser)
     {
-        _tenant = null;
-        _user = null;
+        internal static readonly Registrations None = new(null, null);
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types",

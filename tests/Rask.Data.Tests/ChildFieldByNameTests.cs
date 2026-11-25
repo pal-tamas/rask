@@ -86,7 +86,6 @@ public sealed class Logbook : Aggregate<int, Model, Deletable>
 /// Children behind a field whose name EF Core's convention does not pair with the property — <c>_items</c> behind
 /// <c>Notes</c> — are written through that field, on the aggregate itself or on a generic abstract base.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ChildFieldByNameTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -148,7 +148,6 @@ public sealed class Agreement : Aggregate<int, Timestamps, Versioned, Model, Del
 /// — a <see cref="RaskValidationException" /> about the delete as a whole, naming no field — instead of as the
 /// provider's <see cref="DbUpdateException" />. Without a sentence, or when it was not a delete, nothing changes.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ReferencedDeleteTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

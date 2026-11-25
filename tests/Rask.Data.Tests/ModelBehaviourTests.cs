@@ -85,7 +85,6 @@ public sealed record OrderCancelled(Guid Id) : IEvent;
 // Half of these tests construct no database at all, which is the point: behaviour that only changes the
 // model is a plain object, so it is tested like one. The half that reads the database gets a real one in
 // a line — no mock of a DbContext, and no assertion about a call that was supposed to have happened.
-[Collection(DataDbCollection.Name)]
 public sealed class ModelBehaviourTests : IDisposable
 {
     private static readonly DateTime Now = new(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);

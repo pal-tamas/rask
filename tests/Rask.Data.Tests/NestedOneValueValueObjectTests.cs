@@ -136,7 +136,6 @@ public sealed class ComplexGondolaContext(DbContextOptions<ComplexGondolaContext
 /// A value object that holds one value is that value's column wherever it is held — on the aggregate, or inside
 /// another value object however that one is built — and the column is the one it always had (#1244).
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class NestedOneValueValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

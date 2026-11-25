@@ -6,9 +6,8 @@ namespace Rask.Background.Tests;
 
 /// <summary>
 /// A test with a <see cref="TestDatabase" /> and no host: the database's services are the app it has, so a fake's
-/// <c>Run()</c> reaches the job's handler through them. In the collection because the database binds the model surface.
+/// <c>Run()</c> reaches the job's handler through them.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobsFakeHostlessTests
 {
     [Fact]

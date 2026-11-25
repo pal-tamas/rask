@@ -32,7 +32,6 @@ public sealed class ThroughTicket : Aggregate<Guid, PerTenantThrough<ThroughPort
 /// F-31: <see cref="PerTenantThrough{TParent}" /> partitions an aggregate through the one it points at, and
 /// <c>X.Across(reason)</c> lifts the tenant filter for one read — and only the tenant filter.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantThroughTests : IDisposable
 {
     private static readonly Guid Acme = new("5d0f7a7e-1b0c-4a3e-9b1a-0000000000a1");

@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 
 // F-19: a read face's own ForUpdate() step reads its rows under the update lock inside a Db.Transaction — on SQLite the
 // read is written as is (its one writer serializes), so the tag shows it ran — and refuses to run outside one.
-[Collection(DataDbCollection.Name)]
 public sealed class ReadFaceForUpdateTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

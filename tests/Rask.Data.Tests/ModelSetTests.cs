@@ -4,18 +4,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data.Tests;
 
-// The read surface on the entity, end to end against a real SQLite file and bound the way an application
-// binds it — AddRaskData<TContext>() and one Db.Configure(services). No DbContext is named below the
-// fixture except to seed rows, which is the whole point of it.
-//
-// In the data-db collection because Db's configuration is process-wide — two classes configuring it at
-// once would point one another's queries at the wrong file.
-[Collection(DataDbCollection.Name)]
+// The read surface on the entity, end to end against a real SQLite database and bound the way an application
+// binds it — AddRaskData<TContext>() and one Db.Use(services), the test's form of Db.Configure(services). No
+// DbContext is named below the fixture except to seed rows, which is the whole point of it.
 public sealed class ModelSetTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
+
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): the constructor runs in the
+    // flow its test does.
+    private readonly IDisposable _db;
 
     public ModelSetTests()
     {
@@ -42,12 +42,12 @@ public sealed class ModelSetTests : IDisposable
             db.Database.EnsureCreated();
         }
 
-        Db.Configure(_provider);
+        _db = Db.Use(_provider);
     }
 
     public void Dispose()
     {
-        Db.Reset();
+        _db.Dispose();
         _provider.Dispose();
         _sqlite.Dispose();
     }
@@ -286,7 +286,7 @@ public sealed class ModelSetTests : IDisposable
     [Fact]
     public async Task A_read_before_Configure_says_how_to_configure()
     {
-        Db.Reset();
+        _db.Dispose();
 
         Assert.False(Db.IsOn);
 

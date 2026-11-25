@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 ///     no longer skips the steps behind it, and is logged — or, at <see cref="AfterCommitFailure.Throw" />, handed to the
 ///     caller once every step has run. Either way the work stays committed.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class AfterCommitFailureTests : IAsyncDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
@@ -17,7 +16,6 @@ public sealed class AfterCommitFailureTests : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
         if (_provider is not null)
         {
             await _provider.DisposeAsync();
@@ -99,7 +97,6 @@ public sealed class AfterCommitFailureTests : IAsyncDisposable
             db.Database.EnsureCreated();
         }
 
-        Db.Configure(_provider);
         var session = _provider.CreateScope();
         var bound = Db.UseScope(session.ServiceProvider);
         return new Both(bound, session);

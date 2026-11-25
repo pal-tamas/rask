@@ -46,7 +46,6 @@ public sealed class Pump : Aggregate<int, Model>
 /// An enum as a value object is one member over <see cref="Value" />: one column of the enum's own type, queried by
 /// its value, carried on the generated model as the enum itself and offered to a control as a choice of its members.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class EnumValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

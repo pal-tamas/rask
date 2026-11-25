@@ -77,7 +77,6 @@ public sealed class DutyReturn : Filing<DutyReturn>
 /// A collection behind a private field of a GENERIC abstract base maps on each closed derived aggregate exactly as one
 /// on a plain abstract base does: written by the aggregate, found again, and read through the read face.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class GenericBaseCollectionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

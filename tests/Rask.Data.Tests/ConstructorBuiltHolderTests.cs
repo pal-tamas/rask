@@ -140,7 +140,6 @@ public sealed class HolderContext<THolder>(DbContextOptions<HolderContext<THolde
 /// it leaves alone builds one and comes back whole. The shapes are the cases of the generator's own
 /// <c>ConstructorBuiltHolderTests</c>.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ConstructorBuiltHolderTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

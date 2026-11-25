@@ -82,13 +82,16 @@ public sealed class RefundContext(DbContextOptions<RefundContext> options) : Ras
 /// a key part named after the table's column, the aggregate spelled as a part, or a grandchild's columns — with no
 /// shadow column the table has not got.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
 {
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public HeldChildRelationshipReadTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -102,8 +105,11 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
             .ConfigureWarnings(static w => w.Throw(CoreEventId.ShadowForeignKeyPropertyCreated)));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await _app.GetRequiredService<IDbContextFactory<RefundContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
@@ -132,7 +138,7 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

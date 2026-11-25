@@ -42,7 +42,6 @@ public sealed class BerthContext(DbContextOptions<BerthContext> options) : DbCon
 /// Every test here runs against tables whose unique indexes have been DROPPED, so nothing but the check can
 /// refuse a duplicate: a refusal with no inner exception is the check's, never the database's.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -51,7 +50,11 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public DeclaredUniqueRulesTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -64,8 +67,11 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         // The tables, and then no unique index on any of them: the shape of a database somebody else made,
         // where what the model declares was never created.
         await using var context = await OpenAsync();
@@ -83,7 +89,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

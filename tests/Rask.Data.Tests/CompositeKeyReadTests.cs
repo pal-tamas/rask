@@ -80,7 +80,6 @@ public sealed class HandWiredFuelContext(DbContextOptions<HandWiredFuelContext> 
 /// parts, a filter on one of them, the navigation to the other aggregate, the tenant through the note, and the
 /// <c>Include</c> from the note.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CompositeKeyReadTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -89,7 +88,11 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public CompositeKeyReadTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -101,8 +104,11 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.ExecuteSqlRawAsync(
             """
@@ -122,7 +128,7 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

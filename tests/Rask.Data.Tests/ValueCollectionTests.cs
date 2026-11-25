@@ -57,7 +57,6 @@ public sealed class Itinerary : Aggregate<Guid, Timestamps, Versioned, Model, De
 /// collection of plain values behind a read-only view was not mapped at all: green build, no diagnostic, and
 /// what a domain method added was gone on the next read.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class ValueCollectionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -50,7 +50,6 @@ public sealed class CellarNote : Aggregate<Guid>
 ///     <c>OneAggregatePerTransaction</c>: a <c>Db.Transaction</c> that writes a second aggregate says why, with
 ///     <c>manyAggregates:</c> — a test database refuses one that does not.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class OneAggregatePerTransactionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

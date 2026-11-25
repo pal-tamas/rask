@@ -47,6 +47,8 @@ public sealed class TenantReferencesReadModelTests : IAsyncLifetime
     [Fact]
     public async Task A_read_face_query_and_a_write_both_run_under_tenant_references()
     {
+        // Started in InitializeAsync, whose flow ends before the test runs: bound here for the model surface.
+        using var bound = _database.Bind();
         _database.Context.Add(NumberShop.Open(7, "Acme"));
         await _database.Context.SaveChangesAsync(Ct);
         _database.Context.ChangeTracker.Clear();

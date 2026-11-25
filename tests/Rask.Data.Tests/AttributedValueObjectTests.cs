@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 /// column their own facet over the value object's, [Required] makes it NOT NULL, and the generated model carries each
 /// attribute, so a form and a write ask it beside the value object's rule.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class AttributedValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

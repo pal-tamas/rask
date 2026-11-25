@@ -403,6 +403,17 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **A `TestDatabase` binds the test that started it, never the process; `Db.Use(…)` is the test's `Db.Configure(…)`.**
+  Before: `TestDatabase.Start` also pointed the process-wide `Db`/`ReadDb` at its database, so a read outside the
+  test's own flow (another class running beside it) could reach whichever database was started last, and a suite
+  that called `Db.Configure`/`Db.Reset` had to run its classes one at a time. Now `Start` binds only the calling flow,
+  and `Db.Use(services)` / `Db.Use(factory)` / `Db.Use(() => ctx)` and `ReadDb.Use(() => ctx)` point the model surface
+  somewhere for the calling test alone, until disposed — call them from the test or its constructor
+  (`InitializeAsync`, being async, hands nothing on). A database a class or collection fixture started is reached
+  through `database.Bind()`, which Rask.Testing's xUnit hook calls before each test; one used without either is no
+  longer found. `Db.Configure` is unchanged for an app, and `TestDatabase.FromEnvironment` still binds the process, one
+  at a time. Rask's own `Rask.Data`, `Rask.Jobs`, `Rask.Outbox` and `Rask.Storage` suites now run their classes in
+  parallel.
 - **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
   bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
   components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote

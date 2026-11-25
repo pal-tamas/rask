@@ -63,7 +63,6 @@ public sealed class StallMark : Entity<Guid>
 /// F-30: a child that names <see cref="SoftRemoved" /> is kept, stamped, when its aggregate lets go of it — hidden from
 /// the aggregate's load and from its read face, listed again by IgnoreQueryFilters, its unique name still taken.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class SoftRemovedTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -8,7 +8,6 @@ namespace Rask.Background.Tests;
 ///     A batch (#1368): <c>Jobs.Enqueue(jobs)</c> writes every row in one save — all of them or none — stamped with one batch,
 ///     each titled by <c>.Noticed(j =&gt; …)</c>, and the board shows it as one piece of work.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
 public sealed class JobBatchTests
 {
     private static readonly Guid Alice = Guid.Parse("0e4b6c1e-7b52-4f3c-9d2f-1a1a1a1a1a1a");
@@ -53,19 +52,12 @@ public sealed class JobBatchTests
     public async Task A_batch_inside_a_transaction_that_rolls_back_leaves_no_row()
     {
         await using var h = new JobsHarness();
-        Db.Configure(h.Get<IDbContextFactory<JobsDbContext>>());
-        try
+        using var facade = Db.Use(h.Get<IDbContextFactory<JobsDbContext>>());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
-            {
-                await Written(h, ["a.csv", "b.csv"], b => b);
-                throw new InvalidOperationException("the press was undone");
-            }, cancellationToken: Ct));
-        }
-        finally
-        {
-            Db.Reset();
-        }
+            await Written(h, ["a.csv", "b.csv"], b => b);
+            throw new InvalidOperationException("the press was undone");
+        }, cancellationToken: Ct));
 
         Assert.Equal(0, await h.CountJobsAsync());
     }

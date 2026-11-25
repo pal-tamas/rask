@@ -82,7 +82,6 @@ public sealed class RateCard : Aggregate<Guid, Timestamps, Versioned, Model, Del
 /// evaluated once and inlined into the SQL as a literal — measured before this was written: the second tenant
 /// to query saw the first tenant's rows, with the first tenant's id sitting in the SQL as a constant.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class TenancyTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

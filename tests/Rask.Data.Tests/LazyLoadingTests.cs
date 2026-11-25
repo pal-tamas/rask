@@ -46,7 +46,6 @@ public sealed class LazyShelfContext(DbContextOptions<LazyShelfContext> options)
 ///     Lazy loading is off on a context the Rask interceptors reach: a navigation nobody loaded stays unloaded and runs no
 ///     query. <c>AllowLazyLoading()</c> is the way back.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class LazyLoadingTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

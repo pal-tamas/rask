@@ -46,7 +46,7 @@ public static partial class Db
     private static int _generation;
 
     /// <summary>Whether <see cref="Configure(IServiceProvider)" /> (or an overload) has run.</summary>
-    public static bool IsOn => Flow.Value is not null || _factory is not null;
+    public static bool IsOn => Flow.Value?.Write is not null || _factory is not null;
 
     /// <summary>
     ///     How many times the model surface has been pointed at a database. Part of the read context's
@@ -65,7 +65,7 @@ public static partial class Db
     ///     What lets tests run side by side, each with a database of its own. The caller must not be an async method:
     ///     a flow's value set inside one is gone again once it returns.
     /// </remarks>
-    internal static FlowDatabase BindFlow(Func<DbContext> write, Func<RaskReadDbContext> read, IServiceProvider? services = null)
+    internal static FlowDatabase BindFlow(Func<DbContext> write, Func<DbContext> read, IServiceProvider? services = null)
     {
         var bound = new FlowDatabase(write, read, Interlocked.Increment(ref _generation), services);
         Flow.Value = bound;
@@ -73,24 +73,64 @@ public static partial class Db
         return bound;
     }
 
-    /// <summary>Binds <paramref name="bound" /> to this flow again, handing back what was bound before — see <c>TestDatabase.Bind</c>.</summary>
-    /// <remarks>As <see cref="BindFlow" />: the caller must not be an async method.</remarks>
-    internal static FlowDatabase? EnterFlow(FlowDatabase bound)
+    /// <summary>
+    ///     Points the model surface at the application's <c>DbContext</c> in <paramref name="services" /> — as
+    ///     <see cref="Configure(IServiceProvider)" /> does, read side too — for the calling flow alone, until the returned
+    ///     binding is disposed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The form a test uses: <see cref="Configure(IServiceProvider)" /> points the whole process somewhere, so two
+    ///         tests configuring it side by side would read and write each other's database. This binds the test that
+    ///         calls it and whatever it awaits, and nothing else — <c>using var db = Db.Use(app);</c>.
+    ///     </para>
+    ///     <para>
+    ///         Not async, so it binds the flow of whatever calls it: a test method, or the test class's constructor, whose
+    ///         flow xUnit runs the test in. <c>InitializeAsync</c> is async, so a binding made there is gone once it
+    ///         returns. Disposing puts back what was bound before.
+    ///     </para>
+    /// </remarks>
+    /// <param name="services">The container <c>AddRaskData&lt;TContext&gt;()</c> registered the context in.</param>
+    /// <returns>The binding; dispose it to let go of it.</returns>
+    /// <exception cref="InvalidOperationException">No context type was registered by <c>AddRaskData&lt;TContext&gt;()</c>.</exception>
+    public static IDisposable Use(IServiceProvider services)
     {
-        var previous = Flow.Value;
-        Flow.Value = bound;
-        Ambient.DeclineTestApp();
-        return previous;
+        ArgumentNullException.ThrowIfNull(services);
+        return Enter(new FlowDatabase(BindingIn(services).CreateContext, ReadDb.FactoryIn(services), Interlocked.Increment(ref _generation)));
     }
 
-    /// <summary>Puts <paramref name="previous" /> back in this flow, if <paramref name="bound" /> is still the one bound there.</summary>
-    internal static void RestoreFlow(FlowDatabase bound, FlowDatabase? previous)
+    /// <summary>
+    ///     Points the model surface's write side at <paramref name="factory" /> for the calling flow alone, as
+    ///     <see cref="Use(IServiceProvider)" /> does — the read side stays where it was.
+    /// </summary>
+    /// <param name="factory">The context factory.</param>
+    /// <returns>The binding; dispose it to let go of it.</returns>
+    public static IDisposable Use<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IDbContextFactory<TContext> factory)
+        where TContext : DbContext
     {
-        if (ReferenceEquals(Flow.Value, bound))
-        {
-            Flow.Value = previous;
-        }
+        ArgumentNullException.ThrowIfNull(factory);
+        return Use(factory.CreateDbContext);
     }
+
+    /// <summary>
+    ///     Points the model surface's write side at <paramref name="createContext" /> — which must return a fresh,
+    ///     unshared context on every call — for the calling flow alone, as <see cref="Use(IServiceProvider)" /> does.
+    /// </summary>
+    /// <param name="createContext">Opens a fresh context.</param>
+    /// <returns>The binding; dispose it to let go of it.</returns>
+    public static IDisposable Use(Func<DbContext> createContext)
+    {
+        ArgumentNullException.ThrowIfNull(createContext);
+        return Enter(new FlowDatabase(createContext, Flow.Value?.Read, Interlocked.Increment(ref _generation)));
+    }
+
+    /// <summary>The read side of this flow pointed at <paramref name="read" />, its write side kept — see <c>ReadDb.Use</c>.</summary>
+    internal static IDisposable UseRead(Func<DbContext> read) =>
+        Enter(new FlowDatabase(Flow.Value?.Write, read, Interlocked.Increment(ref _generation), Flow.Value?.Services));
+
+    /// <summary>Binds <paramref name="bound" /> to this flow until the returned binding is disposed — see <c>TestDatabase.Bind</c>.</summary>
+    /// <remarks>As <see cref="BindFlow" />: the caller must not be an async method.</remarks>
+    internal static IDisposable Enter(FlowDatabase bound) => new FlowBinding(bound);
 
     /// <summary>
     ///     Forgets the database bound to this flow: a <c>Configure</c> the flow makes after starting one is its say, as
@@ -128,14 +168,7 @@ public static partial class Db
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var binding = services.GetService<AmbientContextBinding>()
-                      ?? throw new InvalidOperationException(
-                          "No DbContext is bound to the model surface. Register one with " +
-                          "`services.AddRaskData<AppDbContext>()` (the generic overload names the context; " +
-                          "the non-generic AddRaskData() only registers the interceptors), or call " +
-                          "Db.Configure(IDbContextFactory<AppDbContext>) with the factory directly.");
-
-        _factory = binding.CreateContext;
+        _factory = BindingIn(services).CreateContext;
         LeaveFlow();
         Interlocked.Increment(ref _generation);
         Ambient.DeclineTestApp();
@@ -279,7 +312,7 @@ public static partial class Db
 
     /// <summary>Whether <see cref="CreateContext" /> has anything to build a context from.</summary>
     internal static bool HasContext =>
-        Flow.Value is not null ||
+        Flow.Value?.Write is not null ||
         _factory is not null ||
         (AmbientScope.Value ?? Ambient.Services)?.GetService<AmbientContextBinding>() is not null;
 
@@ -306,7 +339,41 @@ public static partial class Db
         return (Flow.Value?.Write ?? _factory ?? throw new InvalidOperationException(
             "The model database has not been configured. A Rask app gets this from the host; elsewhere " +
             "call `Db.Configure(app.Services)` once after building the container, having registered the " +
-            "context with `services.AddRaskData<AppDbContext>()`."))();
+            "context with `services.AddRaskData<AppDbContext>()`. In a test, a TestDatabase (or Db.Use) binds the " +
+            "test that starts it and never the process: start it in the test or its constructor, not inside an async " +
+            "helper, whose binding ends when it returns — or bind it where it is read, `using var bound = database.Bind();`."))();
+    }
+
+    private static AmbientContextBinding BindingIn(IServiceProvider services) =>
+        services.GetService<AmbientContextBinding>()
+        ?? throw new InvalidOperationException(
+            "No DbContext is bound to the model surface. Register one with " +
+            "`services.AddRaskData<AppDbContext>()` (the generic overload names the context; " +
+            "the non-generic AddRaskData() only registers the interceptors), or call " +
+            "Db.Configure(IDbContextFactory<AppDbContext>) with the factory directly.");
+
+    // Binds a database to the flow that made it, and puts back what was bound before once disposed — if it is still the
+    // one bound there, so a binding disposed out of order never unbinds a later one.
+    private sealed class FlowBinding : IDisposable
+    {
+        private readonly FlowDatabase _bound;
+        private readonly FlowDatabase? _previous;
+
+        internal FlowBinding(FlowDatabase bound)
+        {
+            _bound = bound;
+            _previous = Flow.Value;
+            Flow.Value = bound;
+            Ambient.DeclineTestApp();
+        }
+
+        public void Dispose()
+        {
+            if (ReferenceEquals(Flow.Value, _bound))
+            {
+                Flow.Value = _previous;
+            }
+        }
     }
 
     private sealed class ScopeBinding : IDisposable
@@ -336,12 +403,12 @@ public static partial class Db
     }
 
     /// <summary>A test's database, bound to the flow that started it.</summary>
-    /// <param name="Write">Opens a write context on it.</param>
-    /// <param name="Read">Opens a read context on it.</param>
+    /// <param name="Write">Opens a write context on it; null leaves the write side to the process-wide factory.</param>
+    /// <param name="Read">Opens a read context on it; null leaves the read side to the process-wide factory.</param>
     /// <param name="ReadModelKey">Its own generation, so the read model mirrored from its write model is its own.</param>
     /// <param name="Services">
     ///     The services its saves publish through — the app a host-less test has, which a fake's <c>Run()</c> reaches.
     /// </param>
     internal sealed record FlowDatabase(
-        Func<DbContext> Write, Func<RaskReadDbContext> Read, int ReadModelKey, IServiceProvider? Services = null);
+        Func<DbContext>? Write, Func<DbContext>? Read, int ReadModelKey, IServiceProvider? Services = null);
 }

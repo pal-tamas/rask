@@ -5,25 +5,31 @@ namespace Rask.Data.Tests;
 /// <summary>
 ///     <c>Db.Lock(name)</c> on SQLite: one holder of a name at a time, in this process — the host SQLite runs on.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbLockTests : IAsyncLifetime
 {
     private readonly InMemorySqlite _sqlite = new();
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public DbLockTests()
     {
-        Db.Configure(() => new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>()
+        _db = Db.Use(() => new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>()
             .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(AmbientTransactionInterceptor.Instance)
             .Options));
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var schema = Db.CreateOwnContext();
         await schema.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
     }
 
     public ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         _sqlite.Dispose();
         return ValueTask.CompletedTask;
     }

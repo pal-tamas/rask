@@ -29,7 +29,6 @@ public sealed class Truck : Aggregate<Guid, Model, Deletable>
 /// One read face used inside another's LINQ — a correlated lookup the way an app writes it — runs as one SQL
 /// query against the context the outer query opened, and never takes the process down when EF cannot translate it.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class NestedReadFaceQueryTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

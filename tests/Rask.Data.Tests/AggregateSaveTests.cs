@@ -19,7 +19,6 @@ public sealed class Satchel : Aggregate<Guid, Model, SoftDelete>
 
 // `Product.Find(id)` → its own methods → `product.Save()`: the aggregate loaded, changed and written back with
 // no context held in between, against a real SQLite file with the fixture's interceptors.
-[Collection(DataDbCollection.Name)]
 public sealed class AggregateSaveTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);

@@ -9,7 +9,6 @@ namespace Rask.Data.Tests;
 /// Children an aggregate declares as a read-only collection initialised to <c>[]</c>, <c>Array.Empty</c> or an
 /// array — a fixed-size collection EF Core cannot add to — load, refill, add and remove like any other.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ArrayHeldChildrenTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -20,7 +19,11 @@ public sealed class ArrayHeldChildrenTests : IAsyncLifetime
     private readonly InMemorySqlite _handWired = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public ArrayHeldChildrenTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -35,15 +38,18 @@ public sealed class ArrayHeldChildrenTests : IAsyncLifetime
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
         _handWired.Dispose();

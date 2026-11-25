@@ -10,7 +10,6 @@ namespace Rask.Data.Tests;
 ///     thousands of fuelings take minutes to save (2026-11-20). The time is printed, never asserted: a runner's clock
 ///     proves nothing.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class LargeAggregateSaveTests(ITestOutputHelper output) : IDisposable
 {
     private const int Acme = 7;

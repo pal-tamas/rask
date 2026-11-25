@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 // executions. What that promise rests on is pinned here: the LINQ an IQueryable consumer actually calls
 // runs in the database, every execution sees the database as it is now, and every context an execution
 // opens is released again — synchronous or awaited, succeeding or failing.
-[Collection(DataDbCollection.Name)]
 public sealed class ModelQueryableTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
@@ -187,15 +186,15 @@ public sealed class ModelQueryableTests : IDisposable
     private static bool IsInteresting(string name) => name.Length > 0;
 
     // Points the READ side at contexts that count themselves, over the database the fixture created —
-    // a read opens a read context now, so that is the one whose release is worth proving. TestDatabase's
-    // DisposeAsync resets both halves, so this never outlives the test.
+    // a read opens a read context now, so that is the one whose release is worth proving. It is bound to the test's
+    // flow alone (ReadDb.Use), so it never outlives the test.
     private ContextTally ConfigureCountingContexts()
     {
         var tally = new ContextTally();
         var options = OptionsLayout.LikeAddDbContext<RaskReadDbContext>()
             .UseSqlite(_sqlite.ConnectionString).Options;
 
-        ReadDb.Configure(() => new DisposalCountingReadContext(options, tally));
+        _ = ReadDb.Use(() => new DisposalCountingReadContext(options, tally));
         return tally;
     }
 

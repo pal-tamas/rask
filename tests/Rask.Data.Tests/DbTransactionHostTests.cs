@@ -9,13 +9,16 @@ namespace Rask.Data.Tests;
 ///     <c>Db.Transaction</c> on a hand-wired <c>AddRaskData&lt;TContext&gt;()</c> host: what a save announces — its
 ///     domain events, the data-changed notice to the session — goes out after the commit, and never after a rollback.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionHostTests : IAsyncDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
     private readonly EventRecorder _events = new();
     private readonly ChangeRecorder _changes = new();
     private readonly ServiceProvider _provider;
+
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): the constructor runs in the
+    // flow its test does.
+    private readonly IDisposable _db;
 
     public DbTransactionHostTests()
     {
@@ -32,12 +35,12 @@ public sealed class DbTransactionHostTests : IAsyncDisposable
         _provider = services.BuildServiceProvider();
         using var db = _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext();
         db.Database.EnsureCreated();
-        Db.Configure(_provider);
+        _db = Db.Use(_provider);
     }
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _provider.DisposeAsync();
         _sqlite.Dispose();
     }

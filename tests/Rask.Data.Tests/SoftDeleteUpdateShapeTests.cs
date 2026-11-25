@@ -31,7 +31,6 @@ public sealed class ShapeTicket : Aggregate<string, Timestamps, Versioned, Model
 // #1055: a soft delete is an UPDATE of DeletedAt, not of the whole row. Turning the Deleted entry into Modified marked
 // every property modified, so the statement wrote back each column the deleting context had loaded — and a delete of a
 // row someone had changed since silently reverted their change.
-[Collection("data-db")]
 public sealed class SoftDeleteUpdateShapeTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

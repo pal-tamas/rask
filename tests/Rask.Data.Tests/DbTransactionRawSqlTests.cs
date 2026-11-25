@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 ///     Raw SQL an app runs on its own context inside <c>Db.Transaction</c> — <c>ExecuteSqlRaw</c>, <c>SqlQueryRaw</c> —
 ///     runs inside the transaction, and a later <c>db:</c> call with the same context joins it as well.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DbTransactionRawSqlTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

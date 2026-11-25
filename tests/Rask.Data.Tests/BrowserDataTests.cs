@@ -10,7 +10,7 @@ namespace Rask.Data.Tests;
 ///     In a WebAssembly app, <c>AddRaskData</c> wires what a Rask server host would: the model surface points at the
 ///     app's context, and a save inside the page's work refetches the page's queries about what it wrote.
 /// </summary>
-[Collection(DataDbCollection.Name)]
+[Collection(ProcessWideDbCollection.Name)]
 public sealed class BrowserDataTests : IDisposable
 {
     private static readonly QueryOptions Keep = new() { StaleTime = TimeSpan.FromHours(1) };

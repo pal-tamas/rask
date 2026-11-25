@@ -30,9 +30,9 @@ namespace Rask.Data;
 ///     <para>
 ///         It builds the generated model (so every <see cref="Aggregate{TId}" /> in the test assembly is mapped),
 ///         creates the schema, wires the interceptors an app's context has so the conventions behave
-///         as they do in production, and points both <see cref="Db" /> and <see cref="ReadDb" /> at it —
-///         so <c>Order.Where(…)</c> queries the same rows the write side just saved. Disposing clears them
-///         again, so one test cannot leak its database into the next.
+///         as they do in production, and points both <see cref="Db" /> and <see cref="ReadDb" /> at it for the
+///         test that started it — the flow it runs in, never the process — so <c>Order.Where(…)</c> queries the same
+///         rows the write side just saved, and tests side by side each read their own. Disposing lets go of it.
 ///     </para>
 ///     <para>
 ///         <b>Provider-agnostic on purpose.</b> The options callback is yours, so this adds no provider
@@ -57,6 +57,7 @@ public partial class TestDatabase : IAsyncDisposable
     private readonly Action<DbContextOptionsBuilder> _configure;
     private readonly IAsyncDisposable? _lease;
     private readonly Db.FlowDatabase _flow;
+    private readonly bool _processWide;
 
     // Binds the model surface to this database for the flow that is starting it — so it must run in that flow, outside
     // any async method of its own (see Db.BindFlow).
@@ -66,13 +67,21 @@ public partial class TestDatabase : IAsyncDisposable
         Func<DbContext> openWrite,
         Action<DbContextOptionsBuilder> configure,
         IServiceProvider services,
-        IAsyncDisposable? lease)
+        IAsyncDisposable? lease,
+        bool processWide)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
         _configure = configure;
         _lease = lease;
+        _processWide = processWide;
+        if (processWide)
+        {
+            Db.Configure(openWrite);
+            ReadDb.Configure(openRead);
+        }
+
         _flow = Db.BindFlow(openWrite, openRead, services);
     }
 
@@ -179,7 +188,8 @@ public partial class TestDatabase : IAsyncDisposable
     }
 
     // Not async: everything up to the schema runs in the caller's flow, so the database it binds the model surface to is
-    // the caller's own (Db.BindFlow) — and tests side by side each read and write their own.
+    // the caller's own (Db.BindFlow) — and tests side by side each read and write their own. Only a database opened after
+    // an await (FromEnvironment, processWide) points the process-wide binding too, since no flow binding survives that.
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     private static Task<TestDatabase<TContext>> Open<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         Action<DbContextOptionsBuilder> configure,
@@ -188,7 +198,8 @@ public partial class TestDatabase : IAsyncDisposable
         Action<IServiceCollection>? addServices,
         Func<TContext, CancellationToken, Task> createSchema,
         IAsyncDisposable? lease,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool processWide = false)
         where TContext : RaskDbContext
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -222,8 +233,7 @@ public partial class TestDatabase : IAsyncDisposable
             return new RaskReadDbContext(builder.Options);
         }
 
-        // One delegate each, handed to every place that opens a context, so disposing can tell whether the process-wide
-        // binding is still this database's before it clears it.
+        // One delegate each, handed to every place that opens a context.
         Func<TContext> write = Create;
         Func<RaskReadDbContext> read = CreateRead;
 
@@ -245,9 +255,7 @@ public partial class TestDatabase : IAsyncDisposable
         // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
         // created the schema and disposed would hand the first query an empty file.
         var schemaOwner = write();
-        Db.Configure(write);
-        ReadDb.Configure(read);
-        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
+        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease), processWide).WithSchema(createSchema, cancellationToken);
     }
 
     // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.
@@ -261,20 +269,6 @@ public partial class TestDatabase : IAsyncDisposable
     // What the database lets go of when it is disposed: the services its saves published through, then the lease.
     private static IAsyncDisposable Holding(ServiceProvider services, IAsyncDisposable? lease) =>
         lease is null ? services : new Both(services, lease);
-
-    private sealed class FlowBinding : IDisposable
-    {
-        private readonly Db.FlowDatabase _bound;
-        private readonly Db.FlowDatabase? _previous;
-
-        public FlowBinding(Db.FlowDatabase bound)
-        {
-            _bound = bound;
-            _previous = Db.EnterFlow(bound);
-        }
-
-        public void Dispose() => Db.RestoreFlow(_bound, _previous);
-    }
 
     private sealed class Both(IAsyncDisposable first, IAsyncDisposable second) : IAsyncDisposable
     {
@@ -368,14 +362,14 @@ public partial class TestDatabase : IAsyncDisposable
 
     /// <summary>
     ///     Points the model surface at this database for the calling test, until the returned binding is disposed — for a
-    ///     database a class or collection fixture started, which its tests would otherwise share through the process.
+    ///     database a class or collection fixture started, which its tests would otherwise not reach.
     /// </summary>
     /// <remarks>
     ///     <para>
     ///         A database started in the test itself needs none of this: it is bound to the test's flow already. One started
     ///         in a fixture's <c>InitializeAsync</c> is not — that ran in a flow of the test framework's own, which is gone
-    ///         by the time a test runs — so <c>Order.Where(…)</c> in a test reaches it only through the process-wide
-    ///         binding, which the last database started anywhere holds. Rask.Testing's xUnit v3 hook calls this before each
+    ///         by the time a test runs — and a test database never points the process-wide binding anywhere, so
+    ///         <c>Order.Where(…)</c> in a test does not reach it until it is bound. Rask.Testing's xUnit v3 hook calls this before each
     ///         test of a class whose fixture is, or holds, a database; elsewhere a test binds it on its first line —
     ///         <c>using var bound = fixture.Database.Bind();</c> — and reads and writes it beside fixtures of other classes
     ///         running in parallel.
@@ -383,16 +377,20 @@ public partial class TestDatabase : IAsyncDisposable
     ///     <para>Not async, so it binds the flow of whatever calls it; disposing puts back what was bound before.</para>
     /// </remarks>
     /// <returns>The binding; dispose it to let go of it.</returns>
-    public IDisposable Bind() => new FlowBinding(_flow);
+    public IDisposable Bind() => Db.Enter(_flow);
 
     /// <inheritdoc />
     /// <remarks>Not async up to the unbinding, so the flow that disposes it — the test's — forgets it too.</remarks>
     public ValueTask DisposeAsync()
     {
         Db.UnbindFlow(_flow);
-        // Only while the process-wide binding is still this database's: another test's started since is that test's.
-        Db.ResetIf(_openWrite);
-        ReadDb.ResetIf(_openRead);
+        if (_processWide)
+        {
+            // Only while the process-wide binding is still this database's.
+            Db.ResetIf(_openWrite);
+            ReadDb.ResetIf(_openRead);
+        }
+
         GC.SuppressFinalize(this);
         return LetGo();
     }

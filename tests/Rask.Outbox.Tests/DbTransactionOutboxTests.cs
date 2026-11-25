@@ -9,12 +9,15 @@ namespace Rask.Outbox.Tests;
 ///     A durable handler's row written inside <c>Db.Transaction</c> commits with the work and rolls back with it; the
 ///     in-memory handlers run after the commit.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
 public sealed class DbTransactionOutboxTests : IAsyncDisposable
 {
     private readonly InMemorySqlite _db = new();
     private readonly ShippingLog _log = new();
     private readonly ServiceProvider _provider;
+
+    // The model surface pointed at this class's database for the test's flow alone: the constructor runs in the flow
+    // its test does.
+    private readonly IDisposable _facade;
 
     public DbTransactionOutboxTests()
     {
@@ -31,12 +34,12 @@ public sealed class DbTransactionOutboxTests : IAsyncDisposable
         var contexts = _provider.GetRequiredService<IDbContextFactory<OutboxDbContext>>();
         using var db = contexts.CreateDbContext();
         db.Database.EnsureCreated();
-        Db.Configure(contexts);
+        _facade = Db.Use(contexts);
     }
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _facade.Dispose();
         await _provider.DisposeAsync();
         await _db.DisposeAsync();
     }

@@ -47,7 +47,6 @@ public sealed partial class BinderSheet : Entity<(Binder, int Number)>
 /// A child keyed by several columns, replaced by a new instance of the same key, takes that instance's collection of
 /// values onto the row the context tracks — now that such a collection is a complex collection, not an owned one.
 /// </summary>
-[Collection(Rask.Data.Tests.DataDbCollection.Name)]
 public sealed class ReplacedChildValueCollectionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

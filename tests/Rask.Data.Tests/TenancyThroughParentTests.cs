@@ -99,7 +99,6 @@ public sealed class Chip : Entity<string>
 /// Each test that proves isolation writes rows for TWO tenants — through a driver AND a vehicle — and reads as one,
 /// so a filter that asked only one parent, or none, returns the other customer's chip and fails the test.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class TenancyThroughParentTests : IDisposable
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");

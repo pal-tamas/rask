@@ -13,7 +13,6 @@ namespace Rask.Data.Tests;
 /// <remarks>
 /// Every index of the table is DROPPED first, so a refusal with no inner exception is the check's.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class IndexAsWrittenAdoptedSchemaTests : IAsyncLifetime
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
@@ -22,7 +21,11 @@ public sealed class IndexAsWrittenAdoptedSchemaTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public IndexAsWrittenAdoptedSchemaTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -35,8 +38,11 @@ public sealed class IndexAsWrittenAdoptedSchemaTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
@@ -46,7 +52,7 @@ public sealed class IndexAsWrittenAdoptedSchemaTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

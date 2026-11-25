@@ -11,7 +11,6 @@ namespace Rask.Data.Tests;
 /// refills its collection, and the save matches the new instances to the stored rows by key — an UPDATE of what
 /// changed, an INSERT for a new key, a DELETE for a dropped one and nothing for the rest, at any depth.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CompositeKeyWriteTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -21,7 +20,11 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
     private readonly SqlCommandLog _log = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public CompositeKeyWriteTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -34,15 +37,18 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

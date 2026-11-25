@@ -78,7 +78,6 @@ public sealed class Badge : Aggregate<int, Timestamps, Versioned, Model, Deletab
 /// does — a <see cref="RaskValidationException" /> carrying the message, under the field the index is over —
 /// instead of as the provider's <see cref="DbUpdateException" />.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ViolationMessageTests : IDisposable
 {
     private const int Acme = 7;

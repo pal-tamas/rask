@@ -14,6 +14,7 @@ namespace Rask.Data;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SecretKeeping
 {
+    private static readonly AsyncLocal<ISecrets?> InFlow = new();
     private static ISecrets? _default;
 
     /// <summary>The secrets used when the work in progress has none: set by the host at start, or by a test.</summary>
@@ -23,10 +24,17 @@ public static class SecretKeeping
         set => Volatile.Write(ref _default, value);
     }
 
+    /// <summary>
+    ///     Makes <paramref name="secrets" /> the ones the calling flow encrypts with when its work has none, over
+    ///     <see cref="Default" /> — the test that calls it and what it awaits, so tests side by side each keep their own.
+    ///     Test seam; not async, so it sets the flow of whatever calls it.
+    /// </summary>
+    internal static void UseInFlow(ISecrets? secrets) => InFlow.Value = secrets;
+
     /// <summary>The secrets to encrypt with now.</summary>
     /// <exception cref="InvalidOperationException">Nothing registered any.</exception>
     internal static ISecrets Current =>
-        Ambient.Services?.GetService<ISecrets>() ?? Default ?? throw new InvalidOperationException(
+        Ambient.Services?.GetService<ISecrets>() ?? InFlow.Value ?? Default ?? throw new InvalidOperationException(
             "A Secret<T> column was written or read, but no ISecrets is registered to encrypt it with. A Rask.Server host " +
             "registers one over its Data Protection key ring; a host wired by hand registers its own " +
             "(services.AddSingleton<ISecrets, …>()), and a test sets SecretKeeping.Default.");

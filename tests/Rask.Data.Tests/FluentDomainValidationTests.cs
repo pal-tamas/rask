@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 // The rules an aggregate states in its own static Rules(InlineValidator<T>) are asked by every save exactly where its
 // DataAnnotations attributes would be — every rule of a new row, only the changed members of a stored one, each row's
 // own under its place in the form — and give the columns what the attribute with the same rule would.
-[Collection(DataDbCollection.Name)]
 public sealed class FluentDomainValidationTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

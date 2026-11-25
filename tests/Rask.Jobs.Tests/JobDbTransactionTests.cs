@@ -8,7 +8,6 @@ namespace Rask.Background.Tests;
 ///     A job enqueued inside <c>Db.Transaction</c> is a row in that transaction: nobody sees it before the commit, and a
 ///     rollback leaves nothing to run.
 /// </summary>
-[Collection(DbFacadeCollection.Name)]
 public sealed class JobDbTransactionTests : IDisposable
 {
     // A file, for the test that reads from outside while the work holds its write open — "nobody sees it before the
@@ -18,11 +17,7 @@ public sealed class JobDbTransactionTests : IDisposable
 
     private string InAFile => $"Data Source={_file};Pooling=False";
 
-    public void Dispose()
-    {
-        Db.Reset();
-        File.Delete(_file);
-    }
+    public void Dispose() => File.Delete(_file);
 
     [Fact]
     public async Task A_job_enqueued_inside_is_there_only_once_the_work_commits()
@@ -76,7 +71,7 @@ public sealed class JobDbTransactionTests : IDisposable
     {
         await using var h = Configured(new JobsHarness());
         await using var other = new JobsHarness();
-        Db.Configure(other.Get<IDbContextFactory<JobsDbContext>>());
+        using var facade = Db.Use(other.Get<IDbContextFactory<JobsDbContext>>());
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(
             async () => await h.Queue.Enqueue(new RecordJob("ask"), TestContext.Current.CancellationToken),
@@ -93,7 +88,8 @@ public sealed class JobDbTransactionTests : IDisposable
             db.Database.EnsureCreated();
         }
 
-        Db.Configure(h.Get<IDbContextFactory<JobsDbContext>>());
+        // Bound to the calling test's flow alone, and let go of with it.
+        _ = Db.Use(h.Get<IDbContextFactory<JobsDbContext>>());
         return h;
     }
 }

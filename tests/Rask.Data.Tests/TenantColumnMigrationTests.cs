@@ -51,7 +51,6 @@ public sealed class Crate : Aggregate<Guid, Timestamps, Versioned, Model, Deleta
 /// <c>TenantId</c> left the base class: an entity declares it or leaves it a shadow column. A database created
 /// before that owes no migration for it — where a freshly created table lists the column differs, and nothing else.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenantColumnMigrationTests
 {
     private sealed class FormerContext(DbContextOptions<FormerContext> options) : DbContext(options)

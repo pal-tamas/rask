@@ -86,7 +86,6 @@ public sealed class LogsheetContext(DbContextOptions<LogsheetContext> options) :
 /// A unique index's violation lands under the field a form shows: the one <c>Field("…")</c> names, a complex
 /// property's member by its path, and a child row of an aggregate under its row.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class UniqueViolationFieldTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 
 // b.LockedBy(n => n.Period, (TallyPeriod p) => p.Closed, …): every save of a note — and of a line of one — asks the
 // store whether the period the note was read in, or the one it is written into, is closed.
-[Collection(DataDbCollection.Name)]
 public sealed class LockedByTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

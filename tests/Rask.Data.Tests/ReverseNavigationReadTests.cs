@@ -77,7 +77,6 @@ public sealed class Reading : Aggregate<string, Model, Deletable, PerTenant>
 /// The read face of an aggregate carries the rows of another aggregate that point at it — <c>Silo.TransfersFrom</c> for
 /// <c>Transfer.FromSiloId</c> — each read through ITS OWN filters, and every query that uses one is one statement.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ReverseNavigationReadTests : IDisposable
 {
     private static readonly Guid Acme = new("5a0c7e2b-1d4f-4c8a-9b3e-7f6d2a1c0e91");

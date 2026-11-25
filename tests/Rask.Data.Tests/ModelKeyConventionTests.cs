@@ -16,7 +16,6 @@ public sealed class Voucher : Aggregate<Guid, Timestamps, Versioned, Model, Dele
     public static Voucher WithoutId(string code) => new() { Code = code };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class ModelKeyConventionTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -16,7 +16,6 @@ public sealed class Memo : Aggregate<Guid, Timestamps, Versioned, Model, SoftDel
 
 // Every Entity<TId> has CreatedAt/UpdatedAt, and every Aggregate<TId> also Version and DeletedAt — declared on the
 // bases, readable, and written only by the framework.
-[Collection(DataDbCollection.Name)]
 public sealed class FrameworkColumnTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

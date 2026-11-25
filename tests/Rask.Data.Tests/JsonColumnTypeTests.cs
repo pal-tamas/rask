@@ -26,7 +26,6 @@ public sealed class JsonColumnsContext(DbContextOptions<JsonColumnsContext> opti
 }
 
 /// <summary>On SQLite a JSON column is <c>TEXT</c>, with nothing of SQL Server's in the schema.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class JsonColumnTypeTests
 {
     [Fact]

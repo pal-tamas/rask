@@ -28,7 +28,6 @@ public sealed class SequencedProvider : Aggregate<int, Versioned>
 /// F-34: <c>FromSequence</c> hands out the key as the row is added — before its insert — from the provider's sequence,
 /// or on SQLite from Rask's own table, started above any key the table already holds.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class FromSequenceTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

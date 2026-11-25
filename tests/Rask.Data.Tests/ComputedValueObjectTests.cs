@@ -57,7 +57,6 @@ public sealed class HamperItem : Entity<Guid>
     internal static HamperItem Of(string name, int grams) => new() { Id = Guid.CreateVersion7(), Name = name, Grams = grams };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class ComputedValueObjectTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

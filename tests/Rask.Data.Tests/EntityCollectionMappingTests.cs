@@ -44,7 +44,6 @@ public sealed class CartLine : Entity<Guid>
         new() { Id = Guid.NewGuid(), Product = product, Quantity = quantity };
 }
 
-[Collection(DataDbCollection.Name)]
 public sealed class EntityCollectionMappingTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

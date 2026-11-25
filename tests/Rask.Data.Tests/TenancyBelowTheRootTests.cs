@@ -56,7 +56,6 @@ public sealed class Packet : Entity<Guid>
 /// Only the aggregate root carries the tenant: every entity under it, at any depth, is read through the path the
 /// aggregate's own collections make, with nothing declared (#1251).
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class TenancyBelowTheRootTests : IDisposable
 {
     private const int Acme = 7;

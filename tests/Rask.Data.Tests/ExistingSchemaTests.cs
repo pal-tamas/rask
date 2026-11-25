@@ -41,7 +41,6 @@ public sealed class DomainContext(DbContextOptions<DomainContext> options) : Ras
 /// Wired the way <c>docs/data.md</c> tells an app to — through the container — so the test is the documentation
 /// compiled. Every row the Rask side writes is read back through the LEGACY context, and the other way round.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class ExistingSchemaTests : IAsyncLifetime
 {
     private const int Acme = 7;
@@ -50,7 +49,11 @@ public sealed class ExistingSchemaTests : IAsyncLifetime
     private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
-    public async ValueTask InitializeAsync()
+    // The model surface pointed at this class's app for the test's flow alone (Db.Use): a constructor runs in the flow
+    // its test does, which InitializeAsync, being async, does not hand on.
+    private readonly IDisposable _db;
+
+    public ExistingSchemaTests()
     {
         var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
@@ -69,8 +72,11 @@ public sealed class ExistingSchemaTests : IAsyncLifetime
         services.AddRaskTenant(sp => sp.GetRequiredService<RequestStub>().TenantId);
 
         _app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(_app);
+        _db = Db.Use(_app);
+    }
 
+    public async ValueTask InitializeAsync()
+    {
         // The legacy context owns the schema. Rask's is never asked to create or migrate anything.
         await using var legacy = await OpenLegacyAsync();
         await legacy.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
@@ -78,7 +84,7 @@ public sealed class ExistingSchemaTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        Db.Reset();
+        _db.Dispose();
         await _app.DisposeAsync();
         _sqlite.Dispose();
     }

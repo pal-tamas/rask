@@ -75,7 +75,6 @@ public sealed class RosterBadge : Entity<Guid, Timestamps>
 /// any child moves the root's <c>UpdatedAt</c> — so it means "anything in the aggregate changed". A child is written
 /// only through its aggregate.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class ChildStampsTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

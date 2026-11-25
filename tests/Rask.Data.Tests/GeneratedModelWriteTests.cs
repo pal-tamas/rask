@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 // fixture wires, so what is pinned is what every generated write inherits: one context per call, the
 // change tracker in the middle (stamps, versions, soft delete), and the optimistic-concurrency check a
 // caller's version turns on.
-[Collection(DataDbCollection.Name)]
 public sealed class GeneratedModelWriteTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);

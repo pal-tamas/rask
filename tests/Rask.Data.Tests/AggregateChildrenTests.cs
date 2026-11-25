@@ -44,7 +44,6 @@ public sealed class BasketLine : Entity<Guid>
 /// <summary>
 /// What it means for an aggregate to hold children: how it loads, and what a change to a part does to the whole.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class AggregateChildrenTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

@@ -88,7 +88,6 @@ public sealed class CoveringJsonContext(DbContextOptions<CoveringJsonContext> op
 }
 
 /// <summary><c>Covering(…)</c> on SQLite, which has no included columns: the index is its keys, and nothing else is said.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class CoveringIndexTests
 {
     [Fact]

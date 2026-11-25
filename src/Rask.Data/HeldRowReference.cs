@@ -27,7 +27,16 @@ internal static class HeldRowReference
     /// </summary>
     internal static Func<string> Sentence { get; set; } = static () => Message;
 
+    // A test's own sentence, for its flow alone (SayInFlow).
+    private static readonly AsyncLocal<Func<string>?> SentenceInFlow = new();
+
     private const string SqlServerCheck = "CHECK constraint";
+
+    /// <summary>
+    ///     Says <paramref name="sentence" /> in place of <see cref="Sentence" /> in the calling flow alone — a test of a
+    ///     host's language, beside tests that expect the English. Not async, so it sets the flow of whatever calls it.
+    /// </summary>
+    internal static void SayInFlow(Func<string>? sentence) => SentenceInFlow.Value = sentence;
 
     /// <summary>
     ///     The validation failure <paramref name="failure" /> stands for, when it is a row keyed by several columns
@@ -51,7 +60,7 @@ internal static class HeldRowReference
             .ToList();
 
         return fields is [{ } field]
-            ? new RaskValidationException([new FieldFailure(Sentence(), [field], Source: provider.Data["ConstraintName"] as string)], failure)
+            ? new RaskValidationException([new FieldFailure((SentenceInFlow.Value ?? Sentence)(), [field], Source: provider.Data["ConstraintName"] as string)], failure)
             : null;
     }
 

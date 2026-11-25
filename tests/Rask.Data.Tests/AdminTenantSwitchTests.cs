@@ -17,7 +17,6 @@ namespace Rask.Data.Tests;
 /// and forgetting it fails closed.
 /// </para>
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class AdminTenantSwitchTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

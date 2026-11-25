@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 /// A text kept empty (<c>KeepEmpty</c>) is written as '' where its field is left empty, never as NULL — and a row that
 /// holds NULL there keeps it until somebody fills the field.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class KeepEmptyTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

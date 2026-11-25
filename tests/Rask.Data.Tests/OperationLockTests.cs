@@ -7,7 +7,6 @@ namespace Rask.Data.Tests;
 // F-18 on the generated entries: `b.Operation(x => x.M, manyAggregates: "…")` runs it in a Db.Transaction with the
 // reason; `forUpdate: true` / `forUpdate: x => x.Wagons` and `id.Load(version, forUpdate: true)` read the rows under
 // the update lock first — on SQLite the read is written as is (its one writer serializes), so the tag shows it ran.
-[Collection(DataDbCollection.Name)]
 public sealed class OperationLockTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

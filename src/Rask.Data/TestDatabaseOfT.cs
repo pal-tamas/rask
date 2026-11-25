@@ -18,8 +18,9 @@ public sealed class TestDatabase<[DynamicallyAccessedMembers(DataTrimming.Contex
         Func<TContext> openWrite,
         Action<DbContextOptionsBuilder> configure,
         IServiceProvider services,
-        IAsyncDisposable? lease)
-        : base(schemaOwner, openRead, openWrite, configure, services, lease)
+        IAsyncDisposable? lease,
+        bool processWide)
+        : base(schemaOwner, openRead, openWrite, configure, services, lease, processWide)
     {
         Context = schemaOwner;
         Factory = new TestContextFactory<TContext>(openWrite);

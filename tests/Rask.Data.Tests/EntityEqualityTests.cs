@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 /// An entity is its identity: two loads of one row are the same entity, however many instances they are, and one
 /// that has no id yet is only itself — and stays findable in a set when its insert assigns the id.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed class EntityEqualityTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

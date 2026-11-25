@@ -6,7 +6,6 @@ namespace Rask.Data.Tests;
 
 // HasJsonIndex (#1112) on a provider that does not create it: refused at boot, like the other declarations a provider
 // would silently ignore — without the index every filter on the path would still work, and read the whole table.
-[Collection(DataDbCollection.Name)]
 public sealed class JsonIndexCheckTests
 {
     [Fact]

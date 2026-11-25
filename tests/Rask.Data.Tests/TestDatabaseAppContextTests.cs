@@ -37,7 +37,6 @@ public sealed class LedgerContext(DbContextOptions<LedgerContext> options) : Ras
 /// <summary>A context the app builds some other way, so there is no constructor taking its options.</summary>
 public sealed class OptionlessContext() : RaskDbContext(new DbContextOptions<RaskDbContext>());
 
-[Collection(DataDbCollection.Name)]
 public sealed class TestDatabaseAppContextTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

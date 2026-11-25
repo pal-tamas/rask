@@ -57,7 +57,6 @@ public sealed class Stand : Aggregate<string, Model, Deletable, PerTenant>
 /// Each test that proves isolation writes rows for TWO tenants and reads as one, so a filter that compared
 /// nothing — or the wrong thing — returns the other customer's row and fails the test.
 /// </remarks>
-[Collection(DataDbCollection.Name)]
 public sealed class TextTenantTests : IDisposable
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");

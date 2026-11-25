@@ -8,7 +8,6 @@ namespace Rask.Data.Tests;
 // batches, so the questions worth pinning are: does everything land, do the interceptors still run over
 // entities that only exist in the tracker for one batch, where does the transaction boundary sit, and do the
 // domain events wait for the commit — once each, even when a retrying strategy runs the load again.
-[Collection(DataDbCollection.Name)]
 public sealed class BulkInsertTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();

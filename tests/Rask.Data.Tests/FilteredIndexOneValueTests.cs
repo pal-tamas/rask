@@ -22,7 +22,6 @@ public sealed class NumberedSlip
 }
 
 /// <summary>An index's <c>Where(…)</c> over a one-value value object: its <c>.Value</c>, or the object itself, is the column.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class FilteredIndexOneValueTests
 {
     [Fact]

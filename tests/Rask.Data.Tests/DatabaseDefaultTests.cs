@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 /// <summary><c>Default(…)</c> on SQLite: the database's default, for the rows Rask does not write.</summary>
-[Collection(DataDbCollection.Name)]
 public sealed class DatabaseDefaultTests
 {
     [Fact]
