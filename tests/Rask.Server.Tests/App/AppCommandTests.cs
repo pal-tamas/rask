@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -15,17 +16,11 @@ namespace Rask.Server.Tests.App;
 [Collection(RaskAppCollection.Name)]
 public sealed class AppCommandTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-command-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose()
-    {
-        foreach (var file in new[] { _path, _path + "-wal", _path + "-shm" })
-        {
-            File.Delete(file);
-        }
-    }
+    public void Dispose() => _database.Dispose();
 
     [Fact]
     public void Only_arguments_that_start_with_rask_name_a_command()
@@ -106,7 +101,7 @@ public sealed class AppCommandTests : IDisposable
             c.Ops.Off();
             c.Snapshots.Off();
         });
-        app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite($"Data Source={_path};Pooling=False"));
+        app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite(_database.ConnectionString));
         return app.Build<MinimalApp>();
     }
 

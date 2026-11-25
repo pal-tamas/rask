@@ -51,6 +51,8 @@
 
   <ItemGroup>
     <Compile Include="..\Shared.TestFiles\FluxKitScan.cs" Link="FluxKitScan.cs"/>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
+    <Compile Include="..\Shared.DbCollection\SqliteFileGuard.cs" Link="SqliteFileGuard.cs"/>
   </ItemGroup>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is

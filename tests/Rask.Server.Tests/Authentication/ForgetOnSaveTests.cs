@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.Authentication;
 
@@ -14,9 +15,9 @@ namespace Rask.Server.Tests.Authentication;
 /// </summary>
 public sealed class ForgetOnSaveTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-forget-on-save-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _database.Dispose();
 
     [Fact]
     public async Task Saving_the_user_drops_the_kept_user_at_once()
@@ -105,7 +106,7 @@ public sealed class ForgetOnSaveTests : IDisposable
     // that the revalidator itself reads through — the interceptor it is told by is built for that very factory.
     private async Task<ServiceProvider> StartAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _database.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskData();
         services.AddSessionRevalidator<AccountRowCheck>().Keep(1.Hour).ForgetOnSave<AccountRow>();

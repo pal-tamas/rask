@@ -27,6 +27,26 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A sign-in challenge no longer grows its `returnUrl` until the server answers 431.** Before: a challenge of the
+  sign-in page itself (a layout guarding `/login`, a cookie the scheme kept refusing) wrapped the address it already
+  carried, escaped once more each round — `/login?returnUrl=%2Flogin%3FreturnUrl%3D%252F…` — until the request was
+  refused with `431 Request Header Fields Too Large`. Now every challenge (the page request, the live guard, a session
+  whose sign-in ended, WebAssembly, `Rask.Testing`) carries the way back the sign-in page already had, so asking again
+  is the same address; and `LocalUrl.Sanitize` turns a way back longer than the new `LocalUrl.MaxLength` (2048) into
+  `/`. Its open-redirect rules are unchanged.
+- **Two operations that take the same parameters each get their `Form.For`.** Before: `Product.Archive` and
+  `Product.Restore`, each taking only the id and version, got no form at all (RASK174, an Info nobody saw), and
+  `Form.For(Product.Archive, id)` failed with CS1503 under a misleading RASK095 ("'Form' needs …"). Now each such
+  operation gets a hidden overload of its entry that takes a mark of its own first (`ProductOperationForms.ArchiveMark`)
+  and its form takes a delegate of that shape, so each method group picks its own form. RASK174 is retired, and RASK095
+  no longer reports a call to a hand-written opening that does not bind — the compiler's error is the one that explains it.
+- **A new app starts with no RASK130 of its own, and a bare `Guid` is told what fixes it.** Before: the scaffolded
+  `User` stored its `DisplayName` as a `[MaxLength(100)] string`, which a `<RaskStrict>` app was warned about on its
+  first build, and a `Guid` reference (an order's customer) was told to declare a value object no base record holds.
+  Now the `server` and `wasm-hosted` templates' `User` holds a `UserDisplayName?` (`Text(Value, MaxLength: 100,
+  Required: false)`; the register page asks its `Check` and sets its `maxlength`), and RASK130 tells a `Guid` to take a
+  strongly-typed id — `readonly partial record struct AccountId(Guid Value)` (`docs/diagnostics.md#rask130`,
+  `docs/authentication.md`).
 - **An aggregate's `static Task On(E e) => X.UpdateEach(…)` no longer hears CA1859.** Before: the write answers a
   `Task<int>`, so the .NET analyzers asked the handler to return that — the very return type RASK179 refuses — and a
   strict app could not satisfy both. Now `RASKSUP003` suppresses CA1859 on a handler of exactly RASK179's shape, and on
