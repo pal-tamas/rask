@@ -28,6 +28,9 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     // The contexts whose save wrote rows, and the rows, until they are committed and the processor woken.
     private readonly ConditionalWeakTable<DbContext, List<OutboxMessage>> _wrote = new();
 
+    // A test's fake stands for the rows: what each context's save raised, kept back until it commits, as the rows are.
+    private readonly ConditionalWeakTable<DbContext, List<(OutboxFake Fake, OutboxFake.Held Held)>> _held = new();
+
     internal OutboxInterceptor(TimeProvider timeProvider, OutboxSignal signal, IServiceScopeFactory scopes)
     {
         _timeProvider = timeProvider;
@@ -106,6 +109,7 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var rows = new List<OutboxMessage>();
+        var held = new List<(OutboxFake Fake, OutboxFake.Held Held)>();
         foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
         {
             foreach (var e in entity.DomainEvents)
@@ -113,10 +117,10 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
                 var handlers = CqrsRegistry.DurableHandlersOf(e.GetType());
                 if (handlers.Count > 0)
                 {
-                    // A test's fake takes the event in place of the rows.
+                    // A test's fake takes the event in place of the rows — once the save commits, as the rows would.
                     if (Cqrs.Outbox.Faked.Value is { } fake)
                     {
-                        fake.Record(e, handlers, _scopes);
+                        held.Add((fake, OutboxFake.Hold(e, handlers, _scopes)));
                     }
                     else
                     {
@@ -134,6 +138,11 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
         {
             context.AddRange(rows);
             _wrote.AddOrUpdate(context, rows);
+        }
+
+        if (held.Count > 0)
+        {
+            _held.AddOrUpdate(context, held);
         }
     }
 
@@ -154,6 +163,12 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
                 ambient.AfterCommit(_signal.Wake);
             }
 
+            if (context is not null && _held.TryGetValue(context, out var held))
+            {
+                _held.Remove(context);
+                ambient.AfterCommit(() => Keep(held));
+            }
+
             return;
         }
 
@@ -165,9 +180,28 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
 
     private void Wake(DbContext? context)
     {
-        if (context is not null && _wrote.Remove(context))
+        if (context is null)
+        {
+            return;
+        }
+
+        if (_wrote.Remove(context))
         {
             _signal.Wake();
+        }
+
+        if (_held.TryGetValue(context, out var held))
+        {
+            _held.Remove(context);
+            Keep(held);
+        }
+    }
+
+    private static void Keep(List<(OutboxFake Fake, OutboxFake.Held Held)> held)
+    {
+        foreach (var (fake, one) in held)
+        {
+            fake.Keep(one);
         }
     }
 
@@ -176,6 +210,11 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     // again. The events stay on their entities (as DomainEventInterceptor leaves them), so that retry stores them once.
     private void Withdraw(DbContext? context)
     {
+        if (context is not null)
+        {
+            _held.Remove(context);
+        }
+
         if (context is not null && _wrote.TryGetValue(context, out var rows))
         {
             _wrote.Remove(context);
@@ -191,6 +230,7 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
         if (context is not null)
         {
             _wrote.Remove(context);
+            _held.Remove(context);
         }
     }
 }

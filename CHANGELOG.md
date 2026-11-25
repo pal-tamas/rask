@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
+  began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
+  retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
+  save commits — at once outside a transaction, at the commit of a `BeginTransaction` or of a `Db.Transaction` — and a
+  failed save or a rollback drops it.
 - **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
   no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
   before anything else"). Now a factory of fifteen fits a `Func` as before, and an entry past the sixteen a `Func`
