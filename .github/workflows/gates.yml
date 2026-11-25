@@ -40,7 +40,15 @@ on:
         description: How many gates run at once. The account runs twenty jobs at a time; full.yml takes fewer.
         type: number
         default: 20
+      fail_fast:
+        description: >-
+          Cancel the whole run when one gate fails. ci.yml sets it: a red run has already named its push,
+          and the rest of it would only hold runners. full.yml and release.yml leave it off, to report every red gate.
+        type: boolean
+        default: false
 
+# A gate job asks for actions: write for one thing only, cancelling its own run when fail_fast is set
+# (the last step of every gate), so every caller grants it.
 permissions:
   contents: read
 
@@ -69,10 +77,14 @@ jobs:
           # "mode" (no gate sets it today) ties a gate to whole runs ("full") or scoped ones ("scoped").
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
-          # The unit gate, in two jobs that build the same projects — in a scoped run the ones the change
-          # reaches, otherwise all of them. "build" is the warnings-as-errors build with the analyzers OFF
-          # and then the unit tests over that output: the nightly is pushed the moment it is green
-          # (nightly.yml, scripts/lib/nightly_wait.sh — keep its name). "analyzers" is the gate script
+          # The unit gate, in jobs that build the same projects — in a scoped run the ones the change
+          # reaches, otherwise all of them. "build" is the warnings-as-errors build with the analyzers OFF,
+          # and nothing else. The unit tests are cut by test project into "unit K/N" (part unit-K, dealt
+          # by scripts/lib/unit-shards.txt): each builds only its own test projects and what they
+          # reference, analyzers off, and runs them; until 2026-11-25 they ran in "build", 44 assemblies
+          # on one runner after the whole build, 16 minutes of a run's critical path. The nightly is pushed
+          # the moment "build" and every unit shard are green (nightly.yml, scripts/lib/nightly_wait.sh —
+          # keep the names). "analyzers" is the gate script
           # tests, the same build with the analyzers on, and the formatter over the .cs files the change
           # touched (every file when it touched the rules), each shard over its own projects' files
           # (scripts/lib/format-scope.sh). The tests and the
@@ -100,9 +112,17 @@ jobs:
           #
           # The benchmark gate is the byte and allocation budgets only — exact counts, the same on a
           # shared runner as anywhere. No time is measured here: a runner's clock proves nothing.
+          #
+          # The provider gate starts its own SQL Server and PostgreSQL on Testcontainers (the runner's
+          # Docker), one each per run — no service container and no docker run here. It was a release
+          # gate until 2026-11-25; selected by the data-stack FILES a change touches ("providers").
           GATES: >-
             [
               {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 1/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-1"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 2/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-2"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 3/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-3"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 4/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-4"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 1/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-1"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 2/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-2"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 3/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-3"},
@@ -118,11 +138,11 @@ jobs:
               {"set": "push", "when": "bench",     "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},
+              {"set": "push", "when": "providers", "name": "providers",         "run": "scripts/run-providers-local.sh"},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
-              {"set": "release", "name": "installer",          "run": "scripts/run-install-e2e-local.sh"},
-              {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
+              {"set": "release", "name": "installer",          "run": "scripts/run-install-e2e-local.sh"}
             ]
         run: |
           mode=full
@@ -208,16 +228,32 @@ jobs:
           retention-days: 1   # read by this run's shards, minutes from now, and by nothing else
           if-no-files-found: error
 
+      - name: Fail fast — cancel the run
+        if: failure() && inputs.fail_fast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" || true
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
+
   gate:
     needs: plan
     if: needs.plan.outputs.gates != '[]'
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
     # The longest gates (build, and the analyzer build before it was sharded) were up to twenty minutes on a whole run, so thirty would time out a slow runner's
-    # healthy run; a hung one must still not hold a runner for long.
+    # healthy run; a hung one must still not hold a runner for long. The gate's own step stops at 36
+    # (below) so a hang still ends as a failed step WITH its log: GitHub keeps none for a job its own
+    # timeout cancelled.
     timeout-minutes: 40
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
     strategy:
-      fail-fast: false   # one red gate says nothing about the others; report all of them
+      # Each red gate is reported on its own; with fail_fast the last step cancels the whole run (every
+      # matrix, the browser shards too) the moment one fails.
+      fail-fast: false
       max-parallel: ${{ inputs.parallel }}
       matrix:
         gate: ${{ fromJSON(needs.plan.outputs.gates) }}
@@ -255,7 +291,31 @@ jobs:
           RASK_TEST_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'affected' || '' }}
           RASK_FORMAT_SCOPE: ${{ needs.plan.outputs.range != '' && 'range' || '' }}
           RASK_SCOPE_RANGE: ${{ needs.plan.outputs.range }}
+          # No MSBuild worker node outlives the build. A run's job once ended its last step at 9 minutes and
+          # was still "running" at 45, cancelled by the job timeout with no log (2026-11-25, run 45596189520):
+          # what a step leaves behind is the runner's to end in its own cleanup, and nothing bounds that.
+          MSBUILDDISABLENODEREUSE: 1
+        timeout-minutes: 36   # inside the job's 40, so a hang fails this step and its log is kept
         run: ${{ matrix.gate.run }}
+
+      # FAIL FAST (ci.yml): the first red gate cancels the run — every other gate, the browser shards and
+      # ci's publish. A gate that already passed keeps its success, which is all nightly.yml reads
+      # (scripts/lib/nightly_wait.sh waits for `gates / build` and the unit shards); one it cancels publishes
+      # nothing. docs/development-workflow.md, "Fail fast".
+      - name: Fail fast — cancel the run
+        if: failure() && inputs.fail_fast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" || true
+
+      # What the gate left running — the compiler server, a test host, a server a test started — is ended
+      # here, bounded, rather than left to the runner's orphan cleanup, which no timeout but the job's bounds.
+      - name: Stop what the gate left running
+        if: always()
+        timeout-minutes: 2
+        run: |
+          dotnet build-server shutdown >/dev/null 2>&1 || true
+          pkill -KILL -f 'testhost|VBCSCompiler|MSBuild\.dll|vstest\.console' 2>/dev/null || true
 
   # The browser shards: the same steps as every gate (one YAML anchor, so the two cannot drift), started
   # once the site they drive is published.
@@ -264,6 +324,9 @@ jobs:
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
     timeout-minutes: 40
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.parallel }}

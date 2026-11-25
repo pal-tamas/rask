@@ -79,11 +79,12 @@ mistake, the rule notes the ID.
   (`public Callback<int> OnRate { get; set; }`) and fire it with `await OnRate.Invoke(n)` — unset is a
   no-op. The parent passes any handler shape, sync or async; the chain step wraps it so invoking it
   re-renders the parent that owns the lambda, with no `StateHasChanged` by hand. Write the lambda
-  *inside* the component so it captures `this`:
+  *inside* the component's `Render`:
   ```csharp
   RatingStars.Value(_rating).OnRate(n => _rating = n)   // lambda captures this → parent re-renders
   ```
-  A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
+  A lambda over only a local (`var rows = Rows; … rows.Add(row)`) re-renders the component whose `Render`
+  set it; a static method, or one set outside any render, isn't wrapped and won't trigger a re-render. See
   [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
 - **Don't expect a handler-only re-render to refire `OnUpdated`.** Auto-wrapped handlers are
   excluded from the `propsChanged` diff — changing only the lambda's identity doesn't refire it.

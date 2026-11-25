@@ -115,15 +115,20 @@ public static class GuideCatalog
             SearchTitle = "DDD aggregates and value objects in C# with EF Core",
             Description = "Model a C# domain the DDD way on EF Core: one-line value objects that carry their rules, typed ids, and aggregate operations that are each one transaction.",
         },
+        new("upgrading-to-domain", "Upgrading to the domain way", "Move an existing app from services and hand forms to aggregates, step by step.", "Data")
+        {
+            SearchTitle = "Refactor a .NET EF Core app to DDD aggregates",
+            Description = "Move an EF Core app from DbContext services and hand-written forms to DDD aggregates, value objects and typed ids, with SQLite tests and audited data.",
+        },
         new("data", "Rask.Data — storage", "Read faces, mapping rules, indexes, text order, locks and migrations, the same on every database.", "Data")
         {
             SearchTitle = "EF Core read models, indexes and migrations in C#",
             Description = "Query generated read faces with inferred joins, map aggregates to tables, and run one model, its indexes and text order on SQLite, SQL Server and PostgreSQL.",
         },
-        new("data-writes", "Writing many rows", "Bulk insert, batch update and delete, and moving existing rows.", "Data")
+        new("data-writes", "Writing many rows", "Set writes, imports and upserts through the aggregate, bulk insert, and moving existing rows.", "Data")
         {
-            SearchTitle = "EF Core bulk insert and batch updates in C#",
-            Description = "Load thousands of rows with BulkInsert, run ExecuteUpdate and ExecuteDelete knowing what they skip, and move stored rows through aggregate operations.",
+            SearchTitle = "EF Core bulk insert, batch updates and imports in C#",
+            Description = "Update, delete, upsert and import many rows of an aggregate with its rules kept, load thousands with BulkInsert, and move stored rows in C# migrations.",
         },
         new("data-access", "Data access", "EF Core + SQLite under the domain: context lifetime, your own DbContext, decimals.", "Data")
         {

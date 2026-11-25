@@ -157,6 +157,73 @@ public partial class UiChoicesLeadingTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["Nincs cég", "Product 400", "Product 401"], Rows(page)[..3]);
     }
 
+    // A store of `count` products that says how many of them hold what was typed (Ui.ChoiceRows).
+    private Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<int>>>> Counted(int count) => (typed, page) =>
+    {
+        _asked.Add((typed, page.Skip, page.Take));
+        var matching = Enumerable.Range(1, count).Select(id => new Ui.Choice<int>(id, NameOf(id)))
+            .Where(row => row.Name.Contains(typed, StringComparison.OrdinalIgnoreCase)).ToList();
+        return Task.FromResult<IReadOnlyList<Ui.Choice<int>>>(
+            new Ui.ChoiceRows<int>([.. matching.Skip(page.Skip).Take(page.Take)], matching.Count));
+    };
+
+    private static readonly Ui.Choice<int> NoProduct = new(0, "No product");
+
+    private static string[] SetSizes(Page page) =>
+        [.. page.FindAll("[role=\"option\"]").Select(row => row.Attribute("aria-setsize") ?? "").Distinct()];
+
+    [Fact]
+    public void A_counted_source_is_as_long_as_its_total_and_the_leading_rows_from_its_first_page()
+    {
+        var filter = new Filter();
+        var store = Counted(500);
+
+        var page = Acting.Render(() => Ui.Select.Bind(() => filter.CompanyId).Live().Choices(store).Leading(NoProduct));
+
+        Assert.Equal([("", 0, 49)], _asked);
+        Assert.Equal(["501"], SetSizes(page));
+        Assert.Equal("32 1 501", page.Find("[data-rask-list-window]").Attribute(UiWindowMarks.Window));
+    }
+
+    [Fact]
+    public async Task A_counted_source_that_found_nothing_leaves_a_list_of_only_its_leading_rows()
+    {
+        var filter = new Filter();
+        var store = Counted(500);
+        var page = Acting.Render(() => Ui.Select.Bind(() => filter.CompanyId).Live().Choices(store).Leading(NoProduct));
+
+        await Pause(page, "no such product");
+
+        Assert.Equal(["No product"], Rows(page));
+        Assert.Equal(["1"], SetSizes(page));
+    }
+
+    [Fact]
+    public async Task A_later_page_of_a_counted_source_keeps_the_list_as_long_as_its_total_and_the_leading_rows()
+    {
+        var filter = new Filter();
+        var store = Counted(500);
+        var page = Acting.Render(() => Ui.Select.Bind(() => filter.CompanyId).Live().Choices(store).Leading(NoProduct));
+
+        await Scroll(page, 45);
+
+        Assert.Equal([("", 0, 49), ("", 49, 50)], _asked);
+        Assert.Contains(NameOf(50), Rows(page));
+        Assert.Equal(["501"], SetSizes(page));
+        Assert.Equal("32 1 501", page.Find("[data-rask-list-window]").Attribute(UiWindowMarks.Window));
+    }
+
+    [Fact]
+    public void A_source_that_does_not_say_its_total_reports_none_beside_its_leading_rows()
+    {
+        var filter = new Filter();
+        var store = Store(500);
+
+        var page = Acting.Render(() => Ui.Select.Bind(() => filter.CompanyId).Live().Choices(store).Leading(NoProduct));
+
+        Assert.Equal(["-1"], SetSizes(page));
+    }
+
     [Fact]
     public void A_pillbox_takes_leading_rows_before_its_sorted_choices()
     {

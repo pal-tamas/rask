@@ -270,7 +270,7 @@ public sealed class SqlServerSessionSettingsTests
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var options = new DbContextOptionsBuilder<SqlClaimDbContext>()
-            .UseRaskSqlServerAt(SqlServer.ConnectionString!, o =>
+            .UseRaskSqlServerAt(SqlServer.ConnectionString, o =>
             {
                 o.CommandTimeout = TimeSpan.FromSeconds(30);
                 o.LockTimeout = TimeSpan.FromSeconds(7);

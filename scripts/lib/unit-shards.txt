@@ -1,0 +1,35 @@
+# The unit-test shards: which CI job builds and runs which test project (.github/workflows/gates.yml, "unit K/N").
+#
+# One line per test project: its name (the .csproj without the extension), then its shard number. A test
+# project not listed is in shard 1, so a new one runs without an edit here. Every shard number used here
+# must have its "unit K/N" job, and N is the highest number below (scripts/tests/affected-gates.test.sh).
+#
+# Read by scripts/run-unit-local.sh (RASK_UNIT_PART=unit-K): the shard builds only its own test projects
+# and what they reference, analyzers off, and runs them — so the shards build side by side on their own
+# machines instead of one job building everything and then running 44 assemblies on four cores. A shard
+# the change reaches none of ends at once. nightly.yml publishes once `build` and every unit shard passed
+# (scripts/lib/nightly_wait.sh).
+#
+# Dealt by measured seconds (each run prints them under "Where the time went"), the projects that build
+# the same closure kept together: the data suites share Rask.Data and SQLite, the server suites
+# Rask.Server, the UI suites Rask.Core, Rask.Ui and the site. Measured on CI run 45599981679
+# (2026-11-25, all 44 at once on one runner): Data 405, Server 341, Site 308, Core 284, Ui 276,
+# Batteries.Generators 269, Wasm 266, Generators 265, Auth 250, Jobs 248, SQLite.EntityFrameworkCore 232,
+# Pdf 203; re-deal when one shard drifts well past the others.
+
+Rask.Data.Tests 2
+Rask.Jobs.Tests 2
+Rask.Outbox.Tests 2
+Rask.SQLite.EntityFrameworkCore.Tests 2
+Rask.Testing.Database.Tests 2
+
+Rask.Server.Tests 3
+Rask.Auth.Tests 3
+Rask.Pdf.Tests 3
+Rask.Server.HotReload.Tests 3
+Rask.Dashboard.Tests 3
+
+Rask.Site.Tests 4
+Rask.Ui.Tests 4
+Rask.Wasm.Tests 4
+Rask.Core.Tests 4
