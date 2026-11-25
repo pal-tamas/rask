@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Testing;
+using Rask.Tests.Shared;
 
 namespace Rask.Storage.Tests;
 
@@ -44,8 +44,9 @@ internal static class Samples
 }
 
 /// <summary>A real-SQLite, real-directory service provider wired for storage, with a controllable clock.</summary>
-public sealed class StorageHarness(Action<StorageOptions>? configure = null, bool createSchema = true)
-    : StorageHarness<StorageDbContext>(configure, createSchema);
+public sealed class StorageHarness(
+    Action<StorageOptions>? configure = null, bool createSchema = true, string? connectionString = null)
+    : StorageHarness<StorageDbContext>(configure, createSchema, connectionString);
 
 /// <summary>The same over any context, for a model that differs — one whose tenants are numbered.</summary>
 public class StorageHarness<TContext> : IAsyncDisposable
@@ -54,10 +55,25 @@ public class StorageHarness<TContext> : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly TestFileBackend _uploads = new();
 
-    public StorageHarness(Action<StorageOptions>? configure = null, bool createSchema = true)
+    // The database this harness made, and so holds open and closes; null when the test handed it one of its own.
+    private readonly InMemorySqlite? _ownDb;
+
+    /// <param name="configure">The storage options the test sets.</param>
+    /// <param name="createSchema">Whether to create the context's tables.</param>
+    /// <param name="connectionString">
+    ///     A database the test keeps itself, for one whose test is about what a file gives; null gives the harness a
+    ///     database of its own, in memory.
+    /// </param>
+    public StorageHarness(Action<StorageOptions>? configure = null, bool createSchema = true, string? connectionString = null)
     {
+        if (connectionString is null)
+        {
+            _ownDb = new InMemorySqlite();
+            connectionString = _ownDb.ConnectionString;
+        }
+
+        ConnectionString = connectionString;
         Root = Path.Combine(Path.GetTempPath(), $"rask-storage-test-{Guid.NewGuid():N}");
-        DbPath = Root + ".db";
         Clock = new FakeTimeProvider(DateTimeOffset.UtcNow);
 
         var services = new ServiceCollection();
@@ -70,7 +86,7 @@ public class StorageHarness<TContext> : IAsyncDisposable
             o.DataVolume = Path.Combine(Root, "no-such-volume");
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<TContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        services.AddDbContextFactory<TContext>(o => o.UseSqlite(ConnectionString));
 
         _provider = services.BuildServiceProvider();
         if (createSchema)
@@ -82,7 +98,8 @@ public class StorageHarness<TContext> : IAsyncDisposable
 
     public string Root { get; }
 
-    public string DbPath { get; }
+    /// <summary>The connection string of the harness's database: what another context or a raw connection opens.</summary>
+    public string ConnectionString { get; }
 
     public FakeTimeProvider Clock { get; }
 
@@ -131,8 +148,11 @@ public class StorageHarness<TContext> : IAsyncDisposable
     {
         GC.SuppressFinalize(this);
         await _provider.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-        TryDelete(() => File.Delete(DbPath));
+        if (_ownDb is not null)
+        {
+            await _ownDb.DisposeAsync();
+        }
+
         TryDelete(() => Directory.Delete(Root, recursive: true));
     }
 

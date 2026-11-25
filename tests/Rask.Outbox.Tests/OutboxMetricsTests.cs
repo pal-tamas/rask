@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -10,10 +11,9 @@ namespace Rask.Outbox.Tests;
 /// The outbox pillar's metrics, driven through the real processor — instrumentation that isn't wired into
 /// the drain would pass any test that called the meter directly.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxMetricsTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-metrics-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly Recorder _recorder = new();
     private ServiceProvider _provider = null!;
 
@@ -82,10 +82,7 @@ public sealed class OutboxMetricsTests : IDisposable
     public void Dispose()
     {
         _provider?.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     private void Build(Action<OutboxOptions>? configure = null)
@@ -102,7 +99,7 @@ public sealed class OutboxMetricsTests : IDisposable
             configure?.Invoke(o);
         });
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();

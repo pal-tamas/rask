@@ -7,12 +7,23 @@ namespace Rask.Storage.Tests;
 ///     A file saved inside <c>Db.Transaction</c> takes part in it: in the database its rows commit with the work, and on
 ///     a disk its bytes are written at once and removed again when the work rolls back. A delete waits for the commit.
 /// </summary>
-[Collection(StorageDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class StorageDbTransactionTests : IDisposable
 {
     private static readonly Action<StorageOptions> InTheDatabase = o => o.Provider = StorageProvider.Database;
 
-    public void Dispose() => Db.Reset();
+    // A file, for the tests that read from outside while the work holds its write open — "seen only once it commits"
+    // is a second connection reading then, which a file's locks allow and a shared in-memory database's table lock
+    // refuses (SQLITE_LOCKED) until the commit.
+    private readonly string _file = Path.Combine(Path.GetTempPath(), $"rask-storage-transaction-{Guid.NewGuid():N}.db");
+
+    private string InAFile => $"Data Source={_file};Pooling=False";
+
+    public void Dispose()
+    {
+        Db.Reset();
+        File.Delete(_file);
+    }
 
     [Fact]
     public async Task A_file_saved_to_the_database_in_a_rolled_back_transaction_leaves_no_row_and_no_bytes()
@@ -33,7 +44,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     [Fact]
     public async Task A_file_saved_to_the_database_in_a_transaction_is_seen_only_once_it_commits()
     {
-        await using var harness = new StorageHarness(InTheDatabase);
+        await using var harness = new StorageHarness(InTheDatabase, connectionString: InAFile);
         Db.Configure(harness.NewContext);
         var seenBeforeCommit = -1;
 
@@ -70,7 +81,7 @@ public sealed class StorageDbTransactionTests : IDisposable
     [Fact]
     public async Task A_file_saved_to_disk_in_a_committed_transaction_keeps_its_bytes_and_its_row()
     {
-        await using var harness = new StorageHarness();
+        await using var harness = new StorageHarness(connectionString: InAFile);
         Db.Configure(harness.NewContext);
         var seenBeforeCommit = -1;
 
