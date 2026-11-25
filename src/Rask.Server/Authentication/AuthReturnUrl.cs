@@ -28,21 +28,13 @@ internal static class AuthReturnUrl
     public static string For(AuthAction action, string? returnUrl, RouteState? route)
     {
         var url = LocalUrl.Sanitize(returnUrl);
-        var path = PathOf(url);
+        var path = ChallengeReturnUrl.PathOf(url);
         if (IsRasks(path) || (action == AuthAction.SignIn && IsSignInPage(route?.RoutePathOf(path) ?? path)))
         {
             return "/";
         }
 
         return url;
-    }
-
-    // The path alone, without its query or fragment, and without a trailing slash past the root.
-    private static string PathOf(string url)
-    {
-        var end = url.AsSpan().IndexOfAny('?', '#');
-        var path = end < 0 ? url : url[..end];
-        return path.Length > 1 ? path.TrimEnd('/') : path;
     }
 
     private static bool IsRasks(string path) =>

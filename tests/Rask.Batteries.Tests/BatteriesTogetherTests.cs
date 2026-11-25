@@ -7,6 +7,7 @@ using Rask.Core;
 using Rask.Cqrs;
 using Rask.Data;
 using Rask.Mailing;
+using Rask.Tests.Shared;
 
 namespace Rask.Batteries.Tests;
 
@@ -60,8 +61,8 @@ public sealed class BatteriesTogetherTests
     {
         var alice = Guid.NewGuid();
         var inbox = new ReceiptInbox();
-        var file = Path.Combine(Path.GetTempPath(), $"rask-together-{Guid.NewGuid():N}.db");
-        var app = Built(file, inbox);
+        await using var database = new InMemorySqlite();
+        var app = Built(database.ConnectionString, inbox);
         await using (var db = await app.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>()
                          .CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
@@ -83,7 +84,6 @@ public sealed class BatteriesTogetherTests
         finally
         {
             await app.StopAsync(TestContext.Current.CancellationToken);
-            File.Delete(file);
         }
 
         Assert.Equal(("ann@example.com", alice), Assert.Single(inbox.Received));
@@ -92,8 +92,9 @@ public sealed class BatteriesTogetherTests
     [Fact]
     public async Task The_same_flow_runs_on_the_fakes_alone_with_no_processor_and_no_database()
     {
+        // A file on purpose: that it never appears is the proof that nothing opened the database.
         var file = Path.Combine(Path.GetTempPath(), $"rask-together-{Guid.NewGuid():N}.db");
-        await using var app = Built(file, new ReceiptInbox());
+        await using var app = Built($"Data Source={file};Pooling=False", new ReceiptInbox());
         using var session = app.Services.CreateScope();
         using var work = Ambient.Enter(session.ServiceProvider);
         using var outbox = Outbox.Fake();
@@ -110,13 +111,13 @@ public sealed class BatteriesTogetherTests
         Assert.False(File.Exists(file));
     }
 
-    private static Microsoft.AspNetCore.Builder.WebApplication Built(string file, ReceiptInbox inbox)
+    private static Microsoft.AspNetCore.Builder.WebApplication Built(string connectionString, ReceiptInbox inbox)
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddSingleton<IMailSender>(inbox);
         app.Configure(c =>
         {
-            c.ConnectionString = $"Data Source={file};Pooling=False";
+            c.ConnectionString = connectionString;
             c.MigrateOnStart = false;
             c.Jobs.Configure(o => o.PollInterval = TimeSpan.FromMilliseconds(20));
             c.Mail.Configure(o =>

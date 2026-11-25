@@ -22,6 +22,7 @@ public static class JobsFakes
         ///         Nothing runs until the test says so: <c>await jobs.Run()</c> sends every recorded job
         ///         through its real handler. Without it the test asserts that the work was <em>asked for</em>.
         ///         An awaited job (<c>Jobs.Run</c>) cannot wait for that: it runs at once through its real handler.
+        ///         With no host — a test that started only a <c>TestDatabase</c> — both run through that database's services.
         ///         Scoped to the test's own flow, so tests running in parallel never see each other's jobs.
         ///         It stands in front of <c>Jobs.Enqueue</c>; a class that takes <see cref="IJobs" /> in its
         ///         constructor is handed whatever the container holds, so register the fake there too —

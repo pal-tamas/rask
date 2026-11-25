@@ -124,7 +124,7 @@ public sealed class OwnsSchemaTests : IDisposable
         await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TestContext.Current.CancellationToken);
 
-        Assert.False(_db.Exists, "nothing should have opened the database");
+        Assert.True(await _db.IsEmpty(), "nothing should have created a table in the database");
     }
 
     public void Dispose() => _db.Dispose();

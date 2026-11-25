@@ -32,6 +32,11 @@
     <Using Include="Rask.Testing"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
+    <Compile Include="..\Shared.DbCollection\SqliteFileGuard.cs" Link="SqliteFileGuard.cs"/>
+  </ItemGroup>
+
   <!-- A package reference imports this itself; a project reference does not. -->
   <Import Project="..\..\src\Rask.Testing\build\Rask.Testing.targets"/>
 

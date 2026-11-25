@@ -12,6 +12,7 @@ using Rask.Cqrs;
 using Rask.Data;
 using Rask.Querying;
 using Rask.Server.Tests.Infrastructure;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -169,12 +170,12 @@ public sealed partial class CraneFormApp : Component
 [Collection(RaskAppCollection.Name)]
 public sealed partial class FormStoreFailureTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-form-failure-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
     [Theory]
@@ -291,7 +292,7 @@ public sealed partial class FormStoreFailureTests : IDisposable
         return [.. rows.Select(w => $"{w.Name}|{w.TenantId}").Order(StringComparer.Ordinal)];
     }
 
-    private Action<DbContextOptionsBuilder> Sqlite() => o => o.UseSqlite($"Data Source={_dbPath};Pooling=False");
+    private Action<DbContextOptionsBuilder> Sqlite() => o => o.UseSqlite(_database.ConnectionString);
 
     // With the index DROPPED the host is wired the documented way, and only the declared rule can refuse a
     // duplicate. With the index PRESENT the same registrations are made WITHOUT the declared-rule check, so the

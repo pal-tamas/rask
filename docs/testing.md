@@ -653,7 +653,9 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
 
 `Run()` executes each recorded piece of work as the tenant and user who started it, includes work a running
 handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
-where the outbox is on; without it a durable handler already runs in line.
+where the outbox is on; without it a durable handler already runs in line. A test with only a `TestDatabase` and no host runs
+`jobs.Run()` (and an awaited `Jobs.Run(...)`) through the database's own services — the app such a test has — so the
+job's handler, and what it saves, are the test's.
 
 ---
 

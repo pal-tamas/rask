@@ -61,14 +61,19 @@ public partial class TestDatabase : IAsyncDisposable
     // Binds the model surface to this database for the flow that is starting it — so it must run in that flow, outside
     // any async method of its own (see Db.BindFlow).
     private protected TestDatabase(
-        RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite, Action<DbContextOptionsBuilder> configure, IAsyncDisposable? lease)
+        RaskDbContext schemaOwner,
+        Func<RaskReadDbContext> openRead,
+        Func<DbContext> openWrite,
+        Action<DbContextOptionsBuilder> configure,
+        IServiceProvider services,
+        IAsyncDisposable? lease)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
         _configure = configure;
         _lease = lease;
-        _flow = Db.BindFlow(openWrite, openRead);
+        _flow = Db.BindFlow(openWrite, openRead, services);
     }
 
     /// <summary>Builds the database over a plain <see cref="RaskDbContext" />, creates its schema, and makes it the ambient one.</summary>
@@ -244,7 +249,7 @@ public partial class TestDatabase : IAsyncDisposable
         var schemaOwner = write();
         Db.Configure(write);
         ReadDb.Configure(read);
-        return new TestDatabase<TContext>(schemaOwner, read, write, configure, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
+        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
     }
 
     // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.

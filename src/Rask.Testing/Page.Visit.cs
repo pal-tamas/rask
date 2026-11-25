@@ -136,7 +136,7 @@ public partial class Page
         var result = RouteAuthorizationGuard.Evaluate(services, chain, user).GetAwaiter().GetResult();
         return result.Outcome switch
         {
-            RouteAuthorizationOutcome.Challenge => (RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(url), null),
+            RouteAuthorizationOutcome.Challenge => (RouteAuthorizationGuard.ChallengePath + ChallengeReturnUrl.Query(url), null),
             RouteAuthorizationOutcome.Forbid => (url, result.FailedOnPage),
             RouteAuthorizationOutcome.Redirect => (LocalUrl.Sanitize(result.RedirectTo), null),
             _ => (url, null),
