@@ -19,6 +19,12 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **Two operations that take the same parameters each get their `Form.For`.** Before: `Product.Archive` and
+  `Product.Restore`, each taking only the id and version, got no form at all (RASK174, an Info nobody saw), and
+  `Form.For(Product.Archive, id)` failed with CS1503 under a misleading RASK095 ("'Form' needs …"). Now each such
+  operation gets a hidden overload of its entry that takes a mark of its own first (`ProductOperationForms.ArchiveMark`)
+  and its form takes a delegate of that shape, so each method group picks its own form. RASK174 is retired, and RASK095
+  no longer reports a call to a hand-written opening that does not bind — the compiler's error is the one that explains it.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
