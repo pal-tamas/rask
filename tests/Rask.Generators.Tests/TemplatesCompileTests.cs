@@ -160,6 +160,7 @@ public class TemplatesCompileTests
             .Create(
                 new ComponentFactoryGenerator().AsSourceGenerator(),
                 new RoutesGenerator().AsSourceGenerator(),
+                new ValueObjectFactoryGenerator().AsSourceGenerator(),
                 new ValidatorRegistryGenerator().AsSourceGenerator(),
                 new ReadModelGenerator().AsSourceGenerator(),
                 new ModelRegistryGenerator().AsSourceGenerator(),
