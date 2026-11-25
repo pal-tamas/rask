@@ -33,6 +33,8 @@ public sealed class PumpFueling : Aggregate<Guid>
 
     public void MoveTo(string pistol) => Pistol = pistol;
 
+    public void Reschedule(int hour) => Moment = new DateTime(2026, 11, 24, hour, 0, 0, DateTimeKind.Utc);
+
     public static void Configure(EntityTypeBuilder<PumpFueling> builder) =>
         builder.Numbered(f => f.Sequence, within: f => f.Pistol, by: f => new { f.Moment, f.Pump, f.Id }, skip: f => f.Merged)
             .Same(f => f.FillId)
@@ -161,6 +163,19 @@ public sealed class NumberedTests : IDisposable
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([1, 1, 2], await SequencesAsync(fuelings));
+    }
+
+    [Fact]
+    public async Task A_row_moved_earlier_in_its_group_takes_its_new_place_and_another_group_is_untouched()
+    {
+        await using var database = await StartDatabaseAsync();
+        PumpFueling[] fuelings = [PumpFueling.At("a", 8), PumpFueling.At("a", 10), PumpFueling.At("a", 12), PumpFueling.At("b", 11)];
+        await SaveAsync(database, fuelings);
+
+        fuelings[2].Reschedule(9);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([1, 3, 2, 1], await SequencesAsync(fuelings));
     }
 
     [Fact]

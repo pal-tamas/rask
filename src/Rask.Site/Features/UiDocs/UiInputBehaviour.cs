@@ -21,6 +21,8 @@ internal sealed partial class UiInputBehaviour : Component
             + "written with the reader's next action and travels with it, as `wire:model` does; `.Live()` writes as it "
             + "is typed, after a 150 ms pause (`wire:model.live`), `.Debounce(300.Milliseconds)` after a pause of your "
             + "own, and `.Blur()` when the reader leaves the field (`wire:model.blur`). `OnInput` hears every keystroke.",
+            "In a form over an operation (`Form.For`) a bound input with no step is written as the reader leaves it, so "
+            + "what the operation refuses shows then; `.Defer()` keeps it waiting for the next action (`wire:model.defer`).",
             "The type comes from the model: `Ui.Input.Bind(() => m.Seats)` over an `int` is a number field with nothing "
             + "said at the call site. A field with nothing in it yet opens on its type alone: "
             + "`Ui.Input.Of<string>().Label(\"Search\")`.",

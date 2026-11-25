@@ -99,6 +99,19 @@ public sealed class InMemoryDatabaseTests
     }
 
     [Fact]
+    public async Task The_read_face_orders_the_whole_Hungarian_alphabet_as_the_app_s_collation_does()
+    {
+        await using var database = await TestDatabase.Start<PumpsContext>(cancellationToken: Ct);
+        string[] customers = ["Úr", "Csaba", "Ödön", "Cukor", "Uzsok", "Ottó", "Ügy", "Őz", "Zsolt", "Zoltán"];
+        database.Context.AddRange(customers.Select(static c => Invoice.For(c, 1)));
+        await database.Context.SaveChangesAsync(Ct);
+
+        var ordered = await Invoice.OrderBy(i => i.Customer.InTextOrder()).Select(i => i.Customer);
+
+        Assert.Equal(["Cukor", "Csaba", "Ottó", "Ödön", "Őz", "Úr", "Uzsok", "Ügy", "Zoltán", "Zsolt"], ordered);
+    }
+
+    [Fact]
     public async Task A_database_over_Rask_s_own_context_starts_in_memory_too()
     {
         await using var database = await TestDatabase.Start(cancellationToken: Ct);

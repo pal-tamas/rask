@@ -49,6 +49,7 @@ internal static class UiBoundControl
             .Live(look.Timing.Live)
             .Blur(look.Timing.Blur)
             .Debounce(look.Timing.Debounce)
+            .Defer(look.Timing.Defer)
             .Badged(look.Badge);
 
     /// <summary>A day picker over a member of <c>DateOnly</c> or <c>DateOnly?</c>, latest today where the shape says so.</summary>
@@ -84,6 +85,7 @@ internal static class UiBoundControl
                 .Live(look.Timing.Live)
                 .Blur(look.Timing.Blur)
                 .Debounce(look.Timing.Debounce)
+            .Defer(look.Timing.Defer)
             : Input(bind, look);
 
     private static UiInput<T> Number<T>(Expression<Func<T>> bind, FieldShape shape, UiBoundLook look) =>

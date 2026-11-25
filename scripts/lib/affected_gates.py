@@ -24,6 +24,8 @@ gates, for the gates whose subject is not a test project's references:
     packaging  the CLI, the templates, the kit and its Tailwind build, or how a project is built and
                packed (by FILE, see below)
                                                  -> the CLI build and the templates
+    providers  the data stack the provider suites hold to real servers (by FILE, see below)
+                                                 -> SQL Server and PostgreSQL on Testcontainers
 
 The contract is the same lopsided one: a gate too many costs minutes on a runner, a gate too few
 lets a break through until the next full run. The changed files are a run's OWN change
@@ -71,6 +73,15 @@ PACKAGING_FILES = re.compile(
     r"|src/.*\.(csproj|props|targets)$)"
 )
 
+# The provider gate is narrowed by FILE for the same reason: its suite references Rask.Server and Rask.Core, so the
+# graph says every change reaches it. What it proves is the SQL Rask writes and the errors it translates per provider,
+# and that lives in the data stack below; a break from anywhere else is found by the daily whole run.
+PROVIDER_FILES = re.compile(
+    r"^(src/Rask\.(Data|Postgres|SqlServer|SQLite|SQLite\.EntityFrameworkCore|Jobs|Cache|Logging|Storage)/"
+    r"|tests/Rask\.Providers\.E2E\.Tests/|tests/Rask\.Data\.Tests/(ValueObjectMappingShapes|ValueCollectionNullabilityShapes)\.cs$"
+    r"|tests/Rask\.Jobs\.Tests/FakeTimeProvider\.cs$|scripts/run-providers-local\.sh$)"
+)
+
 def reached_projects(root: Path, changed: list[str]) -> tuple[str | None, list[str]]:
     """(reason, []) when the scoper answers FULL, otherwise (None, projects)."""
     out = subprocess.run(
@@ -92,6 +103,8 @@ def gates_for(changed: list[str], projects: list[str]) -> list[str]:
             keys.append(key)
     if any(PACKAGING_FILES.match(path) for path in changed):
         keys.append("packaging")
+    if any(PROVIDER_FILES.match(path) for path in changed):
+        keys.append("providers")
     return keys
 
 

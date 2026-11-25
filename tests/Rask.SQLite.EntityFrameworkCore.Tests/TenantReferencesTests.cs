@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Rask.Cqrs;
 using Rask.Data;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
@@ -34,6 +35,45 @@ public sealed class Lorry : Aggregate<string, PerTenant>
 
     public static void Configure(EntityTypeBuilder<Lorry> builder) =>
         builder.Property(lorry => lorry.TenantId).HasConversion<string>();
+}
+
+/// <summary>A tenant keyed by the text of a Guid, whose generated <c>Delete</c> says why it is refused.</summary>
+public sealed class Guild : Aggregate<string, Model, Deletable>
+{
+    public const string InUse = "The guild still has wagons and cannot be deleted.";
+
+    private Guild() { }
+
+    public string Name { get; private set; } = "";
+
+    public static Guild Named(Guid id, string name) => new() { Id = id.ToString(), Name = name };
+
+    public static void Configure(EntityTypeBuilder<Guild> builder) => builder.WhenReferenced(InUse);
+}
+
+/// <summary>A guild's row, its tenant a Guid kept as text against the guild's text key.</summary>
+public sealed class Wagon : Aggregate<string, PerTenant>
+{
+    private Wagon() { }
+
+    public Guid? TenantId { get; private set; }
+
+    public string Name { get; private set; } = "";
+
+    public static Wagon Named(string name) => new() { Id = Guid.NewGuid().ToString(), Name = name };
+
+    public static void Configure(EntityTypeBuilder<Wagon> builder) =>
+        builder.Property(wagon => wagon.TenantId).HasConversion<string>();
+}
+
+/// <summary>The app's context, whose rules point every PerTenant table at the guild, as an app's IRaskModel says it.</summary>
+public sealed class GuildsContext(DbContextOptions<GuildsContext> options) : RaskDbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.TenantReferences<Guild>();
+    }
 }
 
 public abstract class FirmsContext(DbContextOptions options) : DbContext(options)
@@ -100,6 +140,25 @@ public sealed class TenantReferencesTests : IAsyncLifetime
         var refused = await Record.ExceptionAsync(() => db.SaveChangesAsync(Ct));
 
         Assert.Contains("FOREIGN KEY constraint failed", Assert.IsType<DbUpdateException>(refused).InnerException?.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_generated_delete_of_a_tenant_that_still_has_rows_is_refused_with_its_sentence_and_the_tenant_stays()
+    {
+        await using var database = await TestDatabase.Start<GuildsContext>(o => o.UseRaskSqliteAt(_keeper.ConnectionString), cancellationToken: Ct);
+        var guild = Guid.NewGuid();
+        await Guild.Named(guild, "Coopers").Save(cancellationToken: Ct);
+        using (Tenant.Use(guild))
+        {
+            await Wagon.Named("Barrel cart").Save(cancellationToken: Ct);
+        }
+
+        var refused = await Record.ExceptionAsync(() => Guild.Delete(guild.ToString(), cancellationToken: Ct));
+
+        var failure = Assert.Single(Assert.IsType<RaskValidationException>(refused).Failures);
+        Assert.Equal(Guild.InUse, failure.Message);
+        Assert.Empty(failure.Fields);
+        Assert.Equal(["Coopers"], await Guild.Where(g => g.Id == guild.ToString()).Select(g => g.Name));
     }
 
     [Fact]

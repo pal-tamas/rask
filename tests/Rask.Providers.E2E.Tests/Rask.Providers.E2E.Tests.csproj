@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Real database servers, started by scripts/run-providers-local.sh. The .E2E.Tests suffix keeps this suite
-       out of the unit gate: it needs Docker, and a unit gate that needs Docker ends up skipped. Every fact
-       reports SKIPPED rather than failing when its server's connection string is not set. -->
+  <!-- Real database servers, started by the suite itself on Testcontainers (ProviderServer.cs) — in CI, or where
+       RASK_PROVIDERS_LOCAL=1 says Docker may be used; RASK_MSSQL_TEST_DB / RASK_PG_TEST_DB point a leg at a server
+       you have instead. Anywhere else the server facts report SKIPPED and the SQLite legs still run. The .E2E.Tests
+       suffix keeps it out of the unit gate; scripts/run-providers-local.sh is what runs it. -->
   <PropertyGroup>
     <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -33,6 +34,8 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Testcontainers.MsSql"/>
+    <PackageReference Include="Testcontainers.PostgreSql"/>
     <PackageReference Include="xunit.v3"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
