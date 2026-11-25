@@ -20340,6 +20340,9 @@ static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! 
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+Rask.Values.ValueMaker<TValue, THeld>
+virtual Rask.Values.ValueMaker<TValue, THeld>.Invoke(THeld value, out TValue? result, out System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems) -> bool
+static Rask.Values.GeneratedValueRules.Field<TValue, THeld>(System.Func<TValue!, THeld>! held, Rask.Values.ValueMaker<TValue!, THeld>! make, System.Func<Rask.Core.Forms.FieldShape!>? shape) -> void
 const Rask.Core.Routing.LocalUrl.MaxLength = 2048 -> int
 ~override Rask.ChoiceRow<TKey>.Equals(object obj) -> bool
 ~override Rask.ChoiceRow<TKey>.ToString() -> string

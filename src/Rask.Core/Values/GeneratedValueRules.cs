@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Rask.Core.Forms;
 using Rask.Cqrs;
 using Rask.Wire;
 
@@ -23,6 +24,31 @@ public static class GeneratedValueRules
     /// </summary>
     /// <returns>The scope, to dispose on this thread once the value is made.</returns>
     public static ValueLoading Loading() => ValueLoading.Begin();
+
+    /// <summary>
+    ///     Registers a value object of one value, so a form's model may hold it as it is —
+    ///     <c>public TankCapacity? Size { get; set; }</c> — and a control bound to it shows and is typed into the value it
+    ///     holds, makes it through its <c>TryCreate</c>, and is told its field. Called by the generated module initializer
+    ///     of the assembly that declares it.
+    /// </summary>
+    /// <typeparam name="TValue">The value object.</typeparam>
+    /// <typeparam name="THeld">The value it holds.</typeparam>
+    /// <param name="held">Reads the value it holds.</param>
+    /// <param name="make">Its generated <c>TryCreate</c>.</param>
+    /// <param name="shape">Its generated <c>__Field</c>; null for one that declares no field of its own.</param>
+    public static void Field<TValue, THeld>(Func<TValue, THeld> held, ValueMaker<TValue, THeld> make, Func<FieldShape>? shape)
+        where TValue : Value
+    {
+        ArgumentNullException.ThrowIfNull(held);
+        ArgumentNullException.ThrowIfNull(make);
+
+        ValueFields.Add(typeof(TValue), new ValueField(
+            typeof(THeld),
+            value => held((TValue)value),
+            (object? value, out IReadOnlyList<Problem> problems) =>
+                make((THeld)value!, out var made, out problems) ? made : null,
+            shape));
+    }
 
     /// <summary>The exception <c>X.Create(…, field)</c> throws for a value its rules refused.</summary>
     /// <param name="problems">What the rules said.</param>

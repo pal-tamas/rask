@@ -122,6 +122,21 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void Each_value_object_of_one_value_is_registered_for_a_model_that_holds_it_as_it_is()
+    {
+        var run = Run(ValueObjects + "internal static partial class Hidden { private sealed partial record Secret(string Value) : Text(Value); }");
+
+        var fields = run.GeneratedSource("RaskValueFields.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", fields, StringComparison.Ordinal);
+        Assert.Contains(".Field<global::Shop.Pieces, long>(static v => v.Value, global::Shop.Pieces.TryCreate, static () => global::Shop.Pieces.__Field);", fields, StringComparison.Ordinal);
+        Assert.Contains(".Field<global::Shop.DriverName, string>(", fields, StringComparison.Ordinal);
+        Assert.DoesNotContain("KmRange", fields, StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret", fields, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Only_a_value_object_of_one_value_gets_the_rule_a_form_asks()
     {
         var run = Run(ValueObjects);

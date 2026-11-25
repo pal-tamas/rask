@@ -121,7 +121,13 @@ internal sealed class RequiredFields
         _answers.GetOrAdd((owner, name), static (field, fields) => fields.Ask(field.Owner, field.Name), this);
 
     private bool Ask(Type owner, string name) =>
-        Registered(owner, name) || Attributed(owner, name) || StatedRules.IsRequired(owner, name);
+        Registered(owner, name) || Attributed(owner, name) || HoldsValue(owner, name) || StatedRules.IsRequired(owner, name);
+
+    // A value object a hand model holds as it is, in a property that may not be null: `TankCapacity Size`.
+    private static bool HoldsValue(Type owner, string name) =>
+        Property(owner, name) is { } property
+        && Rask.Values.ValueFields.Of(property.PropertyType) is not null
+        && !BindingHelpers.IsNullableProperty(property, null, property.PropertyType);
 
     // The type that declares the property speaks for every type derived from it.
     private bool Registered(Type owner, string name)

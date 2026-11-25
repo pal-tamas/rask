@@ -420,7 +420,9 @@ public static class RaskValidation
     // stated in code (StatedRules) add is merged in last, once per property and kept until they change.
     internal static FieldShape? ShapeOf(Type owner, PropertyInfo property)
     {
-        var shape = _fieldShapes.ShapeOf(owner, property.Name) ?? AnnotatedShapes.Of(property);
+        var shape = _fieldShapes.ShapeOf(owner, property.Name)
+                    ?? Rask.Values.ValueFields.Of(property.PropertyType)?.Shape
+                    ?? AnnotatedShapes.Of(property);
         return StatedRules.Source is null
             ? shape
             : _statedShapes.GetOrAdd(
