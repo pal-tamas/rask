@@ -31,6 +31,9 @@ internal sealed class UiTabScope(
     /// </summary>
     internal OfferedOptions? Offered { get; init; }
 
+    /// <summary>Whether the row switches the list beneath it, so a tab pressed starts the list at its first page.</summary>
+    internal bool SwitchesList { get; init; }
+
     /// <summary>The selected tab's name, as far as the tabs rendered so far say.</summary>
     internal string? Selected => chosen ?? _shown;
 

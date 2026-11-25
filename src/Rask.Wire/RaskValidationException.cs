@@ -25,23 +25,27 @@ public sealed class RaskValidationException : Exception, IFieldFailures
     {
     }
 
-    /// <summary>Creates the exception with a message and no field failures.</summary>
-    /// <param name="message">What went wrong.</param>
+    /// <summary>Creates the exception with a message about the submission as a whole, under no field.</summary>
+    /// <param name="message">What went wrong — what the person is told above the form.</param>
+    /// <remarks>
+    ///     The message is a failure of its own, under the empty key of <see cref="Errors" /> and with no fields in
+    ///     <see cref="Failures" />, so it crosses the wire and reaches a form the way a field's failure does.
+    /// </remarks>
     public RaskValidationException(string message)
         : base(message)
     {
         Failures = AboutTheWhole(message);
-        Errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        Errors = FieldFailureMap.ToDictionary(Failures);
     }
 
-    /// <summary>Creates the exception with a message, the exception that caused it, and no field failures.</summary>
-    /// <param name="message">What went wrong.</param>
+    /// <summary>Creates the exception with a message about the submission as a whole and the exception that caused it.</summary>
+    /// <param name="message">What went wrong — what the person is told above the form.</param>
     /// <param name="innerException">The exception that caused this one.</param>
     public RaskValidationException(string message, Exception innerException)
         : base(message, innerException)
     {
         Failures = AboutTheWhole(message);
-        Errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        Errors = FieldFailureMap.ToDictionary(Failures);
     }
 
     /// <summary>

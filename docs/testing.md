@@ -310,6 +310,13 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   interceptors of its own — opens on the same database with **`database.Options<TOther>()`**: the provider exactly as
   the fixture's contexts have it (`UseRaskSqlite` on the same in-memory database), none of the fixture's interceptors,
   so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
+- **`database.Context` reads what the database has**, the way a page's context — opened for its request — does: a row
+  another context saved (`Order.Find(id)` → `order.Save()`, a handler, `database.Factory`) is the saved row in it too,
+  version and all, so the next query through it, or a change made on the instance it already tracked and saved through
+  it, is the database's row and not the one it seeded. A row it tracks that the test changed and has not saved stays
+  the test's. A save of its own that fails — a refused rule, a taken unique value — lets go of everything it tracked, so
+  the refused change never rides along with the next save. No `ChangeTracker.Clear()` is needed to hand it to code that
+  takes a context;
 - disposing it lets the database go.
 
 **No test passes a `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
@@ -406,8 +413,11 @@ public Task The_km_end_comes_after_its_start_on_the_form() =>
   showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
 - **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
   sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
-- A model that takes constructor arguments — an operation form over an aggregate, `new SupplyChangeInput(id,
-  version)` — goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`.
+- A model given as it is goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`. For an operation's
+  form, start it the way the page does — `await SupplyChangeInput.Of(id)` reads it from the stored aggregate, at its
+  version, every field filled as `Form.For(Supply.Change, id)` fills it (and throws when nothing is stored under the
+  id) — so a rule that reads what is stored is asked against it, and only the field under test changes. A
+  hand-built `new SupplyChangeInput(id, version)` starts every field empty.
 - The message not shown fails the test with a `FormAssertionException` that says what the field showed instead, what
   the top of the form showed, and why the store's rules could not be asked when they threw.
 

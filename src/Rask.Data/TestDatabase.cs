@@ -199,7 +199,9 @@ public partial class TestDatabase : IAsyncDisposable
 
         // The app's own interceptors, from services registered as the app registers them (TestDatabaseServices) — filled
         // in below, once the model they depend on is known, and before the first context is opened.
+        // Last in the chain: keeps the fixture's own context as the database has it, once the others shaped the save.
         IInterceptor[] interceptors = [];
+        var keeper = new FixtureContextKeeper();
 
         TContext Create()
         {
@@ -234,19 +236,19 @@ public partial class TestDatabase : IAsyncDisposable
         // battery's assembly when the model maps its tables; with the batteries announced, the services are registered
         // again with what they add — the outbox's interceptor.
         var services = TestDatabaseServices.For(clock, model: null, write, read, addServices);
-        interceptors = TestDatabaseServices.Interceptors(services);
+        interceptors = [.. TestDatabaseServices.Interceptors(services), keeper];
         var model = ModelOf(write);
         if (!TestDatabaseBatteries.All.IsEmpty)
         {
             services.Dispose();
             services = TestDatabaseServices.For(clock, model, write, read, addServices);
-            interceptors = TestDatabaseServices.Interceptors(services);
+            interceptors = [.. TestDatabaseServices.Interceptors(services), keeper];
         }
 
         // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
         // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
         // created the schema and disposed would hand the first query an empty file.
-        var schemaOwner = write();
+        var schemaOwner = keeper.Keep(write());
         Db.Configure(write);
         ReadDb.Configure(read);
         return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
@@ -295,9 +297,18 @@ public partial class TestDatabase : IAsyncDisposable
 
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
     /// <remarks>
-    ///     One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
-    ///     tracked here. The model surface (<c>Product.Where(…)</c>, <c>Product.Create(model)</c>) opens contexts of
-    ///     its own and sees only what was saved.
+    ///     <para>
+    ///         One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
+    ///         tracked here. The model surface (<c>Product.Where(…)</c>, <c>Product.Create(model)</c>) opens contexts of
+    ///         its own and sees only what was saved.
+    ///     </para>
+    ///     <para>
+    ///         It reads what the database has, as a page's context opened for its request would: a row another context
+    ///         of this database saved is the saved row here too (an unchanged tracked instance takes the saved values,
+    ///         its version included; a deleted one is let go), while a row the test changed and has not saved stays the
+    ///         test's. A save through it that fails lets go of everything it tracks, so a refused change does not ride
+    ///         along with the next save.
+    ///     </para>
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;
 
