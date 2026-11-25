@@ -422,6 +422,18 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
+  bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
+  components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote
+  a test. Now `Product` and `Order` are aggregates of value objects (`Text`, `Number`, `Whole`, `Email`, a
+  `ShippingAddress : Value`) and typed ids, every write is an operation with `Refuse`, each list page is one component
+  with `Ui.EditorDialog` and `.Delete(…)` over forms from the operations (`Form.For`, rows of `Children<,>`, a value
+  object's group of fields, `Change<T>`, an `Attachment` picker), roles live on the operations
+  (`b.Operation(…, roles:)`, `Product.MayAdd`), the job calls `Order.MarkReceiptSent(id)`, the catalog cache is
+  forgotten by a domain event (`OnDelete()` included), an order placed takes its stock through
+  `Product`'s `static Task On(OrderPlaced e)`, and chapters 10–11 run `rask audit`. Every chapter proves its rules on
+  SQLite in memory (`TestDatabase.Start`, `Test.Make`, `Test.Refuses`, `Test.FormShows`, `Test.Concurrently`), and
+  `TutorialChapterBuildE2ETests` builds each chapter's tests with the app and runs them at the end.
 - **rask.sh leads with the one way an app is written.** The hero's code window is now a model (a `Text`/`Number`
   value object, a typed id, an aggregate whose `Reprice` refuses with `Refuse.When`), the `Form.For(Product.Reprice, id)`
   over it, and its test on SQLite in memory — three files compiled and run in `tests/Rask.Testing.Database.Tests/Hero`,
