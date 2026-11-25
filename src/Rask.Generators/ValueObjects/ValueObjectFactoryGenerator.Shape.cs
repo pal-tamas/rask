@@ -102,7 +102,7 @@ public sealed partial class ValueObjectFactoryGenerator
     // `__Field`: only for the bases a control is drawn for, and only where the compilation has the seam to name.
     private static void AppendField(StringBuilder s, ValueObject value)
     {
-        if (!value.HasFieldSeam || value.ValueBase is not ("Text" or "Number" or "Integer" or "Day" or "Moment" or "Range"))
+        if (!HasField(value))
         {
             return;
         }

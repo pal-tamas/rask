@@ -175,6 +175,14 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A hand form's model may hold a value object itself.** `public sealed class TankForm { public Litres? Size { get; set; } }`
+  with `Ui.Input.Bind(() => _form.Size)` or `Ui.Field.Bind(() => _form.Size)` works as a field of `Form.For` does: the
+  control holds the value the value object holds and is shaped by its rules (`min`, `max`, `step`, `maxlength`, the
+  input's kind, *required* for a property that may not be null), what is typed is made through its `TryCreate` and a
+  refusal is shown under the field in its own words, and the property is set only to a value its rules accept — an
+  emptied nullable one is null. No `.Validate(X.Check)` step and no primitive beside it. Every one-value value object
+  of an assembly is registered for this by a generated module initializer; a value object of several values is not
+  held this way yet.
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,

@@ -48,6 +48,11 @@ when the form is saved does not need it — see [bind timing](#bind-timing).
 derives everything from the bound property:
 
 - **Input name** ← the property name (`name="Name"`). Override with `.Name(…)`.
+- **A value object is bound as it is.** A model's property may hold a value object of one value —
+  `public Litres? Size { get; set; }` beside a `public sealed partial record Litres(int Value) : Integer(Value, Min: 100)`
+  — and `Input.Bind(() => _model.Size)` holds the number it holds, is shaped by its rules and writes the property only
+  with a value they accept, saying their refusal under the field. Prefer it to a plain `int?` with
+  `.Validate(Litres.Check)`: see [rules in a value object](forms-validation.md#rules-in-a-value-object).
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else

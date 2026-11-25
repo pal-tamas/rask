@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Values;
 
 namespace Rask.Core.Forms;
 
@@ -56,7 +57,9 @@ public static class BindingHelpers
     /// </remarks>
     public static string? DefaultStep(Type propType)
     {
-        var t = Nullable.GetUnderlyingType(propType) ?? propType;
+        ArgumentNullException.ThrowIfNull(propType);
+        var held = ValueFields.HeldOr(propType);
+        var t = Nullable.GetUnderlyingType(held) ?? held;
         return t == typeof(decimal) || t == typeof(double) || t == typeof(float) || t == typeof(Half)
             ? "any"
             : null;
@@ -64,7 +67,9 @@ public static class BindingHelpers
 
     public static string DefaultInputType(Type propType)
     {
-        var t = Nullable.GetUnderlyingType(propType) ?? propType;
+        ArgumentNullException.ThrowIfNull(propType);
+        var held = ValueFields.HeldOr(propType);
+        var t = Nullable.GetUnderlyingType(held) ?? held;
         if (t == typeof(bool))
         {
             return "checkbox";
@@ -100,7 +105,7 @@ public static class BindingHelpers
     }
 
     public static bool IsImmediateUpdateType(Type propType) =>
-        (Nullable.GetUnderlyingType(propType) ?? propType) == typeof(string);
+        ValueFields.HeldOr(propType) is var held && (Nullable.GetUnderlyingType(held) ?? held) == typeof(string);
 
     // Whether an <input> of this type is typed into, so that `.Blur()` and `.Debounce(…)` have a keystroke to
     // wait after. A checkbox, a radio, a file, a range and a colour are chosen, not typed: they commit on
@@ -114,6 +119,12 @@ public static class BindingHelpers
         if (value is null)
         {
             return "";
+        }
+
+        // A value object a model holds as it is shows the value it holds.
+        if (value is Value && ValueFields.Of(value.GetType()) is { } held)
+        {
+            return FormatValue(held.Read(value));
         }
 
         return value switch
@@ -466,6 +477,11 @@ public static class BindingHelpers
             return false;
         }
 
+        if (ValueFields.Of(acc.PropertyType) is { } value)
+        {
+            return ValueBinding.TryBind(acc, ctx, fid, raw, value);
+        }
+
         var heldBack = UnreadInput.Current is { } input ? UnreadValue.HeldBack(acc.PropertyType, input) : null;
         if (heldBack is null && TrySetTyped(acc, raw))
         {
@@ -540,18 +556,27 @@ public static class BindingHelpers
             }
         }
 
+        if ((underlying ?? t) == typeof(DateTimeOffset))
+        {
+            return TrySetMoment(acc, raw);
+        }
+
+        return TryParseTyped(t, raw, out var parsed) && Set(acc, parsed);
+    }
+
+    // Text that is not empty, read as the type: an enum by its name, a number in the one spelling the parsers know,
+    // anything else through its IParsable<T>. What a bound member and the value a value object holds are read with.
+    [UnconditionalSuppressMessage("Trimming", "IL2067",
+        Justification = "As TrySetTyped: t is a bound member's declared type, or the value a value object holds.")]
+    internal static bool TryParseTyped(Type t, string raw, out object? parsed)
+    {
         // Enum.TryParse needs the unwrapped type — Nullable<TEnum>.IsEnum is false, so a
         // nullable enum would otherwise fall through to RouteValueParser, which only
         // probes IParsable<T> (enums don't expose it through reflection's interface table).
-        var effective = underlying ?? t;
+        var effective = Nullable.GetUnderlyingType(t) ?? t;
         if (effective.IsEnum)
         {
-            return EnumText.TryParse(effective, raw, out var en) && Set(acc, en);
-        }
-
-        if (effective == typeof(DateTimeOffset))
-        {
-            return TrySetMoment(acc, raw);
+            return EnumText.TryParse(effective, raw, out parsed);
         }
 
         // A number is read in the one spelling the parsers know (NumberText), never as the reader spelled it.
@@ -559,6 +584,7 @@ public static class BindingHelpers
         {
             if (NumberText.Invariant(raw) is not { } spelled)
             {
+                parsed = null;
                 return false;
             }
 
@@ -566,15 +592,9 @@ public static class BindingHelpers
         }
 
         // `1e3` is a number to the browser, and to a double: a whole number and a decimal read it written out.
-        if ((RouteValueParser.TryParse(t, raw, out var parsed)
-             || (NumberText.WrittenOut(raw) is { } plain && RouteValueParser.TryParse(t, plain, out parsed)))
-            && UnreadValue.IsFinite(parsed))
-        {
-            acc.Setter(parsed);
-            return true;
-        }
-
-        return false;
+        return (RouteValueParser.TryParse(t, raw, out parsed)
+                || (NumberText.WrittenOut(raw) is { } plain && RouteValueParser.TryParse(t, plain, out parsed)))
+               && UnreadValue.IsFinite(parsed);
     }
 
     // A datetime-local input sends a clock time with no offset ("2026-11-19T10:00"), as FormatValue showed it: the
@@ -646,7 +666,7 @@ public static class BindingHelpers
         return RouteValueParser.TryParse(targetType, raw, out value);
     }
 
-    private static bool IsNullableProperty(PropertyInfo prop, Type? underlying, Type type)
+    internal static bool IsNullableProperty(PropertyInfo prop, Type? underlying, Type type)
     {
         if (underlying is not null)
         {
