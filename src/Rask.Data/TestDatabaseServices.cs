@@ -25,7 +25,8 @@ internal static class TestDatabaseServices
         IModel? model,
         Func<TContext> openWrite,
         Func<RaskReadDbContext> openRead,
-        Action<IServiceCollection>? addServices)
+        Action<IServiceCollection>? addServices,
+        TestDatabaseFakes fakes)
         where TContext : RaskDbContext
     {
         var services = new ServiceCollection();
@@ -47,12 +48,13 @@ internal static class TestDatabaseServices
         {
             foreach (var battery in TestDatabaseBatteries.All)
             {
-                battery.Wire<TContext>(services, model);
+                battery.Wire<TContext>(services, model, fakes);
             }
         }
 
         // The test's own last, so it can stand in for any of the above.
         addServices?.Invoke(services);
+        fakes.Settle(services);
 
         return services.BuildServiceProvider();
     }

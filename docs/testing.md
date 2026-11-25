@@ -301,6 +301,15 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
   handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
   goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
+- **the batteries are their fakes**: when the model maps a battery's table — a RaskApp's context maps them all — that
+  battery is its test fake for the database's lifetime, so a save handler's `Mail.Send`, `Jobs.Enqueue`,
+  `Cache.Remember`, `Push.Send` or `Files.Save` records what it would have done instead of throwing for want of a
+  host, and a class that injects `IMail`/`IJobs`/`ICache`/`IPush`/`IFiles` is handed the same fake. The test reads
+  them back from the database — `database.Mail.Sent().To("ann@x.io").Once()`, `database.Jobs.Enqueued<SendReceipt>().Once()`
+  — and `await database.Jobs.Run()` runs the recorded jobs through their real handlers, in a scope of the database's
+  own services, with no host. A fake the test made before starting the database (`using var mail = Mail.Fake();`) is
+  the one used; a battery the test registers itself through `services:` replaces the fake. The outbox stays real
+  (`Outbox.Fake()` when a test wants to step it);
 - the schema is made once per model and copied into each later database through SQLite's backup API — a start over
   a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
@@ -332,6 +341,30 @@ it matters.
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
+
+### A signed-in user: `Test.SignIn`
+
+Code that reads who is signed in — `Current.UserId`, `Current.IsInRole`, the tenant filter, the audit stamps — runs as
+a user inside `Test.SignIn` (from `Rask.Testing.Data`), until the scope is disposed:
+
+```csharp
+[Fact]
+public async Task An_administrator_sees_every_tenant_s_orders()
+{
+    await using var database = await TestDatabase.Start<AppDbContext>();
+    using var admin = Test.SignIn("admin@x.io", roles: ["Administrator"]);
+
+    var orders = await Order.Where(o => o.Open).ToList();
+    …
+}
+```
+
+The principal carries what a Rask sign-in issues: the id as `ClaimTypes.NameIdentifier`, `ClaimTypes.Name`,
+`ClaimTypes.Email` when the name is an address, one `ClaimTypes.Role` per role, `tenant:` as `Tenant.ClaimType`, then
+`claims:` of the app's own (`claims: [new Claim("dept", "ops")]`). With no `id:` the id is made from the name, so the
+same name is the same user every time; pass a user row's id when the test reads that row as theirs. `admin.Id` and
+`admin.Principal` hand them back — `Page.Visit(url).As(admin.Principal)` signs the same user in to a visited page. It
+is scoped to the test's flow, so parallel tests never see each other's user.
 
 ### A valid value object: `Test.Make`
 

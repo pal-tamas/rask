@@ -271,6 +271,10 @@ static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.Mod
 static Rask.Storage.StoredFileReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Storage.FilesTestDatabase
+Rask.Storage.FilesTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.Storage.FilesTestDatabase.extension(Rask.Data.TestDatabase!).Files.get -> Rask.Storage.FilesFake!
+static Rask.Storage.FilesTestDatabase.get_Files(Rask.Data.TestDatabase! database) -> Rask.Storage.FilesFake!
 static Rask.Storage.StoredFileReadAccess.Choice(System.Guid? id, System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, string!>!>! text, System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, string?>!>? detail = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.ChoiceRow<System.Guid>?>!
 static Rask.Storage.StoredFileReadAccess.ChoicePage(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, string!>!>! text, string! typed, int skip, int take, System.Collections.Generic.IReadOnlyCollection<System.Guid>? picked = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.ChoiceRowPage<System.Guid>!>!
 static Rask.Storage.StoredFileReadAccess.Choices(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, string!>!>! text, System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, string?>!>? detail = null) -> Rask.IChoiceSource<System.Guid>!

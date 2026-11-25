@@ -47,6 +47,14 @@ namespace Rask.Data;
 ///         durable handler's event is stored in the save's own transaction (or recorded by <c>Outbox.Fake()</c>). A
 ///         handler is resolved from those services, and a context it opens is this database's.
 ///     </para>
+///     <para>
+///         <b>The batteries are their fakes.</b> When the model maps a battery's table — a RaskApp's context maps them all —
+///         that battery is its test fake for the database's lifetime: <c>Mail.Send</c>, <c>Jobs.Enqueue</c>,
+///         <c>Cache.Remember</c>, <c>Push.Send</c> and <c>Files.Save</c> in a save handler record what they would have done
+///         instead of throwing for want of a host, and the test reads them back: <c>database.Mail.Sent().Once()</c>,
+///         <c>await database.Jobs.Run()</c>. A fake the test made before starting the database (<c>using var mail = Mail.Fake();</c>)
+///         is the one used; a battery the test registers itself through <c>services</c> replaces the fake.
+///     </para>
 /// </remarks>
 /// <seealso cref="TestDatabase{TContext}" />
 public partial class TestDatabase : IAsyncDisposable
@@ -57,6 +65,7 @@ public partial class TestDatabase : IAsyncDisposable
     private readonly Action<DbContextOptionsBuilder> _configure;
     private readonly IAsyncDisposable? _lease;
     private readonly Db.FlowDatabase _flow;
+    private readonly TestDatabaseFakes _fakes;
 
     // Binds the model surface to this database for the flow that is starting it — so it must run in that flow, outside
     // any async method of its own (see Db.BindFlow).
@@ -66,8 +75,10 @@ public partial class TestDatabase : IAsyncDisposable
         Func<DbContext> openWrite,
         Action<DbContextOptionsBuilder> configure,
         IServiceProvider services,
-        IAsyncDisposable? lease)
+        IAsyncDisposable? lease,
+        TestDatabaseFakes fakes)
     {
+        _fakes = fakes;
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
@@ -203,6 +214,7 @@ public partial class TestDatabase : IAsyncDisposable
         // in below, once the model they depend on is known, and before the first context is opened.
         // Last in the chain: keeps the fixture's own context as the database has it, once the others shaped the save.
         IInterceptor[] interceptors = [];
+        var fakes = new TestDatabaseFakes(); // filled in the caller's flow, so each fake takes its battery's place for the test
         var keeper = new FixtureContextKeeper();
 
         TContext Create()
@@ -217,34 +229,28 @@ public partial class TestDatabase : IAsyncDisposable
             return construct(builder.Options);
         }
 
-        // The read side is the same database through a context of its own, so `Order.Where(…)` works in a test
-        // exactly as it does in an app — and it is configured AFTER Db, because building the read model
-        // mirrors the write model and so needs the write side already pointed somewhere.
-        RaskReadDbContext CreateRead()
-        {
-            var builder = OptionsLayout.LikeAddDbContext<RaskReadDbContext>();
-            configure(builder);
-            RaskReadDbContext.Prepare(builder);
-            return new RaskReadDbContext(builder.Options);
-        }
-
         // One delegate each, handed to every place that opens a context, so disposing can tell whether the process-wide
         // binding is still this database's before it clears it.
         Func<TContext> write = Create;
-        Func<RaskReadDbContext> read = CreateRead;
+        Func<RaskReadDbContext> read = ReadOpener(configure);
+
+        ServiceProvider Wired(IModel? model)
+        {
+            var wired = TestDatabaseServices.For(clock, model, write, read, addServices, fakes);
+            interceptors = [.. TestDatabaseServices.Interceptors(wired), keeper];
+            return wired;
+        }
 
         // Rask's own services first, so the context that builds the model is configured as every later one is (EF Core
         // keys its internal services on the interceptors that shape materialization). Building the model loads a
         // battery's assembly when the model maps its tables; with the batteries announced, the services are registered
         // again with what they add — the outbox's interceptor.
-        var services = TestDatabaseServices.For(clock, model: null, write, read, addServices);
-        interceptors = [.. TestDatabaseServices.Interceptors(services), keeper];
+        var services = Wired(model: null);
         var model = ModelOf(write);
         if (!TestDatabaseBatteries.All.IsEmpty)
         {
             services.Dispose();
-            services = TestDatabaseServices.For(clock, model, write, read, addServices);
-            interceptors = [.. TestDatabaseServices.Interceptors(services), keeper];
+            services = Wired(model);
         }
 
         // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
@@ -253,8 +259,22 @@ public partial class TestDatabase : IAsyncDisposable
         var schemaOwner = keeper.Keep(write());
         Db.Configure(write);
         ReadDb.Configure(read);
-        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease)).WithSchema(createSchema, cancellationToken);
+        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease), fakes)
+            .WithSchema(createSchema, cancellationToken);
     }
+
+    // The read side is the same database through a context of its own, so `Order.Where(…)` works in a test exactly as it
+    // does in an app — and it is configured AFTER Db, because building the read model mirrors the write model and so needs
+    // the write side already pointed somewhere.
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    private static Func<RaskReadDbContext> ReadOpener(Action<DbContextOptionsBuilder> configure) =>
+        () =>
+        {
+            var builder = OptionsLayout.LikeAddDbContext<RaskReadDbContext>();
+            configure(builder);
+            RaskReadDbContext.Prepare(builder);
+            return new RaskReadDbContext(builder.Options);
+        };
 
     // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.
     private static IModel ModelOf<TContext>(Func<TContext> open)
@@ -313,6 +333,9 @@ public partial class TestDatabase : IAsyncDisposable
     ///     </para>
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;
+
+    /// <summary>The batteries' fakes this database stands in with — what <c>database.Mail</c>, <c>database.Jobs</c> read.</summary>
+    internal TestDatabaseFakes Fakes => _fakes;
 
     /// <summary>Loads one aggregate whole, by key, from a context of its own.</summary>
     /// <remarks>
@@ -405,6 +428,7 @@ public partial class TestDatabase : IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         Db.UnbindFlow(_flow);
+        _fakes.Release();
         // Only while the process-wide binding is still this database's: another test's started since is that test's.
         Db.ResetIf(_openWrite);
         ReadDb.ResetIf(_openRead);

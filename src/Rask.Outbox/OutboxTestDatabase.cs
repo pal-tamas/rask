@@ -23,7 +23,7 @@ internal sealed class OutboxTestDatabase : ITestDatabaseBattery
     internal static void Register() => TestDatabaseBatteries.Add(new OutboxTestDatabase());
 
     /// <inheritdoc />
-    public void Wire<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IServiceCollection services, IModel model)
+    public void Wire<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IServiceCollection services, IModel model, TestDatabaseFakes fakes)
         where TContext : DbContext
     {
         // An app always has the outbox, and its boot refuses a model without the table (OutboxModelCheck); a test

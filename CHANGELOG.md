@@ -230,6 +230,16 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Test.SignIn(name, roles:, tenant:, claims:, id:)`** (`Rask.Testing.Data`): the test runs as a signed-in user —
+  `Current.UserId`, `Current.IsInRole`, the tenant filter and the audit stamps see them — until the returned scope is
+  disposed. The principal carries the claims a Rask sign-in issues, so an app's own `Signing.As…` helpers can go.
+- **`TestDatabase.Start()` stands the batteries in with their fakes.** Before: a save handler that called
+  `Mail.Send`, `Jobs.Enqueue`, `Cache.Remember`, `Push.Send` or `Files.Save` threw in a test for want of a host, unless
+  the test made each fake by hand. Now a model that maps a battery's table (a RaskApp's context maps them all) gets
+  that battery's fake for the database's lifetime — through the static and to a class that injects it — read back
+  as `database.Mail`, `database.Jobs`, `database.Cache`, `database.Push`, `database.Files`; `await database.Jobs.Run()`
+  runs the recorded jobs in a scope of the database's services with no host. A fake made before `Start` is the one
+  used; a battery registered through `services:` replaces it.
 - **A picker's rows from the read face: `X.Choice`, `X.Choices`, `X.ChoicePage`** (`docs/data.md`). Every aggregate's
   read face answers `Company.Choice(id, c => c.Name)` (a `ChoiceRow<TKey>?` — null for no row and for another
   tenant's), `Company.ChoicePage(c => c.Name, typed, skip, take, picked)` (the page searched case and accents aside
