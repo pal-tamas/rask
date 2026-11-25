@@ -34,6 +34,7 @@ cd "$root"
 # together are past twenty. So the SQL Server tests (a SqlServer class, or a sql_server fact) run in a process of their
 # own that may use only SQL Server, and everything else in one that may use only PostgreSQL (RASK_PROVIDERS_SERVERS).
 # Serial, because the second process would fight the first over obj/ — it runs --no-build on the first's output.
+# The split is by NAME, so a fact that is not SQL Server's never says "sql_server" (not even "postgresql_server").
 suite=tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj
 sql_server_tests="FullyQualifiedName~SqlServer|FullyQualifiedName~sql_server"
 other_tests="FullyQualifiedName!~SqlServer&FullyQualifiedName!~sql_server"
