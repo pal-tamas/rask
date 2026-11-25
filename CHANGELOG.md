@@ -42,6 +42,24 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **`Test.FormShows` drives a value object a hand form's model holds.** It converted the value given to the
+  property's type, so `m => m.Size` over a `TankCapacity? Size` failed with "Invalid cast from Int32 to TankCapacity",
+  and a member of a value object of several values (`m => m.Start!.Quantity`, or `m => m.Start.Value!.Quantity` over a
+  `Change<TankOpening?>`) could not be reached at all. The value given is now what the reader types, put in through the
+  binding a control's goes through — the value object made through its `TryCreate`, a member typed into the form's
+  draft — so its refusal is said under the field as the page says it.
+- **A refused save of `TestDatabase.Context` no longer rides along with the next one.** A refusal said with
+  `IsUnique("…")` is thrown in EF Core's place by the interceptor that translates it, and EF Core then tells no
+  interceptor after it that the save failed — so the fixture's keeper never let go of what the refused save tracked,
+  inside a `Db.Transaction` or not; the translator now tells them before it throws. And a save of `TestDatabase.Context`
+  that a `Db.Transaction` took in and then rolled back is taken back — a row it added let go, one it changed or deleted
+  tracked again at the database's values — instead of sitting in the tracker as saved and failing the next save on a
+  version the database never kept.
+- **A test never connects to a database server it did not set up.** With Rask.Testing referenced, a test that needs
+  the app — an event published, a command sent with no `TestDatabase` bound — boots it from its `Program.cs` on a SQLite
+  database of its own; an app configured for `sqlserver` or `postgres` was then pointed at that server. It is now
+  refused at the boot, before anything connects, saying what to do instead (`TestDatabase.Start`, `Events.Fake()`, or
+  `Rask__Database__Provider=sqlite` for the Test environment).
 - **A `Cached` region no longer stores its placeholder for every later visitor.** A hook ending in an `await` completes
   its paint one statement before its context asks for the render, so a walk in that gap — a live session's render on
   another thread — served the component's cached "loading" markup and the fragment, seeing nothing still painting,

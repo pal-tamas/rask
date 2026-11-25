@@ -159,6 +159,10 @@ internal static class RaskBatteryWiring
         // Read while services are registered, like Rask:Cqrs, because it decides which services exist: where the log is
         // kept, whether snapshots run. Read before the defaults go in, which name no provider.
         var provider = RaskDatabase.Provider(builder.Configuration);
+        if (options.Data.Enabled)
+        {
+            TestBootDatabase.Refuse(provider);
+        }
 
         // Underneath every source the builder already has — appsettings.json, the environment, user secrets, the
         // command line — so each of them overrides these.

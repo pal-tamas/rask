@@ -51,14 +51,15 @@ public static class Dispatcher
     {
         ArgumentNullException.ThrowIfNull(e);
 
-        // A test's Events.Fake() records it here even with no app to reach, as Jobs.Fake() takes an enqueue.
-        var work = Ambient.Needed;
-        // Outside any work it keeps no services: the root may be gone by its Run(), which then reaches the app as this would.
-        if (Events.Recorded(e, work))
+        // A test's Events.Fake() records it here even with no app to reach, as Jobs.Fake() takes an enqueue — and boots
+        // no test app for it: only the work already in progress is kept. Outside any work it keeps no services: the
+        // root may be gone by its Run(), which then reaches the app as this would.
+        if (Events.Recorded(e, Ambient.Services))
         {
             return Task.CompletedTask;
         }
 
+        var work = Ambient.Needed;
         return work is not null
             ? Of(work).Publish(e, cancellationToken)
             : Alone(e, static (d, published, ct) => d.Publish(published, ct), cancellationToken);

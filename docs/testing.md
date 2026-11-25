@@ -326,9 +326,12 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   another context saved (`Order.Find(id)` → `order.Save()`, a handler, `database.Factory`) is the saved row in it too,
   version and all, so the next query through it, or a change made on the instance it already tracked and saved through
   it, is the database's row and not the one it seeded. A row it tracks that the test changed and has not saved stays
-  the test's. A save of its own that fails — a refused rule, a taken unique value — lets go of everything it tracked, so
-  the refused change never rides along with the next save. No `ChangeTracker.Clear()` is needed to hand it to code that
-  takes a context;
+  the test's. A save of its own that fails — a refused rule, a taken unique value said with `IsUnique("…")` — lets go of
+  everything it tracked, so the refused change never rides along with the next save; inside a `Db.Transaction` too. A
+  save of its own that a `Db.Transaction` took in and then rolled back is taken back: a row it added is let go, a row it
+  changed or deleted is tracked again at the values the database still has, so the next save neither resends it nor
+  trips over a version the database never kept. No `ChangeTracker.Clear()` is needed to hand it to code that takes a
+  context;
 - disposing it lets the database go.
 
 **No test passes a `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
@@ -449,6 +452,20 @@ public Task The_km_end_comes_after_its_start_on_the_form() =>
   showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
 - **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
   sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
+- **A value object is typed in, as the reader types it.** On a hand model that holds one as it is
+  ([value objects on a form](forms-validation.md)), the value given is what the reader types — the primitive a value
+  object of one value holds, or a member of one of several values — and it goes through the binding a control's goes
+  through: made through the value object's `TryCreate`, its refusal said under the field, the property left as it was:
+
+  ```csharp
+  Test.FormShows<TankForm>(m => m.Size, 50, "Enter 100 or more.");              // TankCapacity? Size
+  Test.FormShows<TankForm>(m => m.Start!.Quantity, 0m, TankOpening.AtLeastALitre); // TankOpening? Start
+  Test.FormShows<TankRow>(m => m.Start.Value!.Quantity, 0m, TankOpening.AtLeastALitre); // Change<TankOpening?> Start
+  ```
+
+  A member of one of several values is typed into the form's draft of it, so a rule about the member is said under it
+  and one about the whole under the property; `null` empties the field (a property that may not be empty says it is
+  required).
 - A model given as it is goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`. For an operation's
   form, start it the way the page does — `await SupplyChangeInput.Of(id)` reads it from the stored aggregate, at its
   version, every field filled as `Form.For(Supply.Change, id)` fills it (and throws when nothing is stored under the
@@ -650,6 +667,13 @@ it waits: only a call with nothing else to go on boots it — `Page.Visit`, a ba
 `Jobs.Enqueue`), a read with no database configured. A lookup that has another answer (`Ambient.Services`, an
 `IsOn` check) never does, and a test that sets up its own database never boots the app at all
 ([testing the domain](#testing-the-domain)).
+
+**A test never reaches a database server it did not set up.** The app a test boots gets a SQLite database of its own in
+a temp folder. An app whose `Rask:Database:Provider` is `sqlserver` or `postgres` is refused at its boot, before
+anything opens a connection, with what to do instead: start the test's own database (`await using var database = await
+TestDatabase.Start<AppDbContext>();`), record what it publishes with `using var events = Events.Fake();` (a published
+event then boots nothing), or set `Rask__Database__Provider=sqlite` for the Test environment (`appsettings.Test.json`)
+when the test means to visit the booted app.
 
 **The fake clock is a `TimeProvider`.** Hand it to a type of the app's that takes one, and that type and `Clock.Now`
 tell the same time, which `Advance` moves for both:

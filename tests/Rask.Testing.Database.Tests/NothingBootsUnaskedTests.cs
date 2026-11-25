@@ -51,6 +51,19 @@ public sealed class NothingBootsUnaskedTests
         Assert.Contains(UnsetApp.DatabaseVariable, booted.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task An_event_published_into_a_fake_is_recorded_without_booting_the_app()
+    {
+        using var events = Events.Fake();
+
+        await Dispatcher.Publish(new Noted("Acme"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, events.Count);
+        Assert.Null(Ambient.Services);
+    }
+
+    public sealed record Noted(string Name) : IEvent;
+
     private static Task<TestDatabase> Start() =>
         TestDatabase.Start(cancellationToken: TestContext.Current.CancellationToken);
 }
