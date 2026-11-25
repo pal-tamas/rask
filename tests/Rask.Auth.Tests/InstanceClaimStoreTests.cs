@@ -1,7 +1,7 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Auth.Tests;
 
@@ -15,7 +15,6 @@ namespace Rask.Auth.Tests;
 ///     would pass too — which it was verified to do. Calling the store straight after a barrier is what
 ///     actually puts several callers inside the window at once.
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class InstanceClaimStoreTests
 {
     [Fact]
@@ -110,13 +109,6 @@ public sealed class InstanceClaimStoreTests
         });
     }
 
-    // Pooling off (#1087). A pooled connection's return runs SqliteConnection.Deactivate, which un-registers the
-    // EF_DECIMAL collation EF Core adds — and SQLite refuses that while a collected-but-unfinalized statement is still
-    // active, so the many-simultaneous-claims shape failed unrelated gates with "unable to delete/modify collation
-    // sequence due to active statements". A connection that is never pooled is never deactivated. What the tests
-    // assert is unchanged: every claim still contends for the one row on its own handle.
-    private const string PoolingOff = ";Pooling=False";
-
     private static Guid UserId(int n) => new($"00000000-0000-0000-0000-{n:D12}");
 
     private static IInstanceClaimStore Store(AuthHarness harness) =>
@@ -124,29 +116,21 @@ public sealed class InstanceClaimStoreTests
 
     private static async Task WithStoreAsync(SaveChangesInterceptor interceptor, Func<IInstanceClaimStore, Task> test)
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"rask-auth-claim-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var services = new ServiceCollection();
         services.AddDbContextFactory<AuthDbContext>(o => o
-            .UseSqlite($"Data Source={dbPath}{PoolingOff}")
+            .UseSqlite(database.ConnectionString)
             .AddInterceptors(interceptor));
 
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<IDbContextFactory<AuthDbContext>>();
 
-        try
+        await using (var db = await factory.CreateDbContextAsync())
         {
-            await using (var db = await factory.CreateDbContextAsync())
-            {
-                await db.Database.EnsureCreatedAsync();
-            }
+            await db.Database.EnsureCreatedAsync();
+        }
 
-            await test(new InstanceClaimStore<AuthDbContext>(factory, TimeProvider.System));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(dbPath);
-        }
+        await test(new InstanceClaimStore<AuthDbContext>(factory, TimeProvider.System));
     }
 
     // A server that refused the write: the exception a real provider raises for a dropped connection, thrown

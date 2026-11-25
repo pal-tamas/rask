@@ -4,7 +4,6 @@ using Rask.Wire;
 namespace Rask.Auth.Tests;
 
 /// <summary>Registering and signing in, once the instance has been claimed.</summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class AccountServiceTests
 {
     private const string Password = "Password1";

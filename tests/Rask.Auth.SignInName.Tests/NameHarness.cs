@@ -1,9 +1,9 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Auth.SignInName.Tests;
 
@@ -20,14 +20,14 @@ internal sealed class NameDb(DbContextOptions<NameDb> options) : RaskDbContext(o
     }
 }
 
-/// <summary>A real-SQLite app wired the way the auth battery wires one, around <see cref="User" />.</summary>
+/// <summary>A real-SQLite app, its database in memory and its own, wired the way the auth battery wires one, around <see cref="User" />.</summary>
 internal sealed class NameHarness : IAsyncDisposable
 {
     /// <summary>The token the first registration presents.</summary>
     public const string FirstRunToken = "test-first-run-token";
 
     private readonly ServiceProvider _provider;
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-auth-names-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     /// <param name="configure">Deviations from the default options.</param>
     /// <param name="extraServices">Registrations a test adds last, such as the context a <c>Db.Transaction</c> opens.</param>
@@ -37,7 +37,7 @@ internal sealed class NameHarness : IAsyncDisposable
         services.AddLogging();
         services.AddRaskData();
         services.AddDbContextFactory<NameDb>((sp, o) => o
-            .UseSqlite($"Data Source={_path};Pooling=False")
+            .UseSqlite(_database.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         // A real hash at a fraction of the work, registered first so AddRaskAuth's TryAdd keeps it.
@@ -86,15 +86,6 @@ internal sealed class NameHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-
-        try
-        {
-            File.Delete(_path);
-        }
-        catch (IOException)
-        {
-            // A leftover temp file is not worth failing a test over.
-        }
+        await _database.DisposeAsync();
     }
 }

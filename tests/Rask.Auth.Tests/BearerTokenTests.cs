@@ -26,7 +26,6 @@ namespace Rask.Auth.Tests;
 ///         means outside Development, and whether there is a refresh token.
 ///     </para>
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class BearerTokenTests
 {
     private const string GoodKey = "a-signing-key-long-enough-for-hmac-sha256!";

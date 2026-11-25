@@ -20,7 +20,6 @@ namespace Rask.Mailing.Tests;
 /// went through <c>RaskApp</c> could not tell the two apart; this one can.
 /// </para>
 /// </remarks>
-[Collection("mail-db")]
 public sealed class MailModelCheckTests
 {
     /// <summary>A context that never maps the mail table — the mistake the issue is about.</summary>
@@ -32,9 +31,8 @@ public sealed class MailModelCheckTests
         protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskMail();
     }
 
-    /// <summary>A path that is guaranteed not to exist, standing in for "migrations have not run".</summary>
-    private static string MissingDbPath() =>
-        $"Data Source={Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))}.db";
+    /// <summary>A database with no tables in it, standing in for "migrations have not run".</summary>
+    private const string Unmigrated = "Data Source=:memory:";
 
     private static ServiceCollection Services()
     {
@@ -53,7 +51,7 @@ public sealed class MailModelCheckTests
     {
         var services = Services();
         services.AddRaskMail<UnmappedDbContext>(o => o.From = "noreply@example.com");
-        services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite(MissingDbPath()));
+        services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite(Unmigrated));
         using var provider = services.BuildServiceProvider();
         var check = Assert.Single(ModelChecks(provider));
 
@@ -74,10 +72,10 @@ public sealed class MailModelCheckTests
         // before its first migration has run, so refusing to start over a missing TABLE would mean a new
         // app does not start. Reading the MODEL rather than the database separates the two: "not mapped"
         // is a code mistake and always wrong; "not migrated yet" is normal and none of this check's
-        // business. This context maps the table and points at a file that does not exist.
+        // business. This context maps the table and points at a database that has none.
         var services = Services();
         services.AddRaskMail<MappedDbContext>(o => o.From = "noreply@example.com");
-        services.AddDbContextFactory<MappedDbContext>(o => o.UseSqlite(MissingDbPath()));
+        services.AddDbContextFactory<MappedDbContext>(o => o.UseSqlite(Unmigrated));
         using var provider = services.BuildServiceProvider();
         var check = Assert.Single(ModelChecks(provider));
 
@@ -93,7 +91,7 @@ public sealed class MailModelCheckTests
         var services = Services();
         services.AddRaskMail<MappedDbContext>(o => o.From = "noreply@example.com");
         services.AddRaskMail<MappedDbContext>(o => o.From = "noreply@example.com");
-        services.AddDbContextFactory<MappedDbContext>(o => o.UseSqlite(MissingDbPath()));
+        services.AddDbContextFactory<MappedDbContext>(o => o.UseSqlite(Unmigrated));
 
         using var provider = services.BuildServiceProvider();
 
