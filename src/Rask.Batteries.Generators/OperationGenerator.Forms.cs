@@ -351,6 +351,7 @@ public sealed partial class OperationGenerator
 
         foreach (var (operation, _) in formed)
         {
+            AppendLoader(s, aggregate, operation);
             AppendReader(s, aggregate, operation);
             AppendShapesAndRequired(s, operation);
             AppendRules(s, aggregate, operation);
@@ -587,6 +588,7 @@ public sealed partial class OperationGenerator
             s.AppendLine("    /// <summary>The version the aggregate was read at: never a field.</summary>");
             s.AppendLine("    public int Version { get; }");
             s.AppendLine();
+            AppendOf(s, aggregate, operation);
         }
 
         foreach (var parameter in operation.Parameters)
@@ -695,14 +697,14 @@ public sealed partial class OperationGenerator
         s.AppendLine(") =>");
         s.Append("            global::Rask.Core.Forms.OperationForms.Of<").Append(input).AppendLine(">(");
         s.Append("                ").Append(operation.Factory ? "null" : "id").AppendLine(",");
-        AppendLoad(s, aggregate, operation, input);
+        AppendLoad(s, operation, input);
         AppendSubmit(s, aggregate, operation, marked);
         s.Append("                static () => ").Append(aggregate.FullyQualifiedName).Append(".May").Append(operation.Name).AppendLine(");");
         s.AppendLine();
     }
 
-    // A factory's form starts empty; an operation's is read from the aggregate, each field from what it holds alike.
-    private static void AppendLoad(StringBuilder s, OperatedAggregate aggregate, Operation operation, string input)
+    // A factory's form starts empty; an operation's is read from the aggregate through its loader (`ChangeLoad`).
+    private static void AppendLoad(StringBuilder s, Operation operation, string input)
     {
         if (operation.Factory)
         {
@@ -710,7 +712,23 @@ public sealed partial class OperationGenerator
             return;
         }
 
-        s.Append("                async cancellationToken => await global::Rask.Data.GeneratedModelWrites.Find<").Append(aggregate.FullyQualifiedName)
+        s.Append("                cancellationToken => ").Append(operation.Name).AppendLine("Load(id, cancellationToken),");
+    }
+
+    // `ChangeLoad(id)`: the fields as the form starts them, read from the stored aggregate — what `Form.For` and the
+    // input's own `Of(id)` both fill from, or null when nothing is stored under the id.
+    private static void AppendLoader(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        if (operation.Factory)
+        {
+            return;
+        }
+
+        var input = InputName(aggregate, operation);
+        s.AppendLine();
+        s.Append("    internal static async ").Append(TaskFqn).Append('<').Append(input).Append("?> ").Append(operation.Name).Append("Load(")
+            .Append(aggregate.IdType).Append(" id, ").Append(TokenFqn).AppendLine(" cancellationToken) =>");
+        s.Append("        await global::Rask.Data.GeneratedModelWrites.Find<").Append(aggregate.FullyQualifiedName)
             .Append(">(id!, cancellationToken) is { } aggregate ? new ")
             .Append(input).Append("(id, ").Append(aggregate.Versioned ? "aggregate.Version" : "0").Append(')');
         var fills = operation.Parameters.Where(static p => p.Field!.Fill is not null)
@@ -720,7 +738,33 @@ public sealed partial class OperationGenerator
             s.Append(" { ").Append(string.Join(", ", fills)).Append(" }");
         }
 
-        s.AppendLine(" : null,");
+        s.AppendLine(" : null;");
+    }
+
+    // `await ProductChangeInput.Of(id)`: the fields filled as `Form.For(Product.Change, id)` fills them — what a test
+    // hands `Test.FormShows(…)` to start from the stored aggregate rather than from nothing. Left out when a field is
+    // itself named `Of`, which the method would clash with.
+    private static void AppendOf(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        if (operation.Factory || operation.Parameters.Any(static p => string.Equals(p.Field!.Property, "Of", StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        var input = InputName(aggregate, operation);
+        s.Append("    /// <summary>The fields as <c>Form.For(").Append(aggregate.Name).Append('.').Append(operation.Name)
+            .AppendLine(", id)</c> starts them: read from the stored aggregate, at the version it is at.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The aggregate the form changes.</param>");
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the read.</param>");
+        s.AppendLine("    /// <returns>The fields, filled from what is stored.</returns>");
+        s.AppendLine("    /// <exception cref=\"global::System.InvalidOperationException\">Nothing is stored under <paramref name=\"id\" />.</exception>");
+        s.Append("    public static async ").Append(TaskFqn).Append('<').Append(input).Append("> Of(").Append(aggregate.IdType)
+            .Append(" id, ").Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("        await ").Append(aggregate.Name).Append("OperationForms.").Append(operation.Name).Append("Load(id, cancellationToken) ?? ")
+            .Append("throw new global::System.InvalidOperationException($\"No ").Append(aggregate.Name)
+            .Append(" {id} is stored, so ").Append(input).Append(".Of(id) has nothing to fill the fields from: store it first, as Form.For(")
+            .Append(aggregate.Name).Append('.').Append(operation.Name).AppendLine(", id) reads it.\");");
+        s.AppendLine();
     }
 
     private static void AppendSubmit(StringBuilder s, OperatedAggregate aggregate, Operation operation, bool marked)

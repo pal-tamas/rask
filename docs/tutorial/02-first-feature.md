@@ -376,8 +376,7 @@ public sealed class ProductTests
         await Product.Discontinue(product.Id, product.Version, Ct);
 
         await Test.FormShows(
-            new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
-            "A discontinued product keeps its last price.");
+            await ProductChangeInput.Of(product.Id, Ct), m => m.Price, 5m, "A discontinued product keeps its last price.");
     }
 
     [Fact]
@@ -410,8 +409,9 @@ Each test is named as a sentence and shaped in three blocks — setup, action, c
 - **`Test.Refuses(…)`** asserts that something was refused, and `.Only("Price")` that it was refused under *Price*
   alone — the field the reader would see the message under.
 - **`Test.FormShows(…)`** proves the reader is told: it puts the value in a real form over the operation, leaves the
-  field, and checks the message under it. A form built by hand like this one starts empty, so the test fills the
-  other fields it needs.
+  field, and checks the message under it. `ProductChangeInput.Of(product.Id)` fills the form exactly as
+  `Form.For(Product.Change, id)` does on the page — read from the stored product, at its version — so only the field
+  under test changes. A factory's input (`ProductAddInput`) starts empty, as its form does.
 - **`Test.Concurrently(…)`** starts two saves of the same version at the same moment and checks that exactly one
   went through and the other was refused — the version check, proved.
 

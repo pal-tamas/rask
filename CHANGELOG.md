@@ -211,6 +211,21 @@ them until tagged releases begin.
   else the catalog's `ValidationNotFound`. Apps drop their `Refuse.When(await Company.Choice(id) is null, …)` guards.
   **Breaking:** a `PerTenantThrough` row saved under another tenant's parent is now that validation failure, not an
   `InvalidOperationException`.
+- **`await ProductChangeInput.Of(id)`: an operation's form model, filled as `Form.For` fills it.** Before: a test
+  handing `Test.FormShows(…)` an operation's input built it as `new ProductChangeInput(id, version)`, which starts
+  every field empty — unlike the page, whose `Form.For(Product.Change, id)` reads the stored aggregate — so the test
+  filled the other fields by hand and guessed the version. Now every operation's generated input reads itself from
+  the stored aggregate, at its version, through the same read the form uses, and throws when nothing is stored under
+  the id. The tutorial and `docs/testing.md` use it.
+- **`Routes.X().AsLeft()`: the way back to a list as the reader left it.** Rask already noted every address a session
+  moves to for `Ui.FormButtons`' Cancel and `Ui.AppFrame`'s trail; the app's own code now asks for it too —
+  `Routes.SuppliersPage().AsLeft().Go().Replacing()` after a save, `Ui.Button.Ghost.Href(Routes.X().AsLeft())` for a
+  Cancel of its own, `Go.To(Routes.DriversPage().AsLeft().With("edit", id))` from an old form address — with its
+  filters, sort, page and search, an editor dialog's key left out. Every `Ui.Table` now starts the session's memory,
+  not only one keeping its sort or page in the address. Replaces the apps' own `ListAddresses` service.
+- **A `Ui.Tabs` above a paged list starts it at page one.** A lone `Ui.Tabs` (not in a `Ui.TabGroup` or a dialog's form)
+  on a page whose `Ui.Table` keeps its page in the address (`PageIn("page", …)`) takes that key out of the address its
+  `OnChange` moved to, so another tab never opens on the page the last one was on; filters and sort stay.
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,
