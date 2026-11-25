@@ -102,12 +102,13 @@ public static partial class RaskEndpointExtensions
     /// <remarks>
     ///     <see langword="null" /> ends the sign-in: the principal is cleared and the page is owed the sign-in page.
     ///     A principal with other rights replaces the one held and the whole page renders again, mounting nothing.
-    ///     Nothing is asked for a session nobody is signed in to, or when the app registered no revalidator.
+    ///     Nothing is asked for a session nobody is signed in to, or when the app registered no revalidator. A
+    ///     principal past its own <c>exp</c> claim has ended whatever a revalidator would say, and nothing is asked.
     /// </remarks>
     private static ValueTask RevalidateUserAsync(LiveSession session, CancellationToken ct)
     {
         var users = session.Users;
-        if (!users.IsSignedIn || session.Revalidator is not { } revalidator)
+        if (!users.IsSignedIn || EndedIfLapsed(session) || session.Revalidator is not { } revalidator)
         {
             return default;
         }
@@ -121,6 +122,19 @@ public static partial class RaskEndpointExtensions
 
         TakeAnswer(session, held, asked.Result);
         return default;
+    }
+
+    // Ends the sign-in of a session whose principal has passed its own exp claim, as a revalidator's null would: true
+    // when it did. A principal without one never lapses this way, and a check costs a comparison with the clock.
+    private static bool EndedIfLapsed(LiveSession session)
+    {
+        if (!session.Users.IsSignedIn || !session.SignInLapsed)
+        {
+            return false;
+        }
+
+        TakeAnswer(session, session.Users.Current, fresh: null);
+        return true;
     }
 
     // The revalidator's answer, a cancellation it disguised made one again (CancelledCallback): an attach or an event
@@ -268,11 +282,24 @@ public static partial class RaskEndpointExtensions
     }
 
     // What the revalidator makes of the principal a connection carries: the one to act under, or null when its
-    // sign-in has ended. Asked about nobody, and by an app with no revalidator, it is the principal itself.
-    private static async ValueTask<ClaimsPrincipal?> AnswerForAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct) =>
-        PrincipalRights.IsSignedIn(user) && session.Revalidator is { } revalidator
+    // sign-in has ended — by the revalidator's word, or by its own exp claim. Asked about nobody, and by an app with
+    // no revalidator, it is the principal itself.
+    private static async ValueTask<ClaimsPrincipal?> AnswerForAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!PrincipalRights.IsSignedIn(user))
+        {
+            return user;
+        }
+
+        if (session.HasLapsed(user))
+        {
+            return null;
+        }
+
+        return session.Revalidator is { } revalidator
             ? AnswerAbout(user, await Ask(revalidator, user, ct).ConfigureAwait(false))
             : user;
+    }
 
     // The held credential's link on the handler chain: behind the dispatch that was running as it arrived, and
     // ahead of every event read after it.
@@ -427,7 +454,7 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        if (session.Revalidator is not null && AskedLongAgo(session) && !await AskUnattendedAsync(session, "a render").ConfigureAwait(false))
+        if (!EndedIfLapsed(session) && session.Revalidator is not null && AskedLongAgo(session) && !await AskUnattendedAsync(session, "a render").ConfigureAwait(false))
         {
             return false;
         }
@@ -460,7 +487,7 @@ public static partial class RaskEndpointExtensions
     /// </remarks>
     private static ValueTask<bool> MayActInlineAsync(LiveSession session)
     {
-        if (session.SignInEnded)
+        if (session.SignInEnded || EndedIfLapsed(session))
         {
             return new ValueTask<bool>(false);
         }
