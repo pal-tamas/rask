@@ -24,12 +24,12 @@ public sealed class NumberedCurrentIdTests : IDisposable
 {
     private static readonly Guid Twelve = new("00000000-0000-0000-0000-00000000000c");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-numbered-ids-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public void Dispose()
     {
         CurrentRows.Reset();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public sealed class NumberedCurrentIdTests : IDisposable
     [Fact]
     public async Task An_admin_working_in_another_tenant_still_reads_their_own_row()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         using (Tenant.Use(1))
         {
             database.Context.Add(Teller.Hire(12, "Ada"));

@@ -100,7 +100,7 @@ namespace Shop.Features.Orders;
 
 public readonly partial record struct OrderLineId(Guid Value);
 
-public sealed partial record Quantity(long Value) : Whole(Value, Min: 1, Max: 100);
+public sealed partial record Quantity(long Value) : Integer(Value, Min: 1, Max: 100);
 
 public sealed record OrderLineSpec(OrderLineId? Id, ProductId Product, Quantity Quantity);
 
@@ -146,8 +146,8 @@ What is new since chapter 2:
   top of the form. `Refuse.When(lines.Count == 0, () => lines, …)` names the list, so it is under the lines.
 - **An enum stays an enum.** `OrderStatus` is a column of its own, read and compared as it is.
 
-`Ship` takes a `TrackingNumber`, so it is an operation of its own shape. That is also how `Form.For` tells two forms
-apart: it picks the operation by the parameters of its entry ([RASK174](../diagnostics.md#rask174)).
+`Ship` takes a `TrackingNumber`, so it is an operation of its own shape. `Form.For` tells two forms apart by the
+operation's method group, even when two operations take the same parameters ([forms](../forms.md)).
 
 ## 2. The orders page
 
@@ -305,7 +305,7 @@ public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 
 
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Max: 1_000_000, Scale: 2);
 
-public sealed partial record StockLevel(long Value) : Whole(Value, Min: 0);
+public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
 public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
 {

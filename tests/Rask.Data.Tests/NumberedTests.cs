@@ -109,9 +109,9 @@ public sealed class LaneReading : Aggregate<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class NumberedTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-numbered-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Rows_are_numbered_in_order_within_each_group()
@@ -283,6 +283,86 @@ public sealed class NumberedTests : IDisposable
         Assert.Equal([2, 1, null], readings.Select(r => stored[r.Id]));
     }
 
+    [Fact]
+    public async Task Renumber_numbers_one_group_written_past_the_save_anew_and_leaves_another_alone()
+    {
+        await using var database = await StartDatabaseAsync();
+        PumpFueling[] fuelings = [PumpFueling.At("a", 8), PumpFueling.At("a", 9), PumpFueling.At("a", 10), PumpFueling.At("b", 11)];
+        await SaveAsync(database, fuelings);
+        await WritePastTheSaveAsync(fuelings[0], 7);
+        await WritePastTheSaveAsync(fuelings[3], 5);
+
+        var changed = await PumpFueling.Renumber("a", TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, changed);
+        Assert.Equal([1, 2, 3, 5], await SequencesAsync(fuelings));
+    }
+
+    [Fact]
+    public async Task Renumber_keeps_the_save_s_rules_a_skipped_row_none_and_a_part_its_fill_s()
+    {
+        await using var database = await StartDatabaseAsync();
+        PumpFueling[] fuelings = [PumpFueling.At("a", 8), PumpFueling.At("a", 9), PumpFueling.At("a", 10)];
+        await SaveAsync(database, fuelings);
+        var part = PumpFueling.PartOf(fuelings[2], hour: 11);
+        await SaveAsync(database, part);
+        await SaveAsync(database, PumpShare.From(fuelings[0]));
+        await using (var db = Db.CreateOwnContext())
+        {
+            await db.Set<PumpFueling>().ExecuteUpdateAsync(s => s.SetProperty(f => f.Sequence, 9), TestContext.Current.CancellationToken);
+        }
+
+        await PumpFueling.Renumber(["a"], TestContext.Current.CancellationToken);
+
+        Assert.Equal([null, 1, 2, 2], await SequencesAsync([.. fuelings, part]));
+    }
+
+    [Fact]
+    public async Task RenumberAll_numbers_every_group_anew_and_takes_the_number_of_a_row_in_none()
+    {
+        await using var database = await StartDatabaseAsync();
+        LaneReading[] readings = [LaneReading.At(4, 2, hour: 9), LaneReading.At(5, 2, hour: 8), LaneReading.At(0, 2, hour: 10), LaneReading.At(4, 0, hour: 7)];
+        database.Context.AddRange(readings);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await using (var db = Db.CreateOwnContext())
+        {
+            await db.Set<LaneReading>().ExecuteUpdateAsync(s => s.SetProperty(r => r.Sequence, 4), TestContext.Current.CancellationToken);
+        }
+
+        var changed = await LaneReading.RenumberAll(TestContext.Current.CancellationToken);
+
+        await using var read = Db.CreateOwnContext();
+        var stored = await read.Set<LaneReading>().ToDictionaryAsync(r => r.Id, r => r.Sequence, TestContext.Current.CancellationToken);
+        Assert.Equal(4, changed);
+        Assert.Equal([2, 1, 1, null], readings.Select(r => stored[r.Id]));
+    }
+
+    [Fact]
+    public async Task Renumber_refuses_a_group_of_another_type_and_a_type_with_no_numbering()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var wrongType = await Assert.ThrowsAsync<ArgumentException>(() => PumpFueling.Renumber(7, TestContext.Current.CancellationToken));
+        var none = await Assert.ThrowsAsync<InvalidOperationException>(() => PumpShare.RenumberAll(TestContext.Current.CancellationToken));
+
+        Assert.Contains("String", wrongType.Message, StringComparison.Ordinal);
+        Assert.Contains("PumpShare declares no b.Numbered", none.Message, StringComparison.Ordinal);
+    }
+
+    // A number written straight into the table, as a raw ExecuteUpdate or a migration's SQL would: no save numbers it.
+    private static async Task WritePastTheSaveAsync(PumpFueling fueling, int sequence)
+    {
+        await using var db = Db.CreateOwnContext();
+        await db.Set<PumpFueling>().Where(f => f.Id == fueling.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.Sequence, sequence), TestContext.Current.CancellationToken);
+    }
+
+    private static async Task SaveAsync(TestDatabase database, params PumpShare[] shares)
+    {
+        database.Context.AddRange(shares);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     private static async Task SaveAsync(TestDatabase database, params PumpFueling[] fuelings)
     {
         database.Context.AddRange(fuelings);
@@ -310,5 +390,5 @@ public sealed class NumberedTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 }

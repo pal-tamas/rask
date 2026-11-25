@@ -845,25 +845,6 @@ go with the old file for the same reason: left behind, SQLite replays them over 
 > replication for when the box dies. They answer different questions — "let me look at what production
 > has" and "the server is gone" — and an app that matters wants both.
 
-## `rask audit` — ask the stored data today's rules
-
-```bash
-rask audit                          # every aggregate
-rask audit --aggregate Driver       # one (repeat it, or Driver,Vehicle)
-rask audit --json > audit.json      # every id, for a script
-rask audit --unique-candidates      # the rows each unique index would refuse, before it is migrated
-rask audit --dry-run                # print what would run
-dotnet App.dll rask audit           # on the server, from the published app
-```
-
-Every stored aggregate asked the rules its type declares now — the rules a save asks, of every row and every field,
-the rules of each value object it holds, and whether each id kept as text is one the app reads — and each one a
-rule refuses reported by rule and field, with the ids alone, never what a row holds. Run it before a migration turns a
-rule or a unique index on. The app answers it itself (`dotnet run -- rask audit`): its host is built and not started,
-and the audit only reads. `--unique-candidates` asks the model's unique indexes instead — the groups of stored rows
-that would stop the migration adding one, by id. Exit code `0` every row passes, `1` some do not. See
-[Auditing stored data](data-writes.md#auditing-stored-data-with-rask-audit).
-
 ## `rask deploy` — ship to a single host over SSH
 
 ```bash

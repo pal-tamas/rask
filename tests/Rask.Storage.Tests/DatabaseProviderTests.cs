@@ -10,7 +10,6 @@ namespace Rask.Storage.Tests;
 /// <c>Rask__Storage__Provider=Database</c>: the bytes in a <c>StoredFileBytes</c> row beside the file's own, served,
 /// deleted and swept like any other store's — here on a real SQLite file.
 /// </summary>
-[Collection(StorageDbCollection.Name)]
 public sealed class DatabaseProviderTests
 {
     private static readonly Action<StorageOptions> InTheDatabase = o => o.Provider = StorageProvider.Database;

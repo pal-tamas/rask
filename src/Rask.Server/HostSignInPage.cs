@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Rask.Core.Routing;
 
 namespace Rask.Server;
 
@@ -19,7 +20,8 @@ internal sealed record HostSignInPage(string Path, string ReturnUrlParameter)
     private const string RaskReturnUrlParameter = "returnUrl";
 
     /// <summary>The page's address with the way back: <paramref name="returnUrl" /> as the browser addresses it.</summary>
-    public string For(string returnUrl) => Path + "?" + ReturnUrlParameter + "=" + Uri.EscapeDataString(returnUrl);
+    /// <remarks>One past <see cref="LocalUrl.MaxLength" /> is the root, as everywhere else a way back is written.</remarks>
+    public string For(string returnUrl) => Path + "?" + ReturnUrlParameter + "=" + Uri.EscapeDataString(LocalUrl.Sanitize(returnUrl));
 
     /// <summary>The host's sign-in page, or null when its setup names none.</summary>
     public static async ValueTask<HostSignInPage?> FindAsync(IServiceProvider services)

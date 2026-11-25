@@ -58,8 +58,12 @@ public sealed class HamperItem : Entity<Guid>
 }
 
 [Collection(DataDbCollection.Name)]
-public sealed class ComputedValueObjectTests
+public sealed class ComputedValueObjectTests : IDisposable
 {
+    private readonly InMemorySqlite _sqlite = new();
+
+    public void Dispose() => _sqlite.Dispose();
+
     [Fact]
     public async Task A_member_computed_from_a_field_backed_list_is_neither_mapped_nor_on_the_form_model()
     {
@@ -95,9 +99,5 @@ public sealed class ComputedValueObjectTests
         Assert.Equal("senior", (await database.Context.Set<Permit>().SingleAsync(TestContext.Current.CancellationToken)).Kind.Name);
     }
 
-    private static Task<TestDatabase> StartAsync()
-    {
-        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        return TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
-    }
+    private Task<TestDatabase> StartAsync() => TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

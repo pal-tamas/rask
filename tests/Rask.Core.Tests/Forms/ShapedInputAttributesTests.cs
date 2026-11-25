@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 namespace Rask.Core.Tests.Forms;
 
 // What a field's shape tells the input bound to it beyond its lengths: a kind of text (Email, Phone, Password) its type,
-// autocomplete and keyboard; a Number or a Whole its bounds and its step; a day and a moment their input type.
+// autocomplete and keyboard; a Number or an Integer its bounds and its step; a day and a moment their input type.
 public partial class ShapedInputAttributesTests : global::Rask.Core.RaskMarkup
 {
     static ShapedInputAttributesTests()
@@ -21,7 +21,7 @@ public partial class ShapedInputAttributesTests : global::Rask.Core.RaskMarkup
             },
             nameof(Signup.Password) => new FieldShape(FieldKind.Text, MinLength: 8) { Input = InputType.Password, AutoComplete = "new-password" },
             nameof(Signup.Litres) => new FieldShape(FieldKind.Number, Min: 1, Max: 999.5m, Scale: 2),
-            nameof(Signup.Pieces) => new FieldShape(FieldKind.Whole, Min: 0, Max: 1000),
+            nameof(Signup.Pieces) => new FieldShape(FieldKind.Integer, Min: 0, Max: 1000),
             nameof(Signup.Invoiced) => new FieldShape(FieldKind.Day, NotAfterToday: true),
             nameof(Signup.Fuelled) => new FieldShape(FieldKind.Moment, NotAfterNow: true),
             _ => null,

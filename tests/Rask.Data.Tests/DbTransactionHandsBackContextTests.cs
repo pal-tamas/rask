@@ -11,12 +11,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DbTransactionHandsBackContextTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-hand-back-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -114,7 +113,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
     public async Task A_context_on_a_connection_the_caller_supplied_gets_it_back_undisposed()
     {
         await using var database = await StartDatabaseAsync();
-        await using var callers = new SqliteConnection($"Data Source={_dbPath}");
+        await using var callers = new SqliteConnection(_sqlite.ConnectionString);
         var mine = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(callers).Options);
 
         await Db.Transaction(async () =>
@@ -134,7 +133,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
     [Fact]
     public async Task A_context_on_a_connection_the_caller_opened_keeps_it_open_and_its_own()
     {
-        await using var callers = new SqliteConnection($"Data Source={_dbPath}");
+        await using var callers = new SqliteConnection(_sqlite.ConnectionString);
         await callers.OpenAsync(TestContext.Current.CancellationToken);
         await using var database = await TestDatabase.Start(o => o.UseSqlite(callers), cancellationToken: TestContext.Current.CancellationToken);
         var mine = Db.CreateOwnContext();
@@ -158,7 +157,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
     public async Task A_retried_transaction_admits_the_same_context_again()
     {
         await using var database = await TestDatabase.Start(o => o.UseSqlite(
-            $"Data Source={_dbPath}", s => s.ExecutionStrategy(d => new RetryOnTimeout(d))), cancellationToken: TestContext.Current.CancellationToken);
+            _sqlite.ConnectionString, s => s.ExecutionStrategy(d => new RetryOnTimeout(d))), cancellationToken: TestContext.Current.CancellationToken);
         await using var mine = Db.CreateOwnContext();
         var attempts = 0;
 
@@ -186,7 +185,7 @@ public sealed class DbTransactionHandsBackContextTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 
     private sealed class RetryOnTimeout(ExecutionStrategyDependencies dependencies)
         : ExecutionStrategy(dependencies, maxRetryCount: 2, maxRetryDelay: TimeSpan.Zero)

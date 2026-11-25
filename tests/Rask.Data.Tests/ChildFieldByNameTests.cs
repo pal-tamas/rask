@@ -89,9 +89,9 @@ public sealed class Logbook : Aggregate<int, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class ChildFieldByNameTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-child-field-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_navigation_is_mapped_to_the_field_the_generator_found()
@@ -159,5 +159,5 @@ public sealed class ChildFieldByNameTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

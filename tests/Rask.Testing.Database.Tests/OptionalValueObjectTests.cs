@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Testing.Fixture.Pumps;
+using Rask.Tests.Shared;
 
 namespace Rask.Testing.Database.Tests;
 
@@ -46,19 +47,15 @@ public sealed class OptionalValueObjectTests
 }
 
 // The same on a plain UseSqlite, which Rask does not configure: the app's context still holds the value.
-[Collection(nameof(TestDatabase))]
-public sealed class PlainSqliteOptionalValueObjectTests : IDisposable
+public sealed class PlainSqliteOptionalValueObjectTests
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-testing-optional-{Guid.NewGuid():N}.db");
-
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    public void Dispose() => File.Delete(_dbPath);
 
     [Fact]
     public async Task An_optional_value_object_whose_members_are_all_optional_is_held_on_a_plain_UseSqlite_too()
     {
-        await using var database = await TestDatabase.Start<PumpsContext>(o => o.UseSqlite($"Data Source={_dbPath};Pooling=False"), cancellationToken: Ct);
+        await using var memory = new InMemorySqlite();
+        await using var database = await TestDatabase.Start<PumpsContext>(o => o.UseSqlite(memory.ConnectionString), cancellationToken: Ct);
         database.Context.AddRange(TankPart.For("a", null), TankPart.For("b", CountStart.Create(null, 5m)));
         await database.Context.SaveChangesAsync(Ct);
 

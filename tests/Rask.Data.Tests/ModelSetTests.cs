@@ -13,7 +13,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class ModelSetTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-entityset-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
 
@@ -24,16 +24,16 @@ public sealed class ModelSetTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData<TestDbContext>();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         // The read faces are queried through a context of their own, over the same file. A Rask host
         // registers this beside the app's own context; an app wiring EF itself says it here.
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
 
         // The read faces are queried through a context of their own, over the same file. A Rask host
         // registers this beside the app's own context; an app wiring EF itself says it here.
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
 
         _provider = services.BuildServiceProvider();
 
@@ -49,7 +49,7 @@ public sealed class ModelSetTests : IDisposable
     {
         Db.Reset();
         _provider.Dispose();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

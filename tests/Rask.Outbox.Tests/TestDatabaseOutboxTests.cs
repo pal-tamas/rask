@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -17,15 +18,15 @@ public sealed class ShopWithOutboxContext(DbContextOptions<ShopWithOutboxContext
 }
 
 /// <summary>A <c>TestDatabase</c> saves through the outbox as the app does, once its model maps the table.</summary>
-[Collection(OutboxDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class TestDatabaseOutboxTests : IDisposable
 {
     private readonly ShippingLog _log = new();
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-outbox-testdb-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_path);
+    public void Dispose() => _db.Dispose();
 
     [Fact]
     public async Task A_saved_aggregate_s_durable_event_is_stored_in_the_save_and_its_in_memory_handler_runs()
@@ -57,7 +58,7 @@ public sealed class TestDatabaseOutboxTests : IDisposable
 
     private Task<TestDatabase<ShopWithOutboxContext>> Start() =>
         TestDatabase.Start<ShopWithOutboxContext>(
-            o => o.UseSqlite($"Data Source={_path};Pooling=False"),
+            o => o.UseSqlite(_db.ConnectionString),
             services: s => s.AddSingleton(_log).AddSingleton(new Recorder()),
             cancellationToken: Ct);
 }

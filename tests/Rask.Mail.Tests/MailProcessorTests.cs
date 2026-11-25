@@ -3,7 +3,6 @@ using Rask.Data;
 
 namespace Rask.Mailing.Tests;
 
-[Collection(MailDbCollection.Name)]
 public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
 {
     private static Mail.Message SampleEmail() =>

@@ -118,7 +118,7 @@ public static class GuideCatalog
         new("upgrading-to-domain", "Upgrading to the domain way", "Move an existing app from services and hand forms to aggregates, step by step.", "Data")
         {
             SearchTitle = "Refactor a .NET EF Core app to DDD aggregates",
-            Description = "Move an EF Core app from DbContext services and hand-written forms to DDD aggregates, value objects and typed ids, with SQLite tests and audited data.",
+            Description = "Move an EF Core app from DbContext services and hand-written forms to DDD aggregates, value objects and typed ids, with SQLite tests and checked data.",
         },
         new("data", "Rask.Data — storage", "Read faces, mapping rules, indexes, text order, locks and migrations, the same on every database, with no SQL.", "Data")
         {

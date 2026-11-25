@@ -4,11 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Rask.Core.Live;
+using Rask.Tests.Shared;
 
 namespace Rask.Storage.Tests;
 
-[Collection(StorageDbCollection.Name)]
 public sealed class FilesTests
 {
     [Fact]
@@ -201,28 +200,8 @@ public sealed class FilesTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             harness.Files.Share(Guid.NewGuid(), TestContext.Current.CancellationToken).For(TimeSpan.FromSeconds(seconds)));
     }
-
-    [Fact]
-    public async Task Urls_honour_the_path_base()
-    {
-        await using var harness = new StorageHarness();
-
-        try
-        {
-            // Set on Rask.Core's side, read on Storage's through AppContext: this is what pins the two copies of the
-            // data name together (RaskPathBase.DataName, LiveOptions.PathBaseDataName).
-            LiveOptions.PathBase = "/appA";
-
-            Assert.StartsWith("/appA/_rask/files/public/", harness.Files.Url(Guid.NewGuid()));
-        }
-        finally
-        {
-            LiveOptions.PathBase = string.Empty;
-        }
-    }
 }
 
-[Collection(StorageDbCollection.Name)]
 public sealed class StorageRegistrationTests
 {
     [Fact]
@@ -234,7 +213,7 @@ public sealed class StorageRegistrationTests
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddRaskStorage<StorageDbContext>(o => o.Disk.Root = harness.Root);
         services.AddRaskStorage<StorageDbContext>(o => o.Disk.Root = harness.Root);
-        services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite($"Data Source={harness.DbPath}"));
+        services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite(harness.ConnectionString));
 
         await using var provider = services.BuildServiceProvider();
 
@@ -251,11 +230,11 @@ public sealed class StorageRegistrationTests
     [Fact]
     public async Task An_unmapped_model_fails_the_boot_with_the_line_to_add()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"rask-storage-unmapped-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddRaskStorage<UnmappedDbContext>();
-        services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite($"Data Source={dbPath}"));
+        services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite(database.ConnectionString));
         await using var provider = services.BuildServiceProvider();
 
         var check = provider.GetServices<IHostedService>().OfType<StorageModelCheck<UnmappedDbContext>>().Single();

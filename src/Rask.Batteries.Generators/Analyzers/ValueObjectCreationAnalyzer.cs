@@ -27,7 +27,7 @@ public sealed class ValueObjectCreationAnalyzer : DiagnosticAnalyzer
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "A value object declared from Value, Text, Number, Whole, Day or Range is made through its generated "
+        description: "A value object declared from Value, Text, Number, Integer, Day or Range is made through its generated "
                      + "Create, TryCreate or CreateOptional, which check the rules it declares and name the field a "
                      + "refusal belongs to. 'new' throws without the field, and 'with' copies a value past its rules. "
                      + "Inside its own type both are allowed; EF Core loads stored values without asking the rules.",

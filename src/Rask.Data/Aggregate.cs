@@ -15,7 +15,7 @@ namespace Rask.Data;
 /// <para>
 /// A table carries only what its base names, in any order: <see cref="Timestamps" /> (or <see cref="Created" /> /
 /// <see cref="Updated" />), <see cref="Versioned" />, <see cref="Model" />, <see cref="Deletable" /> or
-/// <see cref="SoftDelete" />, <see cref="PerTenant" />, <see cref="Broadcast" />, <see cref="Audited" />. Every aggregate has a
+/// <see cref="SoftDelete" />, <see cref="PerTenant" />, <see cref="Broadcast" />. Every aggregate has a
 /// domain-events buffer that the <see cref="DomainEventInterceptor"/> publishes after the change commits.
 /// </para>
 /// <example>

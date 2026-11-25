@@ -17,14 +17,14 @@ public sealed class LargeAggregateSaveTests(ITestOutputHelper output) : IDisposa
 
     private const int Lines = 3000;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-large-aggregate-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_aggregate_of_thousands_of_new_children_is_saved_and_each_child_takes_its_roots_tenant()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         var supply = Supply.Of("S-big", [.. Enumerable.Range(1, Lines).Select(static i => "goods " + i)]);
 
         var clock = Stopwatch.StartNew();
@@ -46,7 +46,7 @@ public sealed class LargeAggregateSaveTests(ITestOutputHelper output) : IDisposa
     [Fact]
     public async Task Thousands_of_children_changed_in_one_aggregate_are_saved_through_their_root()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         using (Tenant.Use(Acme))
         {
             await GeneratedModelWrites.Create(

@@ -74,12 +74,12 @@ public sealed class BoardingPass : Entity<string>
 [Collection(DataDbCollection.Name)]
 public sealed class TwoParentChildTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-two-parents-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly SavedTypes _saved = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_ferry_saved_with_its_pass_in_a_transaction_is_one_aggregate()
@@ -183,7 +183,7 @@ public sealed class TwoParentChildTests : IDisposable
 
     private Task<TestDatabase> StartAsync() =>
         TestDatabase.Start(
-            o => o.UseSqlite($"Data Source={_dbPath}"),
+            o => o.UseSqlite(_sqlite.ConnectionString),
             services: s => s.AddSingleton<ISavedTypeWatcher>(_saved),
             cancellationToken: Token);
 

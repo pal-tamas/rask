@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Tests.Shared;
 
 namespace Rask.Mailing.Tests;
 
@@ -83,14 +84,22 @@ public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
     public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
 }
 
-/// <summary>Builds a real-SQLite service provider wired for mail, with a controllable clock and a fake sender.</summary>
+/// <summary>Builds a real-SQLite service provider, its database in memory and its own unless a test brings one, wired for mail, with a controllable clock and a fake sender.</summary>
 public sealed class MailHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
+    private readonly InMemorySqlite? _owned;
 
-    public MailHarness(Action<MailOptions>? configure = null, RecordingMailSender? sender = null)
+    /// <param name="configure">Deviations from the default options.</param>
+    /// <param name="sender">The sender to deliver through; a fresh <see cref="RecordingMailSender" /> when omitted.</param>
+    /// <param name="connectionString">
+    ///     A database the caller owns. Omitted, the harness opens one of its own in memory — which is every test but the
+    ///     one that needs a second connection to be kept out of an open transaction (<c>MailDbTransactionTests</c>).
+    /// </param>
+    public MailHarness(Action<MailOptions>? configure = null, RecordingMailSender? sender = null, string? connectionString = null)
     {
-        DbPath = Path.Combine(Path.GetTempPath(), $"rask-mail-test-{Guid.NewGuid():N}.db");
+        _owned = connectionString is null ? new InMemorySqlite() : null;
+        connectionString ??= _owned!.ConnectionString;
         Clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
         Sender = sender ?? new RecordingMailSender();
 
@@ -105,14 +114,12 @@ public sealed class MailHarness : IAsyncDisposable
             o.PollInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<MailDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        services.AddDbContextFactory<MailDbContext>(o => o.UseSqlite(connectionString));
 
         _provider = services.BuildServiceProvider();
         using var db = NewContext();
         db.Database.EnsureCreated();
     }
-
-    public string DbPath { get; }
 
     public FakeTimeProvider Clock { get; }
 
@@ -142,7 +149,7 @@ public sealed class MailHarness : IAsyncDisposable
     public async Task WaitUntilAsync(Func<Task<bool>> condition, bool advanceClock = false, TimeSpan? timeout = null)
     {
         // The suite's hang ceiling, not a number of this harness's own: a wait ends the moment its condition holds, and the
-        // first test of the collection pays EF Core's model build and the JIT under a gate running ~50 test hosts at once —
+        // first test of the suite pays EF Core's model build and the JIT under a gate running ~50 test hosts at once —
         // 13 s once, against the 10 s this used to allow (WaitFor.HangCeiling's remarks).
         var deadline = DateTime.UtcNow + (timeout ?? Rask.TestSupport.WaitFor.HangCeiling);
         while (!await condition())
@@ -164,9 +171,9 @@ public sealed class MailHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        if (File.Exists(DbPath))
+        if (_owned is not null)
         {
-            File.Delete(DbPath);
+            await _owned.DisposeAsync();
         }
     }
 }

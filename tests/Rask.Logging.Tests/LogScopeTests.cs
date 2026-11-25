@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Rask.Tests.Shared;
 
 namespace Rask.Logging.Tests;
 
@@ -15,50 +16,43 @@ public sealed class FileStoreLogScopeTests() : LogScopeContract(LogStoreKind.Fil
     [Fact]
     public async Task A_store_created_before_scopes_existed_is_migrated_rather_than_broken()
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"rask-logs-legacy-{Guid.NewGuid():N}.db");
-        try
+        await using var database = new InMemorySqlite();
+
+        // Exactly the pre-scopes schema.
+        await using (var seed = new SqliteConnection(database.ConnectionString))
         {
-            // Exactly the pre-scopes schema.
-            await using (var seed = new SqliteConnection($"Data Source={dbPath}"))
-            {
-                await seed.OpenAsync(TestContext.Current.CancellationToken);
-                var create = seed.CreateCommand();
-                create.CommandText = """
-                    CREATE TABLE RaskLog (
-                        Id        INTEGER PRIMARY KEY,
-                        Timestamp TEXT    NOT NULL,
-                        Level     INTEGER NOT NULL,
-                        Category  TEXT    NOT NULL,
-                        EventId   INTEGER NOT NULL,
-                        Message   TEXT    NOT NULL,
-                        Exception TEXT
-                    );
-                    INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception)
-                    VALUES ('2026-01-01T00:00:00.0000000Z', 2, 'Old.Category', 0, 'from the old schema', NULL);
-                    """;
-                await create.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
-
-            var options = new LogsOptions();
-            var store = new SqliteLogStore($"Data Source={dbPath}", options, TimeProvider.System);
-
-            await store.Append(
-                [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "New.Category", 0, "after upgrade", null,
-                    [new LogScopeValue("RequestId", "r9")])], TestContext.Current.CancellationToken);
-
-            var page = await store.Search(new LogQuery(), TestContext.Current.CancellationToken);
-            Assert.Equal(2, page.Entries.Count);
-
-            // The old row survives with no scopes, and the new one round-trips its own.
-            Assert.Null(page.Entries.Single(e => e.Message == "from the old schema").Scopes);
-            var upgraded = page.Entries.Single(e => e.Message == "after upgrade");
-            Assert.Equal("r9", upgraded.Scopes!.Single().Value);
+            await seed.OpenAsync(TestContext.Current.CancellationToken);
+            var create = seed.CreateCommand();
+            create.CommandText = """
+                CREATE TABLE RaskLog (
+                    Id        INTEGER PRIMARY KEY,
+                    Timestamp TEXT    NOT NULL,
+                    Level     INTEGER NOT NULL,
+                    Category  TEXT    NOT NULL,
+                    EventId   INTEGER NOT NULL,
+                    Message   TEXT    NOT NULL,
+                    Exception TEXT
+                );
+                INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception)
+                VALUES ('2026-01-01T00:00:00.0000000Z', 2, 'Old.Category', 0, 'from the old schema', NULL);
+                """;
+            await create.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(dbPath);
-        }
+
+        var options = new LogsOptions();
+        var store = new SqliteLogStore(database.ConnectionString, options, TimeProvider.System);
+
+        await store.Append(
+            [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "New.Category", 0, "after upgrade", null,
+                [new LogScopeValue("RequestId", "r9")])], TestContext.Current.CancellationToken);
+
+        var page = await store.Search(new LogQuery(), TestContext.Current.CancellationToken);
+        Assert.Equal(2, page.Entries.Count);
+
+        // The old row survives with no scopes, and the new one round-trips its own.
+        Assert.Null(page.Entries.Single(e => e.Message == "from the old schema").Scopes);
+        var upgraded = page.Entries.Single(e => e.Message == "after upgrade");
+        Assert.Equal("r9", upgraded.Scopes!.Single().Value);
     }
 }
 

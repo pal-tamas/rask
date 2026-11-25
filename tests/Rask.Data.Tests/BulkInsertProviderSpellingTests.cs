@@ -19,7 +19,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class BulkInsertProviderSpellingTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-spelling-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly ServiceProvider _provider;
 
     public BulkInsertProviderSpellingTests()
@@ -28,7 +28,7 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .ReplaceService<ISqlGenerationHelper, BracketSqlGenerationHelper>()
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
@@ -146,15 +146,7 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try
-        {
-            File.Delete(_dbPath);
-        }
-        catch (IOException)
-        {
-            // A leftover temp file is not worth failing a test over.
-        }
+        _sqlite.Dispose();
     }
 
     // Brackets for identifiers, $ for parameters: both valid SQLite, neither what the SQLite provider emits.

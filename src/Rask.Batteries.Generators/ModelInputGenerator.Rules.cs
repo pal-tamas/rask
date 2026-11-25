@@ -106,7 +106,7 @@ public sealed partial class ModelInputGenerator
         {
             SpecialType.System_String => "Text",
             SpecialType.System_Decimal => "Number",
-            SpecialType.System_Int64 or SpecialType.System_Int32 => "Whole",
+            SpecialType.System_Int64 or SpecialType.System_Int32 => "Integer",
             _ when held is { Name: "DateOnly", ContainingNamespace.Name: "System" } => "Day",
             SpecialType.System_DateTime => "Moment",
             _ => null,

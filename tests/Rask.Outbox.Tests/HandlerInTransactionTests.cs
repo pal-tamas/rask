@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -61,11 +62,10 @@ public sealed partial class Consignment : Aggregate<Guid>
 ///     together or not at all; <c>DurableEvent.Current</c> names the row; and an aggregate's <c>static Task On(E e)</c> is a
 ///     durable handler of its own, run by the outbox.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class HandlerInTransactionTests : IDisposable
 {
     private readonly DispatchLog _log = new();
-    private readonly List<string> _paths = [];
+    private readonly List<InMemorySqlite> _databases = [];
     private readonly List<ServiceProvider> _providers = [];
 
     public void Dispose()
@@ -75,16 +75,9 @@ public sealed class HandlerInTransactionTests : IDisposable
             provider.Dispose();
         }
 
-        foreach (var path in _paths)
+        foreach (var database in _databases)
         {
-            try
-            {
-                File.Delete(path);
-            }
-            catch (IOException)
-            {
-                // A test file left behind is not a failure worth failing the run for.
-            }
+            database.Dispose();
         }
     }
 
@@ -162,8 +155,8 @@ public sealed class HandlerInTransactionTests : IDisposable
 
     private ServiceProvider Build(bool handlerInTransaction)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-outbox-in-transaction-{Guid.NewGuid():N}.db");
-        _paths.Add(path);
+        var database = new InMemorySqlite();
+        _databases.Add(database);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -172,7 +165,7 @@ public sealed class HandlerInTransactionTests : IDisposable
         services.AddRaskOutbox<OutboxDbContext>(o => o.HandlerInTransaction = handlerInTransaction);
         services.AddRaskData<OutboxDbContext>();
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={path}")
+            .UseSqlite(database.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         var provider = services.BuildServiceProvider();

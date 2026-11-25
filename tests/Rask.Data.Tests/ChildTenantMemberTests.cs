@@ -83,9 +83,9 @@ public sealed class ChildTenantMemberTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-child-tenant-member-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_child_with_an_internal_int_tenant_member_reads_its_null_tenant_rows_through_its_root()
@@ -306,5 +306,5 @@ public sealed class ChildTenantMemberTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

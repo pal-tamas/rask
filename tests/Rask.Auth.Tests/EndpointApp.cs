@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Auth.Tests;
 
@@ -15,7 +16,7 @@ namespace Rask.Auth.Tests;
 internal sealed class EndpointApp : IDisposable
 {
     private readonly IHost _host;
-    private readonly string _dbPath;
+    private readonly InMemorySqlite _database = new();
 
     /// <summary>The first-run token the app is configured with.</summary>
     public const string Token = "test-first-run-token";
@@ -28,8 +29,6 @@ internal sealed class EndpointApp : IDisposable
         Action<IEndpointRouteBuilder>? endpoints = null,
         Action<AuthOptions>? auth = null)
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"rask-auth-endpoints-{Guid.NewGuid():N}.db");
-
         _host = new HostBuilder()
             .ConfigureWebHost(web =>
             {
@@ -40,7 +39,7 @@ internal sealed class EndpointApp : IDisposable
                     registered.AddRouting();
                     registered.AddRaskData();
                     registered.AddDbContextFactory<AuthDbContext>((sp, o) => o
-                        .UseSqlite($"Data Source={_dbPath};Pooling=False")
+                        .UseSqlite(_database.ConnectionString)
                         .AddInterceptors(sp.GetServices<Microsoft.EntityFrameworkCore.Diagnostics.ISaveChangesInterceptor>()));
                     registered.AddSingleton(new PasswordHasher(iterations: 1_000));
                     registered.AddRaskAuth<AuthDbContext>(o =>
@@ -125,15 +124,6 @@ internal sealed class EndpointApp : IDisposable
     {
         _host.StopAsync().GetAwaiter().GetResult();
         _host.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-
-        try
-        {
-            File.Delete(_dbPath);
-        }
-        catch (IOException)
-        {
-            // A leftover temp file is not worth failing a test over.
-        }
+        _database.Dispose();
     }
 }

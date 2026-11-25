@@ -18,6 +18,17 @@ internal static class ModelStateAnalyzerHarness
     public static async Task<IReadOnlyList<Diagnostic>> RunAsync(
         DiagnosticAnalyzer analyzer, string source, Func<CSharpCompilationOptions, CSharpCompilationOptions>? options = null, string path = "Source.cs")
     {
+        var diagnostics = await Compile(source, options, path)
+            .WithAnalyzers(ImmutableArray.Create(analyzer))
+            .GetAnalyzerDiagnosticsAsync();
+
+        return diagnostics.OrderBy(static d => d.Location.SourceSpan.Start).ToList();
+    }
+
+    /// <summary>Compiles <paramref name="source" /> against the real Rask.Data, failing the test when it does not compile.</summary>
+    public static CSharpCompilation Compile(
+        string source, Func<CSharpCompilationOptions, CSharpCompilationOptions>? options = null, string path = "Source.cs")
+    {
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest), path: path);
         var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
         var compilation = CSharpCompilation.Create(
@@ -30,12 +41,7 @@ internal static class ModelStateAnalyzerHarness
         // analyzer would report nothing and read exactly like a passing non-trigger case.
         var errors = compilation.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ToList();
         Assert.True(errors.Count == 0, "The test source does not compile:\n  " + string.Join("\n  ", errors));
-
-        var diagnostics = await compilation
-            .WithAnalyzers(ImmutableArray.Create(analyzer))
-            .GetAnalyzerDiagnosticsAsync();
-
-        return diagnostics.OrderBy(static d => d.Location.SourceSpan.Start).ToList();
+        return compilation;
     }
 
     /// <summary>The source text a diagnostic points at.</summary>

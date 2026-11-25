@@ -8,8 +8,7 @@ namespace Rask.SQLite.Tests;
 // inspecting the generated script — a pragma SQLite silently ignores would still appear in the script.
 public sealed class SqliteHardeningIntegrationTests : IDisposable
 {
-    private readonly string _dbPath =
-        Path.Combine(Path.GetTempPath(), $"rask-sqlite-harden-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task The_hardening_pragmas_take_effect_on_a_live_connection()
@@ -47,7 +46,7 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
     [Fact]
     public void Optimize_on_a_closed_connection_is_a_no_op()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_database.ConnectionString);
 
         SqlitePragmas.Optimize(connection);
     }
@@ -55,7 +54,7 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
     private async Task<SqliteConnection> OpenThroughFactoryAsync()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqliteAt($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt(_database.ConnectionString);
         var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
         return await factory.CreateOpenAsync();
@@ -82,9 +81,5 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
         return Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 }

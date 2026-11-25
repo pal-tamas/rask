@@ -51,9 +51,9 @@ public sealed class DepotBay : Entity<int>
 [Collection(DataDbCollection.Name)]
 public sealed class UnversionedAggregateTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-unversioned-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_table_carries_only_what_the_aggregate_declared()
@@ -186,5 +186,5 @@ public sealed class UnversionedAggregateTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }
