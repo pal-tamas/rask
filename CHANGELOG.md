@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
+  `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
+  the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
+- **CI fails fast and names a hang.** Every gate's `dotnet test` stops at its first failing test, ends a hung test at
+  5 minutes by name (and the whole run at 22), and a red gate cancels the rest of its `ci` run; the unit tests run in
+  four `unit K/N` shard jobs beside `build`, and the nightly publishes once `build` and every shard are green
+  (`docs/development-workflow.md`, "Fail fast").
 - **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
   no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
   before anything else"). Now a factory of fifteen fits a `Func` as before, and an entry past the sixteen a `Func`
