@@ -163,6 +163,11 @@ public sealed partial class OperationGenerator
 
     private const string AttachmentFqn = "global::Rask.Storage.Attachment";
 
+    // The picked file handed on as a save the row stores, a refusal told under `name`. Rask.Storage takes the save rather
+    // than the picked file, so it never names a Rask.Core type (#1086): only the generated form knows both.
+    private static string AttachmentOf(string picked, string name) =>
+        AttachmentFqn + ".Of(global::Rask.Storage.Files.Save(" + picked + ".OpenRead(), " + picked + ".Name), " + name + ")";
+
     private static bool IsAttachment(ITypeSymbol type) =>
         type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol { Name: "Attachment", Arity: 0, ContainingType: null } named &&
         string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Storage", StringComparison.Ordinal);
@@ -767,7 +772,7 @@ public sealed partial class OperationGenerator
         }
         else if (field.Attachment)
         {
-            made = AttachmentFqn + ".Of(" + value + ", " + name + ")";
+            made = AttachmentOf(value, name);
         }
 
         var filled = field.Text ? "!string.IsNullOrWhiteSpace(" + given + ")" : given + " is { } __" + field.Property;

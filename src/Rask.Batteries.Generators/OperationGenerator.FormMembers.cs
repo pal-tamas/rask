@@ -149,7 +149,7 @@ public sealed partial class OperationGenerator
         // A picked file is handed on as an attachment the save stores; a refusal of the store comes back under this field.
         if (field.Attachment)
         {
-            var made = given + " is { } __picked ? " + AttachmentFqn + ".Of(__picked, " + name + ") : ";
+            var made = given + " is { } __picked ? " + AttachmentOf("__picked", name) + " : ";
             return field.Optional
                 ? made + "null"
                 : "global::Rask.Data.GeneratedOperations.Given(() => " + made + "throw " + Missing(name) + ", failures)!";

@@ -1,5 +1,3 @@
-using Rask.Core.Forms;
-
 namespace Rask.Storage;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace Rask.Storage;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>The row and the file are one write.</b> An operation takes the file as <see cref="Of(Saving)" /> —
+///         <b>The row and the file are one write.</b> An operation takes the file as <see cref="Of(Saving, string)" /> —
 ///         <c>vehicle.Attach(Attachment.Of(Files.Save(upload.OpenReadStream, upload.Name, upload.Size)))</c> — and nothing is
 ///         stored yet: the bytes are written when the aggregate is saved, inside the operation's transaction. A save that
 ///         fails or rolls back leaves no file behind; a file the store refuses (too large, a type not allowed) is a
@@ -69,23 +67,16 @@ public sealed record Attachment
     ///     <c>Attachment.Of(Files.Save(xml, "bevallas.xml").As("application/xml"))</c>. Nothing is written until the
     ///     aggregate that holds it is saved.
     /// </summary>
+    /// <remarks>
+    ///     A form over an operation that takes an <see cref="Attachment" /> hands the file the reader picked on as
+    ///     <c>Attachment.Of(Files.Save(picked.OpenRead(), picked.Name), "Field")</c>, so a file the store refuses is told
+    ///     under that field. Taking the save rather than the picked file keeps this package free of <c>Rask.Core</c>
+    ///     (#1086).
+    /// </remarks>
     /// <param name="saving">The save, still being worded — <c>.Public()</c> and <c>.As(…)</c> are kept.</param>
+    /// <param name="field">The form field the file was picked in, or null for the property that holds it.</param>
     /// <returns>The attachment, pending until that save.</returns>
-    public static Attachment Of(Saving saving) => new(saving, saving.Name, null);
-
-    /// <summary>
-    ///     A file the reader picked in a form, to store with the row — what a form over an operation that takes an
-    ///     <see cref="Attachment" /> passes it. A file the store refuses is told under <paramref name="field" />.
-    /// </summary>
-    /// <param name="file">The picked file, read as it was picked.</param>
-    /// <param name="field">The form field it was picked in, or null for the property that holds it.</param>
-    /// <returns>The attachment, pending until the save.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="file" /> is null.</exception>
-    public static Attachment Of(PickedFile file, string? field = null)
-    {
-        ArgumentNullException.ThrowIfNull(file);
-        return new(Files.Save(file.OpenRead(), file.Name), file.Name, field);
-    }
+    public static Attachment Of(Saving saving, string? field = null) => new(saving, saving.Name, field);
 
     /// <summary>A file already stored — the <see cref="StoredFile" /> a <c>Files.Save</c> returned.</summary>
     /// <param name="file">The stored file.</param>

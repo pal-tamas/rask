@@ -310,7 +310,7 @@ public sealed class AttachmentTests : IDisposable
         using var work = Ambient.Enter(harness.Services);
 
         await using var db = harness.NewContext();
-        db.Add(new Vehicle { Plate = "ABC-123", Document = Attachment.Of(Rask.Core.Forms.PickedFile.Of("scan.png", Samples.Png()), "File") });
+        db.Add(new Vehicle { Plate = "ABC-123", Document = Attachment.Of(Files.Save(new MemoryStream(Samples.Png()), "scan.png", Cancel), "File") });
         var refused = await Assert.ThrowsAsync<RaskValidationException>(() => db.SaveChangesAsync(Cancel));
 
         Assert.Equal(["File"], Assert.Single(refused.Failures).Fields);

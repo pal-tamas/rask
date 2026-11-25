@@ -23,7 +23,10 @@ public sealed class NumberedFueling : Aggregate<string>
     public static NumberedFueling At(string pistol, int minute, int pump = 1, string? fill = null) =>
         new()
         {
-            Id = Guid.CreateVersion7().ToString(), Pistol = pistol, Pump = pump, FillId = fill,
+            Id = Guid.CreateVersion7().ToString(),
+            Pistol = pistol,
+            Pump = pump,
+            FillId = fill,
             Moment = new DateTime(2026, 11, 24, 8, 0, 0, DateTimeKind.Utc).AddMinutes(minute),
         };
 

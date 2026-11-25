@@ -149,7 +149,9 @@ them until tagged releases begin.
   `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
 - **`Ui.FilePicker` and `Attachment` in forms**: an operation that takes an `Attachment` gets a form field holding a
   `PickedFile` (read as it is picked, up to `MaxSize`), drawn by `Ui.Field.Bind` as `Ui.FilePicker` — Flux's upload, then
-  the file with its remove button; the store's refusal (size, type) is told under that field.
+  the file with its remove button; the store's refusal (size, type) is told under that field. The form hands the file on
+  as `Attachment.Of(Files.Save(picked.OpenRead(), picked.Name), "Field")` — `Attachment.Of(Saving, string? field)` —
+  so `Rask.Storage` still references no `Rask.Core` (#1086).
   [docs/file-storage.md](docs/file-storage.md#a-file-the-aggregate-holds-attachment)
 - **An `Attachment` anywhere in the row takes part in the save**: on a child row, inside a value object, in a list or a
   JSON column — stored in the operation's transaction, let go after the commit when replaced or removed, refused at its

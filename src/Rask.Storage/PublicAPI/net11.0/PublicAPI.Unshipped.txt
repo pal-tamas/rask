@@ -263,11 +263,10 @@ Rask.Storage.Attachment.Size.get -> long
 override Rask.Storage.Attachment.Equals(object? obj) -> bool
 override Rask.Storage.Attachment.GetHashCode() -> int
 override Rask.Storage.Attachment.ToString() -> string!
-static Rask.Storage.Attachment.Of(Rask.Storage.Saving saving) -> Rask.Storage.Attachment!
+static Rask.Storage.Attachment.Of(Rask.Storage.Saving saving, string? field = null) -> Rask.Storage.Attachment!
 static Rask.Storage.Attachment.Of(Rask.Storage.StoredFile! file) -> Rask.Storage.Attachment!
 static Rask.Storage.Attachment.operator !=(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
 static Rask.Storage.Attachment.operator ==(Rask.Storage.Attachment? left, Rask.Storage.Attachment? right) -> bool
-static Rask.Storage.Attachment.Of(Rask.Core.Forms.PickedFile! file, string? field = null) -> Rask.Storage.Attachment!
 static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!

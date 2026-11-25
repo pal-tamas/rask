@@ -596,7 +596,14 @@ public class OperationGeneratorTests
                 // Stands in for Rask.Storage's: the generator knows the type by its name.
                 public sealed class Attachment
                 {
-                    public static Attachment Of(global::Rask.Core.Forms.PickedFile file, string? field = null) => new();
+                    public static Attachment Of(Saving saving, string? field = null) => new();
+                }
+
+                public readonly struct Saving;
+
+                public static class Files
+                {
+                    public static Saving Save(System.IO.Stream content, string name) => default;
                 }
             }
 
@@ -618,8 +625,8 @@ public class OperationGeneratorTests
         Assert.Contains("public global::Rask.Core.Forms.PickedFile? Registration { get; set; }", forms, StringComparison.Ordinal);
         Assert.Contains("public global::Rask.Core.Forms.PickedFile? Photo { get; set; }", forms, StringComparison.Ordinal);
         Assert.DoesNotContain("Registration = aggregate", forms, StringComparison.Ordinal);
-        Assert.Contains("input.Registration is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Registration\") : throw", forms, StringComparison.Ordinal);
-        Assert.Contains("input.Photo is { } __picked ? global::Rask.Storage.Attachment.Of(__picked, \"Photo\") : null", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Registration is { } __picked ? global::Rask.Storage.Attachment.Of(global::Rask.Storage.Files.Save(__picked.OpenRead(), __picked.Name), \"Registration\") : throw", forms, StringComparison.Ordinal);
+        Assert.Contains("input.Photo is { } __picked ? global::Rask.Storage.Attachment.Of(global::Rask.Storage.Files.Save(__picked.OpenRead(), __picked.Name), \"Photo\") : null", forms, StringComparison.Ordinal);
     }
 
     private const string Cargo = """

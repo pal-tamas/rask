@@ -222,7 +222,7 @@ place — `Pistols[1].Photo`, `Filed[2]`.
 a `PickedFile` there, and `Ui.Field.Bind(() => f.Registration)` draws a [`Ui.FilePicker`](ui-kit.md) — Flux's upload while
 it is empty, the file and its remove button once one is picked. The file is read into memory as it is picked (up to
 the picker's `MaxSize`, 50 MB by default, refused under the field above it), so the form still has it on submit; the
-submit hands it on as `Attachment.Of(picked, "Registration")`, and a file the store then refuses (too large, a type
+submit hands it on as `Attachment.Of(Files.Save(picked.OpenRead(), picked.Name), "Registration")`, and a file the store then refuses (too large, a type
 `AllowedTypes` does not name) is told under that field. `Change<Attachment>` gives an empty field that keeps the stored
 file.
 
