@@ -7,9 +7,9 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class ChildrenSyncTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-children-sync-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -150,5 +150,5 @@ public sealed class ChildrenSyncTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -24,25 +24,25 @@ namespace Rask.Tests.Shared;
 public static partial class SqliteFileGuard
 {
     /// <summary>Fails when a source file of the calling suite spells a SQLite file and is not named in <paramref name="allowed" />.</summary>
-    /// <param name="allowed">The suite's files, by name, whose tests are about a database file.</param>
+    /// <param name="allowed">
+    ///     The suite's files whose tests are about a database file: by name, or by path under the project
+    ///     (<c>App/MigrateOnStartTests.cs</c>) where two folders hold files of one name.
+    /// </param>
     /// <param name="here">The calling source file, which places the suite's directory; filled in by the compiler.</param>
     public static void AssertNoTestOpensASqliteFile(string[] allowed, [CallerFilePath] string here = "")
     {
         ArgumentNullException.ThrowIfNull(allowed);
 
-        var project = ProjectDirectoryOf(here);
-        var sources = Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories)
-            .Where(static path => !IsBuildOutput(path))
-            .ToDictionary(Path.GetFileName, path => path, StringComparer.Ordinal);
+        var sources = SourcesOf(here);
+        bool IsAllowed(string path) => allowed.Contains(path, StringComparer.Ordinal) || allowed.Contains(Path.GetFileName(path), StringComparer.Ordinal);
 
-        var stale = allowed.Where(name => !sources.ContainsKey(name)).ToList();
+        var stale = allowed.Where(name => !sources.Keys.Any(path => path == name || Path.GetFileName(path) == name)).ToList();
         Assert.True(
             stale.Count == 0,
             $"The allow-list names files that no longer exist: {string.Join(", ", stale)}. Drop them.");
 
         var opening = sources
-            .Where(source => !allowed.Contains(source.Key, StringComparer.Ordinal))
-            .Where(source => SqliteFile().IsMatch(File.ReadAllText(source.Value)))
+            .Where(source => !IsAllowed(source.Key) && SqliteFile().IsMatch(source.Value))
             .Select(source => source.Key)
             .Order(StringComparer.Ordinal)
             .ToList();
@@ -52,6 +52,17 @@ public static partial class SqliteFileGuard
             $"These files put a SQLite database in a file: {string.Join(", ", opening)}. "
             + "Give the test a database in memory (InMemorySqlite, or TestDatabase.Start<T>()), "
             + "or — when the test is about the file itself — name the file in this guard's allow-list, with the reason.");
+    }
+
+    /// <summary>The calling suite's C# sources, by path under its project (forward slashes), with their text.</summary>
+    /// <param name="here">The calling source file, which places the suite's directory; filled in by the compiler.</param>
+    public static IReadOnlyDictionary<string, string> SourcesOf([CallerFilePath] string here = "")
+    {
+        var project = ProjectDirectoryOf(here);
+        return Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories)
+            .Select(path => (Relative: Path.GetRelativePath(project, path).Replace('\\', '/'), Path: path))
+            .Where(static source => !IsBuildOutput(source.Relative))
+            .ToDictionary(source => source.Relative, source => File.ReadAllText(source.Path), StringComparer.Ordinal);
     }
 
     // A database file's name (`app.db`, `…{Guid}.db`), or a temporary file to hold one.
@@ -69,7 +80,6 @@ public static partial class SqliteFileGuard
         return directory?.FullName ?? throw new InvalidOperationException($"No project above {here}.");
     }
 
-    private static bool IsBuildOutput(string path) =>
-        path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) is var segments
-        && (segments.Contains("bin", StringComparer.Ordinal) || segments.Contains("obj", StringComparer.Ordinal));
+    private static bool IsBuildOutput(string relative) =>
+        relative.StartsWith("bin/", StringComparison.Ordinal) || relative.StartsWith("obj/", StringComparison.Ordinal);
 }

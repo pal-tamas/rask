@@ -18,12 +18,12 @@ public sealed class TenancyThroughParentAdoptedSchemaTests : IAsyncLifetime
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
     private static readonly Guid Globex = new("a1b2c3d4-0000-4000-8000-00000000beef");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-through-parent-adopted-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<DomainContext>();
@@ -45,7 +45,7 @@ public sealed class TenancyThroughParentAdoptedSchemaTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

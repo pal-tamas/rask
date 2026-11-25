@@ -103,9 +103,9 @@ public sealed class ValueObjectColumnTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-vo-column-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_value_object_is_one_scalar_column_named_after_the_property_with_its_own_facets()
@@ -204,9 +204,9 @@ public sealed class ValueObjectColumnTests : IDisposable
         services.AddRaskData<DomainContext>();
         services.AddDeclaredRuleChecks();
         services.AddDbContextFactory<DomainContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath};Pooling=False")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath};Pooling=False"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
         await using var app = services.BuildServiceProvider(validateScopes: true);
         Db.Configure(app);
         try
@@ -458,5 +458,5 @@ public sealed class ValueObjectColumnTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

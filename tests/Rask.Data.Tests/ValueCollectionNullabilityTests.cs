@@ -21,9 +21,9 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class ValueCollectionNullabilityTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-filings-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public void A_column_is_null_only_where_the_model_says_the_collection_may_be()
@@ -144,7 +144,7 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     [Fact]
     public async Task The_read_face_reads_an_empty_array_as_an_empty_list()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         var filing = ReturnFiling.Empty();
         filing.Attach("receipt.pdf");
         var empty = ReturnFiling.Empty();
@@ -270,7 +270,7 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     }
 
     private DbContextOptions<TContext> Sqlite<TContext>()
-        where TContext : DbContext => Sqlite<TContext>($"Data Source={_dbPath}");
+        where TContext : DbContext => Sqlite<TContext>(_sqlite.ConnectionString);
 
     // Through Rask's differ, which UseRaskSqlite, UseRaskSqlServer, UseRaskPostgres and a RaskApp register; the wiring
     // is pinned in their own test projects, so here it is put in place directly.

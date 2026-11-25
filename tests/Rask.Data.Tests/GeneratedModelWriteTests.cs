@@ -12,10 +12,10 @@ public sealed class GeneratedModelWriteTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-writes-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(Start);
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     // ---- create -----------------------------------------------------------------------------------
 
@@ -255,7 +255,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 }
 
 // An append-only record: corrected by a reversing entry, never removed.

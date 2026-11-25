@@ -85,9 +85,9 @@ public sealed class Harbor : Aggregate<int, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class ModelIsTheTruthTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-model-truth-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Emptying_one_text_member_stores_NULL_and_leaves_the_others_as_they_were()
@@ -446,5 +446,5 @@ public sealed class ModelIsTheTruthTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -139,9 +139,9 @@ public sealed class ComplexGondolaContext(DbContextOptions<ComplexGondolaContext
 [Collection(DataDbCollection.Name)]
 public sealed class NestedOneValueValueObjectTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-nested-vo-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_one_value_value_object_inside_a_constructor_built_one_is_saved_and_read_back()
@@ -242,7 +242,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
     public async Task A_row_the_scalar_mapping_writes_is_read_whole_by_the_complex_mapping_it_replaces()
     {
         await using var database = await StartDatabaseAsync();
-        var options = OptionsLayout.LikeAddDbContext<ComplexGondolaContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<ComplexGondolaContext>().UseSqlite(_sqlite.ConnectionString).Options;
         var id = await SaveAsync(Gondola.Packed("AB-1", alias: "ALT", weight: 12, tare: 3));
         var bare = await SaveAsync(Gondola.Packed("CD-2"));
 
@@ -308,5 +308,5 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }
