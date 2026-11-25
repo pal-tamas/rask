@@ -159,9 +159,21 @@ internal static class ReadModelShape
             // the value object declares — a base record's own `__Field`; one declared straight from Value has none.
             if (members.Count == before + 1 && AggregateShape.HoldsOneValue(valueObject))
             {
-                members[before] = Shown(members[before], property, AggregateShape.ValueBaseOf(valueObject) is "Text" or "Number" or "Whole" or "Day" or "Moment"
+                var shown = Shown(members[before], property, AggregateShape.ValueBaseOf(valueObject) is "Text" or "Number" or "Whole" or "Day" or "Moment"
                     ? valueObject.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ".__Field"
                     : null);
+
+                // ProductId Product: whether ProductId is another entity's key is known only once every entity is.
+                members[before] = shown with
+                {
+                    AsKey = shown with
+                    {
+                        Path = property.Name,
+                        TypeName = TypeOf(property.Type),
+                        IsReferenceType = IsReferenceType(property.Type),
+                        Shape = FieldShapeHints.Annotated(property, null),
+                    },
+                };
             }
 
             return;
@@ -207,14 +219,58 @@ internal static class ReadModelShape
             property,
             null));
 
-        if (property.Name.EndsWith("Id", StringComparison.Ordinal) && property.Name.Length > 2)
+        if (Candidate(property.Name, TypeOf(property.Type), IsNullable(property.Type)) is { } reference)
         {
-            references.Add(new ReadReference(
-                property.Name,
-                property.Name.Substring(0, property.Name.Length - 2),
-                TypeOf(property.Type),
-                IsNullable(property.Type)));
+            references.Add(reference);
         }
+    }
+
+    // A {X}Id names the X it might point at; any other name points nowhere.
+    private static ReadReference? Candidate(string name, string idTypeName, bool nullable) =>
+        name.EndsWith("Id", StringComparison.Ordinal) && name.Length > 2
+            ? new ReadReference(name, name.Substring(0, name.Length - 2), idTypeName, nullable)
+            : null;
+
+    /// <summary>
+    ///     <paramref name="shape" /> with every column whose declared type is one of <paramref name="keyTypes" /> kept in
+    ///     that type — <c>ProductId Product</c>, <c>ProductId? ProductId</c> — rather than the value it holds.
+    /// </summary>
+    /// <remarks>
+    ///     The write model draws the same line: a type an entity is keyed by is a converted column wherever it appears,
+    ///     never a value object. Kept typed, a <c>{X}Id</c> is a reference candidate like a plain <c>Guid</c> one, so its
+    ///     navigation is inferred too. A one-value type no entity is keyed by stays the value it holds.
+    /// </remarks>
+    /// <param name="shape">The face as <see cref="Describe" /> left it.</param>
+    /// <param name="keyTypes">The fully-qualified key type of every entity the faces are emitted for.</param>
+    public static ReadShape KeepKeysTyped(ReadShape shape, ISet<string> keyTypes)
+    {
+        if (!shape.Members.Any(m => m.AsKey is { } key && keyTypes.Contains(key.TypeName)))
+        {
+            return shape;
+        }
+
+        // The candidates stay in the order their columns are declared, which is the order a name taken twice is settled by.
+        var members = new List<ReadMember>(shape.Members.Count);
+        var references = new List<ReadReference>(shape.References.Count + 1);
+        var declared = shape.References.ToLookup(static r => r.Property, StringComparer.Ordinal);
+
+        foreach (var member in shape.Members)
+        {
+            var kept = member.AsKey is { } key && keyTypes.Contains(key.TypeName) ? key : member;
+            members.Add(kept);
+            references.AddRange(declared[member.Name]);
+
+            if (!ReferenceEquals(kept, member) && Candidate(kept.Name, kept.TypeName, kept.Nullable) is { } reference)
+            {
+                references.Add(reference);
+            }
+        }
+
+        return shape with
+        {
+            Members = new EquatableArray<ReadMember>([.. members]),
+            References = new EquatableArray<ReadReference>([.. references]),
+        };
     }
 
     // What the property a member reads says about showing it: its attributes, copied, and its field shape.

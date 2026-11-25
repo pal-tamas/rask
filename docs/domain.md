@@ -656,6 +656,11 @@ converted — the key, a foreign key on another entity, a nullable one — witho
 generator cannot build a converter for is reported as [RASK073](diagnostics.md#rask073) rather than left to fail
 at model build. Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
 
+**On the read face** a column of a type some entity is keyed by keeps that type, nullable as declared: an order line's
+`ProductId Product` reads back as a `ProductId`, and a `ProductId? ProductId` as a `ProductId?` beside its inferred
+`Product` navigation ([what the face holds](data.md#what-the-read-face-is)). A one-value type no entity is keyed by reads as
+the value it holds, like any other one-value value object.
+
 Who produces the key follows the value it holds:
 
 - **Over an `int` or a `long`** the key is the store's identity, exactly as the integer would be: `Vehicle.Create(model)`

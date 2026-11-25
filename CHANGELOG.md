@@ -19,6 +19,11 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A reference to an aggregate keyed by a typed id stays typed on its read face.** An order line's `ProductId Product`
+  read back as a bare `Guid` (and a `UserId? ShippedByUserId` as a `Guid?`, with no `ShippedByUser` navigation), while
+  the row's own `Id` kept its type: the face flattened the typed id like a one-value value object. A column whose type
+  some entity is keyed by now keeps that type, nullable as declared, and a `{X}Id` one infers its navigation as a
+  `Guid` one does; a one-value type no entity is keyed by still reads as the value it holds.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
