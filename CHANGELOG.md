@@ -377,6 +377,12 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **rask.sh leads with the one way an app is written.** The hero's code window is now a model (a `Text`/`Number`
+  value object, a typed id, an aggregate whose `Reprice` refuses with `Refuse.When`), the `Form.For(Product.Reprice, id)`
+  over it, and its test on SQLite in memory — three files compiled and run in `tests/Rask.Testing.Database.Tests/Hero`,
+  which the site's copy is held to character for character. The back-end cards gain *Domain model* and *Domain tests*,
+  the forms card is `Form.For`, the guide catalog's domain, data, data-writes, forms, testing and tutorial entries say
+  the same, `/llms.txt` states the style before any guide, and the home page's JSON-LD names it in a `featureList`.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —

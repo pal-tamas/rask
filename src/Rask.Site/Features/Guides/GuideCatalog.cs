@@ -51,17 +51,17 @@ public static class GuideCatalog
         new("00-overview", "Ch 0 · Overview", "What you'll build: a whole product, one pillar per chapter.", "Tutorial", "tutorial/00-overview.md")
         {
             SearchTitle = "Tutorial: build and deploy a full .NET web app",
-            Description = "Build Shop, a database-backed .NET app, chapter by chapter: EF Core and SQLite CRUD, auth, jobs, email, cache, outbox events, Web Push and deploy.",
+            Description = "Build Shop, a .NET app, chapter by chapter: value objects, aggregates and forms over their operations, tests on SQLite, auth, jobs, email, events and deploy.",
         },
         new("01-scaffold", "Ch 1 · Scaffold", "Scaffold the app with rask new.", "Tutorial", "tutorial/01-scaffold.md")
         {
             SearchTitle = "Tutorial 1: scaffold an ASP.NET Core app",
             Description = "Create the Shop project with rask new, run it, and tour what the server template generates: an ASP.NET Core app with SQLite, auth and batteries wired.",
         },
-        new("02-first-feature", "Ch 2 · First feature", "Declare an entity and build its list, create and edit pages.", "Tutorial", "tutorial/02-first-feature.md")
+        new("02-first-feature", "Ch 2 · First feature", "An aggregate with value objects, forms over its operations, and its tests.", "Tutorial", "tutorial/02-first-feature.md")
         {
-            SearchTitle = "Tutorial 2: CRUD with EF Core and SQLite in C#",
-            Description = "Build a database-backed Products catalog: declare the aggregate, write its list, create and edit pages, bind Rask.Ui forms, then add the migration.",
+            SearchTitle = "Tutorial 2: an aggregate, its forms and tests in C#",
+            Description = "Build a Products catalog the DDD way: value objects, an aggregate whose methods are its writes, forms over those methods, and tests on SQLite in memory.",
         },
         new("03-orders-and-auth", "Ch 3 · Orders & auth", "A second feature, and locking it down.", "Tutorial", "tutorial/03-orders-and-auth.md")
         {
@@ -110,20 +110,20 @@ public static class GuideCatalog
         },
 
         // ---- Data ----
-        new("domain", "Domain modelling", "Aggregates, entities and value objects: operations, rules, typed ids, one aggregate per transaction.", "Data")
+        new("domain", "Domain modelling", "Value objects, typed ids and aggregates whose methods are their writes, Refuse, events — the one way to write an app.", "Data")
         {
             SearchTitle = "DDD aggregates and value objects in C# with EF Core",
-            Description = "Model a C# domain the DDD way on EF Core: one-line value objects that carry their rules, typed ids, and aggregate operations that are each one transaction.",
+            Description = "Model a C# domain the DDD way on EF Core: one-line value objects that carry their rules, typed ids, and aggregate methods that are each one transaction.",
         },
-        new("data", "Rask.Data — storage", "Read faces, mapping rules, indexes, text order, locks and migrations, the same on every database.", "Data")
+        new("data", "Rask.Data — storage", "Read faces, mapping rules, indexes, text order, locks and migrations, the same on every database, with no SQL.", "Data")
         {
             SearchTitle = "EF Core read models, indexes and migrations in C#",
             Description = "Query generated read faces with inferred joins, map aggregates to tables, and run one model, its indexes and text order on SQLite, SQL Server and PostgreSQL.",
         },
-        new("data-writes", "Writing many rows", "Bulk insert, batch update and delete, and moving existing rows.", "Data")
+        new("data-writes", "Writing many rows", "Import, UpdateWhere, DeleteWhere, UpdateEach and Upsert, bulk insert, and moving existing rows.", "Data")
         {
             SearchTitle = "EF Core bulk insert and batch updates in C#",
-            Description = "Load thousands of rows with BulkInsert, run ExecuteUpdate and ExecuteDelete knowing what they skip, and move stored rows through aggregate operations.",
+            Description = "Write many rows from C#: Import and Upsert through the aggregate's rules, one-statement UpdateWhere and DeleteWhere, bulk insert, and data a migration moves.",
         },
         new("data-access", "Data access", "EF Core + SQLite under the domain: context lifetime, your own DbContext, decimals.", "Data")
         {
@@ -295,10 +295,10 @@ public static class GuideCatalog
             SearchTitle = "Live server-rendered pages without hydration in C#",
             Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
         },
-        new("forms", "Forms & validation", "Two-way binding, Form.Model(m), inline Validate rules.", "Frontend")
+        new("forms", "Forms & validation", "Form.For over an aggregate's operation, two-way binding, Form.Model(m).", "Frontend")
         {
-            SearchTitle = "Forms and two-way data binding in C#",
-            Description = "Bind inputs two-way with typed Bind expressions, build forms on an EditContext, track touched and modified fields, and show accessible validation messages.",
+            SearchTitle = "Forms over domain operations and binding in C#",
+            Description = "Bind a form to an aggregate's operation with Form.For: its fields are the parameters, checked by their value objects and Refuse as typed. Two-way binding too.",
         },
         new("forms-validation", "Forms — validation", "Inline Validate rules, sync or async; attributes and FluentValidation too.", "Frontend")
         {
@@ -446,10 +446,10 @@ public static class GuideCatalog
         },
 
         // ---- Advanced ----
-        new("testing", "Testing", "Unit testing with Rask.Testing, event handlers, E2E.", "Advanced")
+        new("testing", "Testing", "Domain tests on SQLite in memory, components without a browser, E2E.", "Advanced")
         {
-            SearchTitle = "Unit testing C# UI components without a browser",
-            Description = "Render C# components to HTML in a unit test, with no browser or server. Dispatch click and input handlers, fake IJSRuntime and uploads, and check validation.",
+            SearchTitle = "Testing C# domain models and UI components",
+            Description = "Test aggregates on SQLite in memory, a database per test, with Test.Make, Test.Refuses and Test.FormShows; render C# components to HTML and drive handlers.",
         },
         new("devtools", "DevTools", "A panel in the page: wire, component tree, renders, perf and errors, Debug-only.", "Advanced")
         {
