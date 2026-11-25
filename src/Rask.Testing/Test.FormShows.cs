@@ -29,7 +29,11 @@ public static partial class Test
     /// </remarks>
     /// <typeparam name="TModel">The form's model.</typeparam>
     /// <param name="field">The field: <c>m =&gt; m.Name</c>, <c>m =&gt; m.Km.End</c>, <c>m =&gt; m.Parts[0].Quantity</c>.</param>
-    /// <param name="value">What the reader puts in it; a number is converted to the field's type.</param>
+    /// <param name="value">
+    ///     What the reader puts in it; a number is converted to the field's type. For a value object the model holds as
+    ///     it is — <c>TankCapacity? Size</c>, or a member of one of several values, <c>m =&gt; m.Start!.Quantity</c> — it is
+    ///     what the reader types (<c>80</c>), made into the value object through its <c>TryCreate</c> as the page makes it.
+    /// </param>
     /// <param name="message">What the form must show under it.</param>
     /// <returns>A task that completes once the form showed it.</returns>
     /// <exception cref="FormAssertionException">The form did not show <paramref name="message" /> under the field.</exception>
@@ -82,7 +86,11 @@ public static partial class Test
         ArgumentNullException.ThrowIfNull(message);
 
         var reach = FormFieldReach.Of(model, field);
-        reach.Set(value);
+        if (!reach.IsValueObject)
+        {
+            reach.Set(value);
+        }
+
         using var diagnostics = CapturingDiagnostics.Install();
         var form = FormOver(model);
 
@@ -90,8 +98,17 @@ public static partial class Test
         // rules (an operation's dry run) say about it; a failure no control is bound to goes to the top of the form.
         form.TrackBindingOwner(reach.Field, owner: null);
 
-        // As the reader leaves the field: the value committed, its rules asked.
-        form.NotifyFieldChanged(reach.Field);
+        // As the reader leaves the field: the value committed, its rules asked. A value object is typed in through the
+        // binding a control's goes through, so what it refuses is said under the field as the page says it.
+        if (reach.IsValueObject)
+        {
+            await reach.Type(value, form).ConfigureAwait(false);
+        }
+        else
+        {
+            form.NotifyFieldChanged(reach.Field);
+        }
+
         await form.ValidateField(reach.Field).ConfigureAwait(false);
         var left = form.GetValidationMessages(reach.Field).ToArray();
         if (left.Contains(message, StringComparer.Ordinal))
