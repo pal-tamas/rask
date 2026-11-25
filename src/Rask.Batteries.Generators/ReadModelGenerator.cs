@@ -638,9 +638,46 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
             s.AppendLine();
         }
 
+        AppendChoices(s, shape, read, open);
+
         s.AppendLine("    }");
         s.AppendLine("}");
     }
+
+    // A picker's rows (IChoiceSource): an aggregate's, by the read face's own Id.
+    private static void AppendChoices(StringBuilder s, ReadShape shape, string read, string open)
+    {
+        if (!shape.IsAggregate || !HasId(shape))
+        {
+            return;
+        }
+
+        var id = shape.IdTypeName;
+        var text = "global::System.Linq.Expressions.Expression<global::System.Func<" + read + ", string>> text";
+        var detail = "global::System.Linq.Expressions.Expression<global::System.Func<" + read + ", string?>>? detail = null";
+        var row = "global::Rask.ChoiceRow<" + id + ">";
+        var source = open + ".Choices(static row => row.Id, text";
+
+        s.AppendLine("        /// <summary>The rows as a picker's choices, each shown as <paramref name=\"text\" />: a page at a time for what was typed, and one by its id.</summary>");
+        s.Append("        public static global::Rask.IChoiceSource<").Append(id).Append("> Choices(").Append(text).Append(", ").Append(detail).AppendLine(") =>");
+        s.Append("            ").Append(source).AppendLine(", detail);");
+        s.AppendLine();
+        s.AppendLine("        /// <summary>The row <paramref name=\"id\" /> names, shown as <paramref name=\"text\" />; null for none, or for another tenant's.</summary>");
+        s.Append("        public static global::System.Threading.Tasks.Task<").Append(row).Append("?> Choice(").Append(id).Append("? id, ").Append(text)
+            .Append(", ").Append(detail).AppendLine(", global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("            id is { } chosen ? ").Append(source).Append(", detail).Find(chosen, cancellationToken) : global::System.Threading.Tasks.Task.FromResult<")
+            .Append(row).AppendLine("?>(null);");
+        s.AppendLine();
+        s.AppendLine("        /// <summary>The page of rows whose <paramref name=\"text\" /> holds <paramref name=\"typed\" />, in the app's text order, how many there are, and the <paramref name=\"picked\" /> rows.</summary>");
+        s.Append("        public static global::System.Threading.Tasks.Task<global::Rask.ChoiceRowPage<").Append(id).Append(">> ChoicePage(").Append(text)
+            .Append(", string typed, int skip, int take, global::System.Collections.Generic.IReadOnlyCollection<").Append(id)
+            .AppendLine(">? picked = null, global::System.Threading.CancellationToken cancellationToken = default) =>");
+        s.Append("            ").Append(source).AppendLine(").Page(typed, skip, take, picked, cancellationToken);");
+        s.AppendLine();
+    }
+
+    private static bool HasId(ReadShape shape) =>
+        shape.Members.Any(static member => string.Equals(member.Name, "Id", StringComparison.Ordinal));
 
     private static string EmitRegistry(List<(ReadShape Shape, List<ReadNavigation> Navigations)> mappings)
     {

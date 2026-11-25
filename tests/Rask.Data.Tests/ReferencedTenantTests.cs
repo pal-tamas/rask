@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Cqrs;
@@ -86,31 +85,16 @@ public sealed class RefLoad : Aggregate<Guid, PerTenantThrough<RefTruck>>
 ///     row the tenant in flight reads — another tenant's, or none — under the reference's field.
 /// </summary>
 [Collection(DataDbCollection.Name)]
-public sealed class ReferencedTenantTests : IAsyncLifetime
+public sealed class ReferencedTenantTests : IDisposable
 {
     private static readonly Guid Acme = new("6a1f0c3e-2b7d-4e9a-8c1b-0000000000a1");
     private static readonly Guid Globex = new("6a1f0c3e-2b7d-4e9a-8c1b-0000000000b2");
 
-    private readonly string _connection = $"Data Source=referenced-tenant-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
-    private SqliteConnection? _keeper;
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public ValueTask InitializeAsync()
-    {
-        // The database lives while one connection to it is open.
-        _keeper = new SqliteConnection(_connection);
-        _keeper.Open();
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_keeper is not null)
-        {
-            await _keeper.DisposeAsync();
-        }
-    }
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_reference_to_a_row_of_the_tenant_in_flight_saves()
@@ -333,5 +317,5 @@ public sealed class ReferencedTenantTests : IAsyncLifetime
         }
     }
 
-    private Task<TestDatabase> Start() => TestDatabase.Start(o => o.UseSqlite(_connection));
+    private Task<TestDatabase> Start() => TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

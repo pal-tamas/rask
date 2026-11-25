@@ -213,6 +213,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A picker's rows from the read face: `X.Choice`, `X.Choices`, `X.ChoicePage`** (`docs/data.md`). Every aggregate's
+  read face answers `Company.Choice(id, c => c.Name)` (a `ChoiceRow<TKey>?` — null for no row and for another
+  tenant's), `Company.ChoicePage(c => c.Name, typed, skip, take, picked)` (the page searched case and accents aside
+  in the app's text order then by id, the total, and the picked rows even off the page) and
+  `Company.Choices(text, detail)`; any query has `.Choices(id, text, detail)`. All are the new
+  `IChoiceSource<TKey>` (namespace `Rask`: `Page(…)` → `ChoiceRowPage<TKey>`, `Find(id)`), the source a picker
+  reads. Replaces the apps' own `Choice(id)`/`Find(typed, page)` pairs, TA's `ChoicePages` and Eszaf's `PagedChoices`.
 - **A save refuses a reference to another tenant's row** (`docs/multi-tenancy.md`). Every foreign key a `PerTenant`
   row sets to another tenant-scoped table — an aggregate, a child, a `PerTenantThrough` aggregate's parent — must
   name a row the tenant in flight reads; another tenant's, or none, is a `RaskValidationException` under the key's

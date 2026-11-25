@@ -82,6 +82,35 @@ is an outcome your code handles — a stale id in a URL, a job whose row was del
 These are C# 14 static extension members, which is why nothing has to be declared or derived from a second
 base. A member declared on the aggregate itself always wins, so your own static `Where` would be untouched.
 
+### A picker's rows: `X.Choice`, `X.Choices`, `X.ChoicePage`
+
+A select over another table — a company, a driver, a vehicle — asks the read face for its rows, and every app used to
+write the same three helpers for it: the row the form holds, a page of rows for what was typed, and how many there are.
+The read face of every aggregate has them:
+
+```csharp
+await Company.Choice(id, c => c.Name);                          // ChoiceRow<int>? — null for no row, or another tenant's
+await Company.ChoicePage(c => c.Name, typed, skip: 0, take: 50, picked: [held]);
+IChoiceSource<int> companies = Company.Choices(c => c.Name, c => c.City);    // the text, and a muted line under it
+await Company.Where(c => c.Active).Choices(c => c.Id, c => c.Name).Page(typed, 0, 50);  // any query of a read face
+```
+
+- **The page** is the rows whose text — or detail — holds what was typed, case and accents aside (`Loosely()`, where
+  the provider has the collation: `UseRaskSqlite`, `UseRaskSqlServer`, `UseRaskPostgres`; case aside elsewhere), in
+  the app's text order (`InTextOrder()` under [`OrderTextBy`](localization.md); the column's own order without it), then by id, so
+  the pages follow on and no row is on two. `Total` is how many the search finds; it is read only when the page
+  cannot say it. `Picked` names the rows the picker holds whether or not they are on this page, in the order given.
+- **Through the tenant in flight and the soft delete**, as every read is: an id of another tenant's row — a post, a
+  stale link — is answered with nothing, by `Choice` and in `Picked`. So `Choice(id) is null` is also the check that
+  an id is one the reader may pick; a save asks the same of every reference it sets
+  ([multi-tenancy.md](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant)).
+- **`IChoiceSource<TKey>`** (namespace `Rask`, in the `Rask` package) is what a picker reads: `Page(typed, skip, take,
+  picked)` → `ChoiceRowPage<TKey>` (`Rows`, `Total`, `Picked`) and `Find(id)` → `ChoiceRow<TKey>?` (`Id`, `Text`,
+  `Detail`). The read face's is one; a source of your own — rows worked out in C#, another service — implements the
+  same two members.
+- The text and the detail run in the database, so they are columns and what SQL can make of them
+  (`c.Code + " " + c.Name`). Words only C# can write — a date formatted for the reader — are a page you read yourself.
+
 ### What the read face is
 
 One is generated for **every mapped entity**, children included — the read side has no borders, so a part is
