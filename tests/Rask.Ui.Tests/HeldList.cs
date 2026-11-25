@@ -24,6 +24,18 @@ internal static class HeldList
         return Hold(page, row, row.Attribute(Value)!);
     }
 
+    /// <summary>Picks the row that says <paramref name="words" /> in the list inside <paramref name="scope" />, as the browser does.</summary>
+    /// <param name="page">The page the list is on.</param>
+    /// <param name="scope">A selector of what holds the list, where several lists offer the same rows.</param>
+    /// <param name="words">The row's words.</param>
+    public static Task<string> PickIn(Page page, string scope, string words)
+    {
+        var row = page.FindAll(scope + " [" + Value + "]").Single(row => string.Equals(row.TextContent, words, StringComparison.Ordinal));
+        Assert.Null(row.Attribute("data-rask-on-click"));
+
+        return Hold(page, row, row.Attribute(Value)!);
+    }
+
     /// <summary>
     ///     Switches the row that says <paramref name="words" /> in a held list of several answers, as the browser
     ///     does: taken off when the list holds it, added after the rest when it does not.

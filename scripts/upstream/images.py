@@ -3,7 +3,7 @@
 
     curlimages/curl   DeployCommand.CurlImage, the health probe, and the tests that assert it
     alpine            DbCommand.Backup's SqliteImage, and the deploy-host E2E's images
-    postgres          the provider and bulk-insert scripts' throwaway server (NN-alpine: the major moves too)
+    postgres          the provider suite's Testcontainers server and the bulk-insert script's (NN-alpine: the major moves too)
 
 A tag keeps its shape: 8.11.1 moves to the newest x.y.z, 3.21 to the newest x.y, 17-alpine to the newest
 NN-alpine, so a pin never turns into a floating one or a prerelease. Tags come from Docker Hub.

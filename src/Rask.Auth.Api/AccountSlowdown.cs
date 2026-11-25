@@ -28,6 +28,15 @@ internal sealed class AccountSlowdown(TimeProvider clock)
     /// <summary>The longest an attempt waits.</summary>
     internal TimeSpan Cap { get; init; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    ///     How many accounts the slowdown counts at most. Past it the stalest are let go of (<see cref="StalestKeys" />):
+    ///     a spray of addresses that all failed just now costs the process no more than this.
+    /// </summary>
+    internal int MostKeys { get; init; } = 10_000;
+
+    /// <summary>How many accounts the slowdown counts now.</summary>
+    internal int KeyCount => _accounts.Count;
+
     /// <summary>How long an attempt at <paramref name="account" /> waits before its password is checked.</summary>
     public TimeSpan DelayFor(string account)
     {
@@ -43,16 +52,17 @@ internal sealed class AccountSlowdown(TimeProvider clock)
     public void Failed(string account)
     {
         var now = clock.GetUtcNow();
-        Sweep(now);
+        Sweep(account, now);
         _accounts.GetOrAdd(account, static _ => new Failures()).Add(now);
     }
 
     public void Succeeded(string account) => _accounts.TryRemove(account, out _);
 
-    // Keeps a spray of addresses from growing the table without bound.
-    private void Sweep(DateTimeOffset now)
+    // Keeps a spray of addresses from growing the table without bound: first the accounts whose failures have all
+    // expired, then the stalest, down to nine tenths of the bound, so the next sweep is that many new accounts away.
+    private void Sweep(string arriving, DateTimeOffset now)
     {
-        if (_accounts.Count <= 10_000)
+        if (_accounts.Count < MostKeys || _accounts.ContainsKey(arriving))
         {
             return;
         }
@@ -64,17 +74,36 @@ internal sealed class AccountSlowdown(TimeProvider clock)
                 _accounts.TryRemove(account, out _);
             }
         }
+
+        foreach (var stalest in StalestKeys.Over(_accounts, MostKeys, static failures => failures.LastSeen))
+        {
+            _accounts.TryRemove(stalest);
+        }
     }
 
     private sealed class Failures
     {
         private readonly Queue<DateTimeOffset> _at = new();
+        private DateTimeOffset _lastSeen;
+
+        // When the account last failed: what the stalest are let go of by.
+        public DateTimeOffset LastSeen
+        {
+            get
+            {
+                lock (_at)
+                {
+                    return _lastSeen;
+                }
+            }
+        }
 
         public void Add(DateTimeOffset at)
         {
             lock (_at)
             {
                 _at.Enqueue(at);
+                _lastSeen = at > _lastSeen ? at : _lastSeen;
             }
         }
 

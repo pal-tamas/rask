@@ -666,7 +666,8 @@ it. One client — an address, or an IPv6 /64 — gets 30 failed sign-ins a minu
 accounts tried from one place is held while an office behind one address is not. And one account, from anywhere, slows
 down after 5 failures in 15 minutes: each next attempt waits 1 s, 2 s, 4 s… up to 30 s before its password is checked.
 It only waits — the right password still gets in, and clears the count — so guessing spread over many clients is slowed
-without anybody being able to lock the owner out. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+without anybody being able to lock the owner out. The counts live in memory, per process, and each holds at most
+10 000 keys: past that the stalest are let go of, so a spray of addresses costs the process no more than that. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address — at once, the lookup and the email done in the background — and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which

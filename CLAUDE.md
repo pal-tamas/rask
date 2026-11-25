@@ -43,8 +43,8 @@ ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solut
 fixed forward, first; a job is reproduced with the script
 it names. Until 1.0 finished work lands DIRECTLY on `main` after the local targeted tests — no `ci/**`
 pre-run — except a change to CI itself, a Linux-only risk the Mac cannot check, or a release-only gate
-(`ci/release/**` adds them: watch, deploy, storage providers, installer, providers — `release.yml` runs
-them all before it packs). Restore at 1.0: risky changes go through `ci/**` first.
+(`ci/release/**` adds them: watch, deploy, storage providers, installer — `release.yml` runs
+them all before it packs). SQL Server/PostgreSQL legs run in CI only, on Testcontainers (`providers` gate); locally they SKIP unless `RASK_PROVIDERS_LOCAL=1`. Restore at 1.0: risky changes go through `ci/**` first.
 **The benchmark gates run in CI** — `scripts/run-benchmarks-local.sh` is the `benchmarks` job: wire bytes,
 bundle size and the allocation budget, all exact counts; times are in no gate (a runner's clock proves nothing);
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
