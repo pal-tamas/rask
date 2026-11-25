@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using Rask.Core.Live;
 
 namespace Rask.Core;
 
@@ -27,6 +29,12 @@ namespace Rask.Core;
 ///         the state never re-renders. Unwrapping <c>&lt;&gt;4__this</c> makes the defining component the
 ///         owner regardless of how deeply the element is wrapped.
 ///     </para>
+///     <para>
+///         The writer case: a lambda that captures only a local — <c>var rows = Rows; … () =&gt; rows.Add(row)</c>
+///         — holds no component at all, so nothing on the delegate names its owner. It is set while its
+///         component renders, though: <see cref="NoteWriter" /> notes that component for an element's
+///         handler, and <see cref="ResolveWhileRendering" /> answers with it for a callback a chain step wraps.
+///     </para>
 /// </remarks>
 internal static class DelegateOwner
 {
@@ -39,6 +47,14 @@ internal static class DelegateOwner
     // (one per lambda site), so reflection runs once per type and every later registration is a dictionary
     // hit. Null means "this closure type has no captured `this`" (captures only locals / statics).
     private static readonly ConcurrentDictionary<Type, FieldInfo?> ThisFieldByClosureType = new();
+
+    // Whether a handler's target type has no instance field that could hold a component, or a closure that might:
+    // memoised like the field above, so the question costs a dictionary hit once a type has been asked once.
+    private static readonly ConcurrentDictionary<Type, bool> HoldsNoComponentByType = new();
+
+    // The component whose Render wrote an element's handler that holds none (NoteWriter). Weak on the handler: an
+    // element and its handlers are built afresh every render, and an entry goes with the delegate it is about.
+    private static readonly ConditionalWeakTable<Delegate, Component> WrittenIn = new();
 
     public static Component? Resolve(Delegate? handler)
     {
@@ -56,6 +72,12 @@ internal static class DelegateOwner
         if (target is Component direct)
         {
             return direct; // method group or this-only lambda — no reflection on the hot path.
+        }
+
+        // An element's handler that holds no component, written in a component's Render (NoteWriter).
+        if (WrittenIn.TryGetValue(handler, out var writer))
+        {
+            return writer;
         }
 
         // Closure case: unwrap the captured `this`, but ONLY when it is a user component — never an
@@ -82,6 +104,83 @@ internal static class DelegateOwner
         // closures to recover the defining component. Only runs when the fast path missed.
         return FindThisInNestedClosures(target, depth: 0);
     }
+
+    /// <summary>
+    ///     <see cref="Resolve" />, else — for a handler that holds no component at all — the component whose Render is
+    ///     running: the one that wrote it.
+    /// </summary>
+    /// <remarks>
+    ///     A lambda that captures only a local — <c>var rows = Rows; … () =&gt; rows.Add(row)</c> — or a method group on
+    ///     something that is not a component (<c>rows.Clear</c>) carries nothing that names the component whose state
+    ///     it changes. Asked while that component renders, as a chain step setting the handler is, the render says it.
+    ///     A handler that might hold a component, and one set outside a render, are left to <see cref="Resolve" />.
+    /// </remarks>
+    internal static Component? ResolveWhileRendering(Delegate? handler) =>
+        Resolve(handler) ?? (handler is not null && HoldsNoComponent(handler) ? Rendering() : null);
+
+    /// <summary>
+    ///     Notes the component whose Render is setting <paramref name="handler" /> on an element, when the handler holds
+    ///     none: the walk registers it later, inside whatever composite the element was handed to, and that composite is
+    ///     not the component whose state the handler changes.
+    /// </summary>
+    internal static void NoteWriter(Delegate handler)
+    {
+        if (handler.Target is null or Component || !HoldsNoComponent(handler) || Rendering() is not { } writer)
+        {
+            return;
+        }
+
+        // Under the handler as written: Resolve reads through the adapters it is held in before it asks.
+        WrittenIn.AddOrUpdate(Written(handler), writer);
+    }
+
+    // The component rendering now, never an element: an element's own handlers close over the element.
+    private static Component? Rendering() =>
+        LiveRenderContext.RenderOwner(out _) is { } rendering and not Element ? rendering : null;
+
+    // Whether nothing the handler holds could be a component: its target, through the adapters it may be held in, has
+    // no instance field typed to hold one, or a closure that might. A static method has no target and holds nothing.
+    private static bool HoldsNoComponent(Delegate handler) =>
+        Written(handler).Target is { } target and not (Component or IHandlerAdapter)
+        && HoldsNoComponentByType.GetOrAdd(target.GetType(), static type => !FieldsMayHoldAComponent(type));
+
+    // The handler as the call site wrote it, out of the adapters it is held in.
+    private static Delegate Written(Delegate handler)
+    {
+        for (var depth = 0; handler.Target is IHandlerAdapter adapter && depth <= MaxClosureDepth; depth++)
+        {
+            handler = adapter.Inner;
+        }
+
+        return handler;
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "Reads the declared types of a handler target's fields to tell that none could hold a " +
+            "component. A trimmed-away field is not there to hold one either; at worst the answer is \"holds none\" " +
+            "for a target whose field was trimmed, which re-renders the component that wrote the handler.")]
+    private static bool FieldsMayHoldAComponent(Type type)
+    {
+        for (var declaring = type; declaring is not null && declaring != typeof(object); declaring = declaring.BaseType)
+        {
+#pragma warning disable S3011 // a closure's captured fields are compiler-generated and private: reading them IS the lookup
+            var fields = declaring.GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+#pragma warning restore S3011
+            if (fields.Any(field => MayHoldAComponent(field.FieldType)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // A field of this type could reference a component: a component type, a base of one (object, an interface it
+    // implements), a delegate that may close over one, or another closure.
+    private static bool MayHoldAComponent(Type held) =>
+        held.IsAssignableFrom(typeof(Component)) || typeof(Component).IsAssignableFrom(held)
+        || typeof(Delegate).IsAssignableFrom(held) || IsDisplayClass(held);
 
     // Walks a closure's compiler-generated captured-closure fields (bounded depth) to find the captured
     // component `this`. Returns the first non-Element Component reached — a captured `this` on an outer

@@ -152,6 +152,15 @@ build 22 completed cancelled
 check "nor a cancelled one" "false" "$(wait_for 22)"
 build 23 in_progress
 check "a build that never finishes is not, when the wait runs out" "false" "$(wait_for 23)"
+shards() { reply "repos/o/r/actions/runs/$1/jobs" "{\"jobs\":[{\"name\":\"gates / build\",\"status\":\"completed\",\"conclusion\":\"success\"},{\"name\":\"gates / unit 1/2\",\"status\":\"completed\",\"conclusion\":\"success\"},{\"name\":\"gates / unit 2/2\",\"status\":\"$2\",\"conclusion\":${3:-null}},{\"name\":\"gates / analyzers 1/4\",\"status\":\"completed\",\"conclusion\":\"${4:-success}\"}]}"; }
+shards 26 completed '"success"' cancelled
+check "a green build and green unit shards are pushed, whatever a sibling did" "true" "$(wait_for 26)"
+shards 27 in_progress
+check "a green build whose unit shard is still running waits (and runs out)" "false" "$(wait_for 27)"
+shards 28 completed '"failure"'
+check "a red unit shard is not pushed" "false" "$(wait_for 28)"
+shards 29 completed '"cancelled"'
+check "nor a cancelled one" "false" "$(wait_for 29)"
 reply "repos/o/r/actions/runs/24" '{"status":"completed","conclusion":"success"}'
 check "a green run with no build job is pushed" "true" "$(wait_for 24)"
 reply "repos/o/r/actions/runs/25" '{"status":"completed","conclusion":"failure"}'
