@@ -196,7 +196,8 @@ public sealed class Distribution : Aggregate<DistributionId, Versioned, PerTenan
 ```
 
 It gets no `TenantId` column. Its filter is the child's: an `EXISTS` on the `Supply` its key names, through the
-supply's own filters, and a save under another tenant's supply is refused as a child's is. The relationship is the
+supply's own filters, and a save under another tenant's supply is refused — a `RaskValidationException` under the
+key's field, as for [any reference](#a-reference-names-a-row-of-the-same-tenant). The relationship is the
 strongly-typed id's, or a foreign key its `Configure` maps (`b.HasOne<Supply>().WithMany().HasForeignKey(…)`); a
 model with neither is refused when it is built. A row whose key is NULL belongs to nobody.
 
@@ -619,6 +620,46 @@ aggregate loaded in another — or [under another tenant's parent](#a-child-belo
 read through its parent; `Tenant.Across()` is how to do any of them on purpose. The column is never
 on the generated form model, declared or not, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
 is refused too, unless the row's `TenantId` is already set, because "across" names no tenant to stamp.
+
+## A reference names a row of the same tenant
+
+The database's foreign key says only that the row exists — in **any** tenant. So a save checks it too: every
+reference a `PerTenant` row **sets** to another tenant-scoped table — a `PerTenant` aggregate, a child, a
+[`PerTenantThrough`](#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) aggregate's own parent —
+must name a row the tenant in flight reads. One of another tenant's, or none at all, refuses the save with a
+`RaskValidationException` **under the reference's field** (`CompanyId`, or `Axles[1].DepotId` for a child's), so a
+form shows it where the reader picked it and the method needs no guard of its own:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Vehicle> b) =>
+    b.HasOne<Company>().WithMany().HasForeignKey(v => v.CompanyId).OnDelete(DeleteBehavior.Restrict);
+
+// Before: every method that sets the id asked first.
+public async Task Change(int? companyId, …)
+{
+    Refuse.When(companyId is { } company && await Company.Choice(company) is null, () => CompanyId, NoSuchCompany);
+    CompanyId = companyId;
+}
+
+// After: the save asks — for every reference it sets, at once.
+public void Change(int? companyId, …) => CompanyId = companyId;
+```
+
+- **The sentence** is the relationship's `WhenMissing("…")`, else the referenced entity's — `b.WhenMissing("No such
+  company.")` in `Company`'s `Configure` answers for every reference to a company — else the strings catalog's
+  `ValidationNotFound` ("Something chosen here does not exist.", Hungarian in the kit). A row of another tenant's
+  and no row at all are told the same, so the answer never says that somebody else has it.
+- **Only what the save sets is asked**: every reference of an added row, a changed row's only when its value
+  changed, never a NULL. A row added in the same save — the company and the vehicle saved together — is the
+  tenant's by construction and asks nothing. A row written inside `Tenant.Across()` keeps a reference across
+  tenants, and saving it again with that reference untouched is not refused.
+- **One query per referenced table per save**, whatever the number of rows: `WHERE Id IN (…)` over every key the
+  save sets to that table, through its own filters — the tenant's, a child's through its parent, the soft
+  delete's (a soft-deleted row is not there to pick). A key of several columns is asked row by row.
+- The references are the model's: a relationship its `Configure` maps, or one EF Core finds. An id with no
+  relationship behind it is a plain column, and only the read face infers a join from it.
+- `Tenant.Across()` is the deliberate way round. `ExecuteUpdate` and `BulkInsert` with `SkipChangeTracking` do not
+  pass through the save, so they are not checked.
 
 ## The batteries
 

@@ -38,13 +38,16 @@ internal static class M2SignedInPage
                 app.UseAuthorization();
             });
 
-    /// <summary>Signs alice in, opens the page and attaches its socket, once the attach has asked about her.</summary>
+    /// <summary>
+    ///     Signs alice in — with <paramref name="claims" /> beside her name — opens the page and attaches its socket,
+    ///     once the attach has asked about her.
+    /// </summary>
     public static async Task<(System.Net.WebSockets.WebSocket Socket, string SessionId, string HandlerId)> AttachAsync(
-        RaskTestHost host)
+        RaskTestHost host, params Claim[] claims)
     {
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(ClaimTypes.Name, "alice"), new Claim(ClaimTypes.NameIdentifier, "alice")], "TestCookie"));
+            [new Claim(ClaimTypes.Name, "alice"), new Claim(ClaimTypes.NameIdentifier, "alice"), .. claims], "TestCookie"));
         var ticket = store.Issue(AuthAction.SignIn, principal, "TestCookie", "sess");
         var redeem = await host.Http.PostAsJsonAsync("/_rask/auth/redeem", new { ticket, session = "sess" });
         var cookie = redeem.Headers.TryGetValues("Set-Cookie", out var values) ? values.First().Split(';')[0] : "";

@@ -36,6 +36,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         using (TrackedPrincipals.During(context))
         {
             ChildWrites.RefuseOutsideTheirAggregate(context);
+            ReferencedTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
             ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
             Apply(context);
         }
@@ -57,6 +58,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         using (TrackedPrincipals.During(context))
         {
             ChildWrites.RefuseOutsideTheirAggregate(context);
+            await ReferencedTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
             await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
             Apply(context);
         }

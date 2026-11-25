@@ -199,6 +199,22 @@ static void Configure(EntityTypeBuilder<Fueling> b)
   number is a whole number — nullable when a row can have none — or a one-value value object over one. The entity's
   key is one column. A raw `ExecuteUpdate` passes no save, so it numbers nothing.
 
+**Rows written past a save** — a raw `ExecuteUpdate`, a migration's SQL, an import straight into the table, rows stored
+before the numbering was declared — are numbered anew on the type itself:
+
+```csharp
+await Fueling.Renumber(pistolId);            // one group
+await Fueling.Renumber([pistolId, otherId]); // several
+var changed = await Fueling.RenumberAll();   // every group, and no number for a row in none: the data repair
+```
+
+Each group is numbered whole, from its first row, by the rules a save numbers it by — `by`, `skip`, `Same`, `SkipWhen` —
+and only the numbers that changed are written; the answer is how many. It runs in a `Db.Transaction` of its own, or joins
+the one in progress, under the same per-group lock a save takes, so a save into a group being numbered waits for it. The
+tenant filter applies — a tenant's call numbers its own rows — and the pages showing them are told once it commits. A
+group is a value of the type `within` names (a `string` pistol id above); another type, or a type that declares no
+numbering, is refused.
+
 ## Batch update and delete
 
 For work the database can do on its own — a retention sweep, a flag every matching row gets — the aggregate's own
