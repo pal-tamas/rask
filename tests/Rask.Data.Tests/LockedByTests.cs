@@ -9,11 +9,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class LockedByTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-locked-by-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     // One instance for every test: a new interceptor per context is a new EF Core service provider each time.
     private static readonly LockReads Reads = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -259,7 +259,7 @@ public sealed class LockedByTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(Reads));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(Reads));
 
     // Each read the contexts run: its SQL as executed, and whether it ran inside a transaction.
     private sealed class LockReads : DbCommandInterceptor

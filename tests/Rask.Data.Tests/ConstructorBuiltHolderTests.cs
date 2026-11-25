@@ -143,9 +143,9 @@ public sealed class HolderContext<THolder>(DbContextOptions<HolderContext<THolde
 [Collection(DataDbCollection.Name)]
 public sealed class ConstructorBuiltHolderTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-holder-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Theory]
     [InlineData(typeof(RecordHolder))]
@@ -190,7 +190,7 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     [Fact]
     public async Task The_way_out_the_message_names_is_saved_and_read_back_whole()
     {
-        var options = OptionsLayout.LikeAddDbContext<HolderContext<MembersHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<HolderContext<MembersHolder>>().UseSqlite(_sqlite.ConnectionString).Options;
         await using (var writing = new HolderContext<MembersHolder>(options, nested: false))
         {
             await writing.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public sealed class ConstructorBuiltHolderTests : IDisposable
     [Fact]
     public async Task A_record_that_keeps_its_constructor_and_adds_a_private_parameterless_one_is_read_back_whole_too()
     {
-        var options = OptionsLayout.LikeAddDbContext<HolderContext<SpareConstructorHolder>>().UseSqlite($"Data Source={_dbPath}").Options;
+        var options = OptionsLayout.LikeAddDbContext<HolderContext<SpareConstructorHolder>>().UseSqlite(_sqlite.ConnectionString).Options;
         await using (var writing = new HolderContext<SpareConstructorHolder>(options, nested: false))
         {
             await writing.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);

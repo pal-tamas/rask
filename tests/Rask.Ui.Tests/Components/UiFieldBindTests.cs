@@ -17,7 +17,7 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
         RaskValidation.RegisterFieldShapes(typeof(Leg), static name => name switch
         {
             nameof(Leg.Tank) => new FieldShape(FieldKind.Number, Min: 1, Max: 500, Scale: 2),
-            nameof(Leg.Axles) => new FieldShape(FieldKind.Whole, Min: 2, Max: 9),
+            nameof(Leg.Axles) => new FieldShape(FieldKind.Integer, Min: 2, Max: 9),
             nameof(Leg.Day) => new FieldShape(FieldKind.Day, NotAfterToday: true),
             nameof(Leg.Fueled) => new FieldShape(FieldKind.Moment, NotAfterNow: true),
             nameof(Leg.Level) => new FieldShape(FieldKind.Choice, Options: Levels),
@@ -25,7 +25,7 @@ public partial class UiFieldBindTests : global::Rask.Core.RaskMarkup
             nameof(Leg.Mode) => new FieldShape(FieldKind.Choice, Options: Levels) { Hint = FieldHints.RadioGroup },
             nameof(Leg.Vin) => new FieldShape(FieldKind.Text, MaxLength: 17) { Upper = true },
             nameof(Leg.Vehicle) => new FieldShape(FieldKind.Id),
-            nameof(Leg.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Whole),
+            nameof(Leg.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Integer),
             _ => null,
         });
 

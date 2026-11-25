@@ -99,7 +99,6 @@ public static class ModelBuilderExtensions
         TenantColumnFollowers.Settle(modelBuilder);
         BindChildrenToTheirParents(modelBuilder);
         ChildPositions.Map(modelBuilder, entityTypes);
-        AuditEntries.Map(modelBuilder, entityTypes);
 
         return modelBuilder;
     }

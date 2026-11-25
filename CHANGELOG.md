@@ -26,6 +26,56 @@ them until tagged releases begin.
   Now a row another context saved is the saved row in it too (an unchanged instance takes the saved values, version
   included; a deleted one is let go; a change the test has not saved stays the test's), and a failed save through it
   lets go of what it tracked, as a page's context gone with its request would.
+- **Two operations that take the same parameters each get their `Form.For`.** Before: `Product.Archive` and
+  `Product.Restore`, each taking only the id and version, got no form at all (RASK174, an Info nobody saw), and
+  `Form.For(Product.Archive, id)` failed with CS1503 under a misleading RASK095 ("'Form' needs …"). Now each such
+  operation gets a hidden overload of its entry that takes a mark of its own first (`ProductOperationForms.ArchiveMark`)
+  and its form takes a delegate of that shape, so each method group picks its own form. RASK174 is retired, and RASK095
+  no longer reports a call to a hand-written opening that does not bind — the compiler's error is the one that explains it.
+- **A new app starts with no RASK130 of its own, and a bare `Guid` is told what fixes it.** Before: the scaffolded
+  `User` stored its `DisplayName` as a `[MaxLength(100)] string`, which a `<RaskStrict>` app was warned about on its
+  first build, and a `Guid` reference (an order's customer) was told to declare a value object no base record holds.
+  Now the `server` and `wasm-hosted` templates' `User` holds a `UserDisplayName?` (`Text(Value, MaxLength: 100,
+  Required: false)`; the register page asks its `Check` and sets its `maxlength`), and RASK130 tells a `Guid` to take a
+  strongly-typed id — `readonly partial record struct AccountId(Guid Value)` (`docs/diagnostics.md#rask130`,
+  `docs/authentication.md`).
+- **An aggregate's `static Task On(E e) => X.UpdateEach(…)` no longer hears CA1859.** Before: the write answers a
+  `Task<int>`, so the .NET analyzers asked the handler to return that — the very return type RASK179 refuses — and a
+  strict app could not satisfy both. Now `RASKSUP003` suppresses CA1859 on a handler of exactly RASK179's shape, and on
+  nothing else (`docs/diagnostics.md#rask179`).
+- **A scaffold under a symlinked folder restores its tests with the app.** Before: under a path through a link
+  (macOS's `/tmp` and `/var` are links into `/private`) NuGet's default restore recorded the app as two different
+  paths and dropped `Shop.Tests`' reference to `Shop`, so the tests lost every package the app brings. Now every
+  template's `Directory.Build.props` turns on `RestoreUseStaticGraphEvaluation`, which keeps the paths as written.
+- **`Jobs.Fake().Run()` runs host-less.** A test that started only a `TestDatabase` got "Dispatcher was called
+  before the app started" from `jobs.Run()` and from an awaited `Jobs.Run(...)`; both now run the job's handler
+  through the test database's own services, as its saves already publish their events.
+- **A fresh app's editor dialog can delete.** Every `rask new` template's `App` now renders
+  `[Router, Ui.Confirm]`, so `Ui.EditorDialog.Delete(...)` and `Ui.Confirm.Ask` have a dialog to ask in instead of
+  throwing "found no Ui.Confirm on the page". Toasts needed nothing: the host already draws them. The tutorial's
+  chapter 2 no longer has the reader add it.
+- **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
+  `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
+  the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
+- **CI fails fast and names a hang.** Every gate's `dotnet test` stops at its first failing test, ends a hung test at
+  5 minutes by name (and the whole run at 22), and a red gate cancels the rest of its `ci` run; the unit tests run in
+  four `unit K/N` shard jobs beside `build`, and the nightly publishes once `build` and every shard are green
+  (`docs/development-workflow.md`, "Fail fast").
+- **A handler that captures only a local re-renders the component that wrote it.** Before: a click handler written
+  in a component's `Render` that closed over a local and nothing of the component (`var rows = Rows; …
+  .OnClick(() => rows.Add(row))`) carried nothing naming its owner, so inside a composite (a card, a kit button) the
+  event re-rendered the composite and the rows it added were never drawn. Now the component rendering as the
+  handler is set is its owner: an element's handler is noted as it is set, and a component's event callback is
+  wrapped for it, as one that captures `this` always was.
+- **The sign-in throttle and the account slowdown hold at most 10 000 keys.** Before: each dropped only the keys
+  whose failures had expired, so a spray of distinct addresses or clients inside one window — every one of them
+  failing just now — grew both tables without bound, and the old sweep walked the whole table on every attempt
+  past 10 000. Now, at the bound, the expired keys go and then the stalest, down to nine tenths of it, so the next
+  sweep is a thousand new keys away; a key that failed just now is still counted.
+- **A live sign-in that names the sign-in page or Rask's own endpoints as its return address lands on the root.**
+  Before: a live handler's sign-in with the return address `/login?returnUrl=…` sent the reader who just signed in back to the sign-in form, and a
+  return address under `/_rask/` (the ticket redeem is a POST) loaded an error page. Now both fall back to `/`, in
+  any language; a sign-out may still land on the sign-in page.
 - **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
   began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
   retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
@@ -145,6 +195,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
+  value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
+  format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,
+  `+01:00`) is converted to `Clock.Zone`, across summer time, and one without is taken as the wall's; a `Day` is a
+  moment's day on the wall calendar. No moment is a `FormatException`, a refused one the `RaskValidationException`
+  `Create` throws; `TryParse` says false for both. Replaces an app's own zone helper (`Zone`, `Of`, `FromUtc`, `Parse`):
+  `AmnisMoment.Parse(text)`, `Clock.WallAt(moment)`, `Clock.Today`.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
@@ -202,22 +259,6 @@ them until tagged releases begin.
 - **RASK187: a raw `ExecuteUpdate`/`ExecuteDelete` over an aggregate's rows** points at `X.UpdateWhere`/`X.DeleteWhere`,
   with a quick-fix for the awaitable form on a set (straight or behind one `Where`). Info by default, a warning under
   `<RaskStrict>`.
-- **`Audited`: an aggregate's every save leaves its audit entry in that same save.** Before: an app wrote its audit
-  rows in a `SaveChanges` override or an interceptor, after the commit with raw SQL (Eszaf's `DeliveryNoteAudit`) — not
-  atomic, blind to the children, skipping a value that became null, in the current culture. After:
-  `Aggregate<int, Versioned, Audited>` adds an `AuditEntry` (table `Audits`: aggregate, `Insert`/`Update`/`Delete`, key,
-  before and after, user or `system`, UTC moment) to the save itself; a store-generated key is read into it before the
-  commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
-  values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
-  SQL Server and PostgreSQL, proven by the providers suite.
-- **`m.AuditAs(format)`: an `Audited` aggregate's saves written as the app's own audit rows.** Before: `AuditFormat`
-  was handed only the changed values and wrote only Rask's `AuditEntry`, its user as text (`system`), so a table an
-  older app reads — Eszaf's `Audits`, the whole row as JSON in `OldData`/`NewData`, `UserId` an `int` foreign key — could
-  not be kept. After: an `AuditFormat<TRow, TUserId>` named in the app's `IRaskModel` (`m.AuditAs(new LegacyAudits())`)
-  returns the app's row from an `AuditedWrite<TUserId>` — every value the aggregate held and holds (its children by
-  path, value objects as stored), the paths that changed, the action, the key, the user as the app's key type (null for
-  nobody) and the moment — added to the same save, completed before the commit when the key is generated; Rask's
-  `AuditEntry` is left out of that model. The default format writes what it wrote. [docs/domain.md](docs/domain.md#who-changed-what-audited)
 - **`IQueryable<T>.ForUpdate()`: the read face's update lock on any query of a set.** Before: `ForUpdate()` was only on a
   read face (`Month.Where(…).ForUpdate()`), so code generic over the type — Eszaf's `ReturnFilings.Lock<TRefund>` over
   four refund types — kept raw `UPDLOCK, HOLDLOCK` SQL. After: `db.Set<TRefund>().Where(r => r.Id == id).ForUpdate()`
@@ -299,24 +340,6 @@ them until tagged releases begin.
   or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
   reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
   `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
-- **`rask audit` asks the stored data the rules its types declare today.** Before: a rule was asked only of what a save
-  writes — of a stored row, only the fields a save changes — so an old row a tightened rule refuses stayed unseen
-  until someone edited it, and finding them took hand-written SQL per rule. After: `rask audit` (or, on the server,
-  `dotnet App.dll rask audit`) loads every aggregate whole, a page at a time and from every tenant, and asks what a save
-  adding it would ask — every attribute of every row, `IValidatableObject`, `Validate()`, awaited rules too, each in the
-  aggregate's tenant — plus each value object's own rules (which a load never asks) and whether it is stored as its
-  rules keep it, and whether every id kept as text is one the app reads and writes that way. It reports each rule
-  broken by field (a child's rows together, `Lines[*].Quantity`) with the count and the ids alone; `--aggregate Name`
-  narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
-  save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
-  See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
-- **`rask audit --unique-candidates` says whether the stored rows let a unique index in.** Before: adding
-  `IsUnique()` to an index over old data failed at the migration, on the first duplicate the database met. After: the
-  audit asks every unique index the model declares — migrated or not, its `.Where(…)` applied — of every stored row in
-  LINQ, and reports each group of rows that would collide by their ids (`id = id`), never the values; a NULL key
-  collides with nothing, and texts differing only in letter case are reported apart, as a collision under a
-  case-insensitive collation. An index filtered by hand-written SQL is named in a note. See
-  [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
 - **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
   moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
   aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
@@ -400,6 +423,24 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
+  bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
+  components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote
+  a test. Now `Product` and `Order` are aggregates of value objects (`Text`, `Number`, `Whole`, `Email`, a
+  `ShippingAddress : Value`) and typed ids, every write is an operation with `Refuse`, each list page is one component
+  with `Ui.EditorDialog` and `.Delete(…)` over forms from the operations (`Form.For`, rows of `Children<,>`, a value
+  object's group of fields, `Change<T>`, an `Attachment` picker), roles live on the operations
+  (`b.Operation(…, roles:)`, `Product.MayAdd`), the job calls `Order.MarkReceiptSent(id)`, the catalog cache is
+  forgotten by a domain event (`OnDelete()` included), an order placed takes its stock through
+  `Product`'s `static Task On(OrderPlaced e)`, and chapters 10–11 run `rask audit`. Every chapter proves its rules on
+  SQLite in memory (`TestDatabase.Start`, `Test.Make`, `Test.Refuses`, `Test.FormShows`, `Test.Concurrently`), and
+  `TutorialChapterBuildE2ETests` builds each chapter's tests with the app and runs them at the end.
+- **rask.sh leads with the one way an app is written.** The hero's code window is now a model (a `Text`/`Number`
+  value object, a typed id, an aggregate whose `Reprice` refuses with `Refuse.When`), the `Form.For(Product.Reprice, id)`
+  over it, and its test on SQLite in memory — three files compiled and run in `tests/Rask.Testing.Database.Tests/Hero`,
+  which the site's copy is held to character for character. The back-end cards gain *Domain model* and *Domain tests*,
+  the forms card is `Form.For`, the guide catalog's domain, data, data-writes, forms, testing and tutorial entries say
+  the same, `/llms.txt` states the style before any guide, and the home page's JSON-LD names it in a `featureList`.
 - **The SQL Server and PostgreSQL provider tests run in CI on Testcontainers, and need no Docker on a dev machine.**
   Before: `scripts/run-providers-local.sh` started the servers with `docker run`, and only a release (or a
   `ci/release/**` branch) ran the gate. After: `tests/Rask.Providers.E2E.Tests` starts one SQL Server 2022 and one
@@ -417,6 +458,10 @@ them until tagged releases begin.
   leaving it, as `.Blur()` does, and the refusal shows then. `.Live()` and `.Debounce(…)` still win, and the new
   `.Defer()` (Livewire's `wire:model.defer`) keeps a field waiting for the next action. `Form.Model(m)` and chosen
   controls (a checkbox, a select, a picker) are unchanged. A `.Blur()` under `Form.For` is now redundant.
+- **BREAKING: the whole-number value-object base is `Integer`, not `Whole`.** Before:
+  `public sealed partial record Rank(int Value) : Whole(Value, Min: 1);`, and its field shape `FieldKind.Whole`. After:
+  `: Integer(Value, Min: 1)` and `FieldKind.Integer`, a sibling of `Text`, `Number`, `Day` and `Moment` named for what
+  it holds. No alias is kept: rename `: Whole(` to `: Integer(` and `FieldKind.Whole` to `FieldKind.Integer`.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
@@ -497,6 +542,16 @@ them until tagged releases begin.
   named `Rask.Data.Range` or `Rask.Data.Text` writes `Rask.Values.…`; a value is now worded from Rask's strings catalog
   directly, so the generated `__RaskValueWords` module initializer is gone. The site's `DestinationName` demo is
   declared `: Text(Value, MaxLength: 255, Pattern: …)`, and says *This field is required.* for an empty name.
+
+### Removed
+
+- **The `Audited` trait and the stored-data rule audit are gone; neither shipped in a release.** Rask has no audit-trail
+  feature: `Audited`, `TraitSet.Audited`, `AuditEntry` and its `Audits` table, `AuditFormat`,
+  `AuditFormat<TRow, TUserId>`, `AuditedWrite<TUserId>`, `AuditAction`, `AuditValue` and `m.AuditAs(…)` are removed —
+  an app that needs a history of its changes writes it as an aggregate of its own. `rask audit` (the CLI command and
+  the published app's `dotnet App.dll rask audit`, `--unique-candidates` included) and `Rask.Values.IStoredValue` are
+  removed with it. `rask db migrate`, `b.Data(…)` data steps, `b.Numbered(…)` and the timestamp/version stamps of the
+  auditing interceptor stay.
 
 ### Security
 - **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:

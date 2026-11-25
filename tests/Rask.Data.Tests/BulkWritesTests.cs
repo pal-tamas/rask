@@ -10,11 +10,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class BulkWritesTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-writes-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task DeleteWhere_deletes_the_rows_it_matches_and_counts_them()
@@ -282,5 +282,5 @@ public sealed class BulkWritesTests : IDisposable
     }
 
     private Task<TestDatabase> StartAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: Token);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: Token);
 }

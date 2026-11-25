@@ -5,5 +5,11 @@
          an error. `warnings` reports the same list without failing the build; `false` turns it off.
          https://rask.sh/docs/guides/code-analysis/#strict-mode-for-your-app-raskstrict -->
     <RaskStrict>errors</RaskStrict>
+    <!-- Restore from a static evaluation of the whole project graph. The default restore walks the references by
+         running a target in each one, and a referenced project reached through a symbolic link (macOS's /tmp and
+         /var are links into /private) reports itself under its resolved path while the project that references
+         it recorded the link's: two strings for one file, so restore drops the reference, and the tests lose
+         every package the app brings. The static graph keeps the paths as written, and is the faster restore. -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
   </PropertyGroup>
 </Project>

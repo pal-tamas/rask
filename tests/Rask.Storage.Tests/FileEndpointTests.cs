@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Storage.Tests;
 
-[Collection(StorageDbCollection.Name)]
 public sealed class FileEndpointTests
 {
     [Fact]

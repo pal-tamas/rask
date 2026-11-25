@@ -151,9 +151,9 @@ public sealed class Agreement : Aggregate<int, Timestamps, Versioned, Model, Del
 [Collection(DataDbCollection.Name)]
 public sealed class ReferencedDeleteTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-referenced-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Deleting_a_row_a_mapped_row_references_fails_with_the_relationships_sentence()
@@ -649,5 +649,5 @@ public sealed class ReferencedDeleteTests : IDisposable
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

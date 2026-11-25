@@ -6,54 +6,40 @@ using Rask.Cli.Templates;
 namespace Rask.Cli.E2E.Tests;
 
 /// <summary>
-/// Walks the tutorial the way a reader does — scaffold, then chapter 2, 3, 4 in order — building after
-/// each. The question the snippet parser can't answer.
+/// Walks the tutorial the way a reader does — scaffold, then chapter 2, 3, 4 in order — building the app AND its
+/// tests after each, then running the tests. The question the snippet parser can't answer.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The chapter is the framework's teaching code now, and until this test existed nothing compiled it.
-/// Writing it found four defects that had shipped, none of which a parser could see: a context
-/// instruction gave the <c>DbSet</c> line but not the <c>using</c> the slice needs; the list page linked
-/// to <c>UpdateProduct</c> and <c>DeleteProduct</c>, which the chapter never provided; and the form used
-/// <c>DataAnnotationsValidator</c> without saying it comes from its own package. A reader following the
-/// chapter exactly got four compiler errors.
+/// The chapters are the framework's teaching code, and every one of them is compiled here: the aggregates, their value
+/// objects and typed ids, the pages whose forms are generated from the aggregates' operations (<c>Form.For</c>), the
+/// jobs, handlers and events — and, since the tutorial teaches that a rule is proved where it lives, the tests each
+/// chapter writes into <c>Shop.Tests</c>. A <c>Form.For(Order.Ship, id)</c> only exists once the operation generator
+/// has run over the chapter's <c>Order</c>, and <c>Test.FormShows&lt;ProductAddInput&gt;</c> only once it has written
+/// that input, so this walk is what proves the generated surface the chapters type against.
 /// </para>
 /// <para>
-/// Extending it found more of the same. Chapter 4's job handler used a context factory with no
-/// <c>using</c> and no namespace. Chapter 7 told the reader to give <c>Order</c> a <c>Customer</c> field
-/// it never had — its snippets came from a generator run with different fields than chapter 3 used, which
-/// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
+/// The chapters build on each other — chapter 4's job calls an operation chapter 3's <c>Order</c> gains, chapter 7's
+/// handler on <c>Product</c> hears an event chapter 7's <c>Order</c> raises — so they are walked cumulatively rather
+/// than in isolation. Most snippets are whole files. The few a reader types INTO a file (two members at the end of a
+/// class, a line after a line) are applied the way the chapter says, so the edit the prose describes is the edit that
+/// is compiled.
 /// </para>
 /// <para>
-/// The pages read through the generated read face — <c>Product.AsQueryable()</c> — write through the
-/// aggregate type — <c>Product.Create(model)</c> — and fill a form with <c>Product.Model(id)</c>,
-/// binding the generated <c>ProductModel</c>, which only exists once the
-/// model generator has run over the chapter's <c>Product</c>. So this walk is what proves the generated form
-/// model binds to the Ui kit's controls the way the chapter types it.
+/// Rewriting the tutorial to aggregates found, on the way in: a scaffold whose <c>App</c> mounted no <c>Ui.Confirm</c>,
+/// so an editor dialog's Delete had nowhere to ask (the templates mount it now); and that a test database has no cache or job
+/// battery, so a save whose in-memory handler reaches <c>Cache</c> fails the test (chapter 6 fakes them).
 /// </para>
 /// <para>
-/// The chapters build on each other — chapter 4's handler reads <c>Order</c>, which only exists after
-/// chapter 3; chapter 7 rewrites the <c>Order</c> chapter 3 wrote and its handler enqueues chapter 4's
-/// job — so they are walked cumulatively rather than in isolation.
-/// </para>
-/// <para>
-/// Typing the whole tutorial in found the next round, in the chapters this walk did not reach yet or reached
-/// only in part. Chapter 5's job handler built <c>OrderReceipt</c> by its chain from a class that is not a
-/// component, which is CS0120 without <c>[RaskMarkup]</c> — the walk compiled the email body but never the
-/// handler that sends it. Chapter 6's accessor returned <c>Cache.Remember(…).For(…)</c> as a <c>Task</c>, which
-/// it is not, and its page was a sketch in comments. Chapter 10's page called a helper it never showed. Each is
-/// a whole file now, and each is compiled here.
-/// </para>
-/// <para>
-/// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework
-/// and runs a real restore + build. It reads the chapters rather than copies of them: a snippet edited
-/// in the docs is compiled here, which is the only arrangement that can't drift.
+/// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework and runs a
+/// real restore, build and test. It reads the chapters rather than copies of them: a snippet edited in the docs is
+/// compiled here, which is the only arrangement that can't drift.
 /// </para>
 /// </remarks>
 public sealed partial class TutorialChapterBuildE2ETests
 {
     [Fact]
-    public async Task The_tutorial_builds_when_you_type_it_in()
+    public async Task The_tutorial_builds_and_its_tests_pass_when_you_type_it_in()
     {
         Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
@@ -66,8 +52,6 @@ public sealed partial class TutorialChapterBuildE2ETests
         var ch9 = Fences("09-web-push.md");
         var ch10 = Fences("10-ops.md");
 
-        string Fence(string contains) => Pick(ch2, contains, "2");
-
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var temp = Path.Combine(Path.GetTempPath(), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
         var projectDir = Path.Combine(temp, "Shop");
@@ -76,9 +60,7 @@ public sealed partial class TutorialChapterBuildE2ETests
         {
             var fs = new SystemFileSystem();
 
-            // Chapter 1: rask new Shop --bootstrap. The batteries are the default now, so this is
-            // simply what the template supports. Auth is left off deliberately — the chapter's own
-            // files are overlaid below, and scaffolding a second copy would collide with them.
+            // Chapter 1: rask new Shop — every battery, and the Shop.Tests project beside the app.
             var scaffold = ProjectGenerator.GenerateServer(
                 projectDir, "Shop",
                 BatterySelection.ToBatteries(TemplateCatalog.Default, []), version);
@@ -88,100 +70,117 @@ public sealed partial class TutorialChapterBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Chapter 2: every file it hands the reader — the aggregate and the pages that bind its generated
-            // form model. The aggregate is mapped with no context to edit, so there is nothing else to overlay.
-            var slice = Path.Combine(projectDir, "Features", "Products");
-            fs.CreateDirectory(slice);
-            Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>"));
-            Write(fs, slice, "NewProductPage.cs", Fence("[Route(\"/products/new\")]"));
-            Write(fs, slice, "EditProductPage.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
-            Write(fs, slice, "DeleteProductButton.cs", Fence("class DeleteProductButton : Component"));
-            Write(fs, slice, "ProductsPage.cs", Fence("class ProductsPage"));
-
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on its aggregate
-            // and expects the form to enforce it through the generated model; validation ships inside Rask.Core, so a
-            // project straight out of `rask new` already has it. If it ever stops being built in, this build
-            // still succeeds and the chapter still compiles — so the guarantee is pinned by the unit suite
-            // (Rask.Validation.Tests), and this gate only has to prove no `dotnet add package` is needed.
-            var csproj = Path.Combine(projectDir, "Shop.csproj");
+            var tests = Path.Combine(projectDir, "Shop.Tests");
+            var testsCsproj = Path.Combine(tests, "Shop.Tests.csproj");
+            Assert.True(File.Exists(testsCsproj), "rask new no longer writes Shop.Tests, which every chapter writes its tests into.");
 
-            await Build(csproj, "chapter 2");
-
-            // --- Chapter 3: a second entity on the same database ---
+            var products = Path.Combine(projectDir, "Features", "Products");
             var orders = Path.Combine(projectDir, "Features", "Orders");
-            fs.CreateDirectory(orders);
-            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>", "3"));
+            var productTests = Path.Combine(tests, "Features", "Products");
+            var orderTests = Path.Combine(tests, "Features", "Orders");
 
-            await Build(csproj, "chapter 3");
+            // --- Chapter 2: the Product aggregate, the one page over it, the tests ---
+            Write(fs, products, "Product.cs", Pick(ch2, "class Product : Aggregate<ProductId", "2"));
+            Write(fs, products, "ProductsPage.cs", Pick(ch2, "class ProductsPage", "2"));
+            Write(fs, productTests, "ProductTests.cs", Pick(ch2, "class ProductTests", "2"));
 
-            // --- Chapter 4: a durable job, whose handler reads the Order chapter 3 added ---
-            // The chapter shows the record and the filled-in handler as separate snippets, the handler's
-            // `using` above it; they are joined into one file the way a reader would join them.
-            var jobHandler = Pick(ch4, "Order.Where(o => o.Id == job.OrderId", "4");
-            var shared = Path.Combine(projectDir, "Features", "Shared");
-            Write(
-                fs, shared, "SendOrderReceipt.cs",
-                jobHandler[..jobHandler.IndexOf("public sealed class", StringComparison.Ordinal)].Trim()
-                + "\n\nnamespace Shop.Features.Shared;\n\n"
-                + Pick(ch4, "record SendOrderReceipt(Guid OrderId)", "4").Trim() + "\n\n"
-                + jobHandler[jobHandler.IndexOf("public sealed class", StringComparison.Ordinal)..]);
+            await Build(testsCsproj, "chapter 2");
 
-            await Build(csproj, "chapter 4");
+            // --- Chapter 3: Order with its lines, its page, the roles on Product's operations, the tests that sign in ---
+            Write(fs, products, "Product.cs", Pick(ch3, "b.Operation(nameof(Add)", "3"));
+            Replace(
+                fs, Path.Combine(products, "ProductsPage.cs"),
+                """Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New product"]""",
+                Pick(ch3, "Product.MayAdd ?", "3").Trim());
+            Replace(
+                fs, Path.Combine(products, "ProductsPage.cs"),
+                """Ui.RowActions.Edit(route.With("edit", p.Id.ToString()))""",
+                Pick(ch3, "Product.MayChange ?", "3").Trim());
+            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Aggregate<OrderId", "3"));
+            Write(fs, orders, "OrderLine.cs", Pick(ch3, "class OrderLine : Entity<OrderLineId>", "3"));
+            Write(fs, orders, "OrdersPage.cs", Pick(ch3, "class OrdersPage", "3"));
+            Write(fs, tests, "Signed.cs", Pick(ch3, "class Signed", "3"));
+            Write(fs, productTests, "ProductTests.cs", Pick(ch3, "class ProductTests", "3"));
+            Write(fs, orderTests, "OrderTests.cs", Pick(ch3, "class OrderTests", "3"));
 
-            // --- Chapter 5: the email body, a plain component, and the handler that sends it ---
-            // The handler replaces chapter 4's, beside the same record. It builds the body by its chain from a
-            // class that is not a component, so this is what proves the chapter says how ([RaskMarkup]).
-            Write(fs, shared, "OrderReceipt.cs", Pick(ch5, "Thanks for your order!", "5"));
-            var mailHandler = Pick(ch5, "Mail.Send(", "5");
-            var classStart = mailHandler.IndexOf("[RaskMarkup]", StringComparison.Ordinal);
-            if (classStart < 0)
+            await Build(testsCsproj, "chapter 3");
+
+            // --- Chapter 4: two members at the end of Order, the job that calls one, the button that queues it ---
+            AppendMembers(fs, Path.Combine(orders, "Order.cs"), Pick(ch4, "public void MarkReceiptSent()", "4"));
+            Write(fs, orders, "SendOrderReceipt.cs", Pick(ch4, "record SendOrderReceipt(OrderId Order)", "4"));
+            Write(fs, orders, "SendReceiptButton.cs", Pick(ch4, "class SendReceiptButton", "4"));
+
+            // "Put it in the order's editor, under the ship form": the fence is the ship form and the new line.
+            var underShip = Pick(ch4, "SendReceiptButton.Order(id),", "4");
+            Replace(
+                fs, Path.Combine(orders, "OrdersPage.cs"),
+                underShip[..underShip.IndexOf("        SendReceiptButton.Order(id),", StringComparison.Ordinal)],
+                underShip);
+            Write(fs, orderTests, "ReceiptTests.cs", Pick(ch4, "class ReceiptTests", "4"));
+
+            await Build(testsCsproj, "chapter 4");
+
+            // --- Chapter 5: the email body, a plain component, and the job that now sends it ---
+            Write(fs, orders, "OrderReceipt.cs", Pick(ch5, "Thanks for your order!", "5"));
+            Write(fs, orders, "SendOrderReceipt.cs", Pick(ch5, "Mail.Send(", "5"));
+            Write(fs, orderTests, "ReceiptTests.cs", Pick(ch5, "class ReceiptTests", "5"));
+
+            await Build(testsCsproj, "chapter 5");
+
+            // --- Chapter 6: the catalog's event, the cache and its handler, the page over it, the batteries faked ---
+            Write(fs, products, "Product.cs", Pick(ch6, "class Product : Aggregate<ProductId", "6"));
+            Write(fs, products, "CatalogCache.cs", Pick(ch6, "class CatalogCache", "6"));
+            Write(fs, products, "ProductsPage.cs", Pick(ch6, "class ProductsPage", "6"));
+            Write(fs, tests, "FakeBatteries.cs", Pick(ch6, "class FakeBatteries", "6"));
+
+            // "Add this line after each TestDatabase.Start in ProductTests, OrderTests and ReceiptTests."
+            var fakeLine = Pick(ch6, "using var batteries = new FakeBatteries();", "6").Trim();
+            foreach (var file in new[]
+                     {
+                         Path.Combine(productTests, "ProductTests.cs"), Path.Combine(orderTests, "OrderTests.cs"),
+                         Path.Combine(orderTests, "ReceiptTests.cs"),
+                     })
             {
-                classStart = mailHandler.IndexOf("public sealed", StringComparison.Ordinal);
+                AddAfterEach(fs, file, "await using var database = await TestDatabase.Start(", fakeLine);
             }
 
-            Write(
-                fs, shared, "SendOrderReceipt.cs",
-                mailHandler[..classStart].Trim()
-                + "\n\nnamespace Shop.Features.Shared;\n\n"
-                + Pick(ch4, "record SendOrderReceipt(Guid OrderId)", "4").Trim() + "\n\n"
-                + mailHandler[classStart..]);
+            Write(fs, productTests, "CatalogCacheTests.cs", Pick(ch6, "class CatalogCacheTests", "6"));
 
-            await Build(csproj, "chapter 5");
+            await Build(testsCsproj, "chapter 6");
 
-            // --- Chapter 6: the cache accessor, and the list page reading through it ---
-            // Both are whole files: the finished accessor, and the page with chapter 3's gates still in it.
-            Write(fs, slice, "CatalogCache.cs", Pick(ch6, "Cache.Remember(Key, Load).For(5.Minutes);\n\n    public static Task Forget()", "6"));
-            Write(fs, slice, "ProductsPage.cs", Pick(ch6, "class ProductsPage", "6"));
-
-            await Build(csproj, "chapter 6");
-
-            // --- Chapter 7: a domain event through the outbox ---
-            // The chapter shows the revised Order.cs whole rather than as a patch, which is both what a
-            // reader needs (the Raise call has to go somewhere specific) and what lets this walk apply
-            // it — a fragment could not replace the file chapter 3 wrote.
-            //
-            // PlaceOrder is a whole component precisely so it is compiled here: it is the chapter's one
-            // create from an aggregate built by its own factory — Order.Place, then Order.Create(order).
+            // --- Chapter 7: OrderPlaced, raised by Order.Place; Product's handler on it; the durable receipt handler ---
             Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
-            Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
-            Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));
+            Write(fs, orders, "Order.cs", Pick(ch7, "class Order : Aggregate<OrderId", "7"));
+            Write(fs, products, "Product.Sales.cs", Pick(ch7, "Task On(OrderPlaced e)", "7"));
             Write(fs, orders, "OrderPlacedHandler.cs", Pick(ch7, "IDurableHandler<OrderPlaced>", "7"));
+            Write(fs, tests, "FakeBatteries.cs", Pick(ch7, "class FakeBatteries", "7"));
+            Write(fs, orderTests, "OrderPlacedTests.cs", Pick(ch7, "class OrderPlacedTests", "7"));
 
-            await Build(csproj, "chapter 7");
+            await Build(testsCsproj, "chapter 7");
 
-            // --- Chapter 9: the button that subscribes a browser to push ---
+            // --- Chapter 9: the subscribe button, the order's account and OrderShipped, the push handler ---
             Write(fs, orders, "NotifyMe.cs", Pick(ch9, "class NotifyMe", "9"));
+            Write(fs, orders, "Order.cs", Pick(ch9, "class Order : Aggregate<OrderId", "9"));
+            Write(fs, orders, "OrderEvents.cs", Pick(ch9, "record OrderShipped", "9"));
+            Write(fs, orders, "OrderShippedHandler.cs", Pick(ch9, "IDurableHandler<OrderShipped>", "9"));
+            Write(fs, orderTests, "OrderShippedTests.cs", Pick(ch9, "class OrderShippedTests", "9"));
 
-            await Build(csproj, "chapter 9");
+            await Build(testsCsproj, "chapter 9");
 
             // --- Chapter 10: the ops page, over every battery's own table ---
             var ops = Path.Combine(projectDir, "Features", "Ops");
-            fs.CreateDirectory(ops);
             Write(fs, ops, "OpsPage.cs", Pick(ch10, "[Route(\"/ops\")]", "10"));
 
-            await Build(csproj, "chapter 10");
+            await Build(testsCsproj, "chapter 10");
+
+            // And what every chapter proved, on SQLite in memory: the tests the reader typed in pass.
+            var (exit, output) = await CliBuildE2E.RunDotnet($"test \"{testsCsproj}\" --no-build");
+            Assert.True(
+                exit == 0,
+                "The tutorial's tests, typed in as written, do not pass. Every rule a chapter proves has to hold.\n"
+                + string.Join('\n', output.Split('\n').Where(Failing).Take(40)));
         }
         finally
         {
@@ -197,6 +196,12 @@ public sealed partial class TutorialChapterBuildE2ETests
             $"Tutorial {chapter} does not compile when typed in as written. Every snippet a reader "
             + $"copies has to build.{CliBuildE2E.Diagnostics(output)}");
     }
+
+    // A line of `dotnet test` output that says what failed and why.
+    private static bool Failing(string line) =>
+        line.Contains("Failed ", StringComparison.Ordinal)
+        || line.Contains("Error Message", StringComparison.Ordinal)
+        || line.Contains("Exception", StringComparison.Ordinal);
 
     private static string[] Fences(string chapter) =>
         CSharpFence()
@@ -214,8 +219,46 @@ public sealed partial class TutorialChapterBuildE2ETests
             $"Chapter {chapter} no longer contains a C# snippet with '{contains}'. If the chapter was "
             + "restructured, update this test to match — don't delete the coverage.");
 
-    private static void Write(IFileSystem fs, string directory, string name, string code) =>
+    private static void Write(IFileSystem fs, string directory, string name, string code)
+    {
+        fs.CreateDirectory(directory);
         fs.WriteAllText(Path.Combine(directory, name), code);
+    }
+
+    /// <summary>A chapter's "change this to that" — the old text must be there, or the chapter no longer matches the file.</summary>
+    private static void Replace(IFileSystem fs, string path, string old, string replacement)
+    {
+        var text = fs.ReadAllText(path);
+        Assert.True(
+            text.Contains(old, StringComparison.Ordinal),
+            $"{Path.GetFileName(path)} no longer holds the text a chapter tells the reader to change:\n{old}");
+        fs.WriteAllText(path, text.Replace(old, replacement, StringComparison.Ordinal));
+    }
+
+    /// <summary>A chapter's "add these members at the end of the class": before the file's last closing brace.</summary>
+    private static void AppendMembers(IFileSystem fs, string path, string members)
+    {
+        var text = fs.ReadAllText(path).TrimEnd();
+        Assert.EndsWith("}", text, StringComparison.Ordinal);
+        fs.WriteAllText(path, text[..^1].TrimEnd() + "\n\n" + members.TrimEnd() + "\n}\n");
+    }
+
+    /// <summary>A chapter's "add this line after each …": the line, indented as the one it follows.</summary>
+    private static void AddAfterEach(IFileSystem fs, string path, string anchor, string line)
+    {
+        var lines = new List<string>();
+        foreach (var existing in fs.ReadAllText(path).Split('\n'))
+        {
+            lines.Add(existing);
+            if (existing.Contains(anchor, StringComparison.Ordinal))
+            {
+                lines.Add(existing[..(existing.Length - existing.TrimStart().Length)] + line);
+            }
+        }
+
+        Assert.True(lines.Count > fs.ReadAllText(path).Split('\n').Length, $"{Path.GetFileName(path)} has no '{anchor}' for the chapter's line to follow.");
+        fs.WriteAllText(path, string.Join('\n', lines));
+    }
 
     private static string TutorialDirectory()
     {

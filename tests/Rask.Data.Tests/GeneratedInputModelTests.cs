@@ -37,13 +37,13 @@ public sealed class GeneratedInputModelTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 4, 1, 9, 0, 0, TimeSpan.Zero);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-model-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(Start);
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 
     private static InvoiceModel NewModel() => new()
     {

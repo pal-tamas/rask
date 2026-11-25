@@ -23,7 +23,7 @@ namespace Rask.Core.Forms;
 /// <param name="Start">The member that holds a range's start (<c>Start</c>, <c>From</c>), or null.</param>
 /// <param name="End">The member that holds a range's end (<c>End</c>, <c>To</c>), or null.</param>
 /// <param name="Ends">
-///     The kind of a range's ends: <see cref="FieldKind.Whole" />, <see cref="FieldKind.Number" /> or
+///     The kind of a range's ends: <see cref="FieldKind.Integer" />, <see cref="FieldKind.Number" /> or
 ///     <see cref="FieldKind.Day" />; null for ends of any other type — a moment (<c>DateTime</c>), a time of day.
 /// </param>
 /// <param name="Options">The values a <see cref="FieldKind.Choice" /> may take, in declaration order, or null.</param>

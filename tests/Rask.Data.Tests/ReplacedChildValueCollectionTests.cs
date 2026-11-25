@@ -50,21 +50,21 @@ public sealed partial class BinderSheet : Entity<(Binder, int Number)>
 [Collection(Rask.Data.Tests.DataDbCollection.Name)]
 public sealed class ReplacedChildValueCollectionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-binders-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_refilled_sheet_keeps_its_row_and_takes_the_new_stamps()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         var binder = Binder.With((1, ["draft"]), (2, []));
         database.Context.Add(binder);
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         binder.Refill([(1, ["draft", "signed"]), (2, [])]);
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await using var fresh = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+        await using var fresh = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(_sqlite.ConnectionString).Options);
         var sheets = await fresh.Set<BinderSheet>().OrderBy(s => s.Number).ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([["draft", "signed"], []], sheets.Select(s => s.Stamps.Select(m => m.Mark).ToArray()));

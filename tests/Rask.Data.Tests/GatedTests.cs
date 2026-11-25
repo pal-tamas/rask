@@ -32,13 +32,13 @@ public sealed class Trucker : Aggregate<Guid, Versioned>
 [Collection(DataDbCollection.Name)]
 public sealed class GatedTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-gated-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private bool _open = true;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task With_the_gate_open_the_member_is_written()
@@ -79,7 +79,7 @@ public sealed class GatedTests : IDisposable
     [Fact]
     public async Task A_gate_nothing_says_anything_about_refuses_the_save()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: Token);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: Token);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => SeedAsync("C-1"));
 
@@ -139,6 +139,6 @@ public sealed class GatedTests : IDisposable
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(
-            o => o.UseSqlite($"Data Source={_dbPath}"),
+            o => o.UseSqlite(_sqlite.ConnectionString),
             services: s => s.AddRaskGate<TruckModule>((_, _) => _open));
 }

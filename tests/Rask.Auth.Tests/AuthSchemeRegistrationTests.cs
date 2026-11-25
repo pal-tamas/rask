@@ -17,7 +17,6 @@ namespace Rask.Auth.Tests;
 ///     must not be turned into a startup crash. Owning the scheme means the battery's configuration wins,
 ///     not that the app fails to start.
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class AuthSchemeRegistrationTests
 {
     [Fact]

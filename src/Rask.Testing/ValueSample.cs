@@ -49,7 +49,7 @@ internal static class ValueSample
         {
             (TextRules text, [_]) => [TextSample.For(type.Name, text)],
             (NumberRules number, [var member]) => [Convert.ChangeType(NumberSample.For(number), Held(member), CultureInfo.InvariantCulture)],
-            (WholeRules whole, [var member]) => [Convert.ChangeType(WholeSample.For(whole), Held(member), CultureInfo.InvariantCulture)],
+            (IntegerRules whole, [var member]) => [Convert.ChangeType(IntegerSample.For(whole), Held(member), CultureInfo.InvariantCulture)],
             (DayRules day, [_]) => [DaySample.For(day)],
             (MomentRules moment, [_]) => [MomentSample.For(moment)],
             (RangeRules range, [var start, _]) => RangeSample.For(type.Name, Held(start), range),

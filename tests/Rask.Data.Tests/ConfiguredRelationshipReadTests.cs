@@ -82,12 +82,12 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
 {
     private const int Acme = 7;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-configured-fk-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<ExciseContext>();
@@ -128,7 +128,7 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

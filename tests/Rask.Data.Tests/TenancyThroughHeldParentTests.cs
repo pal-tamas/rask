@@ -156,9 +156,9 @@ public sealed class TenancyThroughHeldParentTests : IDisposable
     private static readonly Guid Acme = new("6b1e0c4a-93d2-4f5e-8a71-0c2d9e4b3f18");
     private static readonly Guid Globex = new("d84a2f61-5c0b-4e9a-b3d7-91e6f2a0c5b4");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-held-parent-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_child_pointing_at_another_tenants_aggregate_is_read_by_its_roots_tenant_and_never_by_the_other()
@@ -365,5 +365,5 @@ public sealed class TenancyThroughHeldParentTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 }

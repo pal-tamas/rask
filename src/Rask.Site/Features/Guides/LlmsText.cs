@@ -52,6 +52,20 @@ public static partial class LlmsText
         + "WebSocket, or run in the browser on WebAssembly. Install the CLI with "
         + "`curl -sSL https://rask.sh/rask.sh | sh`.";
 
+    // The one way a Rask app is written, said before anything else, so an assistant that reads only the top of the
+    // index writes app code in it — the domain guide's opening list, in a paragraph.
+    private const string Style =
+        "Write Rask apps in one style. Every write is one of an aggregate's own methods, run through its generated "
+        + "entry (`Product.Reprice(id, version, price)`): one aggregate per transaction, and no service layer. Every "
+        + "property is a one-line value object that carries its rule "
+        + "(`public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 200);`) or a typed id "
+        + "(`public readonly partial record struct ProductId(Guid Value);`). A domain refusal is "
+        + "`Refuse.When(…, () => Price, \"…\")`, shown under its field. A form is the operation's own: "
+        + "`Form.For(Product.Reprice, id)`, edited in `Ui.EditorDialog`. Another aggregate changes from a domain "
+        + "event (`On(E)`), never from the same save. No SQL and no provider API. Tests run on SQLite in memory, a "
+        + "database per test (`TestDatabase.Start()`, `Test.Make<T>()`, `Test.Refuses(…).Only(\"Price\")`, "
+        + "`Test.FormShows`, `Test.Concurrently`).";
+
     private static string Root => PageMeta.Origin + LiveOptions.PathBase;
 
     /// <summary>The guide's Markdown twin, as a path from the site root: <c>/docs/guides/cqrs.md</c>.</summary>
@@ -74,6 +88,7 @@ public static partial class LlmsText
         sb.Append("# ").Append(SiteIdentity.Name).Append("\n\n");
         sb.Append("> ").Append(SiteIdentity.Description).Append("\n\n");
         sb.Append(Overview).Append("\n\n");
+        sb.Append(Style).Append("\n\n");
         sb.Append("Each link below is the Markdown source of one guide; the same guide as a web page is at that ")
             .Append("address without `.md`, ending in a slash. Every guide except the Optional ones, in one file: ")
             .Append(Root).Append('/').Append(FullFileName).Append('\n');

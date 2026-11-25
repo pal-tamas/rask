@@ -40,7 +40,6 @@ public sealed class LaneJobHandler(LaneGate lanes, Recorder recorder) : ICommand
 /// Jobs of one lane run one at a time, in the order they are due; different lanes run side by side. A pump
 /// that takes ten minutes to program holds up that pump's work and nobody else's.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobLaneTests
 {
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(300);
@@ -164,8 +163,7 @@ public sealed class JobLaneTests
     [Fact]
     public async Task A_database_without_the_lane_column_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nolane-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await using (var db = h.NewContext())
         {
             await db.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS IX_Job_Lane_ProcessedAt;", cancellationToken: TestContext.Current.CancellationToken);

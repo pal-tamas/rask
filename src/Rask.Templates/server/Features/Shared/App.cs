@@ -13,5 +13,7 @@ public sealed partial class App(RouteState route) : Component
         Meta.Name("theme-color").Content("#27272a").Media("(prefers-color-scheme: dark)")
     ];
 
-    protected override Component? Render() => Router;
+    // The page, and the dialog every page asks its questions in: an editor's Delete, Ui.Confirm.Ask from a handler.
+    // (Toasts need nothing here: the host draws them when the app places no Ui.Toast of its own.)
+    protected override Component? Render() => [Router, Ui.Confirm];
 }

@@ -111,7 +111,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
     // ~1 s retry loop. Same raw-handle technique as SqliteBusyRetry in Rask.SQLite.
     private bool WriteLockHeldByAnotherConnection()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection($"Data Source={_dbPath};Pooling=False");
         connection.Open();
 
         var handle = connection.Handle!;
@@ -143,7 +143,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
     private DbContextOptions<ProbeDbContext> OptionsWith(IInterceptor? interceptor = null)
     {
         var builder = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}");
+            .UseRaskSqliteAt($"Data Source={_dbPath};Pooling=False");
 
         if (interceptor is not null)
         {
@@ -155,7 +155,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

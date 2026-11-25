@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -11,11 +12,10 @@ using Outbox = Rask.Cqrs.Outbox;
 /// The fake stands where the outbox table does: a durable handler's event is recorded rather than written,
 /// and runs when the test says so.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxFakeTests : IDisposable
 {
     private readonly ShippingLog _log = new();
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-outbox-fake-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly ServiceProvider _provider;
 
     public OutboxFakeTests()
@@ -26,7 +26,7 @@ public sealed class OutboxFakeTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskOutbox<OutboxDbContext>();
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_path};Pooling=False")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         _provider = services.BuildServiceProvider();
         using var db = _provider.GetRequiredService<IDbContextFactory<OutboxDbContext>>().CreateDbContext();
@@ -36,7 +36,7 @@ public sealed class OutboxFakeTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        File.Delete(_path);
+        _db.Dispose();
     }
 
     [Fact]

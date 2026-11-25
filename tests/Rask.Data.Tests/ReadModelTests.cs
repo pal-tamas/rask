@@ -74,8 +74,12 @@ public sealed class ConsignmentLine : Entity<Guid>
 }
 
 [Collection(DataDbCollection.Name)]
-public sealed class ReadModelTests
+public sealed class ReadModelTests : IDisposable
 {
+    private readonly InMemorySqlite _sqlite = new();
+
+    public void Dispose() => _sqlite.Dispose();
+
     [Fact]
     public async Task Read_face_returns_the_rows_the_write_side_saved()
     {
@@ -268,11 +272,7 @@ public sealed class ReadModelTests
         await Task.CompletedTask;
     }
 
-    // The path is computed ONCE, outside the callback: the callback runs for every context the fixture
-    // opens, so an interpolated GetRandomFileName() inside it would hand each one its own empty database.
-    private static Task<TestDatabase> StartAsync()
-    {
-        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        return TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
-    }
+    // The database is the class's, opened ONCE outside the callback: the callback runs for every context the fixture
+    // opens, so a database named inside it would hand each one its own empty database.
+    private Task<TestDatabase> StartAsync() => TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

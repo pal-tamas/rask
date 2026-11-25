@@ -161,13 +161,6 @@ public static class CurrentUser
     /// <summary>The principal <c>Current.UsePrincipal</c> opened in this flow, or null.</summary>
     internal static ClaimsPrincipal? ExplicitPrincipal => AmbientPrincipal.Value;
 
-    /// <summary>Whether a <c>Current.UseUser</c> scope is open in this flow, and the user it names (null for nobody).</summary>
-    internal static bool InUserScope(out Guid? userId)
-    {
-        userId = AmbientUser.Value?.UserId;
-        return AmbientUser.Value is not null;
-    }
-
     /// <summary>
     ///     The user the work in flight is for, as the <see cref="Guid" /> the framework carries it in — the one the
     ///     framework's own rows record, whatever type the app's user is keyed by.

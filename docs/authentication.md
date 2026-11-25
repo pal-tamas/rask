@@ -163,10 +163,16 @@ that is the account:
 ```csharp
 public sealed class User : Authenticatable
 {
-    [MaxLength(100)]
-    public string DisplayName { get; private set; } = "";
+    // None until the person gives one: an account an administrator invites is made without it.
+    public UserDisplayName? DisplayName { get; private set; }
 
-    public void Rename(string displayName) => DisplayName = displayName.Trim();
+    public void Rename(string displayName) => DisplayName = UserDisplayName.CreateOptional(displayName, nameof(DisplayName));
+}
+
+// The name a user is shown by. Its rules are checked wherever one is made — the register form asks the same.
+public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: MaxLength, Required: false)
+{
+    public const int MaxLength = 100;
 }
 ```
 
@@ -191,7 +197,14 @@ await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
 ```
 
-Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.
+Other aggregates refer to a user by id rather than holding one — typed, so it is never mistaken for another id
+(a bare `Guid` there is [RASK130](diagnostics.md#rask130)):
+
+```csharp
+public readonly partial record struct AccountId(Guid Value);
+
+public AccountId? Owner { get; private set; }   // new AccountId(id) from the signed-in user's Guid
+```
 
 **Set your own columns while registering.** `IAuth.Register` takes a lambda that runs on the new user
 before it is saved, in the same insert; the scaffolded register page uses it for the display name:
@@ -666,7 +679,8 @@ it. One client — an address, or an IPv6 /64 — gets 30 failed sign-ins a minu
 accounts tried from one place is held while an office behind one address is not. And one account, from anywhere, slows
 down after 5 failures in 15 minutes: each next attempt waits 1 s, 2 s, 4 s… up to 30 s before its password is checked.
 It only waits — the right password still gets in, and clears the count — so guessing spread over many clients is slowed
-without anybody being able to lock the owner out. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+without anybody being able to lock the owner out. The counts live in memory, per process, and each holds at most
+10 000 keys: past that the stalest are let go of, so a spray of addresses costs the process no more than that. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address — at once, the lookup and the email done in the background — and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which

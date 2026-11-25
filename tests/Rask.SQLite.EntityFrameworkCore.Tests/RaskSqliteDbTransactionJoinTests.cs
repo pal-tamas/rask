@@ -12,9 +12,10 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 ///     and joining sends no pragmas: the transaction's connection had them when it opened, and <c>journal_mode</c> or
 ///     <c>synchronous</c> inside a transaction is an error.
 /// </summary>
+[Collection(ProcessWideDbCollection.Name)]
 public sealed class RaskSqliteDbTransactionJoinTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-join-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
@@ -22,9 +23,9 @@ public sealed class RaskSqliteDbTransactionJoinTests : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddRaskData<ProbeDbContext>();
         services.AddDbContextFactory<ProbeDbContext>((sp, o) => o
-            .UseRaskSqliteAt($"Data Source={_dbPath}", p => p.Synchronous = SqliteSynchronous.Normal)
+            .UseRaskSqliteAt(_database.ConnectionString, p => p.Synchronous = SqliteSynchronous.Normal)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseRaskSqliteAt($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseRaskSqliteAt(_database.ConnectionString));
         _app = services.BuildServiceProvider(validateScopes: true);
         Db.Configure(_app);
 
@@ -36,11 +37,7 @@ public sealed class RaskSqliteDbTransactionJoinTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-        foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
-        {
-            File.Delete(path);
-        }
+        await _database.DisposeAsync();
     }
 
     private IDbContextFactory<ProbeDbContext> Contexts => _app.GetRequiredService<IDbContextFactory<ProbeDbContext>>();

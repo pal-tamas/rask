@@ -47,12 +47,12 @@ public sealed class ExistingSchemaTests : IAsyncLifetime
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-existing-schema-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
 
         // What the app had before.
@@ -80,7 +80,7 @@ public sealed class ExistingSchemaTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

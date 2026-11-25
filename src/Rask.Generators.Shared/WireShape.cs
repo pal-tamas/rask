@@ -150,7 +150,7 @@ internal static class WireShape
     }
 
     // The one value a type holds, fed by its one public constructor — or null when it holds more, or none. A value
-    // object declared from Text, Number, Whole or Day holds its base's Value; a value object declared from Value, and a
+    // object declared from Text, Number, Integer or Day holds its base's Value; a value object declared from Value, and a
     // record struct, hold the one property their one constructor parameter feeds.
     private static IPropertySymbol? OneValue(INamedTypeSymbol type)
     {

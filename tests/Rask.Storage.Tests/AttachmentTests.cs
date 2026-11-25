@@ -67,7 +67,7 @@ public sealed class AttachmentDbContext(DbContextOptions<AttachmentDbContext> op
 ///     An <see cref="Attachment" /> is one write with the row that holds it: stored as the row is saved, deleted once a
 ///     save replaces, clears or deletes it, and gone again when the save fails or rolls back.
 /// </summary>
-[Collection(StorageDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class AttachmentTests : IDisposable
 {
     public void Dispose() => Db.Reset();

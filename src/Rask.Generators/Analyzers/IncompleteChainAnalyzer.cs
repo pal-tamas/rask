@@ -102,10 +102,17 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
                 : operation.SemanticModel?.GetSymbolInfo(access, context.CancellationToken).Symbol as IMethodSymbol;
             // So is an opening a library wrote by hand onto the state's own type — `Ui.Filter.Range(…)`, an
             // extension of the seed — which takes the owed steps itself.
-            if (step is not null
-                && (SymbolEqualityComparer.Default.Equals(step.ContainingType?.OriginalDefinition, state.OriginalDefinition)
-                    || (step.ReducedFrom is not null
-                        && SymbolEqualityComparer.Default.Equals(step.ReceiverType?.OriginalDefinition, state.OriginalDefinition))))
+            if (step is not null && IsOpeningOf(step, state))
+            {
+                return;
+            }
+
+            // A call to such an opening that does not bind — `Form.For(Supply.Change, id)` for an operation no form is
+            // generated for — is the compiler's to explain (and the generator's diagnostic that says why): the step
+            // owed is the opening itself, so saying the chain skips one would only point away from the real error.
+            if (step is null
+                && operation.SemanticModel?.GetSymbolInfo(access, context.CancellationToken).CandidateSymbols is { Length: > 0 } candidates
+                && candidates.OfType<IMethodSymbol>().Any(candidate => IsOpeningOf(candidate, state)))
             {
                 return;
             }
@@ -145,6 +152,12 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
             Subject(outer, state, operation.SemanticModel, context), Join(names),
             next is null ? string.Empty : " before anything else", written.ToString()));
     }
+
+    // Whether a method is a step of the state itself, or an extension of its type — an opening a library wrote by hand.
+    private static bool IsOpeningOf(IMethodSymbol step, INamedTypeSymbol state) =>
+        SymbolEqualityComparer.Default.Equals(step.ContainingType?.OriginalDefinition, state.OriginalDefinition)
+        || (step.ReducedFrom is not null
+            && SymbolEqualityComparer.Default.Equals(step.ReceiverType?.OriginalDefinition, state.OriginalDefinition));
 
     // Whether the half-built chain is handed on as some OTHER type here — a child (boxed to object), a
     // return value, an argument — which is where the compiler either refuses it or, for a child, lets it

@@ -11,7 +11,6 @@ namespace Rask.Storage.Tests;
 /// filter, and a filter would hide other tenants' rows from the orphan sweep, which has to see every file to
 /// decide what is unreferenced. So the scoping is at the two places a file is reached by id.
 /// </remarks>
-[Collection(StorageDbCollection.Name)]
 public sealed class StorageTenantTests
 {
     private readonly Guid _acme = Guid.NewGuid();

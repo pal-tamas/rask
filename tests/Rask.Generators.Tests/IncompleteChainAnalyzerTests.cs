@@ -114,6 +114,22 @@ public class IncompleteChainAnalyzerTests
     }
 
     [Fact]
+    public async Task A_call_to_a_hand_written_opening_that_does_not_bind_is_left_to_the_compiler()
+    {
+        var source = Render("""One.Untitled(42)""") + """
+
+            public static class OneOpenings
+            {
+                public static One Untitled(this RaskSeed_One one, string note) => one.Title("").Note(note);
+            }
+            """;
+
+        var diagnostics = await Diagnostics(source);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public async Task A_half_built_chain_stored_and_finished_later_raises_no_diagnostic()
     {
         var source = Source("""protected override Component? Render() { var c = One; return c.Title("t"); }""");

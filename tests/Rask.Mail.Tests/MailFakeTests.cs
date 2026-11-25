@@ -3,8 +3,7 @@ using Rask.Batteries;
 namespace Rask.Mailing.Tests;
 
 /// <summary>
-/// The fake stands in for the battery without a database, so these are pure unit tests — see the exempt
-/// list in <see cref="MailDbCollectionGuardTests"/>.
+/// The fake stands in for the battery without a database, so these are pure unit tests.
 /// </summary>
 public sealed class MailFakeTests
 {

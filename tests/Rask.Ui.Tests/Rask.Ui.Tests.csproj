@@ -85,4 +85,9 @@
     <RaskTestReads Include="..\..\src\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>

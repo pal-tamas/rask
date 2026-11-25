@@ -45,9 +45,10 @@ public sealed partial class RatingDemo : Component
 **When a callback is auto-wrapped** (so invoking it re-renders the owner): its handler
 returns `void` or `Task`, it takes **0 or 1** arguments, and the declaring component is
 **not** an `Element` subclass (so DOM handlers like `Button.OnClick` stay on the free
-fast path). It must also be over a member of a `Component` — write the lambda *inside*
-the component so it captures `this`. A lambda over a plain local, or a static method,
-returns unchanged and does **not** trigger a re-render.
+fast path). Its owner is the component the lambda captures — write the lambda *inside*
+the component's `Render` — or, for a lambda over only a local (`var rows = Rows; …
+rows.Add(row)`), the component whose `Render` set it. A static method, or a delegate set
+outside any render, returns unchanged and does **not** trigger a re-render.
 
 Auto-wrapped callbacks are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnUpdated`.
