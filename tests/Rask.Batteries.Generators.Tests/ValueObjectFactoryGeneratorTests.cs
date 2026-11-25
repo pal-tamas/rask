@@ -155,7 +155,7 @@ public class ValueObjectFactoryGeneratorTests
         var run = Run("""
             public sealed partial record SentAt(System.DateTime Value) : Moment(Value);
             public sealed partial record DueOn(System.DateOnly Value) : Day(Value);
-            public sealed partial record Seats(int Value) : Whole(Value, Min: 1);
+            public sealed partial record Seats(int Value) : Integer(Value, Min: 1);
             public sealed partial record OwnAt(System.DateTime Value) : Moment(Value)
             {
                 public static OwnAt Parse(string text) => Create(System.DateTime.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
