@@ -150,9 +150,11 @@ public partial class TestDatabase : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        // Opened here, in the caller's flow, and only awaited inside: see Open.
+        // Opened here, in the caller's flow, and only awaited inside: see Open. No token passed: the work in progress's —
+        // inside a test, the test's own (Rask.Testing's hook).
         return Started(Open<RaskDbContext>(
-            configure, static options => new RaskDbContext(options), timeProvider, services, createSchema ?? SchemaStep.Create, lease, cancellationToken));
+            configure, static options => new RaskDbContext(options), timeProvider, services, createSchema ?? SchemaStep.Create, lease,
+            Ambient.Or(cancellationToken)));
 
         static async Task<TestDatabase> Started(Task<TestDatabase<RaskDbContext>> opening) =>
             await opening.ConfigureAwait(false);
@@ -174,8 +176,10 @@ public partial class TestDatabase : IAsyncDisposable
         where TContext : RaskDbContext
     {
         ArgumentNullException.ThrowIfNull(configure);
+        // No token passed: the work in progress's — inside a test, the test's own (Rask.Testing's hook).
         return Open(
-            configure, AppContextConstructor.For<TContext>(), timeProvider, services, createSchema ?? SchemaStep.Create, lease, cancellationToken);
+            configure, AppContextConstructor.For<TContext>(), timeProvider, services, createSchema ?? SchemaStep.Create, lease,
+            Ambient.Or(cancellationToken));
     }
 
     // Not async: everything up to the schema runs in the caller's flow, so the database it binds the model surface to is
@@ -193,8 +197,6 @@ public partial class TestDatabase : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        // None passed: the work in progress's — inside a test, the test's own (Rask.Testing's hook).
-        cancellationToken = Ambient.Or(cancellationToken);
         var clock = timeProvider ?? Clock.TimeProvider;
 
         // The app's own interceptors, from services registered as the app registers them (TestDatabaseServices) — filled
