@@ -50,7 +50,9 @@ public sealed class DateTimeParityDbContext(DbContextOptions<DateTimeParityDbCon
 
 /// <summary>
 ///     How a <see cref="DateTime" /> and a <see cref="DateTimeOffset" /> come back, compare and order on each provider,
-///     written once: SQLite through <c>UseRaskSqlite</c> answers as SQL Server does, PostgreSQL to the microsecond.
+///     written once: SQLite through <c>UseRaskSqlite</c> answers as SQL Server does, PostgreSQL to the microsecond. SQL
+///     Server's <c>datetime2</c> is EF Core's own mapping, with no SQL of Rask's in it, so it has no leg here; PostgreSQL
+///     keeps one for the conversion Rask writes for it alone (a wall-clock moment stored as its UTC instant).
 /// </summary>
 public abstract class DateTimeParityTests : IAsyncLifetime
 {
@@ -232,27 +234,6 @@ public abstract class DateTimeParityTests : IAsyncLifetime
 
     private TimedRow Row(string code, DateTime at, DateTimeOffset stamp) =>
         new() { Code = code, At = at, Stamp = AsWritten(stamp) };
-}
-
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerDateTimeParityTests : DateTimeParityTests
-{
-    private const string DatabaseName = "rask_e2e_date_time_parity";
-
-    private protected override bool Available => SqlServer.Available;
-
-    private protected override string SkipReason => SqlServer.SkipReason;
-
-    private protected override DateTimeParityDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<DateTimeParityDbContext>().UseRaskSqlServerAt(SqlServer.Database(DatabaseName)).Options);
-
-    private protected override async Task Recreate(DbContext db)
-    {
-        await db.Database.EnsureDeletedAsync(Ct);
-        await db.Database.EnsureCreatedAsync(Ct);
-    }
-
-    private protected override Task Drop(DbContext db) => db.Database.EnsureDeletedAsync();
 }
 
 public sealed class SqliteDateTimeParityTests : DateTimeParityTests

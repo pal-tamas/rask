@@ -59,9 +59,10 @@ public sealed class WellHolderDbContext(DbContextOptions<WellHolderDbContext> op
 }
 
 /// <summary>
-///     <c>b.Json(…)</c>, <c>ValueList&lt;T&gt;</c> and <c>Secret&lt;T&gt;</c> against every engine Rask supports: EF Core's JSON
-///     mapping of a single value object is translated per provider (SQLite <c>json_extract</c>, SQL Server <c>JSON_VALUE</c>,
-///     PostgreSQL <c>jsonb</c> operators), and a secret inside it must survive each engine's JSON as its ciphertext.
+///     <c>b.Json(…)</c>, <c>ValueList&lt;T&gt;</c> and <c>Secret&lt;T&gt;</c>: a secret inside the JSON survives as its
+///     ciphertext. The per-provider translation (<c>json_extract</c>, <c>JSON_VALUE</c>, <c>jsonb</c>) is EF Core's, not SQL
+///     Rask writes, so the round trip runs on SQLite alone; the container column's type is held on every server by
+///     <see cref="JsonColumnParityTests" />.
 /// </summary>
 public abstract class JsonValueParityTests(ProviderLeg leg) : ParityTests<WellHolderDbContext>(leg)
 {
@@ -123,12 +124,6 @@ public abstract class JsonValueParityTests(ProviderLeg leg) : ParityTests<WellHo
 }
 
 public sealed class SqliteJsonValueTests() : JsonValueParityTests(ProviderLeg.Sqlite("json-values"));
-
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerJsonValueTests() : JsonValueParityTests(ProviderLeg.SqlServer("rask_e2e_json_values"));
-
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresJsonValueTests() : JsonValueParityTests(ProviderLeg.Postgres(WellHolderDbContext.Schema));
 
 /// <summary>SQL Server, proved without a server: the JSON value object maps to one column and its filters translate.</summary>
 public sealed class SqlServerJsonValueTranslationTests

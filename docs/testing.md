@@ -475,7 +475,7 @@ published instead.
 
 An app's tests run on SQLite in memory: what the app writes is neutral
 ([code written for one database](data.md#code-written-for-one-database)), and Rask's conformance suite proves it
-behaves the same on SQL Server and PostgreSQL. A test of the database itself — a migration against the production
+behaves the same on SQL Server and PostgreSQL ([in Rask's CI, on Testcontainers](data.md#the-conformance-suite)). A test of the database itself — a migration against the production
 engine, a schema another tool made — is the exception, and not every machine has the server. Name it with an environment variable, and the tests run where it is set and are **skipped**
 (not failed) where it is not:
 

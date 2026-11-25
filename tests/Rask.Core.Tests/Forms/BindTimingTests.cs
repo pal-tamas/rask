@@ -105,6 +105,22 @@ public partial class BindTimingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Defer_waits_for_the_next_action_and_gives_way_to_any_other_step()
+    {
+        var m = new Draft();
+
+        var deferred = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Name).Defer()]);
+        var live = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Name).Defer().Live()]);
+        var paused = Page.Render(() => Form.Model(m)[Textarea.Bind(() => m.Name).Debounce(300.Milliseconds).Defer()]);
+        var blurred = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Name).Blur().Defer()]);
+
+        Assert.Equal("action", deferred.Attr("data-rask-bind-on"));
+        Assert.Equal("150", live.Attr("data-rask-debounce"));
+        Assert.Equal("300", paused.Attr("data-rask-debounce"));
+        Assert.Equal("blur", blurred.Attr("data-rask-bind-on"));
+    }
+
+    [Fact]
     public void A_blur_bound_input_renders_one_change_handler_and_says_it_is_typed_into()
     {
         var m = new Draft();

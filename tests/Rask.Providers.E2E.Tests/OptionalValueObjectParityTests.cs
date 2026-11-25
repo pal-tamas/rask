@@ -28,7 +28,8 @@ public sealed class StockPartDbContext(DbContextOptions<StockPartDbContext> opti
 
 /// <summary>
 ///     <c>Opening? Start</c> over <c>Opening(DateTime? Date, decimal? Quantity)</c>, which EF Core alone refuses, is held
-///     by every provider Rask configures: every column empty is none, and anything else is the value as written.
+///     by every provider Rask configures: every column empty is none, and anything else is the value as written. The
+///     mapping is provider-independent, so it runs on SQLite alone.
 /// </summary>
 public abstract class OptionalValueObjectParityTests(ProviderLeg leg) : ParityTests<StockPartDbContext>(leg)
 {
@@ -85,8 +86,3 @@ public abstract class OptionalValueObjectParityTests(ProviderLeg leg) : ParityTe
 
 public sealed class SqliteOptionalValueObjectParityTests() : OptionalValueObjectParityTests(ProviderLeg.Sqlite("optional-value"));
 
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerOptionalValueObjectParityTests() : OptionalValueObjectParityTests(ProviderLeg.SqlServer("rask_e2e_optional_value"));
-
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresOptionalValueObjectParityTests() : OptionalValueObjectParityTests(ProviderLeg.Postgres(StockPartDbContext.Schema));

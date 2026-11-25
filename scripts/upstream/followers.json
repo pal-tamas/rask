@@ -20,7 +20,7 @@
         "src/Rask.Cli/Commands/DeployCommand.cs",
         "src/Rask.Cli/Commands/DbCommand.Backup.cs",
         "tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs",
-        "scripts/run-providers-local.sh"
+        "tests/Rask.Providers.E2E.Tests/ProviderServer.cs"
       ]
     },
     {

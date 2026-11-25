@@ -70,8 +70,25 @@ public sealed partial class SameLabelFiltersPage : Component
     }
 }
 
+/// <summary>Several filters of the page's own in one panel, each with its control and none keyed by the page.</summary>
+[Route("/ui-filters-tests/unkeyed")]
+public sealed partial class UnkeyedFiltersPage : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[
+            Ui.Filter.Label("Tags").Shown("Urgent")[Ui.Input.Of<string>().Label("Tags")],
+            Ui.Filter.Label("Colours").Shown("Red")[Ui.Input.Of<string>().Label("Colours")],
+            Ui.Filter.Label("Sizes").Shown((string?)null)[Ui.Input.Of<string>().Label("Sizes")]
+        ];
+
+        return Main[filters, filters.Badges];
+    }
+}
+
 /// <summary>
-///     TA's list header: the Filters button beside a plain button and a toggle, and one badge that names forty vehicles,
+///     TA's list header:the Filters button beside a plain button and a toggle, and one badge that names forty vehicles,
 ///     longer than any row it is placed in.
 /// </summary>
 [Route("/ui-filters-tests/long-badge")]
@@ -422,6 +439,18 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(controls);
         Assert.EndsWith("-table", controls, StringComparison.Ordinal);
         Assert.True(page.Exists("table#" + controls));
+    }
+
+    [Fact]
+    public async Task Several_unkeyed_filters_in_one_panel_are_never_two_filters_under_one_key()
+    {
+        using var diagnostics = Rask.Testing.CapturingDiagnostics.Install();
+        var page = Page.Visit("/ui-filters-tests/unkeyed");
+
+        await Open(page);
+
+        Assert.Equal(3, page.FindAll("[data-ui-filter]").Count);
+        Assert.DoesNotContain(diagnostics.OfCategory("Rask.Live"), d => d.Message.Contains("writes two UiFilter", StringComparison.Ordinal));
     }
 
     [Fact]

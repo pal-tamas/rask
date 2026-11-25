@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Rask.Background.Tests;
 
 public sealed class JobOptionsTests
@@ -138,4 +140,44 @@ public sealed class JobSerializerRegistryTests
         var back = JobSerializerRegistry.Deserialize(type, payload);
         Assert.Equal(7, Assert.IsType<Outer.NestedJob>(back).N);
     }
+
+    [Fact]
+    public void The_same_job_serializes_to_the_same_payload_so_unless_waiting_matches_it()
+    {
+        var first = new NotedJob("load", Note: "night");
+        var second = new NotedJob("load", Note: "night");
+
+        var (_, firstPayload) = JobSerializerRegistry.Serialize(first);
+        var (_, secondPayload) = JobSerializerRegistry.Serialize(second);
+
+        Assert.Equal(firstPayload, secondPayload);
+        Assert.Equal("""{"value":"load","note":"night"}""", firstPayload);
+    }
+
+    [Fact]
+    public void A_null_member_ignored_when_writing_null_is_left_out_of_the_payload()
+    {
+        var job = new NotedJob("load");
+
+        var (_, payload) = JobSerializerRegistry.Serialize(job);
+
+        Assert.Equal("""{"value":"load"}""", payload);
+    }
+
+    [Fact]
+    public void A_payload_stored_before_a_nullable_member_was_added_reads_back_with_it_null()
+    {
+        var (type, _) = JobSerializerRegistry.Serialize(new NotedJob("load"));
+
+        var back = JobSerializerRegistry.Deserialize(type, """{"value":"load"}""");
+
+        var job = Assert.IsType<NotedJob>(back);
+        Assert.Equal("load", job.Value);
+        Assert.Null(job.Note);
+    }
 }
+
+// A job that grew a nullable member after rows of it were stored, written only when it holds something.
+public sealed record NotedJob(
+    string Value,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Note = null) : IJob;

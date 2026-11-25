@@ -8,6 +8,9 @@ namespace Rask.UiTests.Components;
 [Route("/ui-editor-dialog/drivers")]
 public sealed partial class EditorDialogDriversPage(RouteState route) : Component
 {
+    // The page's own state, which no address holds: a row ticked in the list.
+    private bool _ticked;
+
     [QueryParam("edit")] public string? Edit { get; set; }
 
     /// <inheritdoc />
@@ -16,6 +19,8 @@ public sealed partial class EditorDialogDriversPage(RouteState route) : Componen
             P.Id("at")[string.Join('&', route.Query.OrderBy(q => q.Key, StringComparer.Ordinal).Select(q => q.Key + "=" + q.Value))],
             A.Id("new").Href(route.With("edit", UiEditorDialog.New))["New driver"],
             Button.Id("open-7").OnClick(() => Go.With("edit", "7").Pushing())["Edit 7"],
+            Button.Id("tick").OnClick(() => { _ticked = true; })["Tick Ada"],
+            P.Id("ticked")[_ticked ? "ticked" : "unticked"],
             Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver")[
                 P.Id("editing")["Editing " + Edit]
             ]
@@ -98,6 +103,22 @@ public sealed partial class UiEditorDialogTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("page=2&q=ada", page.TextOf("#at"));
         Assert.Equal("false", page.Find("dialog").Attribute("data-rask-modal-open"));
+        Assert.False(page.Exists("#editing"));
+    }
+
+    [Fact]
+    public async Task What_the_list_holds_of_its_own_survives_its_editor_opening_and_closing()
+    {
+        var page = Page.Visit("/ui-editor-dialog/drivers?q=ada");
+        await page.On("#tick").Click();
+
+        await page.On("#open-7").Click();
+        var open = page.TextOf("#ticked");
+        await page.On("dialog").Raise("close");
+
+        Assert.Equal("ticked", open);
+        Assert.Equal("ticked", page.TextOf("#ticked"));
+        Assert.Equal("q=ada", page.TextOf("#at"));
         Assert.False(page.Exists("#editing"));
     }
 
