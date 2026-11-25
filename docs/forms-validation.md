@@ -60,7 +60,7 @@ checks them — `public sealed partial record DestinationName(string Value) : Te
 [by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
 
 A form over a model of your own, with no data layer behind it, names the value object's rules from the field
-instead. Every value object of one value — declared from `Text`, `Number`, `Whole`, `Day` or `Moment`, or `: Value`
+instead. Every value object of one value — declared from `Text`, `Number`, `Integer`, `Day` or `Moment`, or `: Value`
 with one member — gets a generated `X.Check(value)`, which answers what `X.Create` would refuse with, in the shape of
 a field's rule:
 
@@ -139,7 +139,7 @@ before the save does.
 
 **Field shapes.** The generated model also tells every control bound to it what its field is — a
 `Rask.Core.Forms.FieldShape`, registered per model type through `RaskValidation.RegisterFieldShapes`: the kind
-(`FieldKind.Text`, `Number`, `Whole`, `Day`, `Moment`, `Range`, `Id`, `Choice`) and the rules the value object's base call
+(`FieldKind.Text`, `Number`, `Integer`, `Day`, `Moment`, `Range`, `Id`, `Choice`) and the rules the value object's base call
 states as constants (`MaxLength`, `MinLength`, `Min`, `Max`, `Scale`, `NotAfterToday`, `NotAfterNow`; a range's `Strict`, the
 names of its two ends and their kind). Each value object answers its own generated `X.__Field`; a member holding
 another aggregate's typed id is `FieldKind.Id`; an enum is `FieldKind.Choice` with its members and their labels
@@ -185,7 +185,7 @@ rule to every place the value is made, and gives its column the length:
 | `[StringLength(100, MinimumLength = 2)]`, `[MaxLength]`, `[MinLength]`, `[Length]` | `Text(Value, MaxLength: 100, MinLength: 2)` (and every kind above) | `MaxLength`, `MinLength` | `maxlength`, `minlength` |
 | `[RegularExpression("^[A-Z]{2,3}$")]` | `Text(Value, Pattern: "^[A-Z]{2,3}$")` — found anywhere in the trimmed text, so an unanchored one is told as `[\s\S]*(?:…)[\s\S]*`; none with `Upper: true` | `Pattern` | `pattern="[A-Z]{2,3}"` where the browser reads it alike |
 | `[Range]` — checked on submit, tells the input nothing | `Number(Value, Min: 1, Max: 999.5m, Scale: 2)` | `Min`, `Max`, `Scale` | `type="number" min="1" max="999.5" step="0.01"` |
-| `[Range]` — likewise | `Whole(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
+| `[Range]` — likewise | `Integer(Value, Min: 0, Max: 1000)` | `Min`, `Max` | `type="number" min="0" max="1000" step="1"` |
 | a `DateOnly` member; `[DataType(DataType.Date)]` on a `DateTime` | `Day(Value, …)` | `Kind = Day` (the attribute: `Input = Date`) | `type="date"`; `Ui.Field.Bind` a `Ui.DatePicker` (over a `DateTime`, keeping its time of day) |
 | a `DateTime` member | `Moment(Value, …)` | `Kind = Moment` | `type="datetime-local"`; `Ui.Field.Bind` a `Ui.DayAndTime` |
 | — | `Range(Start, End, …)` | `Kind = Range`, its ends | `Ui.Field.Bind` draws two controls under one label |
@@ -831,7 +831,7 @@ record from the attribute or the rule).
 | At most 200 characters | `[StringLength(200)]` | `.MaximumLength(200)` | `Text(Value, MaxLength: 200)` | `Text(Value, MaxLength: 200)` |
 | At least 2 characters | `[MinLength(2)]` | `.MinimumLength(2)` | `Text(Value, MinLength: 2)` | `.MinimumLength(2)` in its `Rules` |
 | An e-mail address | `[EmailAddress]` | `.EmailAddress()` | `Email(Value)` | `Email(Value)` + `.Must(…)` |
-| Between 1 and 5 | `[Range(1, 5)]` | `.InclusiveBetween(1, 5)` | `Whole(Value, Min: 1, Max: 5)` | `.InclusiveBetween(1, 5)` in its `Rules` |
+| Between 1 and 5 | `[Range(1, 5)]` | `.InclusiveBetween(1, 5)` | `Integer(Value, Min: 1, Max: 5)` | `.InclusiveBetween(1, 5)` in its `Rules` |
 | Two decimals in ten digits | `[Precision(10, 2)]` | `.PrecisionScale(10, 2, false)` | `Number(Value, Precision: 10, Scale: 2)` | `Number(Value, Precision: 10, Scale: 2)` |
 | A pattern | `[RegularExpression("^[A-Z]+$")]` | `.Matches("^[A-Z]+$")` | `Text(Value, Pattern: "^[A-Z]+$")` | `.Matches(…)` in its `Rules` |
 | Anything else | `IValidatableObject` / a custom attribute | `.Must(…)` / `.MustAsync(…)` | `protected override IEnumerable<Problem> Rules()` | `.Must(…)` in its `Rules` |

@@ -96,7 +96,7 @@ public sealed partial class ModelInputGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "A value object's rule lives in its constructor: one declared from Text, Number, Whole, Day, Moment, Range or "
+        description: "A value object's rule lives in its constructor: one declared from Text, Number, Integer, Day, Moment, Range or "
                      + "Value is checked as it is made, and a form bound to the aggregate's generated model asks the same "
                      + "rules with nothing written on the field. A public static Validate beside the value it holds was "
                      + "the earlier way to say it, and nothing reads it any more — a rule that is never asked looks "

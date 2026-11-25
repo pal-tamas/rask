@@ -15,7 +15,7 @@ public partial class UiFieldNamesItsControlTests : global::Rask.Core.RaskMarkup
     static UiFieldNamesItsControlTests() =>
         RaskValidation.RegisterFieldShapes(typeof(Trip), static name => name switch
         {
-            nameof(Trip.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Whole),
+            nameof(Trip.Km) => new FieldShape(FieldKind.Range, Min: 0, Start: "Start", End: "End", Ends: FieldKind.Integer),
             _ => null,
         });
 

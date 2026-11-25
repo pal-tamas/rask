@@ -26,7 +26,7 @@ public class ValueObjectFactoryGeneratorTests
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: Limits.Name);
         public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 1000, Trim: false);
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
-        public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+        public sealed partial record Pieces(long Value) : Integer(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
         public sealed partial record FuelingMoment(DateTime Value) : Moment(Value);
         public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);
@@ -155,7 +155,7 @@ public class ValueObjectFactoryGeneratorTests
         var run = Run("""
             public sealed partial record Rank(int Value) : Value;
             public sealed partial record Pair(int A, int B) : Value;
-            public sealed partial record Seats(int Value) : Whole(Value, Min: 1);
+            public sealed partial record Seats(int Value) : Integer(Value, Min: 1);
             """);
 
         var rank = run.GeneratedSource("Rank.Value.g.cs");

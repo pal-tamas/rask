@@ -30,7 +30,7 @@ internal sealed class UiTableMember
     internal bool Listed => _shape?.Listed ?? true;
 
     /// <summary>The end for a number or a whole number, as Flux aligns an amount; null for the start.</summary>
-    internal Ui.Align? Align => _shape is { Kind: FieldKind.Number or FieldKind.Whole } || IsNumber(_property.PropertyType)
+    internal Ui.Align? Align => _shape is { Kind: FieldKind.Number or FieldKind.Integer } || IsNumber(_property.PropertyType)
         ? Ui.Align.End
         : null;
 
@@ -92,7 +92,7 @@ internal sealed class UiTableMember
     {
         Rask.Values.Text text => text.Value,
         Number number => number.Value,
-        Whole whole => long.Parse(whole.ToString(), CultureInfo.InvariantCulture), // its derived record declares the Value
+        Integer whole => long.Parse(whole.ToString(), CultureInfo.InvariantCulture), // its derived record declares the Value
         Day day => day.Value,
         Moment moment => moment.Value,
         _ => value,

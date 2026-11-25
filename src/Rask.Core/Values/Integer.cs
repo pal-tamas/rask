@@ -4,8 +4,8 @@ namespace Rask.Values;
 
 /// <summary>
 ///     The base of a value object that holds one whole number, an <see cref="int" /> or a <see cref="long" />:
-///     <c>public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);</c>,
-///     <c>public sealed partial record Rank(int Value) : Whole(Value, Min: 1);</c>
+///     <c>public sealed partial record Pieces(long Value) : Integer(Value, Min: 0, Max: 1000);</c>,
+///     <c>public sealed partial record Rank(int Value) : Integer(Value, Min: 1);</c>
 /// </summary>
 /// <remarks>
 ///     The derived record keeps its own typed <c>Value</c>, the <see cref="int" /> or <see cref="long" /> it declares;
@@ -13,7 +13,9 @@ namespace Rask.Values;
 ///     the number. The generated half is <see cref="Text" />'s, for the number's type. Two values are equal when they
 ///     are of the same type and hold the same number.
 /// </remarks>
-public abstract record Whole : Value
+#pragma warning disable CA1720 // the owner's name for the base, beside Text and Number: what a value object declared from it holds
+public abstract record Integer : Value
+#pragma warning restore CA1720
 {
     private readonly long _number;
 
@@ -27,8 +29,8 @@ public abstract record Whole : Value
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="Min" /> exceeds <paramref name="Max" />.</exception>
     /// <exception cref="Rask.Cqrs.RaskValidationException">A bound refuses the number.</exception>
-#pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Whole(Value, Min: 0, Max: 1000)`
-    protected Whole(long Value, long? Min = null, long? Max = null, string? Message = null)
+#pragma warning disable IDE1006 // PascalCase on purpose: the declaration reads `Integer(Value, Min: 0, Max: 1000)`
+    protected Integer(long Value, long? Min = null, long? Max = null, string? Message = null)
 #pragma warning restore IDE1006
         : base(checkNow: false)
     {
@@ -39,7 +41,7 @@ public abstract record Whole : Value
 
         if (DeclaredRules.IsReading)
         {
-            DeclaredRules.Note(new WholeRules(Min, Max));
+            DeclaredRules.Note(new IntegerRules(Min, Max));
         }
 
         _number = Value;

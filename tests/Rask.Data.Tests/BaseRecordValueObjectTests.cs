@@ -316,7 +316,7 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         Assert.Equal(12, chip!.MaxLength);
         Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Text) { Pattern = @"\s*[A-Z]{3}-\d{3}\s*" }, plate);
         Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Number, Min: 1, Scale: 2), tank);
-        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Whole, Min: 2, Max: 9), axles);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Integer, Min: 2, Max: 9), axles);
         Assert.True(inspected!.NotAfterToday);
         Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Moment, NotAfterNow: true), shapeOf("Fueled"));
     }
@@ -359,9 +359,9 @@ public sealed class BaseRecordValueObjectTests : IDisposable
         var km = Generated<Func<string, Rask.Core.Forms.FieldShape?>>("Root_ShapeOf", typeof(LegModel))("Km");
 
         Assert.NotNull(model.Km);
-        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Whole), start);
+        Assert.Equal(new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Integer), start);
         Assert.Equal(
-            new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Range, Strict: true, Start: "Start", End: "End", Ends: Rask.Core.Forms.FieldKind.Whole),
+            new Rask.Core.Forms.FieldShape(Rask.Core.Forms.FieldKind.Range, Strict: true, Start: "Start", End: "End", Ends: Rask.Core.Forms.FieldKind.Integer),
             km);
     }
 

@@ -351,7 +351,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         // An explicit Step always wins. Otherwise a fractional bound type needs step="any": HTML defaults
         // to step="1", so the browser's own constraint validation rejects 42.50 and never fires submit —
         // silently, with no validation message and nothing thrown. Same hazard on a range input.
-        // A bound number's shape steps it first: 0.01 for a Number of two decimals, 1 for a Whole.
+        // A bound number's shape steps it first: 0.01 for a Number of two decimals, 1 for an Integer.
         var shapedStep = acc is null ? null : _shapedStep;
         var step = Step ?? (resolvedType is "number" or "range" ? shapedStep ?? BindingHelpers.DefaultStep(typeof(T)) : null);
         if (step is not null)
