@@ -19,6 +19,13 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A sign-in challenge no longer grows its `returnUrl` until the server answers 431.** Before: a challenge of the
+  sign-in page itself (a layout guarding `/login`, a cookie the scheme kept refusing) wrapped the address it already
+  carried, escaped once more each round — `/login?returnUrl=%2Flogin%3FreturnUrl%3D%252F…` — until the request was
+  refused with `431 Request Header Fields Too Large`. Now every challenge (the page request, the live guard, a session
+  whose sign-in ended, WebAssembly, `Rask.Testing`) carries the way back the sign-in page already had, so asking again
+  is the same address; and `LocalUrl.Sanitize` turns a way back longer than the new `LocalUrl.MaxLength` (2048) into
+  `/`. Its open-redirect rules are unchanged.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.

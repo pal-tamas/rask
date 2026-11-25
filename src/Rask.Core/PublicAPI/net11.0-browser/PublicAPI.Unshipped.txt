@@ -20342,3 +20342,4 @@ static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! 
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+const Rask.Core.Routing.LocalUrl.MaxLength = 2048 -> int
