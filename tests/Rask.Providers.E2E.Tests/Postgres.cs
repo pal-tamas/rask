@@ -4,22 +4,19 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Rask.Providers.E2E.Tests;
 
-/// <summary>The PostgreSQL server under test, named by <c>RASK_PG_TEST_DB</c>.</summary>
+/// <summary>The PostgreSQL server under test: <c>RASK_PG_TEST_DB</c>, or the run's container (<see cref="ProviderServer" />).</summary>
 /// <remarks>
 /// A fact that needs it calls <c>Assert.SkipUnless(Postgres.Available, Postgres.SkipReason)</c> first, so a run with no
 /// server reports SKIPPED instead of a wall of red — and never PASSED, which is the lie that matters.
 /// </remarks>
 internal static class Postgres
 {
-    internal const string SkipReason =
-        "Needs a PostgreSQL server: run scripts/run-providers-local.sh, or set RASK_PG_TEST_DB.";
+    internal static string SkipReason => ProviderServer.Postgres.SkipReason ?? "";
 
-    internal static string? ConnectionString => Environment.GetEnvironmentVariable("RASK_PG_TEST_DB");
+    internal static bool Available => ProviderServer.Postgres.Available;
 
-    internal static bool Available => !string.IsNullOrWhiteSpace(ConnectionString);
-
-    internal static string Required =>
-        ConnectionString ?? throw new InvalidOperationException("RASK_PG_TEST_DB is not set.");
+    /// <summary>The server's connection string; the container is started on the first call.</summary>
+    internal static string Required => ProviderServer.Postgres.ConnectionString;
 
     /// <summary>Drops and recreates <paramref name="schema"/>, then creates the context's tables in it.</summary>
     /// <remarks>

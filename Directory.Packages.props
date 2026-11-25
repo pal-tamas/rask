@@ -97,6 +97,12 @@
       transitive package (see SQLitePCLRaw above). Drop the reference once SqlClient asks for a fixed version (MailKit 5 / MimeKit.Core 5 no longer depend on it).
     -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
+    <!--
+      tests/Rask.Providers.E2E.Tests: the SQL Server and PostgreSQL its server legs run on, one container each per run,
+      started on first use (CI only by default — tests/Rask.Providers.E2E.Tests/ProviderServer.cs). One family, one version.
+    -->
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.17.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.17.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
     <PackageVersion Include="xunit.v3.assert" Version="4.0.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
