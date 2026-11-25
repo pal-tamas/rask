@@ -932,7 +932,10 @@ aggregate's form model (`Driver.Create(model)`, `Update(id, model)`) and on a `F
 parameter writes the gated member (`Describe(name, card)`, matched by name) — and the operation's form does not read
 what the field holds: a `Change<T>` parameter is kept, any other is given `null`, and the save keeps what is stored
 either way. A form asks as it renders (`GeneratedGates.IsShut`), so a gate that opens for the signed-in tenant shows
-the field on the next render.
+the field on the next render. A read face hands back no gated member while its gate is shut — `Driver.Where(…)`
+empties `Card` on every row, so neither a page nor the wire to a browser carries it (a `Select` projection is its
+own shape and is not touched). The gated members are declared at startup from the `Configure` as written — a gate
+that is an enum member or a reachable static — so all of this holds before the EF model is first built.
 
 ### What deleting a referenced row says
 

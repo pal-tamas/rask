@@ -15,6 +15,10 @@ them until tagged releases begin.
   type reported to `IDataChanges` could be the wrong parent. After: the parent is read off each row — the key it holds
   (as read, for a deleted row), else the one it held when it was read — so the vehicle's save is one aggregate, a
   chip moved between parents belongs to the one that now holds it, and a row both parents hold counts as both.
+- **`c.TenantReferences<Partner>()` no longer breaks every read.** Before: the convention also ran as the read faces'
+  model was built, where the tenant is its read face (`PartnerRead`), and threw "Partner is not an entity of this
+  model mapped to a table with a key of one column" — so every `X.Where(...)` failed. Now the read model is left as
+  it is: the reference is the schema's, which only the write model and its migrations make.
 - **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
   carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
   `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
@@ -86,6 +90,11 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
+  and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
+  `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
+  (`X.Where(…)`) empties a gated member on each row while its gate is shut, and the gated members are declared at
+  startup by a generator, so forms and read faces know them before the EF model is built.
 - **An aggregate's delete raises events: `private void OnDelete()`.** Before: the generated `X.Delete(id, version)` (and
   an editor dialog's `.Delete(X.Delete)`) had no body to `Raise` in, so TA's `Driver`/`Vehicle` kept a hand `Remove` to
   raise their chip-rematch event. After: `private void OnDelete() => Raise(new DriverChipsChanged(…));` on the partial

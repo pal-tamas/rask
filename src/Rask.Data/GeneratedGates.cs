@@ -12,6 +12,22 @@ namespace Rask.Data;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class GeneratedGates
 {
+    /// <summary>
+    ///     Declares that <paramref name="member" /> of <paramref name="entity" /> is behind <paramref name="gate" />, as its
+    ///     <c>b.Gated(…)</c> says — at startup, from a generated module initializer, so a form and a read face know it
+    ///     before the model is first built.
+    /// </summary>
+    /// <param name="entity">The entity that gates the member.</param>
+    /// <param name="member">The member's name.</param>
+    /// <param name="gate">The gate it is behind.</param>
+    public static void Declare(Type entity, string member, object gate)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(member);
+        ArgumentNullException.ThrowIfNull(gate);
+        GatedMembers.Remember(entity, member, gate);
+    }
+
     /// <summary>Whether <paramref name="member" /> of <paramref name="entity" /> is behind a gate that is shut now.</summary>
     /// <param name="entity">The entity that gates the member.</param>
     /// <param name="member">The member's name.</param>
