@@ -21,7 +21,10 @@ query**. Queue depth is `SELECT count(*)`.
 | `Rask.Cache` | `CacheEntry` | How much is cached right now? |
 
 They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
-aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. Inject
+aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. This is the one place
+the tutorial opens a context, and it only reads: the batteries' tables are Rask's own bookkeeping, not your domain.
+Your aggregates are still read through their read faces and written through their operations — a save on a context
+of your own would go around their rules ([RASK133](../diagnostics.md#rask133)). Inject
 `IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh. These are EF Core's
 own calls, which do not pick up the page's cancellation by themselves, so each is handed a token that ends
 with the page (`ct` below):
@@ -210,7 +213,7 @@ public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactor
 
 ## Verify
 
-- Buy a product and watch, without touching anything: outbox processed goes up, then jobs processed, then
+- Place an order and watch, without touching anything: outbox processed goes up, then jobs processed, then
   mail sent — the chain from Chapter 7 moving through three pillars.
 - Outbox failed stays at `0`.
 - `journal_mode` reads `wal` and `foreign_keys` reads `1`.
@@ -218,7 +221,35 @@ public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactor
 > **Beyond counters.** `RaskApp` also answers `/health`, including whether the live-session pool has room, and
 > `rask deploy` probes it to gate a zero-downtime swap. Standard `ILogger` output goes wherever you point it. See [observability](../observability.md).
 
-## 5. You don't have to write this one
+## 5. Is the stored data still what the rules say?
+
+The counters say the workers are healthy. The other question an operator asks is whether the *data* is: a rule
+tightened since a row was written — a `ProductName` cut from 200 characters to 120, a post code that must now be
+five digits — says nothing about that row until someone edits it, because a save asks only the fields it changes.
+`rask audit` asks every stored row instead:
+
+```bash
+rask audit                          # every aggregate, every row, in this project's database
+rask audit --aggregate Product      # one aggregate
+```
+
+```text
+rask audit: 2 aggregate(s), 214 row(s) read, 1 rule(s) broken.
+
+Product — 120 read:
+  Name: Enter at most 120 characters. — 2
+    3f2c…, 9a41…
+
+Order — 94 read, all pass.
+```
+
+The app answers it itself, through its own model: each aggregate is loaded whole, a page at a time, and asked what a
+save adding it would ask — its value objects' rules, `Validate()`, the rest. It is read only, and it prints the rule,
+the field, the count and the ids, never what a row holds. The exit code is the answer (`0` all pass, `1` some do not),
+so it can stop a release — [Chapter 11](11-deploy.md) puts it in front of a migration. See
+[auditing stored data](../data-writes.md#auditing-stored-data-with-rask-audit).
+
+## 6. You don't have to write this one
 
 You just did, and it was worth doing — the point of the exercise is that every pillar's state is an ordinary
 table you can `SELECT` from, and now you've proved it.

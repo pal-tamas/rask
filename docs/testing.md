@@ -1061,8 +1061,8 @@ public sealed class Site : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         Address = $"http://localhost:{FreePort()}";
-        var app = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Ta"));
-        var host = Path.Combine(app, Path.GetRelativePath(/* … */), "Ta.dll");
+        var app = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Shop"));
+        var host = Path.Combine(app, Path.GetRelativePath(/* … */), "Shop.dll");
         var start = new ProcessStartInfo("dotnet", [host]) { WorkingDirectory = app, /* redirects… */ };
         start.Environment["ASPNETCORE_URLS"] = Address;
         _host = Process.Start(start)!;

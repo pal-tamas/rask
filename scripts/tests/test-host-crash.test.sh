@@ -111,6 +111,9 @@ fi
 # minutes; every other row's is longer than the minute the adapter waits on a dead test process, so
 # those rows prove the crash path itself rather than the hang timeout cutting it short.
 export RASK_TEST_DUMP_TYPE=mini
+# Each row runs to its end: this proves what the TRX files say of a dead host, which a run stopped at
+# its first failure (scripts/lib/test_watch.py) may never have written.
+export RASK_TEST_FAIL_FAST=0
 
 modes="none overflow failfast exit0 thread hang"
 pids=""

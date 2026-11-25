@@ -34,11 +34,20 @@ internal sealed class AuthThrottle(TimeProvider clock)
     /// </summary>
     internal int ClientLimit { get; init; } = 30;
 
+    /// <summary>
+    ///     How many keys the throttle holds at most. Past it the stalest are let go of (<see cref="StalestKeys" />): their
+    ///     counts start again, and the process keeps its memory under a spray of keys that all failed just now.
+    /// </summary>
+    internal int MostKeys { get; init; } = 10_000;
+
+    /// <summary>How many keys the throttle holds now.</summary>
+    internal int KeyCount => _attempts.Count;
+
     private AuthThrottle? _clients;
 
     /// <summary>The per-client bucket: <see cref="ClientLimit" /> failures, over every account.</summary>
     internal AuthThrottle Clients =>
-        LazyInitializer.EnsureInitialized(ref _clients, () => new AuthThrottle(clock) { Limit = ClientLimit, Window = Window });
+        LazyInitializer.EnsureInitialized(ref _clients, () => new AuthThrottle(clock) { Limit = ClientLimit, Window = Window, MostKeys = MostKeys });
 
     /// <summary>The client an attempt is counted against: the address, or for IPv6 the /64 it is one of.</summary>
     /// <remarks>
@@ -96,7 +105,7 @@ internal sealed class AuthThrottle(TimeProvider clock)
     private Attempt Start(string key, bool reserve)
     {
         var now = clock.GetUtcNow();
-        Sweep(now);
+        Sweep(key, now);
 
         while (true)
         {
@@ -122,12 +131,12 @@ internal sealed class AuthThrottle(TimeProvider clock)
         }
     }
 
-    // Keeps the table from growing without bound under a spray of distinct keys. An entry is retired under its own lock and
-    // only while empty, and a retired entry refuses every reservation, so a count can never land on an entry that has
-    // already left the table.
-    private void Sweep(DateTimeOffset now)
+    // Keeps the table from growing without bound under a spray of distinct keys: first the keys whose failures have all
+    // expired, then the stalest, down to nine tenths of the bound, so the next sweep is that many new keys away. An entry is retired under its own lock and a retired
+    // entry refuses every reservation, so a count never lands on an entry that has already left the table.
+    private void Sweep(string key, DateTimeOffset now)
     {
-        if (_attempts.Count <= 10_000)
+        if (_attempts.Count < MostKeys || _attempts.ContainsKey(key))
         {
             return;
         }
@@ -135,6 +144,12 @@ internal sealed class AuthThrottle(TimeProvider clock)
         foreach (var retired in _attempts.Where(entry => entry.Value.TryRetire(now, Window)))
         {
             _attempts.TryRemove(retired);
+        }
+
+        foreach (var stalest in StalestKeys.Over(_attempts, MostKeys, static attempts => attempts.LastSeen))
+        {
+            stalest.Value.Retire();
+            _attempts.TryRemove(stalest);
         }
     }
 
@@ -228,6 +243,19 @@ internal sealed class AuthThrottle(TimeProvider clock)
         // Stamps, not timestamps: an attempt is released by identity, so two attempts in the same tick stay distinct.
         private readonly List<Stamp> _stamps = [];
         private bool _retired;
+        private DateTimeOffset _lastSeen;
+
+        // When the entry last counted an attempt: what the stalest are let go of by.
+        public DateTimeOffset LastSeen
+        {
+            get
+            {
+                lock (_stamps)
+                {
+                    return _lastSeen;
+                }
+            }
+        }
 
         // null: retired, the caller must look again. false: throttled. true: allowed (and counted, when reserving).
         public bool? TryReserve(DateTimeOffset now, TimeSpan window, int limit, bool reserve, out Stamp? stamp)
@@ -250,6 +278,7 @@ internal sealed class AuthThrottle(TimeProvider clock)
                 {
                     stamp = new Stamp(now, failed: false);
                     _stamps.Add(stamp);
+                    _lastSeen = Max(_lastSeen, now);
                 }
 
                 return true;
@@ -267,6 +296,7 @@ internal sealed class AuthThrottle(TimeProvider clock)
                 }
 
                 _stamps.Add(stamp);
+                _lastSeen = Max(_lastSeen, stamp.At);
                 return true;
             }
         }
@@ -295,6 +325,15 @@ internal sealed class AuthThrottle(TimeProvider clock)
             }
         }
 
+        // Let go of with its count: the table is at its bound and this is among its stalest keys.
+        public void Retire()
+        {
+            lock (_stamps)
+            {
+                _retired = true;
+            }
+        }
+
         public bool TryRetire(DateTimeOffset now, TimeSpan window)
         {
             lock (_stamps)
@@ -304,6 +343,8 @@ internal sealed class AuthThrottle(TimeProvider clock)
                 return _retired;
             }
         }
+
+        private static DateTimeOffset Max(DateTimeOffset left, DateTimeOffset right) => left > right ? left : right;
 
         private void Trim(DateTimeOffset now, TimeSpan window)
         {

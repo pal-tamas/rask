@@ -7,7 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Documentation
+- **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
+  `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
+  provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,
+  `Form.For`, events and `manyAggregates:`, `rask audit` before a unique index, data moved in C# — with what each
+  quick-fix does and what is left by hand.
+- **Domain and bulk-write docs checked against the code.** `domain.md` now shows an aggregate's `static Task On(E e)`
+  handler and `HandlerInTransaction` under domain events and in the transaction boundary, links `Attachment` and
+  `X.Across(reason)`; `data-writes.md` teaches `UpdateWhere`/`DeleteWhere` for batch work (a raw `ExecuteUpdate` is
+  RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
+
 ### Fixed
+- **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
+  `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
+  the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
+- **CI fails fast and names a hang.** Every gate's `dotnet test` stops at its first failing test, ends a hung test at
+  5 minutes by name (and the whole run at 22), and a red gate cancels the rest of its `ci` run; the unit tests run in
+  four `unit K/N` shard jobs beside `build`, and the nightly publishes once `build` and every shard are green
+  (`docs/development-workflow.md`, "Fail fast").
+- **A handler that captures only a local re-renders the component that wrote it.** Before: a click handler written
+  in a component's `Render` that closed over a local and nothing of the component (`var rows = Rows; …
+  .OnClick(() => rows.Add(row))`) carried nothing naming its owner, so inside a composite (a card, a kit button) the
+  event re-rendered the composite and the rows it added were never drawn. Now the component rendering as the
+  handler is set is its owner: an element's handler is noted as it is set, and a component's event callback is
+  wrapped for it, as one that captures `this` always was.
+- **The sign-in throttle and the account slowdown hold at most 10 000 keys.** Before: each dropped only the keys
+  whose failures had expired, so a spray of distinct addresses or clients inside one window — every one of them
+  failing just now — grew both tables without bound, and the old sweep walked the whole table on every attempt
+  past 10 000. Now, at the bound, the expired keys go and then the stalest, down to nine tenths of it, so the next
+  sweep is a thousand new keys away; a key that failed just now is still counted.
+- **A live sign-in that names the sign-in page or Rask's own endpoints as its return address lands on the root.**
+  Before: a live handler's sign-in with the return address `/login?returnUrl=…` sent the reader who just signed in back to the sign-in form, and a
+  return address under `/_rask/` (the ticket redeem is a POST) loaded an error page. Now both fall back to `/`, in
+  any language; a sign-out may still land on the sign-in page.
 - **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
   began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
   retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
@@ -127,6 +160,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
+  value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
+  format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,
+  `+01:00`) is converted to `Clock.Zone`, across summer time, and one without is taken as the wall's; a `Day` is a
+  moment's day on the wall calendar. No moment is a `FormatException`, a refused one the `RaskValidationException`
+  `Create` throws; `TryParse` says false for both. Replaces an app's own zone helper (`Zone`, `Of`, `FromUtc`, `Parse`):
+  `AmnisMoment.Parse(text)`, `Clock.WallAt(moment)`, `Clock.Today`.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
@@ -382,6 +422,24 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
+  bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
+  components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote
+  a test. Now `Product` and `Order` are aggregates of value objects (`Text`, `Number`, `Whole`, `Email`, a
+  `ShippingAddress : Value`) and typed ids, every write is an operation with `Refuse`, each list page is one component
+  with `Ui.EditorDialog` and `.Delete(…)` over forms from the operations (`Form.For`, rows of `Children<,>`, a value
+  object's group of fields, `Change<T>`, an `Attachment` picker), roles live on the operations
+  (`b.Operation(…, roles:)`, `Product.MayAdd`), the job calls `Order.MarkReceiptSent(id)`, the catalog cache is
+  forgotten by a domain event (`OnDelete()` included), an order placed takes its stock through
+  `Product`'s `static Task On(OrderPlaced e)`, and chapters 10–11 run `rask audit`. Every chapter proves its rules on
+  SQLite in memory (`TestDatabase.Start`, `Test.Make`, `Test.Refuses`, `Test.FormShows`, `Test.Concurrently`), and
+  `TutorialChapterBuildE2ETests` builds each chapter's tests with the app and runs them at the end.
+- **rask.sh leads with the one way an app is written.** The hero's code window is now a model (a `Text`/`Number`
+  value object, a typed id, an aggregate whose `Reprice` refuses with `Refuse.When`), the `Form.For(Product.Reprice, id)`
+  over it, and its test on SQLite in memory — three files compiled and run in `tests/Rask.Testing.Database.Tests/Hero`,
+  which the site's copy is held to character for character. The back-end cards gain *Domain model* and *Domain tests*,
+  the forms card is `Form.For`, the guide catalog's domain, data, data-writes, forms, testing and tutorial entries say
+  the same, `/llms.txt` states the style before any guide, and the home page's JSON-LD names it in a `featureList`.
 - **The SQL Server and PostgreSQL provider tests run in CI on Testcontainers, and need no Docker on a dev machine.**
   Before: `scripts/run-providers-local.sh` started the servers with `docker run`, and only a release (or a
   `ci/release/**` branch) ran the gate. After: `tests/Rask.Providers.E2E.Tests` starts one SQL Server 2022 and one

@@ -158,8 +158,12 @@ fi
 # a hand run leaves it unset and gets everything.
 #
 #   build          the warnings-as-errors build with the analyzers OFF (-p:RunAnalyzers=false; the source
-#                  generators still run), then the unit tests over that output. The nightly is pushed the
-#                  moment this job is green (scripts/lib/nightly_wait.sh), so it carries nothing else.
+#                  generators still run), and nothing else. The nightly is pushed the moment it and every
+#                  unit shard are green (scripts/lib/nightly_wait.sh), so it carries nothing else.
+#   unit-K         shard K's test projects (scripts/lib/unit-shards.txt): it builds only those and what they
+#                  reference, analyzers off, runs them, and ends at once on a scoped run that reaches none
+#                  of them. Until 2026-11-25 `build` ran every test after the whole build, one runner for 44
+#                  assemblies: 16 minutes, the run's critical path.
 #   analyzers      the gate script tests, the same build with the analyzers ON, and the formatter over the
 #                  files the change touched (below); no tests. CI runs it as the shards below.
 #   analyzers-K    the analyzers of shard K's projects alone (scripts/lib/analyzer-shards.txt;
@@ -190,27 +194,41 @@ analyzer_shard=""
 case "$unit_part" in
   analyzers-[1-9]|analyzers-[1-9][0-9]) analyzer_shard="${unit_part#analyzers-}" ;;
 esac
+# The unit-test shards, dealt by scripts/lib/unit-shards.txt as the analyzer shards are by theirs.
+unit_list="$root/scripts/lib/unit-shards.txt"
+unit_count="$(awk '!/^#/ && NF >= 2 && $2 > n { n = $2 } END { print n + 0 }' "$unit_list")"
+[ "$unit_count" -ge 1 ] || unit_count=1
+unit_shard=""
+case "$unit_part" in
+  unit-[1-9]|unit-[1-9][0-9]) unit_shard="${unit_part#unit-}" ;;
+esac
 case "$unit_part" in
   ""|build|analyzers) ;;
   *)
-    if [ -z "$analyzer_shard" ] || [ "$analyzer_shard" -gt "$shard_count" ]; then
-      echo "run-unit-local: RASK_UNIT_PART must be build, analyzers or analyzers-1..analyzers-$shard_count (or unset), not '$unit_part'." >&2
+    if { [ -z "$analyzer_shard" ] || [ "$analyzer_shard" -gt "$shard_count" ]; } \
+      && { [ -z "$unit_shard" ] || [ "$unit_shard" -gt "$unit_count" ]; }; then
+      echo "run-unit-local: RASK_UNIT_PART must be build, analyzers, analyzers-1..analyzers-$shard_count or unit-1..unit-$unit_count (or unset), not '$unit_part'." >&2
       exit 1
     fi
     ;;
 esac
-# Whether this part runs the gate script tests: a hand run, `analyzers` and shard 1 do; `build` and
-# every other shard do not. The formatter runs in every part but `build`, each shard over its own files.
+# The parts that compile with the analyzers off and format nothing: `build` and the unit shards.
+analyzers_off=0
+[ "$unit_part" != "build" ] && [ -z "$unit_shard" ] || analyzers_off=1
+# Whether this part runs the gate script tests: a hand run, `analyzers` and shard 1 do; `build`, the unit
+# shards and every other analyzer shard do not. The formatter runs in the analyzer parts, each shard
+# over its own files.
 runs_checks=1
-[ "$unit_part" != "build" ] || runs_checks=0
+[ "$analyzers_off" = 0 ] || runs_checks=0
 [ -z "$analyzer_shard" ] || [ "$analyzer_shard" = 1 ] || runs_checks=0
-# The analyzer parts run no tests; the build part runs no analyzers, formatter or gate script tests. A
-# shard reports its analyzer seconds per project (-p:ReportAnalyzer, read back out of a binary log).
+# The analyzer parts run no tests; `build` runs no analyzers, formatter, gate script tests or tests; a unit
+# shard runs its own test projects alone. An analyzer shard reports its analyzer seconds per project
+# (-p:ReportAnalyzer, read back out of a binary log).
 analyzer_flags=""
 analyzer_binlog=""
-[ "$unit_part" != "build" ] || analyzer_flags="-p:RunAnalyzers=false"
+[ "$analyzers_off" = 0 ] || analyzer_flags="-p:RunAnalyzers=false"
 build_note=""
-[ "$unit_part" != "build" ] || build_note="; analyzers off"
+[ "$analyzers_off" = 0 ] || build_note="; analyzers off"
 if [ -n "$analyzer_shard" ]; then
   analyzer_binlog="${TMPDIR:-/tmp}/rask-analyzers-$$.binlog"
   analyzer_flags="-p:RaskAnalyzerShard=$analyzer_shard -p:ReportAnalyzer=true -bl:$analyzer_binlog"
@@ -300,6 +318,24 @@ if [ -n "$analyzer_shard" ]; then
   esac
 fi
 rm -f "$format_deal"
+
+# A unit shard's test projects: listed with its number, or (shard 1) not listed at all; the end-to-end
+# suites are no unit shard's. On a scoped run, only those the change reaches.
+unit_tests=""
+if [ -n "$unit_shard" ]; then
+  unit_tests="$(rask_format_deal "$unit_list" "$root/Rask.slnx" | awk -F'\t' -v shard="$unit_shard" \
+    '$1 == shard && $3 ~ /\.Tests\/[^\/]+\.csproj$/ && $3 !~ /\.E2E\.Tests\// { print $3 }')"
+  if [ -n "$scope_projects" ]; then
+    # shellcheck disable=SC2086  # deliberate word split: the set is one project per word
+    unit_tests="$(printf '%s\n' "$unit_tests" | grep -xF -f <(printf '%s\n' $scope_projects) || true)"
+  fi
+  if [ -z "$unit_tests" ]; then
+    echo "==> Unit tests (shard $unit_shard of $unit_count): the change reaches none of its test projects — nothing to run."
+    exit 0
+  fi
+  echo "==> Scope: unit shard $unit_shard of $unit_count — $(printf '%s\n' "$unit_tests" | grep -c .) test project(s), built with what they reference:"
+  printf '        %s\n' "$unit_tests"
+fi
 
 rask_phase "scope"
 
@@ -395,6 +431,7 @@ if [ -n "$analyzer_shard" ]; then
     *) scope_projects="$shard_build" ;;
   esac
 fi
+[ -z "$unit_shard" ] || scope_projects="$unit_tests"
 
 if [ "$skip_build" = 1 ]; then
   echo "==> Build: none — this shard has no project the change reaches."
@@ -549,8 +586,8 @@ format_label=""
 
 rask_start_format() {
   # The `build` part formats nothing: the analyzer shards do, off the nightly's way.
-  if [ "$unit_part" = "build" ]; then
-    echo "==> Formatting check: not in the build part — the analyzer shards run it."
+  if [ "$analyzers_off" = 1 ]; then
+    echo "==> Formatting check: not in the $unit_part part — the analyzer shards run it."
     return 0
   fi
   # The `analyzers` part and its shards: what was decided before the build (format_all, format_dirs,
@@ -742,8 +779,8 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ "$unit_part" != "" ] && [ "$unit_part" != "build" ]; then
-  echo "==> Tests: not in the $unit_part part — the build job runs them."
+if [ -n "$unit_part" ] && [ -z "$unit_shard" ]; then
+  echo "==> Tests: not in the $unit_part part — the unit K/N jobs run them."
   unit_status=0
 elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
@@ -784,9 +821,9 @@ elif [ -n "$scope_projects" ]; then
     # thing these share is the machine. Each
     # keeps its own `dotnet test` and so its own testhost and runtimeconfig — see the
     # MetadataUpdaterSupport note above.
-    scope_pids=""
-    scope_logs=""
-    scope_ran=""
+    scope_pids=()
+    scope_logs=()
+    scope_ran=()
     for tp in $scope_tests; do
       scope_log="${TMPDIR:-/tmp}/rask-scoped-test-$$-$(basename "$(dirname "$tp")").log"
 
@@ -798,30 +835,45 @@ elif [ -n "$scope_projects" ]; then
         echo "$((SECONDS - test_began))" >"$scope_log.secs"
         exit "$test_exit"
       ) >"$scope_log" 2>&1 &
-      scope_pids="$scope_pids $!"
-      scope_logs="$scope_logs $scope_log"
-      scope_ran="$scope_ran $tp"
+      scope_pids+=("$!")
+      scope_logs+=("$scope_log")
+      scope_ran+=("$tp")
     done
 
-    # Output is captured per assembly and replayed in order rather than interleaved.
+    # Output is captured per assembly and replayed whole as each one ENDS, rather than interleaved.
+    # FAIL FAST: the first assembly that fails stops the others (their test_watch.py ends each tree), and
+    # the tail of each stopped one's log is shown — a [Long Running Test] line there names what it was
+    # still running. RASK_TEST_FAIL_FAST=0 lets every assembly finish (scripts/lib/dotnet-test.sh).
     scope_passed=""
-    # shellcheck disable=SC2086  # deliberate word split: the logs and projects line up with the pids above
-    set -- $scope_logs
-    for tp in $scope_ran; do
-      scope_log="$1"; shift
-      # shellcheck disable=SC2086
-      scope_pid="$(printf '%s\n' $scope_pids | sed -n 1p)"
-      scope_pids="$(printf '%s\n' $scope_pids | sed 1d | tr '\n' ' ')"
-      if wait "$scope_pid"; then
-        scope_passed="$scope_passed $tp"
-      else
-        unit_status=$?
-      fi
-      cat "$scope_log"
-      scope_name="$(basename "$(dirname "$tp")")"
-      scope_secs="$(cat "$scope_log.secs" 2>/dev/null || echo 0)"
-      rask_alongside "$scope_secs" "$scope_name"
-      rm -f "$scope_log" "$scope_log.secs"
+    scope_done=()
+    scope_left=${#scope_pids[@]}
+    scope_stopped=""
+    while [ "$scope_left" -gt 0 ]; do
+      for i in "${!scope_pids[@]}"; do
+        [ -z "${scope_done[$i]:-}" ] || continue
+        [ -n "$scope_stopped" ] || ! kill -0 "${scope_pids[$i]}" 2>/dev/null || continue
+        scope_done[i]=1
+        scope_left=$((scope_left - 1))
+        tp="${scope_ran[$i]}"
+        scope_log="${scope_logs[$i]}"
+        scope_name="$(basename "$(dirname "$tp")")"
+        if [ -n "$scope_stopped" ] && kill -0 "${scope_pids[$i]}" 2>/dev/null; then
+          pkill -TERM -P "${scope_pids[$i]}" 2>/dev/null
+          wait "${scope_pids[$i]}" 2>/dev/null
+          echo "==> $scope_name: stopped after $scope_stopped failed. The tail of its log:"
+          tail -n 40 "$scope_log"
+        elif wait "${scope_pids[$i]}"; then
+          scope_passed="$scope_passed $tp"
+          cat "$scope_log"
+        else
+          unit_status=$?
+          cat "$scope_log"
+          [ "${RASK_TEST_FAIL_FAST:-1}" = "0" ] || scope_stopped="$scope_name"
+        fi
+        rask_alongside "$(cat "$scope_log.secs" 2>/dev/null || echo 0)" "$scope_name"
+        rm -f "$scope_log" "$scope_log.secs"
+      done
+      [ "$scope_left" -eq 0 ] || [ -n "$scope_stopped" ] || sleep 1
     done
 
     if [ -n "$gate_tree" ] && [ -n "$scope_passed" ]; then

@@ -27,6 +27,19 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
+    public void The_index_states_the_one_way_an_app_is_written_before_any_guide()
+    {
+        var index = LlmsText.Index();
+
+        var style = index.IndexOf("Write Rask apps in one style.", StringComparison.Ordinal);
+        var firstGuide = index.IndexOf("\n## ", StringComparison.Ordinal);
+
+        Assert.True(style > 0 && style < firstGuide, "the style paragraph is missing, or comes after the guides");
+        Assert.Contains("Form.For(Product.Reprice, id)", index, StringComparison.Ordinal);
+        Assert.Contains("TestDatabase.Start()", index, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_contributor_notes_are_the_Optional_section_and_come_last()
     {
         // "Optional" is the name the convention gives the section a tool short on context may drop, and it
