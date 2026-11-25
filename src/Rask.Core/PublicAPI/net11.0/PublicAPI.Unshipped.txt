@@ -20330,3 +20330,11 @@ static Rask.Core.Forms.PickedFile.Read(Rask.Core.Forms.IRaskFile! file, long max
 Rask.Core.Globalization.RaskString.FileTooLarge = 305 -> Rask.Core.Globalization.RaskString
 static Rask.Values.Problem.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member, string! message) -> Rask.Values.Problem
 static Rask.Core.Forms.RaskValidation.RegisterHiddenFields(System.Type! modelType, System.Func<string!, bool>! isHidden) -> void
+Rask.Core.HTMLInputElement<T>.Defer.get -> bool?
+Rask.Core.HTMLInputElement<T>.Defer.set -> void
+Rask.Core.HTMLTextAreaElement<T>.Defer.get -> bool?
+Rask.Core.HTMLTextAreaElement<T>.Defer.set -> void
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!

@@ -145,6 +145,17 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         set => _timing.Debounce = value;
     }
 
+    /// <summary>
+    ///     Waits for the next action even in a form over an operation, which otherwise has the field commit as it is
+    ///     left: <c>Input.Bind(() =&gt; m.Name).Defer()</c>. Livewire's <c>wire:model.defer</c>. A <c>.Live()</c>,
+    ///     <c>.Blur()</c> or <c>.Debounce(…)</c> beside it wins.
+    /// </summary>
+    public bool? Defer
+    {
+        get => _timing.Defer;
+        set => _timing.Defer = value;
+    }
+
     private BindTiming _timing;
     private bool _saidInvalid;
     private bool _saidRequired;
