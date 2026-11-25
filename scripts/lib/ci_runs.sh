@@ -17,6 +17,14 @@ main_verdict() {
   [ "$(jq -n --arg event "$1" --arg display_title "$2" "\$ARGS.named | $MAIN_VERDICT")" = true ]
 }
 
+# gates_failed <run id> -> true when a gate job of the run failed: a run that ended `cancelled` with one is
+# a RED run that gates.yml's fail-fast step cut short, not one a newer push superseded.
+gates_failed() {
+  [ "$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$1/jobs?per_page=100" --jq '[.jobs[]
+      | select((.name | startswith("gates / ")) and .conclusion == "failure")] | length' \
+    | awk '{ n += $1 } END { print n + 0 }')" -gt 0 ]
+}
+
 # gates_started <run id> -> true when a gate job of the run (not the plan) is running or has run.
 gates_started() {
   [ "$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$1/jobs?per_page=100" --jq '[.jobs[]

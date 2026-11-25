@@ -61,7 +61,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    its host (stack overflow, `Environment.FailFast`, `Environment.Exit`) prints `[FATAL ERROR]` and then
    `Passed!` for the tests that reported before it died, with exit code 1 — which a `| tail` loses. The
    gates run tests through `scripts/lib/dotnet-test.sh`, which reads the TRX files back
-   (`scripts/lib/test_verdict.py`) and fails a run whose host died, hung for 15 minutes, or reported fewer
+   (`scripts/lib/test_verdict.py`) and fails a run whose host died, hung for 5 minutes, or reported fewer
    tests than xUnit discovered ([#1308](https://github.com/pal-tamas/rask/issues/1308);
    `scripts/tests/test-host-crash.test.sh` proves it). The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
@@ -211,6 +211,29 @@ gates, green or red (`scripts/lib/green_base.sh main`), so a red push is named o
 run again under every push after it. A run that has not started a gate when a newer push's run starts is
 cancelled by it (`scripts/lib/cancel_superseded.sh`): the newer run is measured from before it, so its scope
 holds the older push's change.
+
+### Fail fast
+
+A red run has named its push the moment one test fails, so nothing waits for the rest of it (2026-11-25):
+
+- **Tests.** Every gate's `dotnet test` runs under `scripts/lib/test_watch.py` (through
+  `scripts/lib/dotnet-test.sh`). The first failing test or dead host stops the run a few seconds later,
+  once its message and stack have printed; in a scoped run the first assembly that fails stops the others,
+  and the tail of each stopped one's log is shown. `RASK_TEST_FAIL_FAST=0` runs everything, to see every
+  failure at once.
+- **Hangs.** `--blame-hang-timeout 5m` (mini dumps) fails a hung test by name; xUnit prints each test still
+  running after a minute (`[Long Running Test]`), which names a hang no test is in flight for; and the whole
+  `dotnet test` is ended at 22 minutes (`RASK_TEST_RUN_TIMEOUT`, in minutes). The gate's step itself stops at
+  36 minutes, inside the job's 40: GitHub keeps no log for a job its own timeout cancelled, and a failed
+  step keeps it.
+- **Jobs.** `ci.yml` calls `gates.yml` with `fail_fast: true`: a gate's last step, when the gate failed,
+  cancels the whole run — the other gates, the browser shards and `publish`. `full.yml`, `release.yml` and
+  the followers leave it off and report every red gate. A gate that passed before the cancel keeps its
+  `success`, which is all `nightly.yml` reads: `scripts/lib/nightly_wait.sh` publishes when `gates / build`
+  passed, whatever its siblings did, and nothing when the build failed or was cancelled. Such a run ends
+  `cancelled`, so `pages` and nightly's completed-run backstop skip it as they skip any run that did not
+  pass, and `scripts/lib/green_base.sh` still counts it as main's last (red) run, because a gate of it
+  failed (`gates_failed` in `scripts/lib/ci_runs.sh`).
 
 ### Trying a change first
 

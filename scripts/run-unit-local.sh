@@ -784,9 +784,9 @@ elif [ -n "$scope_projects" ]; then
     # thing these share is the machine. Each
     # keeps its own `dotnet test` and so its own testhost and runtimeconfig — see the
     # MetadataUpdaterSupport note above.
-    scope_pids=""
-    scope_logs=""
-    scope_ran=""
+    scope_pids=()
+    scope_logs=()
+    scope_ran=()
     for tp in $scope_tests; do
       scope_log="${TMPDIR:-/tmp}/rask-scoped-test-$$-$(basename "$(dirname "$tp")").log"
 
@@ -798,30 +798,45 @@ elif [ -n "$scope_projects" ]; then
         echo "$((SECONDS - test_began))" >"$scope_log.secs"
         exit "$test_exit"
       ) >"$scope_log" 2>&1 &
-      scope_pids="$scope_pids $!"
-      scope_logs="$scope_logs $scope_log"
-      scope_ran="$scope_ran $tp"
+      scope_pids+=("$!")
+      scope_logs+=("$scope_log")
+      scope_ran+=("$tp")
     done
 
-    # Output is captured per assembly and replayed in order rather than interleaved.
+    # Output is captured per assembly and replayed whole as each one ENDS, rather than interleaved.
+    # FAIL FAST: the first assembly that fails stops the others (their test_watch.py ends each tree), and
+    # the tail of each stopped one's log is shown — a [Long Running Test] line there names what it was
+    # still running. RASK_TEST_FAIL_FAST=0 lets every assembly finish (scripts/lib/dotnet-test.sh).
     scope_passed=""
-    # shellcheck disable=SC2086  # deliberate word split: the logs and projects line up with the pids above
-    set -- $scope_logs
-    for tp in $scope_ran; do
-      scope_log="$1"; shift
-      # shellcheck disable=SC2086
-      scope_pid="$(printf '%s\n' $scope_pids | sed -n 1p)"
-      scope_pids="$(printf '%s\n' $scope_pids | sed 1d | tr '\n' ' ')"
-      if wait "$scope_pid"; then
-        scope_passed="$scope_passed $tp"
-      else
-        unit_status=$?
-      fi
-      cat "$scope_log"
-      scope_name="$(basename "$(dirname "$tp")")"
-      scope_secs="$(cat "$scope_log.secs" 2>/dev/null || echo 0)"
-      rask_alongside "$scope_secs" "$scope_name"
-      rm -f "$scope_log" "$scope_log.secs"
+    scope_done=()
+    scope_left=${#scope_pids[@]}
+    scope_stopped=""
+    while [ "$scope_left" -gt 0 ]; do
+      for i in "${!scope_pids[@]}"; do
+        [ -z "${scope_done[$i]:-}" ] || continue
+        [ -n "$scope_stopped" ] || ! kill -0 "${scope_pids[$i]}" 2>/dev/null || continue
+        scope_done[i]=1
+        scope_left=$((scope_left - 1))
+        tp="${scope_ran[$i]}"
+        scope_log="${scope_logs[$i]}"
+        scope_name="$(basename "$(dirname "$tp")")"
+        if [ -n "$scope_stopped" ] && kill -0 "${scope_pids[$i]}" 2>/dev/null; then
+          pkill -TERM -P "${scope_pids[$i]}" 2>/dev/null
+          wait "${scope_pids[$i]}" 2>/dev/null
+          echo "==> $scope_name: stopped after $scope_stopped failed. The tail of its log:"
+          tail -n 40 "$scope_log"
+        elif wait "${scope_pids[$i]}"; then
+          scope_passed="$scope_passed $tp"
+          cat "$scope_log"
+        else
+          unit_status=$?
+          cat "$scope_log"
+          [ "${RASK_TEST_FAIL_FAST:-1}" = "0" ] || scope_stopped="$scope_name"
+        fi
+        rask_alongside "$(cat "$scope_log.secs" 2>/dev/null || echo 0)" "$scope_name"
+        rm -f "$scope_log" "$scope_log.secs"
+      done
+      [ "$scope_left" -eq 0 ] || [ -n "$scope_stopped" ] || sleep 1
     done
 
     if [ -n "$gate_tree" ] && [ -n "$scope_passed" ]; then

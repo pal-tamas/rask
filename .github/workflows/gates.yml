@@ -40,7 +40,15 @@ on:
         description: How many gates run at once. The account runs twenty jobs at a time; full.yml takes fewer.
         type: number
         default: 20
+      fail_fast:
+        description: >-
+          Cancel the whole run when one gate fails. ci.yml sets it: a red run has already named its push,
+          and the rest of it would only hold runners. full.yml and release.yml leave it off, to report every red gate.
+        type: boolean
+        default: false
 
+# A gate job asks for actions: write for one thing only, cancelling its own run when fail_fast is set
+# (the last step of every gate), so every caller grants it.
 permissions:
   contents: read
 
@@ -208,16 +216,32 @@ jobs:
           retention-days: 1   # read by this run's shards, minutes from now, and by nothing else
           if-no-files-found: error
 
+      - name: Fail fast — cancel the run
+        if: failure() && inputs.fail_fast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" || true
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
+
   gate:
     needs: plan
     if: needs.plan.outputs.gates != '[]'
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
     # The longest gates (build, and the analyzer build before it was sharded) were up to twenty minutes on a whole run, so thirty would time out a slow runner's
-    # healthy run; a hung one must still not hold a runner for long.
+    # healthy run; a hung one must still not hold a runner for long. The gate's own step stops at 36
+    # (below) so a hang still ends as a failed step WITH its log: GitHub keeps none for a job its own
+    # timeout cancelled.
     timeout-minutes: 40
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
     strategy:
-      fail-fast: false   # one red gate says nothing about the others; report all of them
+      # Each red gate is reported on its own; with fail_fast the last step cancels the whole run (every
+      # matrix, the browser shards too) the moment one fails.
+      fail-fast: false
       max-parallel: ${{ inputs.parallel }}
       matrix:
         gate: ${{ fromJSON(needs.plan.outputs.gates) }}
@@ -255,7 +279,18 @@ jobs:
           RASK_TEST_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'affected' || '' }}
           RASK_FORMAT_SCOPE: ${{ needs.plan.outputs.range != '' && 'range' || '' }}
           RASK_SCOPE_RANGE: ${{ needs.plan.outputs.range }}
+        timeout-minutes: 36   # inside the job's 40, so a hang fails this step and its log is kept
         run: ${{ matrix.gate.run }}
+
+      # FAIL FAST (ci.yml): the first red gate cancels the run — every other gate, the browser shards and
+      # ci's publish. A gate that already passed keeps its success, which is all nightly.yml reads
+      # (scripts/lib/nightly_wait.sh waits for `gates / build` alone); a build it cancels publishes
+      # nothing. docs/development-workflow.md, "Fail fast".
+      - name: Fail fast — cancel the run
+        if: failure() && inputs.fail_fast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" || true
 
   # The browser shards: the same steps as every gate (one YAML anchor, so the two cannot drift), started
   # once the site they drive is published.
@@ -264,6 +299,9 @@ jobs:
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
     timeout-minutes: 40
+    permissions:
+      actions: write   # the fail-fast step cancels this run
+      contents: read
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.parallel }}
