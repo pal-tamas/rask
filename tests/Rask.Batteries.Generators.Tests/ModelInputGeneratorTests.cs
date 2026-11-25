@@ -1349,6 +1349,9 @@ public class ModelInputGeneratorTests
 
         // And not the form surface: nothing should create one of these from a posted form.
         Assert.False(run.HasGeneratedSource("SessionModel"));
+
+        // Nor a picker's members: they name Rask.Core's IChoiceSource, and Rask.Storage references no Rask.Core.
+        Assert.DoesNotContain("IChoiceSource", run.GeneratedSource("SessionRead"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1370,6 +1373,7 @@ public class ModelInputGeneratorTests
         Assert.True(run.HasGeneratedSource("__RaskModelRegistry"));
         Assert.True(run.HasGeneratedSource("__RaskDbSets"));
         Assert.True(run.HasGeneratedSource("OrderModel"));
+        Assert.Contains("global::Rask.IChoiceSource<global::System.Guid> Choices(", run.GeneratedSource("OrderRead"), StringComparison.Ordinal);
     }
 
     // ---- Model / CreateModel / UpdateModel: the FORM surface ---------------------------------------

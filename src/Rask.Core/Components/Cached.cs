@@ -48,9 +48,14 @@ public sealed class Cached : Component
     private bool _kept;
     private int _startedThisWalk;
 
+    // Whether a paint was still running when its walk opened: a component that walk served from the render cache
+    // could still have written its placeholder, even if the paint lands before the walk closes.
+    private bool _paintingAtEntry;
+
     // The paints of the work started under it, asked whether they are done rather than counted down by a continuation
-    // of their own: the wave loop's continuation on the same task can run first and render again. Written and
-    // read only by its walks, which never run two at a time.
+    // of their own: the wave loop's continuation on the same task can run first and render again. Written by its
+    // walks, which never run two at a time; a paint itself completes on whichever thread finished the hook, so it
+    // is asked both when a walk opens and when it closes.
     private List<Task>? _painting;
 
     // The lookup that had not landed when the page was built: the first render waits for it, as for any hook.
@@ -227,6 +232,7 @@ public sealed class Cached : Component
     {
         fragment._outer = _walking;
         fragment._startedThisWalk = 0;
+        fragment._paintingAtEntry = fragment.StillPainting();
         _walking = fragment;
     }
 
@@ -279,7 +285,7 @@ public sealed class Cached : Component
     /// <param name="addedHead">Whether something under it contributed to the page's head.</param>
     internal void Captured(string html, bool addedHead)
     {
-        if (!Capturing || _startedThisWalk > 0 || StillPainting() || _key is not { } key || _store is not { } store)
+        if (!Capturing || _startedThisWalk > 0 || _paintingAtEntry || StillPainting() || _key is not { } key || _store is not { } store)
         {
             return;
         }

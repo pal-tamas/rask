@@ -86,7 +86,8 @@ base. A member declared on the aggregate itself always wins, so your own static 
 
 A select over another table — a company, a driver, a vehicle — asks the read face for its rows, and every app used to
 write the same three helpers for it: the row the form holds, a page of rows for what was typed, and how many there are.
-The read face of every aggregate has them:
+The read face of every aggregate of the app has them (a battery package's own tables, built `RaskReadFacesOnly`, do not —
+nothing picks a stored file or a queued job, and Rask.Storage must not reference Rask.Core):
 
 ```csharp
 await Company.Choice(id, c => c.Name);                          // ChoiceRow<int>? — null for no row, or another tenant's
