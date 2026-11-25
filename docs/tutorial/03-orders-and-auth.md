@@ -439,7 +439,7 @@ public sealed class ProductTests
         await Product.Discontinue(product.Id, product.Version);
 
         await Test.FormShows(
-            await ProductChangeInput.Of(product.Id, Ct), m => m.Price, 5m, "A discontinued product keeps its last price.");
+            await ProductChangeInput.Of(product.Id), m => m.Price, 5m, "A discontinued product keeps its last price.");
     }
 
     [Fact]
