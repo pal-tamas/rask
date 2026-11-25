@@ -47,10 +47,10 @@ public sealed class BasketLine : Entity<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class AggregateChildrenTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-invoice-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     /// <summary>Loading ONE root by its key loads the aggregate whole — nothing has to say Include.</summary>
     [Fact]
@@ -152,7 +152,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await Basket.Update(id, b => b.Remove(b.Lines.First(l => l.Product == "pear")), cancellationToken: TestContext.Current.CancellationToken);
 
         await using var context = new RaskDbContext(
-            OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+            OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(_sqlite.ConnectionString).Options);
 
         var rows = await context.Set<BasketLine>().IgnoreQueryFilters().CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 
@@ -206,5 +206,5 @@ public sealed class AggregateChildrenTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 }

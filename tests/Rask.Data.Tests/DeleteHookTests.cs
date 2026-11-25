@@ -23,16 +23,16 @@ public sealed partial class Hauler : Aggregate<Guid, SoftDelete>
 [Collection(DataDbCollection.Name)]
 public sealed class DeleteHookTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-delete-hook-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task The_generated_delete_publishes_what_OnDelete_raises()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: Token);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: Token);
         var id = await Hauler.Fitted("A-17", cancellationToken: Token);
         using var events = Events.Fake();
 
@@ -46,7 +46,7 @@ public sealed class DeleteHookTests : IDisposable
     [Fact]
     public async Task A_hand_removal_and_save_raises_it_once()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: Token);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: Token);
         var id = await Hauler.Fitted("A-17", cancellationToken: Token);
         using var events = Events.Fake();
 
@@ -60,7 +60,7 @@ public sealed class DeleteHookTests : IDisposable
     [Fact]
     public async Task A_delete_rolled_back_publishes_nothing()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: Token);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: Token);
         var id = await Hauler.Fitted("A-17", cancellationToken: Token);
         using var events = Events.Fake();
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -8,10 +9,10 @@ namespace Rask.Outbox.Tests;
 ///     A durable handler's row written inside <c>Db.Transaction</c> commits with the work and rolls back with it; the
 ///     in-memory handlers run after the commit.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class DbTransactionOutboxTests : IAsyncDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-outbox-transaction-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly ShippingLog _log = new();
     private readonly ServiceProvider _provider;
 
@@ -23,7 +24,7 @@ public sealed class DbTransactionOutboxTests : IAsyncDisposable
         services.AddRaskCqrs();
         services.AddRaskOutbox<OutboxDbContext>();
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_path}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         _provider = services.BuildServiceProvider();
 
@@ -37,7 +38,7 @@ public sealed class DbTransactionOutboxTests : IAsyncDisposable
     {
         Db.Reset();
         await _provider.DisposeAsync();
-        File.Delete(_path);
+        await _db.DisposeAsync();
     }
 
     [Fact]

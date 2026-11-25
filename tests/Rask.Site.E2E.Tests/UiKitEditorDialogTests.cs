@@ -118,6 +118,36 @@ public sealed class UiKitEditorDialogTests(WasmExampleAppFixture app, Playwright
         await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
     });
 
+    // An app's small editor (2026-11) on a phone: the box takes nearly the whole width, and the page behind it never
+    // scrolls sideways.
+    [Fact]
+    public Task A_small_editor_on_a_phone_takes_nearly_the_whole_width_and_the_page_never_scrolls_sideways() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        await OpenAsync("?edit=2");
+        var dialog = Page.Locator(Dialog);
+
+        await Expect(dialog).ToBeVisibleAsync(new() { Timeout = 10_000 });
+        await dialog.EvaluateAsync(
+            """
+            async el => {
+                await Promise.all(el.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
+                await new Promise(done => {
+                    let last;
+                    const step = () => { const w = el.getBoundingClientRect().width; if (w === last) done(); else { last = w; requestAnimationFrame(step); } };
+                    requestAnimationFrame(step);
+                });
+            }
+            """);
+        var box = await dialog.BoundingBoxAsync();
+        var page = await Page.EvaluateAsync<double[]>("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth, window.innerWidth]");
+
+        Assert.NotNull(box);
+        Assert.True(box.Width >= 0.9 * page[2], $"the editor is {box.Width}px wide on a {page[2]}px phone");
+        Assert.True(box.X >= 0 && box.X + box.Width <= page[2], $"the editor stands outside the screen: x={box.X}, width={box.Width}");
+        Assert.True(page[0] <= page[1], $"the page scrolls sideways on a phone: {page[0]} > {page[1]}");
+    });
+
     // The docs page at an address of the reader's own: the query string is what opens the editor.
     private async Task OpenAsync(string query)
     {

@@ -7,7 +7,6 @@ namespace Rask.Background.Tests;
 ///     kind — who pass its handler's <c>[Authorize]</c> — and to nobody in another tenant, nobody signed out, and, unmarked, to
 ///     nobody but its enqueuer.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobWorkSharingTests
 {
     private static readonly Guid Alice = Guid.Parse("0e4b6c1e-7b52-4f3c-9d2f-1a1a1a1a1a1a");

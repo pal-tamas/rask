@@ -30,12 +30,12 @@ public sealed class Ticket : Aggregate<Guid, Timestamps, Versioned, Model, SoftD
 [Collection(DataDbCollection.Name)]
 public sealed class GeneratedModelOverrideTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-override-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     [Fact]
     public async Task A_create_the_entity_declares_replaces_the_generated_one_and_can_still_call_it()

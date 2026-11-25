@@ -461,6 +461,10 @@ them until tagged releases begin.
   leaving it, as `.Blur()` does, and the refusal shows then. `.Live()` and `.Debounce(…)` still win, and the new
   `.Defer()` (Livewire's `wire:model.defer`) keeps a field waiting for the next action. `Form.Model(m)` and chosen
   controls (a checkbox, a select, a picker) are unchanged. A `.Blur()` under `Form.For` is now redundant.
+- **BREAKING: the whole-number value-object base is `Integer`, not `Whole`.** Before:
+  `public sealed partial record Rank(int Value) : Whole(Value, Min: 1);`, and its field shape `FieldKind.Whole`. After:
+  `: Integer(Value, Min: 1)` and `FieldKind.Integer`, a sibling of `Text`, `Number`, `Day` and `Moment` named for what
+  it holds. No alias is kept: rename `: Whole(` to `: Integer(` and `FieldKind.Whole` to `FieldKind.Integer`.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —

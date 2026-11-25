@@ -66,9 +66,9 @@ public sealed class ShoutingAuditFormat : AuditFormat
 [Collection(DataDbCollection.Name)]
 public sealed class AuditedTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-audited-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_insert_leaves_one_entry_with_every_stored_value_and_the_generated_key()
@@ -217,5 +217,5 @@ public sealed class AuditedTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null, Action<IServiceCollection>? services = null) =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), clock, services, TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), clock, services, TestContext.Current.CancellationToken);
 }

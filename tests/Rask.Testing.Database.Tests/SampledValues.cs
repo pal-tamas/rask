@@ -31,10 +31,10 @@ public sealed partial record Litres(decimal Value) : Number(Value, Min: 0.005m, 
 public sealed partial record Price(decimal Value) : Number(Value);
 
 /// <summary>A whole number in a band.</summary>
-public sealed partial record Axles(long Value) : Whole(Value, Min: 2, Max: 9);
+public sealed partial record Axles(long Value) : Integer(Value, Min: 2, Max: 9);
 
 /// <summary>A whole number that may only be below zero.</summary>
-public sealed partial record Debt(long Value) : Whole(Value, Max: -1);
+public sealed partial record Debt(long Value) : Integer(Value, Max: -1);
 
 /// <summary>A day that cannot be in the future.</summary>
 public sealed partial record Inspected(DateOnly Value) : Day(Value, NotAfterToday: true);

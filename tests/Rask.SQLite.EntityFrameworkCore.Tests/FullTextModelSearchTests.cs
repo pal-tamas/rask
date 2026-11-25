@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
@@ -7,14 +6,15 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
 // Post.Search(text) through Rask.Data's context-less reads: the search is composed before any context exists, and
 // replayed onto a fresh one at execution — including through AsQueryable(), the shape UiDataGrid counts, orders and
-// pages. Db is process-wide, which this assembly already accepts by running its tests one at a time.
+// pages. Db is process-wide, so the classes that point it anywhere run one at a time in ProcessWideDbCollection.
+[Collection(ProcessWideDbCollection.Name)]
 public sealed class FullTextModelSearchTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-fts-model-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public FullTextModelSearchTests()
     {
-        var options = new DbContextOptionsBuilder<JournalContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options;
+        var options = new DbContextOptionsBuilder<JournalContext>().UseRaskSqliteAt(_database.ConnectionString).Options;
         using (var db = new JournalContext(options))
         {
             TestMigrations.Apply(db);
@@ -32,7 +32,7 @@ public sealed class FullTextModelSearchTests : IDisposable
         // The read faces query through a context of their own, mirrored from the write model above — so the
         // full-text index JournalContext declares is what Post.Search reaches.
         var read = new DbContextOptionsBuilder<RaskReadDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}").Options;
+            .UseRaskSqliteAt(_database.ConnectionString).Options;
         ReadDb.Configure(() => new RaskReadDbContext(read));
     }
 
@@ -99,8 +99,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     {
         Db.Reset();
         ReadDb.Reset();
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
 

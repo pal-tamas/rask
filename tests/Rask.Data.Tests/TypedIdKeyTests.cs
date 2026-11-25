@@ -33,12 +33,12 @@ public sealed class Barrel : Aggregate<BarrelId>
 [Collection(DataDbCollection.Name)]
 public sealed class TypedIdKeyTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-typed-ids-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     [Fact]
     public async Task An_int_typed_id_key_is_numbered_by_the_store_on_insert()

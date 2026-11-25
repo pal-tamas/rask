@@ -200,12 +200,12 @@ public sealed partial class OperationGenerator
             : field;
     }
 
-    // The one value a value object holds: the positional parameter of one declared from Text, Number, Whole, Day or
+    // The one value a value object holds: the positional parameter of one declared from Text, Number, Integer, Day or
     // Moment, or of a one-member `record TankSize(int Value) : Value` — whose value is one a field holds as it is.
     private static ITypeSymbol? OneValueOf(INamedTypeSymbol type) =>
         AggregateShape.DeclaredValueBaseOf(type) switch
         {
-            "Text" or "Number" or "Whole" or "Day" or "Moment" => PositionalValueOf(type),
+            "Text" or "Number" or "Integer" or "Day" or "Moment" => PositionalValueOf(type),
             "Value" when AggregateShape.HoldsOneValue(type) && PositionalValueOf(type) is { } held && IsFormValue(held) => held,
             _ => null,
         };
@@ -218,7 +218,7 @@ public sealed partial class OperationGenerator
 
     // Only the bases a control is drawn for declare what it is told (`__Field`); a `: Value` one declares nothing.
     private static bool DeclaresShape(INamedTypeSymbol type) =>
-        AggregateShape.DeclaredValueBaseOf(type) is "Text" or "Number" or "Whole" or "Day" or "Moment";
+        AggregateShape.DeclaredValueBaseOf(type) is "Text" or "Number" or "Integer" or "Day" or "Moment";
 
     // A value a field holds as it is: text, a number, a day, a bool, an enum, an id — any value type, and a string.
     private static bool IsFormValue(ITypeSymbol type) =>

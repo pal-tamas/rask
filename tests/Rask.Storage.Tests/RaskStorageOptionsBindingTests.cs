@@ -7,7 +7,6 @@ namespace Rask.Storage.Tests;
 
 // #1080: StorageOptions come from Rask:Storage first and the AddRaskStorage callback second, like every other Rask area,
 // and a bad value stops the host's start naming the section.
-[Collection(StorageDbCollection.Name)]
 public sealed class RaskStorageOptionsBindingTests
 {
     [Fact]

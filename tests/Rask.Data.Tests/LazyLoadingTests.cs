@@ -49,7 +49,7 @@ public sealed class LazyShelfContext(DbContextOptions<LazyShelfContext> options)
 [Collection(DataDbCollection.Name)]
 public sealed class LazyLoadingTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-lazy-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly Commands _commands = new();
 
     [Fact]
@@ -83,10 +83,7 @@ public sealed class LazyLoadingTests : IDisposable
 
     public void Dispose()
     {
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _sqlite.Dispose();
     }
 
     private ServiceProvider Provider(bool allow)
@@ -95,7 +92,7 @@ public sealed class LazyLoadingTests : IDisposable
         services.AddRaskData();
         services.AddDbContextFactory<LazyShelfContext>((sp, o) =>
         {
-            o.UseSqlite($"Data Source={_dbPath};Pooling=False")
+            o.UseSqlite(_sqlite.ConnectionString)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())
                 .AddInterceptors(_commands);
             if (allow)

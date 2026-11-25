@@ -9,10 +9,13 @@ namespace Rask.SQLite.Tests;
 // start in a real app — naming the key to fix.
 public sealed class SqliteServiceCollectionExtensionsTests
 {
+    // Never opened: these tests resolve the registrations, so any connection string will do.
+    private const string InMemory = "Data Source=:memory:";
+
     [Fact]
     public void AddRaskSqlite_registers_the_connection_factory()
     {
-        using var provider = Build(App("Data Source=test.db"));
+        using var provider = Build(App(InMemory));
 
         Assert.NotNull(provider.GetService<ISqlite>());
     }
@@ -50,7 +53,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     [Fact]
     public void A_top_level_connection_string_is_not_read()
     {
-        using var provider = Build(new() { ["ConnectionStrings:App"] = "Data Source=test.db" });
+        using var provider = Build(new() { ["ConnectionStrings:App"] = InMemory });
 
         Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<ISqlite>());
     }
@@ -58,7 +61,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     [Fact]
     public void AddRaskSqlite_runs_configure_and_validates()
     {
-        using var provider = Build(App("Data Source=test.db"), p => p.BusyTimeout = TimeSpan.FromSeconds(-1));
+        using var provider = Build(App(InMemory), p => p.BusyTimeout = TimeSpan.FromSeconds(-1));
 
         var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SqliteOptions>());
 
@@ -68,7 +71,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     [Fact]
     public void AddRaskSqlite_registers_the_retry_options()
     {
-        using var provider = Build(App("Data Source=test.db"));
+        using var provider = Build(App(InMemory));
 
         Assert.NotNull(provider.GetService<SqliteBusyRetryOptions>());
     }
@@ -77,7 +80,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     public void AddRaskSqlite_runs_the_callback_that_configures_the_retry()
     {
         using var provider = Build(
-            App("Data Source=test.db"),
+            App(InMemory),
             o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(12); });
 
         Assert.Equal(TimeSpan.FromSeconds(12), provider.GetRequiredService<SqliteBusyRetryOptions>().Timeout);
@@ -87,7 +90,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     public void AddRaskSqlite_validates_the_retry_the_callback_configures()
     {
         using var provider = Build(
-            App("Data Source=test.db"),
+            App(InMemory),
             o => { o.Retry.Enabled = true; o.Retry.PollInterval = TimeSpan.Zero; });
 
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SqliteOptions>());
@@ -96,7 +99,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     [Fact]
     public void The_Rask_Sqlite_section_sets_the_pragmas_and_the_retry()
     {
-        var settings = App("Data Source=test.db");
+        var settings = App(InMemory);
         settings["Rask:Sqlite:StrictTables"] = "true";
         settings["Rask:Sqlite:BusyTimeout"] = "00:00:09";
         settings["Rask:Sqlite:Retry:Enabled"] = "true";
@@ -114,7 +117,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     [Fact]
     public void The_callback_wins_over_the_section()
     {
-        var settings = App("Data Source=test.db");
+        var settings = App(InMemory);
         settings["Rask:Sqlite:CacheSize"] = "500";
         using var provider = Build(settings, o => o.CacheSize = 900);
 

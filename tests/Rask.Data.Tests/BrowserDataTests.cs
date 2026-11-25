@@ -15,14 +15,14 @@ public sealed class BrowserDataTests : IDisposable
 {
     private static readonly QueryOptions Keep = new() { StaleTime = TimeSpan.FromHours(1) };
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-browser-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public BrowserDataTests() => Db.Reset();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -80,9 +80,9 @@ public sealed class BrowserDataTests : IDisposable
         var services = new ServiceCollection();
         services.AddRaskData<RaskDbContext>();
         services.AddDbContextFactory<RaskDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath};Pooling=False")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath};Pooling=False"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
         services.AddRaskCqrs();
         services.AddRaskQuery();
 

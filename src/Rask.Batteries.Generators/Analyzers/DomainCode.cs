@@ -10,7 +10,7 @@ namespace Rask.Batteries.Generators.Analyzers;
 /// <remarks>
 ///     The same symbol test RASK130 keys on (<see cref="AggregateShape" />), so the rules never disagree about where
 ///     the domain is. A plain record an aggregate holds as a value object carries no marker of its own and is not
-///     seen from inside: declaring it from <c>Value</c>, <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c> or
+///     seen from inside: declaring it from <c>Value</c>, <c>Text</c>, <c>Number</c>, <c>Integer</c>, <c>Day</c> or
 ///     <c>Range</c> is what brings it in.
 /// </remarks>
 internal static class DomainCode

@@ -11,7 +11,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class BulkInsertFastPathTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-fast-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero));
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
@@ -24,7 +24,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -163,7 +163,8 @@ public sealed class BulkInsertFastPathTests : IDisposable
         // interceptor — Rask's or your own — is given a chance. Asserting it here is also what stops the rest
         // of this class from passing on a silent fall-back to the tracked path.
         var counter = new CountingInterceptor();
-        await using var db = new CountingContext($"Data Source={_dbPath}-count", counter);
+        using var sqlite = new InMemorySqlite();
+        await using var db = new CountingContext(sqlite.ConnectionString, counter);
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         await db.BulkInsert([new Note { Id = Guid.NewGuid(), Text = "raw" }], o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
@@ -241,7 +242,8 @@ public sealed class BulkInsertFastPathTests : IDisposable
     [Fact]
     public async Task Refuses_a_store_assigned_integer_key_and_names_it()
     {
-        await using var db = new GeneratedKeyContext($"Data Source={_dbPath}-gen");
+        using var sqlite = new InMemorySqlite();
+        await using var db = new GeneratedKeyContext(sqlite.ConnectionString);
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -253,7 +255,8 @@ public sealed class BulkInsertFastPathTests : IDisposable
     [Fact]
     public async Task Refuses_an_entity_with_navigations_rather_than_dropping_related_rows()
     {
-        await using var db = new GraphContext($"Data Source={_dbPath}-graph");
+        using var sqlite = new InMemorySqlite();
+        await using var db = new GraphContext(sqlite.ConnectionString);
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -267,17 +270,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        foreach (var stem in new[] { _dbPath, $"{_dbPath}-gen", $"{_dbPath}-graph", $"{_dbPath}-count" })
-        {
-            foreach (var path in new[] { stem, $"{stem}-shm", $"{stem}-wal" })
-            {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
-            }
-        }
+        _sqlite.Dispose();
     }
 }
 

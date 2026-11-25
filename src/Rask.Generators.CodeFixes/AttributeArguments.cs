@@ -34,7 +34,7 @@ internal static class AttributeArguments
         // Two numbers, or a type and two texts that parse as numbers.
         var (min, max) = given.Length switch
         {
-            2 => (BaseArguments.Literal(given[0].Value, valueBase.IsWhole), BaseArguments.Literal(given[1].Value, valueBase.IsWhole)),
+            2 => (BaseArguments.Literal(given[0].Value, valueBase.IsInteger), BaseArguments.Literal(given[1].Value, valueBase.IsInteger)),
             3 => (Parsed(given[1].Value, valueBase), Parsed(given[2].Value, valueBase)),
             _ => (null, null),
         };
@@ -69,6 +69,6 @@ internal static class AttributeArguments
 
     private static string? Parsed(object? value, ValueBase valueBase) =>
         value is string text && decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
-            ? BaseArguments.Literal(number, valueBase.IsWhole)
+            ? BaseArguments.Literal(number, valueBase.IsInteger)
             : null;
 }

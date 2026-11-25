@@ -8,10 +8,10 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DataChangesTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-changes-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly Recorder _recorder = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_save_in_a_session_tells_it_which_aggregates_it_wrote()
@@ -117,7 +117,7 @@ public sealed class DataChangesTests : IDisposable
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         // TestDatabase registers the interceptor itself, as AddRaskData does.
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     private sealed class Recorder : IDataChanges
     {

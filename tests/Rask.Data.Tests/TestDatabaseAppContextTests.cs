@@ -40,9 +40,9 @@ public sealed class OptionlessContext() : RaskDbContext(new DbContextOptions<Ras
 [Collection(DataDbCollection.Name)]
 public sealed class TestDatabaseAppContextTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-appctx-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_app_context_creates_the_table_its_own_model_adds()
@@ -95,7 +95,7 @@ public sealed class TestDatabaseAppContextTests : IDisposable
     [Fact]
     public async Task The_plain_start_still_runs_a_plain_rask_context()
     {
-        await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        await using var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 
         await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
 
@@ -106,7 +106,7 @@ public sealed class TestDatabaseAppContextTests : IDisposable
     [Fact]
     public async Task A_context_without_a_constructor_taking_its_options_is_refused_by_name()
     {
-        var start = () => TestDatabase.Start<OptionlessContext>(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        var start = () => TestDatabase.Start<OptionlessContext>(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(start);
 
@@ -114,5 +114,5 @@ public sealed class TestDatabaseAppContextTests : IDisposable
     }
 
     private Task<TestDatabase<LedgerContext>> StartLedgerAsync() =>
-        TestDatabase.Start<LedgerContext>(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start<LedgerContext>(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 }

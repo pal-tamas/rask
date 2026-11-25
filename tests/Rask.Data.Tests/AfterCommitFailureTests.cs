@@ -12,7 +12,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class AfterCommitFailureTests : IAsyncDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-after-commit-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider? _provider;
 
     public async ValueTask DisposeAsync()
@@ -23,7 +23,7 @@ public sealed class AfterCommitFailureTests : IAsyncDisposable
             await _provider.DisposeAsync();
         }
 
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -89,9 +89,9 @@ public sealed class AfterCommitFailureTests : IAsyncDisposable
         services.AddRaskData(o => o.AfterCommitFailures = failures);
         services.AddRaskData<TestDbContext>();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
 
         _provider = services.BuildServiceProvider();
         using (var db = _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext())

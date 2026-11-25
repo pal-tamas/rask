@@ -105,9 +105,9 @@ public sealed class TenancyThroughParentTests : IDisposable
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
     private static readonly Guid Globex = new("a1b2c3d4-0000-4000-8000-00000000beef");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-through-parent-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_child_with_no_tenant_property_has_no_column_and_a_filter_through_each_parent()
@@ -409,5 +409,5 @@ public sealed class TenancyThroughParentTests : IDisposable
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

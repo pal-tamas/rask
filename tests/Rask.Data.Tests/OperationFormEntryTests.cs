@@ -9,10 +9,10 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-operation-forms-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 11, 24, 9, 0, 0, TimeSpan.Zero));
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -183,5 +183,5 @@ public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 }

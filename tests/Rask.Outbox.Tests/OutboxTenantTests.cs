@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -16,7 +17,6 @@ namespace Rask.Outbox.Tests;
 /// this a handler that reads a tenant-scoped table throws.
 /// </para>
 /// </remarks>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxTenantTests
 {
     private readonly Guid _acme = Guid.NewGuid();
@@ -52,34 +52,26 @@ public sealed class OutboxTenantTests
     [Fact]
     public async Task The_tenant_survives_the_round_trip_to_the_database()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-outbox-tenant-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
+        var options = new DbContextOptionsBuilder<OutboxDbContext>().UseSqlite(database.ConnectionString).Options;
 
-        try
+        await using (var db = new OutboxDbContext(options))
         {
-            var options = new DbContextOptionsBuilder<OutboxDbContext>().UseSqlite($"Data Source={path}").Options;
+            await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
-            await using (var db = new OutboxDbContext(options))
+            using (Tenant.Use(_acme))
             {
-                await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-
-                using (Tenant.Use(_acme))
-                {
-                    db.Add(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow));
-                }
-
-                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+                db.Add(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow));
             }
 
-            await using (var db = new OutboxDbContext(options))
-            {
-                // The drain sees it whatever tenant is in flight — no filter on this table, by design.
-                var stored = await db.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
-                Assert.Equal(_acme, stored.TenantId);
-            }
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
-        finally
+
+        await using (var db = new OutboxDbContext(options))
         {
-            File.Delete(path);
+            // The drain sees it whatever tenant is in flight — no filter on this table, by design.
+            var stored = await db.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(_acme, stored.TenantId);
         }
     }
 }

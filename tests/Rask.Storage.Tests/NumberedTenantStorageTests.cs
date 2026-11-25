@@ -8,7 +8,6 @@ namespace Rask.Storage.Tests;
 /// In an app whose tenants are numbered, a file records the number, and is reachable only from that tenant — the same
 /// two by-id checks as a Guid app, compared as numbers.
 /// </summary>
-[Collection(StorageDbCollection.Name)]
 public sealed class NumberedTenantStorageTests
 {
     [Fact]
@@ -120,7 +119,7 @@ public sealed class NumberedTenantStorageTests
     private static async Task<(string Type, object Value)> StoredTenantAsync<TContext>(StorageHarness<TContext> harness, Guid id)
         where TContext : DbContext
     {
-        await using var connection = new SqliteConnection($"Data Source={harness.DbPath}");
+        await using var connection = new SqliteConnection(harness.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """SELECT typeof("TenantId"), "TenantId" FROM "StoredFile" WHERE "Id" = $id""";

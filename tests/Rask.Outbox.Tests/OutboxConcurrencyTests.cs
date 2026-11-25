@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -12,10 +13,9 @@ namespace Rask.Outbox.Tests;
 /// stripped <c>ProcessedAt</c> from every message already published in that batch — so they were all published
 /// again on the next poll. Duplicate delivery is the exact failure the outbox exists to prevent.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxConcurrencyTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-conc-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly Recorder _recorder = new();
     private readonly ServiceProvider _provider;
 
@@ -29,7 +29,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
         services.AddRaskData();
         services.AddRaskOutbox<OutboxDbContext>(o => o.PollInterval = TimeSpan.FromMilliseconds(50));
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -102,10 +102,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     private OutboxDbContext NewContext() =>

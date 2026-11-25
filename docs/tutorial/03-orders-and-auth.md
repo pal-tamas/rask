@@ -100,7 +100,7 @@ namespace Shop.Features.Orders;
 
 public readonly partial record struct OrderLineId(Guid Value);
 
-public sealed partial record Quantity(long Value) : Whole(Value, Min: 1, Max: 100);
+public sealed partial record Quantity(long Value) : Integer(Value, Min: 1, Max: 100);
 
 public sealed record OrderLineSpec(OrderLineId? Id, ProductId Product, Quantity Quantity);
 
@@ -305,7 +305,7 @@ public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 
 
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Max: 1_000_000, Scale: 2);
 
-public sealed partial record StockLevel(long Value) : Whole(Value, Min: 0);
+public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
 public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
 {

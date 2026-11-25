@@ -14,7 +14,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
     public async Task Rows_written_on_one_connection_are_visible_on_a_fresh_one()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqliteAt($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt($"Data Source={_dbPath};Pooling=False");
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
 
@@ -51,7 +51,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

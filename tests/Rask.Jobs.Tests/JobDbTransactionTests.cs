@@ -8,15 +8,26 @@ namespace Rask.Background.Tests;
 ///     A job enqueued inside <c>Db.Transaction</c> is a row in that transaction: nobody sees it before the commit, and a
 ///     rollback leaves nothing to run.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class JobDbTransactionTests : IDisposable
 {
-    public void Dispose() => Db.Reset();
+    // A file, for the test that reads from outside while the work holds its write open — "nobody sees it before the
+    // commit" is a second connection reading then, which a file's locks allow and a shared in-memory database's table
+    // lock refuses (SQLITE_LOCKED) until the commit.
+    private readonly string _file = Path.Combine(Path.GetTempPath(), $"rask-job-transaction-{Guid.NewGuid():N}.db");
+
+    private string InAFile => $"Data Source={_file};Pooling=False";
+
+    public void Dispose()
+    {
+        Db.Reset();
+        File.Delete(_file);
+    }
 
     [Fact]
     public async Task A_job_enqueued_inside_is_there_only_once_the_work_commits()
     {
-        await using var h = Configured(new JobsHarness());
+        await using var h = Configured(new JobsHarness(connectionString: InAFile));
         var seenBeforeCommit = -1;
 
         await Db.Transaction(async () =>

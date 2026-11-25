@@ -8,6 +8,8 @@ namespace Rask.SQLite.Tests;
 // "database is locked", no thread-pool starvation. If the wait were thread-blocking (the native
 // busy_timeout / driver path), hundreds of writers would each pin a thread and the pool would collapse;
 // the fair-interval retry frees the thread between polls, so it scales.
+// It resizes the process's thread pool, so it runs alone in ThreadPoolCollection.
+[Collection(ThreadPoolCollection.Name)]
 public sealed class SqliteConcurrencyStressTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-stress-{Guid.NewGuid():N}.db");
