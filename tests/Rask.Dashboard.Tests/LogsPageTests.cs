@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Rask.Dashboard.Pages;
 using Rask.Logging;
 using Rask.Testing;
+using Rask.Tests.Shared;
 
 namespace Rask.Dashboard.Tests;
 
@@ -221,17 +222,16 @@ public sealed class LogsPageTests
         return rendered.Html;
     }
 
-    /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>
+    /// <summary>A real log store in a database of its own, plus a dashboard harness wired to it.</summary>
     private sealed class LogStoreFixture : IAsyncDisposable
     {
-        private readonly string _dbPath =
-            Path.Combine(Path.GetTempPath(), $"rask-dash-logs-{Guid.NewGuid():N}.db");
+        private readonly InMemorySqlite _database = new();
 
         public DashboardHarness Dashboard(Action<OpsOptions>? configure = null) =>
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
                 configure: configure,
-                extra: services => services.AddRaskLoggingAt($"Data Source={_dbPath}"));
+                extra: services => services.AddRaskLoggingAt(_database.ConnectionString));
 
         private DashboardHarness? _dashboard;
 
@@ -244,21 +244,14 @@ public sealed class LogsPageTests
                 new LogRecord(0, DateTimeOffset.UtcNow, level, "Test", 0, message, null)
             ]);
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            // Connections are pooled by connection string, so the file stays locked until they're released.
-            Microsoft.Data.Sqlite.SqliteConnection.ClearPool(
-                new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={_dbPath}"));
-
-            foreach (var path in new[] { _dbPath, $"{_dbPath}-wal", $"{_dbPath}-shm" })
+            if (_dashboard is not null)
             {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
+                await _dashboard.DisposeAsync();
             }
 
-            return ValueTask.CompletedTask;
+            await _database.DisposeAsync();
         }
     }
 }

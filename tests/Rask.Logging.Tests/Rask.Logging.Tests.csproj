@@ -30,6 +30,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
+    <Compile Include="..\Shared.DbCollection\SqliteFileGuard.cs" Link="SqliteFileGuard.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Logging"/>
   </ItemGroup>

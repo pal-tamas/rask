@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Tests.Shared;
 
 namespace Rask.Logging.Tests;
 
@@ -21,7 +22,7 @@ public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
 /// <summary>Where the harness keeps the log: the two <see cref="ILogs"/> implementations a contract runs against.</summary>
 public enum LogStoreKind
 {
-    /// <summary><c>AddRaskLogging()</c>: a SQLite file of its own, at <c>Rask:ConnectionStrings:Logs</c>.</summary>
+    /// <summary><c>AddRaskLogging()</c>: a SQLite database of its own, at <c>Rask:ConnectionStrings:Logs</c>.</summary>
     File,
 
     /// <summary><c>AddRaskLogging&lt;TContext&gt;()</c>: the RaskLog table in the application's database.</summary>
@@ -49,14 +50,18 @@ public sealed class LoggingHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
 
+    // A named in-memory database rather than `:memory:` — that one is private to a connection, and the store
+    // opens one per operation. Null when the test brought a database of its own (a file it reopens).
+    private readonly InMemorySqlite? _database;
+
     public LoggingHarness(
         Action<LogsOptions>? configure = null,
         DateTimeOffset? start = null,
-        LogStoreKind kind = LogStoreKind.File)
+        LogStoreKind kind = LogStoreKind.File,
+        string? connectionString = null)
     {
-        // A real file, not :memory: — an in-memory database is private to a connection, and the store opens
-        // one per operation. The pooling and WAL behaviour under test only exists on a file anyway.
-        DbPath = Path.Combine(Path.GetTempPath(), $"rask-logs-test-{Guid.NewGuid():N}.db");
+        _database = connectionString is null ? new InMemorySqlite() : null;
+        ConnectionString = connectionString ?? _database!.ConnectionString;
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
         void Options(LogsOptions o)
@@ -93,9 +98,8 @@ public sealed class LoggingHarness : IAsyncDisposable
         _provider = services.BuildServiceProvider();
     }
 
-    public string DbPath { get; }
-
-    public string ConnectionString => $"Data Source={DbPath}";
+    /// <summary>The connection string of the harness's database, for a second store or a raw connection to it.</summary>
+    public string ConnectionString { get; }
 
     public FakeTimeProvider Clock { get; }
 
@@ -156,17 +160,9 @@ public sealed class LoggingHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-
-        // The store's connections are pooled by connection string; the file stays locked until they are
-        // released, and on Windows a delete would otherwise fail.
-        Microsoft.Data.Sqlite.SqliteConnection.ClearPool(new Microsoft.Data.Sqlite.SqliteConnection(ConnectionString));
-
-        foreach (var path in new[] { DbPath, $"{DbPath}-wal", $"{DbPath}-shm" })
+        if (_database is not null)
         {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
+            await _database.DisposeAsync();
         }
     }
 }
