@@ -73,23 +73,6 @@ internal static class DryRun
         }
     }
 
-    /// <summary>
-    ///     Runs what follows, until the scope is disposed, as a dry run: a <c>Db.Lock</c> a rule takes is not taken. What
-    ///     <c>rask audit</c> asks the rules under, so an audit never holds up a writer.
-    /// </summary>
-    /// <returns>The scope, which puts back what was running before.</returns>
-    internal static IDisposable Begin()
-    {
-        var outer = Running.Value;
-        Running.Value = true;
-        return new Ending(outer);
-    }
-
-    private sealed class Ending(bool outer) : IDisposable
-    {
-        public void Dispose() => Running.Value = outer;
-    }
-
     private sealed class Unheld : IAsyncDisposable
     {
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

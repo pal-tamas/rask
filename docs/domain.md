@@ -1881,7 +1881,6 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
-| `Audited` | an `AuditEntry` written in every save — see [Who changed what](#who-changed-what-audited) |
 | `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought). One read past the tenant is `X.Across("why")` ([one read across tenants](multi-tenancy.md#one-read-across-tenants-xacrossreason)) |
 | `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
 
@@ -1970,72 +1969,6 @@ the other server catches up on its next refetch.
 **Why a type argument and not an attribute.** The base is part of the type, so the generator reads it at
 compile time and can never quietly miss it, and a trait in the wrong place is a compile error at the
 declaration. Nothing is reflected over at run time, so a trimmed publish has the same shape as a debug build.
-
-### Who changed what: `Audited`
-
-An aggregate that names `Audited` leaves one `AuditEntry` in **every save that writes it — in that same save**, so
-the entry and the change commit or roll back together:
-
-```csharp
-public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, Audited> { … }
-```
-
-| column | holds |
-|---|---|
-| `Aggregate` | the aggregate's type name, `DeliveryNote` |
-| `Action` | `Insert`, `Update` or `Delete` (a soft delete is a `Delete`) |
-| `Key` | `Id=42` — read once the rows went out when the database generates it, before the commit |
-| `Before` / `After` | `Number=W-1 \|\| Km.Start=1200 \|\| Fuellings[0].Litres=12.5`: an insert every value it stores, a delete every value it held, an update the ones that changed — a value that became null among them, left out of the side where it is null |
-| `User` | the signed-in user's id as their claim reads, `system` for a job, a hosted service or startup |
-| `At` | when the save was made, in UTC (Rask's clock, so `Clock.Fake` moves it) |
-
-- **Its children are part of it.** A line added, changed or removed is recorded in its aggregate's entry, under the
-  place its form shows it at (`Fuellings[1].Quantity`), and only the aggregate's key names the entry.
-- **The values are the stored ones**, a one-value value object as its value, written in the **invariant culture** —
-  a decimal without trailing zeros (`1.5`, whatever scale the column keeps), a moment as `2026-11-24T13:05:00.0000000Z` —
-  so the same save writes the same text on SQLite, SQL Server and PostgreSQL.
-- **The table is `Audits`**, mapped in every model with an `Audited` aggregate and nowhere else, and its names stay
-  as they are under the app's `TableNames`/`ColumnNames`. Map it onto a table you already have in your `IRaskModel`
-  (`b.Entity<AuditEntry>().Property(a => a.Aggregate).HasColumnName("TableName")`).
-- **The text is replaceable.** Register an `AuditFormat` of your own — `services.AddSingleton<AuditFormat, LegacyFormat>()`
-  — and override `Values` for the whole text or `Value` for one value's, when the old rows of a table were written
-  another way.
-- **So is the row.** A table an older app already writes — its own columns, the whole row as JSON, the user as an `int`
-  foreign key — keeps being written byte for byte by a format of the app's own, named once in its `IRaskModel`; Rask's
-  `AuditEntry` is then left out of the model, and the `Audits` table is the app's to map:
-
-```csharp
-public sealed class AppModel : IRaskModel
-{
-    public static void Model(ModelBuilder m) => m.AuditAs(new LegacyAudits());
-}
-
-public sealed class LegacyAudits : AuditFormat<Audit, int>   // the app's row, its users' key type
-{
-    public const int SystemUser = 1;
-
-    public override Audit Row(AuditedWrite<int> write) => Audit.Of(
-        table: write.Aggregate.Name,
-        user: write.User ?? SystemUser,                          // null: a job, a hosted service, startup
-        action: write.Action.ToString(),
-        oldData: write.Action == AuditAction.Insert ? null : Json(write.Before),
-        newData: write.Action == AuditAction.Delete ? null : Json(write.After),
-        key: Json(write.Key),
-        at: write.At);
-}
-```
-
-  `AuditedWrite<TUserId>` hands it everything: `Before` and `After` are **every** value the aggregate held and holds —
-  its children's rows by path (`Lines[0].Quantity`), a value object as its stored value — and `Changed` the paths the
-  save changed, so a format that writes only what changed filters by it (`write.Before.Where(v =>
-  write.Changed.Contains(v.Name))`, then `Values(…)` for the `Name=value || …` text). `User` is a `Current.UseUser`
-  scope's user, or the signed-in principal's id claim read as the key type (`Guid`, `int` or `long`), whether or not
-  the app says `IUser`; null for nobody. The row is added to the same save; when the database generates the aggregate's
-  key, `Row` is asked again once the rows went out, and the columns that moved are written before the commit. A
-  format of the app's own rows registered as a service rather than named in the model is refused at the first save,
-  with the `m.AuditAs(…)` line to write.
-- A save that fails writes no entry, and its retry writes one. A raw `ExecuteUpdate`/`ExecuteDelete` writes no
-  entry: it never passes through a save.
 
 **The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](data.md#mapping-rules-the-conventions-dont-cover), which is where

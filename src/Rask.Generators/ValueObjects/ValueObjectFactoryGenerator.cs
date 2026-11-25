@@ -42,7 +42,6 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
     private const string Rules = "global::Rask.Values.GeneratedValueRules";
     private const string ProblemType = "global::Rask.Values.Problem";
     private const string ProblemList = "global::System.Collections.Generic.IReadOnlyList<" + ProblemType + ">";
-    private const string Stored = "global::Rask.Values.IStoredValue";
     private const string Messages = "global::System.Collections.Generic.IReadOnlyList<string>";
     private const string Hidden = "    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 

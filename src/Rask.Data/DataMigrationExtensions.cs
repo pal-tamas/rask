@@ -27,7 +27,7 @@ public static class DataMigrationExtensions
     /// <example>
     /// <code>
     /// protected override void Up(MigrationBuilder b) => b.Data(async () =&gt;
-    ///     await Tank.UpdateEach(_ =&gt; true, async t =&gt; t.Draw(await Pistol.Where(p =&gt; p.TankId == t.Id).Ids())));
+    ///     await Tank.UpdateEach(_ =&gt; true, async t =&gt; t.Draw(await Pistol.Where(p =&gt; p.TankId == t.Id).Select(p =&gt; p.Id))));
     /// </code>
     /// </example>
     public static void Data(this MigrationBuilder migrationBuilder, Func<Task> step)

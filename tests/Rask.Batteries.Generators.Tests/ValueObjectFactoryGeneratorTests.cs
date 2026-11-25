@@ -73,24 +73,8 @@ public class ValueObjectFactoryGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue, global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
+        Assert.Contains($"partial record {name} : global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
         Assert.Contains($"public static bool operator >=({name}? left, {name}? right)", generated, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("DriverName", "this.Value")]
-    [InlineData("KmRange", "this.Start, this.End")]
-    [InlineData("ChipPeriod", "this.From, this.To")]
-    [InlineData("Opening", "this.Date, this.Quantity")]
-    public void Every_record_can_be_asked_again_as_stored_by_making_it_from_its_own_members(string name, string members)
-    {
-        var run = Run(ValueObjects);
-
-        var generated = run.GeneratedSource(name + ".Value.g.cs");
-
-        Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue", generated, StringComparison.Ordinal);
-        Assert.Contains($"TryCreate({members}, out var __made, out var __problems);", generated, StringComparison.Ordinal);
     }
 
     [Theory]

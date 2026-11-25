@@ -3771,6 +3771,10 @@ static Task On(DriverChipsChanged e) => Fueling.UpdateEach(…);   // ✓
 
 It is static because no aggregate is loaded when it runs: it loads — or updates — the ones the event names.
 
+It answers `Task` even when its body is one write that answers more — `=> Fueling.UpdateEach(…)` is a `Task<int>` —
+so CA1859 ("use the concrete return type") would ask for the very return type this rule refuses. Rask's analyzers
+suppress CA1859 on a handler of exactly this shape (`RASKSUP003`), and on nothing else.
+
 **Fix:** give it that shape, or name a method that is not an event handler something else. An `On(…)` that takes no event and answers no `Task` — a factory `static Firkin On(string shelf, …)` — is not taken for a handler.
 
 ## RASK180

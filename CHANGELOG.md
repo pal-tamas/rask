@@ -19,6 +19,21 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **An aggregate's `static Task On(E e) => X.UpdateEach(…)` no longer hears CA1859.** Before: the write answers a
+  `Task<int>`, so the .NET analyzers asked the handler to return that — the very return type RASK179 refuses — and a
+  strict app could not satisfy both. Now `RASKSUP003` suppresses CA1859 on a handler of exactly RASK179's shape, and on
+  nothing else (`docs/diagnostics.md#rask179`).
+- **A scaffold under a symlinked folder restores its tests with the app.** Before: under a path through a link
+  (macOS's `/tmp` and `/var` are links into `/private`) NuGet's default restore recorded the app as two different
+  paths and dropped `Shop.Tests`' reference to `Shop`, so the tests lost every package the app brings. Now every
+  template's `Directory.Build.props` turns on `RestoreUseStaticGraphEvaluation`, which keeps the paths as written.
+- **`Jobs.Fake().Run()` runs host-less.** A test that started only a `TestDatabase` got "Dispatcher was called
+  before the app started" from `jobs.Run()` and from an awaited `Jobs.Run(...)`; both now run the job's handler
+  through the test database's own services, as its saves already publish their events.
+- **A fresh app's editor dialog can delete.** Every `rask new` template's `App` now renders
+  `[Router, Ui.Confirm]`, so `Ui.EditorDialog.Delete(...)` and `Ui.Confirm.Ask` have a dialog to ask in instead of
+  throwing "found no Ui.Confirm on the page". Toasts needed nothing: the host already draws them. The tutorial's
+  chapter 2 no longer has the reader add it.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
@@ -224,22 +239,6 @@ them until tagged releases begin.
 - **RASK187: a raw `ExecuteUpdate`/`ExecuteDelete` over an aggregate's rows** points at `X.UpdateWhere`/`X.DeleteWhere`,
   with a quick-fix for the awaitable form on a set (straight or behind one `Where`). Info by default, a warning under
   `<RaskStrict>`.
-- **`Audited`: an aggregate's every save leaves its audit entry in that same save.** Before: an app wrote its audit
-  rows in a `SaveChanges` override or an interceptor, after the commit with raw SQL (Eszaf's `DeliveryNoteAudit`) — not
-  atomic, blind to the children, skipping a value that became null, in the current culture. After:
-  `Aggregate<int, Versioned, Audited>` adds an `AuditEntry` (table `Audits`: aggregate, `Insert`/`Update`/`Delete`, key,
-  before and after, user or `system`, UTC moment) to the save itself; a store-generated key is read into it before the
-  commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
-  values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
-  SQL Server and PostgreSQL, proven by the providers suite.
-- **`m.AuditAs(format)`: an `Audited` aggregate's saves written as the app's own audit rows.** Before: `AuditFormat`
-  was handed only the changed values and wrote only Rask's `AuditEntry`, its user as text (`system`), so a table an
-  older app reads — Eszaf's `Audits`, the whole row as JSON in `OldData`/`NewData`, `UserId` an `int` foreign key — could
-  not be kept. After: an `AuditFormat<TRow, TUserId>` named in the app's `IRaskModel` (`m.AuditAs(new LegacyAudits())`)
-  returns the app's row from an `AuditedWrite<TUserId>` — every value the aggregate held and holds (its children by
-  path, value objects as stored), the paths that changed, the action, the key, the user as the app's key type (null for
-  nobody) and the moment — added to the same save, completed before the commit when the key is generated; Rask's
-  `AuditEntry` is left out of that model. The default format writes what it wrote. [docs/domain.md](docs/domain.md#who-changed-what-audited)
 - **`IQueryable<T>.ForUpdate()`: the read face's update lock on any query of a set.** Before: `ForUpdate()` was only on a
   read face (`Month.Where(…).ForUpdate()`), so code generic over the type — Eszaf's `ReturnFilings.Lock<TRefund>` over
   four refund types — kept raw `UPDLOCK, HOLDLOCK` SQL. After: `db.Set<TRefund>().Where(r => r.Id == id).ForUpdate()`
@@ -321,24 +320,6 @@ them until tagged releases begin.
   or `Db.Transaction` with the operation. Seeds (`Seed*`, `UseSeeding`), migrations, tests and generated code are not
   reported. A suggestion by default, a warning under `<RaskStrict>` (an error at `errors`); the quick-fix turns
   `db.Add(X.F(…)); await db.SaveChangesAsync();` on a context of its own into `await X.F(…, cancellationToken: …)`.
-- **`rask audit` asks the stored data the rules its types declare today.** Before: a rule was asked only of what a save
-  writes — of a stored row, only the fields a save changes — so an old row a tightened rule refuses stayed unseen
-  until someone edited it, and finding them took hand-written SQL per rule. After: `rask audit` (or, on the server,
-  `dotnet App.dll rask audit`) loads every aggregate whole, a page at a time and from every tenant, and asks what a save
-  adding it would ask — every attribute of every row, `IValidatableObject`, `Validate()`, awaited rules too, each in the
-  aggregate's tenant — plus each value object's own rules (which a load never asks) and whether it is stored as its
-  rules keep it, and whether every id kept as text is one the app reads and writes that way. It reports each rule
-  broken by field (a child's rows together, `Lines[*].Quantity`) with the count and the ids alone; `--aggregate Name`
-  narrows it, `--json` lists every id, and the exit code is `1` when a row fails. Read only: its context refuses a
-  save and its rules run as a dry run. The value objects' generated half now implements `Rask.Values.IStoredValue`.
-  See [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
-- **`rask audit --unique-candidates` says whether the stored rows let a unique index in.** Before: adding
-  `IsUnique()` to an index over old data failed at the migration, on the first duplicate the database met. After: the
-  audit asks every unique index the model declares — migrated or not, its `.Where(…)` applied — of every stored row in
-  LINQ, and reports each group of rows that would collide by their ids (`id = id`), never the values; a NULL key
-  collides with nothing, and texts differing only in letter case are reported apart, as a collision under a
-  case-insensitive collation. An index filtered by hand-written SQL is named in a note. See
-  [docs/data-writes.md](docs/data-writes.md#auditing-stored-data-with-rask-audit).
 - **A migration moves its data in C#: `b.Data(async () => …)`.** Before: the data a schema change needed moved was
   moved in SQL inside the migration. After: a data step runs once the whole schema is migrated, through the app's own
   aggregates and model and across every tenant — at the app's start, from `dotnet App.dll rask db migrate` (a published
@@ -541,6 +522,16 @@ them until tagged releases begin.
   named `Rask.Data.Range` or `Rask.Data.Text` writes `Rask.Values.…`; a value is now worded from Rask's strings catalog
   directly, so the generated `__RaskValueWords` module initializer is gone. The site's `DestinationName` demo is
   declared `: Text(Value, MaxLength: 255, Pattern: …)`, and says *This field is required.* for an empty name.
+
+### Removed
+
+- **The `Audited` trait and the stored-data rule audit are gone; neither shipped in a release.** Rask has no audit-trail
+  feature: `Audited`, `TraitSet.Audited`, `AuditEntry` and its `Audits` table, `AuditFormat`,
+  `AuditFormat<TRow, TUserId>`, `AuditedWrite<TUserId>`, `AuditAction`, `AuditValue` and `m.AuditAs(…)` are removed —
+  an app that needs a history of its changes writes it as an aggregate of its own. `rask audit` (the CLI command and
+  the published app's `dotnet App.dll rask audit`, `--unique-candidates` included) and `Rask.Values.IStoredValue` are
+  removed with it. `rask db migrate`, `b.Data(…)` data steps, `b.Numbered(…)` and the timestamp/version stamps of the
+  auditing interceptor stay.
 
 ### Security
 - **A value object a browser sends is checked on the server, so no handler is given one its rules refuse.** Before:
