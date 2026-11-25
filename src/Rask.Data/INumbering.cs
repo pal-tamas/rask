@@ -21,4 +21,11 @@ internal interface INumbering
 
     /// <summary>Numbers the touched groups anew, once the save's rows went out.</summary>
     Task Renumber(DbContext context, NumberingTouch touched, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     Numbers <paramref name="groups" /> anew from their first row — every group, and the rows in none, when null — under
+    ///     their locks in <paramref name="context" />'s transaction.
+    /// </summary>
+    /// <returns>How many rows' numbers changed.</returns>
+    Task<int> Mend(DbContext context, IReadOnlyCollection<object>? groups, CancellationToken cancellationToken);
 }

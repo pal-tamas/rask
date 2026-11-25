@@ -988,7 +988,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private static string ToSignIn(RouteState routeState)
     {
-        var returnUrl = "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(routeState.Path, routeState.Query));
+        var returnUrl = ChallengeReturnUrl.Query(QueryString.Build(routeState.Path, routeState.Query));
         routeState.Path = RouteAuthorizationGuard.ChallengePath;
         routeState.Query = QueryString.Parse(returnUrl);
         return RouteAuthorizationGuard.ChallengePath + returnUrl;

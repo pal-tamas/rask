@@ -173,7 +173,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK181](#rask181) | Warning | A FluentValidation rule rules a value object |
 | [RASK182](#rask182) | Warning | A FluentValidation rule disagrees with its column |
 | [RASK183](#rask183) | Error | A value object declares its rules twice |
-| [RASK174](#rask174) | Info | Two operations take the same parameters, so neither gets a `Form.For` |
 | [RASK175](#rask175) | Error | An aggregate stores a password |
 | [RASK176](#rask176) | Error | A password is sent back |
 | [RASK177](#rask177) | Info | Code written for one database |
@@ -193,7 +192,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 
 **Retired, never recycled:** RASK025, RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
 RASK049, RASK050, RASK054, RASK056, RASK057, RASK058, RASK059, RASK061, RASK062, RASK063, RASK064, RASK065, RASK066,
-RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091, RASK100 and RASK102, the islands build's
+RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091, RASK100, RASK102 and RASK174, the islands build's
 RASKISLAND001–019, and the npm front-end build's RASKSPA001–005 and RASKSPA007. Each guarded a mistake that can no
 longer be written; a suppression that names one is dead and can be deleted.
 
@@ -2431,7 +2430,9 @@ Card.Note("x").Title("Q3")      →  Card.Title("Q3").Body("").Note("x")
 
 The fix is not offered when a missing step is overloaded or generic, where a placeholder would be
 ambiguous. A form control's bare entry (`Input`, owing `Bind` *or* `Value`) is not reported: its openings are
-alternatives, not a list of steps to take.
+alternatives, not a list of steps to take. Nor is a call to an opening written onto the seed that does not bind —
+`Form.For(Supply.Weigh, id)` for an operation no form is generated for ([RASK188](#rask188)): the compiler's error
+on the call, and the generator's diagnostic that says why, are the ones that explain it.
 
 ## RASK096
 
@@ -3178,6 +3179,12 @@ value object would not say what was written: a type no base record holds, a name
 disagree, a conditional (`When`/`Unless`) rule, a rule in another file, or a DataAnnotations attribute no argument
 carries (`[EmailAddress]`, one with its own `ErrorMessage`), which on a value object would refuse every value. Nor is it offered while an `AbstractValidator<T>` class rules the same property: that rule would not compile once the property holds a value object.
 
+**A `Guid` is a reference, not a value.** No base record holds one, so a bare `Guid` — the id of another row, the
+signed-in user's — is told to take a [strongly-typed id](domain.md#strongly-typed-ids) instead, and the quick-fix is
+not offered: `public readonly partial record struct AccountId(Guid Value);`, held as `public AccountId? Account { get;
+private set; }` and made with `new AccountId(id)`. A typed id over the key of an aggregate keyed by a bare `Guid` —
+`Authenticatable`'s `User` — is how another aggregate names it.
+
 To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the project.
 
 ## RASK131
@@ -3624,21 +3631,6 @@ public sealed partial record SupplierName(string Value) : Text(Value, MaxLength:
 ```
 
 **Fix:** keep one. A hand-written `Rules()` is first-class; FluentValidation needs `Rask.Validation.FluentValidation`.
-
-## RASK174
-
-**Two operations take the same parameters, so neither gets a `Form.For`** · Info
-
-`Form.For(Driver.Rename, id)` picks the operation by the parameters of its generated entry, since a method group
-carries no name a call can be told by. Two operations whose entries take the same types would make every such call
-ambiguous, so neither gets a form.
-
-```csharp
-public void Rename(DriverName name) { … }        // ℹ RASK174
-public void SetFullName(DriverName name) { … }   // ℹ RASK174
-```
-
-**Fix:** give one of them a value object of its own for what it takes (`FullName`), which is also the clearer domain.
 
 ## RASK175
 

@@ -631,6 +631,47 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public async Task A_bare_Guid_is_told_to_take_a_typed_id_not_a_value_object()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), Entity);
+
+        var reference = diagnostics.Single(d => d.Flagged() == "Reference").GetMessage();
+
+        Assert.Contains("'Delivery.Reference' is a bare 'Guid' — declare a strongly-typed id for it", reference, StringComparison.Ordinal);
+        Assert.DoesNotContain("value object", reference, StringComparison.Ordinal);
+    }
+
+    // The scaffold's own User (src/Rask.Templates/server/Features/Shared/User.cs) and an order that names the account it
+    // was placed by: a strict app starts with no RASK130 of its own, and the account is a typed id over the user's Guid.
+    [Fact]
+    public async Task The_scaffolds_user_and_a_typed_reference_to_it_are_not_RASK130()
+    {
+        var source = """
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+            namespace Shop;
+            public readonly partial record struct AccountId(Guid Value);
+            public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: 100, Required: false);
+            public sealed class User : Aggregate<Guid>
+            {
+                public UserDisplayName? DisplayName { get; private set; }
+            }
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public AccountId? Account { get; private set; }
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), source);
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
+    }
+
+    [Fact]
     public async Task An_app_that_sets_RaskStrict_is_warned_about_a_bare_primitive()
     {
         var strict = StrictConfig.Severity("RASK130");

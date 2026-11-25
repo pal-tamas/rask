@@ -412,16 +412,10 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             var hint = aggregate.FullyQualifiedName.Replace("global::", "") + ".Operations.g.cs";
             context.AddSource(hint, SourceText.From(Render(aggregate), Encoding.UTF8));
 
-            var ambiguous = new List<string>();
             var unformed = new List<Unformed>();
-            if (aggregate.Forms && RenderForms(aggregate, signatures, ambiguous, unformed) is { } forms)
+            if (aggregate.Forms && RenderForms(aggregate, signatures, unformed) is { } forms)
             {
                 context.AddSource(aggregate.FullyQualifiedName.Replace("global::", "") + ".OperationForms.g.cs", SourceText.From(forms, Encoding.UTF8));
-            }
-
-            foreach (var operation in ambiguous)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rask174, Location.None, operation));
             }
 
             foreach (var skipped in unformed)
