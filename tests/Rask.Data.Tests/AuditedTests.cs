@@ -153,8 +153,8 @@ public sealed class AuditedTests : IDisposable
         var duplicate = Tripsheet.Write("W-1", cityKm: null, 2m);
         database.Context.Add(duplicate);
 
+        // The fixture's context lets go of the refused row, so the next save does not carry it again.
         await Assert.ThrowsAnyAsync<Exception>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
-        database.Context.Remove(duplicate);
         await SaveAsync(database, Tripsheet.Write("W-2", cityKm: null, 2m));
 
         Assert.Equal(["W-1", "W-2"], (await EntriesAsync(database)).Select(e => e.After!.Split(" || ")[1][7..]));

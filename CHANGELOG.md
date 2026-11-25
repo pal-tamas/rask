@@ -19,6 +19,13 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A `TestDatabase`'s `Context` reads what the database has.** Before: the fixture's long-lived context kept handing
+  back the instance it tracked from before a save elsewhere (`order.Save()`, a handler, `database.Factory`), so a test
+  read stale values through it — or saved them back over the newer row — and a save of its own that was refused kept
+  its change tracked, to ride along with the next save; an app's tests called `ChangeTracker.Clear()` before every use.
+  Now a row another context saved is the saved row in it too (an unchanged instance takes the saved values, version
+  included; a deleted one is let go; a change the test has not saved stays the test's), and a failed save through it
+  lets go of what it tracked, as a page's context gone with its request would.
 - **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
   began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
   retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the

@@ -310,6 +310,13 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   interceptors of its own — opens on the same database with **`database.Options<TOther>()`**: the provider exactly as
   the fixture's contexts have it (`UseRaskSqlite` on the same in-memory database), none of the fixture's interceptors,
   so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
+- **`database.Context` reads what the database has**, the way a page's context — opened for its request — does: a row
+  another context saved (`Order.Find(id)` → `order.Save()`, a handler, `database.Factory`) is the saved row in it too,
+  version and all, so the next query through it, or a change made on the instance it already tracked and saved through
+  it, is the database's row and not the one it seeded. A row it tracks that the test changed and has not saved stays
+  the test's. A save of its own that fails — a refused rule, a taken unique value — lets go of everything it tracked, so
+  the refused change never rides along with the next save. No `ChangeTracker.Clear()` is needed to hand it to code that
+  takes a context;
 - disposing it lets the database go.
 
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
