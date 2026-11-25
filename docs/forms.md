@@ -53,6 +53,9 @@ derives everything from the bound property:
   — and `Input.Bind(() => _model.Size)` holds the number it holds, is shaped by its rules and writes the property only
   with a value they accept, saying their refusal under the field. Prefer it to a plain `int?` with
   `.Validate(Litres.Check)`: see [rules in a value object](forms-validation.md#rules-in-a-value-object).
+  One of several values (`public Opening? Start { get; set; }`, or a `Change<Opening?>`) is bound a member at a time —
+  `Input.Bind(() => _model.Start!.Quantity)`, named `Start.Quantity` — through a draft the form keeps, and the
+  property is set only once its rules take the whole.
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else
@@ -1062,6 +1065,9 @@ Form.For(Note.Rename, id)[f => [
   value object's `Create`. Over a value that may be absent (`Change<Nickname?>`), `Ui.Field.Bind(() => f.Nick)` also
   draws a "Clear" ("Törlés") beside the control; ticked, the operation is handed `Change<T>.Clear`. From code,
   `Change<T>.Keep` is the default. A password value object (`Password` base) is never read into any form field.
+  On a model of your own, a `Change<T>` of a value object of several values shows the stored value instead —
+  `Change<Opening?>.Kept(part.Start)` — and its members bind through `.Value`
+  ([rules in a value object](forms-validation.md#rules-in-a-value-object)).
 - **Who may.** A principal the operation's roles do not admit (`Note.MayRename` is false) sees the form with every
   control disabled, the submit among them.
 - **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.

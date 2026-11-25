@@ -79,6 +79,13 @@ internal static class FieldPath
     {
         foreach (var property in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
+            // A value object of several values a control binds a member of is reached through its draft.
+            if (ValueDrafts.Find(node, property.Name) is { } draft)
+            {
+                yield return (draft, path.Length == 0 ? property.Name : $"{path}.{property.Name}");
+                continue;
+            }
+
             if (property.GetIndexParameters().Length > 0 || !property.CanRead || Read(property, node) is not { } value
                 || ModelGraphWalker.IsLeaf(value.GetType()))
             {

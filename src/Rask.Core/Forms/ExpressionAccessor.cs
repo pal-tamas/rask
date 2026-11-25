@@ -27,7 +27,7 @@ namespace Rask.Core.Forms;
 //   () => p.GetName()               method call as terminal
 //   () => 1 + 1                     not a member access at all
 //   () => SomeStatic.Field          static or non-property member
-public static class ExpressionAccessor
+public static partial class ExpressionAccessor
 {
     /// <summary>
     ///     Turns a bind over a nullable value-type property into the non-nullable bind a control over
@@ -123,7 +123,13 @@ public static class ExpressionAccessor
                 nameof(expression));
         }
 
-        var target = EvaluateTarget(me.Expression)
+        // A member of a value object of several values the model holds as it is: bound to the member of its draft.
+        return DraftOf(me, expression) ?? Plain(me, prop, expression);
+    }
+
+    private static Accessor Plain(MemberExpression me, PropertyInfo prop, LambdaExpression expression)
+    {
+        var target = EvaluateTarget(me.Expression!)
                      ?? throw new InvalidOperationException(
                          $"Bind({expression}) reached null before its last property. Create the object it walks through (e.g. `= new()` on the field) before the form renders.");
 

@@ -237,6 +237,12 @@ public static class ModelGraphWalker
         Justification = "GetProperty on the runtime type of the current node — see Walk.")]
     private static object? StepInto(object current, PathSegment seg)
     {
+        // `Start.Quantity` over a value object a control binds a member of: the member of its draft.
+        if (!seg.IsIndexed && ValueDrafts.Find(current, seg.Name) is { } draft)
+        {
+            return draft;
+        }
+
         var prop = current.GetType().GetProperty(seg.Name,
             BindingFlags.Instance | BindingFlags.Public);
         if (prop is null)

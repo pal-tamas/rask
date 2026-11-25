@@ -2,6 +2,28 @@ namespace Rask.Core.Forms;
 
 public sealed partial class EditContext
 {
+    /// <summary>
+    ///     Asks <paramref name="field" />'s synchronous rules again where it already says something: a sibling member of a
+    ///     value object was typed into, and the answer about this one may have changed with it. A field that says nothing
+    ///     yet is left for the reader to reach.
+    /// </summary>
+    internal void Recheck(FieldIdentifier field)
+    {
+        if (!_states.TryGetValue(field, out var state) || state.Messages.Count == 0 || IsUnread(field))
+        {
+            return;
+        }
+
+        ClearRuleMessages(field);
+        if (_fieldDelegates.TryGetValue(field, out var registration) && !DelegateValidator.IsAsync(registration.Validate))
+        {
+            InvokeSyncFieldDelegate(field, registration);
+        }
+
+        RunSyncFieldValidators(field, state);
+        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     // First-error-wins: skip sync IFieldValidators once the field already has a message from an earlier stage.
     private void RunSyncFieldValidators(FieldIdentifier field, FieldState state)
     {

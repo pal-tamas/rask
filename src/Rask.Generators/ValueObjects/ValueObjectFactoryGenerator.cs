@@ -327,5 +327,13 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ///     out — its own field registered by the module initializer (<see cref="EmitFields" />).
         /// </summary>
         public bool HeldByForms => OneValue && Registrable && !Generic && Problem is null;
+
+        /// <summary>
+        ///     A form's model may hold it as it is and bind its members one at a time: several values, declared from Value or
+        ///     Range, a class a top-level type of the assembly can name — its draft written into it (<c>__Draft</c>) and
+        ///     registered by the module initializer.
+        /// </summary>
+        public bool GroupedByForms =>
+            ValueBase is "Value" or "Range" && Parameters.Count > 1 && Registrable && !Generic && Problem is null;
     }
 }

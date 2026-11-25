@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Rask.Core.Forms;
 using Rask.Cqrs;
 using Rask.Wire;
@@ -48,6 +50,29 @@ public static class GeneratedValueRules
             (object? value, out IReadOnlyList<Problem> problems) =>
                 make((THeld)value!, out var made, out problems) ? made : null,
             shape));
+    }
+
+    /// <summary>
+    ///     Registers a value object of several values, so a form's model may hold it as it is —
+    ///     <c>public Opening? Start { get; set; }</c>, or <c>public Change&lt;Opening?&gt; Start { get; set; }</c> — and a
+    ///     control is bound to each of its members (<c>() =&gt; m.Start!.Date</c>), typed into its draft and made through
+    ///     its <c>TryCreate</c> as the whole. Called by the generated module initializer of the assembly that declares it.
+    /// </summary>
+    /// <typeparam name="TValue">The value object.</typeparam>
+    /// <typeparam name="TDraft">Its generated draft: a property per member, as typed.</typeparam>
+    /// <param name="draft">Makes a draft, every member empty.</param>
+    /// <param name="shape">Its generated <c>__Field</c> (a range's); null for one that declares no field of its own.</param>
+    public static void Group<TValue, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TDraft>(
+        Func<TDraft> draft, Func<FieldShape>? shape)
+        where TValue : Value
+        where TDraft : ValueDraft
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+
+        var members = typeof(TDraft).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(static p => p.CanRead && p.CanWrite)
+            .ToDictionary(static p => p.Name, StringComparer.Ordinal);
+        ValueGroups.Add(typeof(TDraft), new ValueGroup<TValue>(() => draft(), members, shape));
     }
 
     /// <summary>The exception <c>X.Create(…, field)</c> throws for a value its rules refused.</summary>

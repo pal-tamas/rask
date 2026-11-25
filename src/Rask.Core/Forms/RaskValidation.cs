@@ -422,6 +422,7 @@ public static class RaskValidation
     {
         var shape = _fieldShapes.ShapeOf(owner, property.Name)
                     ?? Rask.Values.ValueFields.Of(property.PropertyType)?.Shape
+                    ?? DraftShapes.Of(owner, property)
                     ?? AnnotatedShapes.Of(property);
         return StatedRules.Source is null
             ? shape

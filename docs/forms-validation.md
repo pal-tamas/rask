@@ -93,8 +93,64 @@ It is a field of [`Form.For`](forms.md#a-form-over-an-operation), on a model you
   required.* — on submit too, for one never filled in. `[Required]` on a nullable one asks the same.
 - The model's DataAnnotations, a FluentValidation validator and a `Validate` step of your own still run beside them.
 
-A value object of several values (a `Range`, a `: Value` record of two members) is not held this way yet: keep its
-members on the model and make it in the submit handler.
+**A value object of several values is held the same way, and bound a member at a time.** A `Range`, or a `: Value`
+record of two members or more, is a group of fields, one per member, each bound by its path:
+
+```csharp
+public sealed partial record Opening(DateTime? Date, decimal? Quantity) : Value
+{
+    protected override IEnumerable<Problem> Rules()
+    {
+        if (Date is null && Quantity is not null) yield return Problem.At(Date, Rules.Required);
+        if (Quantity is null && Date is not null) yield return Problem.At(Quantity, Rules.Required);
+        if (Quantity is < 1) yield return Problem.At(Quantity, "Start from one litre or more.");
+    }
+}
+
+public sealed class TankForm
+{
+    public Opening? Start { get; set; }
+}
+
+Form.Model(_form).OnSubmit(Save)[
+    Ui.Field[Ui.DayAndTime.Bind(() => _form.Start!.Date).Label("Counted from"), Ui.Error],
+    Ui.Field[Ui.Input.Bind(() => _form.Start!.Quantity).Label("Litres"), Ui.Error],
+    Ui.Button.Primary.Submit["Save"]
+]
+```
+
+The `!` only quiets the compiler: the bind is never run, and the property may well be null. A value object's members
+are init-only, so the form keeps a **draft** of it per model and property — what was typed into each member — and
+makes the value object again through its `TryCreate` each time a member is written:
+
+- **The property is set only once its rules take the whole.** A member typed in while another is still missing, or
+  a value they refuse, leaves the property as it was; the form does not submit until the draft is whole.
+- **A refusal about a member is said under that member** (`Start.Quantity`), one about the whole (`Problem.Whole`)
+  under the property (`Start`) — `Ui.Error.For(() => _form.Start)` shows it. A member left empty that may not be
+  (`int Start`) is *required*. A save that throws under `Start.Quantity` lands on the same control.
+- **Every member emptied, a nullable property is null.** A property code sets shows its new value; what was typed
+  and not taken is dropped with it.
+- **A range draws itself:** `Ui.Field.Bind(() => _form.Km)` over `public KmRange? Km { get; set; }` is its two ends
+  under one label, each of the ends' kind and within the range's bounds, a backwards end said under `Km.End`.
+
+**A `Change<T>` of one is bound the same way**, for a save that leaves a stored value alone unless the form changed
+it. Start the field from the stored value with `Change<T>.Kept(…)`, and bind its members through `.Value`:
+
+```csharp
+public sealed class SupplyPartRow
+{
+    public Change<Opening?> Start { get; set; }   // Change<Opening?>.Kept(part.Start) when a stored part is loaded
+}
+
+Ui.DayAndTime.Bind(() => row.Start.Value!.Date)
+Ui.Input.Bind(() => row.Start.Value!.Quantity)
+
+// the save hands it on as it is: new SupplyPartSpec(…, row.Start)
+```
+
+Untouched — or typed back to what it keeps — it stays a **Keep**, so a stored value is never asked again by rules
+tightened since; every member emptied, it is a **Clear** (a `Change<T>` of a value that may not be absent stays a
+Keep); a value its rules take is a **Set**.
 
 A model that holds the plain value instead names the value object's rules from the field. Every value object of one
 value — declared from `Text`, `Number`, `Integer`, `Day` or `Moment`, or `: Value` with one member — gets a generated

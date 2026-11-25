@@ -15,7 +15,9 @@ public sealed partial class ValueObjectFactoryGenerator
     {
         var held = all.Distinct().Where(static v => v.HeldByForms)
             .OrderBy(static v => v.FullyQualifiedName, System.StringComparer.Ordinal).ToList();
-        if (held.Count == 0)
+        var grouped = all.Distinct().Where(static v => v.GroupedByForms)
+            .OrderBy(static v => v.FullyQualifiedName, System.StringComparer.Ordinal).ToList();
+        if (held.Count == 0 && grouped.Count == 0)
         {
             return;
         }
@@ -34,6 +36,14 @@ public sealed partial class ValueObjectFactoryGenerator
             var member = value.Parameters[0];
             s.Append("        ").Append(Rules).Append(".Field<").Append(value.FullyQualifiedName).Append(", ").Append(member.Type)
                 .Append(">(static v => v.").Append(member.Name).Append(", ").Append(value.FullyQualifiedName).Append(".TryCreate, ")
+                .Append(HasField(value) ? "static () => " + value.FullyQualifiedName + ".__Field" : "null").AppendLine(");");
+        }
+
+        foreach (var value in grouped)
+        {
+            var draft = value.FullyQualifiedName + ".__Draft";
+            s.Append("        ").Append(Rules).Append(".Group<").Append(value.FullyQualifiedName).Append(", ").Append(draft)
+                .Append(">(static () => new ").Append(draft).Append("(), ")
                 .Append(HasField(value) ? "static () => " + value.FullyQualifiedName + ".__Field" : "null").AppendLine(");");
         }
 

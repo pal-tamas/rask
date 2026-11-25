@@ -30,8 +30,22 @@ public readonly record struct Change<T>
     /// <summary>What it does: <see cref="ChangeKind.Keep" />, <see cref="ChangeKind.Clear" /> or <see cref="ChangeKind.Set" />.</summary>
     public ChangeKind Kind { get; }
 
-    /// <summary>The value it sets, for <see cref="ChangeKind.Set" />; the default otherwise.</summary>
+    /// <summary>
+    ///     The value it sets, for <see cref="ChangeKind.Set" />; for one made by <see cref="Kept" />, the value it keeps, as a
+    ///     form shows it; the default otherwise.
+    /// </summary>
     public T? Value { get; }
+
+    /// <summary>
+    ///     Leave the value as it is, while a form over a model of its own shows it:
+    ///     <c>Start = Change&lt;Opening?&gt;.Kept(part.Start)</c>. Its <see cref="Kind" /> is <see cref="ChangeKind.Keep" />,
+    ///     so <see cref="Applied" /> hands back the value as it stands, whatever was shown. Fields bound to its members
+    ///     (<c>() =&gt; m.Start.Value!.Date</c>) leave it so until a new value is typed in, which they make a
+    ///     <see cref="Set" />, and make it <see cref="Clear" /> once they are all emptied.
+    /// </summary>
+    /// <param name="value">The value as it stands, which the form shows.</param>
+    /// <returns>The change that keeps it.</returns>
+    public static Change<T> Kept(T? value) => new(ChangeKind.Keep, value);
 
     /// <summary>Set the value to <paramref name="value" />.</summary>
     /// <param name="value">The new value.</param>

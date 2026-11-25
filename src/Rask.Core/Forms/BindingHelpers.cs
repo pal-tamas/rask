@@ -686,4 +686,13 @@ public static class BindingHelpers
             }
         });
     }
+
+    // Whether a generic property's one type argument is declared nullable: `Change<Opening?>`, whose value may be taken away.
+    internal static bool IsNullableTypeArgument(PropertyInfo prop)
+    {
+        lock (_nullabilityCtx)
+        {
+            return _nullabilityCtx.Create(prop).GenericTypeArguments is [{ ReadState: NullabilityState.Nullable }];
+        }
+    }
 }

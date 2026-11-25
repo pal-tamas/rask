@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A hand form's model may hold a value object of several values, bound a member at a time.** `public Opening? Start
+  { get; set; }` over a `Range` or a `: Value` record of two members or more, with `Ui.Input.Bind(() => _form.Start!.Quantity)`
+  and `Ui.DayAndTime.Bind(() => _form.Start!.Date)`: each control is bound to the member of a draft the form keeps
+  per model and property (`Opening.__Draft`, generated), the value object is made again through its `TryCreate` each
+  time a member is written, and the property is set only once its rules take the whole — every member emptied, a
+  nullable one is null. A refusal about a member is said under it (`Start.Quantity`), one about the whole under
+  `Start`, and a save refused under either lands there too. `Ui.Field.Bind(() => _form.Km)` over a `KmRange?` draws
+  both ends. **`Change<T>` of one binds the same way** (`() => row.Start.Value!.Date`), started from the stored value
+  by the new **`Change<T>.Kept(value)`**: untouched or typed back it stays a Keep, emptied it is a Clear, a value its
+  rules take is a Set — so a save hands the row's `Change<Opening?>` on as it is.
 - **A select over a read face's rows: `.Choices(Company.Choices(c => c.Name))`.** `Ui.Select`, `Ui.Pillbox` and
   `Ui.Field.Bind` over an id take an `IChoiceSource<TKey>` — a read face's `X.Choices(…)`, or a source of the app's
   own — searched, paged and counted by the source as the reader types and scrolls, the picked row named on the button

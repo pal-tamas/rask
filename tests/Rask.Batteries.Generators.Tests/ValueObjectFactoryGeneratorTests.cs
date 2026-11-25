@@ -132,8 +132,24 @@ public class ValueObjectFactoryGeneratorTests
         Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", fields, StringComparison.Ordinal);
         Assert.Contains(".Field<global::Shop.Pieces, long>(static v => v.Value, global::Shop.Pieces.TryCreate, static () => global::Shop.Pieces.__Field);", fields, StringComparison.Ordinal);
         Assert.Contains(".Field<global::Shop.DriverName, string>(", fields, StringComparison.Ordinal);
-        Assert.DoesNotContain("KmRange", fields, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Field<global::Shop.KmRange", fields, StringComparison.Ordinal);
         Assert.DoesNotContain("Secret", fields, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Each_value_object_of_several_values_gets_a_draft_a_model_that_holds_it_binds_a_member_at_a_time()
+    {
+        var run = Run(ValueObjects + "public sealed partial record Seal(int Count, string Mark) : Value;");
+
+        var fields = run.GeneratedSource("RaskValueFields.g.cs");
+        var seal = run.GeneratedSource("Seal.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(".Group<global::Shop.KmRange, global::Shop.KmRange.__Draft>(static () => new global::Shop.KmRange.__Draft(), static () => global::Shop.KmRange.__Field);", fields, StringComparison.Ordinal);
+        Assert.Contains(".Group<global::Shop.Opening, global::Shop.Opening.__Draft>(static () => new global::Shop.Opening.__Draft(), null);", fields, StringComparison.Ordinal);
+        Assert.Contains("public int? Count { get => __Count; set { __Count = value; OnTyped(); } }", seal, StringComparison.Ordinal);
+        Assert.Contains(".Missing(\"Mark\")", seal, StringComparison.Ordinal);
+        Assert.Contains("global::Shop.Seal.TryCreate(__Count.GetValueOrDefault(), __Mark!, out var __made, out problems)", seal, StringComparison.Ordinal);
     }
 
     [Fact]
