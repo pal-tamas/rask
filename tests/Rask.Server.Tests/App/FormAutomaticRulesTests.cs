@@ -11,6 +11,7 @@ using Rask.Core;
 using Rask.Core.Live;
 using Rask.Data;
 using Rask.Server.Tests.Infrastructure;
+using Rask.Tests.Shared;
 using Rask.Values;
 
 namespace Rask.Server.Tests.App;
@@ -275,13 +276,13 @@ public sealed partial class CraneGeneratedFormApp : Component
 [Collection(RaskAppCollection.Name)]
 public sealed partial class FormAutomaticRulesTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-form-rules-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
     private readonly StoreQuestions _questions = new();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
     [Fact]
@@ -688,7 +689,7 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     private async Task<RaskTestHost> StartAsync<TApp>(string? language = null)
         where TApp : Component
     {
-        Action<DbContextOptionsBuilder> database = o => o.UseSqlite($"Data Source={_dbPath};Pooling=False");
+        Action<DbContextOptionsBuilder> database = o => o.UseSqlite(_database.ConnectionString);
 
         var host = RaskTestHost.Create<TApp>(
             configureServices: services =>
@@ -723,14 +724,16 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
 
         await using var legacy = await host.Services.GetRequiredService<IDbContextFactory<LegacyQuayContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
-        await legacy.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await legacy.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-        legacy.AddRange(
-            new LegacyBerth { Id = BerthEditFormApp.Edited, Name = "Budapest", TenantId = 7 },
-            new LegacyBerth { Id = 2, Name = "Gyor", TenantId = 7 },
-            new LegacyBerth { Id = 3, Name = "Szeged", TenantId = 8 },
-            new LegacyCrane { Pier = "North", Slot = "3", TenantId = 7 });
-        await legacy.SaveChangesAsync(TestContext.Current.CancellationToken);
+        // Seeded by the first host a test starts; a second one in the same test shares the database and its rows.
+        if (await legacy.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken))
+        {
+            legacy.AddRange(
+                new LegacyBerth { Id = BerthEditFormApp.Edited, Name = "Budapest", TenantId = 7 },
+                new LegacyBerth { Id = 2, Name = "Gyor", TenantId = 7 },
+                new LegacyBerth { Id = 3, Name = "Szeged", TenantId = 8 },
+                new LegacyCrane { Pier = "North", Slot = "3", TenantId = 7 });
+            await legacy.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
 
         return host;
     }

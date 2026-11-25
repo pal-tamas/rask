@@ -324,6 +324,20 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void An_operation_input_reads_itself_filled_from_the_aggregate_as_its_form_does_and_a_factory_s_does_not()
+    {
+        var run = RunWithForms(Driver);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static async global::System.Threading.Tasks.Task<DriverChangeInput> Of(global::System.Guid id, global::System.Threading.CancellationToken cancellationToken = default) =>", forms, StringComparison.Ordinal);
+        Assert.Contains("await DriverOperationForms.ChangeLoad(id, cancellationToken) ?? throw new global::System.InvalidOperationException(", forms, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken => ChangeLoad(id, cancellationToken),", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task<DriverHireInput> Of(", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_factory_gets_a_form_that_starts_empty_and_saves_through_its_entry()
     {
         var run = RunWithForms(Driver);
@@ -494,18 +508,44 @@ public class OperationGeneratorTests
     }
 
     [Fact]
-    public void Two_operations_that_take_the_same_parameters_get_no_form_and_RASK174_says_why()
+    public void Two_operations_that_take_the_same_parameters_each_get_a_form_their_method_group_picks()
     {
         var run = RunWithForms(Tagged("""
             public int Level { get; private set; }
-            public int Floor { get; private set; }
             public void Bump(int level) => Level = level;
-            public void Lower(int floor) => Floor = floor;
+            public void Lower(int level) => Level = -level;
+            public void Archive() => Level = 0;
+            public void Restore() => Level = 1;
+            public static object Up(Rask.Core.RaskSeed_Form form, Guid id) => form.For(Tag.Bump, id);
+            public static object Down(Rask.Core.RaskSeed_Form form, Guid id) => form.For(Tag.Lower, id);
+            public static object Shelve(Rask.Core.RaskSeed_Form form, Guid id) => form.For(Tag.Archive, id);
+            public static object Unshelve(Rask.Core.RaskSeed_Form form, Guid id) => form.For(Tag.Restore, id);
             """));
 
-        Assert.Equal(2, run.RunResult.Diagnostics.Count(static d => d.Id == "RASK174"));
-        Assert.False(run.HasGeneratedSource(".OperationForms"));
+        var forms = run.GeneratedSource("Shop.Tag.OperationForms");
+
         Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public readonly struct ArchiveMark { }", forms, StringComparison.Ordinal);
+        Assert.Contains("public delegate global::System.Threading.Tasks.Task ArchiveEntry(TagOperationForms.ArchiveMark __mark, global::System.Guid id, int version, global::System.Threading.CancellationToken cancellationToken);", forms, StringComparison.Ordinal);
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, RestoreEntry operation, global::System.Guid id)", forms, StringComparison.Ordinal);
+        Assert.Contains("public static global::System.Threading.Tasks.Task Lower(TagOperationForms.LowerMark __mark, global::System.Guid id, int version, int level, global::System.Threading.CancellationToken cancellationToken) =>", forms, StringComparison.Ordinal);
+        Assert.Contains("await operation(default, input.Id, input.Version, level, cancellationToken);", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_operation_whose_signature_no_other_shares_keeps_its_Func_and_no_mark()
+    {
+        var run = RunWithForms(Tagged("""
+            public int Level { get; private set; }
+            public void Bump(int level) => Level = level;
+            public void Archive() => Level = 0;
+            """));
+
+        var forms = run.GeneratedSource("Shop.Tag.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("Mark __mark", forms, StringComparison.Ordinal);
+        Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::System.Guid, int, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operation, global::System.Guid id)", forms, StringComparison.Ordinal);
     }
 
     [Fact]

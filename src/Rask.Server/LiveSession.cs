@@ -248,6 +248,13 @@ internal sealed partial class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal bool UserCheckedWithin(TimeSpan span) => _clock.GetElapsedTime(LastUserCheck) < span;
 
+    // Whether the principal the session holds has passed its own exp claim, by the host's clock: a comparison of the
+    // expiry worked out as it was set (SignInExpiry), so every event can ask.
+    internal bool SignInLapsed => SignInExpiry.HasLapsed(Users.LapsesAt, _clock);
+
+    // Whether a principal a connection brought has passed its own exp claim, by the host's clock.
+    internal bool HasLapsed(ClaimsPrincipal user) => SignInExpiry.HasLapsed(SignInExpiry.LapsesAt(user), _clock);
+
     // How many attaches have finished with this session: the principal asked about and adopted (or held behind a
     // running dispatch), and what the attach owed the connection sent.
     private int _attachesSettled;

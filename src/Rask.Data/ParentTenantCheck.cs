@@ -170,12 +170,16 @@ internal static class ParentTenantCheck
             $"{why}. A child is written under a parent of the tenant in flight; save it there, or inside " +
             "Tenant.Across() when crossing tenants is the point.");
 
-    // Through the context's own filters: a parent the tenant in flight cannot read is not one it may write under.
+    /// <summary>
+    ///     Whether the tenant in flight reads the row of <paramref name="key" />'s principal whose principal key holds
+    ///     <paramref name="values" />: through the context's own filters, so a parent it cannot read is not one it may
+    ///     write under.
+    /// </summary>
     [UnconditionalSuppressMessage("Trimming", "IL2060",
         Justification = "The type argument is an entity type of the context's model, which EF Core already roots.")]
     [UnconditionalSuppressMessage("AOT", "IL3050",
         Justification = "As above: a mapped entity type, always a reference type.")]
-    private static Task<bool> VisibleAsync(DbContext context, IForeignKey key, object?[] values, CancellationToken cancellationToken)
+    internal static Task<bool> VisibleAsync(DbContext context, IForeignKey key, object?[] values, CancellationToken cancellationToken)
     {
         var parentType = key.PrincipalEntityType.ClrType;
         var parent = Expression.Parameter(parentType, "parent");

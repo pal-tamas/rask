@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Dashboard.Pages;
 using Rask.Testing;
+using Rask.Tests.Shared;
 
 namespace Rask.Dashboard.Tests;
 
@@ -87,18 +88,17 @@ public sealed class SearchIsAShareableLinkTests
         return page;
     }
 
-    /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>
+    /// <summary>A real log store in a database of its own, plus a dashboard harness wired to it.</summary>
     private sealed class LogStore : IAsyncDisposable
     {
-        private readonly string _dbPath =
-            Path.Combine(Path.GetTempPath(), $"rask-dash-link-{Guid.NewGuid():N}.db");
+        private readonly InMemorySqlite _database = new();
 
         private DashboardHarness? _dashboard;
 
         public DashboardHarness Dashboard() =>
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
-                extra: services => services.AddRaskLoggingAt($"Data Source={_dbPath}"));
+                extra: services => services.AddRaskLoggingAt(_database.ConnectionString));
 
         public async ValueTask DisposeAsync()
         {
@@ -107,7 +107,7 @@ public sealed class SearchIsAShareableLinkTests
                 await _dashboard.DisposeAsync();
             }
 
-            File.Delete(_dbPath);
+            await _database.DisposeAsync();
         }
     }
 

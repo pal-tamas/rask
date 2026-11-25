@@ -277,18 +277,16 @@ namespace Shop.Tests.Features.Orders;
 
 public sealed class OrderShippedTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task Shipping_an_order_tells_the_account_that_placed_it()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var batteries = new FakeBatteries();
         using var push = Push.Fake();
         using var customer = Signed.As("shopper");
         var order = await Test.Make<Order>();
 
-        await Order.Ship(order.Id, order.Version, TrackingNumber.Create("1Z999"), Ct);
+        await Order.Ship(order.Id, order.Version, TrackingNumber.Create("1Z999"));
 
         push.Sent().To(Current.UserId!.Value).WithTitle("Order shipped").Once();
     }

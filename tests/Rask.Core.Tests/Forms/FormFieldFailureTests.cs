@@ -124,6 +124,16 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
         Assert.Contains(">Closed for the year.</li>", page.Html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_refusal_of_the_whole_form_as_refuse_when_throws_it_goes_to_the_forms_summary()
+    {
+        var page = new InvoicePage(new Rask.Cqrs.RaskValidationException("The period is closed."), summary: true);
+
+        await page.Submit();
+
+        Assert.Contains(">The period is closed.</li>", page.Html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

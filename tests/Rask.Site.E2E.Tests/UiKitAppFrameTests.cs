@@ -52,6 +52,20 @@ public sealed partial class UiKitAppFrameTests(WasmExampleAppFixture app, Playwr
     });
 
     [Fact]
+    public Task The_records_own_back_button_goes_to_the_list_as_it_was_left() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{BaseUrl}/demo/app-frame/drivers/?status=active");
+        await WaitForInteractiveAsync();
+        await Page.Locator("[data-testid='af-driver-ada']").ClickAsync();
+        await Expect(Page.Locator("[data-ui-main] h1")).ToHaveTextAsync("Ada Lovelace", new() { Timeout = 15_000 });
+
+        await Page.Locator("[data-testid='af-back']").ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(ActiveDrivers(), new() { Timeout = 15_000 });
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Active" })).ToHaveAttributeAsync("aria-selected", "true");
+    });
+
+    [Fact]
     public Task A_row_in_a_group_names_the_group_in_the_trail() => RunAsync(async () =>
     {
         await Page.GotoAsync($"{BaseUrl}/demo/app-frame/vehicles/");

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
 using Rask.Querying;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -84,11 +85,11 @@ public sealed class DataQueryInvalidationTests
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-        // Wired the way every scaffolded Program.cs wires the app's context. A file, not :memory:, because
-        // an in-memory database is gone when EnsureCreated closes its connection.
-        var file = Path.Combine(Path.GetTempPath(), $"rask-notes-{Guid.NewGuid():N}.db");
+        // Wired the way every scaffolded Program.cs wires the app's context. A named database held open, not
+        // :memory:, because that one is gone when EnsureCreated closes its connection.
+        await using var database = new InMemorySqlite();
         app.Services.AddDbContextFactory<NotesContext>((sp, o) => o
-            .UseSqlite($"Data Source={file};Pooling=False")
+            .UseSqlite(database.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         var services = app.Build<MinimalApp>().Services;
         using var session = services.CreateScope();
@@ -107,7 +108,6 @@ public sealed class DataQueryInvalidationTests
         }
 
         await Settled(notes);
-        File.Delete(file);
 
         Assert.Equal(2, notes.Data);
     }

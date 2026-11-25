@@ -685,9 +685,13 @@ nothing extra:
 private async Task Save(Product product)
 {
     await product.Save();
-    Routes.ProductsPage().Go();   // not asked about: the app is leaving, not the reader
+    Routes.ProductsPage().AsLeft().Go();   // not asked about: the app is leaving, not the reader
 }
 ```
+
+`.AsLeft()` (Rask.Ui) is the list as the reader left it this session — its filters, sort, page and search, an editor
+dialog's key left out — so a save returns there rather than to the bare list; a list the session has not shown is the
+route as given ([ui-kit.md](ui-kit.md#a-list-page)).
 
 #### Ask in a dialog of your own
 
@@ -1116,7 +1120,14 @@ Form.For(Note.Rename, id)[f => [
   belongs together into value objects still reads better.
 - **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
   is matched by the id it was given, not added twice. A factory's form starts empty again.
+- **The model, read as the form reads it: `await SupplyChangeInput.Of(id)`.** The fields filled from the stored
+  aggregate at its version, through the same read `Form.For(Supply.Change, id)` makes — what a test hands
+  [`Test.FormShows(…)`](testing.md#the-form-says-what-the-domain-says-testformshows). It throws when nothing is stored
+  under the id; a factory's input has none, as its form starts empty.
+- **Two operations of one signature each get their form.** `Form.For` picks the form by the delegate the method
+  group converts to, and `Product.Archive` and `Product.Restore` — each taking only the id and version — would convert
+  to the same one. Each is then given a hidden overload that takes a mark of its own first
+  (`ProductOperationForms.ArchiveMark`), and its form takes a delegate of that shape, so `Form.For(Product.Archive, id)`
+  and `Form.For(Product.Restore, id)` still pick one each.
 - An operation whose parameter no field holds — a row whose member is itself a list or a value object of several
-  values — gets no `Form.For`, and two operations whose entries take the same types get none either
-  ([RASK174](diagnostics.md#rask174)): `Form.For` picks the form by the delegate the method group converts to, and two
-  entries of one signature convert to the same delegate, whatever their names.
+  values — gets no `Form.For` ([RASK188](diagnostics.md#rask188)).
