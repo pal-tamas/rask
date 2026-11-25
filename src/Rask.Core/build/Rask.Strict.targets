@@ -26,7 +26,8 @@
       - RASK177 a warning (rask-strict.globalconfig): code written for one database — a provider's API, EF.Functions,
         raw SQL, SQL in the model — outside migrations and the call that selects the provider
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a
-        sentence is joined with (rask-strict-tests.globalconfig)
+        sentence is joined with, and xUnit1051 off, since Rask.Testing supplies the test's token ambiently
+        (rask-strict-tests.globalconfig)
       - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors; a NuGet audit
         finding (NU1901-NU1904) and RASK130 stay warnings
 

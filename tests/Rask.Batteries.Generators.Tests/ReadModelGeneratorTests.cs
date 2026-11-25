@@ -185,6 +185,78 @@ public class ReadModelGeneratorTests
         Assert.DoesNotContain("ExternalRead", source, StringComparison.Ordinal);
     }
 
+    private const string TypedShop = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Shop;
+
+        public readonly partial record struct ProductId(Guid Value);
+        public readonly partial record struct UserId(Guid Value);
+        public readonly partial record struct OrderId(Guid Value);
+        public readonly partial record struct OrderLineId(Guid Value);
+        public readonly partial record struct AccountId(Guid Value);
+
+        public sealed class Product : Aggregate<ProductId> { public string Name { get; private set; } = ""; }
+        public sealed class User : Aggregate<UserId> { public string Name { get; private set; } = ""; }
+        public sealed class Supplier : Aggregate<Guid> { public string Name { get; private set; } = ""; }
+
+        public sealed class Order : Aggregate<OrderId>
+        {
+            private readonly List<OrderLine> _lines = [];
+            public UserId? ShippedByUserId { get; private set; }
+            public Guid? SupplierId { get; private set; }
+            public AccountId? Account { get; private set; }
+            public IReadOnlyCollection<OrderLine> Lines => _lines;
+        }
+
+        public sealed class OrderLine : Entity<OrderLineId>
+        {
+            public ProductId ProductId { get; private set; }
+            public ProductId Substitute { get; private set; }
+        }
+        """;
+
+    [Fact]
+    public void A_reference_to_an_aggregate_keyed_by_a_typed_id_keeps_that_type_and_its_navigation()
+    {
+        var run = Run(TypedShop);
+
+        var line = run.GeneratedSource("Shop_OrderLineRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::Shop.ProductId ProductId { get; init; }", line, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.ProductId Substitute { get; init; }", line, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.ProductRead Product { get; init; }", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("global::System.Guid", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_nullable_typed_reference_stays_nullable_and_typed_and_so_does_its_navigation()
+    {
+        var run = Run(TypedShop);
+
+        var order = run.GeneratedSource("Shop_OrderRead");
+
+        Assert.Contains("public global::Shop.UserId? ShippedByUserId { get; init; }", order, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.UserRead? ShippedByUser { get; init; }", order, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShippedByUserId.Value", run.GeneratedSource("__RaskReadModelRegistry"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reference_to_an_aggregate_keyed_by_a_Guid_and_a_one_value_type_no_entity_is_keyed_by_stay_their_values()
+    {
+        var run = Run(TypedShop);
+
+        var order = run.GeneratedSource("Shop_OrderRead");
+
+        Assert.Contains("public global::System.Guid? SupplierId { get; init; }", order, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.SupplierRead? Supplier { get; init; }", order, StringComparison.Ordinal);
+        Assert.Contains("public global::System.Guid? Account { get; init; }", order, StringComparison.Ordinal);
+        Assert.DoesNotContain("AccountId", order, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_child_gets_its_own_face_and_a_navigation_back_to_its_root()
     {

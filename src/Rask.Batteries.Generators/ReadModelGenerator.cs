@@ -167,6 +167,10 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
             .OrderBy(static s => s.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
+        // A column holding another entity's typed key stays that type, as the write model keeps it.
+        var keyTypes = new HashSet<string>(shapes.Select(static s => s.IdTypeName), StringComparer.Ordinal);
+        shapes = [.. shapes.Select(s => ReadModelShape.KeepKeysTyped(s, keyTypes))];
+
         var (aggregates, children) = ReferenceTargets(shapes);
 
         // A child's navigation back to its root is declared on the ROOT's shape, so the child's own face has

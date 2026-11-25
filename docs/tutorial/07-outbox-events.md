@@ -246,20 +246,18 @@ namespace Shop.Tests.Features.Orders;
 
 public sealed class OrderPlacedTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task Placing_an_order_sells_its_stock_and_queues_the_receipt()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var batteries = new FakeBatteries();
         var anvil = await Test.Make<Product>(o => o.With("stock", StockLevel.Create(5)));
 
         var order = await Order.Place(
             Test.Make<CustomerEmail>(), Test.Make<ShippingAddress>(), null,
-            [new OrderLineSpec(null, anvil.Id, Quantity.Create(2))], Ct);
+            [new OrderLineSpec(null, anvil.Id, Quantity.Create(2))]);
 
-        var stored = await Product.Where(p => p.Id == anvil.Id).First(Ct);
+        var stored = await Product.Where(p => p.Id == anvil.Id).First();
         Assert.Equal(3, stored.Stock);
         Assert.Equal(order, batteries.Jobs.Enqueued<SendOrderReceipt>().Only().Job.Order);
     }

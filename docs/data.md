@@ -129,6 +129,8 @@ from a form.
 | `Money Price` (value object) | `decimal PriceAmount`, `string PriceCurrency` — **flattened to its columns** |
 | `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
 | `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
+| `ProductId? ProductId` (a [typed id](domain.md#strongly-typed-ids) some entity is keyed by) | `ProductId? ProductId` — **kept typed**, nullable as declared, with its `ProductRead? Product` navigation |
+| `Quantity Quantity` (a one-value value object) | `long Quantity` — the value it holds |
 | `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
 | *another aggregate's* `Guid OrderId`, on `Invoice` | `IReadOnlyList<InvoiceRead> Invoices` — the rows that point here, [below](#the-rows-that-point-here) |
 | `bool IsShipped => …` (computed) | *dropped* — no column behind it |
@@ -149,6 +151,7 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
 | `string VirtualTankId` + a `VirtualTank` child of `Tank` | exact child name, though it also *ends with* the aggregate `Tank` | `VirtualTank` — an exact name beats a suffix |
+| `ProductId ProductId` + a `Product : Aggregate<ProductId>` | exact name match, typed key | `Product` — and the column stays a `ProductId` |
 | `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |

@@ -27,6 +27,18 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A reference to an aggregate keyed by a typed id stays typed on its read face.** An order line's `ProductId Product`
+  read back as a bare `Guid` (and a `UserId? ShippedByUserId` as a `Guid?`, with no `ShippedByUser` navigation), while
+  the row's own `Id` kept its type: the face flattened the typed id like a one-value value object. A column whose type
+  some entity is keyed by now keeps that type, nullable as declared, and a `{X}Id` one infers its navigation as a
+  `Guid` one does; a one-value type no entity is keyed by still reads as the value it holds.
+- **A `TestDatabase`'s `Context` reads what the database has.** Before: the fixture's long-lived context kept handing
+  back the instance it tracked from before a save elsewhere (`order.Save()`, a handler, `database.Factory`), so a test
+  read stale values through it — or saved them back over the newer row — and a save of its own that was refused kept
+  its change tracked, to ride along with the next save; an app's tests called `ChangeTracker.Clear()` before every use.
+  Now a row another context saved is the saved row in it too (an unchanged instance takes the saved values, version
+  included; a deleted one is let go; a change the test has not saved stays the test's), and a failed save through it
+  lets go of what it tracked, as a page's context gone with its request would.
 - **A refusal of the whole form crosses the wire.** `Refuse.When(cond, message)` — any
   `RaskValidationException(message)` — now carries its sentence under the empty key of `Errors` as well as in
   `Failures`, so a WASM client, an API caller and a form behind a remote dispatch get it as a failure under no field
@@ -220,6 +232,14 @@ them until tagged releases begin.
   `Company.Choices(text, detail)`; any query has `.Choices(id, text, detail)`. All are the new
   `IChoiceSource<TKey>` (namespace `Rask`: `Page(…)` → `ChoiceRowPage<TKey>`, `Find(id)`), the source a picker
   reads. Replaces the apps' own `Choice(id)`/`Find(typed, page)` pairs, TA's `ChoicePages` and Eszaf's `PagedChoices`.
+- **A test passes no `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
+  (`TestContext.Current.CancellationToken`) the ambient cancellation (`Current.Cancellation`), so every Rask call given
+  no token — `TestDatabase.Start()` (schema creation), `database.Load<T>(…)`, `TestDatabase.FromEnvironment`, a
+  generated entry, `Order.Where(…).First()`, `Jobs.Enqueue` — is cancelled with the test. A token passed by hand still
+  wins; a render still sets it aside; the app a test boots is not cancelled with it. New
+  `TestRun.Begin(fixtures, cancellation)` is what the hook calls. In a `<RaskStrict>` app's test project xUnit1051 is
+  now off (`rask-strict-tests.globalconfig`; the analyzer cannot be scoped to Rask's calls), and the tutorial's tests
+  drop their `Ct` token (`docs/testing.md#testing-the-domain`).
 - **A save refuses a reference to another tenant's row** (`docs/multi-tenancy.md`). Every foreign key a `PerTenant`
   row sets to another tenant-scoped table — an aggregate, a child, a `PerTenantThrough` aggregate's parent — must
   name a row the tenant in flight reads; another tenant's, or none, is a `RaskValidationException` under the key's

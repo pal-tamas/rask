@@ -185,6 +185,7 @@ Rask.Testing.Page.As<TUser>(TUser! user) -> Rask.Testing.Page!
 Rask.Testing.TestRun
 static Rask.Testing.TestRun.Begin() -> void
 static Rask.Testing.TestRun.Begin(System.Collections.Generic.IEnumerable<object!>! fixtures) -> void
+static Rask.Testing.TestRun.Begin(System.Collections.Generic.IEnumerable<object!>! fixtures, System.Threading.CancellationToken cancellation) -> void
 static Rask.Testing.TestRun.End() -> void
 Rask.Testing.Page.ElementActions.Change(string! value) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.ElementActions.Click() -> System.Threading.Tasks.Task<string!>!
