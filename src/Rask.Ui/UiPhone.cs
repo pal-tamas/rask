@@ -112,6 +112,16 @@ public sealed partial class UiPhone : Component, IFormControl<string?>, IUiFormC
         set => _timing.Debounce = value;
     }
 
+    /// <summary>
+    ///     Waits for the next action even in a form over an operation, which otherwise has the field commit as it is
+    ///     left: <c>Ui.Phone.Bind(() =&gt; m.Mobile).Defer()</c>. Livewire's <c>wire:model.defer</c>.
+    /// </summary>
+    public bool? Defer
+    {
+        get => _timing.Defer;
+        set => _timing.Defer = value;
+    }
+
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(this, Id, Bind, Label);
@@ -200,7 +210,7 @@ public sealed partial class UiPhone : Component, IFormControl<string?>, IUiFormC
     {
         var input = (Bind, ReadOnly == true) switch
         {
-            ({ } bind, false) => Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce),
+            ({ } bind, false) => Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce).Defer(Defer),
             ({ } bind, true) => Input.Value<string?>(ExpressionAccessor.Parse(bind).Getter() as string),
             (null, false) => Input.Value<string?>(Value).OnChange(OnChange),
             _ => Input.Value<string?>(Value),

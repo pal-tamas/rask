@@ -20,6 +20,16 @@ public sealed class TextOrderTests : IDisposable
     }
 
     [Fact]
+    public void Hungarian_orders_the_whole_alphabet_cs_after_cu_o_and_u_umlauts_after_their_vowels_and_zs_after_zo()
+    {
+        string[] names = ["Úr", "Csaba", "Ödön", "Cukor", "Uzsok", "Ottó", "Ügy", "Őz", "Zsolt", "Zoltán"];
+
+        var ordered = names.Order(TextOrder.In("hu")).ToArray();
+
+        Assert.Equal(["Cukor", "Csaba", "Ottó", "Ödön", "Őz", "Úr", "Uzsok", "Ügy", "Zoltán", "Zsolt"], ordered);
+    }
+
+    [Fact]
     public void An_unaccented_a_comes_before_its_accented_twin_and_case_changes_nothing()
     {
         var order = TextOrder.In("hu");

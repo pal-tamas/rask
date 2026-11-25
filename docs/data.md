@@ -1102,13 +1102,19 @@ maps it.
 ### The conformance suite
 
 `tests/Rask.Providers.E2E.Tests` holds one suite per behaviour, written once and run on SQLite, SQL Server and
-PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): text order and case-insensitive matching
+PostgreSQL (`scripts/run-providers-local.sh`; the `providers` gate, in CI on Testcontainers — locally the server legs
+skip unless `RASK_PROVIDERS_LOCAL=1`): text order and case-insensitive matching
 (`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
 (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
 indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
 (`ParentLockParityTests`), a read face's `ForUpdate()` (`ReadForUpdateParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
 `ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
 is what lets an app run its own tests on SQLite in memory alone.
+
+A server leg exists only where Rask writes provider-specific SQL or translates a provider's error: collations, row and
+named locks, sequences, the DDL the conventions write, decimal scale, constraint violations, and migrations' and the
+batteries' own SQL. What is the same on every provider — audit rows, the bulk writes' rules, read-face shapes, value
+objects and collections EF Core translates — runs on SQLite alone.
 
 ## One holder at a time, across hosts: `Db.Lock`
 
@@ -1551,11 +1557,11 @@ or on the context a hand-wired host registered — the same word and the same `s
 ```csharp
 // Before: a SchemaOwner class of the app's own — sp_getapplock, a raw OBJECT_ID check, a hand-built history row,
 // SetCommandTimeout — called from Program.cs after Build(), and an *AtDesignTime factory beside it.
-builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection));
-await SchemaOwner.Take(app.Services.GetRequiredService<IDbContextFactory<TaDomain>>(), app.Logger);
+builder.Services.AddRaskData<ShopContext>(o => o.UseSqlServer(connection));
+await SchemaOwner.Take(app.Services.GetRequiredService<IDbContextFactory<ShopContext>>(), app.Logger);
 
 // After
-builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection))
+builder.Services.AddRaskData<ShopContext>(o => o.UseSqlServer(connection))
     .OwnsSchema(s => s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes));
 ```
 
@@ -1615,16 +1621,16 @@ settings instead. It opens the database through `UseRaskDatabase`, as the app's 
 string, or `postgres` without the Rask.Postgres package each stop the command with the same sentence the app would
 start with.
 
-A host wired by hand chooses its provider in code — `AddRaskData<TaDomain>(o => o.UseSqlServer(connection))` — and
+A host wired by hand chooses its provider in code — `AddRaskData<ShopContext>(o => o.UseSqlServer(connection))` — and
 `dotnet ef` does not run that code. So there the factory requires the setting, and stops naming it rather than
 writing SQLite migrations for a SQL Server database:
 
 ```csharp
 // Before: a factory of the app's own, beside the context
-public sealed class TaDomainAtDesignTime : IDesignTimeDbContextFactory<TaDomain>
+public sealed class ShopContextAtDesignTime : IDesignTimeDbContextFactory<ShopContext>
 {
-    public TaDomain CreateDbContext(string[] args) =>
-        new(new DbContextOptionsBuilder<TaDomain>().UseSqlServer("Server=nobody;Database=nothing").Options);
+    public ShopContext CreateDbContext(string[] args) =>
+        new(new DbContextOptionsBuilder<ShopContext>().UseSqlServer("Server=nobody;Database=nothing").Options);
 }
 ```
 

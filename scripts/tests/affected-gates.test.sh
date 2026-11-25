@@ -90,6 +90,13 @@ expect_has   "a kit component reaches the CLI gates (#1214)"       packaging src
 expect_has   "the kit's Tailwind input reaches the CLI gates"      packaging src/Rask.Ui/Styles/ui.css
 expect_has   "the Tailwind build task reaches the CLI gates"       packaging src/Rask.Tailwind.Tasks/CssClassNames.cs
 
+# The real servers follow the data stack's files, not the graph (which reaches them from the core).
+expect_has   "the data layer reaches the provider servers"          providers src/Rask.Data/Db.cs
+expect_has   "a provider package reaches them"                      providers src/Rask.Postgres/PostgresOptions.cs
+expect_has   "the provider suite reaches itself"                    providers tests/Rask.Providers.E2E.Tests/ProviderLeg.cs
+expect_lacks "an ordinary core change does not start them"          providers src/Rask.Core/Component.cs
+expect_lacks "a site page does not start them"                      providers src/Rask.Site/Program.cs
+
 # Whatever the project scoper refuses to narrow is not narrowed here either.
 expect_full  "a workflow"                                          .github/workflows/gates.yml
 expect_full  "a gate script"                                       scripts/run-unit-local.sh

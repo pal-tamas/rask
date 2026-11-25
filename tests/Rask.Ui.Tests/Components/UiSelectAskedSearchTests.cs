@@ -346,6 +346,30 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain(reports, report => report.Message.Contains(nameof(UiSelectOption), StringComparison.Ordinal));
         Assert.Equal(["Glock", "Carrier Glock", "Carrier Beretta", "Carrier Walther"], rows);
     }
+
+    // The same in the rows of a form over an operation: a select in each table row, the options keyed by the same ids.
+    [Fact]
+    public async Task Selects_in_the_rows_of_an_operation_form_may_key_their_options_alike()
+    {
+        var reports = new List<RaskDiagnosticEvent>();
+        var previous = RaskDiagnostics.Sink;
+        RaskDiagnostics.ResetReportOnceForTests();
+        RaskDiagnostics.Sink = reports.Add;
+        try
+        {
+            var page = Page.Visit("/ui-operation-form/fuel-rows");
+
+            await HeldList.PickIn(page, "#fuel-0", "Diesel");
+            await HeldList.PickIn(page, "#fuel-1", "Diesel");
+        }
+        finally
+        {
+            RaskDiagnostics.Sink = previous;
+            RaskDiagnostics.ResetReportOnceForTests();
+        }
+
+        Assert.DoesNotContain(reports, report => report.Message.Contains(nameof(UiSelectOption), StringComparison.Ordinal));
+    }
 }
 
 /// <summary>The diagnostics sink is one for the process: what these tests read from it is theirs alone.</summary>

@@ -9455,3 +9455,23 @@ static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFilePicker! __b, System.Fu
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFilePicker(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFilePicker(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFilePicker(Rask.Core.Component! __c0, ulong __p) -> void
+Rask.UiTextarea<T>.Defer.get -> bool?
+Rask.UiTextarea<T>.Defer.set -> void
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiBoundField<T>! __b, bool? value) -> Rask.UiBoundField<T>!
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiBoundField<T>! __b) -> Rask.UiBoundField<T>!
+Rask.UiInput<T>.Defer.set -> void
+Rask.UiInput<T>.Defer.get -> bool?
+Rask.UiBoundField<T>.Defer.set -> void
+Rask.UiBoundField<T>.Defer.get -> bool?
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
+Rask.UiComposer<T>.Defer.get -> bool?
+Rask.UiComposer<T>.Defer.set -> void
+Rask.UiPhone.Defer.get -> bool?
+Rask.UiPhone.Defer.set -> void
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b, bool? value) -> Rask.UiComposer<T>!
+static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b) -> Rask.UiComposer<T>!
+static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b, bool? value) -> Rask.UiPhone!

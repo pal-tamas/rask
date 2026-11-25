@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Documentation
+- **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
+  `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
+  provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,
+  `Form.For`, events and `manyAggregates:`, `rask audit` before a unique index, data moved in C# — with what each
+  quick-fix does and what is left by hand.
+- **Domain and bulk-write docs checked against the code.** `domain.md` now shows an aggregate's `static Task On(E e)`
+  handler and `HandlerInTransaction` under domain events and in the transaction boundary, links `Attachment` and
+  `X.Across(reason)`; `data-writes.md` teaches `UpdateWhere`/`DeleteWhere` for batch work (a raw `ExecuteUpdate` is
+  RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
+
 ### Fixed
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
@@ -15,6 +26,26 @@ them until tagged releases begin.
   5 minutes by name (and the whole run at 22), and a red gate cancels the rest of its `ci` run; the unit tests run in
   four `unit K/N` shard jobs beside `build`, and the nightly publishes once `build` and every shard are green
   (`docs/development-workflow.md`, "Fail fast").
+- **A handler that captures only a local re-renders the component that wrote it.** Before: a click handler written
+  in a component's `Render` that closed over a local and nothing of the component (`var rows = Rows; …
+  .OnClick(() => rows.Add(row))`) carried nothing naming its owner, so inside a composite (a card, a kit button) the
+  event re-rendered the composite and the rows it added were never drawn. Now the component rendering as the
+  handler is set is its owner: an element's handler is noted as it is set, and a component's event callback is
+  wrapped for it, as one that captures `this` always was.
+- **The sign-in throttle and the account slowdown hold at most 10 000 keys.** Before: each dropped only the keys
+  whose failures had expired, so a spray of distinct addresses or clients inside one window — every one of them
+  failing just now — grew both tables without bound, and the old sweep walked the whole table on every attempt
+  past 10 000. Now, at the bound, the expired keys go and then the stalest, down to nine tenths of it, so the next
+  sweep is a thousand new keys away; a key that failed just now is still counted.
+- **A live sign-in that names the sign-in page or Rask's own endpoints as its return address lands on the root.**
+  Before: a live handler's sign-in with the return address `/login?returnUrl=…` sent the reader who just signed in back to the sign-in form, and a
+  return address under `/_rask/` (the ticket redeem is a POST) loaded an error page. Now both fall back to `/`, in
+  any language; a sign-out may still land on the sign-in page.
+- **`Outbox.Fake()` records only what a save committed.** Before: the fake recorded an aggregate's event as the save
+  began, so an event whose save the database refused, or whose transaction rolled back, still read as stored (and a
+  retried save recorded it twice), where the real outbox writes no row. Now the fake keeps the event back until the
+  save commits — at once outside a transaction, at the commit of a `BeginTransaction` or of a `Db.Transaction` — and a
+  failed save or a rollback drops it.
 - **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
   no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
   before anything else"). Now a factory of fifteen fits a `Func` as before, and an entry past the sixteen a `Func`
@@ -384,6 +415,23 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The SQL Server and PostgreSQL provider tests run in CI on Testcontainers, and need no Docker on a dev machine.**
+  Before: `scripts/run-providers-local.sh` started the servers with `docker run`, and only a release (or a
+  `ci/release/**` branch) ran the gate. After: `tests/Rask.Providers.E2E.Tests` starts one SQL Server 2022 and one
+  PostgreSQL 19 per run itself (`Testcontainers.MsSql`/`Testcontainers.PostgreSql` 4.17.0), on first use; the
+  `providers` gate runs on every push that touches the data stack and in the daily full run. Outside CI the server
+  facts are SKIPPED with the reason unless `RASK_PROVIDERS_LOCAL=1`; `RASK_MSSQL_TEST_DB` / `RASK_PG_TEST_DB` still
+  point a leg at a server you have. The server legs are pruned to what Rask writes or translates per provider
+  (collations, locks, sequences, convention DDL, decimals, constraint violations, the batteries' SQL, migrations);
+  the provider-independent suites (audit rows, the bulk writes' rules, read-face shapes, value objects EF Core
+  translates, transactions' hand-back and raw SQL) run on SQLite alone. The unused Redis container is gone.
+- **A field of `Form.For` commits as it is left.** Before: a typed field under a form over an operation (`Form.For`,
+  `Ui.EditorDialog`'s forms) with no timing step waited for the next action, like any bound field, so the operation's
+  dry run said nothing when the reader left a field it refuses — two demos needed a hand `.Blur()`. After: such a
+  field (`Ui.Field`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, `Ui.Composer`, Core's `Input`/`Textarea`) commits on
+  leaving it, as `.Blur()` does, and the refusal shows then. `.Live()` and `.Debounce(…)` still win, and the new
+  `.Defer()` (Livewire's `wire:model.defer`) keeps a field waiting for the next action. `Form.Model(m)` and chosen
+  controls (a checkbox, a select, a picker) are unchanged. A `.Blur()` under `Form.For` is now redundant.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —

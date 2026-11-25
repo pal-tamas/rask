@@ -25,6 +25,8 @@ public sealed class AuthDbCollectionGuardTests
             nameof(PasskeyVerifierTests),
             // Reads an address into the client it is counted as; no database.
             nameof(AuthThrottleClientTests),
+            // Counts attempts in memory on a hand-moved clock; no database.
+            nameof(AuthThrottleTests),
             // Counts failures in memory; no database.
             nameof(AccountSlowdownTests));
 }
