@@ -34,5 +34,7 @@ public sealed class DataDbCollectionGuardTests
             // A wall-clock time turned into UTC and back; it never builds a context.
             nameof(WallClockInUtcTests),
             // Builds a context type of its own, in a collection that runs alone after every parallel one.
-            nameof(AppModelRulesTests));
+            nameof(AppModelRulesTests),
+            // The same, under the rules that name the app's tenant.
+            nameof(TenantReferencesReadModelTests));
 }

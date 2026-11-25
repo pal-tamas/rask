@@ -10,7 +10,8 @@ internal static class TenantReferenceDeclaration
     /// <summary>
     ///     Declares the reference on every <see cref="PerTenant" /> table of the model that keeps a <c>TenantId</c> column
     ///     and has none yet, when <c>TenantReferences&lt;T&gt;()</c> asked for them; then names every one the model has by
-    ///     <paramref name="name" />, the app's <c>ConstraintNames</c> rule.
+    ///     <paramref name="name" />, the app's <c>ConstraintNames</c> rule. A read model is left as it is: the reference is
+    ///     the schema's, which only the write model makes, and a read model maps the tenant's read face, not the tenant.
     /// </summary>
     /// <param name="modelBuilder">The model being finalized.</param>
     /// <param name="name">The app's rule for a foreign key's name, or null to keep the name each has.</param>
@@ -18,6 +19,11 @@ internal static class TenantReferenceDeclaration
     internal static void Declare(IConventionModelBuilder modelBuilder, Func<Constraint, string?>? name)
     {
         var model = modelBuilder.Metadata;
+        if (model.FindAnnotation(ReadModelRegistry.Annotation) is not null)
+        {
+            return;
+        }
+
         var limit = model.GetMaxIdentifierLength();
 
         if (model.FindAnnotation(TenantReference.TenantAnnotation)?.Value is string tenantName)

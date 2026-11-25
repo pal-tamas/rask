@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`c.TenantReferences<Partner>()` no longer breaks every read.** Before: the convention also ran as the read faces'
+  model was built, where the tenant is its read face (`PartnerRead`), and threw "Partner is not an entity of this
+  model mapped to a table with a key of one column" — so every `X.Where(...)` failed. Now the read model is left as
+  it is: the reference is the schema's, which only the write model and its migrations make.
 - **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
   carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
   `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
