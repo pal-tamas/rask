@@ -47,6 +47,17 @@ public static class UiSelectChoices
         return select.Offer(find, held);
     }
 
+    /// <inheritdoc cref="UiSelect{T}.Choices{TValue}(IChoiceSource{TValue})" />
+    /// <param name="select">The select, opened on a member of <c>T?</c>.</param>
+    /// <param name="source">Where the rows come from: a read face's <c>X.Choices(…)</c>.</param>
+    /// <typeparam name="T">The type of a row's id.</typeparam>
+    public static UiSelect<T?> Choices<T>(this UiSelect<T?> select, IChoiceSource<T> source)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(select);
+        return select.Offer(source);
+    }
+
     /// <inheritdoc cref="UiSelect{T}.Leading{TValue}(Ui.Choice{TValue}[])" />
     /// <param name="select">The select, opened on a member of <c>T?</c>.</param>
     /// <param name="rows">The rows, in the order they stand first: <c>new Ui.Choice&lt;int&gt;(0, "No company")</c>.</param>

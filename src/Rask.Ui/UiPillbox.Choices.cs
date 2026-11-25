@@ -1,3 +1,5 @@
+using Rask.Core.Forms;
+
 namespace Rask;
 
 // `.Choices(…)`: several rows of another table, picked out of a list the pillbox draws from rows rather than options.
@@ -82,6 +84,35 @@ public sealed partial class UiPillbox<T>
         Choose((before, leading) => (UiChoices.Paged(find, shown, UiChoices.Lead<T>(leading), mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
+
+    /// <summary>
+    ///     Offers the rows of a read face — <c>.Choices(Product.Choices(p =&gt; p.Name))</c> — searched and paged in the
+    ///     database as the reader types and scrolls, and every picked row named, whether or not a page holds it.
+    /// </summary>
+    /// <remarks>
+    ///     As the paging <c>.Choices((typed, page) =&gt; …)</c>, with no <c>held:</c> to read: the source
+    ///     (<see cref="IChoiceSource{TKey}" />) names the picked rows on the first page of every answer, through the
+    ///     tenant in flight.
+    ///     <code>
+    ///     Ui.Pillbox.Bind(() =&gt; model.ProductIds).Choices(Product.Choices(p =&gt; p.Name))
+    ///     </code>
+    /// </remarks>
+    /// <param name="source">Where the rows come from: a read face's <c>X.Choices(…)</c>, or a source of the app's own.</param>
+    /// <returns>This pillbox.</returns>
+    public UiPillbox<T> Choices(IChoiceSource<T> source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        Choose((before, leading) =>
+        {
+            var rows = UiSourceChoices<T>.Of(before, source, Picked);
+            return (UiChoices.Paged(rows.Find, rows.Held(), UiChoices.Lead<T>(leading), mayBeEmpty: false, before, out var changed, pills: true), changed);
+        });
+        return this;
+    }
+
+    // The ids the pillbox holds as it asks: its bound member's, or the value the page hands it.
+    private T[] Picked() =>
+        [.. (Bind is { } bind ? ExpressionAccessor.Parse(bind).Getter() as IEnumerable<T> : Value) ?? []];
 
     /// <summary>
     ///     Pins <paramref name="rows" /> before the rows <c>.Choices(…)</c> offers, in the order given, never sorted among

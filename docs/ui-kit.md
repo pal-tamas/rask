@@ -1801,6 +1801,28 @@ static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.Choic
 }
 ```
 
+**A read face's rows** need none of that: `.Choices(Company.Choices(c => c.Name))` hands the select (or `Ui.Pillbox`,
+or `Ui.Field.Bind` over an id) the read face's `IChoiceSource<TKey>` ([data.md](data.md)), which searches what is typed
+case and accents aside, in the app's text order, through the tenant in flight, pages as the list scrolls and says how
+many rows there are, so the scrollbar is the whole list's. The picked row is named on the button and stands first in the
+list whatever page it is on — the source names it on the first page of every answer, with no `held:` for the page to
+read — and an id of another tenant's row, or of none, names nothing. A source built again every render (as
+`Company.Choices(…)` is) is the same search to the select, not asked again for nothing; one that narrows by a filter the
+reader changes is keyed by it (`.Key(filter)`), so a change starts the list over.
+
+```csharp
+// Before: each app's ChoicePages / PagedChoices, and the held row read by the page.
+Ui.Select.Bind(() => model.CompanyId)
+    .Choices((typed, page) => Company.Where(c => c.Name.Loosely().Contains(typed)).OrderBy(c => c.Name).Page(page, c => new Ui.Choice<int>(c.Id, c.Name)),
+        held: heldCompany)   // read by the page beforehand, so the button names the row
+
+// After: the read face's rows.
+Ui.Select.Bind(() => model.CompanyId).Choices(Company.Choices(c => c.Name))
+Ui.Select.Bind(() => model.DriverId).Choices(Driver.Where(d => d.Active).Choices(d => d.Id, d => d.Name, d => d.Licence))
+Ui.Pillbox.Bind(() => model.VehicleIds).Choices(Vehicle.Choices(v => v.Plate))
+Ui.Field.Bind(() => f.SupplierId).Choices(Supplier.Choices(s => s.Name))
+```
+
 **Rows pinned first** — "No company" above the companies — are `.Leading(…)` after `.Choices(…)`, on `Ui.Select` (a
 select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does) and `Ui.Pillbox`, over any of the three sources (the
 owner's addition, 2026-11-18). They stand in the order given, never sorted among the choices, and **every search keeps

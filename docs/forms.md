@@ -947,7 +947,7 @@ midnight —
 a `Ui.DayAndTime`, a `bool` a `Ui.Checkbox`, an enum a `Ui.Select` over its members in their order (an empty
 choice first for a nullable one), and a range two controls under one label, each end with its own message.
 Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
-`.Choices(Vehicle.Find)`; without them rendering throws and says so. `[Editable(false)]` makes a text or
+`.Choices(Vehicle.Find)`, or a read face's rows, `.Choices(Vehicle.Choices(v => v.Plate))` — searched and paged in the database, the picked row named whatever page it is on ([ui-kit.md](ui-kit.md)); without them rendering throws and says so. `[Editable(false)]` makes a text or
 number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
 step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones.
 

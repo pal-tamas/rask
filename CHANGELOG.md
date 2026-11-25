@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A select over a read face's rows: `.Choices(Company.Choices(c => c.Name))`.** `Ui.Select`, `Ui.Pillbox` and
+  `Ui.Field.Bind` over an id take an `IChoiceSource<TKey>` — a read face's `X.Choices(…)`, or a source of the app's
+  own — searched, paged and counted by the source as the reader types and scrolls, the picked row named on the button
+  and first in the list whatever page it is on, an id of another tenant's row naming nothing. No `held:` for the page to
+  read, and no `ChoicePages`/`PagedChoices` helper of the app's own.
 - **`X.Renumber(group)` / `X.RenumberAll()`: a `b.Numbered(…)` numbering numbered anew by hand, for rows written past a
   save.** Before: a test or a data repair that wrote numbered rows with a raw `ExecuteUpdate` or SQL renumbered them
   itself, restating the numbering's rules in a loop of its own (TA's `Numbering.Mend`). Now `await Fueling.Renumber(pistolId)`

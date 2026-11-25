@@ -32,6 +32,13 @@ public sealed partial class UiBoundField<T> : ICarriesHandSteps
         Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<TValue>>>> find, Ui.Choice<TValue>? held = null)
         where TValue : T => Choose(select => select.Offer(find, held));
 
+    /// <summary>The rows another row's id is picked from, a read face's: <c>.Choices(Vehicle.Choices(v =&gt; v.Plate))</c>.</summary>
+    /// <param name="source">Where the rows come from, searched and paged in the database; the picked row named on every answer.</param>
+    /// <typeparam name="TValue">The type of a row's id.</typeparam>
+    /// <returns>This field.</returns>
+    public UiBoundField<T> Choices<TValue>(IChoiceSource<TValue> source)
+        where TValue : T => Choose(select => select.Offer(source));
+
     /// <summary>The rows for a field bound to a member of <c>T?</c>: the kit's own step, for <see cref="UiBoundFieldChoices" />.</summary>
     /// <param name="offer">What to hand the select.</param>
     internal UiBoundField<T> Choose(Action<UiSelect<T>> offer)
