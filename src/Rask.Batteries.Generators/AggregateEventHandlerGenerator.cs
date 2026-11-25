@@ -123,6 +123,15 @@ public sealed class AggregateEventHandlerGenerator : IIncrementalGenerator
         return method.Parameters[0].RefKind == RefKind.None ? null : "takes its event by reference";
     }
 
+    /// <summary>Whether <paramref name="method" /> is an aggregate's event handler of exactly the shape RASK179 asks for.</summary>
+    internal static bool IsHandler(IMethodSymbol method) =>
+        string.Equals(method.Name, MethodName, System.StringComparison.Ordinal) &&
+        method.ContainingType is { TypeKind: TypeKind.Class } aggregate &&
+        AggregateShape.IsAggregate(aggregate) &&
+        method.Parameters.Length == 1 &&
+        IsEvent(method.Parameters[0].Type) &&
+        ShapeProblem(method, method.Parameters[0].Type) is null;
+
     private static bool ReturnsTask(IMethodSymbol method) =>
         method.ReturnType is INamedTypeSymbol { Name: "Task", Arity: 0 } returned &&
         string.Equals(returned.ContainingNamespace.ToDisplayString(), "System.Threading.Tasks", System.StringComparison.Ordinal);

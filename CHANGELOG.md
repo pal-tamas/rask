@@ -19,6 +19,10 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **An aggregate's `static Task On(E e) => X.UpdateEach(…)` no longer hears CA1859.** Before: the write answers a
+  `Task<int>`, so the .NET analyzers asked the handler to return that — the very return type RASK179 refuses — and a
+  strict app could not satisfy both. Now `RASKSUP003` suppresses CA1859 on a handler of exactly RASK179's shape, and on
+  nothing else (`docs/diagnostics.md#rask179`).
 - **A scaffold under a symlinked folder restores its tests with the app.** Before: under a path through a link
   (macOS's `/tmp` and `/var` are links into `/private`) NuGet's default restore recorded the app as two different
   paths and dropped `Shop.Tests`' reference to `Shop`, so the tests lost every package the app brings. Now every
