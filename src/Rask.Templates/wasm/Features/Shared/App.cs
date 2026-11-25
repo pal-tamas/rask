@@ -6,5 +6,7 @@ public sealed partial class App(RouteState route) : Component
 {
     protected override Component? HeadAssets => Title[route.Title is { } page ? $"{page} | Company.RaskServer" : "Company.RaskServer"];
 
-    protected override Component? Render() => Router;
+    // The page, and the dialog every page asks its questions in: an editor's Delete, Ui.Confirm.Ask from a handler.
+    // (Toasts need nothing here: the host draws them when the app places no Ui.Toast of its own.)
+    protected override Component? Render() => [Router, Ui.Confirm];
 }

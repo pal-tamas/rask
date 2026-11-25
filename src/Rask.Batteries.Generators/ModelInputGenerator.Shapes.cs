@@ -24,7 +24,7 @@ public sealed partial class ModelInputGenerator
     // answers its own `__Field`; an enum lists its members. Null for any other type.
     private static string? ShapeOf(ITypeSymbol type, ValueObjectShape? valueObject)
     {
-        if (valueObject is { ValueBase: "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range" })
+        if (valueObject is { ValueBase: "Text" or "Number" or "Integer" or "Day" or "Moment" or "Range" })
         {
             return valueObject.TypeName + ".__Field";
         }

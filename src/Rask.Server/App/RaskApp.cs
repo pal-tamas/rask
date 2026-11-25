@@ -65,7 +65,7 @@ public sealed partial class RaskApp
     private readonly List<Action<IEndpointRouteBuilder>> _endpoints = [];
     private readonly RaskAppOptions _options = new();
 
-    // The process arguments, for the one place that reads them itself: `dotnet App.dll rask audit` runs a command
+    // The process arguments, for the one place that reads them itself: `dotnet App.dll rask db migrate` runs a command
     // instead of the server (AppCommand).
     private string[] _args = [];
 
@@ -160,7 +160,7 @@ public sealed partial class RaskApp
 
     /// <summary>Builds the pipeline and runs the app, with <typeparamref name="TApp"/> as the root component.</summary>
     /// <remarks>
-    /// Started as <c>dotnet App.dll rask &lt;command&gt;</c> — <c>rask audit</c>, <c>rask db migrate</c> — it runs that
+    /// Started as <c>dotnet App.dll rask &lt;command&gt;</c> — <c>rask db migrate</c> — it runs that
     /// command against the app's database instead, and exits with its code; the server is never started.
     /// </remarks>
     public void Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
@@ -218,7 +218,7 @@ public sealed partial class RaskApp
     {
         if (AppCommand.Names(_args))
         {
-            System.Environment.ExitCode = AppCommand.RunAsync(app.Services, _args, Console.Out, Console.Error, CancellationToken.None)
+            System.Environment.ExitCode = AppCommand.RunAsync(app.Services, _args, Console.Error, CancellationToken.None)
                 .GetAwaiter().GetResult();
             return;
         }

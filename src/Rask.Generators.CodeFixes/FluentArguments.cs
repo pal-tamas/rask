@@ -40,7 +40,7 @@ internal static class FluentArguments
             };
         }
 
-        var whole = valueBase.IsWhole;
+        var whole = valueBase.IsInteger;
         return call.TargetMethod.Name switch
         {
             "InclusiveBetween" when valueBase.IsNumeric && given.Count == 2 => Set(arguments, whole, ("Min", given[0]), ("Max", given[1])),

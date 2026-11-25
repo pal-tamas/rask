@@ -21,7 +21,7 @@ public static class TestMakes
         ///         accept it, and every call makes the same one. A <see cref="Text" /> is filled to its <c>MinLength</c> (or a
         ///         few letters, within its <c>MaxLength</c>), and a simple <c>Pattern</c> — literals, <c>\d</c>, <c>\w</c>,
         ///         character classes, groups and counted repeats, like <c>^[A-Z]{3}-\d{3}$</c> — is met; a <see cref="Number" />
-        ///         or a <see cref="Whole" /> is its <c>Min</c>, or 1 within its <c>Max</c>, at its scale; a <see cref="Day" /> or a
+        ///         or an <see cref="Integer" /> is its <c>Min</c>, or 1 within its <c>Max</c>, at its scale; a <see cref="Day" /> or a
         ///         <see cref="Moment" /> is its earliest, or <see cref="Clock.Today" /> (<see cref="Clock.Wall" />) within its latest; a <see cref="Rask.Values.Range" /> runs from its
         ///         <c>Min</c> (or 1, or today) one step on. A value object declared from <see cref="Value" /> gets a sample of
         ///         each member: text, a number, a day, an enum's first member, or another value object made the same way.

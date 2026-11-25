@@ -20,7 +20,7 @@ namespace Rask.Generators.CodeFixes;
 /// </summary>
 /// <remarks>
 ///     The value object is named after its type and the property, declared from the base record for what the property
-///     holds (<c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>), and given the arguments its rules say; each rule a
+///     holds (<c>Text</c>, <c>Number</c>, <c>Integer</c>, <c>Day</c>), and given the arguments its rules say; each rule a
 ///     base argument now carries is taken off the property. A FluentValidation check no argument says (<c>Matches</c>,
 ///     <c>Must</c>) is left where it is, for the author to move into the value object. What is not offered, and why, is
 ///     <see cref="ValueObjectDraftReader" />'s to say.

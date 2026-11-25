@@ -38,7 +38,7 @@ internal static class AnnotatedShapes
         return Type.GetTypeCode(held) switch
         {
             TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32
-                or TypeCode.Int64 or TypeCode.UInt64 => FieldKind.Whole,
+                or TypeCode.Int64 or TypeCode.UInt64 => FieldKind.Integer,
             TypeCode.Single or TypeCode.Double or TypeCode.Decimal => FieldKind.Number,
             _ => FieldKind.Text,
         };

@@ -159,7 +159,7 @@ internal static class ReadModelShape
             // the value object declares — a base record's own `__Field`; one declared straight from Value has none.
             if (members.Count == before + 1 && AggregateShape.HoldsOneValue(valueObject))
             {
-                members[before] = Shown(members[before], property, AggregateShape.ValueBaseOf(valueObject) is "Text" or "Number" or "Whole" or "Day" or "Moment"
+                members[before] = Shown(members[before], property, AggregateShape.ValueBaseOf(valueObject) is "Text" or "Number" or "Integer" or "Day" or "Moment"
                     ? valueObject.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ".__Field"
                     : null);
             }
