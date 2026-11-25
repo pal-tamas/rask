@@ -332,6 +332,15 @@ user was signed out is its former user's or nobody's: another signed-in user is 
 | before a call a page's script makes into the server (`DotNet.invokeMethodAsync`, a `dotNetInvoke` frame) | asked unless something asked within the last second, and not made at all for a session whose sign-in ended |
 | before a render the server starts itself (a timer, a followed service, a data change) | asked unless something asked within the last **second**. This second is the one time bound there is, and it is here because such a render is not a reader's action: a page that repaints twenty times a second would otherwise read the user's row twenty times a second |
 
+**A token's own expiry is honoured, revalidator or not.** A principal that carries an `exp` claim (RFC 7519 —
+a JWT bearer token's, or one an app's own sign-in put in its cookie) has ended once that moment has passed by the
+app's `TimeProvider`, give or take five minutes of clock skew — the five ASP.NET's JWT validation allows, so a page
+never signs out a reader the next request would still let in. At each of the moments above the session compares the
+expiry it worked out as it took the principal with the clock: no allocation, no lookup. A lapsed one is treated as a
+revalidator's `null`: the handler, navigation or script call does not run, and the page [goes to the sign-in
+page](#when-the-user-is-gone); a connection that attaches with one is given nobody. The earliest `exp` of the
+principal's identities counts; a principal without one is never ended by the clock.
+
 The answer to a call the server made into the page (`jsResult`) is an answer, not an act, and is taken as it
 comes. An upload and a download are requests of their own, checked against the principal that request carries.
 

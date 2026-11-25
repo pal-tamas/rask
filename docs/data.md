@@ -1021,6 +1021,10 @@ Which sentence, in this order:
   found; under any other name the entity's `WhenReferenced` answers.
 - **A soft delete is never refused.** An aggregate that names `SoftDelete` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
+- **The other side — a key that points at no row of the tenant in flight — is refused before the database is
+  asked**, for a `PerTenant` row: a field error under the key, in the relationship's `WhenMissing("…")`, else the
+  referenced entity's `b.WhenMissing("…")`, else the catalog's `ValidationNotFound`
+  ([multi-tenancy.md](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant)).
 
 ### How long between two dates, in a query
 

@@ -32,6 +32,23 @@ them until tagged releases begin.
   the row's own `Id` kept its type: the face flattened the typed id like a one-value value object. A column whose type
   some entity is keyed by now keeps that type, nullable as declared, and a `{X}Id` one infers its navigation as a
   `Guid` one does; a one-value type no entity is keyed by still reads as the value it holds.
+- **A `TestDatabase`'s `Context` reads what the database has.** Before: the fixture's long-lived context kept handing
+  back the instance it tracked from before a save elsewhere (`order.Save()`, a handler, `database.Factory`), so a test
+  read stale values through it — or saved them back over the newer row — and a save of its own that was refused kept
+  its change tracked, to ride along with the next save; an app's tests called `ChangeTracker.Clear()` before every use.
+  Now a row another context saved is the saved row in it too (an unchanged instance takes the saved values, version
+  included; a deleted one is let go; a change the test has not saved stays the test's), and a failed save through it
+  lets go of what it tracked, as a page's context gone with its request would.
+- **A refusal of the whole form crosses the wire.** `Refuse.When(cond, message)` — any
+  `RaskValidationException(message)` — now carries its sentence under the empty key of `Errors` as well as in
+  `Failures`, so a WASM client, an API caller and a form behind a remote dispatch get it as a failure under no field
+  (the form's summary, else a toast) rather than a bare "failed on the server". Before: `Errors` was empty.
+- **A live page honours its principal's `exp` claim, with or without an `ISessionRevalidator`.** Before: an app that
+  registered no revalidator kept a JWT-signed-in page acting for its reader long after the token had expired, for
+  as long as the socket stayed open. Now the session works out the earliest `exp` as it takes the principal, and
+  every handler, navigation, script call, attach and server-started render compares it with the app's
+  `TimeProvider` (five minutes of clock skew, as JWT validation allows): a lapsed sign-in runs nothing and goes to
+  the sign-in page. A principal without `exp` is unchanged.
 - **A sign-in challenge no longer grows its `returnUrl` until the server answers 431.** Before: a challenge of the
   sign-in page itself (a layout guarding `/login`, a cookie the scheme kept refusing) wrapped the address it already
   carried, escaped once more each round — `/login?returnUrl=%2Flogin%3FreturnUrl%3D%252F…` — until the request was
@@ -208,6 +225,29 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A save refuses a reference to another tenant's row** (`docs/multi-tenancy.md`). Every foreign key a `PerTenant`
+  row sets to another tenant-scoped table — an aggregate, a child, a `PerTenantThrough` aggregate's parent — must
+  name a row the tenant in flight reads; another tenant's, or none, is a `RaskValidationException` under the key's
+  field (`CompanyId`, `Axles[1].DepotId`). One `IN (…)` query per referenced table per save, only for keys the save
+  sets. The sentence is the relationship's new `WhenMissing("…")`, else the referenced entity's `WhenMissing("…")`,
+  else the catalog's `ValidationNotFound`. Apps drop their `Refuse.When(await Company.Choice(id) is null, …)` guards.
+  **Breaking:** a `PerTenantThrough` row saved under another tenant's parent is now that validation failure, not an
+  `InvalidOperationException`.
+- **`await ProductChangeInput.Of(id)`: an operation's form model, filled as `Form.For` fills it.** Before: a test
+  handing `Test.FormShows(…)` an operation's input built it as `new ProductChangeInput(id, version)`, which starts
+  every field empty — unlike the page, whose `Form.For(Product.Change, id)` reads the stored aggregate — so the test
+  filled the other fields by hand and guessed the version. Now every operation's generated input reads itself from
+  the stored aggregate, at its version, through the same read the form uses, and throws when nothing is stored under
+  the id. The tutorial and `docs/testing.md` use it.
+- **`Routes.X().AsLeft()`: the way back to a list as the reader left it.** Rask already noted every address a session
+  moves to for `Ui.FormButtons`' Cancel and `Ui.AppFrame`'s trail; the app's own code now asks for it too —
+  `Routes.SuppliersPage().AsLeft().Go().Replacing()` after a save, `Ui.Button.Ghost.Href(Routes.X().AsLeft())` for a
+  Cancel of its own, `Go.To(Routes.DriversPage().AsLeft().With("edit", id))` from an old form address — with its
+  filters, sort, page and search, an editor dialog's key left out. Every `Ui.Table` now starts the session's memory,
+  not only one keeping its sort or page in the address. Replaces the apps' own `ListAddresses` service.
+- **A `Ui.Tabs` above a paged list starts it at page one.** A lone `Ui.Tabs` (not in a `Ui.TabGroup` or a dialog's form)
+  on a page whose `Ui.Table` keeps its page in the address (`PageIn("page", …)`) takes that key out of the address its
+  `OnChange` moved to, so another tab never opens on the page the last one was on; filters and sort stay.
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,

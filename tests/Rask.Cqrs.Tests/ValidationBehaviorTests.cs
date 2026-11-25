@@ -118,6 +118,6 @@ public sealed class ValidationBehaviorTests
 
         Assert.Equal("rejected", ex.Message);
         Assert.Same(inner, ex.InnerException);
-        Assert.Empty(ex.Errors);
+        Assert.Equal(["rejected"], ex.Errors[""]);
     }
 }

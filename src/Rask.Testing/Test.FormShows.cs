@@ -63,8 +63,8 @@ public static partial class Test
 
     /// <summary>
     ///     Checks that a form over <paramref name="model" /> shows <paramref name="message" /> under
-    ///     <paramref name="field" /> once it holds <paramref name="value" /> — for a model made by hand, like an operation
-    ///     form's, which starts from the aggregate's id and version: <c>new SupplyChangeInput(id, version)</c>.
+    ///     <paramref name="field" /> once it holds <paramref name="value" /> — for a model given as it is, like an operation
+    ///     form's, read from the stored aggregate as <c>Form.For</c> reads it: <c>await SupplyChangeInput.Of(id)</c>.
     /// </summary>
     /// <typeparam name="TModel">The form's model.</typeparam>
     /// <param name="model">The model, as the form would start from it.</param>

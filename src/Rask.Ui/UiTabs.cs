@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
+using Rask.Core.Routing;
 
 namespace Rask;
 
@@ -43,6 +44,10 @@ public sealed partial class UiTabs : Component
     private string? _told;
     private string? _drawn;
     private int _turn;
+
+    // Whether the row switches a list, as the last render found it.
+    private bool _switchesList;
+
 
     /// <summary>How the tabs are drawn. A row on a hairline unless this says otherwise.</summary>
     public Ui.TabsVariant? Variant { get; set; }
@@ -96,15 +101,20 @@ public sealed partial class UiTabs : Component
 
         // The field takes only the name of a tab this render drew enabled, filled in as the tabs take their places.
         var offered = new OfferedOptions("tabs", bound?.PropertyName);
+        // On its own — outside a tab group and a dialog's form — the row switches the list beneath it.
+        var group = Context.Get<UiTabGroupScope>();
         var scope = new UiTabScope(variant, Size ?? Ui.TabsSize.Base, chosen, chosen is null && AnyTabSaysSelected())
         {
             Offered = offered,
+            SwitchesList = group is null && !Context.Has<IOperationFormHost>(),
         };
 
-        if (Context.Get<UiTabGroupScope>() is { } group)
+        if (group is not null)
         {
             group.Tabs = scope;
         }
+
+        _switchesList = scope.SwitchesList;
 
         var scrolls = Scrollable == true;
         var list = Div
@@ -156,6 +166,26 @@ public sealed partial class UiTabs : Component
         // Remembered even when the page holds the value: a page that stops passing one keeps the tab it was on.
         (_told, _selected) = (name, name);
         await OnChange.Invoke(name).ConfigureAwait(false);
+        if (_switchesList)
+        {
+            FirstPage();
+        }
+    }
+
+    // Another tab is another list: the page the list was on is no page of it, so the move the tab made — the page's own
+    // Go.To or Go.With, or none — leaves the list's page key out, and the new tab starts at page one. Its filters and its
+    // sort stay. A tab of a tab group, or of a dialog's form, switches no list.
+    internal static void FirstPage()
+    {
+        if (Navigator.Current is not { } navigator)
+        {
+            return;
+        }
+
+        foreach (var key in UiListAddresses.Of(navigator.Route).PagesHeld())
+        {
+            Go.Without(key);
+        }
     }
 
     // A later tab's `Selected` has to be known before the first tab renders, or the first would claim the row.
