@@ -325,6 +325,7 @@ public sealed class FluxConformanceTests
         [typeof(UiDatePickerRange)] = "flux:date-picker, a range",
         [typeof(UiDatetimePicker)] = "flux:datetime-picker, one moment",
         [typeof(UiDatetimePickerRange)] = "flux:datetime-picker, a range",
+        [typeof(UiFilePicker)] = "flux:file-upload bound to one file of a form's member: its dropzone while empty, then flux:file-item with its remove button",
         [typeof(UiAppearanceScript)] = "the dark-mode script a page's head carries",
         [typeof(UiSidebarScript)] = "the sidebar's script a page's head carries",
     };
