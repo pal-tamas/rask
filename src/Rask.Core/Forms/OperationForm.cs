@@ -231,6 +231,9 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
 
         var fields = _fields(input);
         var form = _look.Applied(Form.Model(input).OnSubmit(Save));
+
+        // Its fields commit as they are left: what the dry run refuses is told then, not with the next action.
+        form.CommitsOnLeave = true;
         return (_invalid is { } invalid ? form.OnInvalidSubmit(invalid) : form)[
             _may() ? fields : [Fieldset.Disabled(true)[fields]]
         ];

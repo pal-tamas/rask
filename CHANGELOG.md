@@ -392,6 +392,13 @@ them until tagged releases begin.
   (collations, locks, sequences, convention DDL, decimals, constraint violations, the batteries' SQL, migrations);
   the provider-independent suites (audit rows, the bulk writes' rules, read-face shapes, value objects EF Core
   translates, transactions' hand-back and raw SQL) run on SQLite alone. The unused Redis container is gone.
+- **A field of `Form.For` commits as it is left.** Before: a typed field under a form over an operation (`Form.For`,
+  `Ui.EditorDialog`'s forms) with no timing step waited for the next action, like any bound field, so the operation's
+  dry run said nothing when the reader left a field it refuses — two demos needed a hand `.Blur()`. After: such a
+  field (`Ui.Field`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, `Ui.Composer`, Core's `Input`/`Textarea`) commits on
+  leaving it, as `.Blur()` does, and the refusal shows then. `.Live()` and `.Debounce(…)` still win, and the new
+  `.Defer()` (Livewire's `wire:model.defer`) keeps a field waiting for the next action. `Form.Model(m)` and chosen
+  controls (a checkbox, a select, a picker) are unchanged. A `.Blur()` under `Form.For` is now redundant.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
