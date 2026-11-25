@@ -18,10 +18,12 @@ main_verdict() {
 }
 
 # gates_failed <run id> -> true when a gate job of the run failed: a run that ended `cancelled` with one is
-# a RED run that gates.yml's fail-fast step cut short, not one a newer push superseded.
+# a RED run that gates.yml's fail-fast step cut short, not one a newer push superseded. Read off the steps:
+# the job that failed is itself still running its fail-fast step when the cancel lands, so it ends
+# `cancelled` too, and only its gate step says `failure`.
 gates_failed() {
   [ "$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$1/jobs?per_page=100" --jq '[.jobs[]
-      | select((.name | startswith("gates / ")) and .conclusion == "failure")] | length' \
+      | select((.name | startswith("gates / ")) and (.conclusion == "failure" or any(.steps[]?; .conclusion == "failure")))] | length' \
     | awk '{ n += $1 } END { print n + 0 }')" -gt 0 ]
 }
 

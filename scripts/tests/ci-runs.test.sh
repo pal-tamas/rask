@@ -104,6 +104,9 @@ check "a cancelled run is no base, whatever it started"                  "$m2" "
 jobs 13 'base=completed/success' 'gates / plan=completed/success' 'gates / build=completed/failure' 'gates / analyzers 1/4=completed/cancelled'
 check "a run cancelled because a gate failed (fail_fast) is a red base"   "$m3" "$(base main main 14)"
 
+reply "repos/o/r/actions/runs/13/jobs" '{"jobs":[{"name":"gates / plan","status":"completed","conclusion":"success"},{"name":"gates / build","status":"completed","conclusion":"cancelled","steps":[{"name":"build","conclusion":"failure"},{"name":"Fail fast — cancel the run","conclusion":"cancelled"}]}]}'
+check "...read off the failed step, the job itself ending cancelled"     "$m3" "$(base main main 14)"
+
 reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 15:completed:push:success:"$m4" 13:completed:push:success:"$m2")"
 check "a later run is never this one's base"                             "$m2" "$(base main main 14)"
 

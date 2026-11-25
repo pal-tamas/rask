@@ -77,10 +77,14 @@ jobs:
           # "mode" (no gate sets it today) ties a gate to whole runs ("full") or scoped ones ("scoped").
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
-          # The unit gate, in two jobs that build the same projects — in a scoped run the ones the change
-          # reaches, otherwise all of them. "build" is the warnings-as-errors build with the analyzers OFF
-          # and then the unit tests over that output: the nightly is pushed the moment it is green
-          # (nightly.yml, scripts/lib/nightly_wait.sh — keep its name). "analyzers" is the gate script
+          # The unit gate, in jobs that build the same projects — in a scoped run the ones the change
+          # reaches, otherwise all of them. "build" is the warnings-as-errors build with the analyzers OFF,
+          # and nothing else. The unit tests are cut by test project into "unit K/N" (part unit-K, dealt
+          # by scripts/lib/unit-shards.txt): each builds only its own test projects and what they
+          # reference, analyzers off, and runs them; until 2026-11-25 they ran in "build", 44 assemblies
+          # on one runner after the whole build, 16 minutes of a run's critical path. The nightly is pushed
+          # the moment "build" and every unit shard are green (nightly.yml, scripts/lib/nightly_wait.sh —
+          # keep the names). "analyzers" is the gate script
           # tests, the same build with the analyzers on, and the formatter over the .cs files the change
           # touched (every file when it touched the rules), each shard over its own projects' files
           # (scripts/lib/format-scope.sh). The tests and the
@@ -111,6 +115,10 @@ jobs:
           GATES: >-
             [
               {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 1/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-1"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 2/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-2"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 3/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-3"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "unit 4/4",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "unit-4"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 1/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-1"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 2/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-2"},
               {"set": "push", "deps": true, "when": "code",                    "name": "analyzers 3/4",      "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers-3"},
