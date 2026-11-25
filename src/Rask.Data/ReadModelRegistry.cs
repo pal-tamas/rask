@@ -27,6 +27,12 @@ namespace Rask.Data;
 /// </remarks>
 public static class ReadModelRegistry
 {
+    /// <summary>
+    ///     The model annotation that marks a model as a read model, so a convention that shapes the database — a
+    ///     migration's concern, never a read's — leaves it alone.
+    /// </summary>
+    internal const string Annotation = "Rask:ReadModel";
+
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<ReadEntityMapping>> Contributions = new();
 
     /// <summary>The mapping of the read face <paramref name="read" />, or null when no assembly contributed one.</summary>
@@ -72,6 +78,9 @@ public static class ReadModelRegistry
     public static ModelBuilder Apply(ModelBuilder modelBuilder, IModel? writeModel, DbContext? context)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        // Before any convention finalizes the model: one that writes the schema (TenantReferences) skips a read model.
+        modelBuilder.HasAnnotation(Annotation, true);
 
         var all = Contributions.Values.SelectMany(static c => c).ToList();
 
