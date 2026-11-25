@@ -23,12 +23,12 @@ namespace Rask.Core;
 ///         the owner leaves the page, and not when the component that invoked it does.
 ///     </para>
 ///     <para>
-///         The receiver is captured once at wrap time from <c>original.Target as Component</c> — the
-///         same heuristic the DOM handler-owner resolution uses. When the target is not a
-///         <see cref="Component" /> (a static method, or a lambda closing over <em>only</em> locals rather
-///         than <c>this</c>), <c>Wrap</c> returns the original delegate unchanged: no extra allocation,
-///         and no re-render fires (only a static lambda or one closing over locals-only stays unwrapped — write the lambda
-///         inside the component so it captures <c>this</c>).
+///         The receiver is captured once at wrap time by the same rule the DOM handler-owner resolution
+///         uses (<see cref="DelegateOwner" />): the component the delegate's target is or captures, else —
+///         for a lambda closing over <em>only</em> locals, which holds no component at all — the component
+///         whose Render is running as the chain step is set, which is the one that wrote it. With neither
+///         (a static method, or a delegate set outside any render), <c>Wrap</c> returns the original
+///         delegate unchanged: no extra allocation, and no re-render fires.
 ///     </para>
 ///     <para>
 ///         HTML element handlers (<c>Button.OnClick</c>, …) are <em>not</em> wrapped: those are
@@ -48,7 +48,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -74,7 +74,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -100,7 +100,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -127,7 +127,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -154,7 +154,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -181,7 +181,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -215,7 +215,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T1, T2>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -241,7 +241,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T1, T2>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -268,7 +268,7 @@ public static class AutoCallback
         }
 
         d = Authorization.HandlerGuard<T1, T2>.Guard(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return d;
         }
@@ -323,7 +323,7 @@ public static class AutoCallback
         // A folded handler is called with DynamicInvoke below, so its [Authorize] is asked here rather than adapted.
         var rule = Authorization.HandlerRules.Of(d);
         var name = rule is null ? string.Empty : Authorization.HandlerRules.Name(d);
-        if (DelegateOwner.Resolve(d) is not { } r)
+        if (DelegateOwner.ResolveWhileRendering(d) is not { } r)
         {
             return rule is null ? d : Guarded(d, rule, name);
         }

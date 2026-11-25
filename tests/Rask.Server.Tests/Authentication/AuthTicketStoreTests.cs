@@ -24,6 +24,27 @@ public class AuthTicketStoreTests
     }
 
     [Fact]
+    public void Two_tickets_for_two_principals_each_redeem_to_their_own_principal_only()
+    {
+        var store = Store();
+        var alice = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "Test"));
+        var bob = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "bob")], "Test"));
+        var aliceTicket = store.Issue(AuthAction.SignIn, alice, "Test", "session-1");
+        var bobTicket = store.Issue(AuthAction.SignIn, bob, "Test", "session-2");
+
+        var bobRedeemed = store.TryRedeem(bobTicket, "session-2", out var bobs);
+        var aliceRedeemed = store.TryRedeem(aliceTicket, "session-1", out var alices);
+
+        Assert.NotEqual(aliceTicket, bobTicket);
+        Assert.True(bobRedeemed);
+        Assert.True(aliceRedeemed);
+        Assert.Same(bob, bobs.Principal);
+        Assert.Same(alice, alices.Principal);
+        Assert.Equal("session-2", bobs.SessionId);
+        Assert.Equal("session-1", alices.SessionId);
+    }
+
+    [Fact]
     public void A_ticket_redeems_only_once()
     {
         var store = Store();
