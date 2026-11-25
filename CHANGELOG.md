@@ -160,6 +160,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
+  value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
+  format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,
+  `+01:00`) is converted to `Clock.Zone`, across summer time, and one without is taken as the wall's; a `Day` is a
+  moment's day on the wall calendar. No moment is a `FormatException`, a refused one the `RaskValidationException`
+  `Create` throws; `TryParse` says false for both. Replaces an app's own zone helper (`Zone`, `Of`, `FromUtc`, `Parse`):
+  `AmnisMoment.Parse(text)`, `Clock.WallAt(moment)`, `Clock.Today`.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
@@ -427,6 +434,12 @@ them until tagged releases begin.
   `Product`'s `static Task On(OrderPlaced e)`, and chapters 10–11 run `rask audit`. Every chapter proves its rules on
   SQLite in memory (`TestDatabase.Start`, `Test.Make`, `Test.Refuses`, `Test.FormShows`, `Test.Concurrently`), and
   `TutorialChapterBuildE2ETests` builds each chapter's tests with the app and runs them at the end.
+- **rask.sh leads with the one way an app is written.** The hero's code window is now a model (a `Text`/`Number`
+  value object, a typed id, an aggregate whose `Reprice` refuses with `Refuse.When`), the `Form.For(Product.Reprice, id)`
+  over it, and its test on SQLite in memory — three files compiled and run in `tests/Rask.Testing.Database.Tests/Hero`,
+  which the site's copy is held to character for character. The back-end cards gain *Domain model* and *Domain tests*,
+  the forms card is `Form.For`, the guide catalog's domain, data, data-writes, forms, testing and tutorial entries say
+  the same, `/llms.txt` states the style before any guide, and the home page's JSON-LD names it in a `featureList`.
 - **The SQL Server and PostgreSQL provider tests run in CI on Testcontainers, and need no Docker on a dev machine.**
   Before: `scripts/run-providers-local.sh` started the servers with `docker run`, and only a release (or a
   `ci/release/**` branch) ran the gate. After: `tests/Rask.Providers.E2E.Tests` starts one SQL Server 2022 and one
