@@ -291,7 +291,7 @@ public sealed partial class FirstInvalidPage : Component
             Ui.Button.Submit.Id("select-save")["Save"]
         ],
         Form.Model(_day).OnSubmit(_ => { }).Id("date")[
-            Ui.DatePicker.Bind(() => _day.Day).Label("Day"),
+            Ui.DatePicker.Bind(() => _day.Day).Type(Ui.DatePickerType.Button).Label("Day"),
             Ui.Button.Submit.Id("date-save")["Save"]
         ],
         Form.Model(_tags).OnSubmit(_ => { }).Id("pillbox")[

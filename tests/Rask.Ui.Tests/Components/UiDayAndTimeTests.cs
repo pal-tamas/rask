@@ -7,7 +7,7 @@ namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     <c>Ui.DayAndTime</c>: one moment, asked as a typed day and a typed time in one row (#1297), and
-///     <c>Ui.DatePicker.Typed()</c>, the day typed in the culture's own order.
+///     <c>Ui.DatePicker</c> as it draws unless told otherwise, the day typed in the culture's own order.
 /// </summary>
 /// <remarks>
 ///     The parts are the browser's (<c>rask-segments.ts</c>): what reaches the page is each picker's one hidden
@@ -253,9 +253,9 @@ public sealed partial class UiDayAndTimeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_typed_date_picker_is_typed_in_the_cultures_order_and_its_header_picks_month_and_year()
+    public void A_date_picker_unless_told_otherwise_is_typed_in_the_cultures_order_and_its_header_picks_month_and_year()
     {
-        var picker = Ui.DatePicker.Value(Today).Typed().Locale("hu-HU").On(Today);
+        var picker = Ui.DatePicker.Value(Today).Locale("hu-HU").On(Today);
 
         var html = picker.ToHtml();
 
@@ -266,12 +266,12 @@ public sealed partial class UiDayAndTimeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_typed_range_is_two_fields_its_start_and_its_end_named_from_the_catalog()
+    public void A_range_unless_told_otherwise_is_two_fields_its_start_and_its_end_named_from_the_catalog()
     {
         var range = new UiDateRange(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 6));
 
-        var english = KitCulture.In("en-US", () => Ui.DatePicker.Range.Value(range).Typed().Locale("en-US").On(Today).ToHtml());
-        var hungarian = KitCulture.In("hu-HU", () => Ui.DatePicker.Range.Value(range).Typed().Locale("hu-HU").On(Today).ToHtml());
+        var english = KitCulture.In("en-US", () => Ui.DatePicker.Range.Value(range).Locale("en-US").On(Today).ToHtml());
+        var hungarian = KitCulture.In("hu-HU", () => Ui.DatePicker.Range.Value(range).Locale("hu-HU").On(Today).ToHtml());
 
         Assert.Equal(2, CountOf(english, "data-rask-segments=\""));
         Assert.Contains(">Start</label>", english, StringComparison.Ordinal);

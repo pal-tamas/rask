@@ -54,14 +54,19 @@ internal static class UiBoundControl
             .Defer(look.Timing.Defer)
             .Badged(look.Badge);
 
-    /// <summary>A day picker over a member of <c>DateOnly</c> or <c>DateOnly?</c>, latest today where the shape says so.</summary>
+    /// <summary>
+    ///     A day picker over a member of <c>DateOnly</c> or <c>DateOnly?</c> — or a <c>DateTime</c> or <c>DateTime?</c>
+    ///     held as its day — latest today where the shape says so. A field draws Flux's button.
+    /// </summary>
     internal static UiDatePicker DayPicker(LambdaExpression bind, FieldShape? shape) =>
         (bind switch
         {
             Expression<Func<DateOnly>> day => Ui.DatePicker.Bind(day),
             Expression<Func<DateOnly?>> maybe => Ui.DatePicker.Bind(maybe),
+            Expression<Func<DateTime>> moment => Ui.DatePicker.Bind(moment),
+            Expression<Func<DateTime?>> maybe => Ui.DatePicker.Bind(maybe),
             _ => throw UiBoundMember.NoControlFor(bind, bind.ReturnType),
-        }).Max(shape?.NotAfterToday == true ? Clock.Today : null);
+        }).Type(Ui.DatePickerType.Button).Max(shape?.NotAfterToday == true ? Clock.Today : null);
 
     // What a member says by its type alone, where no shape was registered for it.
     private static FieldKind? KindOf(Type type)
@@ -107,22 +112,12 @@ internal static class UiBoundControl
     private static bool IsDayOfMoment(FieldShape? shape, Type type) =>
         type == typeof(DateTime) && (shape?.Kind == FieldKind.Day || ShapedInput.For(shape, type) is InputType.Date);
 
-    // A moment asked as its day alone: latest today, or now, where the shape says so.
-    private static UiDayAndTime<T> MomentDay<T>(Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look) =>
-        Ui.DayAndTime.Bind(bind)
-            .DayAlone(look.Placeholder)
-            .Max(shape switch
-            {
-                { NotAfterToday: true } => Clock.Today.ToDateTime(TimeOnly.MaxValue),
-                { NotAfterNow: true } => Clock.Wall,
-                _ => null,
-            })
-            .Label(look.Label)
-            .Description(look.Description)
-            .Badge(look.Badge)
-            .ShowValidation(look.ShowValidation)
-            .Disabled(look.Locked)
-            .Live(look.Timing.Live);
+    // A moment asked as its day alone, which keeps its time of day: the day picker a DateOnly is drawn as, latest
+    // today where the shape says no later than today or now, with the × where the member may hold none.
+    private static UiDatePicker MomentDay<T>(Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look) =>
+        Day(bind, shape, look)
+            .Max(shape is { NotAfterToday: true } or { NotAfterNow: true } ? Clock.Today : null)
+            .Clearable(UiChoices.MayBeEmpty(bind, typeof(T)));
 
     // Latest now where the shape says so: the wall clock as the field is drawn.
     private static UiDayAndTime<T> Moment<T>(Expression<Func<T>> bind, FieldShape? shape, UiBoundLook look) =>

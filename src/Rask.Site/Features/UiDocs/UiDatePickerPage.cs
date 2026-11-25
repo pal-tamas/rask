@@ -26,15 +26,22 @@ public sealed partial class UiDatePickerPage : Component
     private static Component[] Picking() =>
     [
         UiDocsExample.Key("ui-date-picker").Heading("Date picker").File("DatePickerExample.cs").Demo(DatePickerExample).Testid("ui-date-picker")
-            .Blurb("A field-shaped button over the calendar: a day closes it on the pick."),
+            .Blurb("Flux's own look, a field-shaped button over the calendar, is .Type(Ui.DatePickerType.Button): a day closes "
+                   + "it on the pick. With no Type the kit's picker is typed (below), so each example here that draws "
+                   + "Flux's button says so."),
         UiDocsExample.Key("ui-date-picker-bound").Heading("Basic usage").File("DatePickerBoundExample.cs").Demo(DatePickerBoundExample).Testid("ui-date-picker-bound")
             .Blurb("Bound to a DateOnly? that starts on today, as Flux's value does."),
+        UiDocsExample.Key("ui-date-picker-moment").Heading("Binding a moment or a value object").File("DatePickerMomentExample.cs").Demo(DatePickerMomentExample).Testid("ui-date-picker-moment")
+            .Blurb("Bind takes the member as it is: a DateOnly or DateOnly?, a DateTime or DateTime? held as its day — a new "
+                   + "day keeps the time it had, seconds and Kind too, and a first day is midnight — or a Day or Moment value "
+                   + "object, made with its own Create: a day its rules refuse is said under the picker, and the calendar "
+                   + "offers none past its bounds. The member's rules and messages are the field's."),
         UiDocsExample.Key("ui-date-picker-input").Heading("Input trigger").File("DatePickerInputExample.cs").Demo(DatePickerInputExample).Testid("ui-date-picker-input")
             .Blurb("Month, day and year typed as one field: a part that is full moves on to the next, and the chevron opens the calendar."),
-        UiDocsExample.Key("ui-date-picker-typed").Heading("Typed").File("DatePickerTypedExample.cs").Demo(DatePickerTypedExample).Testid("ui-date-picker-typed")
-            .Blurb("Typed() is the input trigger with the selectable header: the day typed in the culture's own order and "
+        UiDocsExample.Key("ui-date-picker-typed").Heading("Typed, the default").File("DatePickerTypedExample.cs").Demo(DatePickerTypedExample).Testid("ui-date-picker-typed")
+            .Blurb("With no Type and no Trigger the picker is typed: the day typed in the culture's own order and "
                    + "separators — Hungarian here, 2026. 11. 06. — or picked, the header choosing the month and the year. "
-                   + "On a range it draws two fields, its start and its end, named from the catalog. A day with a time is Ui.DayAndTime."),
+                   + "A range draws two fields, its start and its end, named from the catalog. A day with a time is Ui.DayAndTime."),
     ];
 
     private static Component[] Ranges() =>

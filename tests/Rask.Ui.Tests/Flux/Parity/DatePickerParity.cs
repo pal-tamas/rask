@@ -60,9 +60,9 @@ public partial class DatePickerParity : FluxParity
         yield return ("localization", Day().Locale("ja-JP").Class("parity-narrow"));
     }
 
-    private static UiDatePicker Day() => Ui.DatePicker.Value(default(DateOnly)).Locale("en-US").On(FluxClock.Today);
+    private static UiDatePicker Day() => Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).Locale("en-US").On(FluxClock.Today);
 
-    private static UiDatePickerRange Range() => Ui.DatePicker.Range.Value(default(UiDateRange)).Locale("en-US").On(FluxClock.Today);
+    private static UiDatePickerRange Range() => Ui.DatePicker.Range.Value(default(UiDateRange)).Type(Ui.DatePickerType.Button).Locale("en-US").On(FluxClock.Today);
 
     /// <summary>
     ///     The docs site's own monospace face (<see cref="FluxParity.DocsMonospace" />), which a typed date's segments

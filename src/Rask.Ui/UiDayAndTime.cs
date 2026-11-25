@@ -9,8 +9,8 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Binds ONE <c>DateTime?</c> (or <c>DateTime</c>). The day is <c>Ui.DatePicker</c> typed (<c>.Typed()</c>: typed in
-/// the culture's order, or picked in its calendar), the time <c>Ui.TimePicker</c> typed beside it — Flux's own two
+/// Binds ONE <c>DateTime?</c> (or <c>DateTime</c>). The day is <c>Ui.DatePicker</c> as it draws unless told otherwise (typed
+/// in the culture's order, or picked in its calendar), the time <c>Ui.TimePicker</c> typed beside it — Flux's own two
 /// pickers, a day and a time as Flux puts them side by side, not the one-button <c>Ui.DatetimePicker</c>. Where the
 /// row has no room for both, as on a phone, the time goes beneath the day.
 /// </para>
@@ -153,13 +153,8 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
             .Min(UiDayAndTimeValue.Day(Min))
             .Max(UiDayAndTimeValue.Day(Max))
             .Disabled(locked)
-            .Invalid(field.Invalid);
-        if (_dayAlone is { } alone)
-        {
-            return field.Wrap(Context.Provide(new UiUnreadRelay(UnreadAsync))[DayAlone(day, alone)]);
-        }
-
-        day = day.Typed().Class(DayWidth);
+            .Invalid(field.Invalid)
+            .Class(DayWidth);
         var time = Ui.TimePicker
             .Value(UiDayAndTimeValue.Time(moment))
             .OnChange(TimeAsync)

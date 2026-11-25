@@ -35,13 +35,13 @@ public sealed partial class ClearPlacementParity : FluxParity
             Ui.TimePicker.Value((TimeOnly?)At).Type(Ui.TimePickerType.Input).Locale(locale).Clearable().Class(grow).Label(label));
 
         yield return Cases("date-picker", (grow, label, locale) =>
-            Ui.DatePicker.Value(Day).Locale(locale).On(FluxClock.Today).Clearable().Class(grow).Label(label));
+            Ui.DatePicker.Value(Day).Type(Ui.DatePickerType.Button).Locale(locale).On(FluxClock.Today).Clearable().Class(grow).Label(label));
 
         yield return Cases("date-picker-typed", (grow, label, locale) =>
             Ui.DatePicker.Value(Day).Type(Ui.DatePickerType.Input).Locale(locale).On(FluxClock.Today).Clearable().Class(grow).Label(label));
 
         yield return Cases("date-picker-range", (grow, label, locale) =>
-            Ui.DatePicker.Range.Value(new UiDateRange(Day, Day.AddDays(3))).Locale(locale).On(FluxClock.Today).Clearable().Class(grow).Label(label));
+            Ui.DatePicker.Range.Value(new UiDateRange(Day, Day.AddDays(3))).Type(Ui.DatePickerType.Button).Locale(locale).On(FluxClock.Today).Clearable().Class(grow).Label(label));
 
         yield return Cases("select", (grow, label, _) =>
             Ui.Select.Value("Alaska").Listbox.Clearable().Class(grow).Label(label)[Words.Select(word => Ui.SelectOption.Key(word)[word])]);
@@ -83,7 +83,7 @@ public sealed partial class ClearPlacementParity : FluxParity
     }
 
     private static UiDatePicker Neighbour(string? label) =>
-        Ui.DatePicker.Value(Day).Locale("hu").On(FluxClock.Today).Class("parity-grow").Label(label);
+        Ui.DatePicker.Value(Day).Type(Ui.DatePickerType.Button).Locale("hu").On(FluxClock.Today).Class("parity-grow").Label(label);
 
     // A neighbour three times the control's height: a row stretches the control's root to it.
     private Component Tall() => Div.Style("width:100px;height:120px;flex:none");

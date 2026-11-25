@@ -4,6 +4,6 @@ public sealed partial class DatePickerFixedWeeksExample : Component
 {
     protected override Component? Render() =>
         Div.Class("max-w-xs")[
-            Ui.DatePicker.Value(default(DateOnly)).FixedWeeks()
+            Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).FixedWeeks()
         ];
 }

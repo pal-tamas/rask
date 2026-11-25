@@ -4,6 +4,6 @@ public sealed partial class DatePickerLocaleExample : Component
 {
     protected override Component? Render() =>
         Div.Class("max-w-xs")[
-            Ui.DatePicker.Value(default(DateOnly)).Locale("ja-JP")
+            Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).Locale("ja-JP")
         ];
 }

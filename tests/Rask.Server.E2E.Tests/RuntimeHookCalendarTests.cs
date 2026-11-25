@@ -435,15 +435,15 @@ public sealed partial class CalendarHookPage : Component
             Ui.Calendar.Value(_today).Id("today").Locale("en-US").WithToday().OnChange(d => Heard("today", () => _today = d)),
             Said("today", _today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
             Div.Id("arrival-box").Style("width:320px")[
-                Ui.DatePicker.Value(_arrival).Id("arrival").Locale("en-US").Clearable().OnChange(d => Heard("arrival", () => _arrival = d))
+                Ui.DatePicker.Value(_arrival).Type(Ui.DatePickerType.Button).Id("arrival").Locale("en-US").Clearable().OnChange(d => Heard("arrival", () => _arrival = d))
             ],
             Said("arrival", _arrival.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
             Div.Id("stay-box").Style("width:320px")[
-                Ui.DatePicker.Range.Value(_stay).Id("stay").Locale("en-US").OpenTo(Jan15).WithPresets().OnChange(r => Heard("stay", () => _stay = r))
+                Ui.DatePicker.Range.Value(_stay).Type(Ui.DatePickerType.Button).Id("stay").Locale("en-US").OpenTo(Jan15).WithPresets().OnChange(r => Heard("stay", () => _stay = r))
             ],
             Said("stay", _stay == default ? string.Empty : _stay.Start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "/" + _stay.End.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "/" + (_stay.Preset?.ToString() is { } p ? char.ToLowerInvariant(p[0]) + p[1..] : string.Empty)),
             Div.Id("confirmed-box").Style("width:320px")[
-                Ui.DatePicker.Value(_confirmed).Id("confirmed").Locale("en-US").WithConfirmation().OnChange(d => Heard("confirmed", () => _confirmed = d))
+                Ui.DatePicker.Value(_confirmed).Type(Ui.DatePickerType.Button).Id("confirmed").Locale("en-US").WithConfirmation().OnChange(d => Heard("confirmed", () => _confirmed = d))
             ],
             Said("confirmed", _confirmed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
         ];

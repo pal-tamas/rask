@@ -86,7 +86,7 @@ public sealed partial class KindFormPage : Component
         ];
 
     private Component Fields() => _model.Kind == Kinds.Periodic
-        ? Div.Key("days")[Ui.Field.Key("from")[Ui.Label["From"], Ui.DatePicker.Bind(() => _model.From), Ui.Error]]
+        ? Div.Key("days")[Ui.Field.Key("from")[Ui.Label["From"], Ui.DatePicker.Bind(() => _model.From).Type(Ui.DatePickerType.Button), Ui.Error]]
         : Div.Key("calendar")[
             Ui.Field.Key("year")[Ui.Label["Year"], Ui.Input.Bind(() => _model.Year).ShowValidation(false), Ui.Error],
             _model.Kind == Kinds.Quarterly

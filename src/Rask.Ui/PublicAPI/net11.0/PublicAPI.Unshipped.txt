@@ -4192,8 +4192,6 @@ static Rask.UiColorSwatch.operator ==(Rask.UiColorSwatch left, Rask.UiColorSwatc
 static Rask.UiDatePickerModes.get_Range(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePickerRange
 static Rask.UiDatePickerModes.get_Single(Rask.RaskSeed_UiDatePicker picker) -> Rask.RaskSeed_UiDatePicker
 static Rask.UiDatePickerModes.Mode(this Rask.RaskSeed_UiDatePicker picker, Rask.Ui.DatePickerMode mode) -> Rask.UiDatePickerModeEntry
-static Rask.UiDatePickerSteps.Typed(this Rask.UiDatePicker! picker) -> Rask.UiDatePicker!
-static Rask.UiDatePickerSteps.Typed(this Rask.UiDatePickerRange! picker) -> Rask.UiDatePickerRange!
 static Rask.UiDatePickerSteps.WithInputs(this Rask.UiDatePicker! picker) -> Rask.UiDatePicker!
 static Rask.UiDatePickerSteps.WithInputs(this Rask.UiDatePickerRange! picker) -> Rask.UiDatePickerRange!
 static Rask.UiDateRange.Of(Rask.Ui.DateRangePreset preset, System.DateOnly today, System.DayOfWeek startDay = System.DayOfWeek.Sunday, System.DateOnly? min = null) -> Rask.UiDateRange
@@ -9475,6 +9473,20 @@ static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b, bool? va
 static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b) -> Rask.UiComposer<T>!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b, bool? value) -> Rask.UiPhone!
+Rask.UiDatePickerDays
+Rask.UiDatePickerDays.extension(Rask.RaskSeed_UiDatePicker)
+Rask.UiDatePickerDays.extension(Rask.RaskSeed_UiDatePicker).Bind<TDay>(System.Linq.Expressions.Expression<System.Func<TDay?>!>! bind) -> Rask.UiDatePicker!
+static Rask.UiDatePickerDays.Bind<TDay>(this Rask.RaskSeed_UiDatePicker entry, System.Linq.Expressions.Expression<System.Func<TDay?>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateTime>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerModeEntry.Bind(System.Linq.Expressions.Expression<System.Func<System.DateTime?>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerMoments
+Rask.UiDatePickerMoments.extension(Rask.RaskSeed_UiDatePicker)
+Rask.UiDatePickerMoments.extension(Rask.RaskSeed_UiDatePicker).Bind(System.Linq.Expressions.Expression<System.Func<System.DateTime>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerMoments.extension(Rask.RaskSeed_UiDatePicker).Bind(System.Linq.Expressions.Expression<System.Func<System.DateTime?>!>! bind) -> Rask.UiDatePicker!
+Rask.UiDatePickerMoments.extension(Rask.RaskSeed_UiDatePicker).Bind<TMoment>(System.Linq.Expressions.Expression<System.Func<TMoment?>!>! bind) -> Rask.UiDatePicker!
+static Rask.UiDatePickerMoments.Bind(this Rask.RaskSeed_UiDatePicker entry, System.Linq.Expressions.Expression<System.Func<System.DateTime>!>! bind) -> Rask.UiDatePicker!
+static Rask.UiDatePickerMoments.Bind(this Rask.RaskSeed_UiDatePicker entry, System.Linq.Expressions.Expression<System.Func<System.DateTime?>!>! bind) -> Rask.UiDatePicker!
+static Rask.UiDatePickerMoments.Bind<TMoment>(this Rask.RaskSeed_UiDatePicker entry, System.Linq.Expressions.Expression<System.Func<TMoment?>!>! bind) -> Rask.UiDatePicker!
 Rask.UiListRoutes
 static Rask.UiListRoutes.AsLeft(this Rask.Core.Routing.RouteUrl list) -> Rask.Core.Routing.RouteUrl
 Rask.UiPillbox<T>.Choices(Rask.IChoiceSource<T>! source) -> Rask.UiPillbox<T>!

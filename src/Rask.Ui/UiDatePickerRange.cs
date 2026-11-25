@@ -8,7 +8,9 @@ namespace Rask;
 /// <para>
 /// Opened by Flux's mode step on the picker's entry: <c>Ui.DatePicker.Range.Bind(() =&gt; model.Stay)</c>
 /// over a <see cref="UiDateRange" /> (or a <c>UiDateRange?</c>). The first click is the start, the second writes
-/// the range and closes the popup.
+/// the range and closes the popup. Typed unless it says otherwise: two fields side by side, the start and the end, to
+/// type each into in the culture's order, over a calendar whose header chooses the month and the year;
+/// <c>.Type(Ui.DatePickerType.Button)</c> is Flux's button showing the two dates.
 /// </para>
 /// <para>
 /// <c>WithPresets()</c> lists Flux's frequently used ranges beside the months, and <c>Presets([...])</c> says
@@ -57,6 +59,13 @@ public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
 
         return slot == 0 ? UiDateRange.Between(date, current.End) : UiDateRange.Between(current.Start, date);
     }
+
+    // Typed, a range is two fields side by side, its start and its end, labelled from the kit's catalog.
+    private protected override Component TypedTrigger() =>
+        Div.Class("flex gap-4")[
+            Ui.DatePickerInput.Label(RaskStrings.Get(RaskString.DatetimePickerStart, "Start")),
+            Ui.DatePickerInput.Label(RaskStrings.Get(RaskString.DatetimePickerEnd, "End"))
+        ];
 
     private protected override Component? Aside(UiDateRange current, UiCalendarOptions options) =>
         WithPresets != true && Presets is null ? null : UiDatePickerPresets.Render(Presets ?? UiDateRangePresets.Default, current, options);

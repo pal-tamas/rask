@@ -224,6 +224,9 @@ departure in behaviour carries none.
   (`Type(Input)` + `SelectableHeader`; a range draws two labelled fields), so `FluxConformanceTests` lists only the type
   (`Approved`). `UiDayAndTimeTests`, the site's `UiKitDayAndTimeTests`. A typed date's parts now carry the pattern's own
   text between and after them (hu `2026. 11. 06.`, its last full stop included); en-US, de and ja are unchanged.
+  **2026-11-25: typed is the DEFAULT** (owner-approved): `.Typed()` is gone, a picker with no `Type` and no `Trigger`
+  draws it, and Flux's button is `.Type(Ui.DatePickerType.Button)` — every parity example (`DatePickerParity`,
+  `ClearPlacementParity`, `DatetimePickerParity`) and every site example that mirrors a Flux one with the button states it.
 - **2026-11-04 — `Ui.Empty`, `Ui.PageHeader`, `UiTableCell.ColSpan` (#1283).** Flux has no empty state: `Ui.Empty` is the one
   its account overview DEMO draws (a `div role=status`, `py-6 text-center`, NO ink or size: the cell gives them, owner 2026-11-05), and no
   marker, as Flux writes none. A demo is measured through `flux parity <page> --prepare <name>` whose `Flux(slug)` names the demo

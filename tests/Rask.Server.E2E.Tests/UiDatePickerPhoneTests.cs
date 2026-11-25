@@ -198,9 +198,9 @@ public sealed partial class DatePickerPhonePage : Component
     protected override Component? Render() =>
         Div.Style("padding:24px")[
             P.Id("day-state")[_day == default ? "none" : Iso(_day)],
-            Ui.DatePicker.Value(_day).OnChange(day => { _day = day; }).Locale("en-US"),
+            Ui.DatePicker.Value(_day).Type(Ui.DatePickerType.Button).OnChange(day => { _day = day; }).Locale("en-US"),
             P.Id("stay-state")[_stay == default ? "none" : Iso(_stay.Start) + ".." + Iso(_stay.End)],
-            Ui.DatePicker.Range.Value(_stay).OnChange(stay => { _stay = stay; }).Locale("en-US")
+            Ui.DatePicker.Range.Value(_stay).Type(Ui.DatePickerType.Button).OnChange(stay => { _stay = stay; }).Locale("en-US")
         ];
 
     private static string Iso(DateOnly day) => day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);

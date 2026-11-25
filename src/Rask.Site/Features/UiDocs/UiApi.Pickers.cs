@@ -50,16 +50,16 @@ internal static partial class UiApi
     public static IReadOnlyList<UiApiPart> DatePicker { get; } =
     [
         new("Ui.DatePicker", typeof(UiDatePicker), "flux:date-picker",
-            "A field-shaped button over a calendar in a popup. Ui.DatePicker picks a day, Ui.DatePicker.Range a range.",
+            "A day typed in the culture's order or picked in a calendar in a popup. Ui.DatePicker picks a day, Ui.DatePicker.Range a range.",
         [
-            new("Bind", typeof(Expression<Func<DateOnly>>), "The member it reads and writes: () => m.Day, or a UiDateRange. Or Value with OnChange.", "() => a DateOnly, or a UiDateRange"),
+            new("Bind", typeof(Expression<Func<DateOnly>>), "The member it reads and writes: a DateOnly, DateOnly?, DateTime or DateTime? (as its day, keeping its time), a Day or Moment value object, or a UiDateRange. Or Value with OnChange.", "() => a DateOnly, a DateTime, a Day or a UiDateRange"),
             new("Value", typeof(DateOnly), "What it holds, for a page that holds it itself.", "a DateOnly, or a UiDateRange"),
             new("OnChange", typeof(Callback<DateOnly>), "Runs with the new value when it is picked.", Picked),
             new("AfterBind", typeof(Callback<DateOnly>), "Runs after Bind has written the model.", Picked),
             new("Validate", typeof(Validator<DateOnly>?), "A rule the value is checked by when it is written.", Validates),
             new("Live", typeof(bool?), "Writes the model as soon as it is picked, not with the next action."),
             new("Mode", typeof(Ui.DatePickerMode?), "What is picked, as a value. The opening step says it; this has to agree with what is bound."),
-            new("Type", typeof(Ui.DatePickerType?), "What opens it: a button showing the choice, or a field to type it into. The button when unset."),
+            new("Type", typeof(Ui.DatePickerType?), "What opens it: Button, Flux's field-shaped button showing the choice, or Input, Flux's typed field. Unset, it is typed: one field in the culture's order (two for a range) and the selectable header."),
             new("Trigger", typeof(Component), "A trigger of your own: Ui.DatePickerInput fields, or a Ui.DatePickerButton."),
             new("Label", typeof(string), "Draws a field around it, with this label and the error."),
             new("Description", typeof(string), "Help text between the label and the picker."),
@@ -77,7 +77,7 @@ internal static partial class UiApi
             new("Size", typeof(Ui.DatePickerSize?), "How large the calendar's day cells are."),
             new("StartDay", typeof(DayOfWeek?), "The day the week starts on. The locale's own when unset."),
             new("WeekNumbers", typeof(bool?), "Shows each week's number."),
-            new("SelectableHeader", typeof(bool?), "Makes the month and the year in the header selects."),
+            new("SelectableHeader", typeof(bool?), "Makes the month and the year in the header selects. On while the picker is typed, unless set."),
             new("WithToday", typeof(bool?), "A button that comes back to this month, and picks today once there."),
             new("FixedWeeks", typeof(bool?), "Always six weeks, so paging never changes the height."),
             new("WithInputs", typeof(Ui.DatePickerInputVariant?), "Fields over the months to type into: WithInputs() as parts, WithInputs(Ui.DatePickerInputVariant.Native) as the browser's."),

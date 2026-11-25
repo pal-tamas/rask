@@ -9,7 +9,7 @@ public sealed partial class DatePickerPresetsExample : Component
     protected override Component? Render() =>
         Div.Class("max-w-xs space-y-3")[
             // Min is where "All Time" starts.
-            Ui.DatePicker.Range.Value(_range).OnChange(range => { _range = range; }).WithPresets().Min(new DateOnly(2012, 1, 1)),
+            Ui.DatePicker.Range.Value(_range).Type(Ui.DatePickerType.Button).OnChange(range => { _range = range; }).WithPresets().Min(new DateOnly(2012, 1, 1)),
             Ui.Text.Data("testid", "ui-date-picker-presets-state")[_range == default ? "No range chosen." : "Range: " + Named(_range)]
         ];
 

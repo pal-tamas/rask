@@ -4,6 +4,6 @@ public sealed partial class DatePickerStartDayExample : Component
 {
     protected override Component? Render() =>
         Div.Class("max-w-xs")[
-            Ui.DatePicker.Value(default(DateOnly)).StartDay(DayOfWeek.Monday)
+            Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).StartDay(DayOfWeek.Monday)
         ];
 }

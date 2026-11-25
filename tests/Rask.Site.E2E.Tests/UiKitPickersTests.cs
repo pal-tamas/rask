@@ -19,7 +19,7 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
 
     [Theory]
     [InlineData("calendar", "Calendar", "ui-calendar|ui-calendar-bound|ui-calendar-multiple|ui-calendar-range|ui-calendar-range-limits|ui-calendar-size|ui-calendar-static|ui-calendar-max|ui-calendar-unavailable|ui-calendar-today|ui-calendar-header|ui-calendar-inputs|ui-calendar-fixed|ui-calendar-start|ui-calendar-open|ui-calendar-force|ui-calendar-weeks|ui-calendar-locale")]
-    [InlineData("date-picker", "Date picker", "ui-date-picker|ui-date-picker-bound|ui-date-picker-input|ui-date-picker-typed|ui-date-picker-range|ui-date-picker-limits|ui-date-picker-range-inputs|ui-date-picker-with-inputs|ui-date-picker-native|ui-date-picker-presets|ui-date-picker-preset-list|ui-date-picker-unavailable|ui-date-picker-today|ui-date-picker-header|ui-date-picker-fixed|ui-date-picker-start|ui-date-picker-open|ui-date-picker-weeks|ui-date-picker-locale|ui-date-picker-clearable")]
+    [InlineData("date-picker", "Date picker", "ui-date-picker|ui-date-picker-bound|ui-date-picker-moment|ui-date-picker-input|ui-date-picker-typed|ui-date-picker-range|ui-date-picker-limits|ui-date-picker-range-inputs|ui-date-picker-with-inputs|ui-date-picker-native|ui-date-picker-presets|ui-date-picker-preset-list|ui-date-picker-unavailable|ui-date-picker-today|ui-date-picker-header|ui-date-picker-fixed|ui-date-picker-start|ui-date-picker-open|ui-date-picker-weeks|ui-date-picker-locale|ui-date-picker-clearable")]
     [InlineData("datetime-picker", "Datetime picker", "ui-datetime-picker|ui-datetime-picker-bound|ui-datetime-picker-range|ui-datetime-picker-limits|ui-datetime-picker-input|ui-datetime-picker-interval|ui-datetime-picker-default|ui-datetime-picker-min-max|ui-datetime-picker-min-max-times|ui-datetime-picker-unavailable|ui-datetime-picker-format|ui-datetime-picker-clearable|ui-datetime-picker-confirmation|ui-datetime-picker-trigger|ui-datetime-picker-calendar|ui-datetime-picker-open|ui-datetime-picker-locale|ui-datetime-picker-separate")]
     [InlineData("time-picker", "Time picker", "ui-time-picker|ui-time-picker-bound|ui-time-picker-input|ui-time-picker-typed|ui-time-picker-multiple|ui-time-picker-format|ui-time-picker-interval|ui-time-picker-min-max|ui-time-picker-unavailable|ui-time-picker-open|ui-time-picker-locale")]
     public Task Every_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
@@ -375,6 +375,31 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(state).ToHaveTextAsync("No day, no time", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await Expect(row.Locator("[data-ui-date-picker-button]")).ToContainTextAsync("Select a date");
         await Expect(row.Locator("[aria-label='Clear']:visible")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task A_date_picker_with_no_type_is_typed_keeps_a_moments_time_and_says_what_a_value_object_refuses() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("date-picker", "Date picker");
+        var example = Page.Locator("[data-testid='ui-date-picker-moment']");
+        var state = Page.Locator("[data-testid='ui-date-picker-moment-state']");
+        var keys = new KeyboardTypeOptions { Delay = 60 };
+        var wait = new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 };
+        await example.ScrollIntoViewIfNeededAsync();
+
+        // The DateTime keeps 14:30 on the day typed; the value object refuses a day after today, and takes one before.
+        await example.Locator("#ui-date-picker-due [data-rask-segment='month']").ClickAsync();
+        await Page.Keyboard.TypeAsync("12092026", keys);
+        await Expect(state).ToHaveTextAsync("Due 2026-12-09 14:30, not invoiced.", wait);
+        await example.Locator("#ui-date-picker-invoiced [data-rask-segment='month']").ClickAsync();
+        await Page.Keyboard.TypeAsync("01052099", keys);
+        await Expect(Page.Locator("#ui-date-picker-invoiced-error")).Not.ToBeEmptyAsync();
+        await example.Locator("#ui-date-picker-invoiced [data-rask-segment='month']").ClickAsync();
+        await Page.Keyboard.TypeAsync("01052026", keys);
+
+        await Expect(state).ToHaveTextAsync("Due 2026-12-09 14:30, invoiced 2026-01-05.", wait);
+        await Expect(example.Locator("[data-rask-segments]")).ToHaveCountAsync(2);
+        await Expect(example.Locator("[data-ui-date-picker-button]")).ToHaveCountAsync(0);
     });
 
     [Fact]

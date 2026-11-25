@@ -135,8 +135,8 @@ public sealed partial class CalendarInputsPage : Component
     [
         P.Id("saved")[$"saved={_saved}"],
         Form.Model(_booking).OnSubmit(b => _saved = b.Due?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "")[
-            Ui.DatePicker.Bind(() => _booking.Arrival).WithInputs().Locale("en-US").Id("arrival"),
-            Ui.DatePicker.Range.Bind(() => _booking.Stay).WithInputs(Ui.DatePickerInputVariant.Native).Locale("en-US").Id("stay"),
+            Ui.DatePicker.Bind(() => _booking.Arrival).Type(Ui.DatePickerType.Button).WithInputs().Locale("en-US").Id("arrival"),
+            Ui.DatePicker.Range.Bind(() => _booking.Stay).Type(Ui.DatePickerType.Button).WithInputs(Ui.DatePickerInputVariant.Native).Locale("en-US").Id("stay"),
             Ui.DatePicker.Bind(() => _booking.Due).Locale("en-US").Id("due").Trigger(Ui.DatePickerInput.Native),
             Ui.Button.Submit.Id("save")["Save"]
         ],
