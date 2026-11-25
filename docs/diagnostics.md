@@ -3178,6 +3178,12 @@ value object would not say what was written: a type no base record holds, a name
 disagree, a conditional (`When`/`Unless`) rule, a rule in another file, or a DataAnnotations attribute no argument
 carries (`[EmailAddress]`, one with its own `ErrorMessage`), which on a value object would refuse every value. Nor is it offered while an `AbstractValidator<T>` class rules the same property: that rule would not compile once the property holds a value object.
 
+**A `Guid` is a reference, not a value.** No base record holds one, so a bare `Guid` — the id of another row, the
+signed-in user's — is told to take a [strongly-typed id](domain.md#strongly-typed-ids) instead, and the quick-fix is
+not offered: `public readonly partial record struct AccountId(Guid Value);`, held as `public AccountId? Account { get;
+private set; }` and made with `new AccountId(id)`. A typed id over the key of an aggregate keyed by a bare `Guid` —
+`Authenticatable`'s `User` — is how another aggregate names it.
+
 To keep a bare value on purpose, set `dotnet_diagnostic.RASK130.severity = none` for the file or the project.
 
 ## RASK131

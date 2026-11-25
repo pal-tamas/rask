@@ -163,10 +163,16 @@ that is the account:
 ```csharp
 public sealed class User : Authenticatable
 {
-    [MaxLength(100)]
-    public string DisplayName { get; private set; } = "";
+    // None until the person gives one: an account an administrator invites is made without it.
+    public UserDisplayName? DisplayName { get; private set; }
 
-    public void Rename(string displayName) => DisplayName = displayName.Trim();
+    public void Rename(string displayName) => DisplayName = UserDisplayName.CreateOptional(displayName, nameof(DisplayName));
+}
+
+// The name a user is shown by. Its rules are checked wherever one is made — the register form asks the same.
+public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: MaxLength, Required: false)
+{
+    public const int MaxLength = 100;
 }
 ```
 
@@ -191,7 +197,14 @@ await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
 ```
 
-Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.
+Other aggregates refer to a user by id rather than holding one — typed, so it is never mistaken for another id
+(a bare `Guid` there is [RASK130](diagnostics.md#rask130)):
+
+```csharp
+public readonly partial record struct AccountId(Guid Value);
+
+public AccountId? Owner { get; private set; }   // new AccountId(id) from the signed-in user's Guid
+```
 
 **Set your own columns while registering.** `IAuth.Register` takes a lambda that runs on the new user
 before it is saved, in the same insert; the scaffolded register page uses it for the display name:

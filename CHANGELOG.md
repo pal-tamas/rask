@@ -19,6 +19,13 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A new app starts with no RASK130 of its own, and a bare `Guid` is told what fixes it.** Before: the scaffolded
+  `User` stored its `DisplayName` as a `[MaxLength(100)] string`, which a `<RaskStrict>` app was warned about on its
+  first build, and a `Guid` reference (an order's customer) was told to declare a value object no base record holds.
+  Now the `server` and `wasm-hosted` templates' `User` holds a `UserDisplayName?` (`Text(Value, MaxLength: 100,
+  Required: false)`; the register page asks its `Check` and sets its `maxlength`), and RASK130 tells a `Guid` to take a
+  strongly-typed id — `readonly partial record struct AccountId(Guid Value)` (`docs/diagnostics.md#rask130`,
+  `docs/authentication.md`).
 - **An aggregate's `static Task On(E e) => X.UpdateEach(…)` no longer hears CA1859.** Before: the write answers a
   `Task<int>`, so the .NET analyzers asked the handler to return that — the very return type RASK179 refuses — and a
   strict app could not satisfy both. Now `RASKSUP003` suppresses CA1859 on a handler of exactly RASK179's shape, and on
