@@ -65,9 +65,9 @@ public static partial class Db
     ///     What lets tests run side by side, each with a database of its own. The caller must not be an async method:
     ///     a flow's value set inside one is gone again once it returns.
     /// </remarks>
-    internal static FlowDatabase BindFlow(Func<DbContext> write, Func<RaskReadDbContext> read)
+    internal static FlowDatabase BindFlow(Func<DbContext> write, Func<RaskReadDbContext> read, IServiceProvider? services = null)
     {
-        var bound = new FlowDatabase(write, read, Interlocked.Increment(ref _generation));
+        var bound = new FlowDatabase(write, read, Interlocked.Increment(ref _generation), services);
         Flow.Value = bound;
         Ambient.DeclineTestApp();
         return bound;
@@ -339,5 +339,9 @@ public static partial class Db
     /// <param name="Write">Opens a write context on it.</param>
     /// <param name="Read">Opens a read context on it.</param>
     /// <param name="ReadModelKey">Its own generation, so the read model mirrored from its write model is its own.</param>
-    internal sealed record FlowDatabase(Func<DbContext> Write, Func<RaskReadDbContext> Read, int ReadModelKey);
+    /// <param name="Services">
+    ///     The services its saves publish through — the app a host-less test has, which a fake's <c>Run()</c> reaches.
+    /// </param>
+    internal sealed record FlowDatabase(
+        Func<DbContext> Write, Func<RaskReadDbContext> Read, int ReadModelKey, IServiceProvider? Services = null);
 }
