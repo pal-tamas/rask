@@ -53,7 +53,60 @@ public abstract class ReadForUpdateParityTests(ProviderLeg leg) : ParityTests<Le
         Assert.True(waited);
     }
 
+    [Fact]
+    public async Task A_set_read_for_update_waits_for_a_read_face_s_lock_of_the_same_month_to_commit()
+    {
+        RequireServer();
+        var month = await MonthAsync("August");
+        var firstRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var (waited, read) = await Configured(async () =>
+        {
+            var first = Task.Run(() => Db.Transaction(async () =>
+            {
+                await LedgerMonth.Where(m => m.Id == month).ForUpdate();
+                firstRead.TrySetResult();
+                await release.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+            }, cancellationToken: Ct), Ct);
+            await firstRead.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+
+            // Code generic over the type locks through the set, in the same words: it waits as a read face's lock would.
+            var second = Task.Run(() => Db.Transaction(() => LockedAsync<LedgerMonth>(m => m.Id == month), cancellationToken: Ct), Ct);
+            var held = await Task.WhenAny(second, Task.Delay(TimeSpan.FromMilliseconds(500), Ct)) != second;
+            release.TrySetResult();
+            await first;
+            return (held, await second);
+        });
+
+        Assert.True(waited);
+        Assert.Equal("August", Assert.Single(read).Name);
+    }
+
+    [Fact]
+    public async Task A_count_of_a_set_read_for_update_is_refused_on_every_provider()
+    {
+        RequireServer();
+        var month = await MonthAsync("September");
+
+        var refused = await Configured(() => Db.Transaction(async () =>
+        {
+            await using var db = Open();
+            return await Record.ExceptionAsync(() => db.Set<LedgerMonth>().Where(m => m.Id == month).ForUpdate().CountAsync(Ct));
+        }, cancellationToken: Ct));
+
+        Assert.Contains("ForUpdate().Count()", Assert.IsType<InvalidOperationException>(refused).Message, StringComparison.Ordinal);
+    }
+
     private protected override LedgerDbContext Open() => Leg.Open<LedgerDbContext>(o => new LedgerDbContext(o));
+
+    // What an app's code generic over its types writes: the rows of a set named by its type, locked.
+    private async Task<List<T>> LockedAsync<T>(System.Linq.Expressions.Expression<Func<T, bool>> which)
+        where T : class
+    {
+        await using var db = Open();
+        return await db.Set<T>().Where(which).ForUpdate().ToListAsync(Ct);
+    }
 
     // Db and the read faces pointed at the leg for the length of the facts, as a host points them.
     private async Task<T> Configured<T>(Func<Task<T>> facts)

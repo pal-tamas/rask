@@ -20,7 +20,10 @@ internal sealed class NumberingTouch
     /// <summary>The rows in no group any more, whose number goes.</summary>
     internal List<EntityEntry> Ungrouped { get; } = [];
 
-    internal bool IsEmpty => _groups.Count == 0 && Parts.Count == 0 && Ungrouped.Count == 0;
+    /// <summary>The rows whose place a computed column decides that C# could not compute: placed once the database wrote them.</summary>
+    internal List<EntityEntry> ReadBack { get; } = [];
+
+    internal bool IsEmpty => _groups.Count == 0 && Parts.Count == 0 && Ungrouped.Count == 0 && ReadBack.Count == 0;
 
     /// <summary>Notes <paramref name="group" /> from <paramref name="first" />, the first member of the order at a touched place.</summary>
     internal void Touch(object group, object? first, bool comparable)

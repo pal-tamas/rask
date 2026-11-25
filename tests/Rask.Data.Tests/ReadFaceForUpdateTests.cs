@@ -96,6 +96,59 @@ public sealed class ReadFaceForUpdateTests : IDisposable
         Assert.Empty(_reads.Locked);
     }
 
+    [Fact]
+    public async Task A_set_read_for_update_in_code_generic_over_its_type_is_read_under_the_same_lock()
+    {
+        await using var database = await StartDatabaseAsync();
+        var caravan = await FormedAsync("Fay");
+        _reads.Locked.Clear();
+        List<Caravan> read = [];
+
+        await Db.Transaction(async () => read = await LockedAsync<Caravan>(c => c.Id == caravan.Id), cancellationToken: Token);
+
+        Assert.Equal("Fay", Assert.Single(read).Leader);
+        Assert.Contains("\"Caravan\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_set_read_for_update_outside_a_transaction_is_refused_naming_the_call_that_holds()
+    {
+        await using var database = await StartDatabaseAsync();
+        await using var db = Db.CreateContext();
+
+        var refused = Assert.Throws<InvalidOperationException>(() => db.Set<Caravan>().ForUpdate());
+
+        Assert.Contains("Caravan rows", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("await Db.Transaction(async () =>", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_count_or_any_of_a_set_read_for_update_is_refused_as_it_is_compiled()
+    {
+        await using var database = await StartDatabaseAsync();
+        var caravan = await FormedAsync("Gus");
+        Exception? counted = null;
+        Exception? any = null;
+
+        await Db.Transaction(async () =>
+        {
+            await using var db = Db.CreateContext();
+            counted = await Record.ExceptionAsync(() => db.Set<Caravan>().Where(c => c.Id == caravan.Id).ForUpdate().CountAsync(Token));
+            any = await Record.ExceptionAsync(() => db.Set<Caravan>().ForUpdate().Select(c => c.Leader).AnyAsync(Token));
+        }, cancellationToken: Token);
+
+        Assert.Contains("query.ForUpdate().Count()", Assert.IsType<InvalidOperationException>(counted).Message, StringComparison.Ordinal);
+        Assert.Contains("query.ForUpdate().Any()", Assert.IsType<InvalidOperationException>(any).Message, StringComparison.Ordinal);
+    }
+
+    // What an app's code generic over four refund types writes: the set named by its type, not by a read face.
+    private static async Task<List<T>> LockedAsync<T>(System.Linq.Expressions.Expression<Func<T, bool>> which)
+        where T : class
+    {
+        await using var db = Db.CreateContext();
+        return await db.Set<T>().Where(which).ForUpdate().ToListAsync(Token);
+    }
+
     private static async Task<Caravan> FormedAsync(string leader)
     {
         var caravan = Caravan.Formed(leader);

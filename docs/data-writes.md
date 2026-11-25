@@ -190,6 +190,11 @@ static void Configure(EntityTypeBuilder<Fueling> b)
 - **One numbering of a group at a time, on every database.** SQL Server takes `sp_getapplock` owned by the save's
   transaction and PostgreSQL `pg_advisory_xact_lock`, per group, in a sorted order, before the rows go out; SQLite's
   one writer already keeps saves apart. Saves racing into one group leave it numbered without a gap or a twin.
+- **A computed group or order.** A `within` or `by` member that is a `b.Computed(…)` column — `CountedAt` above — is
+  read as what it is computed from: an added row is numbered in the group its values put it in, and a change to a
+  member it is computed from (`ModifiedPistolId`) moves the row, numbering anew both the group it leaves and the one it
+  joins. A value C# cannot compute from the row (a division by zero) is read back from the database once the row is
+  written, still before the commit.
 - `by` is a member, or several as an anonymous type (`new { f.Moment, f.Id }`): plain values, or one-value value objects compared by their value. The
   number is a whole number — nullable when a row can have none — or a one-value value object over one. The entity's
   key is one column. A raw `ExecuteUpdate` passes no save, so it numbers nothing.

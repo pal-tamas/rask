@@ -18,6 +18,16 @@ them until tagged releases begin.
   its `Kind`), a first one is midnight, and a `Moment` without the attribute is still `Ui.DayAndTime`. An operation
   parameter's own attributes now tell its `Form.For` field too, so `[DataType(DataType.Date)] WallMoment? deliveredAt`
   is a day.
+- **`b.Numbered(…)` grouped or ordered by a `b.Computed(…)` column numbers a row where the database puts it.** Before:
+  with `within: f => f.CountedAt` over `b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId)` — the
+  docs' own example — a save read the group from the row in memory, where the computed column is not yet computed: an
+  added fueling was in no group and got no number, and one corrected to another pistol (`ModifiedPistolId`) was not
+  seen as moved, so neither pistol was numbered anew. After: a computed `within` or `by` member is read as what it is
+  computed from — the row's values now for the group it goes to, its values before the save (and the stored column)
+  for the one it leaves — a change to any member it is computed from moves the row, and both groups are numbered anew
+  in the save's transaction. A value C# cannot compute from the row (a division by zero) is read back from the
+  database once the row is written, its group locked, before the numbering and the commit. Proven on SQLite, SQL
+  Server and PostgreSQL by `NumberedParityTests`.
 - **A child two aggregates may hold counts as the aggregate its row is held by.** Before: a `Chip` listed by both
   `Driver.Chips` and `Vehicle.Chips` (nullable `DriverId` and `VehicleId`) was named after the first parent key its type
   declares, so saving a vehicle with one chip inside a `Db.Transaction` was refused by `OneAggregatePerTransaction` as
@@ -163,6 +173,20 @@ them until tagged releases begin.
   commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
   values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
   SQL Server and PostgreSQL, proven by the providers suite.
+- **`m.AuditAs(format)`: an `Audited` aggregate's saves written as the app's own audit rows.** Before: `AuditFormat`
+  was handed only the changed values and wrote only Rask's `AuditEntry`, its user as text (`system`), so a table an
+  older app reads — Eszaf's `Audits`, the whole row as JSON in `OldData`/`NewData`, `UserId` an `int` foreign key — could
+  not be kept. After: an `AuditFormat<TRow, TUserId>` named in the app's `IRaskModel` (`m.AuditAs(new LegacyAudits())`)
+  returns the app's row from an `AuditedWrite<TUserId>` — every value the aggregate held and holds (its children by
+  path, value objects as stored), the paths that changed, the action, the key, the user as the app's key type (null for
+  nobody) and the moment — added to the same save, completed before the commit when the key is generated; Rask's
+  `AuditEntry` is left out of that model. The default format writes what it wrote. [docs/domain.md](docs/domain.md#who-changed-what-audited)
+- **`IQueryable<T>.ForUpdate()`: the read face's update lock on any query of a set.** Before: `ForUpdate()` was only on a
+  read face (`Month.Where(…).ForUpdate()`), so code generic over the type — Eszaf's `ReturnFilings.Lock<TRefund>` over
+  four refund types — kept raw `UPDLOCK, HOLDLOCK` SQL. After: `db.Set<TRefund>().Where(r => r.Id == id).ForUpdate()`
+  reads under the same lock in the same words per database, refused outside a `Db.Transaction`, and a
+  `Count`/`LongCount`/`Any`/`All` of it is refused as the query is compiled; a tag of the app's own before it is kept.
+  [docs/data.md](docs/data.md#rows-read-for-update-forupdate)
 - **`b.Numbered(…)`: a running number per group, kept by Rask in every save with no SQL in the app.** Before: TA's
   `FuelingSequence` interceptor renumbered fuelings with a window-function `UPDATE` under one global `sp_getapplock`.
   After: `b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id }, skip: f => …)`

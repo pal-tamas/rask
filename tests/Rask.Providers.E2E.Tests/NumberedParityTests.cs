@@ -41,6 +41,37 @@ public sealed class NumberedFueling : Aggregate<string>
     }
 }
 
+/// <summary>A fueling counted at the pistol it was corrected to, else the one it was read at: a computed group.</summary>
+public sealed class CorrectedNumberedFueling : Aggregate<string>
+{
+    private CorrectedNumberedFueling() { } // EF materialization
+
+    public string Pistol { get; private set; } = "";
+
+    public string? ModifiedPistol { get; private set; }
+
+    public string? CountedAt { get; private set; }
+
+    public DateTime Moment { get; private set; }
+
+    public int? Sequence { get; private set; }
+
+    public static CorrectedNumberedFueling At(string pistol, int minute) =>
+        new() { Id = Guid.CreateVersion7().ToString(), Pistol = pistol, Moment = new DateTime(2026, 11, 24, 8, 0, 0, DateTimeKind.Utc).AddMinutes(minute) };
+
+    public void CorrectTo(string pistol) => ModifiedPistol = pistol;
+
+    internal static void Number(EntityTypeBuilder<CorrectedNumberedFueling> builder)
+    {
+        builder.Property(f => f.Id).HasMaxLength(36);
+        builder.Property(f => f.Pistol).HasMaxLength(20);
+        builder.Property(f => f.ModifiedPistol).HasMaxLength(20);
+        builder.Property(f => f.CountedAt).HasMaxLength(20);
+        builder.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol);
+        builder.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Id });
+    }
+}
+
 public sealed class NumberedShare : Aggregate<Guid>
 {
     private NumberedShare() { } // EF materialization
@@ -54,10 +85,15 @@ public sealed class NumberedDbContext(DbContextOptions<NumberedDbContext> option
 {
     public const string Schema = "rask_numbered";
 
+    // Computed(…) is written as the provider's SQL by Rask's conventions.
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Database.IsSqlite() ? null : Schema);
         modelBuilder.Entity<NumberedFueling>(NumberedFueling.Number);
+        modelBuilder.Entity<CorrectedNumberedFueling>(CorrectedNumberedFueling.Number);
         modelBuilder.Entity<NumberedShare>().Property(s => s.FromId).HasMaxLength(36);
         modelBuilder.ApplyRaskConventions(this);
     }
@@ -113,13 +149,46 @@ public abstract class NumberedParityTests(ProviderLeg leg) : ParityTests<Numbere
         Assert.Equal(Enumerable.Range(1, 9).Select(i => (int?)i), numbers);
     }
 
+    [Fact]
+    public async Task A_computed_group_numbers_a_row_where_the_database_puts_it_and_a_correction_numbers_both_groups()
+    {
+        RequireServer();
+        CorrectedNumberedFueling[] fuelings = [CorrectedNumberedFueling.At("a", 10), CorrectedNumberedFueling.At("a", 30), CorrectedNumberedFueling.At("b", 25)];
+        await SaveAsync(fuelings);
+        var between = CorrectedNumberedFueling.At("a", 20);
+        await SaveAsync(between);
+        var inserted = await CorrectedSequencesAsync([.. fuelings, between]);
+        await using var db = Open();
+        var tracked = await db.Set<CorrectedNumberedFueling>().SingleAsync(f => f.Id == between.Id, Ct);
+
+        tracked.CorrectTo("b");
+        await db.SaveChangesAsync(Ct);
+
+        Assert.Equal([1, 3, 1, 2], inserted);
+        Assert.Equal([1, 2, 2, 1], await CorrectedSequencesAsync([.. fuelings, between]));
+    }
+
     private protected override NumberedDbContext Open() => Leg.Open<NumberedDbContext>(o => new NumberedDbContext(o));
+
+    private async Task SaveAsync(params CorrectedNumberedFueling[] fuelings)
+    {
+        await using var db = Open();
+        db.AddRange(fuelings);
+        await db.SaveChangesAsync(Ct);
+    }
 
     private async Task SaveAsync(params NumberedFueling[] fuelings)
     {
         await using var db = Open();
         db.AddRange(fuelings);
         await db.SaveChangesAsync(Ct);
+    }
+
+    private async Task<int?[]> CorrectedSequencesAsync(IEnumerable<CorrectedNumberedFueling> fuelings)
+    {
+        await using var db = Open();
+        var stored = await db.Set<CorrectedNumberedFueling>().ToDictionaryAsync(f => f.Id, f => f.Sequence, Ct);
+        return [.. fuelings.Select(f => stored[f.Id])];
     }
 
     private async Task<int?[]> SequencesAsync(IEnumerable<NumberedFueling> fuelings)

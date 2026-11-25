@@ -47,6 +47,7 @@ public static class ComputedColumnBuilderExtensions
         builder.Metadata.SetAnnotation(
             ComputedColumnConvention.Annotation, new DeclaredExpression(value, $"Computed({property}, {value})"));
         builder.ValueGeneratedOnAddOrUpdate();
+        ComputedValues.Declare(typeof(TEntity), builder.Metadata.Name, value);
         return builder;
     }
 }

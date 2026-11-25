@@ -1,13 +1,14 @@
 using System.Data.Common;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Rask.Data;
 
 /// <summary>
 ///     Writes a read face's <c>ForUpdate()</c> in the database's own words (<see cref="ForUpdateSql" />) on the read
-///     context, which carries none of the write side's interceptors.
+///     context, which carries none of the write side's interceptors — and refuses a count of a locked query there.
 /// </summary>
-internal sealed class ForUpdateInterceptor : DbCommandInterceptor
+internal sealed class ForUpdateInterceptor : DbCommandInterceptor, IQueryExpressionInterceptor
 {
     internal static readonly ForUpdateInterceptor Instance = new();
 
@@ -27,5 +28,11 @@ internal sealed class ForUpdateInterceptor : DbCommandInterceptor
     {
         ForUpdateSql.Apply(command, eventData.Context);
         return ValueTask.FromResult(result);
+    }
+
+    public Expression QueryCompilationStarting(Expression queryExpression, QueryExpressionEventData eventData)
+    {
+        ForUpdateSql.RefuseAggregate(queryExpression);
+        return queryExpression;
     }
 }

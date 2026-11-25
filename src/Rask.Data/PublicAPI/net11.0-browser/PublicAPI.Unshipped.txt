@@ -748,3 +748,19 @@ Rask.Data.Numbering<TEntity>.SkipWhen<TOther, TRow>(System.Linq.Expressions.Expr
 Rask.Data.GeneratedGates
 static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> bool
 static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void
+Rask.Data.AuditBuilderExtensions
+static Rask.Data.AuditBuilderExtensions.AuditAs<TRow, TUserId>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Rask.Data.AuditFormat<TRow!, TUserId>! format) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+Rask.Data.AuditedWrite<TUserId>
+Rask.Data.AuditedWrite<TUserId>.Aggregate.get -> System.Type!
+Rask.Data.AuditedWrite<TUserId>.Action.get -> Rask.Data.AuditAction
+Rask.Data.AuditedWrite<TUserId>.Key.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
+Rask.Data.AuditedWrite<TUserId>.Before.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
+Rask.Data.AuditedWrite<TUserId>.After.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
+Rask.Data.AuditedWrite<TUserId>.Changed.get -> System.Collections.Generic.IReadOnlySet<string!>!
+Rask.Data.AuditedWrite<TUserId>.User.get -> TUserId?
+Rask.Data.AuditedWrite<TUserId>.At.get -> System.DateTime
+Rask.Data.AuditFormat<TRow, TUserId>
+Rask.Data.AuditFormat<TRow, TUserId>.AuditFormat() -> void
+abstract Rask.Data.AuditFormat<TRow, TUserId>.Row(Rask.Data.AuditedWrite<TUserId>! write) -> TRow!
+Rask.Data.ForUpdateQueryableExtensions
+static Rask.Data.ForUpdateQueryableExtensions.ForUpdate<T>(this System.Linq.IQueryable<T>! source) -> System.Linq.IQueryable<T>!

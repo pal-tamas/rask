@@ -15,6 +15,8 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
 {
     private readonly List<Follower> _followers = [];
     private readonly HashSet<string> _members = new(StringComparer.Ordinal);
+    private readonly List<LambdaExpression> _read = [];
+    private readonly Lazy<NumberingPlace<TEntity>> _now;
     private readonly Func<IQueryable<TEntity>, object?, CancellationToken, Task<int>> _write;
     private readonly Func<TEntity, object?> _readWithin;
     private readonly Func<TEntity, object?> _readFirst;
@@ -33,8 +35,9 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
         Order = order;
         Skip = skip;
         _write = write;
-        _readWithin = Read(within);
-        _readFirst = Read(order[0]);
+        _readWithin = NumberingPlace<TEntity>.Read(within);
+        _readFirst = NumberingPlace<TEntity>.Read(order[0]);
+        _now = new Lazy<NumberingPlace<TEntity>>(Now);
         foreach (var lambda in (IEnumerable<LambdaExpression?>)[within, .. order, skip])
         {
             Notice(lambda);
@@ -77,7 +80,7 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
             throw new ArgumentException($"Same({row}) names the row whose number this one takes, or null for none: it must be nullable.", nameof(row));
         }
 
-        SameAs = new SameRows(row, Read(row), (rows, keys) =>
+        SameAs = new SameRows(row, NumberingPlace<TEntity>.Read(row), (rows, keys) =>
         {
             var wanted = keys.Select(static key => (TRow)key).ToList();
             Expression<Func<TRow, bool>> named = value => wanted.Contains(value);
@@ -114,9 +117,6 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
         return this;
     }
 
-    private static Func<TEntity, object?> Read(LambdaExpression lambda) =>
-        Expression.Lambda<Func<TEntity, object?>>(Expression.Convert(lambda.Body, typeof(object)), lambda.Parameters[0]).Compile();
-
     // The row's own members a lambda reads: a change to one of them can move the row.
     private void Notice(LambdaExpression? lambda)
     {
@@ -125,7 +125,20 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
             return;
         }
 
+        _read.Add(lambda);
         new Members(lambda.Parameters[0], _members).Visit(lambda.Body);
+    }
+
+    // Once the model is built, so every Computed(…) is declared whichever came first: the members a computed column is
+    // computed from move the row too, and the place in memory reads that column as computed from them.
+    private NumberingPlace<TEntity> Now()
+    {
+        foreach (var lambda in _read.ToList())
+        {
+            new Members(lambda.Parameters[0], _members).Visit(ComputedValues.Inlined(lambda).Body);
+        }
+
+        return new NumberingPlace<TEntity>(Within, Order[0]);
     }
 
     /// <summary>The other table whose rows leave numbered rows out, and how to read which one.</summary>
