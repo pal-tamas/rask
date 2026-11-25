@@ -73,7 +73,19 @@ public sealed class RaskValidationExceptionTests
         // Never empty: a form reads "no failures" as "nothing wrong" and would swallow the exception.
         Assert.Equal(message, failure.Message);
         Assert.Empty(failure.Fields);
-        Assert.Empty(rejected.Errors);
+        Assert.Equal([message], rejected.Errors[""]);
+    }
+
+    [Fact]
+    public void A_refusal_of_the_whole_form_crosses_the_wire_as_a_failure_under_no_field()
+    {
+        var refused = new RaskValidationException("The period is closed.");
+
+        RequestValidationError[] wire = [.. refused.Errors.SelectMany(static e => e.Value.Select(m => new RequestValidationError(e.Key, m)))];
+        var rebuilt = new RaskValidationException(wire);
+
+        var failure = Assert.Single(rebuilt.Failures);
+        Assert.Equal(("The period is closed.", 0), (failure.Message, failure.Fields.Count));
     }
 
     [Fact]

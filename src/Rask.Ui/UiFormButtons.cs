@@ -1,4 +1,3 @@
-using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask;
@@ -76,21 +75,8 @@ public sealed partial class UiFormButtons : Component
             OnRemove.HasValue ? UiRemoval.Asking(Ui.Button.Key("remove").Danger, OnRemove, RemoveHeading, RemoveQuestion, remove)[remove] : null,
             Ui.Spacer,
             Children is { } more ? Fragment[more] : null,
-            Ui.Button.Key("cancel").Ghost.Href(BackAsLeft())[Cancel ?? RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
+            Ui.Button.Key("cancel").Ghost.Href(Back.AsLeft())[Cancel ?? RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
             Ui.Button.Key("save").Primary.Submit[Save ?? RaskStrings.Get(RaskString.FormButtonsSave, "Save")]
         ];
-    }
-
-    // The list as the reader left it — its filters, sort and page — where this session has shown it; as given otherwise.
-    private RouteUrl BackAsLeft()
-    {
-        if (UiTableAddress.Route() is not { } route)
-        {
-            return Back;
-        }
-
-        // The way back moves with the address, so the row is drawn again whenever it moves.
-        LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
-        return UiListAddresses.Of(route).Back(Back);
     }
 }

@@ -718,3 +718,18 @@ static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> b
 static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void
 Rask.Data.ForUpdateQueryableExtensions
 static Rask.Data.ForUpdateQueryableExtensions.ForUpdate<T>(this System.Linq.IQueryable<T>! source) -> System.Linq.IQueryable<T>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder! entity, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TEntity, TRelatedEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder<TEntity!, TRelatedEntity!>! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder<TEntity!, TRelatedEntity!>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TPrincipal, TDependent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder<TPrincipal!, TDependent!>! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder<TPrincipal!, TDependent!>!
+Rask.Data.Renumbering
+Rask.Data.Renumbering.extension<T>(T!)
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).RenumberAll(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.RenumberAll<T>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.ModelQuery<TEntity>.Choices<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! id, System.Linq.Expressions.Expression<System.Func<TEntity!, string!>!>! text, System.Linq.Expressions.Expression<System.Func<TEntity!, string?>!>? detail = null) -> Rask.IChoiceSource<TKey>!

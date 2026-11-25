@@ -107,10 +107,10 @@ public sealed class TenantThroughTests : IDisposable
 
         using (Tenant.Use(Acme))
         {
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            var refused = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(
                 () => ThroughTicket.In(globexWharf, "smuggled").Save(cancellationToken: Token));
 
-            Assert.Contains("'ThroughPort'", refused.Message, StringComparison.Ordinal);
+            Assert.True(refused.Errors.ContainsKey("ThroughPortId"));
         }
     }
 

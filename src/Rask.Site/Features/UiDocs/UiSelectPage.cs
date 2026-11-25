@@ -97,6 +97,10 @@ public sealed partial class UiSelectPage : Component
             .Blurb("Choices hands the select rows rather than options: a search field over them, in the reader's alphabet, "
                    + "\"Choose...\" while nothing is picked, and the cross only where the member may hold nothing. Given a "
                    + "search instead, the store answers what is typed and the row the value holds stays named."),
+        UiDocsExample.Key("ui-select-source").Heading("Rows of a read face").File("SelectSourceChoicesExample.cs").Demo(SelectSourceChoicesExample).Testid("ui-select-source")
+            .Blurb("Choices takes a read face's source, Company.Choices(c => c.Name), and the database searches and pages "
+                   + "it as the reader types and scrolls, the scrollbar the whole list's. The company picked is named on the "
+                   + "button and first in the list, though it is on no page the reader has reached."),
         UiDocsExample.Key("ui-select-leading").Heading("Rows pinned first").File("SelectLeadingExample.cs").Demo(SelectLeadingExample).Testid("ui-select-leading")
             .Blurb("Leading pins hand rows before the choices — \"No company\" first — in the order given, never sorted "
                    + "among them. Every search keeps them: type a name and the row stays above what it finds. A search or "

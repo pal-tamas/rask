@@ -91,6 +91,7 @@ public sealed partial class Memo : Aggregate<Guid, Versioned>
 {
     public const string NeedsATitle = "A memo needs a title.";
     public const string TooMuch = "At most a hundred litres a line.";
+    public const string CannotGrow = "A memo's litres only go down.";
 
     private Memo() { } // EF materialization
 
@@ -107,5 +108,14 @@ public sealed partial class Memo : Aggregate<Guid, Versioned>
         }
 
         return new Memo { Id = Guid.CreateVersion7(), Title = title, Litres = lines.Sum(static l => l.Quantity.Value) };
+    }
+
+    /// <summary>Changes the title and the litres, which may only shrink: an operation whose form starts from what is stored.</summary>
+    public void Amend(string title, decimal litres)
+    {
+        Refuse.When(string.IsNullOrWhiteSpace(title), () => title, NeedsATitle);
+        Refuse.When(litres > Litres, () => litres, CannotGrow);
+        Title = title;
+        Litres = litres;
     }
 }

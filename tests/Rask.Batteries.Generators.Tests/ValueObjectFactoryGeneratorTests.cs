@@ -122,6 +122,21 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void Each_value_object_of_one_value_is_registered_for_a_model_that_holds_it_as_it_is()
+    {
+        var run = Run(ValueObjects + "internal static partial class Hidden { private sealed partial record Secret(string Value) : Text(Value); }");
+
+        var fields = run.GeneratedSource("RaskValueFields.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", fields, StringComparison.Ordinal);
+        Assert.Contains(".Field<global::Shop.Pieces, long>(static v => v.Value, global::Shop.Pieces.TryCreate, static () => global::Shop.Pieces.__Field);", fields, StringComparison.Ordinal);
+        Assert.Contains(".Field<global::Shop.DriverName, string>(", fields, StringComparison.Ordinal);
+        Assert.DoesNotContain("KmRange", fields, StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret", fields, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Only_a_value_object_of_one_value_gets_the_rule_a_form_asks()
     {
         var run = Run(ValueObjects);
@@ -628,6 +643,47 @@ public class ValueObjectFactoryGeneratorTests
         Assert.Equal(["Note", "Litres", "Day", "Reference"], flagged);
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
         Assert.Contains("'Delivery.Litres' is a bare 'decimal?' — declare a value object for it", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bare_Guid_is_told_to_take_a_typed_id_not_a_value_object()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), Entity);
+
+        var reference = diagnostics.Single(d => d.Flagged() == "Reference").GetMessage();
+
+        Assert.Contains("'Delivery.Reference' is a bare 'Guid' — declare a strongly-typed id for it", reference, StringComparison.Ordinal);
+        Assert.DoesNotContain("value object", reference, StringComparison.Ordinal);
+    }
+
+    // The scaffold's own User (src/Rask.Templates/server/Features/Shared/User.cs) and an order that names the account it
+    // was placed by: a strict app starts with no RASK130 of its own, and the account is a typed id over the user's Guid.
+    [Fact]
+    public async Task The_scaffolds_user_and_a_typed_reference_to_it_are_not_RASK130()
+    {
+        var source = """
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+            namespace Shop;
+            public readonly partial record struct AccountId(Guid Value);
+            public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: 100, Required: false);
+            public sealed class User : Aggregate<Guid>
+            {
+                public UserDisplayName? DisplayName { get; private set; }
+            }
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public AccountId? Account { get; private set; }
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), source);
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
     }
 
     [Fact]

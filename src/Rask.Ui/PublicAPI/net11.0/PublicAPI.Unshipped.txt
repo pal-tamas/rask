@@ -9475,3 +9475,10 @@ static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b, bool? va
 static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b) -> Rask.UiComposer<T>!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b, bool? value) -> Rask.UiPhone!
+Rask.UiListRoutes
+static Rask.UiListRoutes.AsLeft(this Rask.Core.Routing.RouteUrl list) -> Rask.Core.Routing.RouteUrl
+Rask.UiPillbox<T>.Choices(Rask.IChoiceSource<T>! source) -> Rask.UiPillbox<T>!
+Rask.UiSelect<T>.Choices<TValue>(Rask.IChoiceSource<TValue>! source) -> Rask.UiSelect<T>!
+static Rask.UiSelectChoices.Choices<T>(this Rask.UiSelect<T?>! select, Rask.IChoiceSource<T>! source) -> Rask.UiSelect<T?>!
+Rask.UiBoundField<T>.Choices<TValue>(Rask.IChoiceSource<TValue>! source) -> Rask.UiBoundField<T>!
+static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, Rask.IChoiceSource<T>! source) -> Rask.UiBoundField<T?>!

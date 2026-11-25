@@ -304,6 +304,15 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
   handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
   goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
+- **the batteries are their fakes**: when the model maps a battery's table — a RaskApp's context maps them all — that
+  battery is its test fake for the database's lifetime, so a save handler's `Mail.Send`, `Jobs.Enqueue`,
+  `Cache.Remember`, `Push.Send` or `Files.Save` records what it would have done instead of throwing for want of a
+  host, and a class that injects `IMail`/`IJobs`/`ICache`/`IPush`/`IFiles` is handed the same fake. The test reads
+  them back from the database — `database.Mail.Sent().To("ann@x.io").Once()`, `database.Jobs.Enqueued<SendReceipt>().Once()`
+  — and `await database.Jobs.Run()` runs the recorded jobs through their real handlers, in a scope of the database's
+  own services, with no host. A fake the test made before starting the database (`using var mail = Mail.Fake();`) is
+  the one used; a battery the test registers itself through `services:` replaces the fake. The outbox stays real
+  (`Outbox.Fake()` when a test wants to step it);
 - the schema is made once per model and copied into each later database through SQLite's backup API — a start over
   a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares
@@ -313,11 +322,52 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   interceptors of its own — opens on the same database with **`database.Options<TOther>()`**: the provider exactly as
   the fixture's contexts have it (`UseRaskSqlite` on the same in-memory database), none of the fixture's interceptors,
   so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
+- **`database.Context` reads what the database has**, the way a page's context — opened for its request — does: a row
+  another context saved (`Order.Find(id)` → `order.Save()`, a handler, `database.Factory`) is the saved row in it too,
+  version and all, so the next query through it, or a change made on the instance it already tracked and saved through
+  it, is the database's row and not the one it seeded. A row it tracks that the test changed and has not saved stays
+  the test's. A save of its own that fails — a refused rule, a taken unique value — lets go of everything it tracked, so
+  the refused change never rides along with the next save. No `ChangeTracker.Clear()` is needed to hand it to code that
+  takes a context;
 - disposing it lets the database go.
+
+**No test passes a `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
+(`TestContext.Current.CancellationToken`) the ambient one (`Current.Cancellation`), and every Rask call given no token
+uses it: `TestDatabase.Start()`, `database.Load<T>(…)`, a generated entry (`await Product.Add(…)`), a read
+(`await Order.Where(…).First()`), `Jobs.Enqueue`, `Cache.Remember`. A stopped or timed-out test stops its database work
+with it. A token passed by hand still wins; a render still sets the test's aside, so what it mounts lives as long as
+the component, and the app a test boots is not cancelled with the test either. In a `<RaskStrict>` app's test project,
+xUnit's own xUnit1051 ("pass `TestContext.Current.CancellationToken`") is therefore off: the analyzer cannot be scoped
+to Rask's calls, so it is off for the project — a call into another library takes the token by hand where cancelling
+it matters.
 
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
+
+### A signed-in user: `Test.SignIn`
+
+Code that reads who is signed in — `Current.UserId`, `Current.IsInRole`, the tenant filter, the audit stamps — runs as
+a user inside `Test.SignIn` (from `Rask.Testing.Data`), until the scope is disposed:
+
+```csharp
+[Fact]
+public async Task An_administrator_sees_every_tenant_s_orders()
+{
+    await using var database = await TestDatabase.Start<AppDbContext>();
+    using var admin = Test.SignIn("admin@x.io", roles: ["Administrator"]);
+
+    var orders = await Order.Where(o => o.Open).ToList();
+    …
+}
+```
+
+The principal carries what a Rask sign-in issues: the id as `ClaimTypes.NameIdentifier`, `ClaimTypes.Name`,
+`ClaimTypes.Email` when the name is an address, one `ClaimTypes.Role` per role, `tenant:` as `Tenant.ClaimType`, then
+`claims:` of the app's own (`claims: [new Claim("dept", "ops")]`). With no `id:` the id is made from the name, so the
+same name is the same user every time; pass a user row's id when the test reads that row as theirs. `admin.Id` and
+`admin.Principal` hand them back — `Page.Visit(url).As(admin.Principal)` signs the same user in to a visited page. It
+is scoped to the test's flow, so parallel tests never see each other's user.
 
 ### A valid value object: `Test.Make`
 
@@ -399,8 +449,11 @@ public Task The_km_end_comes_after_its_start_on_the_form() =>
   showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
 - **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
   sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
-- A model that takes constructor arguments — an operation form over an aggregate, `new SupplyChangeInput(id,
-  version)` — goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`.
+- A model given as it is goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`. For an operation's
+  form, start it the way the page does — `await SupplyChangeInput.Of(id)` reads it from the stored aggregate, at its
+  version, every field filled as `Form.For(Supply.Change, id)` fills it (and throws when nothing is stored under the
+  id) — so a rule that reads what is stored is asked against it, and only the field under test changes. A
+  hand-built `new SupplyChangeInput(id, version)` starts every field empty.
 - The message not shown fails the test with a `FormAssertionException` that says what the field showed instead, what
   the top of the form showed, and why the store's rules could not be asked when they threw.
 

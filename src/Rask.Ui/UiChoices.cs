@@ -141,6 +141,11 @@ internal static class UiChoices
         return new UiChosen(new Pages<T>(find, shown, lead), rows, firstPage, mayBeEmpty, page);
     }
 
+    /// <summary>The paging search <paramref name="before" /> asked; null when it asked none.</summary>
+    /// <param name="before">What the last render's <c>.Choices(…)</c> made.</param>
+    internal static Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>>? PagedBy<T>(UiChosen? before) =>
+        (before?.Said as Pages<T>)?.Find;
+
     // A stable sort: rows of the same words stay in the order they came in.
     private static Ui.Choice<T>[] Sorted<T>(IEnumerable<Ui.Choice<T>> choices, StringComparer order)
     {

@@ -400,6 +400,44 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         return await query(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     The rows as a picker's choices: a page at a time for what was typed — searched case and accents aside, in the
+    ///     app's text order, then by <paramref name="id" /> — and one row by its id, through the tenant in flight.
+    /// </summary>
+    /// <typeparam name="TKey">The id's type.</typeparam>
+    /// <param name="id">The id each row stands for: <c>c =&gt; c.Id</c>.</param>
+    /// <param name="text">The words a row shows and is found by: <c>c =&gt; c.Name</c>. Runs in the database.</param>
+    /// <param name="detail">The muted line under the words, found by too; null for none. Runs in the database.</param>
+    /// <returns>The source, which reads nothing until it is asked.</returns>
+    /// <remarks>
+    ///     <code>
+    /// var page = await Company.Where(c =&gt; c.Active).Choices(c =&gt; c.Id, c =&gt; c.Name).Page(typed, 0, 50, picked: [held]);
+    ///     </code>
+    ///     The read face's own <c>Company.Choices(c =&gt; c.Name)</c>, <c>Company.Choice(id, c =&gt; c.Name)</c> and
+    ///     <c>Company.ChoicePage(c =&gt; c.Name, typed, skip, take)</c> are this over every row.
+    /// </remarks>
+    public IChoiceSource<TKey> Choices<TKey>(
+        Expression<Func<TEntity, TKey>> id, Expression<Func<TEntity, string>> text, Expression<Func<TEntity, string?>>? detail = null)
+        where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(text);
+        return new ModelChoices<TEntity, TKey>(this, id, text, detail);
+    }
+
+    /// <summary>
+    ///     Runs <paramref name="read" /> over the query on one context of its own, which it is handed too — for reads that
+    ///     ask what its model knows.
+    /// </summary>
+    internal async Task<TResult> Read<TResult>(
+        Func<DbContext, IQueryable<TEntity>, CancellationToken, Task<TResult>> read, CancellationToken cancellationToken)
+    {
+        using var loading = RowLoading.Read();
+        var context = ReadDb.OpenFor<TEntity>();
+        await using var contextScope = context.ConfigureAwait(false);
+        return await read(context, Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
+    }
+
     // Untracked is decided at the head of the query rather than composed, so every read — through this
     // type, a projection, or AsQueryable — starts from the same no-tracking source.
     // A locked read is tagged first, so its SQL starts with the tag ForUpdateSql rewrites by.

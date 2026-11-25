@@ -21,6 +21,8 @@ internal static class UiBoundControl
             FieldKind.Id => throw UiBoundMember.NoChoices(bind),
             FieldKind.Choice when Hinted(shape, FieldHints.RadioGroup) => Radios(bind, look, shape?.Options ?? OptionsOf(type)),
             FieldKind.Choice => Chosen(bind, look, shape?.Options ?? OptionsOf(type)),
+            // A day or a moment a hand model holds as a value object: the browser's own input over the value it holds.
+            FieldKind.Day or FieldKind.Moment when Rask.Values.ValueFields.Of(type) is not null => Input(bind, look),
             _ when IsDayOfMoment(shape, type) => MomentDay(bind, shape, look),
             FieldKind.Day => Day(bind, shape, look),
             FieldKind.Moment => Moment(bind, shape, look),

@@ -11,7 +11,10 @@ namespace Rask.Data;
 /// </summary>
 internal interface ITestDatabaseBattery
 {
-    /// <summary>Registers into <paramref name="services" /> what an app over <paramref name="model" /> would have.</summary>
-    void Wire<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IServiceCollection services, IModel model)
+    /// <summary>
+    ///     Registers into <paramref name="services" /> what an app over <paramref name="model" /> would have — or, for a
+    ///     battery that would reach outside the test, its fake, handed to <paramref name="fakes" />.
+    /// </summary>
+    void Wire<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IServiceCollection services, IModel model, TestDatabaseFakes fakes)
         where TContext : DbContext;
 }

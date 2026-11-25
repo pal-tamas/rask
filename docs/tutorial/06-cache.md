@@ -290,12 +290,10 @@ namespace Shop.Tests.Features.Products;
 
 public sealed class CatalogCacheTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task The_catalog_is_loaded_once_and_forgotten_when_a_product_changes()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var batteries = new FakeBatteries();
         using var admin = Signed.As("admin");
         var product = await Test.Make<Product>();
@@ -303,7 +301,7 @@ public sealed class CatalogCacheTests
 
         await CatalogCache.Get();
         await CatalogCache.Get();
-        await Product.Discontinue(product.Id, product.Version, Ct);
+        await Product.Discontinue(product.Id, product.Version);
 
         batteries.Cache.Loaded().Once();
         batteries.Cache.Forgotten().Once();

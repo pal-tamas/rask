@@ -26,7 +26,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
                      "ui-select-width", "ui-select-search", "ui-select-long", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
                      "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
-                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-leading", "ui-select-create", "ui-select-create-search", "ui-select-loading",
+                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-source", "ui-select-leading", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",
                  })
         {
@@ -58,6 +58,26 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[aria-label='Clear selected']").ClickAsync();
 
         await Expect(state).ToContainTextAsync("Company: none.");
+    });
+
+    [Fact]
+    public Task A_select_over_a_read_face_names_a_row_on_no_page_reached_and_picks_from_a_search() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var button = Page.Locator("#ui-select-source");
+        var list = Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button });
+        var rows = list.Locator("[data-ui-option]:visible");
+        await Expect(button).ToContainTextAsync("Company 437");
+        await button.ScrollIntoViewIfNeededAsync();
+        await button.ClickAsync();
+        await Expect(rows.First).ToHaveTextAsync("Company 437");
+
+        await list.Locator("[data-ui-select-search] input").FillAsync("012");
+
+        await Expect(rows).ToHaveTextAsync(["Company 437", "Company 012"]);
+        await rows.Nth(1).ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-select-source-state']")).ToContainTextAsync("Company: 12.");
+        await Expect(button).ToContainTextAsync("Company 012");
     });
 
     [Fact]

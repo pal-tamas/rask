@@ -82,6 +82,35 @@ is an outcome your code handles — a stale id in a URL, a job whose row was del
 These are C# 14 static extension members, which is why nothing has to be declared or derived from a second
 base. A member declared on the aggregate itself always wins, so your own static `Where` would be untouched.
 
+### A picker's rows: `X.Choice`, `X.Choices`, `X.ChoicePage`
+
+A select over another table — a company, a driver, a vehicle — asks the read face for its rows, and every app used to
+write the same three helpers for it: the row the form holds, a page of rows for what was typed, and how many there are.
+The read face of every aggregate has them:
+
+```csharp
+await Company.Choice(id, c => c.Name);                          // ChoiceRow<int>? — null for no row, or another tenant's
+await Company.ChoicePage(c => c.Name, typed, skip: 0, take: 50, picked: [held]);
+IChoiceSource<int> companies = Company.Choices(c => c.Name, c => c.City);    // the text, and a muted line under it
+await Company.Where(c => c.Active).Choices(c => c.Id, c => c.Name).Page(typed, 0, 50);  // any query of a read face
+```
+
+- **The page** is the rows whose text — or detail — holds what was typed, case and accents aside (`Loosely()`, where
+  the provider has the collation: `UseRaskSqlite`, `UseRaskSqlServer`, `UseRaskPostgres`; case aside elsewhere), in
+  the app's text order (`InTextOrder()` under [`OrderTextBy`](localization.md); the column's own order without it), then by id, so
+  the pages follow on and no row is on two. `Total` is how many the search finds; it is read only when the page
+  cannot say it. `Picked` names the rows the picker holds whether or not they are on this page, in the order given.
+- **Through the tenant in flight and the soft delete**, as every read is: an id of another tenant's row — a post, a
+  stale link — is answered with nothing, by `Choice` and in `Picked`. So `Choice(id) is null` is also the check that
+  an id is one the reader may pick; a save asks the same of every reference it sets
+  ([multi-tenancy.md](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant)).
+- **`IChoiceSource<TKey>`** (namespace `Rask`, in the `Rask` package) is what a picker reads: `Page(typed, skip, take,
+  picked)` → `ChoiceRowPage<TKey>` (`Rows`, `Total`, `Picked`) and `Find(id)` → `ChoiceRow<TKey>?` (`Id`, `Text`,
+  `Detail`). The read face's is one; a source of your own — rows worked out in C#, another service — implements the
+  same two members.
+- The text and the detail run in the database, so they are columns and what SQL can make of them
+  (`c.Code + " " + c.Name`). Words only C# can write — a date formatted for the reader — are a page you read yourself.
+
 ### What the read face is
 
 One is generated for **every mapped entity**, children included — the read side has no borders, so a part is
@@ -100,6 +129,8 @@ from a form.
 | `Money Price` (value object) | `decimal PriceAmount`, `string PriceCurrency` — **flattened to its columns** |
 | `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
 | `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
+| `ProductId? ProductId` (a [typed id](domain.md#strongly-typed-ids) some entity is keyed by) | `ProductId? ProductId` — **kept typed**, nullable as declared, with its `ProductRead? Product` navigation |
+| `Quantity Quantity` (a one-value value object) | `long Quantity` — the value it holds |
 | `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
 | *another aggregate's* `Guid OrderId`, on `Invoice` | `IReadOnlyList<InvoiceRead> Invoices` — the rows that point here, [below](#the-rows-that-point-here) |
 | `bool IsShipped => …` (computed) | *dropped* — no column behind it |
@@ -120,6 +151,7 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
 | `string VirtualTankId` + a `VirtualTank` child of `Tank` | exact child name, though it also *ends with* the aggregate `Tank` | `VirtualTank` — an exact name beats a suffix |
+| `ProductId ProductId` + a `Product : Aggregate<ProductId>` | exact name match, typed key | `Product` — and the column stays a `ProductId` |
 | `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
@@ -1018,6 +1050,10 @@ Which sentence, in this order:
   found; under any other name the entity's `WhenReferenced` answers.
 - **A soft delete is never refused.** An aggregate that names `SoftDelete` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
+- **The other side — a key that points at no row of the tenant in flight — is refused before the database is
+  asked**, for a `PerTenant` row: a field error under the key, in the relationship's `WhenMissing("…")`, else the
+  referenced entity's `b.WhenMissing("…")`, else the catalog's `ValidationNotFound`
+  ([multi-tenancy.md](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant)).
 
 ### How long between two dates, in a query
 

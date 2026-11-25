@@ -9,3 +9,11 @@ Rask.Testing.MakeOptions.Use(object! given) -> Rask.Testing.MakeOptions!
 Rask.Testing.MakeOptions.With(string! parameter, object? value) -> Rask.Testing.MakeOptions!
 static Rask.Testing.AggregateMakes.Make<T>(System.Action<Rask.Testing.MakeOptions!>? configure = null) -> System.Threading.Tasks.Task<T!>!
 static Rask.Testing.AggregateMakes.extension(Rask.Testing.Test!).Make<T>(System.Action<Rask.Testing.MakeOptions!>? configure = null) -> System.Threading.Tasks.Task<T!>!
+Rask.Testing.SignedIn
+Rask.Testing.SignedIn.Dispose() -> void
+Rask.Testing.SignedIn.Id.get -> System.Guid
+Rask.Testing.SignedIn.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+Rask.Testing.SignIns
+Rask.Testing.SignIns.extension(Rask.Testing.Test!)
+static Rask.Testing.SignIns.extension(Rask.Testing.Test!).SignIn(string! name, System.Collections.Generic.IEnumerable<string!>? roles = null, System.Guid? tenant = null, System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>? claims = null, System.Guid? id = null) -> Rask.Testing.SignedIn!
+static Rask.Testing.SignIns.SignIn(string! name, System.Collections.Generic.IEnumerable<string!>? roles = null, System.Guid? tenant = null, System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>? claims = null, System.Guid? id = null) -> Rask.Testing.SignedIn!

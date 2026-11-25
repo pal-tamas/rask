@@ -27,7 +27,11 @@ public sealed class Barrel : Aggregate<BarrelId>
 
     public TerminalId Terminal { get; private set; }
 
+    public TerminalId? SpareTerminalId { get; private set; }
+
     public static Barrel At(TerminalId terminal) => new() { Id = new BarrelId(Guid.CreateVersion7()), Terminal = terminal };
+
+    public void SpareAt(TerminalId terminal) => SpareTerminalId = terminal;
 }
 
 public sealed class TypedIdKeyTests : IDisposable
@@ -96,6 +100,30 @@ public sealed class TypedIdKeyTests : IDisposable
         Assert.Equal(terminal.Id, loaded.Terminal);
         Assert.Equal(barrel.Id, await database.Context.Set<Barrel>().AsNoTracking().Where(c => c.Id == barrel.Id).Select(c => c.Id)
             .SingleAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_typed_id_another_aggregate_is_keyed_by_reads_back_typed_and_joins()
+    {
+        await using var database = await StartDatabaseAsync();
+        var north = Terminal.Open("North");
+        var south = Terminal.Open("South");
+        database.Context.AddRange(north, south);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var spared = Barrel.At(north.Id);
+        spared.SpareAt(south.Id);
+        database.Context.AddRange(spared, Barrel.At(south.Id));
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var rows = await Barrel.Where(b => b.Terminal == north.Id);
+        var spares = await Barrel.Where(b => b.SpareTerminal!.Name == "South")
+            .Select(b => b.SpareTerminalId);
+        var unspared = await Barrel.Where(b => b.SpareTerminalId == null).Count(TestContext.Current.CancellationToken);
+
+        TerminalId terminal = Assert.Single(rows).Terminal;
+        Assert.Equal(north.Id, terminal);
+        Assert.Equal([south.Id], spares);
+        Assert.Equal(1, unspared);
     }
 
     // The column as the database holds it — not as EF Core reads it back, which would parse either case.

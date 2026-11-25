@@ -48,6 +48,11 @@ when the form is saved does not need it — see [bind timing](#bind-timing).
 derives everything from the bound property:
 
 - **Input name** ← the property name (`name="Name"`). Override with `.Name(…)`.
+- **A value object is bound as it is.** A model's property may hold a value object of one value —
+  `public Litres? Size { get; set; }` beside a `public sealed partial record Litres(int Value) : Integer(Value, Min: 100)`
+  — and `Input.Bind(() => _model.Size)` holds the number it holds, is shaped by its rules and writes the property only
+  with a value they accept, saying their refusal under the field. Prefer it to a plain `int?` with
+  `.Validate(Litres.Check)`: see [rules in a value object](forms-validation.md#rules-in-a-value-object).
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else
@@ -680,9 +685,13 @@ nothing extra:
 private async Task Save(Product product)
 {
     await product.Save();
-    Routes.ProductsPage().Go();   // not asked about: the app is leaving, not the reader
+    Routes.ProductsPage().AsLeft().Go();   // not asked about: the app is leaving, not the reader
 }
 ```
+
+`.AsLeft()` (Rask.Ui) is the list as the reader left it this session — its filters, sort, page and search, an editor
+dialog's key left out — so a save returns there rather than to the bare list; a list the session has not shown is the
+route as given ([ui-kit.md](ui-kit.md#a-list-page)).
 
 #### Ask in a dialog of your own
 
@@ -938,7 +947,7 @@ midnight —
 a `Ui.DayAndTime`, a `bool` a `Ui.Checkbox`, an enum a `Ui.Select` over its members in their order (an empty
 choice first for a nullable one), and a range two controls under one label, each end with its own message.
 Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
-`.Choices(Vehicle.Find)`; without them rendering throws and says so. `[Editable(false)]` makes a text or
+`.Choices(Vehicle.Find)`, or a read face's rows, `.Choices(Vehicle.Choices(v => v.Plate))` — searched and paged in the database, the picked row named whatever page it is on ([ui-kit.md](ui-kit.md)); without them rendering throws and says so. `[Editable(false)]` makes a text or
 number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
 step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones.
 
@@ -1111,7 +1120,14 @@ Form.For(Note.Rename, id)[f => [
   belongs together into value objects still reads better.
 - **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
   is matched by the id it was given, not added twice. A factory's form starts empty again.
+- **The model, read as the form reads it: `await SupplyChangeInput.Of(id)`.** The fields filled from the stored
+  aggregate at its version, through the same read `Form.For(Supply.Change, id)` makes — what a test hands
+  [`Test.FormShows(…)`](testing.md#the-form-says-what-the-domain-says-testformshows). It throws when nothing is stored
+  under the id; a factory's input has none, as its form starts empty.
+- **Two operations of one signature each get their form.** `Form.For` picks the form by the delegate the method
+  group converts to, and `Product.Archive` and `Product.Restore` — each taking only the id and version — would convert
+  to the same one. Each is then given a hidden overload that takes a mark of its own first
+  (`ProductOperationForms.ArchiveMark`), and its form takes a delegate of that shape, so `Form.For(Product.Archive, id)`
+  and `Form.For(Product.Restore, id)` still pick one each.
 - An operation whose parameter no field holds — a row whose member is itself a list or a value object of several
-  values — gets no `Form.For`, and two operations whose entries take the same types get none either
-  ([RASK174](diagnostics.md#rask174)): `Form.For` picks the form by the delegate the method group converts to, and two
-  entries of one signature convert to the same delegate, whatever their names.
+  values — gets no `Form.For` ([RASK188](diagnostics.md#rask188)).

@@ -12,7 +12,8 @@ internal static class ShapedInput
             return null;
         }
 
-        var held = Nullable.GetUnderlyingType(bound) ?? bound;
+        var shown = Rask.Values.ValueFields.HeldOr(bound);
+        var held = Nullable.GetUnderlyingType(shown) ?? shown;
         if (held == typeof(string))
         {
             return input;

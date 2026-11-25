@@ -1,3 +1,5 @@
+using Rask.Core.Forms;
+
 namespace Rask;
 
 // `.Choices(…)`: one row of another table, picked out of a list the select draws from rows rather than options.
@@ -74,6 +76,27 @@ public sealed partial class UiSelect<T>
         where TValue : T => Offer(find, held);
 
     /// <summary>
+    ///     Offers the rows of a read face — <c>.Choices(Company.Choices(c =&gt; c.Name))</c> — searched and paged in the
+    ///     database as the reader types and scrolls, the scrollbar the whole list's, and the picked row named even when it
+    ///     is on no page the reader has reached.
+    /// </summary>
+    /// <remarks>
+    ///     As the paging <see cref="Choices{TValue}(Func{string, Ui.ChoicePage, Task{IReadOnlyList{Ui.Choice{TValue}}}}, Ui.Choice{TValue}?)" />,
+    ///     with nothing to write around it: the source (<see cref="IChoiceSource{TKey}" />) searches case and accents aside,
+    ///     in the app's text order, through the tenant in flight, and names the picked row on the first page of every
+    ///     answer, so no <c>held:</c> is read by the page. A row of another tenant's, or of none, is never named.
+    ///     <code>
+    ///     Ui.Select.Bind(() =&gt; model.CompanyId).Choices(Company.Choices(c =&gt; c.Name))
+    ///     Ui.Select.Bind(() =&gt; model.DriverId).Choices(Driver.Where(d =&gt; d.Active).Choices(d =&gt; d.Id, d =&gt; d.Name, d =&gt; d.Licence))
+    ///     </code>
+    /// </remarks>
+    /// <param name="source">Where the rows come from: a read face's <c>X.Choices(…)</c>, or a source of the app's own.</param>
+    /// <typeparam name="TValue">The type of a row's id: the select's own, or what a nullable select holds.</typeparam>
+    /// <returns>This select.</returns>
+    public UiSelect<T> Choices<TValue>(IChoiceSource<TValue> source)
+        where TValue : T => Offer(source);
+
+    /// <summary>
     ///     Pins <paramref name="rows" /> before the rows <c>.Choices(…)</c> offers — "No company" first — in the order given,
     ///     never sorted among them.
     /// </summary>
@@ -120,6 +143,25 @@ public sealed partial class UiSelect<T>
         var mayBeEmpty = MayBeEmpty;
         Choose((before, leading) => (UiChoices.Paged(find, shown, UiChoices.Lead<TValue>(leading), mayBeEmpty, before, out var changed), changed));
         return this;
+    }
+
+    internal UiSelect<T> Offer<TValue>(IChoiceSource<TValue> source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var mayBeEmpty = MayBeEmpty;
+        Choose((before, leading) =>
+        {
+            var rows = UiSourceChoices<TValue>.Of(before, source, Picked<TValue>);
+            return (UiChoices.Paged(rows.Find, rows.Held(), UiChoices.Lead<TValue>(leading), mayBeEmpty, before, out var changed), changed);
+        });
+        return this;
+    }
+
+    // The id the select holds as it asks: its bound member's, or the value the page hands it; none while it holds none.
+    private TValue[] Picked<TValue>()
+    {
+        var value = Bind is { } bind ? ExpressionAccessor.Parse(bind).Getter() : Value;
+        return value is TValue held ? [held] : [];
     }
 
     // Unconstrained, as Offer is. Copied, so a page that fills the array it handed over later changes nothing here.

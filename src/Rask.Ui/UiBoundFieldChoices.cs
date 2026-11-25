@@ -47,4 +47,15 @@ public static class UiBoundFieldChoices
         ArgumentNullException.ThrowIfNull(field);
         return field.Choose(select => select.Offer(find, held));
     }
+
+    /// <summary>The rows another row's id is picked from, a read face's: <c>.Choices(Vehicle.Choices(v =&gt; v.Plate))</c>.</summary>
+    /// <param name="field">The field, bound to a member of <c>T?</c>.</param>
+    /// <param name="source">Where the rows come from, searched and paged in the database; the picked row named on every answer.</param>
+    /// <typeparam name="T">The type of a row's id.</typeparam>
+    public static UiBoundField<T?> Choices<T>(this UiBoundField<T?> field, IChoiceSource<T> source)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        return field.Choose(select => select.Offer(source));
+    }
 }
