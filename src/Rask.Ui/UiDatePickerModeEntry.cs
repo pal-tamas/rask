@@ -28,6 +28,14 @@ public readonly struct UiDatePickerModeEntry
     /// <param name="bind">The model's property.</param>
     public UiDatePicker Bind(Expression<Func<DateOnly?>> bind) => Ui.DatePicker.Bind(bind).Mode(_mode);
 
+    /// <summary>Binds the day of a moment, which keeps its time of day (<see cref="UiDatePickerMoments" />).</summary>
+    /// <param name="bind">The model's property.</param>
+    public UiDatePicker Bind(Expression<Func<DateTime>> bind) => Ui.DatePicker.Bind(bind).Mode(_mode);
+
+    /// <summary>Binds the day of a moment that may be unset, which keeps its time of day (<see cref="UiDatePickerMoments" />).</summary>
+    /// <param name="bind">The model's property.</param>
+    public UiDatePicker Bind(Expression<Func<DateTime?>> bind) => Ui.DatePicker.Bind(bind).Mode(_mode);
+
     /// <summary>Binds a range.</summary>
     /// <param name="bind">The model's property.</param>
     public UiDatePickerRange Bind(Expression<Func<UiDateRange>> bind) => Ui.DatePicker.Range.Bind(bind).Mode(_mode);

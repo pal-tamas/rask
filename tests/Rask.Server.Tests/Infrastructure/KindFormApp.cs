@@ -32,7 +32,7 @@ public sealed partial class KindFormApp : Component
     private Component? Fields() => _model.Kind switch
     {
         Kinds.Periodic => Div.Key("days")[
-            Ui.Field.Key("from")[Ui.Label["From"], Ui.DatePicker.Bind(() => _model.From).Validate(day => day == default ? ["Required"] : []), Ui.Error]
+            Ui.Field.Key("from")[Ui.Label["From"], Ui.DatePicker.Bind(() => _model.From).Type(Ui.DatePickerType.Button).Validate(day => day == default ? ["Required"] : []), Ui.Error]
         ],
         _ => Div.Key("calendar")[
             Ui.Field.Key("year")[Ui.Label["Year"], Calendar(() => _model.Year), Ui.Error],

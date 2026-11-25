@@ -159,7 +159,7 @@ public partial class UiPickerUnreadTests : global::Rask.Core.RaskMarkup
     {
         var trip = new Trip { Leaves = new DateOnly(2026, 3, 15) };
         var page = Acting.Render(() => Form.Model(trip)[
-            Ui.DatePicker.Bind(() => trip.Leaves).Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
+            Ui.DatePicker.Bind(() => trip.Leaves).Type(Ui.DatePickerType.Button).Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
 
         await page.On("[aria-label=\"Clear\"]").Click();
         var shown = page.Html;
@@ -176,7 +176,7 @@ public partial class UiPickerUnreadTests : global::Rask.Core.RaskMarkup
     {
         var trip = new Trip { Leaves = new DateOnly(2026, 3, 15) };
         var page = Page.Render(() => Form.Model(trip)[
-            Ui.DatePicker.Bind(() => trip.Leaves).Live().Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
+            Ui.DatePicker.Bind(() => trip.Leaves).Type(Ui.DatePickerType.Button).Live().Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
 
         await page.On("[aria-label=\"Clear\"]").Click();
 

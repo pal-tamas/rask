@@ -87,7 +87,7 @@ public partial class UiRequiredFieldTests : global::Rask.Core.RaskMarkup
         var trip = new Trip();
 
         var page = Page.Render(() =>
-            Ui.DatePicker.Bind(() => trip.Leaves).Locale("en-US").On(new DateOnly(2026, 10, 9)).Label("Leaves").Id("leaves"));
+            Ui.DatePicker.Bind(() => trip.Leaves).Type(Ui.DatePickerType.Button).Locale("en-US").On(new DateOnly(2026, 10, 9)).Label("Leaves").Id("leaves"));
 
         Assert.True(page.Exists("#leaves[role=\"combobox\"][aria-required=\"true\"]"));
         Assert.Single(page.FindAll("[aria-required]"));

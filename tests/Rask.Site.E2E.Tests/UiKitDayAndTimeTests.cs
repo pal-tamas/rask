@@ -5,7 +5,7 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     <c>Ui.DayAndTime</c> and <c>Ui.DatePicker.Typed()</c> on the UI tab (#1297), in a browser: the day and the time
+///     <c>Ui.DayAndTime</c> and <c>Ui.DatePicker</c> typed (its default) on the UI tab (#1297), in a browser: the day and the time
 ///     typed key by key, the time waiting for a day, the seconds a moment keeps, and the row that puts the time beneath
 ///     the day on a phone.
 /// </summary>

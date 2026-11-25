@@ -526,6 +526,20 @@ them until tagged releases begin.
   at a time. Tests on one model now share its read model, built once, instead of each building its own under EF
   Core's model lock. Rask's own `Rask.Data`, `Rask.Jobs`, `Rask.Outbox` and `Rask.Storage` suites now run their classes
   in parallel (`Rask.Data.Tests`: 60 s serial → 36 s).
+- **BREAKING — `Ui.DatePicker` is typed unless told otherwise, and `Bind` takes the member as it is.** Before: a picker
+  drew Flux's button, `.Typed()` asked for the typed day (and both apps wrote it on every picker), and `Bind` took only
+  a `DateOnly`/`DateOnly?`, so a `DateTime` or a value object went through a copy written back by hand. Now a picker
+  with no `Type` and no `Trigger` is typed — the day in the culture's order (hu `2026. 11. 06.`) under a header whose
+  month and year are selects, a range as two fields — and `.Typed()` is removed. `Ui.DatePicker.Bind(() => m.X)` takes
+  a `DateOnly`, `DateOnly?`, `DateTime` or `DateTime?` (held as its day: a new day keeps the time of day, seconds and
+  `Kind`; a first day is midnight; emptied, a `DateTime?` is `null` and a `DateTime` says it is required), a
+  `Rask.Values.Day` or a `Rask.Values.Moment` value object (made with its generated `Create`: a day its rules refuse is
+  said under the picker and not written, and the calendar ends at its bounds). The member's rules and messages stand
+  under the picker. `Ui.Field.Bind` and `Ui.Filters` keep Flux's button, and a `DateTime` that `Ui.Field.Bind` draws
+  as a day is now this binding. Migration: drop `.Typed()`
+  (`Ui.DatePicker.Bind(() => _form.InvoiceDay).Typed().Placeholder("Dátum")` → `Ui.DatePicker.Bind(() => _form.InvoiceDay).Placeholder("Dátum")`);
+  write `.Type(Ui.DatePickerType.Button)` where Flux's button is wanted; bind a `DateTime` or a value object directly
+  instead of a `DateOnly` copy.
 - **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
   bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
   components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote

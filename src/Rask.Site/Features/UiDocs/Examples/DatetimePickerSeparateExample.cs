@@ -13,7 +13,7 @@ public sealed partial class DatetimePickerSeparateExample : Component
 
     protected override Component? Render() =>
         Div.Class("flex max-sm:flex-col gap-2 w-full max-w-64 sm:max-w-96")[
-            Ui.DatePicker.Bind(() => _meeting.Day).Class("flex-1"),
+            Ui.DatePicker.Bind(() => _meeting.Day).Type(Ui.DatePickerType.Button).Class("flex-1"),
             Ui.TimePicker.Bind(() => _meeting.At).Class("sm:w-40")
         ];
 }

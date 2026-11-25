@@ -8,7 +8,7 @@ public sealed partial class DatePickerExample : Component
 
     protected override Component? Render() =>
         Div.Class("max-w-xs space-y-3")[
-            Ui.DatePicker.Value(_date).OnChange(date => { _date = date; }),
+            Ui.DatePicker.Value(_date).Type(Ui.DatePickerType.Button).OnChange(date => { _date = date; }),
             Ui.Text.Data("testid", "ui-date-picker-state")[_date == default ? "No date chosen." : "Chosen: " + Iso(_date)]
         ];
 

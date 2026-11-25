@@ -75,7 +75,20 @@ internal static class UiFormCommit
         IFormControl<T> control,
         ExpressionAccessor.Accessor? accessor,
         EditContext? context,
-        T value)
+        T value) =>
+        CommitAsync(control, accessor, context, value, value);
+
+    /// <inheritdoc cref="CommitAsync{T}(IFormControl{T}, ExpressionAccessor.Accessor?, EditContext?, T)" />
+    /// <remarks>
+    /// For a member that holds the value as another type — a day picker over a <c>DateTime</c> or a value object: the
+    /// member is written <paramref name="held" />, and <c>AfterBind</c> hears <paramref name="value" />.
+    /// </remarks>
+    internal static Task CommitAsync<T>(
+        IFormControl<T> control,
+        ExpressionAccessor.Accessor? accessor,
+        EditContext? context,
+        T value,
+        object? held)
     {
         if (UiRefusals.Locked(control, accessor))
         {
@@ -88,11 +101,11 @@ internal static class UiFormCommit
             return control.InvokeOnChange(value);
         }
 
-        return PendingBinds.Commit((Component)control, accessor.Field, context, value, Write, SettleAsync);
+        return PendingBinds.Commit((Component)control, accessor.Field, context, held, Write, SettleAsync);
 
         bool Write()
         {
-            accessor.Setter(value);
+            accessor.Setter(held);
             return true;
         }
 
@@ -151,7 +164,13 @@ internal static class UiFormCommit
     /// says, <paramref name="said" />, already in the reader's language.
     /// </remarks>
     internal static Task UnreadAsync<T>(
-        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, string said)
+        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, string said) =>
+        UnreadHeldAsync(control, accessor, context, shown, said);
+
+    /// <inheritdoc cref="UnreadAsync{T}(IFormControl{T}, ExpressionAccessor.Accessor?, EditContext?, T, string)" />
+    /// <remarks>The member keeps <paramref name="held" />, in its own type: a day picker's over a <c>DateTime</c>.</remarks>
+    internal static Task UnreadHeldAsync<T>(
+        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, object? held, string said)
     {
         if (UiRefusals.Locked(control, accessor))
         {
@@ -165,7 +184,7 @@ internal static class UiFormCommit
             return control is IUiRelaysUnread { Relay: { } relay } ? relay(said) : Task.CompletedTask;
         }
 
-        return PendingBinds.Commit((Component)control, accessor.Field, context, shown, Note, static () => Task.CompletedTask);
+        return PendingBinds.Commit((Component)control, accessor.Field, context, held, Note, static () => Task.CompletedTask);
 
         bool Note()
         {
@@ -197,7 +216,7 @@ internal static class UiFormCommit
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <see cref="CommitAsync{T}" /> cannot do this job. It ends in <c>accessor.Setter(value)</c>, and the
+    /// <see cref="CommitAsync{T}(IFormControl{T}, ExpressionAccessor.Accessor?, EditContext?, T)" /> cannot do this job. It ends in <c>accessor.Setter(value)</c>, and the
     /// ordinary way to declare one of these fields — <c>public List&lt;string&gt; Tags { get; } = [];</c> —
     /// has no setter at all. It also could not know which concrete collection to hand over: assigning a
     /// <c>List&lt;T&gt;</c> to a <c>T[]</c> property throws, and nothing in the value's own type says which

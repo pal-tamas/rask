@@ -8,7 +8,7 @@ public sealed partial class DatePickerClearableExample : Component
     protected override Component? Render() =>
         Div.Class("max-w-md space-y-3")[
             Div.Class("flex flex-wrap gap-2").Data("testid", "ui-picker-clear")[
-                Ui.DatePicker.Value(_day).OnChange(day => { _day = day; }).Clearable().Class("grow"),
+                Ui.DatePicker.Value(_day).Type(Ui.DatePickerType.Button).OnChange(day => { _day = day; }).Clearable().Class("grow"),
                 Ui.TimePicker.Value(_time).OnChange(time => { _time = time; }).Clearable().Id("ui-time-clear")
             ],
             Ui.Text.Data("testid", "ui-picker-clear-state")[(_day == default ? "No day" : "A day") + ", " + (_time is null ? "no time" : "a time")]

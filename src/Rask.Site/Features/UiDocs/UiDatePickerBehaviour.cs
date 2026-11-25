@@ -38,6 +38,11 @@ internal sealed partial class UiDatePickerBehaviour : Component
 
     private static UiDocsTopic Typed() =>
         UiDocsTopic.Key("typed").Heading("Typed dates").Paragraphs([
+            "Where it departs from Flux, by the owner's decision: a picker that names no `Type` and no `Trigger` is typed — "
+            + "the day in the culture's own order and separators, a range as two fields, its start and its end, and a "
+            + "header whose month and year are selects. `Type(Ui.DatePickerType.Button)` is Flux's own default, the "
+            + "button and the plain header; `Type(Ui.DatePickerType.Input)` is Flux's `type=\"input\"`. A field drawn by "
+            + "`Ui.Field.Bind` and a picker in `Ui.Filters` keep Flux's button.",
             "`Type(Ui.DatePickerType.Input)`, `Ui.DatePickerInput` and `WithInputs()` draw month, day and year as parts "
             + "in the locale's order, Flux's `custom`. `Ui.DatePickerInput.Native` and "
             + "`WithInputs(Ui.DatePickerInputVariant.Native)` draw the browser's own `<input type=\"date\">` in the same "

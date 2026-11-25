@@ -9,7 +9,7 @@ public sealed partial class DatePickerOpenToExample : Component
 
     protected override Component? Render() =>
         Div.Class("max-w-xs space-y-4")[
-            Ui.DatePicker.Value(default(DateOnly)).OpenTo(NextYear),
-            Ui.DatePicker.Value(Today).OpenTo(NextYear).ForceOpenTo()
+            Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).OpenTo(NextYear),
+            Ui.DatePicker.Value(Today).Type(Ui.DatePickerType.Button).OpenTo(NextYear).ForceOpenTo()
         ];
 }

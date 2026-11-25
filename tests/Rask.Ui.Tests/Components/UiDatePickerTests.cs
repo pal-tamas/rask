@@ -24,9 +24,9 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     // The one field the page hears the choice through, first in the picker.
     private const string Field = "[data-ui-date-picker] > input[type=\"hidden\"]";
 
-    private static UiDatePicker Single(DateOnly value) => Ui.DatePicker.Value(value).Locale("en-US").On(Today);
+    private static UiDatePicker Single(DateOnly value) => Ui.DatePicker.Value(value).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today);
 
-    private static UiDatePickerRange Ranged(UiDateRange value) => Ui.DatePicker.Range.Value(value).Locale("en-US").On(Today);
+    private static UiDatePickerRange Ranged(UiDateRange value) => Ui.DatePicker.Range.Value(value).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today);
 
     [Fact]
     public void A_picker_shows_its_placeholder_until_a_day_is_chosen()
@@ -81,7 +81,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task The_day_the_browser_announces_is_written_with_the_next_action_and_shown_on_the_button()
     {
         var model = new Trip();
-        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today));
 
         var waits = page.Find(Field).Attribute("data-rask-bind-on");
         await page.On(Field).Change("2026-01-20");
@@ -98,8 +98,8 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     {
         var model = new Trip { Departure = Jan(9) };
 
-        var set = Ui.DatePicker.Bind(() => model.Departure).Locale("en-US").On(Today).ToHtml();
-        var unset = Ui.DatePicker.Bind(() => model.Return).Locale("en-US").On(Today).ToHtml();
+        var set = Ui.DatePicker.Bind(() => model.Departure).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today).ToHtml();
+        var unset = Ui.DatePicker.Bind(() => model.Return).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today).ToHtml();
 
         Assert.Contains(">Jan 9, 2026</div>", set, StringComparison.Ordinal);
         Assert.Contains(">Select a date</span>", unset, StringComparison.Ordinal);
@@ -109,7 +109,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_range_is_written_whole_and_never_half()
     {
         var model = new Trip();
-        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today));
 
         await page.On(Field).Change("2026-01-04");
         await Acting.Act(page);
@@ -150,8 +150,8 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_presets_rove_and_the_tab_stop_is_the_first_until_a_preset_is_checked()
     {
-        var unchosen = Ui.DatePicker.Range.Value(default(UiDateRange)).WithPresets().Min(new DateOnly(2012, 1, 1)).Locale("en-US").On(Today).ToHtml();
-        var chosen = Ui.DatePicker.Range.Value(UiDateRange.Of(Ui.DateRangePreset.Last7Days, Today)).WithPresets().Locale("en-US").On(Today).ToHtml();
+        var unchosen = Ui.DatePicker.Range.Value(default(UiDateRange)).Type(Ui.DatePickerType.Button).WithPresets().Min(new DateOnly(2012, 1, 1)).Locale("en-US").On(Today).ToHtml();
+        var chosen = Ui.DatePicker.Range.Value(UiDateRange.Of(Ui.DateRangePreset.Last7Days, Today)).Type(Ui.DatePickerType.Button).WithPresets().Locale("en-US").On(Today).ToHtml();
 
         // As Flux marks them: `data-active` and tabindex 0 on the first while Custom is the checked one.
         Assert.Contains("data-rask-roving=\"\" data-rask-calendar-part=\"presets\" role=\"radiogroup\"", unchosen, StringComparison.Ordinal);
@@ -187,7 +187,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_preset_writes_its_range_and_puts_its_name_on_the_button()
     {
         var model = new Trip();
-        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Type(Ui.DatePickerType.Button).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
 
         await page.On(Field).Change("2026-01-09/2026-01-15/last7Days");
         await Acting.Act(page);
@@ -242,7 +242,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void With_confirmation_the_button_that_takes_the_choice_is_the_runtimes()
     {
-        var html = Ui.DatePicker.Value(default(DateOnly)).WithConfirmation().Locale("en-US").On(Today).ToHtml();
+        var html = Ui.DatePicker.Value(default(DateOnly)).Type(Ui.DatePickerType.Button).WithConfirmation().Locale("en-US").On(Today).ToHtml();
 
         Assert.Matches("<div class=\"inline max-sm:block\" role=\"button\" tabindex=\"0\" data-rask-calendar-part=\"confirm\">", html);
         Assert.Contains("&quot;confirms&quot;:true", html, StringComparison.Ordinal);
@@ -398,7 +398,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task The_cross_takes_a_day_that_may_be_unset_back_to_null()
     {
         var model = new Trip { Departure = Jan(20) };
-        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Departure).Clearable().Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Departure).Type(Ui.DatePickerType.Button).Clearable().Locale("en-US").On(Today));
 
         await page.On("[aria-label=\"Clear\"]").Click();
         await Acting.Act(page);
@@ -423,7 +423,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task The_clear_button_takes_a_day_that_cannot_be_null_back_to_its_unset_value()
     {
         var model = new Trip { Arrival = Jan(20) };
-        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Clearable().Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Type(Ui.DatePickerType.Button).Clearable().Locale("en-US").On(Today));
 
         await page.On("[aria-label=\"Clear\"]").Click();
         await Acting.Act(page);

@@ -71,7 +71,13 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <inheritdoc cref="IUiFormControl.Badge" />
     public string? Badge { get; set; }
 
-    /// <summary>What opens the picker: a button showing the choice, or a field to type it into.</summary>
+    /// <summary>
+    ///     What opens the picker. Unset — and with no <see cref="Trigger" /> — it is typed: the day typed in the culture's
+    ///     order and separators (hu 2026. 11. 06., en-US 11/06/2026), a range as its start and its end side by side, or
+    ///     picked in a calendar whose header chooses the month and the year. <see cref="Ui.DatePickerType.Button" /> is
+    ///     Flux's own default, a field-shaped button showing the choice; <see cref="Ui.DatePickerType.Input" /> is Flux's
+    ///     <c>type="input"</c>, one field under the plain header.
+    /// </summary>
     public Ui.DatePickerType? Type { get; set; }
 
     /// <summary>What the trigger shows while nothing is chosen.</summary>
@@ -116,7 +122,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Shows each week's number.</summary>
     public bool? WeekNumbers { get; set; }
 
-    /// <summary>Makes the month and the year in the header selects.</summary>
+    /// <summary>Makes the month and the year in the header selects: so unless set, while the picker is typed (<see cref="Type" />).</summary>
     public bool? SelectableHeader { get; set; }
 
     /// <summary>Adds the shortcut that comes back to this month, and picks today once there.</summary>
@@ -198,11 +204,11 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <inheritdoc />
     Func<string, Task>? IUiRelaysUnread.Relay => _relay;
 
-    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+    string IUiFieldControl.ControlId => Id is null && BoundMember is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(this, Id, Bind, Label);
+        : UiFieldId.Derive(this, Id, BoundMember, Label);
 
-    LambdaExpression? IUiFieldControl.Bound => Bind;
+    LambdaExpression? IUiFieldControl.Bound => BoundMember;
 
     // A choice the picker keeps itself, and the typed fields emptied, are FIELDS, which the render cache cannot see.
     /// <inheritdoc />
@@ -223,14 +229,30 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private bool Confirms => WithConfirmation == true;
 
+    /// <summary>How the picker reads and writes what it is bound to: its own <c>Bind</c> unless it says otherwise.</summary>
+    private protected virtual UiPickerBinding<T> Binding => UiPickerBinding<T>.Own;
+
+    // The member the picker is bound to — its Bind, or a member that holds the day as something else — for the field.
+    private LambdaExpression? BoundMember => Binding.Bound(this);
+
+    // Neither a Type nor a Trigger said: the day typed in the culture's order or picked in a calendar whose header
+    // chooses the month and the year.
+    private bool IsTyped => Type is null && Trigger is null;
+
+    /// <summary>
+    ///     The trigger drawn while nothing says which: the day typed into one field, the culture's order and
+    ///     separators.
+    /// </summary>
+    private protected virtual Component TypedTrigger() => Ui.DatePickerInput;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
         var field = UiWithField.For(this);
         UiDatePickerModes.Check(Mode, Bound);
         _relay = UiUnreadRelay.Around();
-        var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
-        var committed = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
+        var (acc, ctx, bound) = Binding.Resolve(this);
+        var committed = BoundMember is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
         var options = Options();
 
         Task Commit(T value)
@@ -241,9 +263,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
                 return Task.CompletedTask;
             }
 
-            _own = (Bind is null, value, Value);
+            _own = (BoundMember is null, value, Value);
             _emptied = 0;
-            return UiFormCommit.CommitAsync(this, acc, ctx, value);
+            return Binding.CommitAsync(this, acc, ctx, value);
         }
 
         var scope = new UiDatePickerScope
@@ -264,7 +286,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Heard = HeardAsync,
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
             FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
-            Waits = UiDraws.Waits(this, Bind is not null),
+            Waits = UiDraws.Waits(this, BoundMember is not null),
         };
 
         _drawn = new Drawn(Commit, scope, acc, ctx, options, committed);
@@ -295,18 +317,18 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private HTMLInputElement<string> Field(T? committed)
     {
         var field = Input.Value(Written(committed)).Type(InputType.Hidden);
-        if (Bind is null && !OnChange.HasValue)
+        if (BoundMember is null && !OnChange.HasValue)
         {
             return field;
         }
 
-        if (Bind is not null && Live == true)
+        if (BoundMember is not null && Live == true)
         {
             return field.OnInput(ChangedAsync);
         }
 
         field = field.OnChange(ChangedAsync);
-        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
+        return UiDraws.Waits(this, BoundMember is not null) ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
     }
 
     // A typed field left with no date in it. Half filled is no date at all; emptied is nothing chosen — once
@@ -323,7 +345,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         _emptied = half ? _emptied & ~(1 << slot) : _emptied | (1 << slot);
         if (half || (_emptied & every) != every)
         {
-            return UiFormCommit.UnreadAsync(this, accessor, context, committed, RaskString.ValidationDate);
+            return Binding.UnreadAsync(this, accessor, context, committed, UnreadValue.Say(RaskString.ValidationDate));
         }
 
         return EmptyAsync(accessor, context);
@@ -349,7 +371,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
         // A range typed into the calendar's own inputs is not held to its length there: here it is, and said (#1273).
         return picks.LengthRefusal(drawn.Options) is { } said
-            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, drawn.Committed, said)
+            ? Binding.UnreadAsync(this, drawn.Accessor, drawn.Context, drawn.Committed, said)
             : drawn.Commit(value);
     }
 
@@ -360,7 +382,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         var drawn = Latest;
         var value = Typed(committed, slot, date);
         return Picks(value).Refusal(drawn.Options) is { } said
-            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, committed, said)
+            ? Binding.UnreadAsync(this, drawn.Accessor, drawn.Context, committed, said)
             : drawn.Commit(value);
     }
 
@@ -384,8 +406,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             return Task.CompletedTask;
         }
 
-        _own = (Bind is null, default, Value);
-        return UiFormCommit.ClearAsync(this, accessor, context);
+        _own = (BoundMember is null, default, Value);
+        return Binding.ClearAsync(this, accessor, context);
     }
 
     /// <summary>What "chosen" means for this picker, over the value as it stands.</summary>
@@ -422,8 +444,13 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Fragment[Below(current, options), Footer()],
             marked: false);
 
-    private Component OwnTrigger() =>
-        Type == Ui.DatePickerType.Input ? Ui.DatePickerInput : Ui.DatePickerButton;
+    // Typed unless it says which: Flux's button and Flux's input are each a Type away.
+    private Component OwnTrigger() => Type switch
+    {
+        Ui.DatePickerType.Button => Ui.DatePickerButton,
+        Ui.DatePickerType.Input => Ui.DatePickerInput,
+        _ => TypedTrigger(),
+    };
 
     private Component Popup(Component calendar) =>
         Dialog
@@ -460,15 +487,15 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             UiDatePickerLook.Cells(Size),
             Math.Max(1, Months ?? DefaultMonths))
         {
-            Min = Min,
-            Max = Max,
+            Min = Min ?? Binding.Bounds.Min,
+            Max = Max ?? Binding.Bounds.Max,
             Unavailable = Unavailable,
             MinRange = MinRange,
             MaxRange = MaxRange,
             OpenTo = OpenTo,
             ForceOpenTo = ForceOpenTo == true,
             WeekNumbers = WeekNumbers == true,
-            SelectableHeader = SelectableHeader == true,
+            SelectableHeader = SelectableHeader ?? IsTyped,
             WithInputs = WithInputs,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,

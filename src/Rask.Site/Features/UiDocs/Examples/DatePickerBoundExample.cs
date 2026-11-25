@@ -8,7 +8,7 @@ public sealed partial class DatePickerBoundExample : Component
 
     protected override Component? Render() =>
         Div.Class("max-w-xs space-y-3")[
-            Ui.DatePicker.Bind(() => _post.PublishedAt).Live().Label("Publish on"),
+            Ui.DatePicker.Bind(() => _post.PublishedAt).Type(Ui.DatePickerType.Button).Live().Label("Publish on"),
             Ui.Text[_post.PublishedAt is { } day ? "Publishes " + day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "." : "Not scheduled."]
         ];
 

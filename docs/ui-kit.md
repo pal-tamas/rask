@@ -940,7 +940,7 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
 
 - **One row, wrapping**: the day takes the room (`min-w-48 flex-1`), the time a third of it (`w-36`, `w-44` where the clock has AM/PM); where the row has
   no room for both, as on a phone, the time goes beneath the day. Nothing scrolls sideways.
-- **The day** is `Ui.DatePicker…Typed()`: typed in the culture's own order and separators (hu `2026. 11. 06.`, en-US
+- **The day** is `Ui.DatePicker` as it draws with no `Type`: typed in the culture's own order and separators (hu `2026. 11. 06.`, en-US
   `11/06/2026`) or picked in the calendar, whose header chooses the month and the year. **The time** is
   `Ui.TimePicker` typed, 24-hour or 12-hour as the culture writes it. Both follow `Locale`, the current culture unless set.
 - **No day is no moment**: the time is disabled until a day is given, and a day taken away takes its time with it. A
@@ -979,9 +979,9 @@ Ui.DayAndTime.Bind(() => _note.Day, () => _note.Time).Label("Delivered")
   `.Disabled` and `.ShowValidation(false)` apply to both parts; `AfterBind` hears the moment the two make (the day at
   its time, its first minute without one). `.Validate` and `.Value`/`.OnChange` are the one-member binding's.
 
-`Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
-header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named
-from the catalog ("Kezdet" / "Vége" in Hungarian). Live: **[rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/)**,
+`Ui.DatePicker.Bind(() => m.Day)` is the same typed day on its own (one typed field and the selectable header), and
+`Ui.DatePicker.Range.Bind(() => m.Days)` two fields side by side, the start and the end, named from the catalog
+("Kezdet" / "Vége" in Hungarian) — see [Date picker](#date-picker). Live: **[rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/)**,
 **[rask.sh/ui/date-picker](https://rask.sh/ui/date-picker/)**.
 
 ## Printing
@@ -1683,7 +1683,8 @@ owner (2026-11-23), made of Flux's parts: the label, help text and placeholder a
 Prompt)]`, the badge the automatic *Required*, and the control what the member's [field shape](forms-validation.md)
 (else its type) says it holds. Text is a `Ui.Input` (`email`, `tel`, `url`, `password` from the member's attributes;
 `.Multiline()` a `Ui.Textarea`); a number or whole number an input with its `min`, `max` and a step of 10^-scale; a day
-a `Ui.DatePicker` (ending today for `NotAfterToday`); a moment a `Ui.DayAndTime` (ending now for a `Moment` value object's `NotAfterNow`); a `bool` a `Ui.Checkbox`; an enum a
+a `Ui.DatePicker` with Flux's button (ending today for `NotAfterToday`; a `DateTime` held as a day keeps its time of
+day); a moment a `Ui.DayAndTime` (ending now for a `Moment` value object's `NotAfterNow`); a `bool` a `Ui.Checkbox`; an enum a
 `Ui.Select` over its options in their order, with an empty one for a nullable member; another row's id a `Ui.Select`
 over the `.Choices(…)` you give (the shapes `Ui.Select.Choices` takes — without them it throws, naming the member); a
 range two controls of its ends' kind under one label, `Km.Start` and `Km.End` each with its own message.
@@ -2037,10 +2038,41 @@ ends. Min and max, unavailable days, week numbers, inputs over the months, the k
 
 ### Date picker
 
-`Ui.DatePicker` is Flux UI's date picker: a field-shaped button over the calendar in a popover, a day or a range
-(`Ui.DatePicker.Range`), typed in parts with `Type(Ui.DatePickerType.Input)`, `Ui.DatePickerInput` or
-`WithInputs()` (the browser's own date fields with `.Native` and `WithInputs(Ui.DatePickerInputVariant.Native)`),
-with presets, `Clearable()`, and Flux's sheet on a phone. A half-filled date is no date, by the owner's decision.
+`Ui.DatePicker` is Flux UI's date picker: the calendar in a popover, a day or a range (`Ui.DatePicker.Range`), typed
+in parts with `Ui.DatePickerInput` or `WithInputs()` (the browser's own date fields with `.Native` and
+`WithInputs(Ui.DatePickerInputVariant.Native)`), with presets, `Clearable()`, and Flux's sheet on a phone. A
+half-filled date is no date, by the owner's decision.
+
+**Typed unless told otherwise** (owner-approved, not Flux's default): with no `Type` and no `Trigger`, the day is typed
+in the culture's own order and separators (hu `2026. 11. 06.`, en-US `11/06/2026`) or picked in a calendar whose
+header chooses the month and the year; a range is two fields, its start and its end. Flux's own looks are a `Type`
+away — `.Type(Ui.DatePickerType.Button)` is Flux's default, the field-shaped button and the plain header, and
+`.Type(Ui.DatePickerType.Input)` Flux's `type="input"`. A field `Ui.Field.Bind` draws and a picker in `Ui.Filters`
+keep Flux's button.
+
+```csharp
+Ui.DatePicker.Bind(() => _form.InvoiceDay).Placeholder("Dátum")      // typed; was .Typed()
+Ui.DatePicker.Bind(() => _form.Day).Type(Ui.DatePickerType.Button)   // Flux's button, the old default
+```
+
+**`Bind` takes the member as it is**, one overload per type: a `DateOnly` or `DateOnly?`; a `DateTime` or `DateTime?`
+held as its day — a new day keeps the time of day the value had, seconds and `Kind` too, a first day is midnight,
+emptied a `DateTime?` is `null` and a `DateTime` says "This field is required." at once
+(`UiDatePickerMoments`); a `Rask.Values.Day` value object, made with its generated `Create`
+(`UiDatePickerDays`); or a `Rask.Values.Moment` value object, as a day keeping its time. A value object's own rules
+are asked as it is made: a day they refuse is said under the picker and never written, and the calendar offers no
+day past the bounds its base declares (`NotBefore`, `NotAfter`, `NotAfterToday`/`NotAfterNow`); emptied, it is
+`null`. The bound member is the field: its label, the model's attributes and rules and their messages stand under the
+picker, and `.Validate(…)` is asked of the day it holds. `.Value(day).OnChange(…)` stays the `DateOnly`'s.
+
+```csharp
+// before: a DateOnly? copy of a DateTime, written back by hand
+Ui.DatePicker.Value(DateOnly.FromDateTime(_form.FueledAt)).OnChange(day => _form.FueledAt = day.ToDateTime(…))
+
+// after: the DateTime itself, keeping its time of day
+Ui.DatePicker.Bind(() => _form.FueledAt)
+```
+
 A date typed outside `Min`/`Max`/`Unavailable`, or a range outside `MinRange`/`MaxRange`, is not taken, and the field
 says why ("Choose a date on or after Mar 1, 2026.") — see [forms](forms.md#a-choice-takes-only-what-it-offered).
 Every example and the reference: **[rask.sh/ui/date-picker](https://rask.sh/ui/date-picker/)**.

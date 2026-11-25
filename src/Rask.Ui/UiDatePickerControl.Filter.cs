@@ -1,6 +1,6 @@
 namespace Rask;
 
-// In a Ui.Filters: bound to the address, live, and said as the picker's own button says the choice.
+// In a Ui.Filters: bound to the address, live, and drawn and said as the picker's button says the choice.
 public abstract partial class UiDatePickerControl<T> : IUiFilterField
 {
     /// <inheritdoc />
@@ -24,6 +24,10 @@ public abstract partial class UiDatePickerControl<T> : IUiFilterField
         }
 
         Live ??= true;
+
+        // A filter says its choice as a button does, the day or the two days or the preset's name: typed only when
+        // the page asks for it.
+        Type ??= Ui.DatePickerType.Button;
 
         BuilderRuntime.MarkChanged(this);
     }

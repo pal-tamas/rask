@@ -309,7 +309,7 @@ public sealed partial class PickerFormPage(RouteState route) : Component
             Div.Id("calendar-lists")[Ui.Calendar.Bind(() => _tank.Checked).SelectableHeader()],
             Div.Id("autocomplete")[Ui.Autocomplete.Bind(() => _tank.City)[Fuels.Select(fuel => Ui.AutocompleteItem.Key(fuel)[fuel])]],
             Div.Id("calendar")[Ui.Calendar.Bind(() => _tank.Day)],
-            Div.Id("date")[Ui.DatePicker.Bind(() => _tank.From)],
+            Div.Id("date")[Ui.DatePicker.Bind(() => _tank.From).Type(Ui.DatePickerType.Button)],
             Div.Id("time")[Ui.TimePicker.Bind(() => _tank.At)],
             Div.Id("colour")[Ui.ColorPicker.Bind(() => _tank.Colour)],
             NavLink.Href("/list").Id("cancel")["Mégse"],

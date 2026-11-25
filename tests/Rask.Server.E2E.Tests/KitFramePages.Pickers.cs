@@ -21,7 +21,7 @@ public sealed partial class KitPickerFramePage : KitFramePage
         Div.Id("stage")[
             Part("calendar", Ui.Calendar.Value(_day).Key("day").OnChange(d => _day = d)),
             Part("calendar-range", Ui.Calendar.Range.Value(_stay).Key("stay").OnChange(r => _stay = r)),
-            Part("date-picker", Ui.DatePicker.Value(_arrival).Key("arrival").Id("arrival").OnChange(d => _arrival = d)),
+            Part("date-picker", Ui.DatePicker.Value(_arrival).Type(Ui.DatePickerType.Button).Key("arrival").Id("arrival").OnChange(d => _arrival = d)),
             Part("date-picker-input", Ui.DatePicker.Value(_typed).Key("typed").Id("typed").Type(Ui.DatePickerType.Input).OnChange(d => _typed = d)),
             Part("time-picker", Ui.TimePicker.Value(_time).Key("time").Id("time").OnChange(t => _time = t)),
             Part("time-picker-input", Ui.TimePicker.Value(_typedTime).Key("typed-time").Id("typed-time").Type(Ui.TimePickerType.Input).OnChange(t => _typedTime = t)),

@@ -116,7 +116,7 @@ public abstract partial class DatetimePickerExamples : FluxParity
 
         // A date picker and a time picker side by side, as the docs page draws them: one above the other on a phone.
         yield return ("separate-date-and-time", Div.Class("parity-separate")[
-            Ui.DatePicker.Value(now.AddDays(5)).Locale("en-US").On(FluxClock.Today).Class("parity-flex-1"),
+            Ui.DatePicker.Value(now.AddDays(5)).Type(Ui.DatePickerType.Button).Locale("en-US").On(FluxClock.Today).Class("parity-flex-1"),
             Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Locale("en-US").Class("parity-sm-w-40")
         ]);
     }

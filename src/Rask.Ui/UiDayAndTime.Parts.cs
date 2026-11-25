@@ -36,19 +36,9 @@ public sealed partial class UiDayAndTime<T> : ICarriesHandSteps
     /// <inheritdoc />
     void ICarriesHandSteps.CarryTo(Component kept)
     {
-        if (kept is not UiDayAndTime<T> other)
-        {
-            return;
-        }
-
-        if (_parts is { } mine)
+        if (kept is UiDayAndTime<T> other && _parts is { } mine)
         {
             other._parts = mine;
-        }
-
-        if (_dayAlone is { } alone)
-        {
-            other._dayAlone = alone;
         }
     }
 
@@ -68,7 +58,6 @@ public sealed partial class UiDayAndTime<T> : ICarriesHandSteps
         _dayPart = Ui.DatePicker
             .Value(day ?? default)
             .OnChange(PartDayAsync)
-            .Typed()
             .Key("day")
             .Id(dayId)
             .Locale(Locale)

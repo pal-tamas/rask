@@ -110,7 +110,7 @@ public sealed partial class DateFormPage : Component
     [
         Div.Style("height:900px"),
         Form.Model(_delivery)[
-            Ui.DatePicker.Bind(() => _delivery.Fulfilled).Locale("hu").Clearable(true).Label("Teljesítve")
+            Ui.DatePicker.Bind(() => _delivery.Fulfilled).Type(Ui.DatePickerType.Button).Locale("hu").Clearable(true).Label("Teljesítve")
         ],
         Div.Style("height:2000px")
     ];

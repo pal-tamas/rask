@@ -5,9 +5,16 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>Ui.DatePicker.Bind(() =&gt; model.Arrival)</c> two-way binds a <c>DateOnly</c> (or a <c>DateOnly?</c>);
-/// <c>.Value(day).OnChange(…)</c> leaves it with the parent. The button shows the day as the locale writes a
-/// medium date ("Jan 20, 2026"), and a pick closes the popup on the same click.
+/// <c>Ui.DatePicker.Bind(() =&gt; model.Arrival)</c> two-way binds a <c>DateOnly</c> or a <c>DateOnly?</c>, a
+/// <c>DateTime</c> or a <c>DateTime?</c> held as its day, or a <see cref="Rask.Values.Day" /> or
+/// <see cref="Rask.Values.Moment" /> value object (<see cref="UiDatePickerMoments" />, <see cref="UiDatePickerDays" />);
+/// <c>.Value(day).OnChange(…)</c> leaves a <c>DateOnly</c> with the parent. A pick closes the popup on the same click.
+/// </para>
+/// <para>
+/// It is typed unless it says otherwise: the day typed in the culture's own order and separators (hu 2026. 11. 06.,
+/// en-US 11/06/2026) or picked in the calendar, whose header chooses the month and the year.
+/// <c>.Type(Ui.DatePickerType.Button)</c> is Flux's own default, a button showing the day as the locale writes a medium
+/// date ("Jan 20, 2026"); <c>.Type(Ui.DatePickerType.Input)</c> is Flux's <c>type="input"</c>.
 /// </para>
 /// <para>
 /// <c>Ui.DatePicker.Range</c> opens <see cref="UiDatePickerRange" /> over a <see cref="UiDateRange" />. Every prop is on

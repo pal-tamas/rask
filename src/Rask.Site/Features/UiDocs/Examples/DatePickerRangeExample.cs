@@ -8,7 +8,7 @@ public sealed partial class DatePickerRangeExample : Component
 
     protected override Component? Render() =>
         Div.Class("max-w-xs space-y-3")[
-            Ui.DatePicker.Range.Value(_range).OnChange(range => { _range = range; }),
+            Ui.DatePicker.Range.Value(_range).Type(Ui.DatePickerType.Button).OnChange(range => { _range = range; }),
             Ui.Text.Data("testid", "ui-date-picker-range-state")[
                 _range == default ? "No range chosen." : $"Range: {Iso(_range.Start)} to {Iso(_range.End)}"
             ]

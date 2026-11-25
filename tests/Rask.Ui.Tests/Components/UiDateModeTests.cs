@@ -95,8 +95,8 @@ public partial class UiDateModeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_date_picker_with_no_mode_step_picks_a_single_day_and_the_range_step_a_range()
     {
-        UiDatePicker single = Ui.DatePicker.Value(Jan(20)).Locale("en-US").On(Today);
-        UiDatePickerRange range = Ui.DatePicker.Range.Value(new UiDateRange(Jan(5), Jan(9))).Locale("en-US").On(Today);
+        UiDatePicker single = Ui.DatePicker.Value(Jan(20)).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today);
+        UiDatePickerRange range = Ui.DatePicker.Range.Value(new UiDateRange(Jan(5), Jan(9))).Type(Ui.DatePickerType.Button).Locale("en-US").On(Today);
 
         var (one, two) = (single.ToHtml(), range.ToHtml());
 

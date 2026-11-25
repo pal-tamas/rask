@@ -4,6 +4,6 @@ public sealed partial class DatePickerWithInputsExample : Component
 {
     protected override Component? Render() =>
         Div.Class("max-w-xs")[
-            Ui.DatePicker.Range.Value(default(UiDateRange)).WithInputs()
+            Ui.DatePicker.Range.Value(default(UiDateRange)).Type(Ui.DatePickerType.Button).WithInputs()
         ];
 }
