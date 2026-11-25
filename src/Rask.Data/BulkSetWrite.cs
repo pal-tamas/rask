@@ -201,8 +201,11 @@ internal static class BulkSetWrite
         }
     }
 
-    // What a save tells: the policy counts the set as one write, and the pages showing it hear of it after the commit.
-    private static void Written(DbContext context, IEntityType type, int rows)
+    /// <summary>
+    ///     What a save tells of a statement that wrote <paramref name="rows" /> of <paramref name="type" />: the policy counts
+    ///     it as one write, and the pages showing them hear of it after the commit.
+    /// </summary>
+    internal static void Written(DbContext context, IEntityType type, int rows)
     {
         if (rows == 0)
         {

@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`X.Renumber(group)` / `X.RenumberAll()`: a `b.Numbered(…)` numbering numbered anew by hand, for rows written past a
+  save.** Before: a test or a data repair that wrote numbered rows with a raw `ExecuteUpdate` or SQL renumbered them
+  itself, restating the numbering's rules in a loop of its own (TA's `Numbering.Mend`). Now `await Fueling.Renumber(pistolId)`
+  (or several groups, or `RenumberAll()` for every group and no number for a row in none) numbers each group whole by the
+  rules a save numbers it by — `by`, `skip`, `Same`, `SkipWhen` — under the same per-group lock, in a `Db.Transaction` of
+  its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
+
 ### Documentation
 - **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
   `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
