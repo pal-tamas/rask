@@ -15,19 +15,20 @@ public sealed partial class Numbering<TEntity> : INumbering
     {
         var touch = new NumberingTouch();
         var comparable = NumberingOrder.IsComparable(Order[0].ReturnType);
+        var now = _now.Value;
         foreach (var entry in context.ChangeTracker.Entries<TEntity>().ToList())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    Place(touch, entry, entry.Entity, comparable, current: true);
+                    PlaceNow(touch, entry, now, comparable);
                     break;
                 case EntityState.Deleted:
-                    Place(touch, entry, Original(entry), comparable, current: false);
+                    PlaceWas(touch, entry, now, comparable);
                     break;
                 case EntityState.Modified when entry.Members.Any(m => m.IsModified && _members.Contains(m.Metadata.Name)):
-                    Place(touch, entry, Original(entry), comparable, current: false);
-                    Place(touch, entry, entry.Entity, comparable, current: true);
+                    PlaceWas(touch, entry, now, comparable);
+                    PlaceNow(touch, entry, now, comparable);
                     break;
             }
         }
@@ -50,6 +51,7 @@ public sealed partial class Numbering<TEntity> : INumbering
         var key = entity.FindPrimaryKey()!.Properties[0];
         var numbered = new Dictionary<object, long?>();
         var changed = new Dictionary<object, long?>();
+        await ReadBack(context, touched, cancellationToken).ConfigureAwait(false);
         foreach (var (group, since) in touched.Groups)
         {
             await RenumberGroup(context, number, key, group, since, numbered, changed, cancellationToken).ConfigureAwait(false);
@@ -94,26 +96,73 @@ public sealed partial class Numbering<TEntity> : INumbering
         }
     }
 
-    private void Place(NumberingTouch touch, EntityEntry entry, TEntity row, bool comparable, bool current)
+    // Where the row goes: its computed members computed from its values now, or — when C# cannot — read back once written.
+    private void PlaceNow(NumberingTouch touch, EntityEntry<TEntity> entry, NumberingPlace<TEntity> now, bool comparable)
     {
-        if (SameAs is not null && SameAs.Of(row) is not null)
+        if (IsPart(entry.Entity))
         {
-            if (current)
-            {
-                touch.Parts.Add(entry);
-            }
+            touch.Parts.Add(entry);
+        }
+        else if (now.TryRead(entry.Entity, out var within, out var first))
+        {
+            PlaceAt(touch, entry, within, first, comparable, current: true);
+        }
+        else
+        {
+            touch.ReadBack.Add(entry);
+        }
+    }
 
+    // Where the row was: as the database holds it, and as its values before the save compute it should they differ.
+    private void PlaceWas(NumberingTouch touch, EntityEntry<TEntity> entry, NumberingPlace<TEntity> now, bool comparable)
+    {
+        var was = Original(entry);
+        if (IsPart(was))
+        {
             return;
         }
 
-        if (_readWithin(row) is { } group)
+        PlaceAt(touch, entry, _readWithin(was), _readFirst(was), comparable, current: false);
+        if (now.Computed && now.TryRead(was, out var within, out var first))
         {
-            touch.Touch(group, _readFirst(row), comparable);
+            PlaceAt(touch, entry, within, first, comparable, current: false);
+        }
+    }
+
+    private bool IsPart(TEntity row) => SameAs is not null && SameAs.Of(row) is not null;
+
+    private static void PlaceAt(NumberingTouch touch, EntityEntry entry, object? within, object? first, bool comparable, bool current)
+    {
+        if (within is { } group)
+        {
+            touch.Touch(group, first, comparable);
         }
         else if (current)
         {
             touch.Ungrouped.Add(entry);
         }
+    }
+
+    // The rows placed only once the database computed their columns: placed by the values it read back, their groups
+    // locked in the save's transaction before they are numbered.
+    private async Task ReadBack(DbContext context, NumberingTouch touched, CancellationToken cancellationToken)
+    {
+        if (touched.ReadBack.Count == 0)
+        {
+            return;
+        }
+
+        var comparable = NumberingOrder.IsComparable(Order[0].ReturnType);
+        var held = touched.LockNames(Name).ToHashSet(StringComparer.Ordinal);
+        foreach (var entry in touched.ReadBack)
+        {
+            var row = (TEntity)entry.Entity;
+            PlaceAt(touched, entry, _readWithin(row), _readFirst(row), comparable, current: true);
+        }
+
+        touched.ReadBack.Clear();
+        await NumberingLocks.Take(context, [.. touched.LockNames(Name).Where(name => !held.Contains(name))], cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // The numbered rows another table's written rows speak of, as they were and as they are.
@@ -146,7 +195,9 @@ public sealed partial class Numbering<TEntity> : INumbering
         var keyProperty = entity.FindPrimaryKey()!.Properties[0];
         if (context.ChangeTracker.Entries<TEntity>().FirstOrDefault(e => Equals(e.Property(keyProperty.Name).CurrentValue, key)) is { } tracked)
         {
-            return new NumberedRow { Within = _readWithin(tracked.Entity), First = _readFirst(tracked.Entity) };
+            return _now.Value.TryRead(tracked.Entity, out var within, out var first)
+                ? new NumberedRow { Within = within, First = first }
+                : new NumberedRow { Within = _readWithin(tracked.Entity), First = _readFirst(tracked.Entity) };
         }
 
         var row = Expression.Parameter(typeof(TEntity), "row");

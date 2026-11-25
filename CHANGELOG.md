@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`b.Numbered(…)` grouped or ordered by a `b.Computed(…)` column numbers a row where the database puts it.** Before:
+  with `within: f => f.CountedAt` over `b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId)` — the
+  docs' own example — a save read the group from the row in memory, where the computed column is not yet computed: an
+  added fueling was in no group and got no number, and one corrected to another pistol (`ModifiedPistolId`) was not
+  seen as moved, so neither pistol was numbered anew. After: a computed `within` or `by` member is read as what it is
+  computed from — the row's values now for the group it goes to, its values before the save (and the stored column)
+  for the one it leaves — a change to any member it is computed from moves the row, and both groups are numbered anew
+  in the save's transaction. A value C# cannot compute from the row (a division by zero) is read back from the
+  database once the row is written, its group locked, before the numbering and the commit. Proven on SQLite, SQL
+  Server and PostgreSQL by `NumberedParityTests`.
 - **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
   carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
   `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
