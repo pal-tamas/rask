@@ -155,6 +155,7 @@
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\docs\**" />
     <RaskTestReads Include="..\..\llms.txt" />
+    <RaskTestReads Include="..\Rask.Testing.Database.Tests\Hero\**" />
     <RaskTestReads Include="..\..\README.md" />
     <RaskTestReads Include="..\..\NUGET.md" />
     <RaskTestReads Include="..\..\src\*\NUGET.md" />
