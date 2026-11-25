@@ -6,7 +6,6 @@ namespace Rask.Outbox.Tests;
 ///     An event's payload and what went wrong handling it are as long as they are: a plain context that bounds every
 ///     string it is not told otherwise about (TA's <c>HaveMaxLength(1000)</c>) leaves the outbox's text unbounded.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxTableShapeTests
 {
     [Theory]

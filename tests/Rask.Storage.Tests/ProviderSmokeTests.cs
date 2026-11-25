@@ -12,7 +12,6 @@ namespace Rask.Storage.Tests;
 ///     By hand, never in a hook: <c>scripts/run-storage-providers-local.sh</c> starts both stores in containers and
 ///     sets <c>RASK_STORAGE_PROVIDERS=1</c>. Without it every test here reports SKIPPED rather than passing.
 /// </remarks>
-[Collection(StorageDbCollection.Name)]
 public sealed class ProviderSmokeTests
 {
     private const string SkipReason =

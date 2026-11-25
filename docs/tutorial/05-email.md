@@ -1,56 +1,43 @@
 # Chapter 5 — Transactional email
 
 > **Goal:** email the customer an order receipt — with the email body written as a Rask component.
-> **You'll write:** an email component and wire it into the job from chapter 4.
+> **You'll write:** an email component, and the send in chapter 4's job.
 
-`Rask.Mail` is the same story as jobs: durable rows in your `app.db`, a background sender that delivers them
-over SMTP and retries on failure. The nice part is the body — it's a **Rask component**, so you write your
-email in C# with the same `Div`/`H1` chain you already know, no templating language.
+`Rask.Mail` is the same story as jobs: durable rows in your `app.db`, a background sender that delivers them over
+SMTP and retries on failure. The nice part is the body — it's a **Rask component**, so you write your email in C#
+with the same `Div`/`H1` chain you already know, no templating language.
 
 ## 1. Write an email
 
-Create `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the email body:
+`Features/Orders/OrderReceipt.cs` — a component whose `Render()` is the email body:
 
 ```csharp
-namespace Shop.Features.Shared;
+namespace Shop.Features.Orders;
 
 public sealed partial class OrderReceipt : Component
 {
-    protected override Component? Render() =>
-    [
-        Div["OrderReceipt works. Edit Render() to build the email body."]
-    ];
-}
-```
+    public OrderId Order { get; set; }
 
-Give it the order data and build a real body. A component carries data on **public properties** (that's what
-its chain sets), so add an `OrderId` and a `Total` and render them:
-
-```csharp
-namespace Shop.Features.Shared;
-
-public sealed partial class OrderReceipt : Component
-{
-    public Guid OrderId { get; set; }
-    public decimal Total { get; set; }
+    public int Lines { get; set; }
 
     protected override Component? Render() =>
         Div[
             H1["Thanks for your order!"],
-            P[$"Order {OrderId} — total ", Strong[$"{Total:C}"], "."],
+            P[$"Order {Order} — ", Strong[$"{Lines} line(s)"], "."],
             P["We'll email again when it ships."]
         ];
 }
 ```
 
-This is the one component in the tutorial written with plain tags rather than the Rask.Ui kit, and on
-purpose: a mail client never loads the kit's stylesheet, so kit components would arrive unstyled.
+A component carries data on **public properties**, and each is a step of its chain:
+`OrderReceipt.Order(id).Lines(2)`. This is the one component in the tutorial written with plain tags rather than the
+Rask.Ui kit, and on purpose: a mail client never loads the kit's stylesheet, so kit components would arrive unstyled.
 
 ## 2. It's already wired
 
-The mail battery is on, its queue table is mapped by `RaskAppDbContext`, and the first migration created it —
-so there is nothing to add and nothing to migrate. All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
-than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.json`:
+The mail battery is on, its queue table is mapped by `RaskAppDbContext`, and the first migration created it. All
+that's left is your sender address and, for production, an SMTP server — settings, not code, in the `Rask:Mail`
+section `rask new` wrote into `appsettings.json`:
 
 ```jsonc
 "Rask": {
@@ -64,62 +51,98 @@ than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.js
 }
 ```
 
-> **Zero-config in development.** With no `Smtp` section, Rask.Mail doesn't try to reach a server — it writes
-> each message to `mail-pickup` as an `.eml` file, so you can build and test the flow with no mail account.
-> The SMTP password comes from the environment — user-secrets on your machine, the deploy's environment file
-> in production ([Chapter 11](11-deploy.md)) — never from `appsettings.json` or `Program.cs`.
+> **Zero-config in development.** With no `Smtp` section, Rask.Mail doesn't try to reach a server — it writes each
+> message to `mail-pickup` as an `.eml` file, so you can build and test the flow with no mail account. The SMTP
+> password comes from the environment — user-secrets on your machine, the deploy's environment file in production
+> ([Chapter 11](11-deploy.md)) — never from `appsettings.json` or `Program.cs`.
 
 ## 3. Send it from the job
 
-Remember the `SendOrderReceipt` job from Chapter 4? That's exactly where the email belongs — off the request
-thread. The handler sends with nothing injected:
+Chapter 4's job is where the email belongs — off the request thread. Here is `Features/Orders/SendOrderReceipt.cs`
+with the send in place of the comment:
 
 ```csharp
-using Shop.Features.Orders;   // for Order
+using Microsoft.EntityFrameworkCore;
+
+namespace Shop.Features.Orders;
+
+public sealed record SendOrderReceipt(OrderId Order) : IJob;
 
 [RaskMarkup]   // so this class can build your components by their chain — OrderReceipt below
 public sealed partial class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefault();
-        if (order is null)
+        var order = await Order.Query((q, ct) => q.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == job.Order, ct));
+        if (order is null || order.ReceiptSent)
         {
-            return;
+            return;   // deleted since, or already done: a job may run twice
         }
 
-        // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
         await Mail.Send(
-            Mail.Message.To("customer@example.com")
-                 .Subject($"Your order {order.Id}")
-                 .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)));
+            Mail.Message.To(order.Customer)
+                .Subject($"Your order {order.Id}")
+                .Body(OrderReceipt.Order(order.Id).Lines(order.Lines.Count)));
+
+        await Order.MarkReceiptSent(job.Order);
     }
 }
 ```
 
-A component's chain entry — the bare `OrderReceipt` that starts `OrderReceipt.OrderId(…)` — is injected
-into every component of yours, which is why a page never needs anything to name one. A job handler is not a
-component, so it says it builds markup with `[RaskMarkup]`, and is `partial` so the entries have somewhere to
-go. Leave the attribute off and the build fails on `OrderReceipt.OrderId(…)` with *CS0120: An object
-reference is required*, because outside a markup host `OrderReceipt` is just the type.
+- **The order's address is its own.** `order.Customer` is the `CustomerEmail` the order was placed with; on the read
+  face it is the address as a `string`, ready for `Mail.Message.To(…)`.
+- **The lines are read with it.** The read face leaves an aggregate's children out unless asked, so the handler asks:
+  `Order.Query((q, ct) => q.Include(o => o.Lines)…)` is the read face's own query, with EF Core's `Include`.
+- **The send, then the mark.** `Mail.Send` only queues a row — the background sender delivers it — and then the order
+  records that its receipt went. A worker that dies between the two sends again on the retry: mail is
+  at-least-once, and the order's `ReceiptSent` keeps it to one in every other case.
 
-`FirstOrDefault` returns `null` for an order that has been deleted since the job was queued, which is why the
-handler checks before sending (`First` would throw instead, and the job would be retried).
+A component's chain entry — the bare `OrderReceipt` that starts `OrderReceipt.Order(…)` — is injected into every
+component of yours. A job handler is not a component, so it says it builds markup with `[RaskMarkup]`, and is
+`partial` so the entries have somewhere to go. Leave the attribute off and the build fails on `OrderReceipt.Order(…)`
+with *CS0120: An object reference is required*. Every Rask component is built by its chain, never `new`
+([RASK014](../diagnostics.md#rask014)).
 
-`Mail.Message.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
-which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the
-component with its **chain**, not `new OrderReceipt(...)` — every Rask component is built that way (the
-framework enforces it, [RASK014](../diagnostics.md#rask014)), and each public property is one step. `Mail.Send`
-just queues the row — nothing is injected, because it reaches the mail of the work it runs in — and the
-background sender delivers it. You now have the full chain: **place order → enqueue job
-→ job sends email**, none of it on the customer's request.
+## 4. Prove it
+
+`Mail.Fake()` stands in for the mail battery for one test, and records what would have been sent. Chapter 4's test
+becomes `Shop.Tests/Features/Orders/ReceiptTests.cs`:
+
+```csharp
+using Shop.Features.Orders;
+
+namespace Shop.Tests.Features.Orders;
+
+public sealed class ReceiptTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task The_receipt_goes_to_the_customer_once()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        var order = await Test.Make<Order>();
+        using var mail = Mail.Fake();
+
+        await new SendOrderReceiptHandler().Handle(new SendOrderReceipt(order.Id));
+        await new SendOrderReceiptHandler().Handle(new SendOrderReceipt(order.Id));
+
+        mail.Sent().To(order.Customer.Value).Once();
+        Assert.True((await Order.Where(o => o.Id == order.Id).First(Ct)).ReceiptSent);
+    }
+}
+```
+
+The job runs twice and one receipt goes out: the order remembered.
 
 ## Verify
 
-- With no SMTP host configured, placing an order writes a mail row and (within the poll interval) an `.eml`
-  file in `mail-pickup` — body rendered from your `OrderReceipt` component.
-- Add a `Smtp` section under `Rask:Mail` for a real server (or a local catcher like Mailpit) and the receipt actually arrives.
+- With no SMTP host configured, *Send receipt* writes a mail row and, within the poll interval, an `.eml` file in
+  `mail-pickup` — its body rendered from `OrderReceipt`, addressed to the order's customer.
+- Add a `Smtp` section under `Rask:Mail` for a real server (or a local catcher like Mailpit) and the receipt arrives.
+- `dotnet test` passes.
 
-**Learn more:** [transactional email](../mail.md) · [background jobs](../jobs.md)
+**Learn more:** [transactional email](../mail.md) · [background jobs](../jobs.md) ·
+[a flow across batteries](../testing.md#a-flow-across-batteries)
 
 Next → **[Chapter 6: Caching the catalog](06-cache.md)**

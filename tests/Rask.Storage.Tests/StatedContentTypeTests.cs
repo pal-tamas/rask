@@ -6,7 +6,6 @@ namespace Rask.Storage.Tests;
 ///     <c>Save(…).As("application/pdf")</c>: the caller states the content type, and it is recorded and served in place
 ///     of the sniffed one. Unset, the bytes still decide.
 /// </summary>
-[Collection(StorageDbCollection.Name)]
 public sealed class StatedContentTypeTests
 {
     [Fact]

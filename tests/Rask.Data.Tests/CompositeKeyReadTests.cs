@@ -86,12 +86,12 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-composite-key-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<FuelContext>();
@@ -124,7 +124,7 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     public void A_context_wired_by_hand_keys_the_table_by_the_same_parts()
     {
         using var context = new HandWiredFuelContext(OptionsLayout.LikeAddDbContext<HandWiredFuelContext>()
-            .UseSqlite($"Data Source={_dbPath}").Options);
+            .UseSqlite(_sqlite.ConnectionString).Options);
 
         var entity = context.Model.FindEntityType(typeof(DeliveryNoteTransaction))!;
 

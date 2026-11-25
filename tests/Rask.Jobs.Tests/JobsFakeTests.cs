@@ -5,8 +5,7 @@ using Rask.Data;
 namespace Rask.Background.Tests;
 
 /// <summary>
-/// The fake stands in for the whole queue, so there is no database to reach — see the exempt list in
-/// <see cref="JobsDbCollectionGuardTests"/>.
+/// The fake stands in for the whole queue, so there is no database to reach.
 /// </summary>
 public sealed class JobsFakeTests
 {

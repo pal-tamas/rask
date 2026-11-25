@@ -89,9 +89,9 @@ public sealed class LogsheetContext(DbContextOptions<LogsheetContext> options) :
 [Collection(DataDbCollection.Name)]
 public sealed class UniqueViolationFieldTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-unique-field-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_collision_on_a_normalised_column_is_shown_under_the_field_it_names()
@@ -125,7 +125,7 @@ public sealed class UniqueViolationFieldTests : IDisposable
     public async Task A_collision_on_a_complex_propertys_member_is_shown_under_its_path()
     {
         await using var db = new LogsheetContext(OptionsLayout.LikeAddDbContext<LogsheetContext>()
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(new ViolationMessageInterceptor())
             .Options);
         await db.Database.EnsureCreatedAsync(Cancellation);
@@ -142,7 +142,7 @@ public sealed class UniqueViolationFieldTests : IDisposable
     public async Task A_collision_an_execute_update_makes_is_shown_under_the_indexs_field()
     {
         await using var db = new LogsheetContext(OptionsLayout.LikeAddDbContext<LogsheetContext>()
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(new ViolationMessageInterceptor())
             .Options);
         await db.Database.EnsureCreatedAsync(Cancellation);
@@ -182,5 +182,5 @@ public sealed class UniqueViolationFieldTests : IDisposable
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -60,7 +60,7 @@ public sealed partial class ValueObjectFactoryGenerator
         return new ShapeFacets(Start: start.Name, End: end.Name, Ends: KindOfEnd(start.Type));
     }
 
-    // Whole for an integer, Number for a fraction, Day for a DateOnly; null for any other end — a moment, a time.
+    // Integer for an integer, Number for a fraction, Day for a DateOnly; null for any other end — a moment, a time.
     private static string? KindOfEnd(ITypeSymbol type)
     {
         var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
@@ -70,7 +70,7 @@ public sealed partial class ValueObjectFactoryGenerator
         return held.SpecialType switch
         {
             SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
-                SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 => "Whole",
+                SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 => "Integer",
             SpecialType.System_Decimal or SpecialType.System_Double or SpecialType.System_Single => "Number",
             _ => held.ToDisplayString() is "System.DateOnly" ? "Day" : null,
         };
@@ -102,7 +102,7 @@ public sealed partial class ValueObjectFactoryGenerator
     // `__Field`: only for the bases a control is drawn for, and only where the compilation has the seam to name.
     private static void AppendField(StringBuilder s, ValueObject value)
     {
-        if (!value.HasFieldSeam || value.ValueBase is not ("Text" or "Number" or "Whole" or "Day" or "Moment" or "Range"))
+        if (!value.HasFieldSeam || value.ValueBase is not ("Text" or "Number" or "Integer" or "Day" or "Moment" or "Range"))
         {
             return;
         }

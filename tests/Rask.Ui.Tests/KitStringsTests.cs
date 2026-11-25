@@ -358,7 +358,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationUrl), nameof(RaskString.ValidationCreditCard), nameof(RaskString.ValidationPattern),
         nameof(RaskString.ValidationMatch), nameof(RaskString.ValidationFileType), nameof(RaskString.ValidationNotAllowed),
         nameof(RaskString.ValidationBase64), nameof(RaskString.ValidationInvalid),
-        // A value object declared from Number, Whole or Range: the app's generated module initializer words its rules.
+        // A value object declared from Number, Integer or Range: the app's generated module initializer words its rules.
         nameof(RaskString.ValidationNumberMin), nameof(RaskString.ValidationNumberMax), nameof(RaskString.ValidationDecimals),
         nameof(RaskString.ValidationRangeNotBefore), nameof(RaskString.ValidationRangeAfter),
         // A value object declared from Url: Core's value words say it.

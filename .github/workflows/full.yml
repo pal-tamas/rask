@@ -51,6 +51,9 @@ jobs:
   gates:
     needs: moved
     uses: ./.github/workflows/gates.yml
+    permissions:
+      actions: write   # asked by gates.yml's fail-fast step, which this run leaves off
+      contents: read
     with:
       set: push
       scope: full

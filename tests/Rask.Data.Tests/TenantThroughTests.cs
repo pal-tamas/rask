@@ -38,11 +38,11 @@ public sealed class TenantThroughTests : IDisposable
     private static readonly Guid Acme = new("5d0f7a7e-1b0c-4a3e-9b1a-0000000000a1");
     private static readonly Guid Globex = new("5d0f7a7e-1b0c-4a3e-9b1a-0000000000b2");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-tenant-through-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_aggregate_through_another_has_no_tenant_column_and_a_filter_through_it()
@@ -133,5 +133,5 @@ public sealed class TenantThroughTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

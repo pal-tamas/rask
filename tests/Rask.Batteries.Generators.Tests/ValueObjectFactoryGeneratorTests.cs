@@ -26,7 +26,7 @@ public class ValueObjectFactoryGeneratorTests
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: Limits.Name);
         public sealed partial record ChipCode(string Value) : Text(Value, MaxLength: 1000, Trim: false);
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
-        public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+        public sealed partial record Pieces(long Value) : Integer(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
         public sealed partial record FuelingMoment(DateTime Value) : Moment(Value);
         public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);
@@ -73,24 +73,8 @@ public class ValueObjectFactoryGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue, global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
+        Assert.Contains($"partial record {name} : global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
         Assert.Contains($"public static bool operator >=({name}? left, {name}? right)", generated, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("DriverName", "this.Value")]
-    [InlineData("KmRange", "this.Start, this.End")]
-    [InlineData("ChipPeriod", "this.From, this.To")]
-    [InlineData("Opening", "this.Date, this.Quantity")]
-    public void Every_record_can_be_asked_again_as_stored_by_making_it_from_its_own_members(string name, string members)
-    {
-        var run = Run(ValueObjects);
-
-        var generated = run.GeneratedSource(name + ".Value.g.cs");
-
-        Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue", generated, StringComparison.Ordinal);
-        Assert.Contains($"TryCreate({members}, out var __made, out var __problems);", generated, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -150,12 +134,36 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void A_moment_and_a_day_are_read_from_text_and_a_record_s_own_Parse_is_kept()
+    {
+        var run = Run("""
+            public sealed partial record SentAt(System.DateTime Value) : Moment(Value);
+            public sealed partial record DueOn(System.DateOnly Value) : Day(Value);
+            public sealed partial record Seats(int Value) : Integer(Value, Min: 1);
+            public sealed partial record OwnAt(System.DateTime Value) : Moment(Value)
+            {
+                public static OwnAt Parse(string text) => Create(System.DateTime.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
+            }
+            """);
+
+        var sent = run.GeneratedSource("SentAt.Value.g.cs");
+        var due = run.GeneratedSource("DueOn.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static SentAt Parse(string text, string? format = null, string? field = null) =>", sent, StringComparison.Ordinal);
+        Assert.Contains("GeneratedValueRules.TryParseMoment(text, format, out var __read)", sent, StringComparison.Ordinal);
+        Assert.Contains("GeneratedValueRules.ParseDay(text, format)", due, StringComparison.Ordinal);
+        Assert.DoesNotContain("Parse(", run.GeneratedSource("Seats.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Parse(", run.GeneratedSource("OwnAt.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_record_of_one_member_declared_from_Value_gets_the_rule_a_form_asks_and_one_of_two_does_not()
     {
         var run = Run("""
             public sealed partial record Rank(int Value) : Value;
             public sealed partial record Pair(int A, int B) : Value;
-            public sealed partial record Seats(int Value) : Whole(Value, Min: 1);
+            public sealed partial record Seats(int Value) : Integer(Value, Min: 1);
             """);
 
         var rank = run.GeneratedSource("Rank.Value.g.cs");

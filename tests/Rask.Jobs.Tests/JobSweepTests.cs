@@ -6,7 +6,6 @@ namespace Rask.Background.Tests;
 /// F-27: a job whose host died on its last attempt is never claimed again, so nothing would ever say how it ended — the sweep
 /// makes it the dead letter it is, instead of a job that reads as running for ever.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobSweepTests
 {
     private static JobsHarness Harness() => new(o =>

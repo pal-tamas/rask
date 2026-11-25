@@ -22,7 +22,7 @@ public class FieldShapeGeneratorTests
         public sealed partial record PostCode(string Value) : Text(Value, Pattern: @"^\d{4}$");
         public sealed partial record Grade(string Value) : Text(Value, Pattern: "^[A-F]$", Upper: true);
         public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Max: 999.5m, Scale: 2);
-        public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+        public sealed partial record Pieces(long Value) : Integer(Value, Min: 0, Max: 1000);
         public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
         public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
         public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true, Min: 0, Max: 9999);
@@ -79,10 +79,10 @@ public class FieldShapeGeneratorTests
     [InlineData("DriverName", Kind + ".Text, MaxLength: 100, MinLength: 2")]
     [InlineData("Plate", Kind + ".Text, MaxLength: 20) { Upper = true });")]
     [InlineData("Litres", Kind + ".Number, Min: 1m, Max: 999.5m, Scale: 2")]
-    [InlineData("Pieces", Kind + ".Whole, Min: 0m, Max: 1000m")]
+    [InlineData("Pieces", Kind + ".Integer, Min: 0m, Max: 1000m")]
     [InlineData("InvoiceDay", Kind + ".Day, NotAfterToday: true")]
     [InlineData("FuelingMoment", Kind + ".Moment, NotAfterNow: true")]
-    [InlineData("KmRange", Kind + ".Range, Min: 0m, Max: 9999m, Strict: true, Start: \"Start\", End: \"End\", Ends: " + Kind + ".Whole")]
+    [InlineData("KmRange", Kind + ".Range, Min: 0m, Max: 9999m, Strict: true, Start: \"Start\", End: \"End\", Ends: " + Kind + ".Integer")]
     [InlineData("Shift", Kind + ".Range, Start: \"From\", End: \"To\")")]
     public void Each_value_object_tells_its_field_the_rules_its_base_call_states(string name, string shape)
     {

@@ -24,7 +24,7 @@ years of stored rows. The order below is the one that kept every step small and 
 | 5. [Operations instead of services](#5-operations-instead-of-services) | services dissolve into aggregate methods | no |
 | 6. [Forms over the operations](#6-forms-over-the-operations) | hand form classes go | no |
 | 7. [Events instead of cross-aggregate writes](#7-events-instead-of-cross-aggregate-writes) | the remaining two-aggregate saves | no |
-| 8. [Stored data: audit, indexes, data steps](#8-stored-data-audit-indexes-data-steps) | unique indexes, link tables, moved columns | migrations, audited first |
+| 8. [Stored data: indexes, data steps](#8-stored-data-indexes-data-steps) | unique indexes, link tables, moved columns | migrations, duplicates checked first |
 | 9. [Strict](#9-strict) | warnings become errors | no |
 
 One aggregate per pull request from step 3 on: the aggregate, its pages and its tests move together, and nothing
@@ -160,7 +160,7 @@ the new `MaxLength` is a decision per value object: keep the old length on the v
 
 **Old rows still load.** A value object is not validated as it is read, and a save asks a property's rules only once
 that property changes, so a stored value a tightened rule would refuse opens and is put right when next edited.
-[Step 8](#8-stored-data-audit-indexes-data-steps) finds them before it matters.
+Before a unique index over such rows goes in, [step 8](#8-stored-data-indexes-data-steps) checks them.
 
 ## 4. `Versioned`
 
@@ -299,23 +299,26 @@ In the apps this page is written from, only a handful of sites per app stayed `m
 withdrawals that are only valid together, a distribution that must never sell the last unit twice. Once every site
 is decided, production can run at `OneAggregatePerTransaction = Throw` too.
 
-## 8. Stored data: audit, indexes, data steps
+## 8. Stored data: indexes, data steps
 
-Years of rows were written before the rules existed. Before a rule or an index the stored data might break goes
-live, ask the data — on the production server, read only, reporting ids and never values:
-
-```bash
-dotnet App.dll rask audit                                        # every stored aggregate, today's rules
-dotnet App.dll rask audit --unique-candidates --aggregate Driver # the rows a declared unique index would refuse
-```
-
-([`rask audit`](data-writes.md#auditing-stored-data-with-rask-audit).) The order for every new unique index:
+Years of rows were written before the rules existed. Before an index the stored data might break goes live, ask the
+data — on the production server, read only, reporting ids and counts and never values. The order for every new
+unique index:
 
 1. Declare it in the model — `b.HasIndex(d => new { d.TenantId, d.CardNumber }).IsUnique("That card is taken.")` —
    but do not release the migration yet.
-2. Run `rask audit --unique-candidates` against production. Each group of colliding ids is a decision: merge, fix or
-   retire the rows — through the aggregates' own operations, from a job or a data step, never a hand-run `UPDATE`.
-3. Run it again until it is clean, then release the migration. A release step can gate on its exit code.
+2. Ship a read-only duplicate-check SQL with it, for the owner to run against production before the deploy:
+
+   ```sql
+   SELECT COUNT(*) AS Rows, MIN(Id) AS FirstId, MAX(Id) AS LastId
+   FROM Drivers
+   GROUP BY TenantId, CardNumber
+   HAVING COUNT(*) > 1;
+   ```
+
+   Each group it returns is a decision: merge, fix or retire the rows — through the aggregates' own operations, from
+   a job or a data step, never a hand-run `UPDATE`.
+3. Run it again until it returns nothing, then release the migration.
 
 **Data a migration moves is C#.** A column replaced by a link table, a value split in two, a status a state now
 implies: the migration's `Up` adds a data step that runs through the aggregates after the schema is migrated, once,

@@ -8,18 +8,13 @@ namespace Rask.Testing.Database.Tests;
 ///     assembly is touched. A test whose first line is <c>TestDatabase.Start&lt;AppContext&gt;</c> has touched nothing
 ///     of it, and once built a model of none — a database without a table.
 /// </summary>
-[Collection(nameof(TestDatabase))]
-public sealed class ModelOfAnotherAssemblyTests : IDisposable
+public sealed class ModelOfAnotherAssemblyTests
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-testing-model-{Guid.NewGuid():N}.db");
-
-    public void Dispose() => File.Delete(_dbPath);
-
     [Fact]
     public async Task A_database_started_over_a_context_whose_assembly_nothing_touched_has_the_tables_of_that_assembly()
     {
         await using var database = await TestDatabase.Start<PumpsContext>(
-            o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var tables = await database.Context.Database
             .SqlQueryRaw<string>("SELECT name AS Value FROM sqlite_master WHERE type = 'table'")

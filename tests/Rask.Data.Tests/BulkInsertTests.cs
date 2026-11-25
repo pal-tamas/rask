@@ -11,7 +11,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class BulkInsertTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-test-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
@@ -24,7 +24,7 @@ public sealed class BulkInsertTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -216,7 +216,7 @@ public sealed class BulkInsertTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}", s => s.ExecutionStrategy(d => new RetryOnTimeout(d)))
+            .UseSqlite(_sqlite.ConnectionString, s => s.ExecutionStrategy(d => new RetryOnTimeout(d)))
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())
             .AddInterceptors(failOnce));
         await using var provider = services.BuildServiceProvider();
@@ -334,13 +334,6 @@ public sealed class BulkInsertTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
+        _sqlite.Dispose();
     }
 }

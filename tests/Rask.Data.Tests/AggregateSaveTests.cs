@@ -24,11 +24,11 @@ public sealed class AggregateSaveTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-save-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(Start);
     private readonly SqlCommandLog _log = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Find_loads_the_aggregate_with_its_children()
@@ -428,5 +428,5 @@ public sealed class AggregateSaveTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_log), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(_log), _clock);
 }

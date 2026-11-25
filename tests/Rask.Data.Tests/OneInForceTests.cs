@@ -54,11 +54,11 @@ public sealed class OneInForceTests : IDisposable
 {
     private static readonly DateTime March = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-one-in-force-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_child_gets_a_unique_index_on_its_parent_over_the_rows_in_force()
@@ -142,5 +142,5 @@ public sealed class OneInForceTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

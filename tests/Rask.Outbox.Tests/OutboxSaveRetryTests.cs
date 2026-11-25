@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
 /// <summary>A save that failed writes nothing of its events later, unless the same save is tried again: then, once.</summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxSaveRetryTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-retry-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly ServiceProvider _provider;
 
     public OutboxSaveRetryTests()
@@ -21,7 +21,7 @@ public sealed class OutboxSaveRetryTests : IDisposable
         services.AddRaskData();
         services.AddRaskOutbox<OutboxDbContext>();
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         _provider = services.BuildServiceProvider();
         using var db = NewContext();
@@ -67,10 +67,7 @@ public sealed class OutboxSaveRetryTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     private OutboxDbContext NewContext() => _provider.GetRequiredService<IDbContextFactory<OutboxDbContext>>().CreateDbContext();

@@ -34,14 +34,13 @@ public sealed class HitchForm
 ///     go, in a handler that catches nothing — and the sentence the aggregate declared is the toast. No part of
 ///     the page says "refused"; the store's exception is what the handler let out.
 /// </summary>
-[Collection(DataDbCollection.Name)]
 public sealed partial class RefusedDeleteSentenceTests : global::Rask.Core.RaskMarkup, IDisposable
 {
     private const string SaveFailed = "The save failed. Please try again.";
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-ui-refused-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _store = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _store.Dispose();
 
     [Theory]
     [InlineData(false)]
@@ -49,7 +48,7 @@ public sealed partial class RefusedDeleteSentenceTests : global::Rask.Core.RaskM
     public async Task A_generated_delete_the_database_refuses_ends_as_the_declared_sentence_in_a_toast(bool insideAForm)
     {
         await using var database = await TestDatabase.Start(
-            o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+            o => o.UseSqlite(_store.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
         var hitch = await ReferencedHitchAsync(database.Context);
         var page = new HitchPage(hitch.Id, insideAForm);
         using var toasts = Toast.Fake();

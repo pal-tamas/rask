@@ -8,7 +8,7 @@ namespace Rask.Background.Tests;
 ///     A batch (#1368): <c>Jobs.Enqueue(jobs)</c> writes every row in one save — all of them or none — stamped with one batch,
 ///     each titled by <c>.Noticed(j =&gt; …)</c>, and the board shows it as one piece of work.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class JobBatchTests
 {
     private static readonly Guid Alice = Guid.Parse("0e4b6c1e-7b52-4f3c-9d2f-1a1a1a1a1a1a");
