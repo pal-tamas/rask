@@ -10,5 +10,5 @@ internal static class DrawnDisabled
 
     /// <summary>The name a bound or named control posts under: its own <c>Name</c>, else the bound member's.</summary>
     internal static string? PostsUnder(string? name, System.Linq.Expressions.LambdaExpression? bind) =>
-        name ?? (bind is null ? null : ExpressionAccessor.Parse(bind).PropertyName);
+        name ?? (bind is null ? null : BoundName.Of(bind, ExpressionAccessor.Parse(bind)));
 }

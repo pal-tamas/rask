@@ -155,7 +155,7 @@ public static class ExpressionAccessor
         }
     }
 
-    private static bool TryEvaluate(Expression e, out object? value)
+    internal static bool TryEvaluate(Expression e, out object? value)
     {
         switch (e)
         {

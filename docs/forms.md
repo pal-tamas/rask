@@ -1083,6 +1083,15 @@ Form.For(Note.Rename, id)[f => [
   name, and a nullable one (`Opening? opening`) left wholly empty is handed over as null, nothing in it required until
   one is filled. A range is one field, as on a generated model: `Ui.Field.Bind(() => f.Km)` draws both ends under one
   label, each told the range's kind and bounds.
+- **A field is named by its whole path.** A control bound to a member of a value object or a row posts under the
+  path its refusals are told by — `Ui.Input.Bind(() => f.Opening.Quantity)` is `name="Opening.Quantity"`, a row's
+  `name="Parts[0].Start.Quantity"` — never the last member alone, so it does not clash with a `Quantity` beside it. Its
+  id is drawn from the path as written, indexes left out (`f-opening-quantity`), so a row's field keeps its id as the
+  rows before it are removed; two that derive one id are numbered (`f-start-quantity-2`).
+- **Any number of parameters.** An entry past the sixteen a `Func` holds — an operation of fifteen parameters, with its
+  id, version and token — is taken as a delegate the form declares for it (`SupplyOperationForms.ChangeEntry`), which
+  `Supply.Change` converts to as it does to a `Func`: `Form.For(Supply.Change, id)` reads the same. Grouping what
+  belongs together into value objects still reads better.
 - **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
   is matched by the id it was given, not added twice. A factory's form starts empty again.
 - An operation whose parameter no field holds — a row whose member is itself a list or a value object of several

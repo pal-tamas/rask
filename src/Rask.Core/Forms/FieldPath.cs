@@ -46,6 +46,32 @@ internal static class FieldPath
         return null;
     }
 
+    /// <summary>
+    ///     Every object <paramref name="root" /> reaches, each by the path <see cref="Of" /> would name it by — the
+    ///     shortest, breadth-first — read in one walk for a form whose bound controls all ask (<see cref="FieldPathIndex" />).
+    /// </summary>
+    internal static Dictionary<object, string> Index(object root)
+    {
+        var index = new Dictionary<object, string>(ReferenceEqualityComparer.Instance);
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance) { root };
+        var queue = new Queue<(object Node, string Path)>();
+        queue.Enqueue((root, string.Empty));
+        while (queue.Count > 0)
+        {
+            var (node, path) = queue.Dequeue();
+            foreach (var (child, childPath) in Children(node, path))
+            {
+                if (visited.Add(child))
+                {
+                    index[child] = childPath;
+                    queue.Enqueue((child, childPath));
+                }
+            }
+        }
+
+        return index;
+    }
+
     [UnconditionalSuppressMessage("Trimming", "IL2075",
         Justification = "GetProperties on the runtime type of a model node, as ModelGraphWalker.Walk: the " +
                         "app preserves the public properties of the models its forms bind.")]

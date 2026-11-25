@@ -244,7 +244,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         base.WriteAttributes(sb);
         CaptureSelection(acc);
 
-        var name = Name ?? acc?.PropertyName;
+        var name = Name ?? (acc is null ? null : BoundName.Of(Bind!, acc));
         if (name is not null)
         {
             AppendAttr(sb, "name", name);

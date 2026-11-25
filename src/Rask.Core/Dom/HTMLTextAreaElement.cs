@@ -151,7 +151,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
 
         base.WriteAttributes(sb);
 
-        var name = Name ?? acc?.PropertyName;
+        var name = Name ?? (acc is null ? null : BoundName.Of(Bind!, acc));
         if (name is not null)
         {
             AppendAttr(sb, "name", name);

@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
+  no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
+  before anything else"). Now a factory of fifteen fits a `Func` as before, and an entry past the sixteen a `Func`
+  holds (an operation of fifteen, with its id, version and token) is taken as a delegate the generated forms declare
+  for it (`SupplyOperationForms.ChangeEntry`), which `Supply.Change` converts to: `Form.For(Supply.Change, id)` compiles.
+- **A bound control is named by its member's whole path.** Before: `Ui.Input.Bind(() => f.Opening.Quantity)` drew
+  `name="Quantity"` and the id `f-quantity-2`, clashing with a `Quantity` beside it (and a row's
+  `row.Start.Quantity` was `name="Quantity"` in every row). Now its `name` is the path its refusals are told by —
+  `Opening.Quantity`, `Parts[0].Start.Quantity` — on `Input`, `Select` and `Textarea` and every kit control over them,
+  and its derived id is drawn from the path as written, indexes left out: `f-opening-quantity`, `f-start-quantity`
+  (`-2` for the next row). A top-level member keeps its name and id. An app reading a nested field's `FormData` by its
+  old bare name reads it by the path now.
 - **`Form.For` prefills a plain parameter from the one-value value object of its name, and back.** Before: an operation
   taking `decimal? totalSum` over an aggregate holding `Amount? TotalSum` (`record Amount(decimal Value) : Value`, or any
   one-value base) started empty, and so did an `Amount? paid` over a `decimal? Paid`. Now the first is filled with

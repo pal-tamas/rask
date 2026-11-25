@@ -317,7 +317,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             AppendAttr(sb, "type", resolvedType);
         }
 
-        if ((Name ?? acc?.PropertyName) is { } name)
+        if ((Name ?? (acc is null ? null : BoundName.Of(Bind!, acc))) is { } name)
         {
             AppendAttr(sb, "name", name);
         }

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Rask.Core.Forms;
 
 namespace Rask;
 
@@ -6,8 +7,10 @@ namespace Rask;
 internal static class UiFieldId
 {
     /// <summary>
-    ///     The caller's id, or one from the bound member's name, or from the label — the derived one unique on
-    ///     <paramref name="owner" />'s page (<see cref="UiFieldIds" />): a second <c>f-name</c> is <c>f-name-2</c>.
+    ///     The caller's id, or one from the bound member's path, or from the label — the derived one unique on
+    ///     <paramref name="owner" />'s page (<see cref="UiFieldIds" />): a second <c>f-name</c> is <c>f-name-2</c>. The path
+    ///     is the whole of it, its indexes left out: <c>() =&gt; f.Opening.Quantity</c> is <c>f-opening-quantity</c>, never
+    ///     the <c>f-quantity</c> of a <c>Quantity</c> beside it, and a row's field keeps its id as rows before it go.
     /// </summary>
     /// <param name="owner">The control the id names; none for an id only read, never written on the page.</param>
     /// <param name="id">The id the call site gave, kept as it is.</param>
@@ -16,7 +19,7 @@ internal static class UiFieldId
     internal static string Derive(Component? owner, string? id, LambdaExpression? bind, string? label) =>
         id is not null
             ? UiFieldIds.Given(owner, id)
-            : UiFieldIds.Derived(owner, "f-" + Slug(Member(bind?.Body)?.Member.Name ?? label ?? "field"));
+            : UiFieldIds.Derived(owner, "f-" + Slug(BoundName.Written(bind, indexes: false) ?? label ?? "field"));
 
     /// <summary>One choice of a group: the group's id and the choice's value.</summary>
     internal static string Choice(string groupId, object? value) =>
@@ -30,17 +33,6 @@ internal static class UiFieldId
     internal static string Description(string controlId) => controlId + "-description";
 
     internal static string Error(string controlId) => controlId + "-error";
-
-    // A bind over a nullable member reaches a control typed on the plain value through a Convert.
-    private static MemberExpression? Member(Expression? body)
-    {
-        while (body is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } convert)
-        {
-            body = convert.Operand;
-        }
-
-        return body as MemberExpression;
-    }
 
     private static string Slug(string text) =>
         string.Create(text.Length, text, static (slug, source) =>

@@ -41,7 +41,7 @@ internal static class UiRefusals
 
     /// <summary>The name a kit control posts under, as the log says it: the bound member's, else its own <c>Name</c>.</summary>
     internal static string? PostsUnder(IUiLockable control) =>
-        control is IUiFieldControl { Bound: { } bound } ? ExpressionAccessor.Parse(bound).PropertyName : control.Name;
+        control is IUiFieldControl { Bound: { } bound } ? BoundName.Of(bound, ExpressionAccessor.Parse(bound)) : control.Name;
 
     /// <summary>The kit's name for the control, as a page opens its chain: <c>Ui.Slider</c>, <c>Ui.DatePickerRange</c>.</summary>
     internal static string Called(object control)
