@@ -17,8 +17,12 @@ public sealed class Totalizer : Aggregate<int, Timestamps, Model, Deletable>
 }
 
 [Collection(DataDbCollection.Name)]
-public sealed class SelfReferenceReadTests
+public sealed class SelfReferenceReadTests : IDisposable
 {
+    private readonly InMemorySqlite _sqlite = new();
+
+    public void Dispose() => _sqlite.Dispose();
+
     [Fact]
     public async Task An_id_that_points_at_its_own_table_joins_and_sorts_by_the_other_row()
     {
@@ -42,9 +46,5 @@ public sealed class SelfReferenceReadTests
         Assert.Equal(["two", "one"], numbers);
     }
 
-    private static Task<TestDatabase> StartAsync()
-    {
-        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        return TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
-    }
+    private Task<TestDatabase> StartAsync() => TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

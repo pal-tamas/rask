@@ -34,7 +34,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "A record deriving from Value, Text, Number, Whole, Day, Moment or Range gets Create, TryCreate and "
+        description: "A record deriving from Value, Text, Number, Integer, Day, Moment or Range gets Create, TryCreate and "
                      + "CreateOptional generated into it, so it has to be partial; and it is the value itself, never a "
                      + "base for another, so it has to be sealed. A type it is nested in has to be partial too.",
         helpLinkUri: DiagnosticHelp.Link("RASK129"));
@@ -313,9 +313,9 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         SymbolLocation? Location)
     {
         /// <summary>
-        ///     Holds one value — Text, Number, Whole, Day or Moment over one parameter, or Value over one member — which
+        ///     Holds one value — Text, Number, Integer, Day or Moment over one parameter, or Value over one member — which
         ///     forms ask directly.
         /// </summary>
-        public bool OneValue => ValueBase is "Text" or "Number" or "Whole" or "Day" or "Moment" or "Value" && Parameters.Count == 1;
+        public bool OneValue => ValueBase is "Text" or "Number" or "Integer" or "Day" or "Moment" or "Value" && Parameters.Count == 1;
     }
 }

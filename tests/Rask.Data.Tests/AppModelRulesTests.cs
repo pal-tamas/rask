@@ -316,23 +316,16 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
     [Fact]
     public async Task A_duplicate_saved_on_SQLite_is_refused_with_the_message_of_the_renamed_index()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-payroll-{Guid.NewGuid():N}.db");
-        try
-        {
-            await using var context = PayrollModelFixture.Open($"Data Source={path};Pooling=False");
-            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            var payee = Payee.Named("Ann");
-            context.AddRange(payee, Rask.Data.Tests.Payroll.For("P-1", "R-1", payee), Rask.Data.Tests.Payroll.For("P-1", "R-2", payee));
+        await using var sqlite = new InMemorySqlite();
+        await using var context = PayrollModelFixture.Open(sqlite.ConnectionString);
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        var payee = Payee.Named("Ann");
+        context.AddRange(payee, Rask.Data.Tests.Payroll.For("P-1", "R-1", payee), Rask.Data.Tests.Payroll.For("P-1", "R-2", payee));
 
-            var refused = await Assert.ThrowsAsync<RaskValidationException>(
-                () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
-            Assert.Equal(Rask.Data.Tests.Payroll.CodeTaken, Assert.Single(refused.Failures).Message);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        Assert.Equal(Rask.Data.Tests.Payroll.CodeTaken, Assert.Single(refused.Failures).Message);
     }
 
     private static Refusal SqlServer(int number, string message)

@@ -16,13 +16,13 @@ public sealed class ArrayHeldChildrenTests : IAsyncLifetime
 
     private static readonly Guid Initech = Guid.CreateVersion7();
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-array-children-{Guid.NewGuid():N}.db");
-    private readonly string _handWiredPath = Path.Combine(Path.GetTempPath(), $"rask-array-hand-wired-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
+    private readonly InMemorySqlite _handWired = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<RaskDbContext>();
@@ -31,7 +31,7 @@ public sealed class ArrayHeldChildrenTests : IAsyncLifetime
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
         services.AddDbContextFactory<HandWiredTankerContext>((sp, o) => o
-            .UseSqlite($"Data Source={_handWiredPath};Pooling=False")
+            .UseSqlite(_handWired.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _app = services.BuildServiceProvider(validateScopes: true);
@@ -45,8 +45,8 @@ public sealed class ArrayHeldChildrenTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
-        File.Delete(_handWiredPath);
+        _sqlite.Dispose();
+        _handWired.Dispose();
     }
 
     [Fact]

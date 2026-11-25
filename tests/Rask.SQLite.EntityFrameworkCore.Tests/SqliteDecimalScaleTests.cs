@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
@@ -10,7 +9,7 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 /// </summary>
 public sealed class SqliteDecimalScaleTests : IAsyncLifetime
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-sqlite-scale-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -18,12 +17,7 @@ public sealed class SqliteDecimalScaleTests : IAsyncLifetime
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
     }
 
-    public ValueTask DisposeAsync()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_path);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public async Task A_decimal_with_more_places_than_its_scale_is_stored_rounded_half_away_from_zero()
@@ -96,7 +90,7 @@ public sealed class SqliteDecimalScaleTests : IAsyncLifetime
     }
 
     private ScaleContext NewContext() =>
-        new(new DbContextOptionsBuilder<ScaleContext>().UseRaskSqliteAt($"Data Source={_path}").Options);
+        new(new DbContextOptionsBuilder<ScaleContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
 
     public sealed class Measured
     {

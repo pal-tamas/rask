@@ -50,9 +50,9 @@ public sealed class Refill : Aggregate<Guid, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class ChildReferenceReadTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-child-ref-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_read_filters_by_a_column_of_another_aggregates_child_in_one_query()
@@ -72,5 +72,5 @@ public sealed class ChildReferenceReadTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

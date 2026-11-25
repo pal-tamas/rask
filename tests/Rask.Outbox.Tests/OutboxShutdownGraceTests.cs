@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -32,19 +33,15 @@ public sealed class GatedEventHandler(OutboxGate gate) : IDurableHandler<GatedEv
 ///     Before <c>ShutdownGracePeriod</c>, the host's stopping token went straight into the handler, so
 ///     <c>SIGTERM</c> cancelled a publish mid-call.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxShutdownGraceTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-grace-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private ServiceProvider? _provider;
 
     public void Dispose()
     {
         _provider?.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     [Fact]
@@ -138,7 +135,7 @@ public sealed class OutboxShutdownGraceTests : IDisposable
             o.ShutdownGracePeriod = grace;
         });
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();

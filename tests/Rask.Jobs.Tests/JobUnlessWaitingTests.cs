@@ -6,7 +6,6 @@ namespace Rask.Background.Tests;
 /// <c>Jobs.Enqueue(job).InLane(id).UnlessWaiting()</c>: the same work is not queued twice while one copy still
 /// waits, decided by the job table, so two hosts enqueueing at once still leave one row.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobUnlessWaitingTests
 {
     [Fact]
@@ -153,7 +152,7 @@ public sealed class JobUnlessWaitingTests
     public async Task Two_hosts_enqueueing_the_same_work_at_once_leave_one_waiting_row()
     {
         await using var a = new JobsHarness();
-        await using var b = new JobsHarness(dbPath: a.DbPath);
+        await using var b = new JobsHarness(connectionString: a.ConnectionString);
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var enqueues = Enumerable.Range(0, 20).Select(async i =>
@@ -207,7 +206,7 @@ public sealed class JobUnlessWaitingTests
     public async Task Two_hosts_meeting_a_stale_key_at_once_leave_one_waiting_row()
     {
         await using var a = new JobsHarness();
-        await using var b = new JobsHarness(dbPath: a.DbPath);
+        await using var b = new JobsHarness(connectionString: a.ConnectionString);
         await a.Queue.Enqueue(new RecordJob("ask"), TestContext.Current.CancellationToken).InLane("pump-7").UnlessWaiting();
         await ClaimAsAnOlderHost(a);
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

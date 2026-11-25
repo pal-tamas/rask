@@ -38,8 +38,8 @@ public class ValueObjectStaleRuleTests
     [Theory]
     [InlineData("string", "Text")]
     [InlineData("decimal", "Number")]
-    [InlineData("long", "Whole")]
-    [InlineData("int", "Whole")]
+    [InlineData("long", "Integer")]
+    [InlineData("int", "Integer")]
     [InlineData("DateOnly", "Day")]
     public void A_Validate_beside_the_value_names_the_base_record_that_takes_the_value(string held, string declaredFrom)
     {

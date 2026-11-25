@@ -14,7 +14,9 @@ public enum FieldKind
     Number,
 
     /// <summary>A whole number, with its bounds.</summary>
-    Whole,
+#pragma warning disable CA1720 // the kind is named as the value-object base it stands for (Rask.Values.Integer)
+    Integer,
+#pragma warning restore CA1720
 
     /// <summary>A day of the calendar, and whether it may be after today.</summary>
     Day,

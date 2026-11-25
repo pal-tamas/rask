@@ -7,7 +7,6 @@ namespace Rask.Background.Tests;
 /// A job runs for the user who enqueued it: the row records <see cref="Current.UserId" />, and the processor
 /// re-enters it before the handler runs — later, on another thread, with nobody signed in.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobUserTests
 {
     [Fact]
@@ -36,8 +35,7 @@ public sealed class JobUserTests
     [Fact]
     public async Task A_database_without_the_user_column_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nouser-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         // The table as it looked before this change: everything but UserId.
         await using (var db = h.NewContext())
         {

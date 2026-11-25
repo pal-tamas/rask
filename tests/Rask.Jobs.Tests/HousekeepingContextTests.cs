@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Batteries;
+using Rask.Tests.Shared;
 
 namespace Rask.Background.Tests;
 
@@ -13,7 +14,6 @@ namespace Rask.Background.Tests;
 ///     jobs claim query. <c>HousekeepingContextFactory</c> is source-linked into every battery; these pin
 ///     it once, through the jobs one, end to end on real SQLite.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class HousekeepingContextTests
 {
     private const string CommandCategory = "Microsoft.EntityFrameworkCore.Database.Command";
@@ -48,62 +48,46 @@ public sealed class HousekeepingContextTests
     [Fact]
     public void A_developer_who_wants_the_poll_sql_finds_it_at_debug()
     {
-        var path = NewDbPath();
+        using var database = new InMemorySqlite();
         var entries = new ConcurrentBag<(string Category, LogLevel Level, string Message)>();
+        var services = new ServiceCollection();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Debug).AddProvider(new LevelRecordingProvider(entries)));
+        services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite(database.ConnectionString));
+        using var provider = services.BuildServiceProvider();
+        var quiet = new HousekeepingContextFactory<JobsDbContext>(provider);
+        using var db = quiet.CreateDbContext();
+        db.Database.EnsureCreated();
+        entries.Clear();
 
-        try
-        {
-            var services = new ServiceCollection();
-            services.AddLogging(b => b.SetMinimumLevel(LogLevel.Debug).AddProvider(new LevelRecordingProvider(entries)));
-            services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={path}"));
-            using var provider = services.BuildServiceProvider();
-            var quiet = new HousekeepingContextFactory<JobsDbContext>(provider);
-            using var db = quiet.CreateDbContext();
-            db.Database.EnsureCreated();
-            entries.Clear();
+        _ = db.Set<Job>().Count();
 
-            _ = db.Set<Job>().Count();
+        var commands = entries
+            .Where(e => e.Category == CommandCategory && e.Message.StartsWith(Executed, StringComparison.Ordinal))
+            .ToArray();
 
-            var commands = entries
-                .Where(e => e.Category == CommandCategory && e.Message.StartsWith(Executed, StringComparison.Ordinal))
-                .ToArray();
-
-            // Still logged — turned down, not turned off. The whole design rests on this: an app that asks
-            // for Debug on the category gets its poll SQL back, so nothing is hidden, only quiet by default.
-            Assert.NotEmpty(commands);
-            Assert.All(commands, e => Assert.Equal(LogLevel.Debug, e.Level));
-        }
-        finally
-        {
-            Delete(path);
-        }
+        // Still logged — turned down, not turned off. The whole design rests on this: an app that asks
+        // for Debug on the category gets its poll SQL back, so nothing is hidden, only quiet by default.
+        Assert.NotEmpty(commands);
+        Assert.All(commands, e => Assert.Equal(LogLevel.Debug, e.Level));
     }
 
     [Fact]
     public void A_hand_written_context_factory_is_used_not_bypassed()
     {
-        var path = NewDbPath();
+        using var database = new InMemorySqlite();
+        var options = new DbContextOptionsBuilder<JobsDbContext>().UseSqlite(database.ConnectionString).Options;
+        var app = new CountingContextFactory(options);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IDbContextFactory<JobsDbContext>>(app);
+        services.AddSingleton(options);
+        using var provider = services.BuildServiceProvider();
 
-        try
-        {
-            var options = new DbContextOptionsBuilder<JobsDbContext>().UseSqlite($"Data Source={path}").Options;
-            var app = new CountingContextFactory(options);
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddSingleton<IDbContextFactory<JobsDbContext>>(app);
-            services.AddSingleton(options);
-            using var provider = services.BuildServiceProvider();
+        using var db = new HousekeepingContextFactory<JobsDbContext>(provider).CreateDbContext();
 
-            using var db = new HousekeepingContextFactory<JobsDbContext>(provider).CreateDbContext();
-
-            // A factory somebody wrote is there to do something — pick a tenant's connection, stamp a
-            // filter. Quieting a log is never worth silently dropping that, so this shape stays noisy.
-            Assert.Equal(1, app.Created);
-        }
-        finally
-        {
-            Delete(path);
-        }
+        // A factory somebody wrote is there to do something — pick a tenant's connection, stamp a
+        // filter. Quieting a log is never worth silently dropping that, so this shape stays noisy.
+        Assert.Equal(1, app.Created);
     }
 
     [Fact]
@@ -121,17 +105,6 @@ public sealed class HousekeepingContextTests
         // on the implementation type it can read off that delegate. Typed wrong, this is two processors
         // racing for the same rows — the one thing a lease cannot make safe on SQLite.
         Assert.Single(provider.GetServices<IHostedService>().OfType<JobProcessor<JobsDbContext>>());
-    }
-
-    private static string NewDbPath() =>
-        Path.Combine(Path.GetTempPath(), $"rask-housekeeping-test-{Guid.NewGuid():N}.db");
-
-    private static void Delete(string path)
-    {
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-        }
     }
 
     /// <summary>Counts what the application's own factory was asked for.</summary>

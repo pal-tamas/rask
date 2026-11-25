@@ -100,6 +100,28 @@ public sealed class UiKitListActionsTests(WasmExampleAppFixture app, PlaywrightF
         Assert.Empty(browserDialogs);
     });
 
+    // An app's list (2026-11): a Name column, two more and the row's ⋯ put the ⋯ 10 px past a phone's edge, until the
+    // app narrowed the name by hand.
+    [Fact]
+    public Task A_name_column_beside_two_more_keeps_every_rows_ellipsis_inside_a_phones_screen() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        await OpenUiPageAsync("row-actions", "Row actions");
+        var table = Page.Locator("[data-testid='ui-row-actions'] #ura-suppliers");
+        await table.ScrollIntoViewIfNeededAsync();
+
+        await Expect(table.Locator("tbody tr")).ToHaveCountAsync(3);
+        await table.Locator("xpath=..").EvaluateAsync("el => { el.scrollLeft = 0; }");
+        var ellipses = table.Locator("tbody tr").GetByRole(AriaRole.Button, new() { Name = "Actions" });
+        var rights = await ellipses.EvaluateAllAsync<double[]>("buttons => buttons.map(b => b.getBoundingClientRect().right)");
+        var screen = await Page.EvaluateAsync<double>("() => window.innerWidth");
+        var page = await Page.EvaluateAsync<double[]>("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]");
+
+        Assert.Equal(3, rights.Length);
+        Assert.All(rights, right => Assert.True(right <= screen, $"a row's ⋯ ends at {right}px, past the {screen}px screen"));
+        Assert.True(page[0] <= page[1], $"the page scrolls sideways on a phone: {page[0]} > {page[1]}");
+    });
+
     [Fact]
     public Task The_form_footer_saves_goes_back_to_the_list_and_deletes_only_on_yes() => RunAsync(async () =>
     {

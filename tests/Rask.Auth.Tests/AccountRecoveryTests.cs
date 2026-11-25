@@ -13,7 +13,6 @@ namespace Rask.Auth.Tests;
 ///     worth pinning are about the account store: what a token unlocks, what it does not, and what the
 ///     app is willing to say about an address it has never seen.
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class AccountRecoveryTests
 {
     private const string Password = "Password1";

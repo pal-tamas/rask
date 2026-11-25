@@ -14,7 +14,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
     public async Task Ef_interceptor_reports_the_configured_pragmas_on_open()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}")
+            .UseRaskSqliteAt($"Data Source={_dbPath};Pooling=False")
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -32,7 +32,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
     public async Task Ef_interceptor_honors_pragma_overrides()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}", p => p.BusyTimeout = TimeSpan.FromSeconds(12))
+            .UseRaskSqliteAt($"Data Source={_dbPath};Pooling=False", p => p.BusyTimeout = TimeSpan.FromSeconds(12))
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -53,7 +53,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

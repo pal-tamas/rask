@@ -58,9 +58,9 @@ public sealed class Skid : Aggregate<int, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class ReadFaceElementConverterTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-read-elements-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_list_of_one_value_value_objects_reads_back_the_values_the_aggregate_wrote()
@@ -122,5 +122,5 @@ public sealed class ReadFaceElementConverterTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

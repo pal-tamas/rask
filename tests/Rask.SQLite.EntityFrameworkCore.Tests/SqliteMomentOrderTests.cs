@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rask.Data;
@@ -37,7 +36,7 @@ public sealed class RotaContext(DbContextOptions<RotaContext> options) : DbConte
 // UseRaskSqlite: a DateTimeOffset compares, orders and indexes by its instant, as SQL Server's datetimeoffset does.
 public sealed class SqliteMomentOrderTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-moment-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -52,12 +51,7 @@ public sealed class SqliteMomentOrderTests : IAsyncLifetime
         await context.SaveChangesAsync(Cancellation);
     }
 
-    public ValueTask DisposeAsync()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public void Every_moment_column_is_created_with_the_moment_collation()
@@ -138,7 +132,7 @@ public sealed class SqliteMomentOrderTests : IAsyncLifetime
     [Fact]
     public void A_plain_UseSqlite_keeps_EF_Core_s_own_column()
     {
-        using var context = new RotaContext(new DbContextOptionsBuilder<RotaContext>().UseSqlite($"Data Source={_dbPath}").Options);
+        using var context = new RotaContext(new DbContextOptionsBuilder<RotaContext>().UseSqlite(_database.ConnectionString).Options);
 
         var script = context.Database.GenerateCreateScript();
 
@@ -146,7 +140,7 @@ public sealed class SqliteMomentOrderTests : IAsyncLifetime
     }
 
     private RotaContext Rotas() =>
-        new(new DbContextOptionsBuilder<RotaContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options);
+        new(new DbContextOptionsBuilder<RotaContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
 
     private static DateTimeOffset At(int hour, TimeSpan offset) => new(2026, 3, 4, hour, 0, 0, offset);
 

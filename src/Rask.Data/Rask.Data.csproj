@@ -51,7 +51,7 @@
     <Compile Include="..\Rask.Generators.Shared\FormListName.cs" Link="Shared\FormListName.cs"/>
   </ItemGroup>
 
-  <!-- The value-object bases (Rask.Values: Value, Text, Number, Whole, Day, Range) live in the `Rask` package, so a
+  <!-- The value-object bases (Rask.Values: Value, Text, Number, Integer, Day, Range) live in the `Rask` package, so a
        browser app declares its values without an EF Core dependency; this package maps them to columns. -->
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>

@@ -94,9 +94,9 @@ public sealed class ForeignFiling : Filing
 [Collection(DataDbCollection.Name)]
 public sealed class InheritedValueObjectTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-inherited-vo-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Every_derived_aggregate_stores_the_bases_value_objects_as_its_own_columns()
@@ -215,5 +215,5 @@ public sealed class InheritedValueObjectTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -10,7 +10,7 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 public sealed class RaskSqliteCancelledRetryTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-cancel-{Guid.NewGuid():N}.db");
-    private string ConnectionString => $"Data Source={_dbPath}";
+    private string ConnectionString => $"Data Source={_dbPath};Pooling=False";
 
     [Fact]
     public async Task Cancelling_a_retrying_SaveChanges_surfaces_as_cancellation_not_as_busy()
@@ -78,7 +78,7 @@ public sealed class RaskSqliteCancelledRetryTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

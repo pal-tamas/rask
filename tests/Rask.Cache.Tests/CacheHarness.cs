@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Caching.Tests;
 
@@ -21,14 +22,14 @@ public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
     public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
 }
 
-/// <summary>Builds a real-SQLite service provider wired for the cache, with a controllable clock.</summary>
+/// <summary>Builds a real-SQLite service provider, its database in memory and its own, wired for the cache, with a controllable clock.</summary>
 public sealed class CacheHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
+    private readonly InMemorySqlite _database = new();
 
     public CacheHarness(Action<CacheOptions>? configure = null, DateTimeOffset? start = null)
     {
-        DbPath = Path.Combine(Path.GetTempPath(), $"rask-cache-test-{Guid.NewGuid():N}.db");
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
         var services = new ServiceCollection();
@@ -39,14 +40,12 @@ public sealed class CacheHarness : IAsyncDisposable
             o.SweepInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<CacheDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        services.AddDbContextFactory<CacheDbContext>(o => o.UseSqlite(_database.ConnectionString));
 
         _provider = services.BuildServiceProvider();
         using var db = NewContext();
         db.Database.EnsureCreated();
     }
-
-    public string DbPath { get; }
 
     public FakeTimeProvider Clock { get; }
 
@@ -85,9 +84,6 @@ public sealed class CacheHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        if (File.Exists(DbPath))
-        {
-            File.Delete(DbPath);
-        }
+        await _database.DisposeAsync();
     }
 }

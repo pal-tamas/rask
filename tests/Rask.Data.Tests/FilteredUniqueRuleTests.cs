@@ -15,12 +15,12 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
 {
     private static readonly DateTime Revoked = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-filtered-rule-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<NeutralContext>();
@@ -41,7 +41,7 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

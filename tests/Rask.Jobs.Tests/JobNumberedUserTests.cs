@@ -8,7 +8,7 @@ namespace Rask.Background.Tests;
 /// A job enqueued by a user an app numbers — <c>User : Aggregate&lt;int&gt;, IUser</c> — records that user as the Guid
 /// that carries the number, and runs as the same number: the handler's <c>Current.RequiredUserId</c> is 12 again.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
+[Collection(CurrentRowsCollection.Name)]
 public sealed class JobNumberedUserTests : IDisposable
 {
     private static readonly Guid Twelve = new("00000000-0000-0000-0000-00000000000c");

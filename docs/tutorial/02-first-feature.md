@@ -36,7 +36,7 @@ public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 
 
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Max: 1_000_000, Scale: 2);
 
-public sealed partial record StockLevel(long Value) : Whole(Value, Min: 0);
+public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
 public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
 {
@@ -74,7 +74,7 @@ compiler will never let you hand it an order's id by mistake. Rask completes it 
 
 **Value objects, in one line each.** `ProductName` is a text of at most 200 characters, `UnitPrice` a number from 0
 to a million with two decimal places, `StockLevel` a whole number of 0 or more. The base record (`Text`, `Number`,
-`Whole`) *is* the rule: a `ProductName` that breaks it can't be made — `ProductName.Create("")` is refused with
+`Integer`) *is* the rule: a `ProductName` that breaks it can't be made — `ProductName.Create("")` is refused with
 *This field is required.* — so a `Product` can never hold one. The same declaration gives the column its length and
 precision and the form's input its `maxlength`, `min` and `step`. Rask generates `Create`, `TryCreate` and
 `CreateOptional` beside each ([value objects](../domain.md#value-objects)). Only a `bool` (`Discontinued`) and an
