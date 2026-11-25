@@ -59,10 +59,46 @@ checks them — `public sealed partial record DestinationName(string Value) : Te
 — and a form bound to the aggregate's generated model asks the same rules
 [by itself](#how-a-control-knows-a-field-is-required), with nothing written on the field.
 
-A form over a model of your own, with no data layer behind it, names the value object's rules from the field
-instead. Every value object of one value — declared from `Text`, `Number`, `Integer`, `Day` or `Moment`, or `: Value`
-with one member — gets a generated `X.Check(value)`, which answers what `X.Create` would refuse with, in the shape of
-a field's rule:
+**A form over a model of your own holds the value object itself.** Give the model's property the value object's
+type, and bind it as you would a `string` or an `int` — no primitive beside it, no `.Validate(…)` on the field:
+
+```csharp
+using Rask.Values;
+
+public sealed partial record TankName(string Value) : Text(Value, MaxLength: 40);
+public sealed partial record Litres(int Value) : Integer(Value, Min: 100, Max: 50000);
+
+public sealed class TankForm
+{
+    public TankName Name { get; set; } = null!;   // must be given
+    public Litres? Size { get; set; }             // may be left empty
+}
+
+Form.Model(_form).OnSubmit(Save)[
+    Ui.Field.Bind(() => _form.Name),
+    Ui.Input.Bind(() => _form.Size).Label("Size"),
+    Ui.Button.Primary.Submit["Save"]
+]
+```
+
+It is a field of [`Form.For`](forms.md#a-form-over-an-operation), on a model you wrote:
+
+- **The control holds the value the value object holds** — the text, the number, the day — and is drawn from its
+  rules: `maxlength`, `min`, `max`, `step`, a number input for a number and a date input for a day, *required* for a
+  property that may not be null. `Ui.Field.Bind` picks the control by the value object's kind.
+- **What is typed is made through its `TryCreate`** when the field writes, on its own [timing](forms.md#bind-timing),
+  and what its rules refuse is said under the field, in their own words. The property is set only to a value they
+  accept: until one arrives the model keeps what it held, and the form does not submit.
+- **Emptied, a nullable property is null**; one that may not be null keeps its value and says *This field is
+  required.* — on submit too, for one never filled in. `[Required]` on a nullable one asks the same.
+- The model's DataAnnotations, a FluentValidation validator and a `Validate` step of your own still run beside them.
+
+A value object of several values (a `Range`, a `: Value` record of two members) is not held this way yet: keep its
+members on the model and make it in the submit handler.
+
+A model that holds the plain value instead names the value object's rules from the field. Every value object of one
+value — declared from `Text`, `Number`, `Integer`, `Day` or `Moment`, or `: Value` with one member — gets a generated
+`X.Check(value)`, which answers what `X.Create` would refuse with, in the shape of a field's rule:
 
 ```csharp
 using Rask.Values;

@@ -20340,4 +20340,31 @@ static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! 
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+Rask.Values.ValueMaker<TValue, THeld>
+virtual Rask.Values.ValueMaker<TValue, THeld>.Invoke(THeld value, out TValue? result, out System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems) -> bool
+static Rask.Values.GeneratedValueRules.Field<TValue, THeld>(System.Func<TValue!, THeld>! held, Rask.Values.ValueMaker<TValue!, THeld>! make, System.Func<Rask.Core.Forms.FieldShape!>? shape) -> void
 const Rask.Core.Routing.LocalUrl.MaxLength = 2048 -> int
+~override Rask.ChoiceRow<TKey>.Equals(object obj) -> bool
+~override Rask.ChoiceRow<TKey>.ToString() -> string
+override Rask.ChoiceRow<TKey>.GetHashCode() -> int
+Rask.ChoiceRow<TKey>.ChoiceRow() -> void
+Rask.ChoiceRow<TKey>.ChoiceRow(TKey Id, string! Text, string? Detail = null) -> void
+Rask.ChoiceRow<TKey>.Deconstruct(out TKey Id, out string! Text, out string? Detail) -> void
+Rask.ChoiceRow<TKey>.Detail.get -> string?
+Rask.ChoiceRow<TKey>.Detail.init -> void
+Rask.ChoiceRow<TKey>.Equals(Rask.ChoiceRow<TKey> other) -> bool
+Rask.ChoiceRow<TKey>.Id.get -> TKey
+Rask.ChoiceRow<TKey>.Id.init -> void
+Rask.ChoiceRow<TKey>.Text.get -> string!
+Rask.ChoiceRow<TKey>.Text.init -> void
+Rask.ChoiceRow<TKey>
+Rask.ChoiceRowPage<TKey>.ChoiceRowPage(System.Collections.Generic.IReadOnlyList<Rask.ChoiceRow<TKey>>! rows, int total, System.Collections.Generic.IReadOnlyList<Rask.ChoiceRow<TKey>>! picked) -> void
+Rask.ChoiceRowPage<TKey>.Picked.get -> System.Collections.Generic.IReadOnlyList<Rask.ChoiceRow<TKey>>!
+Rask.ChoiceRowPage<TKey>.Rows.get -> System.Collections.Generic.IReadOnlyList<Rask.ChoiceRow<TKey>>!
+Rask.ChoiceRowPage<TKey>.Total.get -> int
+Rask.ChoiceRowPage<TKey>
+Rask.IChoiceSource<TKey>.Find(TKey id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.ChoiceRow<TKey>?>!
+Rask.IChoiceSource<TKey>.Page(string! typed, int skip, int take, System.Collections.Generic.IReadOnlyCollection<TKey>? picked = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.ChoiceRowPage<TKey>!>!
+Rask.IChoiceSource<TKey>
+static Rask.ChoiceRow<TKey>.operator !=(Rask.ChoiceRow<TKey> left, Rask.ChoiceRow<TKey> right) -> bool
+static Rask.ChoiceRow<TKey>.operator ==(Rask.ChoiceRow<TKey> left, Rask.ChoiceRow<TKey> right) -> bool

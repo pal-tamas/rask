@@ -232,6 +232,21 @@ them until tagged releases begin.
   as `database.Mail`, `database.Jobs`, `database.Cache`, `database.Push`, `database.Files`; `await database.Jobs.Run()`
   runs the recorded jobs in a scope of the database's services with no host. A fake made before `Start` is the one
   used; a battery registered through `services:` replaces it.
+- **A picker's rows from the read face: `X.Choice`, `X.Choices`, `X.ChoicePage`** (`docs/data.md`). Every aggregate's
+  read face answers `Company.Choice(id, c => c.Name)` (a `ChoiceRow<TKey>?` — null for no row and for another
+  tenant's), `Company.ChoicePage(c => c.Name, typed, skip, take, picked)` (the page searched case and accents aside
+  in the app's text order then by id, the total, and the picked rows even off the page) and
+  `Company.Choices(text, detail)`; any query has `.Choices(id, text, detail)`. All are the new
+  `IChoiceSource<TKey>` (namespace `Rask`: `Page(…)` → `ChoiceRowPage<TKey>`, `Find(id)`), the source a picker
+  reads. Replaces the apps' own `Choice(id)`/`Find(typed, page)` pairs, TA's `ChoicePages` and Eszaf's `PagedChoices`.
+- **A hand form's model may hold a value object itself.** `public sealed class TankForm { public Litres? Size { get; set; } }`
+  with `Ui.Input.Bind(() => _form.Size)` or `Ui.Field.Bind(() => _form.Size)` works as a field of `Form.For` does: the
+  control holds the value the value object holds and is shaped by its rules (`min`, `max`, `step`, `maxlength`, the
+  input's kind, *required* for a property that may not be null), what is typed is made through its `TryCreate` and a
+  refusal is shown under the field in its own words, and the property is set only to a value its rules accept — an
+  emptied nullable one is null. No `.Validate(X.Check)` step and no primitive beside it. Every one-value value object
+  of an assembly is registered for this by a generated module initializer; a value object of several values is not
+  held this way yet.
 - **A test passes no `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
   (`TestContext.Current.CancellationToken`) the ambient cancellation (`Current.Cancellation`), so every Rask call given
   no token — `TestDatabase.Start()` (schema creation), `database.Load<T>(…)`, `TestDatabase.FromEnvironment`, a

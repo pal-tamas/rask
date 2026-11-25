@@ -59,6 +59,9 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             .Select(static (value, _) => value!);
 
         context.RegisterSourceOutput(values.Collect(), static (spc, all) => Emit(spc, all));
+        context.RegisterSourceOutput(
+            values.Collect().Combine(context.CompilationProvider.Select(static (c, _) => c.AssemblyName ?? "")),
+            static (spc, pair) => EmitFields(spc, pair.Left, pair.Right));
 
     }
 
@@ -100,6 +103,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
             DeclaresToString(type),
             DeclaresParse(type),
             IsOrdered(type, node.ParameterList, ctx.SemanticModel, token),
+            type.IsReferenceType && IsReachable(type),
             problem,
             SymbolLocation.From(type));
     }
@@ -308,6 +312,7 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         bool OwnToString,
         bool OwnParse,
         bool Ordered,
+        bool Registrable,
         string? Problem,
         SymbolLocation? Location)
     {
@@ -316,5 +321,11 @@ public sealed partial class ValueObjectFactoryGenerator : IIncrementalGenerator
         ///     forms ask directly.
         /// </summary>
         public bool OneValue => ValueBase is "Text" or "Number" or "Integer" or "Day" or "Moment" or "Value" && Parameters.Count == 1;
+
+        /// <summary>
+        ///     A form's model may hold it as it is: one value, a class a top-level type of the assembly can name, written
+        ///     out — its own field registered by the module initializer (<see cref="EmitFields" />).
+        /// </summary>
+        public bool HeldByForms => OneValue && Registrable && !Generic && Problem is null;
     }
 }
