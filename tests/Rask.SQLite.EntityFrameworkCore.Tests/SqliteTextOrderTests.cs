@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
@@ -40,7 +39,7 @@ public sealed class OrdinalContext(DbContextOptions<OrdinalContext> options) : D
 // OrderTextBy("Hungarian_100_CI_AS") on SQLite: the text compares as SQL Server's collation of that name does.
 public sealed class SqliteTextOrderTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-text-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -61,12 +60,7 @@ public sealed class SqliteTextOrderTests : IAsyncLifetime
         await context.SaveChangesAsync(Cancellation);
     }
 
-    public ValueTask DisposeAsync()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public void Every_text_column_is_created_with_the_text_collation()
@@ -203,53 +197,37 @@ public sealed class SqliteTextOrderTests : IAsyncLifetime
     [Fact]
     public async Task A_strict_table_takes_the_text_collation()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-sqlite-text-strict-{Guid.NewGuid():N}.db");
-        try
-        {
-            await using var context = new HungarianContext(new DbContextOptionsBuilder<HungarianContext>()
-                .UseRaskSqliteAt($"Data Source={path}", o => o.StrictTables = true).Options);
-            await context.Database.EnsureCreatedAsync(Cancellation);
+        await using var database = new InMemorySqlite();
+        await using var context = new HungarianContext(new DbContextOptionsBuilder<HungarianContext>()
+            .UseRaskSqliteAt(database.ConnectionString, o => o.StrictTables = true).Options);
+        await context.Database.EnsureCreatedAsync(Cancellation);
 
-            context.Drivers.Add(Named("Csaba", "c-1"));
-            await context.SaveChangesAsync(Cancellation);
-            var found = await context.Drivers.CountAsync(d => d.Name == "CSABA", Cancellation);
+        context.Drivers.Add(Named("Csaba", "c-1"));
+        await context.SaveChangesAsync(Cancellation);
+        var found = await context.Drivers.CountAsync(d => d.Name == "CSABA", Cancellation);
 
-            Assert.Equal(1, found);
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(path);
-        }
+        Assert.Equal(1, found);
     }
 
     [Fact]
     public async Task A_model_that_names_no_text_order_compares_as_SQLite_does()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-sqlite-text-ordinal-{Guid.NewGuid():N}.db");
-        try
-        {
-            await using var context = new OrdinalContext(new DbContextOptionsBuilder<OrdinalContext>()
-                .UseRaskSqliteAt($"Data Source={path}").Options);
-            await context.Database.EnsureCreatedAsync(Cancellation);
-            context.Drivers.Add(Named("Árvíztűrő Csaba", "c-1"));
-            await context.SaveChangesAsync(Cancellation);
+        await using var database = new InMemorySqlite();
+        await using var context = new OrdinalContext(new DbContextOptionsBuilder<OrdinalContext>()
+            .UseRaskSqliteAt(database.ConnectionString).Options);
+        await context.Database.EnsureCreatedAsync(Cancellation);
+        context.Drivers.Add(Named("Árvíztűrő Csaba", "c-1"));
+        await context.SaveChangesAsync(Cancellation);
 
-            var equal = await context.Drivers.CountAsync(d => d.Name == "árvíztűrő csaba", Cancellation);
-            var contains = await context.Drivers.CountAsync(d => d.Name.Contains("árv"), Cancellation);
+        var equal = await context.Drivers.CountAsync(d => d.Name == "árvíztűrő csaba", Cancellation);
+        var contains = await context.Drivers.CountAsync(d => d.Name.Contains("árv"), Cancellation);
 
-            Assert.Equal(0, equal);
-            Assert.Equal(0, contains);
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(path);
-        }
+        Assert.Equal(0, equal);
+        Assert.Equal(0, contains);
     }
 
     private static Driver Named(string name, string code) => new() { Name = name, Code = code, Plate = code };
 
     private HungarianContext Hungarian() =>
-        new(new DbContextOptionsBuilder<HungarianContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options);
+        new(new DbContextOptionsBuilder<HungarianContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
 }

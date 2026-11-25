@@ -8,13 +8,12 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 // `ORDER BY "x" COLLATE EF_DECIMAL` so that text sorts numerically. EF registers EF_DECIMAL as
 // decimal.Compare(decimal.Parse(x), decimal.Parse(y)) — with no IFormatProvider — so it reads the
 // invariant text under CurrentCulture. UseRaskSqlite re-registers the collation invariantly; these
-// tests drive real files under real locales to prove it, and pin the upstream contract it depends on.
+// tests drive a real database under real locales to prove it, and pin the upstream contract it depends on.
 //
-// The assembly disables parallelisation (see AssemblyInfo.cs), so swapping CurrentCulture is safe here.
+// CurrentCulture flows with the async context, so swapping it inside one test leaves the tests beside it alone.
 public sealed class RaskSqliteDecimalOrderingTests : IDisposable
 {
-    private readonly string _dbPath =
-        Path.Combine(Path.GetTempPath(), $"rask-sqlite-decimal-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     // Deliberately mixes digit counts so a lexicographic sort differs from a numeric one ("10.00" < "9.50"),
     // and includes a value whose '.' is in group-separator position for de-DE ("19.95" -> 1995).
@@ -95,7 +94,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
     {
         await SeedAsync();
 
-        await using (var connection = new SqliteConnection($"Data Source={_dbPath}"))
+        await using (var connection = new SqliteConnection(_database.ConnectionString))
         {
             await connection.OpenAsync(TestContext.Current.CancellationToken);
             await using var insert = connection.CreateCommand();
@@ -174,7 +173,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
     {
         await SeedAsync();
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT sql FROM sqlite_master WHERE name = 'Rows'";
@@ -193,7 +192,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
     {
         await using (var context = new IndexedDbContext(
             new DbContextOptionsBuilder<IndexedDbContext>()
-                .UseRaskSqliteAt($"Data Source={_dbPath}")
+                .UseRaskSqliteAt(_database.ConnectionString)
                 .Options))
         {
             await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
@@ -204,7 +203,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
             Assert.Equal(Ascending, ordered);
         }
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         SqliteCollations.Apply(connection);
 
@@ -237,7 +236,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
 
     private ProbeDbContext NewContext() =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}")
+            .UseRaskSqliteAt(_database.ConnectionString)
             .Options);
 
     private async Task SeedAsync()
@@ -255,7 +254,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
 
     private List<string> ReadRawAmounts()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_database.ConnectionString);
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT Amount FROM Rows ORDER BY Id";
@@ -284,11 +283,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     private sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options) : DbContext(options)
     {

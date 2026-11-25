@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -10,7 +9,7 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 // without UseRaskSqlite's connection string, pragmas and retry.
 public sealed class UseRaskFullTextSearchTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-fts-opt-in-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task A_plain_UseSqlite_context_migrates_the_index_and_searches_it()
@@ -41,7 +40,7 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
     {
         // EF keeps one generator and the last registration wins; replacing it here would silently drop STRICT.
         var options = new DbContextOptionsBuilder<ArticleContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = true)
+            .UseRaskSqliteAt(_database.ConnectionString, o => o.StrictTables = true)
             .UseRaskFullTextSearch()
             .Options;
         using var db = new ArticleContext(options);
@@ -61,12 +60,8 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
         Assert.Single(await db.Articles.Search("sqlite").ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     private DbContextOptionsBuilder<ArticleContext> Plain() =>
-        new DbContextOptionsBuilder<ArticleContext>().UseSqlite($"Data Source={_dbPath}");
+        new DbContextOptionsBuilder<ArticleContext>().UseSqlite(_database.ConnectionString);
 }

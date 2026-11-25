@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
@@ -50,18 +49,13 @@ public sealed class LegacyGuidIdTextTests : IAsyncLifetime
 {
     private static readonly Guid Legacy = Guid.Parse("3e18ad13-d95e-4808-97bd-918b457c006b");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-guid-ids-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public ValueTask DisposeAsync()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public async Task An_upper_case_legacy_id_is_matched_where_the_text_order_ignores_case()
@@ -101,5 +95,5 @@ public sealed class LegacyGuidIdTextTests : IAsyncLifetime
     }
 
     private BinContext Open(bool orderTextBy) =>
-        new(new DbContextOptionsBuilder<BinContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options, orderTextBy);
+        new(new DbContextOptionsBuilder<BinContext>().UseRaskSqliteAt(_database.ConnectionString).Options, orderTextBy);
 }
