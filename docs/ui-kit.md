@@ -485,7 +485,11 @@ segmented control or pills, over panels or on their own. The selected tab is the
 `Value(_tab).OnChange(…)`, or neither and the row keeps track itself. Switching is drawn in the browser and sends
 nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"` when `Findable()`), so a form in tabs
 keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
-arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. Every example, the
+arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. A `Ui.Tabs` on
+its own above a list that keeps its page in the address (`Ui.Table.PageIn("page", …)`) switches the list: a tab pressed
+takes the page key out of the address the tab's `OnChange` (or bound value) moved to, so the new tab starts at page one,
+its filters and sort kept — the page writes no `Page: null` of its own. A tab of a `Ui.TabGroup`, or in an editor
+dialog's form, leaves the list's page alone. Every example, the
 keyboard, Flux's attributes as steps and the
 reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 

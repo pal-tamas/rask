@@ -227,7 +227,12 @@ public sealed partial class UiTable : UiElement, IUiHost
             // Where it stands is remembered from here on, so a form's Cancel comes back to it as it was left.
             if (route is not null)
             {
-                _ = UiListAddresses.Of(route);
+                var addresses = UiListAddresses.Of(route);
+                // Its page is named too, so a tab above it that is pressed takes the list back to its first page.
+                if (address.PageKey is { } pageKey)
+                {
+                    addresses.Paged(pageKey);
+                }
             }
 
             address.Sort(Children, route);

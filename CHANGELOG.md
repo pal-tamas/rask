@@ -133,6 +133,9 @@ them until tagged releases begin.
   Cancel of its own, `Go.To(Routes.DriversPage().AsLeft().With("edit", id))` from an old form address — with its
   filters, sort, page and search, an editor dialog's key left out. Every `Ui.Table` now starts the session's memory,
   not only one keeping its sort or page in the address. Replaces the apps' own `ListAddresses` service.
+- **A `Ui.Tabs` above a paged list starts it at page one.** A lone `Ui.Tabs` (not in a `Ui.TabGroup` or a dialog's form)
+  on a page whose `Ui.Table` keeps its page in the address (`PageIn("page", …)`) takes that key out of the address its
+  `OnChange` moved to, so another tab never opens on the page the last one was on; filters and sort stay.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
