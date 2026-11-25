@@ -53,7 +53,7 @@
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
          A RELEASE CANDIDATE on purpose: 11.0.0-rc.3 is the newest Npgsql provider for EF Core 11, and EF Core 10's
          provider does not load under EF Core 11. Move it to 11.0.0 the day that ships (Dependabot will offer it). -->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0" />
     <!-- Test-only: Rask.Pdf.Tests reads the printed PDFs back (text, page sizes, page count). Rask.Pdf itself has
          no dependency. -->
     <PackageVersion Include="PdfPig" Version="0.1.16" />
