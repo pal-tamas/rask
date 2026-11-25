@@ -164,7 +164,7 @@ per-batch mode lets EF retry each batch on its own, which is both cheaper and fr
 `b.Numbered(…)` — beside [`b.Computed(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c), which it pairs with.
 
 A number every row has among its group — the fuelings of a pistol, counted by moment — kept by Rask in every save,
-with no SQL in the app (D18):
+with no SQL in the app:
 
 ```csharp
 static void Configure(EntityTypeBuilder<Fueling> b)
@@ -172,7 +172,7 @@ static void Configure(EntityTypeBuilder<Fueling> b)
     b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId);
     b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id },
             skip: f => f.MergedParentId != null)
-        .Same(f => f.ParentId)                                                      // an IBC part has its fill's number
+        .Same(f => f.ParentId)                                                      // a split part has its whole one's number
         .SkipWhen<Distribution, string>((f, shares) => shares.Any(s => s.FromFuelingId == f.Id), s => s.FromFuelingId);
 }
 ```
@@ -201,46 +201,29 @@ static void Configure(EntityTypeBuilder<Fueling> b)
 
 ## Batch update and delete
 
-For work the database can do on its own — a retention sweep, a column every row gets the same value in — EF Core's
-`ExecuteUpdateAsync` and `ExecuteDeleteAsync` are one statement over every matching row: nothing is loaded and
-nothing is tracked, so a million rows cost one round trip rather than a million objects. A change a rule decides is
-never one of these — it goes through the aggregate's operation, row by row ([data a migration
-moves](#data-a-migration-moves)). They run on a context, in a job or a migration step that takes one:
+For work the database can do on its own — a retention sweep, a flag every matching row gets — the aggregate's own
+[set writes](#writes-over-many-rows) are one statement over every matching row, with nothing loaded and nothing
+tracked, so a million rows cost one round trip rather than a million objects:
 
 ```csharp
-await using var db = await contexts.CreateDbContextAsync(ct);
+await Product.UpdateWhere(p => p.Discontinued, s => s
+    .SetProperty(p => p.Active, false)
+    .SetProperty(p => p.Price, p => p.Price * 0.9m));        // the arithmetic happens in SQL
 
-await db.Set<Product>().Where(p => p.Discontinued)
-    .ExecuteUpdateAsync(s => s
-        .SetProperty(p => p.Active, false)
-        .SetProperty(p => p.Price, p => p.Price * 0.9m), ct);   // the arithmetic happens in SQL
-
-await db.Set<Order>().Where(o => o.CreatedAt < cutoff).ExecuteDeleteAsync(ct);
+await Draft.DeleteWhere(d => d.SavedAt < cutoff);            // a SoftDelete aggregate's rows are stamped instead
 ```
 
-**They bypass the interceptors**, and what they skip is the conventions this package otherwise maintains: no
-`UpdatedAt` stamp, no `Version` bump (on a table that has them), and no domain events — nothing was loaded to raise any. Set what you
-need explicitly:
+Unlike EF Core's `ExecuteUpdateAsync` and `ExecuteDeleteAsync` underneath, they keep the conventions: `UpdatedAt` is
+stamped and `Version` bumped, a `SoftDelete` aggregate's delete stamps `DeletedAt` rather than removing the row, the
+tenant and soft-delete filters apply, the declared locks and the unique and referenced-row messages are asked, and the
+pages showing the rows are told. A change a rule decides is never one of these — it goes through the aggregate's
+operation, row by row, with [`UpdateEach`](#writes-over-many-rows).
 
-```csharp
-await db.Set<Product>().Where(p => p.Discontinued)
-    .ExecuteUpdateAsync(s => s
-        .SetProperty(p => p.Active, false)
-        .SetProperty(p => p.UpdatedAt, DateTime.UtcNow)
-        .SetProperty(p => p.Version, p => p.Version + 1), ct);
-```
-
-**A batch soft delete is an update, not `ExecuteDeleteAsync`.** `db.Remove(product)` on an aggregate
-that names `SoftDelete` stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
-hidden. Stamp them instead:
-
-```csharp
-await db.Set<Product>().Where(p => p.Discontinued)
-    .ExecuteUpdateAsync(s => s.SetProperty(p => p.DeletedAt, DateTime.UtcNow), ct);
-```
-
-The rule of thumb: reach for these when the work is a statement the database can do on its own and no rule of the
-domain is about it; everything else is the aggregate's operation.
+A raw `db.Set<T>().Where(…).ExecuteUpdateAsync(…)` skips all of that — no stamp, no version bump, no events, no audit,
+and a `DELETE` where a soft delete was meant — so on an aggregate the build points at it
+([RASK187](diagnostics.md#rask187)) and its quick-fix rewrites it into `X.UpdateWhere(…)` / `X.DeleteWhere(…)`. It stays
+for a table that is no aggregate: a migration step's, or one an [adopted schema](data.md#mapping-tables-that-already-exist)
+keeps beside the model.
 
 ## Data a migration moves
 

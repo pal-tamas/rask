@@ -232,6 +232,22 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     [Fact]
+    public async Task Delete_of_a_key_no_row_ever_had_throws_KeyNotFound_and_writes_nothing()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("kept"), cancellationToken: TestContext.Current.CancellationToken);
+
+        var refused = await Record.ExceptionAsync(() => Widget.Delete(Guid.NewGuid(), cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.IsType<KeyNotFoundException>(refused);
+        var only = await Widget.IgnoreQueryFilters().Single(TestContext.Current.CancellationToken);
+        Assert.Equal(widget.Id, only.Id);
+        Assert.Equal("kept", only.Name);
+        Assert.Equal(0, only.Version);
+        Assert.Null(only.DeletedAt);
+    }
+
+    [Fact]
     public async Task Delete_at_a_stale_version_is_refused_and_the_row_stays()
     {
         await using var database = await StartDatabaseAsync();

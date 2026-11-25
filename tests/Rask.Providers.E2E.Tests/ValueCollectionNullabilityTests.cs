@@ -137,7 +137,7 @@ public sealed class ValueCollectionNullabilityTests
     }
 
     [Fact]
-    public async Task On_a_postgresql_server_the_migrated_rows_that_were_null_read_back_as_empty_lists()
+    public async Task On_postgresql_the_migrated_rows_that_were_null_read_back_as_empty_lists_from_a_live_server()
     {
         Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
         const string Schema = "value_collection_nullability";

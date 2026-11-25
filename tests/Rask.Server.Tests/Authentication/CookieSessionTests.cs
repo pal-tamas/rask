@@ -46,6 +46,21 @@ public class CookieSessionTests
         Assert.Equal("/", frame.RootElement.GetProperty("auth").GetProperty("returnUrl").GetString());
     }
 
+    [Theory]
+    [InlineData("token-sign-in-to-sign-in")]
+    [InlineData("token-sign-in-to-redeem")]
+    public async Task A_return_address_naming_rasks_own_sign_in_or_redeem_falls_back_to_the_root(string button)
+    {
+        using var host = CreateHost();
+        var (ws, page) = await AttachAsync(host);
+        using var socket = ws;
+
+        await ws.SendJsonAsync(new { id = HandlerId(page, button) }, ct: TestContext.Current.CancellationToken);
+        using var frame = JsonDocument.Parse(await ws.ReceiveTextAsync());
+
+        Assert.Equal("/", frame.RootElement.GetProperty("auth").GetProperty("returnUrl").GetString());
+    }
+
     [Fact]
     public async Task A_token_ticket_redeems_once_into_the_session_cookie()
     {

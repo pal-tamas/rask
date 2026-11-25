@@ -2,6 +2,7 @@
 
 > **In practice:** [Tutorial Ch 2](tutorial/02-first-feature.md) · [forms over an operation](forms.md#a-form-over-an-operation) · [testing the domain](testing.md#testing-the-domain) · [cheat sheet](cheatsheet.md).
 > **The rest of Rask.Data:** [storage — queries, conventions and the database](data.md) · [writing many rows](data-writes.md).
+> **An app written before this?** [Upgrading to the domain way](upgrading-to-domain.md), step by step.
 
 A Rask app's business code is its **domain**: aggregates, the entities they hold and the value objects their
 properties are. Every write is one of the aggregate's own methods, and everything else — the form that calls it,
@@ -1202,10 +1203,13 @@ public sealed partial class Partner
   `Secret<T>` of a `Password` value object is not [RASK175](diagnostics.md#rask175): it is kept as ciphertext, which is
   what a password the app must send on asks for. A sign-in password is still hashed, never kept.
 
-Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
-searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
+### A file the row holds: `Attachment`
 
-<!-- demo:data-notes -->
+A file that belongs to a row — a registration scan, an invoice's PDF — is a value of the aggregate too:
+`public Attachment? Registration { get; private set; }`, set by an operation that takes one. The bytes are stored by
+the operation's own save, inside its transaction, and a file the save replaces is let go after the commit; a form over
+the operation draws a `Ui.FilePicker` for the parameter. [File storage](file-storage.md#a-file-the-aggregate-holds-attachment)
+has the whole of it.
 
 ## Operations: what the aggregate does
 
@@ -1634,6 +1638,32 @@ decides nothing — a change to another aggregate is that aggregate's own operat
 ([the transaction boundary](#the-transaction-boundary)). A test asserts what a save published with
 [`Events.Fake()`](testing.md#asserting-what-was-published-eventsfake).
 
+**The handler is on the aggregate it changes**, one line, with no class and no registration:
+
+```csharp
+public sealed partial class StockItem : Aggregate<StockItemId, Versioned>
+{
+    public void Reserve(Quantity quantity) { /* its own rules */ }
+
+    static Task On(OrderPlaced e) => StockItem.Reserve(e.Stock, e.Quantity);   // the entry without a version
+}
+```
+
+- **`static Task On(E e)`** on a `partial` aggregate is a durable handler of `E`
+  ([a handler on the aggregate](outbox.md#a-handler-on-the-aggregate)): an outbox row in the transaction that raised
+  the event, run after the commit in a transaction of its own, retried alone. Its shape is checked at build
+  ([RASK179](diagnostics.md#rask179)). One that takes long — an import, a pull from a partner — runs as a job:
+  `b.Job<E>()` ([jobs](jobs.md#an-aggregates-handler-as-a-job)).
+- **It calls the entry without a version** (a job's or a handler's call: the aggregate as it now stands), so a
+  refusal is the second aggregate's to give, and a retry runs the operation again — write it so a second run is
+  harmless.
+- **Exactly once for the database:** `o.HandlerInTransaction = true` in the outbox's options commits the handler's
+  writes with the mark that says it ran ([outbox](outbox.md#exactly-once-for-the-database-handlerintransaction)); a
+  call outside the database names `DurableEvent.Current.MessageId` as its idempotency key.
+- **State made *from* rows** — a running number, a total another table keeps — is declared rather than handled: a
+  [`Projects(…)`](#declared-projections-projects) raises the event in the save that changed the rows, and
+  [`Numbered(…)`](data-writes.md#a-running-number) keeps a running number with no event at all.
+
 #### What a delete raises: `OnDelete()`
 
 A delete is a change like any other, and others may need to hear of it — a driver removed frees the chips it held, so
@@ -1842,7 +1872,7 @@ aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Versi
 | `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
 | `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
-| `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) |
+| `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought). One read past the tenant is `X.Across("why")` ([one read across tenants](multi-tenancy.md#one-read-across-tenants-xacrossreason)) |
 | `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
 
 With neither `Deletable` nor `SoftDelete` there is no `Delete` at all — calling it is a compile error, which is
@@ -2282,18 +2312,16 @@ migrations and tests. A change that seems to need two aggregates is decided in t
        public void Confirm() => Raise(new OrderPlaced(Id, Stock, Quantity));   // what happened, said once
    }
 
-   public sealed partial class StockItem : Aggregate<StockItemId>
+   public sealed partial class StockItem : Aggregate<StockItemId, Versioned>
    {
        public void Reserve(Quantity quantity) { /* its own rules */ }
-   }
 
-   public sealed class ReserveStock : IDurableHandler<OrderPlaced>
-   {
-       public Task Handle(OrderPlaced e) => StockItem.Reserve(e.Stock, e.Quantity);   // the other aggregate's own entry
+       static Task On(OrderPlaced e) => StockItem.Reserve(e.Stock, e.Quantity);   // a durable handler, on the aggregate it changes
    }
    ```
 
-   The handler is one line: it decides nothing, it calls the operation that does. A refusal there is the second
+   The handler is one line on the aggregate it changes ([`On(E)`](#domain-events)): it decides nothing, it calls the
+   operation that does. A refusal there is the second
    aggregate's to give, and the outbox retries the handler, so the operation it calls should be safe to run twice.
 3. **The last resort: both in one save.** A check that must hold across two aggregates at the very moment of the
    write — and that no boundary and no event can carry — saves them together, below. It is the exception, so each
@@ -2327,7 +2355,7 @@ await Db.Transaction(async () =>
 {
     await filling.Save();
     foreach (var withdrawal in withdrawals) await withdrawal.Save();
-}, manyAggregates: "The IBC filling and its withdrawals are only valid together");
+}, manyAggregates: "A filling and its withdrawals are only valid together");
 
 builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy.Throw);   // Off | Warn | Throw
 ```
@@ -2372,7 +2400,6 @@ builder.Services.AddRaskData(o => o.AfterCommitFailures = AfterCommitFailure.Thr
   work succeed — which it did.
 - **`Throw`**: every step still runs, then the caller gets the failure — the exception itself, or an
   `AggregateException` when several threw. The work is committed all the same.
-- Before, the first step that threw skipped the ones behind it and failed a call whose work was already committed.
 - A durable handler is not such a step: it runs from the outbox, retried until it succeeds.
 
 A generated write also takes `db:`, to **stage** its change on a context the caller already holds and saves itself —
