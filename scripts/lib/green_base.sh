@@ -6,7 +6,8 @@
 #                        run named its push and is fixed forward, so the next one does not run that red set
 #                        again on top of its own. A run still waiting for its first gate is no base: it is
 #                        cancelled by this one (scripts/lib/cancel_superseded.sh), and this one's scope holds
-#                        its change. A run that passed with no gate to run counts; a cancelled one does not.
+#                        its change. A run that passed with no gate to run counts; a cancelled one does not, unless a gate of
+#                        it failed (gates.yml's fail-fast step cancelled the rest of a red run).
 #   branch               `git merge-base origin/main HEAD`: a ci/** branch is measured by its OWN commits. Until
 #                        2026-11-03 it was measured from main's last green commit, so main's churn — every
 #                        CI file a push to main touched since — made every branch the whole set.
@@ -35,7 +36,9 @@ case "${1:-}" in
       git merge-base --is-ancestor "$sha" HEAD 2>/dev/null || continue
       case "$conclusion" in
         success) ;;
-        cancelled | skipped) continue ;;
+        # A red gate cancels the rest of its run (gates.yml, fail_fast): that run is red, not superseded.
+        cancelled) gates_failed "$id" || continue ;;
+        skipped) continue ;;
         *) gates_started "$id" || continue ;;
       esac
       printf '%s\n' "$sha"

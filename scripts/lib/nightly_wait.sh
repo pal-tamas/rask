@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Waits for a ci run's `build` job (the build and the unit tests) and says whether its commit may be published.
-# nightly.yml's `prepare` job runs it after the pack, so the pack and the build overlap.
+# Waits for a ci run's `build` job (the build) and its `unit K/N` jobs (the unit tests, one shard each) and
+# says whether its commit may be published. nightly.yml's `prepare` job runs it after the pack, so the pack
+# and the build overlap.
 #
-#   go=true    the build job passed — the rest of the run may still be going (restore at 1.0: wait for the
-#              whole run; docs/development-workflow.md, "Loosened until 1.0")
+#   go=true    the build job and every unit shard passed — the rest of the run may still be going, and a
+#              sibling the fail-fast step cancelled afterwards changes nothing (restore at 1.0: wait for
+#              the whole run; docs/development-workflow.md, "Loosened until 1.0")
 #   go=true    the run passed with no build job: a scoped run that reached no code
-#   go=false   the build job failed or was cancelled, or the run ended without one and did not pass, or the
-#              wait ran out
+#   go=false   the build or a unit shard failed or was cancelled, or the run ended without a build job and
+#              did not pass, or the wait ran out
 #
 # Writes go= to $GITHUB_OUTPUT and why to stdout and the run page. Always exits 0 on a verdict: a red build
 # is ci's to report, not the nightly's.
@@ -27,12 +29,23 @@ verdict() {
 }
 
 while :; do
-  # The latest attempt's jobs: a re-run of a red build that passes counts.
+  # The latest attempt's jobs: a re-run of a red build that passes counts. The build and the unit shards
+  # ("gates / unit K/N") decide together: one line, the build's state and then the worst of them all —
+  # a red or cancelled one, else one still running, else "success".
   build="$(gh api --paginate "repos/$repo/actions/runs/$run/jobs?per_page=100" \
-    --jq '.jobs[] | select(.name == "gates / build") | "\(.status) \(.conclusion // "")"' 2>/dev/null | head -1 || true)"
+    --jq '.jobs[] | select(.name == "gates / build" or (.name | startswith("gates / unit "))) | "\(.name)\t\(.status) \(.conclusion // "")"' 2>/dev/null \
+    | awk -F'\t' '
+        $1 == "gates / build" { seen = 1; if (!build) build = $2 }
+        { if ($2 != "completed success" && $2 != "completed skipped" && $2 ~ /^completed/) { if (!red) red = $1 " ended " substr($2, 11) } else if ($2 !~ /^completed/) running = 1 }
+        END {
+          if (!seen) exit
+          if (red) print "red " red
+          else if (running) print "running"
+          else print "completed success"
+        }' || true)"
   case "$build" in
-    "completed success") verdict true "ci run $run: the build job passed." ;;
-    completed*) verdict false "Nothing published: the build job of ci run $run ended ${build#completed }." ;;
+    "completed success") verdict true "ci run $run: the build job and every unit shard passed." ;;
+    red*) verdict false "Nothing published: in ci run $run, ${build#red gates / }." ;;
     "")
       read -r status conclusion <<<"$(gh api "repos/$repo/actions/runs/$run" \
         --jq '"\(.status) \(.conclusion // "")"' 2>/dev/null || true)" || true

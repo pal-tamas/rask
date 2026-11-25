@@ -77,6 +77,13 @@ public abstract partial class Element
     // clear-only-my-own-kind rule has anything left to arbitrate.
     private protected void SetHandler(int eventIndex, Delegate? value)
     {
+        // A handler that holds no component (`() => rows.Add(row)` over a local) is registered later, inside whatever
+        // composite this element is handed to: the component whose Render sets it now is the one it re-renders.
+        if (value is not null)
+        {
+            DelegateOwner.NoteWriter(value);
+        }
+
         var slots = _domEvents;
         if (slots is null)
         {

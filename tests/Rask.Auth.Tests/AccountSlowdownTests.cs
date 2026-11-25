@@ -28,4 +28,39 @@ public sealed class AccountSlowdownTests
 
         Assert.Equal(TimeSpan.Zero, slowdown.DelayFor("ada"));
     }
+
+    [Fact]
+    public void The_wait_is_gone_once_the_window_has_passed_with_no_failure()
+    {
+        var clock = new MutableClock(new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
+        var slowdown = new AccountSlowdown(clock);
+        for (var i = 0; i < slowdown.Free + 1; i++)
+        {
+            slowdown.Failed("ada");
+        }
+
+        var waitAfterTheFailures = slowdown.DelayFor("ada");
+
+        clock.Advance(slowdown.Window);
+
+        Assert.True(waitAfterTheFailures > TimeSpan.Zero);
+        Assert.Equal(TimeSpan.Zero, slowdown.DelayFor("ada"));
+    }
+
+    [Fact]
+    public void A_spray_of_distinct_accounts_keeps_the_slowdown_at_its_bound_letting_go_of_the_stalest_first()
+    {
+        var clock = new MutableClock(new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
+        var slowdown = new AccountSlowdown(clock) { Free = 0, Window = TimeSpan.FromHours(1), MostKeys = 100 };
+
+        for (var i = 0; i < 150; i++)
+        {
+            slowdown.Failed("account-" + i);
+            clock.Advance(TimeSpan.FromSeconds(1));
+        }
+
+        Assert.InRange(slowdown.KeyCount, 1, 100);
+        Assert.Equal(TimeSpan.Zero, slowdown.DelayFor("account-0"));
+        Assert.True(slowdown.DelayFor("account-149") > TimeSpan.Zero);
+    }
 }

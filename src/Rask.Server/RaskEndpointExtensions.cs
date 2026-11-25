@@ -3534,7 +3534,7 @@ public static partial class RaskEndpointExtensions
 
         if (authSignIn.TryConsume(out var pending))
         {
-            var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
+            var safeReturn = AuthReturnUrl.For(pending.Action, pending.ReturnUrl, session.Services.GetService<RouteState>());
             var ticketId = ticketStore.Issue(
                 pending.Action,
                 pending.Principal,

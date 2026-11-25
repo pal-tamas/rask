@@ -271,6 +271,15 @@ over the primary constructor's parameters:
 - `X.TryCreate(…, out var x, out var problems)` — the answer without an exception.
 - `X.CreateOptional(…, field)` — nothing when nothing was given (text: only blanks), a required failure under each
   member left empty when only some were (`KmRange.CreateOptional(5, null, "Km")` → `Km.End`), otherwise `Create`.
+- `X.Parse(text, format, field)` and `X.TryParse(text, out var x)` / `X.TryParse(text, format, out var x)` — a `Moment`
+  or a `Day` read from text, for a file or an API: **culture-invariant**, ISO 8601 unless an exact `format` is named
+  (`FuelingMoment.Parse("2026.11.23. 08:35", "yyyy.MM.dd. HH:mm")`), and onto the app's wall clock (`Clock.Zone`). A
+  moment written with its offset (`2026-11-23T08:35:51+01:00`, `…Z`) is converted to it — across summer time too —
+  and one without is the wall clock's already, as written; a `Day` is the day of a moment on the wall calendar
+  (`2026-11-23T23:30:00Z` is the 24th in Budapest). Text that is no moment throws a `FormatException`, a moment a rule
+  refuses the `RaskValidationException` `Create` throws (under `field`); `TryParse` answers false for both. A record
+  declaring a `Parse` or `TryParse` of its own keeps it. `Clock.WallAt(moment)` is the same conversion for a
+  `DateTimeOffset` in hand (a UTC column's `DateTime`: `Clock.WallAt(DateTime.SpecifyKind(stamp, DateTimeKind.Utc))`).
 
 `new KmRange(…)` would throw without naming the field, and a `with` copies a value past its rules:
 [RASK127](diagnostics.md#rask127) refuses both outside the type, tests included, and its quick-fix writes the

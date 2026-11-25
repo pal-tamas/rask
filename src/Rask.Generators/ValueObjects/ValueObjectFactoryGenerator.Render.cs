@@ -47,6 +47,7 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendField(s, value);
         AppendOrder(s, value);
         AppendToString(s, value);
+        AppendParse(s, value);
         s.AppendLine("}");
 
         foreach (var _ in value.Containers)
