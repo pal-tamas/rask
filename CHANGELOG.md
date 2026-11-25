@@ -142,6 +142,14 @@ them until tagged releases begin.
   commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
   values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
   SQL Server and PostgreSQL, proven by the providers suite.
+- **`m.AuditAs(format)`: an `Audited` aggregate's saves written as the app's own audit rows.** Before: `AuditFormat`
+  was handed only the changed values and wrote only Rask's `AuditEntry`, its user as text (`system`), so a table an
+  older app reads — Eszaf's `Audits`, the whole row as JSON in `OldData`/`NewData`, `UserId` an `int` foreign key — could
+  not be kept. After: an `AuditFormat<TRow, TUserId>` named in the app's `IRaskModel` (`m.AuditAs(new LegacyAudits())`)
+  returns the app's row from an `AuditedWrite<TUserId>` — every value the aggregate held and holds (its children by
+  path, value objects as stored), the paths that changed, the action, the key, the user as the app's key type (null for
+  nobody) and the moment — added to the same save, completed before the commit when the key is generated; Rask's
+  `AuditEntry` is left out of that model. The default format writes what it wrote. [docs/domain.md](docs/domain.md#who-changed-what-audited)
 - **`IQueryable<T>.ForUpdate()`: the read face's update lock on any query of a set.** Before: `ForUpdate()` was only on a
   read face (`Month.Where(…).ForUpdate()`), so code generic over the type — Eszaf's `ReturnFilings.Lock<TRefund>` over
   four refund types — kept raw `UPDLOCK, HOLDLOCK` SQL. After: `db.Set<TRefund>().Where(r => r.Id == id).ForUpdate()`

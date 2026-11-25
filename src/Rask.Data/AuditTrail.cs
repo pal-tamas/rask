@@ -1,13 +1,13 @@
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data;
 
 /// <summary>
-///     The <see cref="AuditEntry" /> each <see cref="Audited" /> aggregate a save writes leaves, added to that same save:
-///     one per aggregate, its children's rows within it under their place (<c>Lines[1].Quantity</c>).
+///     The <see cref="AuditEntry" /> — or the app's own row (<see cref="AuditFormat{TRow, TUserId}" />) — each
+///     <see cref="Audited" /> aggregate a save writes leaves, added to that same save: one per aggregate, its children's
+///     rows within it under their place (<c>Lines[1].Quantity</c>).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -25,24 +25,28 @@ internal static class AuditTrail
     // The entries a save added, taken back out of the context once it is written.
     private static readonly ConditionalWeakTable<DbContext, List<EntityEntry>> Added = [];
 
-    internal static void Record(DbContext context, AuditFormat format, DateTime at)
+    /// <summary>Adds to the save the row of each <see cref="Audited" /> aggregate it writes.</summary>
+    /// <param name="context">The context saving.</param>
+    /// <param name="registered">The <see cref="AuditFormat" /> the app registered, or Rask's.</param>
+    /// <param name="at">When the save is made, in UTC.</param>
+    internal static void Record(DbContext context, AuditFormat registered, DateTime at)
     {
-        if (!AuditEntries.AreMapped(context.Model))
+        if (AuditEntries.FormatFor(context.Model, registered) is not { } format)
         {
             return;
         }
 
-        // An entry is written, never read back through the context: what an earlier save left in it — written, or added
+        // A row is written, never read back through the context: what an earlier save left in it — written, or added
         // by a save that failed — is not this save's.
-        foreach (var left in context.ChangeTracker.Entries<AuditEntry>().ToList())
+        foreach (var left in context.ChangeTracker.Entries().Where(e => e.Metadata.ClrType == format.RowType).ToList())
         {
             left.State = EntityState.Detached;
         }
 
-        List<(EntityEntry Root, List<EntityEntry> Rows)> aggregates;
+        List<Aggregate> aggregates;
         using (TrackedPrincipals.During(context))
         {
-            aggregates = Written(context);
+            aggregates = Written(context, format.ReadsSnapshot);
         }
 
         if (aggregates.Count == 0)
@@ -50,23 +54,27 @@ internal static class AuditTrail
             return;
         }
 
-        var user = CurrentUser.Id is { } id ? CurrentUser.ToClaim(id) : AuditEntry.System;
+        var user = format.User();
         var added = new List<EntityEntry>(aggregates.Count);
-        foreach (var (root, rows) in aggregates)
+        foreach (var (root, rows, held) in aggregates)
         {
-            var draft = Draft.Of(context, root, rows);
-            var entry = context.Add(new AuditEntry(
-                root.Metadata.ClrType.Name,
-                draft.Action,
-                format.Values(draft.Key),
-                draft.Action == AuditAction.Insert ? null : format.Values(draft.Before),
-                draft.Action == AuditAction.Delete ? null : format.Values(draft.After),
-                user,
-                at));
+            var aggregate = root.Metadata.ClrType;
+            var draft = AuditDraft.Of(context, root, rows, held);
+            var entry = context.Add(format.RowOf(aggregate, draft, user, at));
             added.Add(entry);
             if (draft.HasTemporary)
             {
-                SaveFollowUps.Add(context, cancellationToken => Complete(context, entry, draft, format, cancellationToken));
+                // The values the database generated are read once the rows went out, and the row is written again with them.
+                SaveFollowUps.Add(context, cancellationToken =>
+                {
+                    if (entry.State == EntityState.Detached)
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    draft.ReadTemporary();
+                    return AuditRowRewrite.Write(context, entry, format.RowOf(aggregate, draft, user, at), cancellationToken);
+                });
             }
         }
 
@@ -100,14 +108,15 @@ internal static class AuditTrail
         }
     }
 
-    // Each written row of an Audited aggregate, under its root — the root itself first when it was written. Keyed by the
-    // root entity: the tracker hands out a new EntityEntry each time it is asked.
-    private static List<(EntityEntry Root, List<EntityEntry> Rows)> Written(DbContext context)
+    // Each written row of an Audited aggregate, under its root — and, for a snapshot, every row of it tracked, the root
+    // first. Keyed by the root entity: the tracker hands out a new EntityEntry each time it is asked.
+    private static List<Aggregate> Written(DbContext context, bool snapshot)
     {
-        var aggregates = new Dictionary<object, (EntityEntry Root, List<EntityEntry> Rows)>(ReferenceEqualityComparer.Instance);
+        var aggregates = new Dictionary<object, Aggregate>(ReferenceEqualityComparer.Instance);
         foreach (var entry in context.ChangeTracker.Entries().ToList())
         {
-            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted) || entry.Entity is not IEntity)
+            var written = entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted;
+            if ((!written && !(snapshot && entry.State == EntityState.Unchanged)) || entry.Entity is not IEntity)
             {
                 continue;
             }
@@ -120,158 +129,22 @@ internal static class AuditTrail
 
             if (!aggregates.TryGetValue(root.Entity, out var aggregate))
             {
-                aggregate = (root, []);
+                aggregate = new Aggregate(root, [], snapshot ? [] : null);
                 aggregates.Add(root.Entity, aggregate);
             }
 
-            aggregate.Rows.Add(entry);
+            if (written)
+            {
+                aggregate.Rows.Add(entry);
+            }
+
+            aggregate.Held?.Insert(ReferenceEquals(entry.Entity, root.Entity) ? 0 : aggregate.Held.Count, entry);
         }
 
-        return [.. aggregates.Values];
+        // An aggregate only read in the context is no save's.
+        return [.. aggregates.Values.Where(static a => a.Rows.Count > 0)];
     }
 
-    // The values the database generated are read now, and the entry is written again with them.
-    private static async Task Complete(DbContext context, EntityEntry entry, Draft draft, AuditFormat format, CancellationToken cancellationToken)
-    {
-        if (entry.State == EntityState.Detached)
-        {
-            return;
-        }
-
-        draft.ReadTemporary();
-        var audit = (AuditEntry)entry.Entity;
-        var key = format.Values(draft.Key);
-        var after = draft.Action == AuditAction.Delete ? null : format.Values(draft.After);
-        await context.Set<AuditEntry>().Where(a => a.Id == audit.Id)
-            .ExecuteUpdateAsync(set => set.SetProperty(a => a.Key, key).SetProperty(a => a.After, after), cancellationToken)
-            .ConfigureAwait(false);
-
-        // The tracked entry says what the row now holds, unchanged.
-        audit.Key = key;
-        audit.After = after;
-        entry.OriginalValues[nameof(AuditEntry.Key)] = key;
-        entry.OriginalValues[nameof(AuditEntry.After)] = after;
-    }
-
-    /// <summary>What one aggregate's entry records, before the format writes it.</summary>
-    private sealed class Draft
-    {
-        private readonly List<(List<AuditValue> Values, int At, PropertyEntry Property)> _temporary = [];
-
-        private Draft(AuditAction action) => Action = action;
-
-        internal AuditAction Action { get; }
-
-        internal List<AuditValue> Key { get; } = [];
-
-        internal List<AuditValue> Before { get; } = [];
-
-        internal List<AuditValue> After { get; } = [];
-
-        internal bool HasTemporary => _temporary.Count > 0;
-
-        internal static Draft Of(DbContext context, EntityEntry root, List<EntityEntry> rows)
-        {
-            var draft = new Draft(ActionOf(root));
-            foreach (var key in (root.Metadata.FindPrimaryKey()?.Properties ?? []).Select(static k => k.Name))
-            {
-                draft.Add(draft.Key, key, root.Property(key), original: root.State == EntityState.Deleted);
-            }
-
-            foreach (var row in rows)
-            {
-                draft.Read(row, ReferenceEquals(row.Entity, root.Entity) ? "" : PlaceOf(context, row), row.Properties, row.ComplexProperties);
-            }
-
-            return draft;
-        }
-
-        internal void ReadTemporary()
-        {
-            foreach (var (values, at, property) in _temporary)
-            {
-                values[at] = values[at] with { Value = Stored(property.Metadata, property.CurrentValue) };
-            }
-        }
-
-        // A soft delete went out as an update that stamped DeletedAt: it is the aggregate's delete.
-        private static AuditAction ActionOf(EntityEntry root) =>
-            root.State switch
-            {
-                EntityState.Added => AuditAction.Insert,
-                EntityState.Deleted => AuditAction.Delete,
-                _ when root.Metadata.FindProperty(Columns.DeletedAt) is not null &&
-                       root.Property(Columns.DeletedAt) is { OriginalValue: null, CurrentValue: not null } => AuditAction.Delete,
-                _ => AuditAction.Update,
-            };
-
-        // Where the row sits in its aggregate, as its form names it; a row the save deletes holds no place there any more,
-        // and is named by its type and key.
-        private static string PlaceOf(DbContext context, EntityEntry row)
-        {
-            var place = RowPath.Of(context, row);
-            if (place.Length > 0)
-            {
-                return place;
-            }
-
-            var key = row.Metadata.FindPrimaryKey()?.Properties.Select(p => row.Property(p.Name).OriginalValue) ?? [];
-            return row.Metadata.ClrType.Name + "[" + string.Join(",", key) + "].";
-        }
-
-        private void Read(EntityEntry row, string place, IEnumerable<PropertyEntry> properties, IEnumerable<ComplexPropertyEntry> complex)
-        {
-            foreach (var property in properties)
-            {
-                var name = place + property.Metadata.Name;
-                switch (row.State)
-                {
-                    case EntityState.Added:
-                        Add(After, name, property, original: false);
-                        break;
-                    case EntityState.Deleted:
-                        Add(Before, name, property, original: true);
-                        break;
-                    default:
-                        if (!Same(Stored(property.Metadata, property.OriginalValue), Stored(property.Metadata, property.CurrentValue)))
-                        {
-                            Add(Before, name, property, original: true);
-                            Add(After, name, property, original: false);
-                        }
-
-                        break;
-                }
-            }
-
-            foreach (var value in complex)
-            {
-                Read(row, place + value.Metadata.Name + ".", value.Properties, value.ComplexProperties);
-            }
-        }
-
-        private void Add(List<AuditValue> values, string name, PropertyEntry property, bool original)
-        {
-            if (!original && property.IsTemporary)
-            {
-                _temporary.Add((values, values.Count, property));
-            }
-
-            values.Add(new AuditValue(name, Stored(property.Metadata, original ? property.OriginalValue : property.CurrentValue)));
-        }
-
-        // A value object as the value it is stored as; a plain value as it is, never in a provider's own spelling — so
-        // every database records the same text.
-        private static object? Stored(IProperty property, object? value) =>
-            value is null || IsPlain(value.GetType()) || (property.GetValueConverter() ?? property.GetTypeMapping().Converter) is not { } converter
-                ? value
-                : converter.ConvertToProvider(value);
-
-        private static bool IsPlain(Type type) =>
-            type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal) || type == typeof(Guid) ||
-            type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(DateOnly) || type == typeof(TimeOnly) ||
-            type == typeof(TimeSpan) || type == typeof(byte[]);
-
-        private static bool Same(object? before, object? after) =>
-            before is byte[] one && after is byte[] other ? one.AsSpan().SequenceEqual(other) : Equals(before, after);
-    }
+    /// <summary>One aggregate a save writes: its root, its rows written, and every row of it tracked when a snapshot is read.</summary>
+    private sealed record Aggregate(EntityEntry Root, List<EntityEntry> Rows, List<EntityEntry>? Held);
 }

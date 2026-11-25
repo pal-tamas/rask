@@ -62,4 +62,28 @@ public class AuditFormat
             _ => value.ToString() ?? "",
         };
     }
+
+    /// <summary>The type of the row the format writes: <see cref="AuditEntry" />, or the app's own.</summary>
+    internal virtual Type RowType => typeof(AuditEntry);
+
+    /// <summary>Whether the format is handed every value the aggregate held and holds, not only the ones that changed.</summary>
+    internal virtual bool ReadsSnapshot => false;
+
+    /// <summary>Who the save is for, read once per save: the id claim as text, <see cref="AuditEntry.System" /> for nobody.</summary>
+    internal virtual object? User() => CurrentUser.Id is { } id ? CurrentUser.ToClaim(id) : AuditEntry.System;
+
+    /// <summary>The row that records <paramref name="draft" />.</summary>
+    /// <param name="aggregate">The aggregate's type.</param>
+    /// <param name="draft">What the save did to it.</param>
+    /// <param name="user">What <see cref="User" /> answered for the save.</param>
+    /// <param name="at">When the save was made, in UTC.</param>
+    internal virtual object RowOf(Type aggregate, AuditDraft draft, object? user, DateTime at) =>
+        new AuditEntry(
+            aggregate.Name,
+            draft.Action,
+            Values(draft.Key),
+            draft.Action == AuditAction.Insert ? null : Values(draft.Before),
+            draft.Action == AuditAction.Delete ? null : Values(draft.After),
+            (string)user!,
+            at);
 }

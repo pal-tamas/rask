@@ -1961,6 +1961,40 @@ public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, 
 - **The text is replaceable.** Register an `AuditFormat` of your own — `services.AddSingleton<AuditFormat, LegacyFormat>()`
   — and override `Values` for the whole text or `Value` for one value's, when the old rows of a table were written
   another way.
+- **So is the row.** A table an older app already writes — its own columns, the whole row as JSON, the user as an `int`
+  foreign key — keeps being written byte for byte by a format of the app's own, named once in its `IRaskModel`; Rask's
+  `AuditEntry` is then left out of the model, and the `Audits` table is the app's to map:
+
+```csharp
+public sealed class AppModel : IRaskModel
+{
+    public static void Model(ModelBuilder m) => m.AuditAs(new LegacyAudits());
+}
+
+public sealed class LegacyAudits : AuditFormat<Audit, int>   // the app's row, its users' key type
+{
+    public const int SystemUser = 1;
+
+    public override Audit Row(AuditedWrite<int> write) => Audit.Of(
+        table: write.Aggregate.Name,
+        user: write.User ?? SystemUser,                          // null: a job, a hosted service, startup
+        action: write.Action.ToString(),
+        oldData: write.Action == AuditAction.Insert ? null : Json(write.Before),
+        newData: write.Action == AuditAction.Delete ? null : Json(write.After),
+        key: Json(write.Key),
+        at: write.At);
+}
+```
+
+  `AuditedWrite<TUserId>` hands it everything: `Before` and `After` are **every** value the aggregate held and holds —
+  its children's rows by path (`Lines[0].Quantity`), a value object as its stored value — and `Changed` the paths the
+  save changed, so a format that writes only what changed filters by it (`write.Before.Where(v =>
+  write.Changed.Contains(v.Name))`, then `Values(…)` for the `Name=value || …` text). `User` is a `Current.UseUser`
+  scope's user, or the signed-in principal's id claim read as the key type (`Guid`, `int` or `long`), whether or not
+  the app says `IUser`; null for nobody. The row is added to the same save; when the database generates the aggregate's
+  key, `Row` is asked again once the rows went out, and the columns that moved are written before the commit. A
+  format of the app's own rows registered as a service rather than named in the model is refused at the first save,
+  with the `m.AuditAs(…)` line to write.
 - A save that fails writes no entry, and its retry writes one. A raw `ExecuteUpdate`/`ExecuteDelete` writes no
   entry: it never passes through a save.
 
