@@ -377,6 +377,18 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **The tutorial is written the one domain way, end to end, and its tests are compiled and run.** Before: chapter 2
+  bound hand pages to a generated `ProductModel` (`Product.Create(model)`, `Product.Update(id, model)`, four
+  components), chapter 7 checked a sale with `ArgumentOutOfRangeException` and `DateTime.UtcNow`, and no chapter wrote
+  a test. Now `Product` and `Order` are aggregates of value objects (`Text`, `Number`, `Whole`, `Email`, a
+  `ShippingAddress : Value`) and typed ids, every write is an operation with `Refuse`, each list page is one component
+  with `Ui.EditorDialog` and `.Delete(…)` over forms from the operations (`Form.For`, rows of `Children<,>`, a value
+  object's group of fields, `Change<T>`, an `Attachment` picker), roles live on the operations
+  (`b.Operation(…, roles:)`, `Product.MayAdd`), the job calls `Order.MarkReceiptSent(id)`, the catalog cache is
+  forgotten by a domain event (`OnDelete()` included), an order placed takes its stock through
+  `Product`'s `static Task On(OrderPlaced e)`, and chapters 10–11 run `rask audit`. Every chapter proves its rules on
+  SQLite in memory (`TestDatabase.Start`, `Test.Make`, `Test.Refuses`, `Test.FormShows`, `Test.Concurrently`), and
+  `TutorialChapterBuildE2ETests` builds each chapter's tests with the app and runs them at the end.
 - **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
   Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
   throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
