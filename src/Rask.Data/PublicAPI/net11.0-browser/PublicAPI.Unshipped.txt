@@ -748,3 +748,5 @@ Rask.Data.Numbering<TEntity>.SkipWhen<TOther, TRow>(System.Linq.Expressions.Expr
 Rask.Data.GeneratedGates
 static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> bool
 static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void
+Rask.Data.ForUpdateQueryableExtensions
+static Rask.Data.ForUpdateQueryableExtensions.ForUpdate<T>(this System.Linq.IQueryable<T>! source) -> System.Linq.IQueryable<T>!

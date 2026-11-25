@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -18,7 +19,7 @@ namespace Rask.Data;
 ///     context configured without it.
 /// </remarks>
 internal sealed class WritableChildrenInterceptor
-    : SaveChangesInterceptor, IMaterializationInterceptor, IDbTransactionInterceptor, IDbCommandInterceptor
+    : SaveChangesInterceptor, IMaterializationInterceptor, IDbTransactionInterceptor, IDbCommandInterceptor, IQueryExpressionInterceptor
 {
     /// <summary>The one instance: a materialization interceptor is part of EF Core's service-provider cache key.</summary>
     internal static readonly WritableChildrenInterceptor Instance = new();
@@ -148,6 +149,14 @@ internal sealed class WritableChildrenInterceptor
     {
         ForUpdateSql.Apply(command, eventData.Context);
         return ValueTask.FromResult(result);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>A count of a query read <c>ForUpdate()</c> is refused as it is compiled (<see cref="ForUpdateSql.RefuseAggregate" />).</remarks>
+    Expression IQueryExpressionInterceptor.QueryCompilationStarting(Expression queryExpression, QueryExpressionEventData eventData)
+    {
+        ForUpdateSql.RefuseAggregate(queryExpression);
+        return queryExpression;
     }
 
     /// <inheritdoc />

@@ -311,6 +311,26 @@ await Db.Transaction(async () =>
 - An operation that only needs its own aggregate's row locked says so where it is declared —
   `b.Operation(x => x.M, forUpdate: true)`, or `await id.Load(version, forUpdate: true)` ([operations](domain.md#operations-what-the-aggregate-does)).
 
+**Code generic over the type** — one lock for four kinds of refund — has no read face to call it on, so the same step
+is on any query of a set, `IQueryable<T>.ForUpdate()`:
+
+```csharp
+public static Task Lock<TRefund>(DbContext db, int id) where TRefund : class, IRefund =>
+    db.Set<TRefund>().Where(r => r.Id == id).ForUpdate().ToListAsync();
+
+await Db.Transaction(async () =>
+{
+    await using var db = await contexts.CreateDbContextAsync();
+    await Lock<GasRefund>(db, id);
+    …
+});
+```
+
+It is the read face's lock, in the same words on each database, refused outside a `Db.Transaction` where it is called,
+and a `Count`, `LongCount`, `Any` or `All` of it is refused as the query is compiled. It runs on a Rask context — a
+`RaskDbContext`, or one built with `AddRaskData()`'s interceptors — which is what writes the lock; an app's own tags
+(`TagWith`) before it are kept.
+
 ### A reusable query: a scope
 
 A filter several pages share — Rails' `scope :in_stock`, Laravel's `#[Scope]` — is a static on the aggregate

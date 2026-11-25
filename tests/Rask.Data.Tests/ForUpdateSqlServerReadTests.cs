@@ -48,6 +48,20 @@ public sealed class ForUpdateSqlServerReadTests
         Assert.StartsWith("-- rask:for-update, locked", command.CommandText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_set_read_for_update_after_a_tag_of_the_app_s_own_is_locked_too()
+    {
+        using var db = Open();
+        using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = db.Set<Period>().TagWith("refund lock").Where(p => p.Closed).TagWith(ForUpdateSql.Tag).ToQueryString();
+
+        ForUpdateSql.Apply(command, db);
+
+        Assert.Contains("FROM [Periods] AS [p] WITH (UPDLOCK, HOLDLOCK)", command.CommandText, StringComparison.Ordinal);
+        Assert.StartsWith("-- refund lock", command.CommandText, StringComparison.Ordinal);
+        Assert.Contains("-- rask:for-update, locked", command.CommandText, StringComparison.Ordinal);
+    }
+
     private static Microsoft.EntityFrameworkCore.Metadata.IProperty Key(DbContext db) =>
         db.Model.FindEntityType(typeof(Period))!.FindPrimaryKey()!.Properties[0];
 

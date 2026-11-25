@@ -142,6 +142,12 @@ them until tagged releases begin.
   commit; the children's rows are recorded in their aggregate's entry under their place (`Fuellings[1].Quantity`); the
   values are the stored ones in the invariant culture, and the text is the app's own with `AuditFormat`. On SQLite,
   SQL Server and PostgreSQL, proven by the providers suite.
+- **`IQueryable<T>.ForUpdate()`: the read face's update lock on any query of a set.** Before: `ForUpdate()` was only on a
+  read face (`Month.Where(…).ForUpdate()`), so code generic over the type — Eszaf's `ReturnFilings.Lock<TRefund>` over
+  four refund types — kept raw `UPDLOCK, HOLDLOCK` SQL. After: `db.Set<TRefund>().Where(r => r.Id == id).ForUpdate()`
+  reads under the same lock in the same words per database, refused outside a `Db.Transaction`, and a
+  `Count`/`LongCount`/`Any`/`All` of it is refused as the query is compiled; a tag of the app's own before it is kept.
+  [docs/data.md](docs/data.md#rows-read-for-update-forupdate)
 - **`b.Numbered(…)`: a running number per group, kept by Rask in every save with no SQL in the app.** Before: TA's
   `FuelingSequence` interceptor renumbered fuelings with a window-function `UPDATE` under one global `sp_getapplock`.
   After: `b.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Number, f.Id }, skip: f => …)`
