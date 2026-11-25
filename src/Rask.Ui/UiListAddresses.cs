@@ -21,6 +21,7 @@ internal sealed class UiListAddresses
     private readonly Lock _gate = new();
     private readonly Dictionary<string, KeyValuePair<string, StringValues>[]> _last = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _dialogs = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _pages = new(StringComparer.OrdinalIgnoreCase);
     private readonly RouteState _route;
 
     private UiListAddresses(RouteState route)
@@ -48,6 +49,34 @@ internal sealed class UiListAddresses
         lock (_gate)
         {
             return _dialogs.Contains(key);
+        }
+    }
+
+    /// <summary>Names the query key a list on the page the reader stands at keeps its page under (<c>Ui.Table.PageIn(…)</c>).</summary>
+    internal void Paged(string key)
+    {
+        var path = Key(_route.Path);
+        lock (_gate)
+        {
+            if (!_pages.TryGetValue(path, out var keys))
+            {
+                _pages[path] = keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            keys.Add(key);
+        }
+    }
+
+    /// <summary>
+    ///     The page keys of the lists on the page the reader stands at that its address holds: what a move to another
+    ///     tab takes out, so the list starts at its first page.
+    /// </summary>
+    internal string[] PagesHeld()
+    {
+        var path = Key(_route.Path);
+        lock (_gate)
+        {
+            return _pages.TryGetValue(path, out var keys) ? [.. keys.Where(_route.Query.ContainsKey)] : [];
         }
     }
 

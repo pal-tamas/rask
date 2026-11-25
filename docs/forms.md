@@ -680,9 +680,13 @@ nothing extra:
 private async Task Save(Product product)
 {
     await product.Save();
-    Routes.ProductsPage().Go();   // not asked about: the app is leaving, not the reader
+    Routes.ProductsPage().AsLeft().Go();   // not asked about: the app is leaving, not the reader
 }
 ```
+
+`.AsLeft()` (Rask.Ui) is the list as the reader left it this session — its filters, sort, page and search, an editor
+dialog's key left out — so a save returns there rather than to the bare list; a list the session has not shown is the
+route as given ([ui-kit.md](ui-kit.md#a-list-page)).
 
 #### Ask in a dialog of your own
 

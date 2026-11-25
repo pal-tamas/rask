@@ -9475,3 +9475,5 @@ static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b, bool? va
 static RaskBuilderSettersRask_Ui.Defer<T>(this Rask.UiComposer<T>! __b) -> Rask.UiComposer<T>!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Defer(this Rask.UiPhone! __b, bool? value) -> Rask.UiPhone!
+Rask.UiListRoutes
+static Rask.UiListRoutes.AsLeft(this Rask.Core.Routing.RouteUrl list) -> Rask.Core.Routing.RouteUrl

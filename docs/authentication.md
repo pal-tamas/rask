@@ -537,6 +537,11 @@ reloading tab is served the page it asked for.
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.
 
+The way back is written once, never wrapped. When the page challenged is the sign-in page itself — a layout that
+guards `/login`, a cookie the scheme keeps refusing — the challenge carries the way back that page already had, not
+`/login?returnUrl=%2Flogin%3FreturnUrl%3D…` escaped once more each time round, which would grow until the server
+answers `431 Request Header Fields Too Large`. A way back longer than `LocalUrl.MaxLength` (2048 characters) is `/`.
+
 ### In WebAssembly
 
 A WebAssembly tab has no socket whose cookie can be stale — every request it makes carries the cookie as it is now,
@@ -647,7 +652,7 @@ decisions, each the conservative one:
 | The redeem is a **same-origin `POST`** | another site's `Origin`/`Referer` is refused, and so is any `Sec-Fetch-Site` but `same-origin`, before the ticket is looked at — a forged attempt does not burn it |
 | The answer is **`no-store`** | no cache, shared or the browser's, keeps a credential |
 | The cookie is **`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`** | no script reads it, it never crosses plain HTTP, another site's request carries it only on a link followed here, and the page's socket and its `/_rask` calls carry it as the page does — none of these are knobs |
-| `ReturnUrl` is **local or `/`** | `LocalUrl.Sanitize`: another origin, `//host`, a backslash or a control character becomes `/` |
+| `ReturnUrl` is **local or `/`** | `LocalUrl.Sanitize`: another origin, `//host`, a backslash, a control character or more than `LocalUrl.MaxLength` (2048) characters becomes `/`; it never escapes or unescapes, so sanitizing twice is sanitizing once |
 | The page **loads again** under the cookie | Rask cannot know the token's user before your scheme reads it, so the old live session is left, never reattached to someone it did not expect |
 
 The browser host has no `SignInWithToken`: a WebAssembly app posts the credentials to its server, whose answer sets the

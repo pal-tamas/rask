@@ -704,3 +704,11 @@ static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> b
 static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void
 Rask.Data.ForUpdateQueryableExtensions
 static Rask.Data.ForUpdateQueryableExtensions.ForUpdate<T>(this System.Linq.IQueryable<T>! source) -> System.Linq.IQueryable<T>!
+Rask.Data.Renumbering
+Rask.Data.Renumbering.extension<T>(T!)
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).RenumberAll(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.RenumberAll<T>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
