@@ -287,18 +287,31 @@ jobs:
           RASK_TEST_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'affected' || '' }}
           RASK_FORMAT_SCOPE: ${{ needs.plan.outputs.range != '' && 'range' || '' }}
           RASK_SCOPE_RANGE: ${{ needs.plan.outputs.range }}
+          # No MSBuild worker node outlives the build. A run's job once ended its last step at 9 minutes and
+          # was still "running" at 45, cancelled by the job timeout with no log (2026-11-25, run 45596189520):
+          # what a step leaves behind is the runner's to end in its own cleanup, and nothing bounds that.
+          MSBUILDDISABLENODEREUSE: 1
         timeout-minutes: 36   # inside the job's 40, so a hang fails this step and its log is kept
         run: ${{ matrix.gate.run }}
 
       # FAIL FAST (ci.yml): the first red gate cancels the run — every other gate, the browser shards and
       # ci's publish. A gate that already passed keeps its success, which is all nightly.yml reads
-      # (scripts/lib/nightly_wait.sh waits for `gates / build` alone); a build it cancels publishes
+      # (scripts/lib/nightly_wait.sh waits for `gates / build` and the unit shards); one it cancels publishes
       # nothing. docs/development-workflow.md, "Fail fast".
       - name: Fail fast — cancel the run
         if: failure() && inputs.fail_fast
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" || true
+
+      # What the gate left running — the compiler server, a test host, a server a test started — is ended
+      # here, bounded, rather than left to the runner's orphan cleanup, which no timeout but the job's bounds.
+      - name: Stop what the gate left running
+        if: always()
+        timeout-minutes: 2
+        run: |
+          dotnet build-server shutdown >/dev/null 2>&1 || true
+          pkill -KILL -f 'testhost|VBCSCompiler|MSBuild\.dll|vstest\.console' 2>/dev/null || true
 
   # The browser shards: the same steps as every gate (one YAML anchor, so the two cannot drift), started
   # once the site they drive is published.
