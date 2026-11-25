@@ -84,6 +84,26 @@ them until tagged releases begin.
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
   (`X.Where(…)`) empties a gated member on each row while its gate is shut, and the gated members are declared at
   startup by a generator, so forms and read faces know them before the EF model is built.
+- **An aggregate's delete raises events: `private void OnDelete()`.** Before: the generated `X.Delete(id, version)` (and
+  an editor dialog's `.Delete(X.Delete)`) had no body to `Raise` in, so TA's `Driver`/`Vehicle` kept a hand `Remove` to
+  raise their chip-rematch event. After: `private void OnDelete() => Raise(new DriverChipsChanged(…));` on the partial
+  aggregate is called by every save that deletes it, and what it raises is stored and published with the delete, as an
+  operation's events are. RASK190 refuses another shape.
+- **An aggregate handles an event in one line: `static Task On(E e)`.** Before: a change that reaches another aggregate
+  through an event needed an `IDurableHandler<E>` class of its own, registered in DI (TA's `RematchDriverFuelings`). After:
+  `static Task On(DriverChipsChanged e) => …;` on the `partial` aggregate it changes is that durable handler — generated
+  registration, stored as `{Aggregate}:{Event}`, run by the outbox in a transaction of its own. RASK179 refuses an `On`
+  of another shape, RASK191 an aggregate the registration cannot be added to (not partial, nested, generic).
+- **`OutboxOptions.HandlerInTransaction`: a durable handler's writes and its processed-mark commit together.** Before: the
+  handler's writes committed, then the mark — a crash between the two ran it again. After: with the option on, a handler
+  that throws, a failed mark or a lost lease rolls the handler's writes back with the mark: exactly once for the database.
+  Off by default.
+- **`DurableEvent.Current` names the outbox row a handler runs for** — `MessageId` (the same on every attempt) and
+  `Attempt` — the idempotency key for a call outside the database. Null outside a handler the outbox runs.
+- **`b.Job<E>()` runs an aggregate's `On(E)` as a job.** In the aggregate's `Configure`:
+  `b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString())` (or `.InLane(e => …)`); the outbox's
+  row then only enqueues a job that runs `On`, with the job's lane, renewed lease, sweep and retry — what Eszaf's
+  `QueuedFile`/`PartnerTurn` did by hand. RASK189 warns on `Job<E>()` for an event the aggregate has no `On` for.
 - **`Ui.FilePicker` and `Attachment` in forms**: an operation that takes an `Attachment` gets a form field holding a
   `PickedFile` (read as it is picked, up to `MaxSize`), drawn by `Ui.Field.Bind` as `Ui.FilePicker` — Flux's upload, then
   the file with its remove button; the store's refusal (size, type) is told under that field.
@@ -221,6 +241,13 @@ them until tagged releases begin.
   app's release step, `MigrateOnStart` on or off), and after `rask db update` (which then has the app run them) — once,
   recorded in `__RaskDataSteps`; a migration `dotnet ef` applied has its steps run the next time the app migrates. See
   [docs/data-writes.md](docs/data-writes.md#moving-data-in-c-with-bdata).
+- **`b.Projects(watched, raise)` declares a projection on its rows, in place of a save hook.** Before: state made
+  from rows (a sequence number per pistol, the company a vehicle last fuelled for) was kept by an interceptor or an
+  after-save raw `UPDATE` — outside the save's transaction, hung on whichever aggregate was saved, and lost to a crash
+  between the two. After: `b.Projects(f => new { f.Moment, f.PistolId }, changed => new
+  FuelingsToNumber(changed.Values(f => f.PistolId)))` in `Configure` raises the event once per save that adds, removes,
+  or changes a watched member of the aggregate, from `ProjectedRows<T>` (each row's `Before` and `After`) — raised as
+  the aggregate's own, so a durable handler's outbox row commits in that same save and a rollback raises nothing.
 - **`database.Options<TOther>()` opens a second context type on a test's database.** Before: a context beside the
   app's own (a table-shaped `LegacyDb`, a host's context with its own interceptors) reached `TestDatabase.Start<T>()`'s
   in-memory SQLite only through `UseRaskSqlite(services)` and a throwaway service provider carrying the connection
@@ -291,6 +318,11 @@ them until tagged releases begin.
   `docs/data.md` lists them.
 
 ### Changed
+- **A step that fails after a `Db.Transaction` commits no longer fails the call, nor skips the steps behind it.**
+  Before: an in-memory event handler (or the data-changed notice) that threw after the commit made the committed call
+  throw, and every after-commit step behind it was skipped. After: every step runs, and the failure is logged —
+  `RaskDataOptions.AfterCommitFailures = AfterCommitFailure.Throw` hands it to the caller once all have run (the
+  exception, or an `AggregateException` of several).
 - **BREAKING: `Default(x => x.Size, 1000)` is the column's default SQL, as the docs said.** Before: it was EF Core's
   `HasDefaultValue(1000)`, so a model moving from `HasDefaultValueSql("1000")` made a migration altering every
   default. After: Rask writes `HasDefaultValueSql` in the provider's literal (a SQL Server `bit` bare, `0`/`1`), so that

@@ -100,6 +100,14 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
             return null;
         }
 
+        // The package that declares the marker registers its own types itself: a registry generated into it would collide,
+        // through InternalsVisibleTo, with the one each of its friends generates (CS0436).
+        if (ctx.SemanticModel.Compilation.GetTypeByMetadataName(markerInterface) is { } declared &&
+            SymbolEqualityComparer.Default.Equals(declared.ContainingAssembly, ctx.SemanticModel.Compilation.Assembly))
+        {
+            return null;
+        }
+
         // An abstract base carrying the marker is a normal way to model a hierarchy, not a mistake —
         // skip it silently rather than warning on every such declaration.
         if (symbol.IsAbstract)

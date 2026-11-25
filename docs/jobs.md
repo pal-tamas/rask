@@ -176,6 +176,31 @@ The column is nullable and every existing row leaves it empty, so adding it rewr
 index is filtered to rows that carry a key, so it starts empty, and on SQLite and PostgreSQL the build is one
 pass over the table. Until the migration runs, the processor logs exactly that command.
 
+### An aggregate's handler as a job
+
+An aggregate's [`static Task On(E e)`](outbox.md#a-handler-on-the-aggregate) runs where the outbox runs it, right
+after the commit. When it runs long — a file import, a pull from a partner — or one tenant's must run one at a time,
+declare it a job in the aggregate's `Configure`:
+
+```csharp
+public sealed partial class QueuedFile : Aggregate<int, PerTenant>
+{
+    static Task On(FileQueued e) => QueuedFile.Update(e.File, f => f.Load());
+
+    public static void Configure(EntityTypeBuilder<QueuedFile> b) =>
+        b.Job<FileQueued>().InTenantLane("loads").UnlessWaiting(e => e.File.ToString());
+}
+```
+
+- The outbox's row for the handler then only **enqueues a job**, and the job runs `On` — with everything a job has:
+  its lane, its lease renewed while it runs (so a long one is never picked up twice), a dead letter when its host
+  died on its last attempt, the dashboard's Retry.
+- The steps are the enqueue's, read off the event: **`.InTenantLane(lane?)`** — the lane of the tenant the event was
+  raised for — or **`.InLane(e => …)`**, and **`.UnlessWaiting(e => key)`**: a second event for work that already
+  waits enqueues nothing. The key is the handler's own, so two aggregates' handlers never share one.
+- Without the step the handler is not a job, and `b.Job<E>()` for an event the aggregate has no `On` for is
+  [RASK189](diagnostics.md#rask189). The job runs as the tenant and user the event was raised for, as the handler would.
+
 ### Await a job's answer: `Jobs.Run`
 
 Some work belongs in a lane **and** has a caller waiting for it — an operator presses "send to pump" and wants to see

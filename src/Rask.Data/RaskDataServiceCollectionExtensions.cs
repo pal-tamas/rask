@@ -40,46 +40,7 @@ public static partial class RaskDataServiceCollectionExtensions
 
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
-        // Registration order is the interception order: soft-delete rewrites Deleted -> Modified first, so
-        // auditing then stamps + versions the resulting update.
-        if (!services.Any(static d => d.ImplementationType == typeof(SoftDeleteInterceptor)))
-        {
-            // Not a save interceptor at heart: it joins the app's own context to a Db.Transaction when it opens its
-            // connection, so raw SQL inside the block runs inside it. Registered here so every host's contexts carry it.
-            services.AddSingleton<ISaveChangesInterceptor>(AmbientTransactionInterceptor.Instance);
-
-            // Lazy loading off unless the context's options AllowLazyLoading(): a navigation read in a loop, a render or a
-            // validation would otherwise be a query nobody wrote.
-            services.AddSingleton<ISaveChangesInterceptor>(LazyLoadingGuard.Instance);
-
-            // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
-            services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
-            services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
-
-            // Before auditing, so a gated member it keeps unwritten is not what makes the row look changed.
-            services.AddSingleton<ISaveChangesInterceptor, GatedWritesInterceptor>();
-            services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
-
-            AddDeclaredWrites(services);
-
-            // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
-            // in SavingChanges) sees them whichever interceptor runs first.
-            services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
-
-            // After the others have shaped the save, so it counts the rows the save writes: a second aggregate in one
-            // Db.Transaction, written without manyAggregates:, meets RaskDataOptions.OneAggregatePerTransaction.
-            services.AddSingleton<ISaveChangesInterceptor, OneAggregatePerTransactionInterceptor>();
-
-            // Last, so it sees the save as the others left it. Also a transaction interceptor — EF hands the
-            // same instance both roles — which is how a save inside the caller's transaction waits for its
-            // commit before anyone refetches.
-            services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
-
-            // After every other: it replaces a refusal the model has a sentence for — a unique index's violation,
-            // the delete of a referenced row — by throwing, and an interceptor after it would not be told the
-            // save failed.
-            services.AddSingleton<ISaveChangesInterceptor, ViolationMessageInterceptor>();
-        }
+        AddSaveInterceptors(services);
 
 #pragma warning disable S3251 // implemented only by the browser build (Browser/); a server build has nothing to wire
         AddBrowserWiring(services);
@@ -152,4 +113,57 @@ public static partial class RaskDataServiceCollectionExtensions
 #pragma warning disable S3251 // implemented only by the browser build (Browser/)
     static partial void AddBrowserWiring(IServiceCollection services);
 #pragma warning restore S3251
+
+    // Registration order is the interception order, once per container.
+    private static void AddSaveInterceptors(IServiceCollection services)
+    {
+        // Registration order is the interception order: soft-delete rewrites Deleted -> Modified first, so
+        // auditing then stamps + versions the resulting update.
+        if (!services.Any(static d => d.ImplementationType == typeof(SoftDeleteInterceptor)))
+        {
+            // Not a save interceptor at heart: it joins the app's own context to a Db.Transaction when it opens its
+            // connection, so raw SQL inside the block runs inside it. Registered here so every host's contexts carry it.
+            services.AddSingleton<ISaveChangesInterceptor>(AmbientTransactionInterceptor.Instance);
+
+            // Lazy loading off unless the context's options AllowLazyLoading(): a navigation read in a loop, a render or a
+            // validation would otherwise be a query nobody wrote.
+            services.AddSingleton<ISaveChangesInterceptor>(LazyLoadingGuard.Instance);
+
+            // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
+            services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
+
+            // Before soft-delete turns a removal into an update, and before the outbox and the publish read the rows'
+            // events: what an aggregate's OnDelete() raises goes out with its delete.
+            services.AddSingleton<ISaveChangesInterceptor>(DeleteHookInterceptor.Instance);
+
+            // Before soft-delete turns a removal into an update, and before the outbox and the publish read the rows'
+            // events: a declared projection's event rides on its rows, so it is stored and published as theirs.
+            services.AddSingleton<ISaveChangesInterceptor>(ProjectionInterceptor.Instance);
+            services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
+
+            // Before auditing, so a gated member it keeps unwritten is not what makes the row look changed.
+            services.AddSingleton<ISaveChangesInterceptor, GatedWritesInterceptor>();
+            services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
+
+            AddDeclaredWrites(services);
+
+            // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
+            // in SavingChanges) sees them whichever interceptor runs first.
+            services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
+
+            // After the others have shaped the save, so it counts the rows the save writes: a second aggregate in one
+            // Db.Transaction, written without manyAggregates:, meets RaskDataOptions.OneAggregatePerTransaction.
+            services.AddSingleton<ISaveChangesInterceptor, OneAggregatePerTransactionInterceptor>();
+
+            // Last, so it sees the save as the others left it. Also a transaction interceptor — EF hands the
+            // same instance both roles — which is how a save inside the caller's transaction waits for its
+            // commit before anyone refetches.
+            services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
+
+            // After every other: it replaces a refusal the model has a sentence for — a unique index's violation,
+            // the delete of a referenced row — by throwing, and an interceptor after it would not be told the
+            // save failed.
+            services.AddSingleton<ISaveChangesInterceptor, ViolationMessageInterceptor>();
+        }
+    }
 }

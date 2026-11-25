@@ -296,3 +296,15 @@ Rask.Cqrs.PublishedEventsException.PublishedEventsException() -> void
 Rask.Cqrs.PublishedEventsException.PublishedEventsException(string! message, System.Exception! innerException) -> void
 Rask.Cqrs.PublishedEventsException.PublishedEventsException(string! message) -> void
 static Rask.Cqrs.Events.Fake() -> Rask.Cqrs.EventsFake!
+Rask.Cqrs.DurableEvent
+Rask.Cqrs.DurableEvent.Attempt.get -> int
+Rask.Cqrs.DurableEvent.DurableEvent(long messageId, int attempt) -> void
+Rask.Cqrs.DurableEvent.MessageId.get -> long
+static Rask.Cqrs.DurableEvent.Current.get -> Rask.Cqrs.DurableEvent?
+static Rask.Cqrs.DurableEvent.Use(Rask.Cqrs.DurableEvent! running) -> System.IDisposable!
+Rask.Cqrs.AggregateEvents
+static Rask.Cqrs.AggregateEvents.Handle<TAggregate, TEvent>(System.IServiceProvider! provider, TEvent e, System.Func<TEvent, System.Threading.Tasks.Task!>! on, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.AggregateEvents.Run(System.IServiceProvider! provider, string! handler, Rask.Cqrs.IEvent! e, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IAggregateEventRoute
+Rask.Cqrs.IAggregateEventRoute.HandOff(System.Type! aggregate, Rask.Cqrs.IEvent! e, string! handler, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IAggregateEventRoute.Takes(System.Type! aggregate, System.Type! eventType) -> bool

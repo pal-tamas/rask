@@ -574,6 +574,40 @@ static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this 
 static Rask.Data.LockedByBuilderExtensions.LockedBy<T, TParent, TParentId>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, TParentId?>!>! parent, System.Linq.Expressions.Expression<System.Func<TParent!, bool>!>! locked, System.Func<TParent!, string!>! message, Rask.Data.LockRead read = Rask.Data.LockRead.Plain) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 static Rask.Data.GeneratedOperations.Remove<TAggregate>(string! operation, string? roles, object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedOperations.TryRemove<TAggregate>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
+Rask.Data.AfterCommitFailure
+Rask.Data.AfterCommitFailure.Log = 0 -> Rask.Data.AfterCommitFailure
+Rask.Data.AfterCommitFailure.Throw = 1 -> Rask.Data.AfterCommitFailure
+Rask.Data.RaskDataOptions.AfterCommitFailures.get -> Rask.Data.AfterCommitFailure
+Rask.Data.RaskDataOptions.AfterCommitFailures.set -> void
+Rask.Data.DataMigrationExtensions
+static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void
+~Rask.Data.ProjectedRow<T>.<Clone>$() -> Rask.Data.ProjectedRow<T>!
+~Rask.Data.ProjectedRow<T>.Equals(Rask.Data.ProjectedRow<T>? other) -> bool
+~static Rask.Data.ProjectedRow<T>.operator !=(Rask.Data.ProjectedRow<T>? left, Rask.Data.ProjectedRow<T>? right) -> bool
+~static Rask.Data.ProjectedRow<T>.operator ==(Rask.Data.ProjectedRow<T>? left, Rask.Data.ProjectedRow<T>? right) -> bool
+override Rask.Data.ProjectedRow<T>.Equals(object? obj) -> bool
+override Rask.Data.ProjectedRow<T>.GetHashCode() -> int
+override Rask.Data.ProjectedRow<T>.ToString() -> string!
+Rask.Data.ProjectedRow<T>
+Rask.Data.ProjectedRow<T>.Added.get -> bool
+Rask.Data.ProjectedRow<T>.After.get -> T?
+Rask.Data.ProjectedRow<T>.After.init -> void
+Rask.Data.ProjectedRow<T>.Before.get -> T?
+Rask.Data.ProjectedRow<T>.Before.init -> void
+Rask.Data.ProjectedRow<T>.Deconstruct(out T? Before, out T? After) -> void
+Rask.Data.ProjectedRow<T>.ProjectedRow(T? Before, T? After) -> void
+Rask.Data.ProjectedRow<T>.Removed.get -> bool
+Rask.Data.ProjectedRows<T>
+Rask.Data.ProjectedRows<T>.Count.get -> int
+Rask.Data.ProjectedRows<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<Rask.Data.ProjectedRow<T!>!>!
+Rask.Data.ProjectedRows<T>.this[int index].get -> Rask.Data.ProjectedRow<T!>!
+Rask.Data.ProjectedRows<T>.Values<TValue>(System.Func<T!, TValue>! member) -> System.Collections.Generic.IReadOnlyList<TValue>!
+Rask.Data.ProjectionBuilderExtensions
+Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!)
+Rask.Data.ProjectionBuilderExtensions.extension<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!).Projects<TEvent>(System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
+static Rask.Data.ProjectionBuilderExtensions.Projects<T, TEvent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>! builder, System.Linq.Expressions.Expression<System.Func<T!, object?>!>! watched, System.Func<Rask.Data.ProjectedRows<T!>!, TEvent?>! raise) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T!>!
+Rask.Data.DeleteHooks
+static Rask.Data.DeleteHooks.Register(System.Type! aggregate, System.Action<object!>! onDelete) -> void
 ~Rask.Data.Upserted<T>.<Clone>$() -> Rask.Data.Upserted<T>!
 ~Rask.Data.Upserted<T>.Equals(Rask.Data.Upserted<T>? other) -> bool
 ~static Rask.Data.Upserted<T>.operator !=(Rask.Data.Upserted<T>? left, Rask.Data.Upserted<T>? right) -> bool
@@ -646,8 +680,6 @@ Rask.Data.SecretKeeping
 static Rask.Data.JsonBuilderExtensions.Json<TEntity, TValue>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TValue?>!>! member, string? column = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.SecretKeeping.Default.get -> Rask.Data.ISecrets?
 static Rask.Data.SecretKeeping.Default.set -> void
-Rask.Data.DataMigrationExtensions
-static Rask.Data.DataMigrationExtensions.Data(this Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder! migrationBuilder, System.Func<System.Threading.Tasks.Task!>! step) -> void
 Rask.Data.Entity<TId, T1, T2>
 Rask.Data.Entity<TId, T1, T2>.Entity() -> void
 Rask.Data.GatedBuilderExtensions

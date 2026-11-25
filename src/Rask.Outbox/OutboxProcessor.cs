@@ -239,12 +239,15 @@ public sealed partial class OutboxProcessor<TContext>(
                     break;
                 }
 
-                if (!await PublishAsync(message, graceToken, cancellationToken).ConfigureAwait(false))
+                if (await PublishAsync(db, message, graceToken, cancellationToken).ConfigureAwait(false) is not { } outcome)
                 {
                     break; // leave this and the rest for the next run
                 }
 
-                await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+                if (outcome == Outcome.ToSave)
+                {
+                    await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+                }
             }
         }
         finally
@@ -295,28 +298,29 @@ public sealed partial class OutboxProcessor<TContext>(
         }
     }
 
-    /// <summary>Runs one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
-    private async Task<bool> PublishAsync(OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
+    /// <summary>
+    ///     Runs one claimed message, recording its outcome on the row: whether that outcome is still to be saved, or null
+    ///     when shutdown cut it off.
+    /// </summary>
+    private async Task<Outcome?> PublishAsync(
+        TContext db, OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
     {
         if (Read(message) is not { } e)
         {
-            return true;
+            return Outcome.ToSave;
         }
 
         var startedAt = timeProvider.GetTimestamp();
+        var markedInTransaction = options.HandlerInTransaction;
         try
         {
-            // A scope per message, as a request has one: what one handler left in a scoped service (a tracked entity, a
-            // failed DbContext) never reaches the next message's handler.
-            var scope = scopeFactory.CreateAsyncScope();
-            await using (scope.ConfigureAwait(false))
-            {
-                await RunAs(scope.ServiceProvider, message, e, graceToken).ConfigureAwait(false);
-            }
-
-            message.Published(timeProvider.GetUtcNow().UtcDateTime);
-            message.Release();
+            await HandleAsync(db, message, e, markedInTransaction, graceToken).ConfigureAwait(false);
             metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
+            return markedInTransaction ? Outcome.Saved : Outcome.ToSave;
+        }
+        catch (DbUpdateConcurrencyException ex) when (markedInTransaction && ex.Entries.Any(entry => ReferenceEquals(entry.Entity, message)))
+        {
+            return LostTheLease(db, message, ex);
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
@@ -332,21 +336,93 @@ public sealed partial class OutboxProcessor<TContext>(
             // catch below and counts as the real failure it is.
             // Attempts and the lease are both given back by StopAsync, which owns every row this
             // instance still holds — including ones claimed in this batch but never started. It
-            // cannot be done here: returning false skips the per-item SaveChanges, so an
+            // cannot be done here: returning null skips the per-item SaveChanges, so an
             // in-memory edit would be discarded while the claim's increment is already on disk.
             metrics.Interrupted(message.Type);
             InterruptedByShutdown(logger, ex, message.Id, message.Type, options.ShutdownGracePeriod);
-            return false;
+            return null;
         }
 #pragma warning disable CA1031 // A failing handler must not stop the drain or crash the app — record + retry.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            if (markedInTransaction)
+            {
+                Unmark(db, message);
+            }
+
             Fail(message, ex.Message);
             PublishFailed(logger, ex, message.Id, message.Attempts);
         }
 
-        return true;
+        return Outcome.ToSave;
+    }
+
+    // A scope per message, as a request has one: what one handler left in a scoped service (a tracked entity, a failed
+    // DbContext) never reaches the next message's handler.
+    private async Task HandleAsync(
+        TContext db, OutboxMessage message, IEvent e, bool markedInTransaction, CancellationToken graceToken)
+    {
+        var scope = scopeFactory.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            await RunAs(scope.ServiceProvider, message, e, markedInTransaction ? db : null, graceToken).ConfigureAwait(false);
+        }
+
+        if (!markedInTransaction)
+        {
+            MarkPublished(message);
+        }
+    }
+
+    // The mark met another instance's claim: the lease ran out mid-dispatch. The handler's writes rolled back with it, so
+    // this time the event was not handled twice — the instance that owns the row now handles it, once.
+    private Outcome LostTheLease(TContext db, OutboxMessage message, DbUpdateConcurrencyException ex)
+    {
+        LeaseLost(logger, ex, message.Id, _instanceId);
+        db.Entry(message).State = EntityState.Detached;
+        return Outcome.Saved;
+    }
+
+    private void MarkPublished(OutboxMessage message)
+    {
+        message.Published(timeProvider.GetUtcNow().UtcDateTime);
+        message.Release();
+    }
+
+    // The mark rolled back with the handler's writes: the row is as it was claimed, for the failure to be recorded on.
+    private static void Unmark(TContext db, OutboxMessage message)
+    {
+        var entry = db.Entry(message);
+        if (entry.State == EntityState.Modified)
+        {
+            entry.CurrentValues.SetValues(entry.OriginalValues);
+            entry.State = EntityState.Unchanged;
+        }
+    }
+
+    // In one transaction with the handler's own writes. The change is accepted only once that commits, so a rollback leaves
+    // the mark unsaved on the entry, for Unmark to take back.
+    private async Task RunMarked(TContext db, IServiceProvider provider, OutboxMessage message, IEvent e, CancellationToken graceToken)
+    {
+        await Db.Transaction(
+            async () =>
+            {
+                await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
+                MarkPublished(message);
+                await db.SaveChangesAsync(acceptAllChangesOnSuccess: false, CancellationToken.None).ConfigureAwait(false);
+            },
+            cancellationToken: graceToken).ConfigureAwait(false);
+        db.ChangeTracker.AcceptAllChanges();
+    }
+
+    private enum Outcome
+    {
+        /// <summary>Recorded on the row, still to be saved.</summary>
+        ToSave,
+
+        /// <summary>Saved already — with the handler's writes — or left to the instance that owns the row now.</summary>
+        Saved,
     }
 
     // The message's event, or null once its failed attempt is recorded: its type is not registered, or its payload no longer
@@ -379,9 +455,12 @@ public sealed partial class OutboxProcessor<TContext>(
     // A row runs the ONE durable handler it was written for. A handler that has since been renamed or deleted is a
     // failure like an unknown type, on its way to the dead letter where the dashboard shows it.
     /// <summary>Runs the message's handler as the tenant and user it was enqueued for, inside its own work.</summary>
-    private static async Task RunAs(
-        IServiceProvider provider, OutboxMessage message, IEvent e, CancellationToken graceToken)
+    private async Task RunAs(
+        IServiceProvider provider, OutboxMessage message, IEvent e, TContext? markIn, CancellationToken graceToken)
     {
+        // Which stored event this is, for a handler that keys a call outside the database by it.
+        using var running = DurableEvent.Use(new DurableEvent(message.Id, message.Attempts));
+
         // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
         // tenant-scoped table throws, because background work carries no principal and so has no
         // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
@@ -398,6 +477,12 @@ public sealed partial class OutboxProcessor<TContext>(
 
         // Its tenant's and user's own rows read now, so Current.Tenant in the handler is a lookup.
         await CurrentRows.Prime(graceToken).ConfigureAwait(false);
+        if (markIn is not null)
+        {
+            await RunMarked(markIn, provider, message, e, graceToken).ConfigureAwait(false);
+            return;
+        }
+
         await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
     }
 

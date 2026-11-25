@@ -213,6 +213,9 @@ public static class CqrsRegistry
         return (type.FullName ?? type.Name).Replace('+', '.');
     }
 
+    // What an outbox row names its handler by: the handler AND the event, since one class may handle two events durably.
+    internal static string DurableNameOf(Type handlerType, Type eventType) => $"{NameOf(handlerType)}:{NameOf(eventType)}";
+
     /// <summary>
     ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TEvent}" />
     ///     records owned by <paramref name="groupKey" />, the same per-assembly swap as <see cref="ReplaceRequests" />.
@@ -442,7 +445,7 @@ public static class CqrsRegistry
             foreach (var (eventType, (handlerType, invoker)) in items)
             {
                 // Keyed by handler AND event: one class may handle two events durably, and each is its own row.
-                var name = $"{NameOf(handlerType)}:{NameOf(eventType)}";
+                var name = DurableNameOf(handlerType, eventType);
                 if (!byEvent.TryGetValue(eventType, out var names))
                 {
                     byEvent[eventType] = names = [];

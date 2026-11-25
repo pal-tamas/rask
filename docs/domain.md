@@ -1634,6 +1634,28 @@ decides nothing — a change to another aggregate is that aggregate's own operat
 ([the transaction boundary](#the-transaction-boundary)). A test asserts what a save published with
 [`Events.Fake()`](testing.md#asserting-what-was-published-eventsfake).
 
+#### What a delete raises: `OnDelete()`
+
+A delete is a change like any other, and others may need to hear of it — a driver removed frees the chips it held, so
+its fuelings are matched again. The generated delete (`Driver.Delete(id, version)`, an editor dialog's
+`.Delete(Driver.Delete)`) has no operation body to `Raise` in, so the aggregate says it in one private hook:
+
+```csharp
+public sealed partial class Driver : Aggregate<int, Versioned>
+{
+    private void OnDelete() => Raise(new DriverChipsChanged([.. Chips.Select(c => c.Code)]));
+}
+```
+
+- **Every save that deletes the aggregate calls it** — the generated delete, a dialog's delete, `db.Remove(x)` and a
+  save — after its `ValidateDelete()` has passed and before a `SoftDelete` aggregate's removal becomes an update. What it
+  raises goes out exactly as an operation's events do: a durable handler's outbox row in the delete's own transaction,
+  the in-memory handlers after the commit, nothing on a rollback.
+- **Once per aggregate**: a save that fails keeps the events it raised, and its retry carries them without asking again.
+- **Its shape is checked at build** ([RASK190](diagnostics.md#rask190)): `private void OnDelete()` on a `partial`
+  aggregate. Private, since a public method of an aggregate is an operation of its own. A bulk `ExecuteDelete` is not a
+  save and calls no hook.
+
 ## A form model for data-shaped aggregates
 
 Some aggregates have no steps — a category, a setting, a destination whose only rule is "the fields are valid".
@@ -1941,10 +1963,6 @@ public sealed partial class DeliveryNote : Aggregate<int, Versioned, Deletable, 
   another way.
 - A save that fails writes no entry, and its retry writes one. A raw `ExecuteUpdate`/`ExecuteDelete` writes no
   entry: it never passes through a save.
-
-**The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
-converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
-it can actually be expressed.
 
 **The traits are the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](data.md#mapping-rules-the-conventions-dont-cover), which is where
@@ -2372,11 +2390,56 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
   saves.EachWroteOneAggregate();
   ```
 
+#### After the commit: `AfterCommitFailures`
+
+What a `Db.Transaction` announces runs once it has committed: its in-memory `IEventHandler`s, the data-changed notice
+to the live pages, the outbox's wake-up. The work has happened by then, so a step that throws there does not make the
+call fail:
+
+```csharp
+builder.Services.AddRaskData(o => o.AfterCommitFailures = AfterCommitFailure.Throw);   // Log (default) | Throw
+```
+
+- **`Log`** (the default): the error is logged, every step after it still runs, and the caller sees the committed
+  work succeed — which it did.
+- **`Throw`**: every step still runs, then the caller gets the failure — the exception itself, or an
+  `AggregateException` when several threw. The work is committed all the same.
+- Before, the first step that threw skipped the ones behind it and failed a call whose work was already committed.
+- A durable handler is not such a step: it runs from the outbox, retried until it succeeds.
+
 A generated write also takes `db:`, to **stage** its change on a context the caller already holds and saves itself —
 a seed, a context of the app's own — rather than open one: `await Order.Create(model, db: db)`, then
 `db.SaveChangesAsync()`. One `SaveChangesAsync` is one transaction, so writes staged on one context commit together.
 A staged `Create` returns an aggregate not yet saved (a store-generated integer key is `0` until then), and the
 concurrency check is made at *that* save.
+
+### Declared projections: `Projects`
+
+Some state is made *from* rows rather than kept on them: a fueling's sequence number per pistol, the company a vehicle
+last fuelled for. Written as a save hook — an interceptor that looks at what changed and writes elsewhere after the
+save — it runs outside the save's transaction, so a crash between the two leaves them disagreeing, and it hangs on
+whichever aggregate happened to be saved. Declare it on the rows instead, and let the rows raise an event:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Fueling> b) =>
+    b.Projects(f => new { f.Moment, f.PistolId, f.Number },
+               changed => new FuelingsToNumber(changed.Values(f => f.PistolId)));
+```
+
+- **What it watches:** a save that adds a `Fueling`, removes one, or changes a member `watched` names to another value
+  — `f => f.Moment`, or several as `f => new { … }`. A change to anything else, or a member set to the value it held,
+  raises nothing. Anything but the row's own members (`f => f.Number + 1`) is refused where it is declared.
+- **Once per save:** `raise` gets every row the save changed as `ProjectedRows<Fueling>` — each a `ProjectedRow` with
+  `Before` (a detached copy of what is stored, `null` for an added row) and `After` (the row as written, `null` for a
+  removed one). `changed.Values(f => f.PistolId)` is every value a member holds on either side, each once: the pistol a
+  fueling left as well as the one it went to. Return `null` to raise nothing for this save.
+- **Raised as the aggregate's own event**, onto the first row the save changed: a [durable handler](outbox.md) of it —
+  `IDurableHandler<FuelingsToNumber>` — has its outbox row written **in that same save**, so the projection's work is
+  stored with the change or not at all; an in-memory `IEventHandler` hears it after the commit, and a rollback raises
+  nothing. A retried save raises it once, and a `raise` that throws fails the save.
+- **On an aggregate**, since its events ride on its rows: a `Projects` on a child or a plain entity is refused where it
+  is declared. Declaring the same event again on the same type replaces the first declaration.
+- Nothing is written to the database for it — no column, no SQL, no migration.
 
 ### A check and the writes it guards: `Db.Transaction`
 
