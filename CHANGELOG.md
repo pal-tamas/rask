@@ -27,6 +27,10 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A refusal of the whole form crosses the wire.** `Refuse.When(cond, message)` — any
+  `RaskValidationException(message)` — now carries its sentence under the empty key of `Errors` as well as in
+  `Failures`, so a WASM client, an API caller and a form behind a remote dispatch get it as a failure under no field
+  (the form's summary, else a toast) rather than a bare "failed on the server". Before: `Errors` was empty.
 - **A sign-in challenge no longer grows its `returnUrl` until the server answers 431.** Before: a challenge of the
   sign-in page itself (a layout guarding `/login`, a cookie the scheme kept refusing) wrapped the address it already
   carried, escaped once more each round — `/login?returnUrl=%2Flogin%3FreturnUrl%3D%252F…` — until the request was
