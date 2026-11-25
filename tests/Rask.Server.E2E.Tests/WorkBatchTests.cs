@@ -11,6 +11,7 @@ using Rask.Data;
 using Rask.Querying;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
+using Rask.Tests.Shared;
 using static Microsoft.Playwright.Assertions;
 
 #pragma warning disable RASK019 // a small test page; its <head> is not what is under test
@@ -29,14 +30,14 @@ public sealed class WorkBatchTests(PlaywrightFixture playwright) : IClassFixture
     [InlineData(390, 844)]
     public async Task A_batch_of_three_is_one_group_with_one_toast_its_tenant_sees_and_another_tenant_does_not(int width, int height)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-e2e-batch-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var gate = new ImportGate();
         await using var host = await LiveServerHost.StartAsync<WorkBatchApp>(
             blockWebSockets: false, cookieSignIn: true,
             services: services =>
             {
                 // As an app wires its data by hand: the session's scope is ambient, so its user and tenant are in flight.
-                services.AddSingleton(gate).AddRaskData<WorkBatchDb>(o => o.UseSqlite($"Data Source={path}"));
+                services.AddSingleton(gate).AddRaskData<WorkBatchDb>(o => o.UseSqlite(database.ConnectionString));
                 services.AddRaskJobs<WorkBatchDb>(o => o.PollInterval = TimeSpan.FromMilliseconds(100));
             });
         await using (var db = await host.Services.GetRequiredService<IDbContextFactory<WorkBatchDb>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
@@ -45,42 +46,34 @@ public sealed class WorkBatchTests(PlaywrightFixture playwright) : IClassFixture
         }
 
         var viewport = new BrowserNewContextOptions { ViewportSize = new() { Width = width, Height = height } };
-        try
-        {
-            await using var alice = await Reader.SignIn(playwright, host, viewport, "alice");
-            await using var bob = await Reader.SignIn(playwright, host, viewport, "bob");
-            await using var carol = await Reader.SignIn(playwright, host, viewport, "carol");
+        await using var alice = await Reader.SignIn(playwright, host, viewport, "alice");
+        await using var bob = await Reader.SignIn(playwright, host, viewport, "bob");
+        await using var carol = await Reader.SignIn(playwright, host, viewport, "carol");
 
-            await alice.Page.ClickAsync("#press");
-            await Expect(alice.Bell.Locator("[data-ui-work-count]")).ToHaveTextAsync("3");
-            await Expect(bob.Bell.Locator("[data-ui-work-count]")).ToHaveTextAsync("3");
-            gate.Release();
+        await alice.Page.ClickAsync("#press");
+        await Expect(alice.Bell.Locator("[data-ui-work-count]")).ToHaveTextAsync("3");
+        await Expect(bob.Bell.Locator("[data-ui-work-count]")).ToHaveTextAsync("3");
+        gate.Release();
 
-            await alice.Page.Locator("[data-ui-work-bell]").ClickAsync();
-            await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch=warned]")).ToBeVisibleAsync();
-            await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch]")).ToHaveCountAsync(1);
-            await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-item]")).ToHaveCountAsync(3);
-            await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-detail]")).ToHaveTextAsync("No new rows in b.csv");
-            await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-actions] a")).ToHaveTextAsync("All loads");
-            await Expect(alice.Page.Locator("[data-ui-toast]").GetByText("3 items are done, some with a warning.")).ToHaveCountAsync(1);
+        await alice.Page.Locator("[data-ui-work-bell]").ClickAsync();
+        await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch=warned]")).ToBeVisibleAsync();
+        await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch]")).ToHaveCountAsync(1);
+        await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-item]")).ToHaveCountAsync(3);
+        await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-detail]")).ToHaveTextAsync("No new rows in b.csv");
+        await Expect(alice.Page.Locator("[data-ui-work-flyout] [data-ui-work-actions] a")).ToHaveTextAsync("All loads");
+        await Expect(alice.Page.Locator("[data-ui-toast]").GetByText("3 items are done, some with a warning.")).ToHaveCountAsync(1);
 
-            await bob.Page.Locator("[data-ui-work-bell]").ClickAsync();
-            await Expect(bob.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch=warned]")).ToBeVisibleAsync();
-            await Expect(bob.Page.Locator("[data-ui-toast]")).Not.ToContainTextAsync("items");
+        await bob.Page.Locator("[data-ui-work-bell]").ClickAsync();
+        await Expect(bob.Page.Locator("[data-ui-work-flyout] [data-ui-work-batch=warned]")).ToBeVisibleAsync();
+        await Expect(bob.Page.Locator("[data-ui-toast]")).Not.ToContainTextAsync("items");
 
-            await carol.Page.Locator("[data-ui-work-bell]").ClickAsync();
-            await Expect(carol.Page.Locator("[data-ui-work-flyout] [data-ui-work-none]")).ToBeVisibleAsync();
-            await Expect(carol.Bell.Locator("[data-ui-work-count]")).ToHaveCountAsync(0);
+        await carol.Page.Locator("[data-ui-work-bell]").ClickAsync();
+        await Expect(carol.Page.Locator("[data-ui-work-flyout] [data-ui-work-none]")).ToBeVisibleAsync();
+        await Expect(carol.Bell.Locator("[data-ui-work-count]")).ToHaveCountAsync(0);
 
-            Assert.Empty(alice.Errors);
-            Assert.Empty(bob.Errors);
-            Assert.Empty(carol.Errors);
-        }
-        finally
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            File.Delete(path);
-        }
+        Assert.Empty(alice.Errors);
+        Assert.Empty(bob.Errors);
+        Assert.Empty(carol.Errors);
     }
 
     /// <summary>One reader in a browser context of their own, signed in through the page.</summary>

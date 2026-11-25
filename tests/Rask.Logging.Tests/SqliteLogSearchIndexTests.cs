@@ -17,7 +17,7 @@ public sealed class SqliteLogSearchIndexTests
         harness.Logger().LogInformation("order 42 shipped");
         await harness.RunUntilStoredAsync(1);
 
-        var plan = await PlanAsync(harness.DbPath, "\"shipped\"");
+        var plan = await PlanAsync(harness.ConnectionString, "\"shipped\"");
 
         Assert.Contains("RaskLogSearch VIRTUAL TABLE INDEX", plan, StringComparison.Ordinal);
     }
@@ -69,12 +69,12 @@ public sealed class SqliteLogSearchIndexTests
 
         var hit = Assert.Single((await harness.Store.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
         Assert.Equal("new needle", hit.Message);
-        await AssertIntegrityAsync(harness.DbPath);
+        await AssertIntegrityAsync(harness.ConnectionString);
 
         await harness.Store.Clear(TestContext.Current.CancellationToken);
 
         Assert.Empty((await harness.Store.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
-        await AssertIntegrityAsync(harness.DbPath);
+        await AssertIntegrityAsync(harness.ConnectionString);
     }
 
     [Fact]
@@ -98,16 +98,15 @@ public sealed class SqliteLogSearchIndexTests
             await drop.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
-        SqliteConnection.ClearAllPools();
         var reopened = new SqliteLogStore(harness.ConnectionString, new LogsOptions(), harness.Clock);
 
         Assert.Single((await reopened.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
-        await AssertIntegrityAsync(harness.DbPath);
+        await AssertIntegrityAsync(harness.ConnectionString);
     }
 
-    private static async Task<string> PlanAsync(string dbPath, string match)
+    private static async Task<string> PlanAsync(string connectionString, string match)
     {
-        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText =
@@ -126,9 +125,9 @@ public sealed class SqliteLogSearchIndexTests
     }
 
     // FTS5's own consistency check against the external content: fails if the index disagrees with the rows.
-    private static async Task AssertIntegrityAsync(string dbPath)
+    private static async Task AssertIntegrityAsync(string connectionString)
     {
-        await using var connection = new SqliteConnection($"Data Source={dbPath}");
+        await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = "INSERT INTO RaskLogSearch (RaskLogSearch, rank) VALUES ('integrity-check', 1);";
