@@ -1,8 +1,8 @@
 using System.Data;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -14,13 +14,13 @@ namespace Rask.Server.Tests.App;
 [Collection(RaskAppCollection.Name)]
 public sealed class HandWiredDbTransactionTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-hand-wired-tx-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
         // A short busy timeout, so a save left on its own connection fails on the transaction's lock in 2 s, not 30.
-        Action<DbContextOptionsBuilder> database = o => o.UseSqlite($"Data Source={_dbPath};Default Timeout=2");
+        Action<DbContextOptionsBuilder> database = o => o.UseSqlite($"{_database.ConnectionString};Default Timeout=2");
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContextFactory<LegacyQuayContext>(database);
@@ -39,8 +39,7 @@ public sealed class HandWiredDbTransactionTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        await _database.DisposeAsync();
     }
 
     [Fact]

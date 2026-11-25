@@ -40,7 +40,8 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
                                    + "The one-time token is in the startup log."]]
                 : null,
             Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-6")[
-                Ui.Input.Bind(() => _model.DisplayName).Id("display-name").Label("Name"),
+                Ui.Input.Bind(() => _model.DisplayName).Id("display-name").Label("Name")
+                    .MaxLength(UserDisplayName.MaxLength).Validate(UserDisplayName.Check),
                 Ui.Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Label("Email"),
                 Ui.Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Label("Password"),
                 firstRun.IsPending

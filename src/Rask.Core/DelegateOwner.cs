@@ -159,6 +159,9 @@ internal static class DelegateOwner
         Justification = "Reads the declared types of a handler target's fields to tell that none could hold a " +
             "component. A trimmed-away field is not there to hold one either; at worst the answer is \"holds none\" " +
             "for a target whose field was trimmed, which re-renders the component that wrote the handler.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The same read, of the base types a closure's fields are declared on: what the trimmer took " +
+            "away holds no component.")]
     private static bool FieldsMayHoldAComponent(Type type)
     {
         for (var declaring = type; declaring is not null && declaring != typeof(object); declaring = declaring.BaseType)
