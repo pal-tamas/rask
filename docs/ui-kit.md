@@ -485,7 +485,11 @@ segmented control or pills, over panels or on their own. The selected tab is the
 `Value(_tab).OnChange(…)`, or neither and the row keeps track itself. Switching is drawn in the browser and sends
 nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"` when `Findable()`), so a form in tabs
 keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
-arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. Every example, the
+arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. A `Ui.Tabs` on
+its own above a list that keeps its page in the address (`Ui.Table.PageIn("page", …)`) switches the list: a tab pressed
+takes the page key out of the address the tab's `OnChange` (or bound value) moved to, so the new tab starts at page one,
+its filters and sort kept — the page writes no `Page: null` of its own. A tab of a `Ui.TabGroup`, or in an editor
+dialog's form, leaves the list's page alone. Every example, the
 keyboard, Flux's attributes as steps and the
 reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 
@@ -697,6 +701,25 @@ shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the
 `Back(Routes.SuppliersPage())` names only the list. In a dialog the app draws itself over the list, whose key the kit
 does not know, Cancel is the list as given: a way back never leads to where the reader stands. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
+
+**The app's own way back to a list is `.AsLeft()`** on the list's route (`UiListRoutes`): Rask notes every address a
+session moves to, so `Routes.SuppliersPage().AsLeft()` is the list as this reader last saw it — its filters, sort, page
+and search, an editor dialog's key left out — and the route as given when the session has not shown it. A save on a
+page of its own, a "Cancel" the page draws itself, and an old form address sending the reader on write it, with no
+list-address service of the app's own:
+
+```csharp
+// Before: an app service noting every address, injected into every form.
+Ui.Button.Ghost.Href(_lists.Back(Routes.LandParcelsPage()))["Mégse"]
+_lists.Back(Routes.SuppliersPage()).Go().Replacing();
+
+// After: Rask remembers it.
+Ui.Button.Ghost.Href(Routes.LandParcelsPage().AsLeft())["Mégse"]
+Routes.SuppliersPage().AsLeft().Go().Replacing();
+Go.To(Routes.DriversPage().AsLeft().With("edit", id)).Replacing();   // an old form address, on to the dialog
+```
+
+`Ui.FormButtons`' Cancel, `Ui.AppFrame`'s trail and a closing `Ui.EditorDialog` go there by themselves.
 
 ```csharp
 // Before: each app kept a FormButtons, a RowActions and a ListTable of its own.

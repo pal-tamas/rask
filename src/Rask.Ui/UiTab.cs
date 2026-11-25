@@ -113,7 +113,14 @@ public sealed partial class UiTab : Component
         // Selecting is the runtime's (rask-tabs.ts): a press is the page's only when the page listens.
         if (OnClick.HasValue)
         {
-            button = button.OnClick(() => OnClick.Invoke().AsTask());
+            button = button.OnClick(async () =>
+            {
+                await OnClick.Invoke().ConfigureAwait(false);
+                if (scope.SwitchesList)
+                {
+                    UiTabs.FirstPage();
+                }
+            });
         }
 
         button = group is null

@@ -324,6 +324,20 @@ public class OperationGeneratorTests
     }
 
     [Fact]
+    public void An_operation_input_reads_itself_filled_from_the_aggregate_as_its_form_does_and_a_factory_s_does_not()
+    {
+        var run = RunWithForms(Driver);
+
+        var forms = run.GeneratedSource("Shop.Driver.OperationForms");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static async global::System.Threading.Tasks.Task<DriverChangeInput> Of(global::System.Guid id, global::System.Threading.CancellationToken cancellationToken = default) =>", forms, StringComparison.Ordinal);
+        Assert.Contains("await DriverOperationForms.ChangeLoad(id, cancellationToken) ?? throw new global::System.InvalidOperationException(", forms, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken => ChangeLoad(id, cancellationToken),", forms, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task<DriverHireInput> Of(", forms, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_factory_gets_a_form_that_starts_empty_and_saves_through_its_entry()
     {
         var run = RunWithForms(Driver);

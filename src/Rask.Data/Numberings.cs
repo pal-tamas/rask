@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Rask.Wire;
 
 namespace Rask.Data;
 
@@ -45,6 +47,36 @@ internal static class Numberings
         await SaveTransaction.Open(context, cancellationToken).ConfigureAwait(false);
         await NumberingLocks.Take(context, LockNames(touched), cancellationToken).ConfigureAwait(false);
         SaveFollowUps.Add(context, ct => AfterSave(context, touched, ct));
+    }
+
+    /// <summary>
+    ///     Numbers <paramref name="groups" /> of every numbering <paramref name="entity" /> declares anew — every group when
+    ///     null — in a <c>Db.Transaction</c> of its own or the one in progress (<see cref="Renumbering" />).
+    /// </summary>
+    internal static Task<int> Mend([DynamicallyAccessedMembers(DataTrimming.Entity)] Type entity, IReadOnlyCollection<object>? groups, CancellationToken cancellationToken)
+    {
+        cancellationToken = Ambient.Or(cancellationToken);
+        Tenant.DemandForWrite(entity);
+        return Db.Transaction(async () =>
+        {
+            var context = Db.CreateContext();
+            await using var contextScope = context.ConfigureAwait(false);
+            List<INumbering> declared = [.. In(context.Model).Where(n => n.Entity == entity)];
+            if (declared.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"{entity.Name} declares no b.Numbered(…) in its Configure, so there is nothing to renumber.");
+            }
+
+            var changed = 0;
+            foreach (var numbering in declared)
+            {
+                changed += await numbering.Mend(context, groups, cancellationToken).ConfigureAwait(false);
+            }
+
+            BulkSetWrite.Written(context, context.Model.FindEntityType(entity)!, changed);
+            return changed;
+        }, cancellationToken: cancellationToken);
     }
 
     private static IEnumerable<INumbering> In(IModel model) =>
