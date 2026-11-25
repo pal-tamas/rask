@@ -22,6 +22,8 @@ public sealed partial class TokenSignInTestApp(IAuthSignIn auth, IUserProvider u
         Markup.P[$"user={(users.Current.Identity?.IsAuthenticated == true ? users.Current.Identity.Name : "anon")}"],
         Button.OnClick(() => auth.SignInWithToken(TokenCookieHandler.AliceToken, "/orders?page=2"))["token-sign-in"],
         Button.OnClick(() => auth.SignInWithToken(TokenCookieHandler.AliceToken, "https://evil.example/orders"))["token-sign-in-elsewhere"],
+        Button.OnClick(() => auth.SignInWithToken(TokenCookieHandler.AliceToken, "/login?returnUrl=%2Forders"))["token-sign-in-to-sign-in"],
+        Button.OnClick(() => auth.SignInWithToken(TokenCookieHandler.AliceToken, "/_rask/auth/redeem"))["token-sign-in-to-redeem"],
         Button.OnClick(() => auth.SignOut("/login"))["sign-out"]
     ];
 }

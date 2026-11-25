@@ -8,11 +8,16 @@ namespace Rask.Core.Forms;
 // milliseconds plus one beneath them. Each step keeps what it was given and nothing else, so a step the next
 // render leaves out — which arrives as null — takes only its own answer away, in whatever order they arrive.
 // Blur and Debounce are two answers to one question: naming either takes the other back.
+//
+// A form over an operation (Form.For) asks a field that names none of them to commit as it is left, so the domain's
+// dry run answers then (Under). `Defer` is the field saying it waits for the next action all the same; any other
+// step it is named with wins over it.
 internal struct BindTiming
 {
     private const int LiveBit = 1 << 30;
     private const int BlurBit = 1 << 29;
-    private const int PauseMask = BlurBit - 1;
+    private const int DeferBit = 1 << 28;
+    private const int PauseMask = DeferBit - 1;
 
     // Livewire's own pause for `wire:model.live`.
     private const int LivePause = 150;
@@ -23,8 +28,11 @@ internal struct BindTiming
 
     private readonly bool OnBlur => !HasPause && (_steps & BlurBit) != 0;
 
+    // The steps that say when the field is sent; Defer only keeps a form's default away.
+    private readonly int Timed => _steps & ~DeferBit;
+
     /// <summary>Whether the field says nothing until the next action. The default.</summary>
-    public readonly bool WaitsForAction => _steps == 0;
+    public readonly bool WaitsForAction => Timed == 0;
 
     /// <summary>Whether the field is sent at every keystroke, with no pause.</summary>
     public readonly bool AtEveryKey => (_steps & PauseMask) == 1;
@@ -39,7 +47,7 @@ internal struct BindTiming
                 return (_steps & PauseMask) - 1;
             }
 
-            return _steps == LiveBit ? LivePause : 0;
+            return Timed == LiveBit ? LivePause : 0;
         }
     }
 
@@ -67,7 +75,20 @@ internal struct BindTiming
             }
 
             var milliseconds = pause > TimeSpan.Zero ? (int)Math.Clamp(Math.Ceiling(pause.TotalMilliseconds), 1, PauseMask - 1) : 0;
-            _steps = (_steps & LiveBit) | (milliseconds + 1);
+            _steps = (_steps & (LiveBit | DeferBit)) | (milliseconds + 1);
         }
     }
+
+    public bool? Defer
+    {
+        readonly get => (_steps & DeferBit) != 0 ? true : null;
+        set => _steps = value == true ? _steps | DeferBit : _steps & ~DeferBit;
+    }
+
+    /// <summary>
+    ///     The timing the field is drawn with in <paramref name="form" />: one that names no step commits as it is left
+    ///     where the form asks for that (a form over an operation), and waits for the next action everywhere else.
+    /// </summary>
+    public readonly BindTiming Under(EditContext? form) =>
+        _steps == 0 && form?.CommitsOnLeave == true ? new BindTiming { Blur = true } : this;
 }

@@ -80,12 +80,22 @@ public sealed class OutboxFake : IDisposable
     public void Dispose() => Outbox.Faked.Value = _previous;
 
     /// <summary>Records <paramref name="e" /> once per durable handler, where the outbox would have written a row each.</summary>
-    internal void Record(IEvent e, IReadOnlyList<string> handlers, IServiceScopeFactory scopes)
+    internal void Record(IEvent e, IReadOnlyList<string> handlers, IServiceScopeFactory scopes) => Keep(Hold(e, handlers, scopes));
+
+    /// <summary>
+    ///     <paramref name="e" /> as the outbox would write it now — its tenant and user taken at this moment — kept back
+    ///     until <see cref="Keep" /> is told the save that raised it committed.
+    /// </summary>
+    internal static Held Hold(IEvent e, IReadOnlyList<string> handlers, IServiceScopeFactory scopes) =>
+        new(e, [.. handlers.Select(handler => new Pending(e, handler, Tenant.Key, CurrentUser.Id, scopes))]);
+
+    /// <summary>Records what <see cref="Hold" /> kept back: the save that raised it committed.</summary>
+    internal void Keep(Held held)
     {
         lock (_gate)
         {
-            _stored.Add(e);
-            _pending.AddRange(handlers.Select(handler => new Pending(e, handler, Tenant.Key, CurrentUser.Id, scopes)));
+            _stored.Add(held.Event);
+            _pending.AddRange(held.Runs);
         }
     }
 
@@ -97,5 +107,9 @@ public sealed class OutboxFake : IDisposable
         }
     }
 
-    private sealed record Pending(IEvent Event, string Handler, Guid? Tenant, Guid? User, IServiceScopeFactory Scopes);
+    /// <summary>An event raised by a save that has not committed yet, and the run each of its durable handlers would get.</summary>
+    internal sealed record Held(IEvent Event, IReadOnlyList<Pending> Runs);
+
+    /// <summary>One durable handler's run of an event, as the tenant and user who raised it.</summary>
+    internal sealed record Pending(IEvent Event, string Handler, Guid? Tenant, Guid? User, IServiceScopeFactory Scopes);
 }

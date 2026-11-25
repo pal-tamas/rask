@@ -113,6 +113,18 @@ public static class StructuredData
     // only honest source for either would be real ratings this site does not collect — a made-up rating is
     // a manual action waiting to happen. The node is still what tells a crawler, and an assistant reading
     // the graph, that "Rask" here is a free .NET developer tool rather than any of the other things so named.
+    /// <summary>What the software does, in the order an app is written — the home page's hero and cards, in words.</summary>
+    internal static readonly string[] Features =
+    [
+        "Domain models in C#: one-line value objects that carry their rules, typed ids, and aggregates whose methods are their writes",
+        "Forms over an aggregate's operation (Form.For), checked by its rules as they are typed",
+        "Domain tests on SQLite in memory, a database per test",
+        "EF Core data on SQLite, PostgreSQL or SQL Server with no SQL and no provider API",
+        "Authentication, background jobs, email, an outbox, cache, file storage and realtime subscriptions on the app's own database",
+        "UI as C# components, server-rendered over a WebSocket or run in WebAssembly",
+        "One-command deploy to a VPS with automatic HTTPS",
+    ];
+
     private static void WriteSoftware(Utf8JsonWriter json)
     {
         json.WriteStartObject();
@@ -125,6 +137,13 @@ public static class StructuredData
         json.WriteString("applicationSubCategory", "Web framework");
         json.WriteString("operatingSystem", "Windows, macOS, Linux");
         json.WriteString("softwareRequirements", ".NET 11 SDK or newer");
+        json.WriteStartArray("featureList");
+        foreach (var feature in Features)
+        {
+            json.WriteStringValue(feature);
+        }
+
+        json.WriteEndArray();
         json.WriteString("license", SiteIdentity.License);
         json.WriteBoolean("isAccessibleForFree", true);
         json.WriteString("downloadUrl", SiteIdentity.Package);

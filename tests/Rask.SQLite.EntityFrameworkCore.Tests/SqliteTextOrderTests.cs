@@ -30,6 +30,23 @@ public sealed class HungarianContext(DbContextOptions<HungarianContext> options)
         });
 }
 
+/// <summary>A name that may be missing, to order with the rest.</summary>
+public sealed class Racer
+{
+    public int Id { get; set; }
+
+    public string? Name { get; set; }
+}
+
+/// <summary>A Hungarian model of racers, some of them nameless.</summary>
+public sealed class HungarianRacersContext(DbContextOptions<HungarianRacersContext> options) : DbContext(options)
+{
+    public DbSet<Racer> Racers => Set<Racer>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        configurationBuilder.OrderTextBy("Hungarian_100_CI_AS");
+}
+
 /// <summary>The same table with no text order named: SQLite's own comparison, untouched.</summary>
 public sealed class OrdinalContext(DbContextOptions<OrdinalContext> options) : DbContext(options)
 {
@@ -224,6 +241,60 @@ public sealed class SqliteTextOrderTests : IAsyncLifetime
 
         Assert.Equal(0, equal);
         Assert.Equal(0, contains);
+    }
+
+    [Fact]
+    public async Task The_whole_Hungarian_alphabet_orders_in_the_database_as_it_does_in_memory()
+    {
+        await using var keeper = await Kept();
+        await using var context = await Racers(keeper, "Úr", "Csaba", "Ödön", "Cukor", "Uzsok", "Ottó", "Ügy", "Őz", "Zsolt", "Zoltán");
+
+        var ordered = await context.Racers.OrderBy(r => r.Name!.InTextOrder()).Select(r => r.Name).ToListAsync(Cancellation);
+
+        Assert.Equal(["Cukor", "Csaba", "Ottó", "Ödön", "Őz", "Úr", "Uzsok", "Ügy", "Zoltán", "Zsolt"], ordered);
+    }
+
+    [Fact]
+    public async Task Descending_text_order_is_the_ascending_order_reversed()
+    {
+        await using var keeper = await Kept();
+        await using var context = await Racers(keeper, "Úr", "Csaba", "Ödön", "Cukor", "Uzsok", "Ottó", "Ügy", "Őz", "Zsolt", "Zoltán");
+
+        var ascending = await context.Racers.OrderBy(r => r.Name!.InTextOrder()).Select(r => r.Name).ToListAsync(Cancellation);
+        var descending = await context.Racers.OrderByDescending(r => r.Name!.InTextOrder()).Select(r => r.Name).ToListAsync(Cancellation);
+
+        Assert.Equal(Enumerable.Reverse(ascending), descending);
+    }
+
+    [Fact]
+    public async Task A_missing_name_sorts_first_ascending_and_last_descending_as_on_SQL_Server()
+    {
+        await using var keeper = await Kept();
+        await using var context = await Racers(keeper, "Csaba", null, "Cukor");
+
+        var ascending = await context.Racers.OrderBy(r => r.Name!.InTextOrder()).Select(r => r.Name).ToListAsync(Cancellation);
+        var descending = await context.Racers.OrderByDescending(r => r.Name!.InTextOrder()).Select(r => r.Name).ToListAsync(Cancellation);
+
+        Assert.Equal([null, "Cukor", "Csaba"], ascending);
+        Assert.Equal(["Csaba", "Cukor", null], descending);
+    }
+
+    private static async Task<SqliteConnection> Kept()
+    {
+        var keeper = new SqliteConnection($"Data Source=rask-sqlite-racers-{Guid.NewGuid():N};Mode=Memory;Cache=Shared");
+        await keeper.OpenAsync(Cancellation);
+        return keeper;
+    }
+
+    private static async Task<HungarianRacersContext> Racers(SqliteConnection keeper, params string?[] names)
+    {
+        var context = new HungarianRacersContext(new DbContextOptionsBuilder<HungarianRacersContext>()
+            .UseRaskSqliteAt(keeper.ConnectionString).Options);
+        await context.Database.EnsureCreatedAsync(Cancellation);
+        context.Racers.AddRange(names.Select(static name => new Racer { Name = name }));
+        await context.SaveChangesAsync(Cancellation);
+        context.ChangeTracker.Clear();
+        return context;
     }
 
     private static Driver Named(string name, string code) => new() { Name = name, Code = code, Plate = code };

@@ -3,15 +3,23 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authorization;
+using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Routing;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
+using Rask.Server.Tests.WebSockets;
+
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated chain entries
 
 namespace Rask.Server.Tests.Authentication;
 
 // End-to-end coverage of every route-guard outcome through the real Rask HTTP pipeline
 // (middleware → cookie auth → RouteAuthorizationGuard → challenge/forbid), plus the cookie
-// established via the genuine sign-in redeem handshake.
+// established via the genuine sign-in redeem handshake. In the route-registry collection: the not-found
+// cases replace this assembly's routes, which every other test here reads.
+[Collection(MountNavigationTests.Name)]
 public class RouteGuardPipelineTests
 {
     [Fact]
@@ -184,6 +192,66 @@ public class RouteGuardPipelineTests
         var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Contains("<span id=\"vault-crumb\">vault of alice</span>", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_anonymous_visitor_to_a_path_that_falls_to_a_not_found_page_under_a_guarded_layout_is_sent_to_sign_in()
+    {
+        PutTheNotFoundPageUnderAGuardedLayout();
+        try
+        {
+            using var host = CreateHost();
+
+            var resp = await host.Http.GetAsync("/no-such-page", TestContext.Current.CancellationToken);
+
+            Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
+            Assert.Equal("/login", resp.Headers.Location!.AbsolutePath);
+            Assert.Contains("ReturnUrl", resp.Headers.Location!.Query);
+        }
+        finally
+        {
+            __RaskRoutesRegistry.RefreshAll();
+        }
+    }
+
+    [Fact]
+    public async Task A_signed_in_visitor_to_a_path_that_falls_to_a_not_found_page_under_a_guarded_layout_gets_it_with_404()
+    {
+        PutTheNotFoundPageUnderAGuardedLayout();
+        try
+        {
+            using var host = CreateHost();
+            var cookie = await SignInAsync(host, "alice");
+
+            var resp = await GetWithCookieAsync(host, "/no-such-page", cookie);
+
+            var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+            Assert.Matches(@"<div id=""locked"">.*locked-not-found.*</div>", body);
+        }
+        finally
+        {
+            __RaskRoutesRegistry.RefreshAll();
+        }
+    }
+
+    // This assembly's routes as an app whose [NotFound] page sits under its [Authorize] root layout, registered the
+    // way the generator registers a [NotFound] one: under the reserved fallback template, parented by its layout.
+    private static void PutTheNotFoundPageUnderAGuardedLayout() =>
+        RouteRegistry.Replace(typeof(__RaskRoutesRegistry), [
+            new RouteRegistration(typeof(LockedLayout), "/", null),
+            new RouteRegistration(typeof(LockedNotFoundPage), RouteRegistry.DefaultFallbackTemplate, typeof(LockedLayout)),
+        ]);
+
+    [Authorize]
+    private sealed class LockedLayout : Component
+    {
+        protected override Component? Render() => Div.Id("locked")[Outlet];
+    }
+
+    private sealed class LockedNotFoundPage : Component
+    {
+        protected override Component? Render() => P["locked-not-found"];
     }
 
     private static async Task<string> SignInAsync(RaskTestHost host, string name, params string[] roles)

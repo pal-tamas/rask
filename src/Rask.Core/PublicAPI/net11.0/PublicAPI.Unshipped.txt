@@ -20111,6 +20111,10 @@ static Rask.Values.GeneratedValueRules.Messages(System.Collections.Generic.IRead
 static Rask.Values.GeneratedValueRules.Missing(string! member) -> Rask.Values.Problem
 static Rask.Values.GeneratedValueRules.Refused(System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems, string? field) -> Rask.Cqrs.RaskValidationException!
 static Rask.Values.GeneratedValueRules.Required() -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Values.GeneratedValueRules.ParseDay(string! text, string? format) -> System.DateOnly
+static Rask.Values.GeneratedValueRules.ParseMoment(string! text, string? format) -> System.DateTime
+static Rask.Values.GeneratedValueRules.TryParseDay(string? text, string? format, out System.DateOnly day) -> bool
+static Rask.Values.GeneratedValueRules.TryParseMoment(string? text, string? format, out System.DateTime moment) -> bool
 static Rask.Values.GeneratedValueRules.Under<T>(string! field, System.Func<T>! make) -> T
 static Rask.Values.Problem.At<T>(T member, string! message, string! field = "") -> Rask.Values.Problem
 static Rask.Values.Problem.Whole(string! message) -> Rask.Values.Problem
@@ -20330,3 +20334,11 @@ static Rask.Core.Forms.PickedFile.Read(Rask.Core.Forms.IRaskFile! file, long max
 Rask.Core.Globalization.RaskString.FileTooLarge = 305 -> Rask.Core.Globalization.RaskString
 static Rask.Values.Problem.At<T>(System.Linq.Expressions.Expression<System.Func<T>!>! member, string! message) -> Rask.Values.Problem
 static Rask.Core.Forms.RaskValidation.RegisterHiddenFields(System.Type! modelType, System.Func<string!, bool>! isHidden) -> void
+Rask.Core.HTMLInputElement<T>.Defer.get -> bool?
+Rask.Core.HTMLInputElement<T>.Defer.set -> void
+Rask.Core.HTMLTextAreaElement<T>.Defer.get -> bool?
+Rask.Core.HTMLTextAreaElement<T>.Defer.set -> void
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b, bool? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!

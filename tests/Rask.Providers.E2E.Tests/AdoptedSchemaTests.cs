@@ -39,47 +39,6 @@ public sealed record DestinationName(string Value);
 /// <summary>The context an adopting app adds beside its own: Rask's model over the tables that are there.</summary>
 public sealed class AdoptedDomainContext(DbContextOptions<AdoptedDomainContext> options) : RaskDbContext(options);
 
-/// <summary>What the adopting app already had, for the test that has to build such a database first.</summary>
-public sealed class LegacyTenant
-{
-    public int Id { get; set; }
-
-    public string Name { get; set; } = "";
-}
-
-public sealed class LegacyDestination
-{
-    public int Id { get; set; }
-
-    public string Name { get; set; } = "";
-
-    public int? TenantId { get; set; }
-
-    public LegacyTenant? Tenant { get; set; }
-}
-
-public sealed class AdoptedLegacyContext(DbContextOptions<AdoptedLegacyContext> options) : DbContext(options)
-{
-    public const string DatabaseName = "rask_adopted";
-
-    public DbSet<LegacyTenant> Tenants => Set<LegacyTenant>();
-
-    public DbSet<LegacyDestination> Destinations => Set<LegacyDestination>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<LegacyTenant>().ToTable("Tenants").Property(t => t.Name).HasMaxLength(255);
-
-        modelBuilder.Entity<LegacyDestination>(b =>
-        {
-            b.ToTable("Destinations");
-            b.Property(d => d.Name).IsRequired().HasMaxLength(255);
-            b.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
-            b.HasIndex(d => new { d.Name, d.TenantId }).IsUnique().HasFilter("[TenantId] IS NOT NULL");
-        });
-    }
-}
-
 /// <summary>
 /// The whole of adopting one existing table, against a real SQL Server: read, insert, rename, collide, delete
 /// and the request with no tenant — for two tenants read from the database's own <c>Tenants</c> table.
@@ -308,58 +267,9 @@ internal static class AdoptedSchemaScenario
 }
 
 /// <summary>
-/// The scenario against a database this test builds the way an app that predates Rask would have: a legacy
-/// context creates <c>Tenants</c> and <c>Destinations</c>, and Rask's context is only ever pointed at them.
-/// </summary>
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerAdoptedSchemaTests : IAsyncLifetime
-{
-    public async ValueTask InitializeAsync()
-    {
-        if (!SqlServer.Available)
-        {
-            return;
-        }
-
-        await using var legacy = NewLegacy();
-        await legacy.Database.EnsureDeletedAsync();
-        await legacy.Database.EnsureCreatedAsync();
-
-        var (acme, globex) = (new LegacyTenant { Name = "Acme" }, new LegacyTenant { Name = "Globex" });
-        legacy.AddRange(
-            new LegacyDestination { Name = "Budapest", Tenant = acme },
-            new LegacyDestination { Name = "Szeged", Tenant = acme },
-            new LegacyDestination { Name = "Vienna", Tenant = globex },
-            new LegacyDestination { Name = "Nowhere" });
-        await legacy.SaveChangesAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (SqlServer.Available)
-        {
-            await using var legacy = NewLegacy();
-            await legacy.Database.EnsureDeletedAsync();
-        }
-    }
-
-    [Fact]
-    public async Task An_existing_table_is_read_written_and_left_as_it_was_found()
-    {
-        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
-
-        await AdoptedSchemaScenario.RunAsync(
-            SqlServer.Database(AdoptedLegacyContext.DatabaseName), TestContext.Current.TestOutputHelper!.WriteLine);
-    }
-
-    private static AdoptedLegacyContext NewLegacy() =>
-        new(new DbContextOptionsBuilder<AdoptedLegacyContext>()
-            .UseSqlServer(SqlServer.Database(AdoptedLegacyContext.DatabaseName)).Options);
-}
-
-/// <summary>
-/// The same scenario against a database that ALREADY EXISTS and that this test did not build — a copy of the
-/// schema an app is being moved off, with whatever data it holds.
+/// The scenario against a database that ALREADY EXISTS and that this test did not build — a copy of the
+/// schema an app is being moved off, with whatever data it holds. Opt-in, and never started by the suite: the
+/// mapping it proves is provider-independent and runs on SQLite in Rask.Data.Tests; this is for checking a real copy.
 /// </summary>
 /// <remarks>
 /// Set <c>RASK_MSSQL_EXISTING_DB</c> to the whole connection string of a database that has

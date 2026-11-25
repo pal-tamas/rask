@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: Directory\.Build\.targets$|scripts/lib/analyzer-shards\.txt$|Rask\.slnx$|.*\.csproj$|\.github/workflows/|src/Rask\.Templates/[^/]+/client/package\.json$
+# gate-inputs: Directory\.Build\.targets$|scripts/lib/(analyzer|unit)-shards\.txt$|Rask\.slnx$|.*\.csproj$|\.github/workflows/|src/Rask\.Templates/[^/]+/client/package\.json$
 # Table test for scripts/lib/affected_gates.py — which CI gates a change reaches on a push to main —
 # and for the plan step in gates.yml that turns that answer, or a pull request's diff, into jobs.
 #
@@ -89,6 +89,13 @@ expect_has   "a shipped project file reaches the CLI gates"        packaging src
 expect_has   "a kit component reaches the CLI gates (#1214)"       packaging src/Rask.Ui/UiSelectSearch.cs
 expect_has   "the kit's Tailwind input reaches the CLI gates"      packaging src/Rask.Ui/Styles/ui.css
 expect_has   "the Tailwind build task reaches the CLI gates"       packaging src/Rask.Tailwind.Tasks/CssClassNames.cs
+
+# The real servers follow the data stack's files, not the graph (which reaches them from the core).
+expect_has   "the data layer reaches the provider servers"          providers src/Rask.Data/Db.cs
+expect_has   "a provider package reaches them"                      providers src/Rask.Postgres/PostgresOptions.cs
+expect_has   "the provider suite reaches itself"                    providers tests/Rask.Providers.E2E.Tests/ProviderLeg.cs
+expect_lacks "an ordinary core change does not start them"          providers src/Rask.Core/Component.cs
+expect_lacks "a site page does not start them"                      providers src/Rask.Site/Program.cs
 
 # Whatever the project scoper refuses to narrow is not narrowed here either.
 expect_full  "a workflow"                                          .github/workflows/gates.yml
@@ -222,8 +229,28 @@ plans "only= names one job"                                "$named == [\"templat
 plans "a NuGet bump takes the deps set"                    "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$nuget_bump~1" "$nuget_bump"
 plans "...and no release-only gate"                        "$named | index(\"deploy\") == null" deps "" "$nuget_bump~1" "$nuget_bump"
 
-# The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
-plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
+# The unit tests run in the unit shards scripts/lib/unit-shards.txt deals, one "unit K/N" job per shard
+# number it uses, each building only its own test projects; the build job runs none.
+unit_list="$root/scripts/lib/unit-shards.txt"
+unit_n="$(awk '!/^#/ && NF >= 2 && $2 > n { n = $2 } END { print n + 0 }' "$unit_list")"
+[ "$unit_n" -ge 1 ] || unit_n=1
+unit_parts="$(seq 1 "$unit_n" | jq -R '"unit-" + .' | jq -sc 'sort')"
+unit_names="$(seq 1 "$unit_n" | jq -R --arg n "$unit_n" '"unit " + . + "/" + $n' | jq -sc 'sort')"
+plans "a build job, and the tests in no job of the old shape" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
+plans "one unit job per shard the list deals"              '[.[] | select((.part // "") | startswith("unit-")) | .part] | sort == '"$unit_parts" push "" ""
+plans "...each named for its shard"                         '[.[] | select((.part // "") | startswith("unit-")) | .name] | sort == '"$unit_names" push "" ""
+plans "...in a Dependabot bump's set too"                   '[.[] | select((.part // "") | startswith("unit-")) | .part] | sort == '"$unit_parts" deps "" "$nuget_bump~1" "$nuget_bump"
+plans "...each selected by any change"                      'all(.[] | select((.part // "") | startswith("unit-")); .when == "code")' push "" ""
+checked=$((checked + 1))
+unit_strays="$(awk '!/^#/ && NF >= 2 { print $1 }' "$unit_list" | while read -r unit_project; do
+  grep -qE "Path=\"[^\"]*/$unit_project\.csproj\"" "$root/Rask.slnx" || echo "$unit_project"
+done)"
+if [ -z "$unit_strays" ]; then
+  printf '  ok   %s\n' "every project unit-shards.txt deals is in Rask.slnx"
+else
+  printf '  FAIL %s -> %s\n' "every project unit-shards.txt deals is in Rask.slnx" "$(echo $unit_strays)" >&2
+  failures=$((failures + 1))
+fi
 plans "...and so does the formatter"                       'all(.[]; ((.part // "") | startswith("format") | not) and (.name | startswith("format") | not))' push "" ""
 # The analyzer build is cut by project into the shards scripts/lib/analyzer-shards.txt deals: shards
 # 1..N, N the highest number it uses, and between them they cover every project — one "analyzers K/N"

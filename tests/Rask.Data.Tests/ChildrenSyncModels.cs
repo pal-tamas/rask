@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 namespace Rask.Data.Tests;
 
 /// <summary>A row of the delivery form's parts; <paramref name="Id" /> names a saved one, none a new one.</summary>
@@ -64,4 +66,45 @@ public sealed class CargoPart : Entity<Guid>
             yield return Problem.At(Tonnes, "A part weighs something.");
         }
     }
+}
+
+/// <summary>A row of the barge form's holds; <paramref name="Id" /> names a saved one, none a new one.</summary>
+public sealed record BargeHoldSpec(Guid? Id, string Name);
+
+// A barge whose holds are named, each name once per barge: a unique index over the parent and the name.
+public sealed class Barge : Aggregate<Guid>
+{
+    private Barge() { } // EF materialization
+
+    public string Name { get; private set; } = "";
+
+    public Children<BargeHold, BargeHoldSpec> Holds { get; } = new();
+
+    public static Barge Named(string name, params string[] holds)
+    {
+        var barge = new Barge { Id = Guid.CreateVersion7(), Name = name };
+        barge.Change([.. holds.Select(static h => new BargeHoldSpec(null, h))]);
+        return barge;
+    }
+
+    public SyncResult<BargeHold> Change(IReadOnlyList<BargeHoldSpec> holds) =>
+        Holds.Sync(holds, s => s.Id, BargeHold.For, (h, s) => h.Take(s));
+}
+
+public sealed class BargeHold : Entity<Guid>
+{
+    private BargeHold() { } // EF materialization
+
+    public string Name { get; private set; } = "";
+
+    internal static BargeHold For(BargeHoldSpec spec)
+    {
+        var hold = new BargeHold { Id = Guid.CreateVersion7() };
+        hold.Take(spec);
+        return hold;
+    }
+
+    internal void Take(BargeHoldSpec spec) => Name = spec.Name;
+
+    public static void Configure(EntityTypeBuilder<BargeHold> builder) => builder.HasIndex("BargeId", nameof(Name)).IsUnique();
 }

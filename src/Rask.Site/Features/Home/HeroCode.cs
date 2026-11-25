@@ -4,22 +4,24 @@ using System.Text;
 namespace Rask.Site;
 
 /// <summary>
-/// The hero's code window: one feature, back to front, in two files — the aggregate that is the table,
-/// and the page that queries it. A stateful Rask component; a tab click sets <c>_active</c> and
-/// re-renders the pane, with no JavaScript.
+/// The hero's code window: the one way a Rask app is written, in three files — a model (value objects,
+/// a typed id and an aggregate whose methods are its writes), the form over one of its operations, and
+/// the test that proves its rule on SQLite in memory. A stateful Rask component; a tab click sets
+/// <c>_active</c> and re-renders the pane, with no JavaScript.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Not a <c>CodeSample</c>, which shows a file this app compiles beside the result it renders. This
-/// site is a WebAssembly app with no database, so it cannot compile an aggregate — the sample is
-/// the tutorial's own <c>Product</c> and <c>ProductsPage</c> (docs/tutorial/02-first-feature.md, whose
-/// snippets the CLI build gate compiles), trimmed to what fits the window.
+/// site is a WebAssembly app with no database, so it cannot compile an aggregate. The three files are
+/// compiled — and the test run — in tests/Rask.Testing.Database.Tests/Hero instead, and
+/// <c>HeroCodeSourceTests</c> holds <see cref="Sources" /> to them character for character, so the front
+/// page cannot show an API that does not build.
 /// </para>
 /// <para>
 /// Every line stays under ~62 characters: the window is a 34rem track (see HomePage's hero grid) and
 /// a line that does not fit makes the <c>&lt;pre&gt;</c> a horizontal scroller, which
 /// SiteExampleTests.CodeSamples_FitTheirWindowsWithoutScrolling measures at every two-column width (on
-/// the prerendered first tab — so keep the second tab's lines no longer than the Counter.cs sample's).
+/// the prerendered first tab — so keep the other tabs' lines no longer than the Counter.cs sample's).
 /// </para>
 /// <para>
 /// <c>.hero-code-tab</c> is a test contract: the browser suite switches files by it.
@@ -64,74 +66,107 @@ public sealed partial class HeroCode : Component
 
     // ---- highlighting ----
     //
-    // A deliberately small C# tokenizer for two fixed, trusted snippets, in the hero's own light palette
+    // A deliberately small C# tokenizer for three fixed, trusted snippets, in the hero's own light palette
     // (the same utilities the Counter.cs window on this page uses). The site's ColorCode highlighter
     // colours for the dark code pane, and its classes are only styled inside .sample-code.
 
     private static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
     {
-        "public", "private", "protected", "sealed", "partial", "class", "override", "readonly", "get",
-        "set", "return", "var", "string", "decimal", "bool", "int", "true", "false", "new",
+        "public", "private", "protected", "sealed", "partial", "class", "record", "struct", "override",
+        "readonly", "get", "set", "return", "var", "string", "decimal", "bool", "void", "true", "false",
+        "new", "null", "async", "await", "using",
     };
 
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
-        "Product", "Aggregate", "Guid", "MaxLength", "Range", "Route", "ProductsPage",
-        "Component", "QueryClient", "QueryKey", "Ui",
+        "Product", "ProductId", "ProductName", "UnitPrice", "Text", "Number", "Aggregate", "Guid",
+        "Timestamps", "Versioned", "Deletable", "Refuse", "PriceForm", "Component", "Form", "Ui",
+        "ProductTests", "Fact", "Task", "TestDatabase", "Test",
     };
+
+    /// <summary>
+    /// The three files the window shows, verbatim: everything after the namespace line of
+    /// tests/Rask.Testing.Database.Tests/Hero/*.cs, where they are compiled and the test is run.
+    /// <c>HeroCodeSourceTests</c> fails when one drifts from its file.
+    /// </summary>
+    internal static readonly string[] Sources =
+    [
+        """
+        // A value object carries its rule; a typed id is one line.
+        public readonly partial record struct ProductId(Guid Value);
+        public sealed partial record ProductName(string Value)
+            : Text(Value, MaxLength: 200);
+        public sealed partial record UnitPrice(decimal Value)
+            : Number(Value, Min: 0, Scale: 2);
+
+        // The aggregate is the table, and each method is one write.
+        public sealed partial class Product
+            : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+        {
+            public ProductName Name { get; private set; } = null!;
+            public UnitPrice Price { get; private set; } = null!;
+            public bool Discontinued { get; private set; }
+
+            // A factory: Product.Add(…) saves what it makes.
+            private static Product Add(ProductName n, UnitPrice p) =>
+                new() { Id = ProductId.New(), Name = n, Price = p };
+
+            public void Reprice(UnitPrice price)
+            {
+                Refuse.When(Discontinued, () => Price,
+                    "A discontinued product keeps its price.");
+                Price = price;
+            }
+
+            public void Discontinue() => Discontinued = true;
+        }
+        """,
+        """
+        // A form over the operation: its field is Reprice's price,
+        // checked by UnitPrice and the Refuse as it is typed, then
+        // saved through Product.Reprice(id, version, price).
+        public sealed partial class PriceForm : Component
+        {
+            public ProductId Id { get; set; }
+
+            protected override Component? Render() =>
+                Form.For(Product.Reprice, Id)[f => [
+                    Ui.Field.Bind(() => f.Price).Label("Price"),
+                    Ui.Button.Primary.Submit["Save"],
+                ]];
+        }
+        """,
+        """
+        // SQLite in memory: a database per test, run side by side.
+        public sealed class ProductTests
+        {
+            [Fact]
+            public async Task A_discontinued_product_keeps_its_price()
+            {
+                await using var db = await TestDatabase.Start();
+                var id = await Product.Add(Test.Make<ProductName>(),
+                    UnitPrice.Create(9.90m));
+                var product = (await Product.Find(id))!;
+                product.Discontinue();
+                await product.Save();
+
+                var cheaper = UnitPrice.Create(5m);
+                var refused = await Test.Refuses(() =>
+                    Product.Reprice(id, product.Version, cheaper));
+
+                refused.Only("Price");
+            }
+        }
+        """,
+    ];
 
     // Declared after Keywords and Types on purpose: static initializers run in textual order, and
     // Highlight reads both sets.
     private static readonly (string File, string Html)[] Files =
     [
-        ("Product.cs", Highlight(
-            """
-            // A table, its columns and a generated read face.
-            // No DbSet, no configuration class, no registration.
-            public sealed class Product
-                : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
-            {
-                [MaxLength(200)]
-                public string Name { get; private set; } = "";
-
-                [Range(0, 1_000_000)]
-                public decimal Price { get; private set; }
-
-                public bool InStock { get; private set; } = true;
-            }
-            """)),
-        ("ProductsPage.cs", Highlight(
-            """
-            [Route("/products")]
-            public sealed partial class ProductsPage : Component
-            {
-                private int _page = 1;
-
-                protected override Component? Render()
-                {
-                    // Cached, and refetched after any Product write.
-                    var count = QueryClient.Query(QueryKey.For<Product>(),
-                        () => Product.Count());
-                    var rows = QueryClient.Query(QueryKey.For<Product>(
-                        "page"), _page, (page, ct) => Product
-                        .OrderBy(p => p.Name).Skip((page - 1) * 20)
-                        .Take(20).AsQueryable().ToListAsync(ct));
-
-                    return
-                    [
-                        Ui.Heading.Level(1)[$"Products ({count.Data})"],
-                        Ui.Table.Paginate(Ui.Pagination.Paginator(new() {
-                            Page = _page, PerPage = 20, Total = count.Data
-                        }).OnPage(page => { _page = page; }))[
-                            Ui.TableRows[(rows.Data ?? []).Select(p =>
-                                Ui.TableRow.Key(p.Id)[
-                                    Ui.TableCell[p.Name],
-                                    Ui.TableCell[$"{p.Price:C}"]])]
-                        ]
-                    ];
-                }
-            }
-            """)),
+        ("Product.cs", Highlight(Sources[0])),
+        ("PriceForm.cs", Highlight(Sources[1])),
+        ("ProductTests.cs", Highlight(Sources[2])),
     ];
 
     private static string Highlight(string source)

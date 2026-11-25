@@ -44,7 +44,7 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_hero_names_the_whole_stack_and_shows_a_feature_back_to_front()
+    public void The_hero_names_the_whole_stack_and_shows_the_model_its_form_and_its_test()
     {
         var html = Render();
         var h1 = Regex.Match(html, "<h1[^>]*>(?<body>.*?)</h1>", RegexOptions.Singleline).Groups["body"].Value;
@@ -53,34 +53,41 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
         Assert.Contains("C#", h1, StringComparison.Ordinal);
         Assert.Contains("The full-stack .NET web framework", html, StringComparison.Ordinal);
 
-        // Both files are tabs, and the first — the aggregate — is the pane in the prerendered HTML.
+        // The three files are tabs, and the first — the model — is the pane in the prerendered HTML.
         Assert.Contains(">Product.cs</button>", html, StringComparison.Ordinal);
-        Assert.Contains(">ProductsPage.cs</button>", html, StringComparison.Ordinal);
-        Assert.Contains(">Aggregate</span>&lt;<span class=\"text-green-700 dark:text-green-400\">Guid</span>", html, StringComparison.Ordinal);
+        Assert.Contains(">PriceForm.cs</button>", html, StringComparison.Ordinal);
+        Assert.Contains(">ProductTests.cs</button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Aggregate</span>&lt;<span class=\"text-green-700 dark:text-green-400\">ProductId</span>", html, StringComparison.Ordinal);
+        Assert.Contains(">Text</span>(Value, MaxLength: 200)", html, StringComparison.Ordinal);
+        Assert.Contains(">Refuse</span>.When(", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_hero_code_switches_to_the_page_that_queries_the_aggregate()
+    public async Task The_hero_code_switches_to_the_form_over_the_operation_and_then_to_its_test()
     {
         var page = Page.Render(() => HeroCode);
         var html = page.Render();
-        Assert.DoesNotContain("QueryClient", html, StringComparison.Ordinal);
-
-        // The second tab's handler: tabs render in file order, and they are the only clickable things.
         var handlers = Regex.Matches(html, "data-rask-on-click=\"(?<id>[^\"]+)\"");
-        Assert.Equal(2, handlers.Count);
-        await page.Invoke(handlers[1].Groups["id"].Value);
 
-        var after = page.Render();
-        Assert.Contains(">QueryClient</span>.Query(", after, StringComparison.Ordinal);
-        Assert.Contains("</span>.Count()", after, StringComparison.Ordinal);
-        Assert.DoesNotContain(".Read.", after, StringComparison.Ordinal);
-        Assert.DoesNotContain(">Aggregate</span>", after, StringComparison.Ordinal);
+        // Tabs render in file order, and they are the only clickable things.
+        await page.Invoke(handlers[1].Groups["id"].Value);
+        var form = page.Render();
+        await page.Invoke(handlers[2].Groups["id"].Value);
+        var test = page.Render();
+
+        Assert.Equal(3, handlers.Count);
+        Assert.DoesNotContain("Form.For", html, StringComparison.Ordinal);
+        Assert.Contains(">Form</span>.For(<span class=\"text-green-700 dark:text-green-400\">Product</span>.Reprice, Id)", form, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Aggregate</span>", form, StringComparison.Ordinal);
+        Assert.Contains(">TestDatabase</span>.Start()", test, StringComparison.Ordinal);
+        Assert.Contains("refused.Only(", test, StringComparison.Ordinal);
     }
 
     /// <summary>Every shipped piece of the back end has a card, and the card opens its guide.</summary>
     [Theory]
+    [InlineData("domain")]
     [InlineData("data")]
+    [InlineData("testing")]
     [InlineData("query")]
     [InlineData("authentication")]
     [InlineData("jobs")]

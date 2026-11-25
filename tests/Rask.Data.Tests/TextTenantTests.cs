@@ -28,6 +28,27 @@ public sealed class Branch : Aggregate<string, Model, Deletable, PerTenant>
     }
 }
 
+/// <summary>A market stand of a tenant's, its code unique among every tenant's stands and the ones of none.</summary>
+public sealed class Stand : Aggregate<string, Model, Deletable, PerTenant>
+{
+    public const string CodeTaken = "A stand with this code already exists.";
+
+    private Stand() { }
+
+    public Guid? TenantId { get; private set; }
+
+    public string Code { get; private set; } = "";
+
+    public static Stand Coded(string key, string code) => new() { Id = key, Code = code };
+
+    public static void Configure(EntityTypeBuilder<Stand> builder)
+    {
+        builder.ToTable("Stands");
+        builder.Property(s => s.TenantId).HasConversion<string>().HasMaxLength(64);
+        builder.HasIndex(s => s.Code).IsUnique(CodeTaken);
+    }
+}
+
 /// <summary>
 /// A tenant that is a <see cref="Guid" /> declared with a text conversion keeps each customer's rows apart exactly
 /// as a native one does: every read is filtered, every insert is stamped, and the column holds the text.
@@ -194,6 +215,77 @@ public sealed class TextTenantTests : IDisposable
         {
             Assert.Empty(await Branch.Select(b => b.Name));
         }
+    }
+
+    [Fact]
+    public async Task A_row_saved_with_no_tenant_is_no_tenant_s_to_read_update_or_delete()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(Acme, "b-1", "Budapest");
+        await database.Context.Database.ExecuteSqlAsync(
+            $"INSERT INTO Branches (Id, Name, TenantId) VALUES ('b-0', 'Nowhere', NULL)", TestContext.Current.CancellationToken);
+
+        List<string> names;
+        Exception? updated;
+        Exception? deleted;
+        using (Tenant.Use(Acme))
+        {
+            names = await Branch.Where(b => b.Name != "").Select(b => b.Name);
+            updated = await Record.ExceptionAsync(() => Branch.Update(
+                "b-0", b => b.Rename("taken"), cancellationToken: TestContext.Current.CancellationToken));
+            deleted = await Record.ExceptionAsync(
+                () => Branch.Delete("b-0", cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        Assert.Equal(["Budapest"], names);
+        Assert.IsType<KeyNotFoundException>(updated);
+        Assert.IsType<KeyNotFoundException>(deleted);
+        Assert.Null(await StoredTenantAsync(database, "b-0"));
+        Assert.Equal("Nowhere", await StoredNameAsync(database, "b-0"));
+    }
+
+    [Fact]
+    public async Task A_unique_index_that_names_no_tenant_refuses_a_tenant_s_row_that_repeats_a_row_of_none()
+    {
+        await using var database = await StartDatabaseAsync();
+        await database.Context.Database.ExecuteSqlAsync(
+            $"INSERT INTO Stands (Id, Code, TenantId) VALUES ('s-0', 'K-1', NULL)", TestContext.Current.CancellationToken);
+
+        Exception? refused;
+        using (Tenant.Use(Acme))
+        {
+            refused = await Record.ExceptionAsync(
+                () => Stand.Coded("s-1", "K-1").Save(cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        var failure = Assert.Single(Assert.IsType<RaskValidationException>(refused).Failures);
+        Assert.Equal(["Code"], failure.Fields);
+        Assert.Equal(Stand.CodeTaken, failure.Message);
+    }
+
+    [Fact]
+    public async Task The_edit_model_of_another_tenant_s_row_is_null_as_its_find_is()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(Acme, "b-1", "Budapest");
+
+        BranchModel? own;
+        BranchModel? other;
+        Branch? found;
+        using (Tenant.Use(Acme))
+        {
+            own = await Branch.Model("b-1", cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        using (Tenant.Use(Globex))
+        {
+            other = await Branch.Model("b-1", cancellationToken: TestContext.Current.CancellationToken);
+            found = await Branch.Find("b-1", cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("Budapest", own?.Name);
+        Assert.Null(other);
+        Assert.Null(found);
     }
 
     private static async Task SaveAsync(Guid tenant, string key, string name)

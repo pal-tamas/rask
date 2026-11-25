@@ -23,6 +23,19 @@ public static class Clock
     /// </remarks>
     public static DateTime Wall => AmbientClock.OnTheWall(AmbientClock.Now);
 
+    /// <summary>
+    ///     <paramref name="moment" /> as the clock on the wall showed it — in <see cref="Zone" />, without its offset:
+    ///     <c>Clock.WallAt(sentAt)</c> is <c>09:35</c> in Budapest for a moment of <c>08:35Z</c> in winter.
+    /// </summary>
+    /// <remarks>
+    ///     A UTC <see cref="DateTime" /> read from a column converts as itself:
+    ///     <c>Clock.WallAt(DateTime.SpecifyKind(stamp, DateTimeKind.Utc))</c>. The answer is of
+    ///     <see cref="DateTimeKind.Unspecified" />, as <see cref="Wall" /> is.
+    /// </remarks>
+    /// <param name="moment">The moment, at any offset.</param>
+    /// <returns>The wall-clock time of the moment in <see cref="Zone" />.</returns>
+    public static DateTime WallAt(DateTimeOffset moment) => AmbientClock.OnTheWall(moment);
+
     /// <summary>Today, as the calendar on the wall shows it — the day of <see cref="Wall" />.</summary>
     public static DateOnly Today => DateOnly.FromDateTime(Wall);
 

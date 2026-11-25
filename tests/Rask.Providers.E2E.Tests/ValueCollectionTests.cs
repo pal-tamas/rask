@@ -44,9 +44,10 @@ public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbC
 }
 
 /// <summary>
-/// The two value-collection mappings against every engine Rask supports, because neither is portable by
-/// assumption: <c>ToJson()</c> and primitive collections are translated per provider, and SQLite's
-/// <c>json_each</c> has nothing to do with SQL Server's <c>OPENJSON</c> or PostgreSQL's <c>jsonb</c>.
+/// The two value-collection mappings, written and filtered in the database. The per-provider translation
+/// (<c>json_each</c>, <c>OPENJSON</c>, <c>jsonb</c>) is EF Core's, not SQL Rask writes, so the round trip runs on SQLite
+/// alone; the container column's type is held on every server by <see cref="JsonColumnParityTests" />, and the SQL
+/// Server model and translation without a server by <see cref="SqlServerValueCollectionTranslationTests" />.
 /// </summary>
 /// <remarks>
 /// Every filter runs in the database: since EF Core 3 a <c>Where</c> it cannot translate THROWS rather than falling back
@@ -121,15 +122,9 @@ public abstract class ValueCollectionParityTests(ProviderLeg leg) : ParityTests<
 
 public sealed class SqliteValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.Sqlite("value-collections"));
 
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.SqlServer("rask_e2e_value_collections"));
-
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresValueCollectionTests() : ValueCollectionParityTests(ProviderLeg.Postgres(TripDbContext.Schema));
-
 /// <summary>
-/// SQL Server, proved without a server: the model builds and both filters translate — what a host that cannot run its
-/// image (Apple Silicon) still checks while <see cref="SqlServerValueCollectionTests" /> is skipped.
+/// SQL Server, proved without a server: the model builds and both filters translate. The queries themselves are EF
+/// Core's translation, not SQL Rask writes, so they run on SQLite alone (<see cref="SqliteValueCollectionTests" />).
 /// </summary>
 public sealed class SqlServerValueCollectionTranslationTests
 {

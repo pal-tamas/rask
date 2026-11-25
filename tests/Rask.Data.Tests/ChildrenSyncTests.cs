@@ -149,6 +149,24 @@ public sealed class ChildrenSyncTests : IDisposable
         Assert.Equal(stowed.Id, Assert.Single(parts).Id);
     }
 
+    [Fact]
+    public async Task A_child_renamed_to_the_name_of_one_removed_in_the_same_save_is_written_after_the_delete()
+    {
+        await using var database = await StartDatabaseAsync();
+        var barge = Barge.Named("Duna", "A", "B");
+        await barge.Save(cancellationToken: Token);
+        var stored = (await Barge.Find(barge.Id, Token))!;
+        var b = stored.Holds.Single(h => h.Name == "B");
+
+        stored.Change([new(b.Id, "A")]);
+        var saved = await Record.ExceptionAsync(() => stored.Save(cancellationToken: Token));
+
+        Assert.Null(saved);
+        var holds = await database.Context.Set<BargeHold>().AsNoTracking().ToListAsync(Token);
+        var only = Assert.Single(holds);
+        Assert.Equal((b.Id, "A"), (only.Id, only.Name));
+    }
+
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

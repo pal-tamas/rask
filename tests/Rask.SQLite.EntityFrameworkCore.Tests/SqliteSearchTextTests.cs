@@ -98,6 +98,23 @@ public sealed class SqliteSearchTextTests : IAsyncLifetime
         Assert.Contains("UseRaskSqlite", refused.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Contains_finds_a_part_typed_without_its_accents_inside_a_word()
+    {
+        await using var keeper = new SqliteConnection($"Data Source=rask-sqlite-loose-{Guid.NewGuid():N};Mode=Memory;Cache=Shared");
+        await keeper.OpenAsync(Cancellation);
+        await using var context = new SearchContext(new DbContextOptionsBuilder<SearchContext>().UseRaskSqliteAt(keeper.ConnectionString).Options);
+        await context.Database.EnsureCreatedAsync(Cancellation);
+        context.Drivers.AddRange(Named("Magyarország", "m-1"), Named("Ürbő", "u-1"), Named("Zsolt", "z-1"));
+        await context.SaveChangesAsync(Cancellation);
+
+        var country = await context.Drivers.Where(d => d.Name.Loosely().Contains("rsza")).Select(d => d.Code).ToListAsync(Cancellation);
+        var village = await context.Drivers.Where(d => d.Name.Loosely().Contains("urbo")).Select(d => d.Code).ToListAsync(Cancellation);
+
+        Assert.Equal(["m-1"], country);
+        Assert.Equal(["u-1"], village);
+    }
+
     private static Driver Named(string name, string code) => new() { Name = name, Code = code, Plate = code };
 
     private SearchContext Search() =>

@@ -61,7 +61,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    its host (stack overflow, `Environment.FailFast`, `Environment.Exit`) prints `[FATAL ERROR]` and then
    `Passed!` for the tests that reported before it died, with exit code 1 — which a `| tail` loses. The
    gates run tests through `scripts/lib/dotnet-test.sh`, which reads the TRX files back
-   (`scripts/lib/test_verdict.py`) and fails a run whose host died, hung for 15 minutes, or reported fewer
+   (`scripts/lib/test_verdict.py`) and fails a run whose host died, hung for 5 minutes, or reported fewer
    tests than xUnit discovered ([#1308](https://github.com/pal-tamas/rask/issues/1308);
    `scripts/tests/test-host-crash.test.sh` proves it). The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
@@ -106,7 +106,7 @@ sentences of a guide merge; keep new text that way.
   ahead of the tag on a `ci/release/**` branch.
 - **Nightly:** `nightly.yml` starts when a push run of `ci` on `main` starts, packs that commit as
   `X.Y.(Z+1)-alpha.0.N` while the run builds it, and pushes it the moment the run's `build` job (the
-  build and the unit tests) is green — to GitHub Packages first, restorable within seconds
+  build) and its `unit K/N` shards (the unit tests) are green — to GitHub Packages first, restorable within seconds
   ([Nightly builds](installation.md#nightly-builds-from-github-packages)), then to nuget.org (prerelease),
   which validates for another five to twenty-five minutes. A commit whose build did not pass publishes
   nothing, and neither does a run dispatched by hand on any branch but `main`; the completed run and an
@@ -173,9 +173,9 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (`scripts/lib/conventional-commit.sh`) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged; `scripts/tests/prose-comments.test.sh` over the staged `src/*.cs` files. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the benchmark budgets when what they measure is reached, the CLI build and templates when the CLI, a template, the kit or a project file changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, WASM E2E (`run-wasm-e2e-local.sh`), CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
-| **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off) and `unit 1/4` … `unit 4/4` (the unit tests, cut by test project in `scripts/lib/unit-shards.txt`, each shard building only its own test projects and what they reference, and skipped when the change reaches none of them — the nightly is pushed the moment `build` and every unit shard are green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the benchmark budgets when what they measure is reached, the CLI build and templates when the CLI, a template, the kit or a project file changed, the `providers` gate (SQL Server and PostgreSQL on Testcontainers) when the data stack or its suite changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build, the unit tests in their shards, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, WASM E2E (`run-wasm-e2e-local.sh`), CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), providers (`run-providers-local.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
 The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml`, `full.yml`
@@ -212,6 +212,30 @@ run again under every push after it. A run that has not started a gate when a ne
 cancelled by it (`scripts/lib/cancel_superseded.sh`): the newer run is measured from before it, so its scope
 holds the older push's change.
 
+### Fail fast
+
+A red run has named its push the moment one test fails, so nothing waits for the rest of it (2026-11-25):
+
+- **Tests.** Every gate's `dotnet test` runs under `scripts/lib/test_watch.py` (through
+  `scripts/lib/dotnet-test.sh`). The first failing test or dead host stops the run a few seconds later,
+  once its message and stack have printed; in a scoped run the first assembly that fails stops the others,
+  and the tail of each stopped one's log is shown. `RASK_TEST_FAIL_FAST=0` runs everything, to see every
+  failure at once.
+- **Hangs.** `--blame-hang-timeout 5m` (mini dumps) fails a hung test by name; xUnit prints each test still
+  running after a minute (`[Long Running Test]`), which names a hang no test is in flight for; and the whole
+  `dotnet test` is ended at 22 minutes (`RASK_TEST_RUN_TIMEOUT`, in minutes). The gate's step itself stops at
+  36 minutes, inside the job's 40: GitHub keeps no log for a job its own timeout cancelled, and a failed
+  step keeps it.
+- **Jobs.** `ci.yml` calls `gates.yml` with `fail_fast: true`: a gate's last step, when the gate failed,
+  cancels the whole run — the other gates, the browser shards and `publish`. `full.yml`, `release.yml` and
+  the followers leave it off and report every red gate. A gate that passed before the cancel keeps its
+  `success`, which is all `nightly.yml` reads: `scripts/lib/nightly_wait.sh` publishes when `gates / build`
+  and every `gates / unit K/N` passed, whatever the other gates did, and nothing when one of them failed
+  or was cancelled (a failed job itself ends `cancelled`: the cancel lands while its fail-fast step runs). Such a run ends
+  `cancelled`, so `pages` and nightly's completed-run backstop skip it as they skip any run that did not
+  pass, and `scripts/lib/green_base.sh` still counts it as main's last (red) run, because a gate of it
+  failed (`gates_failed` in `scripts/lib/ci_runs.sh`).
+
 ### Trying a change first
 
 Push to a `ci/**` branch to run the push set without landing anything; only the newest push to a
@@ -233,7 +257,7 @@ git push origin --delete ci/my-change
 
 Publishing. `pages.yml` triggers when a PUSH run of `ci` completes on `main` and does nothing unless it
 concluded `success`, then deploys the newest commit such a run passed. `nightly.yml` does not wait that
-long: it starts with the run, packs while it builds, and publishes once the run's `build` job is green
+long: it starts with the run, packs while it builds, and publishes once the run's `build` job and every `unit K/N` shard are green
 (`scripts/lib/nightly_wait.sh`) — a later red gate is fixed forward by the next push. A newer push's
 nightly cancels an older one that has not started pushing. The completed run and an hourly schedule are
 its backstop. A pull request or a manual
@@ -276,8 +300,8 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 | Finished work lands directly on `main` after its local targeted tests — no `ci/**` pre-run, however risky — except a change to CI itself, a Linux-only risk the Mac cannot check, and the release-only gates (`ci/release/**`). | `CLAUDE.md`, the `land-on-main` and `rask-ship` skills | risky changes go through a `ci/**` branch first |
 | The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `analyzers K/N` jobs, each over its own projects' files; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `analyzers-K` parts), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
-| A nightly is pushed the moment `main`'s `ci` run has a green `build` job, not when the run has passed: browser E2E, templates and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
-| The `build` job builds with the analyzers off (`-p:RunAnalyzers=false`) and runs the unit tests; the analyzers, the formatter and the gate script tests are the `analyzers K/N` jobs beside it, which no publish waits for, cut by project (`scripts/lib/analyzer-shards.txt`, `-p:RaskAnalyzerShard=K` in `Directory.Build.targets`) so none is longer than `build`. The nightly pack skips the analyzers too. | `gates.yml` (`build`, `analyzers K/N`), `scripts/run-unit-local.sh` (`RASK_UNIT_PART`), `Directory.Build.targets` (`RaskAnalyzerShard`), `scripts/lib/analyzer-shards.txt`, `scripts/lib/nightly_pack.sh` | one `build` job, analyzers on, ahead of the tests; the pack with the analyzers |
+| A nightly is pushed the moment `main`'s `ci` run has a green `build` job and green `unit K/N` shards, not when the run has passed: browser E2E, templates and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
+| The `build` job builds with the analyzers off (`-p:RunAnalyzers=false`) and the `unit K/N` shards run the unit tests beside it (`scripts/lib/unit-shards.txt`), each building only its own test projects; the analyzers, the formatter and the gate script tests are the `analyzers K/N` jobs beside it, which no publish waits for, cut by project (`scripts/lib/analyzer-shards.txt`, `-p:RaskAnalyzerShard=K` in `Directory.Build.targets`) so none is longer than `build`. The nightly pack skips the analyzers too. | `gates.yml` (`build`, `analyzers K/N`), `scripts/run-unit-local.sh` (`RASK_UNIT_PART`), `Directory.Build.targets` (`RaskAnalyzerShard`), `scripts/lib/analyzer-shards.txt`, `scripts/lib/nightly_pack.sh` | one `build` job, analyzers on, ahead of the tests; the pack with the analyzers |
 
 ### How a version reaches nuget.org
 
@@ -376,7 +400,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `gates.yml` — the reusable list of gate jobs the others call.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
-- `nightly.yml` — prerelease publish of a commit whose push run of `ci` on `main` has a green `build` job: GitHub Packages, then nuget.org.
+- `nightly.yml` — prerelease publish of a commit whose push run of `ci` on `main` has a green `build` job and green `unit K/N` shards: GitHub Packages, then nuget.org. A newer nightly queues behind one that is packing; it never cancels it.
 - `pages.yml` — rask.sh, from a commit a push run of `ci` passed on `main`.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily (Flux UI weekly, Mondays: `flux` and `flux-parity`); follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
@@ -525,10 +549,21 @@ True of the scripts wherever they run — a CI job or your terminal.
   is one of the unit gate's own tests: the pure helpers, POSIX `sh`, truncation safety (by running
   prefixes of the file) and the install URL byte-identical everywhere it is written. **Not covered:**
   a real Windows host.
-- **Storage providers — `scripts/run-storage-providers-local.sh`** and **providers —
-  `scripts/run-providers-local.sh`** (release set). Rask.Storage's S3 and Azure signing against MinIO
-  and Azurite, and the database batteries against real servers, all in containers; a provider fact
-  whose server is not reachable reports SKIPPED, never PASSED.
+- **Storage providers — `scripts/run-storage-providers-local.sh`** (release set). Rask.Storage's S3 and
+  Azure signing against MinIO and Azurite, in containers; a provider fact whose server is not reachable
+  reports SKIPPED, never PASSED.
+- **Providers — `scripts/run-providers-local.sh`** (push set, when the data stack or its suite changed;
+  daily in `full.yml`). `tests/Rask.Providers.E2E.Tests` against a real SQL Server 2022 and PostgreSQL 19,
+  which the suite starts itself on Testcontainers — one container per server per run, on first use, stopped
+  at the end; no service container or `docker run` in any workflow. **Local policy: no Docker by default.**
+  Outside CI (`CI`/`GITHUB_ACTIONS` unset) the server facts report SKIPPED ("runs in CI on Testcontainers")
+  and the SQLite legs run; `RASK_PROVIDERS_LOCAL=1` lets it start the containers on your machine (SQL Server
+  only on amd64 — its image segfaults under emulation on Apple Silicon), and `RASK_MSSQL_TEST_DB` /
+  `RASK_PG_TEST_DB` point a leg at a server you have instead. SQL Server runs in a process of its own
+  (`RASK_PROVIDERS_SERVERS`): EF Core refuses a process its twenty-first internal service provider. Only
+  what Rask writes or translates per provider is held to a server — collations, locks, sequences, the DDL
+  the conventions write, decimals, constraint violations, the batteries' own SQL, migrations; everything
+  provider-independent runs on SQLite alone ([the conformance suite](data.md#the-conformance-suite)).
 - **Linux dev host — `scripts/run-devhost-linux-local.sh`** (on request, `RASK_DEVHOST_E2E=1`, in no
   CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
   container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really
@@ -622,10 +657,10 @@ matter most are asserted by an offline unit test rather than by a comment:
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — CI's `build` job, on every push and
+They need no network and run in the ordinary unit gate — CI's `unit K/N` jobs, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
-**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (`build`, the `analyzers K/N` shards with the formatter, CLI build, templates — the browser suites run on `main` after the merge),
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (`build`, the `unit K/N` and `analyzers K/N` shards with the formatter, CLI build, templates — the browser suites run on `main` after the merge),
 and `dependabot-merge.yml` squash-merges the pull request once that run has passed, then dispatches
 `ci` on `main` — the push set's `main verdict` run, which nightly and Pages publish from (a merge made
 with the workflow's token starts no push run; see *Publishing*). A red one waits for a

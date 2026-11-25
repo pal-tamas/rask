@@ -102,9 +102,10 @@ public sealed partial class RatingStars : Component
 RatingStars.OnRate(n => _rating = n)
 ```
 
-A static method, or a lambda closing over a local instead of `this`, has no
-component target, so **no auto re-render fires** — write the lambda inside the
-component that should update.
+A lambda closing over only a local re-renders the component whose `Render` set it.
+A static method, or a delegate set outside any render, has no component to
+re-render, so **no auto re-render fires** — write the lambda inside the component
+that should update.
 
 ### Cascading value → Context
 
