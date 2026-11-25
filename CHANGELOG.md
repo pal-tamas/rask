@@ -19,6 +19,10 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A fresh app's editor dialog can delete.** Every `rask new` template's `App` now renders
+  `[Router, Ui.Confirm]`, so `Ui.EditorDialog.Delete(...)` and `Ui.Confirm.Ask` have a dialog to ask in instead of
+  throwing "found no Ui.Confirm on the page". Toasts needed nothing: the host already draws them. The tutorial's
+  chapter 2 no longer has the reader add it.
 - **A password-reset request with no sender running is held to its whole answer floor.** Before: the wait was one
   `Task.Delay` of the time left, which counts whole milliseconds, so the answer could come up to a millisecond under
   the floor — a timing difference the floor exists to hide. Now it waits until the stopwatch says the floor passed.
