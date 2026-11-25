@@ -225,6 +225,9 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`Test.SignIn(name, roles:, tenant:, claims:, id:)`** (`Rask.Testing.Data`): the test runs as a signed-in user —
+  `Current.UserId`, `Current.IsInRole`, the tenant filter and the audit stamps see them — until the returned scope is
+  disposed. The principal carries the claims a Rask sign-in issues, so an app's own `Signing.As…` helpers can go.
 - **`TestDatabase.Start()` stands the batteries in with their fakes.** Before: a save handler that called
   `Mail.Send`, `Jobs.Enqueue`, `Cache.Remember`, `Push.Send` or `Files.Save` threw in a test for want of a host, unless
   the test made each fake by hand. Now a model that maps a battery's table (a RaskApp's context maps them all) gets

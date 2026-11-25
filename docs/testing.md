@@ -342,6 +342,30 @@ it matters.
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
 
+### A signed-in user: `Test.SignIn`
+
+Code that reads who is signed in — `Current.UserId`, `Current.IsInRole`, the tenant filter, the audit stamps — runs as
+a user inside `Test.SignIn` (from `Rask.Testing.Data`), until the scope is disposed:
+
+```csharp
+[Fact]
+public async Task An_administrator_sees_every_tenant_s_orders()
+{
+    await using var database = await TestDatabase.Start<AppDbContext>();
+    using var admin = Test.SignIn("admin@x.io", roles: ["Administrator"]);
+
+    var orders = await Order.Where(o => o.Open).ToList();
+    …
+}
+```
+
+The principal carries what a Rask sign-in issues: the id as `ClaimTypes.NameIdentifier`, `ClaimTypes.Name`,
+`ClaimTypes.Email` when the name is an address, one `ClaimTypes.Role` per role, `tenant:` as `Tenant.ClaimType`, then
+`claims:` of the app's own (`claims: [new Claim("dept", "ops")]`). With no `id:` the id is made from the name, so the
+same name is the same user every time; pass a user row's id when the test reads that row as theirs. `admin.Id` and
+`admin.Principal` hand them back — `Page.Visit(url).As(admin.Principal)` signs the same user in to a visited page. It
+is scoped to the test's flow, so parallel tests never see each other's user.
+
 ### A valid value object: `Test.Make`
 
 A test that needs a value object its rules accept, and does not care which, asks for one instead of writing a
