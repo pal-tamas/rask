@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -81,12 +82,12 @@ public sealed partial class QuayApp(QuayLog log) : Component, IEventHandler<Boll
 [Collection(RaskAppCollection.Name)]
 public sealed class LiveEventCommitTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-live-events-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
     [Fact]
@@ -157,7 +158,7 @@ public sealed class LiveEventCommitTests : IDisposable
         {
             builder.WebHost.UseSetting("urls", "http://127.0.0.1:0");
             builder.Configuration.AddInMemoryCollection(
-                [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", $"Data Source={_dbPath};Pooling=False")]);
+                [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", _database.ConnectionString)]);
             builder.Services.AddSingleton<QuayLog>();
         });
 

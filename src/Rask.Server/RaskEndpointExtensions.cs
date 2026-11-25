@@ -821,7 +821,7 @@ public static partial class RaskEndpointExtensions
         switch (authResult.Outcome)
         {
             case RouteAuthorizationOutcome.Challenge:
-                await ChallengeAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
+                await ChallengeAsync(httpContext, authResult.AuthenticationScheme, pathBase, languages, path).ConfigureAwait(false);
                 return (false, null);
             case RouteAuthorizationOutcome.Forbid:
                 return (true, authResult.FailedOnPage);
@@ -1091,8 +1091,17 @@ public static partial class RaskEndpointExtensions
         return path;
     }
 
-    private static Task ChallengeAsync(HttpContext ctx, string? scheme) =>
-        scheme is null ? ctx.ChallengeAsync() : ctx.ChallengeAsync(scheme);
+    // The way back is the page asked for — or, when that is the sign-in page, the way back it already carries — so a
+    // challenge of the sign-in page itself sends the same address each time instead of a longer one (ChallengeReturnUrl).
+    private static Task ChallengeAsync(
+        HttpContext ctx, string? scheme, string pathBase, ServerUrlLanguages languages, string path)
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = pathBase + ChallengeReturnUrl.For(path + ctx.Request.QueryString.Value, languages.RoutePathOf),
+        };
+        return scheme is null ? ctx.ChallengeAsync(properties) : ctx.ChallengeAsync(scheme, properties);
+    }
 
 
     private static QueryCollection AdaptQuery(IQueryCollection source)
@@ -3534,7 +3543,7 @@ public static partial class RaskEndpointExtensions
 
         if (authSignIn.TryConsume(out var pending))
         {
-            var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
+            var safeReturn = AuthReturnUrl.For(pending.Action, pending.ReturnUrl, session.Services.GetService<RouteState>());
             var ticketId = ticketStore.Issue(
                 pending.Action,
                 pending.Principal,
@@ -4182,7 +4191,7 @@ public static partial class RaskEndpointExtensions
             RouteAuthorizationOutcome.Redirect => (GuardRedirect.To(InLanguageOf(routeState, path, LocalUrl.Sanitize(result.RedirectTo))), null),
             _ => (new GuardRedirect(
                 InLanguageOf(routeState, path, RouteAuthorizationGuard.ChallengePath),
-                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))), null),
+                ChallengeReturnUrl.Query(QueryString.Build(path, query), routeState.RoutePathOf)), null),
         };
     }
 

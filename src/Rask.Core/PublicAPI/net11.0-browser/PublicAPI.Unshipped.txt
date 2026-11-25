@@ -19956,7 +19956,7 @@ Rask.Core.Forms.FieldKind.Moment = 7 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Number = 1 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Range = 4 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldKind.Text = 0 -> Rask.Core.Forms.FieldKind
-Rask.Core.Forms.FieldKind.Whole = 2 -> Rask.Core.Forms.FieldKind
+Rask.Core.Forms.FieldKind.Integer = 2 -> Rask.Core.Forms.FieldKind
 Rask.Core.Forms.FieldOption
 Rask.Core.Forms.FieldOption.<Clone>$() -> Rask.Core.Forms.FieldOption!
 Rask.Core.Forms.FieldOption.Deconstruct(out object! Value, out string! Label) -> void
@@ -20014,12 +20014,12 @@ override Rask.Values.Number.Equals(object? obj) -> bool
 override Rask.Values.Number.GetHashCode() -> int
 override Rask.Values.Text.Equals(object? obj) -> bool
 override Rask.Values.Text.GetHashCode() -> int
-override Rask.Values.Whole.Equals(object? obj) -> bool
-override Rask.Values.Whole.GetHashCode() -> int
+override Rask.Values.Integer.Equals(object? obj) -> bool
+override Rask.Values.Integer.GetHashCode() -> int
 override sealed Rask.Values.Day.ToString() -> string!
 override sealed Rask.Values.Number.ToString() -> string!
 override sealed Rask.Values.Text.ToString() -> string!
-override sealed Rask.Values.Whole.ToString() -> string!
+override sealed Rask.Values.Integer.ToString() -> string!
 Rask.Values.Day
 Rask.Values.Day.Day(Rask.Values.Day! original) -> void
 Rask.Values.Day.Value.get -> System.DateOnly
@@ -20030,20 +20030,20 @@ Rask.Values.Number.Value.get -> decimal
 Rask.Values.Text
 Rask.Values.Text.Text(Rask.Values.Text! original) -> void
 Rask.Values.Text.Value.get -> string!
-Rask.Values.Whole
-Rask.Values.Whole.Whole(Rask.Values.Whole! original) -> void
+Rask.Values.Integer
+Rask.Values.Integer.Integer(Rask.Values.Integer! original) -> void
 static Rask.Values.Day.operator !=(Rask.Values.Day? left, Rask.Values.Day? right) -> bool
 static Rask.Values.Day.operator ==(Rask.Values.Day? left, Rask.Values.Day? right) -> bool
 static Rask.Values.Number.operator !=(Rask.Values.Number? left, Rask.Values.Number? right) -> bool
 static Rask.Values.Number.operator ==(Rask.Values.Number? left, Rask.Values.Number? right) -> bool
 static Rask.Values.Text.operator !=(Rask.Values.Text? left, Rask.Values.Text? right) -> bool
 static Rask.Values.Text.operator ==(Rask.Values.Text? left, Rask.Values.Text? right) -> bool
-static Rask.Values.Whole.operator !=(Rask.Values.Whole? left, Rask.Values.Whole? right) -> bool
-static Rask.Values.Whole.operator ==(Rask.Values.Whole? left, Rask.Values.Whole? right) -> bool
+static Rask.Values.Integer.operator !=(Rask.Values.Integer? left, Rask.Values.Integer? right) -> bool
+static Rask.Values.Integer.operator ==(Rask.Values.Integer? left, Rask.Values.Integer? right) -> bool
 virtual Rask.Values.Day.Equals(Rask.Values.Day? other) -> bool
 virtual Rask.Values.Number.Equals(Rask.Values.Number? other) -> bool
 virtual Rask.Values.Text.Equals(Rask.Values.Text? other) -> bool
-virtual Rask.Values.Whole.Equals(Rask.Values.Whole? other) -> bool
+virtual Rask.Values.Integer.Equals(Rask.Values.Integer? other) -> bool
 Rask.Values.Day.Day(System.DateOnly Value, System.DateOnly? NotBefore = null, System.DateOnly? NotAfter = null, bool NotAfterToday = false, string? Message = null) -> void
 Rask.Values.Number.Number(decimal Value, decimal? Min = null, decimal? Max = null, int? Scale = null, int? Precision = null, bool Round = false, string? Message = null) -> void
 Rask.Values.Problem
@@ -20076,7 +20076,7 @@ Rask.Values.ValueFacets.Scale.get -> int?
 Rask.Values.ValueFacets.Scale.init -> void
 Rask.Values.ValueFacets.ValueFacets() -> void
 Rask.Values.ValueFacets.ValueFacets(int? MaxLength = null, int? Precision = null, int? Scale = null) -> void
-Rask.Values.Whole.Whole(long Value, long? Min = null, long? Max = null, string? Message = null) -> void
+Rask.Values.Integer.Integer(long Value, long? Min = null, long? Max = null, string? Message = null) -> void
 abstract Rask.Values.Value.<Clone>$() -> Rask.Values.Value!
 override Rask.Values.Day.EqualityContract.get -> System.Type!
 override Rask.Values.Day.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -20094,23 +20094,27 @@ override Rask.Values.Value.Equals(object? obj) -> bool
 override Rask.Values.Value.GetHashCode() -> int
 override Rask.Values.Value.ToString() -> string!
 override Rask.Values.ValueFacets.GetHashCode() -> int
-override Rask.Values.Whole.EqualityContract.get -> System.Type!
-override Rask.Values.Whole.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Values.Integer.EqualityContract.get -> System.Type!
+override Rask.Values.Integer.PrintMembers(System.Text.StringBuilder! builder) -> bool
 override abstract Rask.Values.Day.<Clone>$() -> Rask.Values.Day!
 override abstract Rask.Values.Number.<Clone>$() -> Rask.Values.Number!
 override abstract Rask.Values.Range.<Clone>$() -> Rask.Values.Range!
 override abstract Rask.Values.Text.<Clone>$() -> Rask.Values.Text!
-override abstract Rask.Values.Whole.<Clone>$() -> Rask.Values.Whole!
+override abstract Rask.Values.Integer.<Clone>$() -> Rask.Values.Integer!
 override sealed Rask.Values.Day.Equals(Rask.Values.Value? other) -> bool
 override sealed Rask.Values.Number.Equals(Rask.Values.Value? other) -> bool
 override sealed Rask.Values.Range.Equals(Rask.Values.Value? other) -> bool
 override sealed Rask.Values.Text.Equals(Rask.Values.Value? other) -> bool
-override sealed Rask.Values.Whole.Equals(Rask.Values.Value? other) -> bool
+override sealed Rask.Values.Integer.Equals(Rask.Values.Value? other) -> bool
 static Rask.Values.GeneratedValueRules.Attempt() -> Rask.Values.ValueAttempt
 static Rask.Values.GeneratedValueRules.Messages(System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems) -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Values.GeneratedValueRules.Missing(string! member) -> Rask.Values.Problem
 static Rask.Values.GeneratedValueRules.Refused(System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems, string? field) -> Rask.Cqrs.RaskValidationException!
 static Rask.Values.GeneratedValueRules.Required() -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Values.GeneratedValueRules.ParseDay(string! text, string? format) -> System.DateOnly
+static Rask.Values.GeneratedValueRules.ParseMoment(string! text, string? format) -> System.DateTime
+static Rask.Values.GeneratedValueRules.TryParseDay(string? text, string? format, out System.DateOnly day) -> bool
+static Rask.Values.GeneratedValueRules.TryParseMoment(string? text, string? format, out System.DateTime moment) -> bool
 static Rask.Values.GeneratedValueRules.Under<T>(string! field, System.Func<T>! make) -> T
 static Rask.Values.Problem.At<T>(T member, string! message, string! field = "") -> Rask.Values.Problem
 static Rask.Values.Problem.Whole(string! message) -> Rask.Values.Problem
@@ -20309,8 +20313,6 @@ static Rask.Values.Secret.Applied<T>(Rask.Values.Change<T!> change, Rask.Values.
 static Rask.Values.Secret.Of<T>(T! value) -> Rask.Values.Secret<T!>!
 static Rask.Values.ValueList.Of<T>(System.Collections.Generic.IEnumerable<T>! items) -> Rask.Values.ValueList<T>!
 static Rask.Values.ValueList.Of<T>(System.ReadOnlySpan<T> items) -> Rask.Values.ValueList<T>!
-Rask.Values.IStoredValue
-Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
 Rask.Values.Allocation
 static Rask.Values.Allocation.Split(decimal total, int parts, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
 static Rask.Values.Allocation.Split(decimal total, System.Collections.Generic.IReadOnlyList<decimal>! weights, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
@@ -20338,3 +20340,4 @@ static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! 
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Defer<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+const Rask.Core.Routing.LocalUrl.MaxLength = 2048 -> int

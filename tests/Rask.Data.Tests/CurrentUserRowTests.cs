@@ -24,14 +24,14 @@ public sealed class Member : Aggregate<Guid, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class CurrentUserRowTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-current-user-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly Guid _ada = Guid.NewGuid();
     private readonly Guid _bob = Guid.NewGuid();
 
     public void Dispose()
     {
         CurrentRows.Reset();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class CurrentUserRowTests : IDisposable
 
     private async Task<TestDatabase> StartAsync()
     {
-        var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        var database = await TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
         database.Context.AddRange(Member.Join(_ada, "Ada"), Member.Join(_bob, "Bob"));
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         database.Context.ChangeTracker.Clear();

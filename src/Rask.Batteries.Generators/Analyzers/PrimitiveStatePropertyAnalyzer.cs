@@ -22,7 +22,7 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask130 = new(
         "RASK130",
         "An aggregate stores a bare value where a value object would hold its rules",
-        "'{0}.{1}' is a bare '{2}' — declare a value object for it (Text, Number, Whole, Day, Range or Value), so its rules are checked wherever one is made",
+        "'{0}.{1}' is a bare '{2}' — {3}",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -30,8 +30,16 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
                      + "TimeOnly or Guid holds whatever it is given. A value object declared from a Rask.Data base "
                      + "record — public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100) — "
                      + "checks its rules as it is made, gives its column its length, and a form its maxlength. A "
-                     + "suggestion by default; a warning under <RaskStrict>.",
+                     + "suggestion by default; a warning under <RaskStrict>. A Guid holds no rules: it is a reference to "
+                     + "another row, typed by a strongly-typed id — public readonly partial record struct AccountId(Guid Value).",
         helpLinkUri: DiagnosticHelp.Link("RASK130"));
+
+    private const string DeclareValueObject =
+        "declare a value object for it (Text, Number, Integer, Day, Range or Value), so its rules are checked wherever one is made";
+
+    // A Guid is a reference to another row: no value-object base holds one, and a typed id is what keeps it apart.
+    private const string DeclareTypedId =
+        "declare a strongly-typed id for it (public readonly partial record struct …Id(Guid Value)), so it is never mistaken for another id";
 
     // The framework's own state on every entity: never the app's to wrap.
     private static readonly ImmutableHashSet<string> FrameworkMembers = ImmutableHashSet.Create(
@@ -60,11 +68,16 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask130, property.Locations.FirstOrDefault(), property.ContainingType.Name, property.Name, bare));
+            Rask130,
+            property.Locations.FirstOrDefault(),
+            property.ContainingType.Name,
+            property.Name,
+            bare.Name,
+            bare.IsGuid ? DeclareTypedId : DeclareValueObject));
     }
 
-    // The type's name when it is one a value object would wrap; null for anything else.
-    private static string? Bare(ITypeSymbol type)
+    // The type's name when it is one a value object or a typed id would wrap, and whether it is a Guid; null for anything else.
+    private static (string Name, bool IsGuid)? Bare(ITypeSymbol type)
     {
         var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
             ? nullable.TypeArguments[0]
@@ -79,7 +92,9 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
             _ => held is { Name: "DateTimeOffset" or "DateOnly" or "TimeOnly" or "Guid", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } },
         };
 
-        return bare ? type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) : null;
+        return bare
+            ? (type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat), held is { Name: "Guid", SpecialType: SpecialType.None })
+            : null;
     }
 
     // A setter of any visibility, or the compiler's field behind a get-only auto-property: a computed one is not state.

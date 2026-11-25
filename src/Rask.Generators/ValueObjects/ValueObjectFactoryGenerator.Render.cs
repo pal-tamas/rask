@@ -26,10 +26,10 @@ public sealed partial class ValueObjectFactoryGenerator
             s.AppendLine("{");
         }
 
-        s.Append("partial record ").Append(value.Name).Append(" : ").Append(Stored);
+        s.Append("partial record ").Append(value.Name);
         if (value.Ordered)
         {
-            s.Append(", global::System.IComparable<").Append(value.Name).Append(">, global::System.IComparable");
+            s.Append(" : global::System.IComparable<").Append(value.Name).Append(">, global::System.IComparable");
         }
 
         s.AppendLine();
@@ -37,7 +37,6 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendCreate(s, value);
         AppendTryCreate(s, value);
         AppendCreateOptional(s, value);
-        AppendRecheck(s, value);
         if (value.OneValue)
         {
             AppendProblems(s, value);
@@ -47,6 +46,7 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendField(s, value);
         AppendOrder(s, value);
         AppendToString(s, value);
+        AppendParse(s, value);
         s.AppendLine("}");
 
         foreach (var _ in value.Containers)
@@ -55,22 +55,6 @@ public sealed partial class ValueObjectFactoryGenerator
         }
 
         return s.ToString();
-    }
-
-    // What `rask audit` asks of a value a stored row holds: made again from its own members, its rules asked — a value
-    // loaded from a row never is. Each positional parameter has its property of the same name (the record's own, or the
-    // base's it hands it to, as Text's Value), so the members are read back by name.
-    private static void AppendRecheck(StringBuilder s, ValueObject value)
-    {
-        s.AppendLine();
-        s.AppendLine("    /// <inheritdoc />");
-        s.Append("    ").Append(ProblemList).Append(' ').Append(Stored).AppendLine(".Recheck(out bool kept)");
-        s.AppendLine("    {");
-        s.Append("        TryCreate(").Append(string.Join(", ", value.Parameters.Select(static p => "this." + p.Name)))
-            .AppendLine(", out var __made, out var __problems);");
-        s.AppendLine("        kept = __made is null || __made == this;");
-        s.AppendLine("        return __problems;");
-        s.AppendLine("    }");
     }
 
     private static string Declared(ValueObject value) =>

@@ -15,6 +15,7 @@ using Rask.Cqrs;
 using Rask.Data;
 using Rask.Querying;
 using Rask.Server.Tests.Infrastructure;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -165,12 +166,12 @@ public sealed partial class HandWiredDataHostTests : IDisposable
     private const string UserHeader = "X-User";
     private static readonly Guid Alice = Guid.NewGuid();
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-hand-wired-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
     [Fact]
@@ -436,7 +437,7 @@ public sealed partial class HandWiredDataHostTests : IDisposable
     // The whole of what a hand-wired host writes for data is the two marked calls.
     private async Task<RaskTestHost> StartAsync(TenantFrom tenantFrom = TenantFrom.TheRequestsHeader, CapturedLog? log = null)
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _database.ConnectionString;
 
         var host = RaskTestHost.Create<TerminalsApp>(
             configureServices: services =>

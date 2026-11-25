@@ -11,7 +11,7 @@ public partial class PatternInputAttributesTests : global::Rask.Core.RaskMarkup
         RaskValidation.RegisterFieldShapes(typeof(Shaped), static name => name switch
         {
             nameof(Shaped.Plate) => new FieldShape(FieldKind.Text) { Pattern = @"^[A-Z]{3}\d{3}$" },
-            nameof(Shaped.Pieces) => new FieldShape(FieldKind.Whole) { Pattern = @"^\d+$" },
+            nameof(Shaped.Pieces) => new FieldShape(FieldKind.Integer) { Pattern = @"^\d+$" },
             _ => null,
         });
     }

@@ -24,7 +24,7 @@ public partial class UiFieldTextKindTests : global::Rask.Core.RaskMarkup
             nameof(Account.Password) => new FieldShape(FieldKind.Text, MinLength: 8) { Input = global::Rask.Core.InputType.Password, AutoComplete = "current-password" },
             nameof(Account.Remark) => new FieldShape(FieldKind.Text, MaxLength: 4000) { Hint = FieldHints.MultilineText },
             nameof(Account.Litres) => new FieldShape(FieldKind.Number, Min: 1, Max: 500, Scale: 2),
-            nameof(Account.Pieces) => new FieldShape(FieldKind.Whole, Min: 2, Max: 9),
+            nameof(Account.Pieces) => new FieldShape(FieldKind.Integer, Min: 2, Max: 9),
             nameof(Account.Invoiced) => new FieldShape(FieldKind.Day),
             nameof(Account.Fuelled) => new FieldShape(FieldKind.Moment),
             _ => null,

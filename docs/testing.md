@@ -333,7 +333,7 @@ and the record's own `Rules()` both accept it, and every call makes the same one
 | Base | The sample |
 |---|---|
 | `Text` | letters to its `MinLength` (or a few, within its `MaxLength`); a simple `Pattern` — literals, `.`, `\d`, `\w`, `\s`, character classes, groups (the first alternative), counted repeats — is met |
-| `Number`, `Whole` | its `Min` (at its `Scale`), or 1 within its `Max` |
+| `Number`, `Integer` | its `Min` (at its `Scale`), or 1 within its `Max` |
 | `Day`, `Moment` | its `NotBefore`, or `Clock.Today` (`Clock.Wall`) within its latest |
 | `Range` | from its `Min` (or 1, or today) one step on — a day for dates, an hour for times — within its `Max` |
 | `Value` | a sample of each member: a text, 1, today, an enum's first member, `true`, or another value object made the same way |
@@ -643,7 +643,9 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
 
 `Run()` executes each recorded piece of work as the tenant and user who started it, includes work a running
 handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
-where the outbox is on; without it a durable handler already runs in line.
+where the outbox is on; without it a durable handler already runs in line. A test with only a `TestDatabase` and no host runs
+`jobs.Run()` (and an awaited `Jobs.Run(...)`) through the database's own services — the app such a test has — so the
+job's handler, and what it saves, are the test's.
 
 ---
 
@@ -1061,8 +1063,8 @@ public sealed class Site : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         Address = $"http://localhost:{FreePort()}";
-        var app = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Ta"));
-        var host = Path.Combine(app, Path.GetRelativePath(/* … */), "Ta.dll");
+        var app = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Shop"));
+        var host = Path.Combine(app, Path.GetRelativePath(/* … */), "Shop.dll");
         var start = new ProcessStartInfo("dotnet", [host]) { WorkingDirectory = app, /* redirects… */ };
         start.Environment["ASPNETCORE_URLS"] = Address;
         _host = Process.Start(start)!;

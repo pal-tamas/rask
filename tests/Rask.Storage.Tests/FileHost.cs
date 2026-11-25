@@ -2,22 +2,24 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Storage.Tests;
 
-/// <summary>A test server with storage mapped over a real SQLite file and a real directory.</summary>
+/// <summary>A test server with storage mapped over a real SQLite database, in memory, and a real directory.</summary>
 internal sealed class FileHost : IAsyncDisposable
 {
     private readonly WebApplication _app;
     private readonly string _root;
+    private readonly InMemorySqlite _db;
 
-    private FileHost(WebApplication app, string root)
+    private FileHost(WebApplication app, string root, InMemorySqlite database)
     {
         _app = app;
         _root = root;
+        _db = database;
         Client = app.GetTestClient();
     }
 
@@ -31,6 +33,7 @@ internal sealed class FileHost : IAsyncDisposable
     {
         var root = Path.Combine(Path.GetTempPath(), $"rask-storage-host-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
+        var database = new InMemorySqlite();
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { ContentRootPath = root });
         builder.WebHost.UseTestServer();
@@ -42,7 +45,7 @@ internal sealed class FileHost : IAsyncDisposable
             o.DataVolume = Path.Combine(root, "no-such-volume");
             configure?.Invoke(o);
         });
-        builder.Services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite($"Data Source={Path.Combine(root, "app.db")}"));
+        builder.Services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite(database.ConnectionString));
 
         var app = builder.Build();
         app.MapRaskStorage();
@@ -56,14 +59,14 @@ internal sealed class FileHost : IAsyncDisposable
         }
 
         await app.StartAsync();
-        return new FileHost(app, root);
+        return new FileHost(app, root, database);
     }
 
     public async ValueTask DisposeAsync()
     {
         Client.Dispose();
         await _app.DisposeAsync();
-        SqliteConnection.ClearAllPools();
+        await _db.DisposeAsync();
         try
         {
             Directory.Delete(_root, recursive: true);

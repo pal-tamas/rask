@@ -1115,7 +1115,10 @@ Form.For(Note.Rename, id)[f => [
   belongs together into value objects still reads better.
 - **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
   is matched by the id it was given, not added twice. A factory's form starts empty again.
+- **Two operations of one signature each get their form.** `Form.For` picks the form by the delegate the method
+  group converts to, and `Product.Archive` and `Product.Restore` — each taking only the id and version — would convert
+  to the same one. Each is then given a hidden overload that takes a mark of its own first
+  (`ProductOperationForms.ArchiveMark`), and its form takes a delegate of that shape, so `Form.For(Product.Archive, id)`
+  and `Form.For(Product.Restore, id)` still pick one each.
 - An operation whose parameter no field holds — a row whose member is itself a list or a value object of several
-  values — gets no `Form.For`, and two operations whose entries take the same types get none either
-  ([RASK174](diagnostics.md#rask174)): `Form.For` picks the form by the delegate the method group converts to, and two
-  entries of one signature convert to the same delegate, whatever their names.
+  values — gets no `Form.For` ([RASK188](diagnostics.md#rask188)).

@@ -8,6 +8,7 @@ using Rask.Core.Routing;
 using Rask.Mailing;
 using Rask.Outbox;
 using Rask.Storage;
+using Rask.Tests.Shared;
 
 namespace Rask.Dashboard.Tests;
 
@@ -70,6 +71,7 @@ public sealed class HarnessDbContext(DbContextOptions<HarnessDbContext> options)
 public sealed class DashboardHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
+    private readonly InMemorySqlite _database = new();
 
     public DashboardHarness(
         Batteries registered = Batteries.All,
@@ -78,7 +80,6 @@ public sealed class DashboardHarness : IAsyncDisposable
         Action<OpsOptions>? configure = null,
         Action<IServiceCollection>? extra = null)
     {
-        DbPath = Path.Combine(Path.GetTempPath(), $"rask-dash-test-{Guid.NewGuid():N}.db");
         HarnessDbContext.Mapped = mapped ?? registered;
 
         var services = new ServiceCollection();
@@ -131,7 +132,7 @@ public sealed class DashboardHarness : IAsyncDisposable
         extra?.Invoke(services);
         services.AddRaskDashboard<HarnessDbContext>(configure);
         services.AddDbContextFactory<HarnessDbContext>(o => o
-            .UseSqlite($"Data Source={DbPath}")
+            .UseSqlite(_database.ConnectionString)
             // EF caches the compiled model per context type, so without folding the mapping into the
             // cache key the FIRST shape built would be reused for every later harness in the process —
             // and the "table isn't mapped" tests would silently see a fully-mapped model.
@@ -141,8 +142,6 @@ public sealed class DashboardHarness : IAsyncDisposable
         using var db = NewContext();
         db.Database.EnsureCreated();
     }
-
-    public string DbPath { get; }
 
     /// <summary>A directory of its own for the storage battery's files, removed on dispose.</summary>
     public string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"rask-dash-files-{Guid.NewGuid():N}");
@@ -162,10 +161,7 @@ public sealed class DashboardHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        if (File.Exists(DbPath))
-        {
-            File.Delete(DbPath);
-        }
+        await _database.DisposeAsync();
 
         if (Directory.Exists(StorageRoot))
         {

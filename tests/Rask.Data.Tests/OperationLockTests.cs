@@ -10,10 +10,10 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class OperationLockTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-operation-locks-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly ReadRecorder _reads = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -109,7 +109,7 @@ public sealed class OperationLockTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_reads), cancellationToken: Token);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(_reads), cancellationToken: Token);
 
     // The reads tagged for the update lock, as the database was sent them.
     private sealed class ReadRecorder : DbCommandInterceptor

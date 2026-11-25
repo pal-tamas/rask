@@ -90,9 +90,9 @@ public sealed class ModelBehaviourTests : IDisposable
 {
     private static readonly DateTime Now = new(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-behaviour-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     // ---- Pure behaviour: no fixture, no database, no ceremony ----------------------------------
 
@@ -218,7 +218,7 @@ public sealed class ModelBehaviourTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), clock);
 
     private static async Task SeedAsync(TestDatabase database, params object[] entities)
     {

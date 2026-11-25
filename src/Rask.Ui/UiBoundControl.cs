@@ -24,7 +24,7 @@ internal static class UiBoundControl
             _ when IsDayOfMoment(shape, type) => MomentDay(bind, shape, look),
             FieldKind.Day => Day(bind, shape, look),
             FieldKind.Moment => Moment(bind, shape, look),
-            FieldKind.Number or FieldKind.Whole => Number(bind, shape!, look),
+            FieldKind.Number or FieldKind.Integer => Number(bind, shape!, look),
             _ when bind is Expression<Func<bool>> flag && Hinted(shape, FieldHints.Switch) => Switched(flag, look),
             _ when type == typeof(bool) => Checked(bind, look),
             _ when bind is Expression<Func<PickedFile?>> file => FilePicked(file, look),

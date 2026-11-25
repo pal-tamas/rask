@@ -62,8 +62,8 @@ public sealed partial class Vehicle : Aggregate<int, …>
   transaction that raised the event, run from there after the commit, retried alone. No class, no DI registration —
   the generator registers it from the aggregate's own partial class, so `On` stays private.
 - **It runs in a transaction of its own**, never in the one that raised the event: one aggregate per transaction,
-  and the event is how a change reaches the next one (D4 — redraw the boundary first, then an event, and only then
-  `manyAggregates:`).
+  and the event is how a change reaches the next one (redraw the boundary first, then an event, and only then
+  [`manyAggregates:`](domain.md#the-transaction-boundary)).
 - **Its stored name is `{Aggregate}:{Event}`** (full names), so its rows stay its own across rebuilds; renaming the
   aggregate or the event renames it, as renaming a handler class does.
 - **The shape is checked at build:** `static`, returning `Task`, one `IEvent` parameter

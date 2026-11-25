@@ -22,7 +22,6 @@ namespace Rask.Auth.Tests;
 /// one ordinary index behave the same on all three.
 /// </para>
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class TenantAccountTests
 {
     private readonly Guid _acme = Guid.NewGuid();

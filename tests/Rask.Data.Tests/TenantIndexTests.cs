@@ -44,11 +44,11 @@ public sealed class Carrier : Aggregate<Guid, Timestamps, Versioned, Model, Dele
 [Collection(DataDbCollection.Name)]
 public sealed class TenantIndexTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-tenant-index-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly Guid _acme = Guid.NewGuid();
     private readonly Guid _globex = Guid.NewGuid();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_index_that_names_the_tenant_is_left_exactly_as_declared()
@@ -121,5 +121,5 @@ public sealed class TenantIndexTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

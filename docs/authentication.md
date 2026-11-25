@@ -163,10 +163,16 @@ that is the account:
 ```csharp
 public sealed class User : Authenticatable
 {
-    [MaxLength(100)]
-    public string DisplayName { get; private set; } = "";
+    // None until the person gives one: an account an administrator invites is made without it.
+    public UserDisplayName? DisplayName { get; private set; }
 
-    public void Rename(string displayName) => DisplayName = displayName.Trim();
+    public void Rename(string displayName) => DisplayName = UserDisplayName.CreateOptional(displayName, nameof(DisplayName));
+}
+
+// The name a user is shown by. Its rules are checked wherever one is made — the register form asks the same.
+public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: MaxLength, Required: false)
+{
+    public const int MaxLength = 100;
 }
 ```
 
@@ -191,7 +197,14 @@ await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
 ```
 
-Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.
+Other aggregates refer to a user by id rather than holding one — typed, so it is never mistaken for another id
+(a bare `Guid` there is [RASK130](diagnostics.md#rask130)):
+
+```csharp
+public readonly partial record struct AccountId(Guid Value);
+
+public AccountId? Owner { get; private set; }   // new AccountId(id) from the signed-in user's Guid
+```
 
 **Set your own columns while registering.** `IAuth.Register` takes a lambda that runs on the new user
 before it is saved, in the same insert; the scaffolded register page uses it for the display name:
@@ -524,6 +537,11 @@ reloading tab is served the page it asked for.
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.
 
+The way back is written once, never wrapped. When the page challenged is the sign-in page itself — a layout that
+guards `/login`, a cookie the scheme keeps refusing — the challenge carries the way back that page already had, not
+`/login?returnUrl=%2Flogin%3FreturnUrl%3D…` escaped once more each time round, which would grow until the server
+answers `431 Request Header Fields Too Large`. A way back longer than `LocalUrl.MaxLength` (2048 characters) is `/`.
+
 ### In WebAssembly
 
 A WebAssembly tab has no socket whose cookie can be stale — every request it makes carries the cookie as it is now,
@@ -634,7 +652,7 @@ decisions, each the conservative one:
 | The redeem is a **same-origin `POST`** | another site's `Origin`/`Referer` is refused, and so is any `Sec-Fetch-Site` but `same-origin`, before the ticket is looked at — a forged attempt does not burn it |
 | The answer is **`no-store`** | no cache, shared or the browser's, keeps a credential |
 | The cookie is **`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`** | no script reads it, it never crosses plain HTTP, another site's request carries it only on a link followed here, and the page's socket and its `/_rask` calls carry it as the page does — none of these are knobs |
-| `ReturnUrl` is **local or `/`** | `LocalUrl.Sanitize`: another origin, `//host`, a backslash or a control character becomes `/` |
+| `ReturnUrl` is **local or `/`** | `LocalUrl.Sanitize`: another origin, `//host`, a backslash, a control character or more than `LocalUrl.MaxLength` (2048) characters becomes `/`; it never escapes or unescapes, so sanitizing twice is sanitizing once |
 | The page **loads again** under the cookie | Rask cannot know the token's user before your scheme reads it, so the old live session is left, never reattached to someone it did not expect |
 
 The browser host has no `SignInWithToken`: a WebAssembly app posts the credentials to its server, whose answer sets the
@@ -666,7 +684,8 @@ it. One client — an address, or an IPv6 /64 — gets 30 failed sign-ins a minu
 accounts tried from one place is held while an office behind one address is not. And one account, from anywhere, slows
 down after 5 failures in 15 minutes: each next attempt waits 1 s, 2 s, 4 s… up to 30 s before its password is checked.
 It only waits — the right password still gets in, and clears the count — so guessing spread over many clients is slowed
-without anybody being able to lock the owner out. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+without anybody being able to lock the owner out. The counts live in memory, per process, and each holds at most
+10 000 keys: past that the stalest are let go of, so a spray of addresses costs the process no more than that. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address — at once, the lookup and the email done in the background — and "confirm
 your email" is only said after the right password — so signing in and recovering an account tell nobody which

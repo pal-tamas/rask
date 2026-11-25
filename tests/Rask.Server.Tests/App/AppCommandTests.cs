@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -15,24 +16,18 @@ namespace Rask.Server.Tests.App;
 [Collection(RaskAppCollection.Name)]
 public sealed class AppCommandTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-command-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose()
-    {
-        foreach (var file in new[] { _path, _path + "-wal", _path + "-shm" })
-        {
-            File.Delete(file);
-        }
-    }
+    public void Dispose() => _database.Dispose();
 
     [Fact]
     public void Only_arguments_that_start_with_rask_name_a_command()
     {
         string[] serve = ["--urls", "http://localhost:5000"];
 
-        var named = AppCommand.Names(["rask", "audit"]);
+        var named = AppCommand.Names(["rask", "db", "migrate"]);
 
         Assert.True(named);
         Assert.False(AppCommand.Names(serve));
@@ -45,51 +40,11 @@ public sealed class AppCommandTests : IDisposable
         await using var services = new ServiceCollection().BuildServiceProvider();
         using var error = new StringWriter();
 
-        var exit = await AppCommand.RunAsync(services, ["rask", "frobnicate"], TextWriter.Null, error, Token);
+        var exit = await AppCommand.RunAsync(services, ["rask", "frobnicate"], error, Token);
 
         Assert.Equal(2, exit);
         Assert.Contains("Unknown command 'rask frobnicate'", error.ToString(), StringComparison.Ordinal);
-        Assert.Contains("rask audit", error.ToString(), StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("--aggregate")]
-    [InlineData("--everything")]
-    public async Task An_audit_option_it_does_not_take_exits_two_before_reading_anything(string option)
-    {
-        await using var services = new ServiceCollection().BuildServiceProvider();
-        using var error = new StringWriter();
-
-        var exit = await AppCommand.RunAsync(services, ["rask", "audit", option], TextWriter.Null, error, Token);
-
-        Assert.Equal(2, exit);
-        Assert.Contains("--aggregate <Name>", error.ToString(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_audit_takes_names_repeated_or_split_by_commas()
-    {
-        var options = AuditOptions.Parse(["--aggregate", "Driver,Vehicle", "-a", "Tank", "--unique-candidates", "--json"]);
-
-        Assert.Equal(["Driver", "Vehicle", "Tank"], options!.Aggregates);
-        Assert.True(options.Json);
-        Assert.True(options.UniqueCandidates);
-    }
-
-    [Fact]
-    public void The_report_names_each_aggregate_its_broken_rules_by_field_and_the_ids_alone()
-    {
-        var report = new RuleAuditReport(
-            [new RuleAuditCount("Driver", 412), new RuleAuditCount("Vehicle", 3)],
-            [new RuleBreach("Driver", "Chips[*].Period", "The end cannot be before the start.", ["7", "9"])]);
-
-        var text = AuditOutput.Text(report);
-        var json = AuditOutput.Json(report);
-
-        Assert.Contains("2 aggregate(s), 415 row(s) read, 1 rule(s) broken.", text, StringComparison.Ordinal);
-        Assert.Contains("  Chips[*].Period: The end cannot be before the start. — 2\n    7, 9", text.ReplaceLineEndings("\n"), StringComparison.Ordinal);
-        Assert.Contains("Vehicle — 3 read, all pass.", text, StringComparison.Ordinal);
-        Assert.Contains("\"count\": 2", json, StringComparison.Ordinal);
+        Assert.Contains("rask db migrate", error.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -98,7 +53,7 @@ public sealed class AppCommandTests : IDisposable
         var app = StepApp(migrateOnStart: false);
         using var log = AppStepLog.Begin();
 
-        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "migrate"], TextWriter.Null, TextWriter.Null, Token);
+        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "migrate"], TextWriter.Null, Token);
 
         Assert.Equal(0, exit);
         Assert.Equal([CreateTallies.Id, FillTallies.Id], await AppliedAsync(app));
@@ -125,7 +80,7 @@ public sealed class AppCommandTests : IDisposable
         var built = app.Build<MinimalApp>();
         using var error = new StringWriter();
 
-        var exit = await AppCommand.RunAsync(built.Services, ["rask", "audit"], TextWriter.Null, error, Token);
+        var exit = await AppCommand.RunAsync(built.Services, ["rask", "db", "migrate"], error, Token);
 
         Assert.Equal(2, exit);
         Assert.Contains("Data battery off", error.ToString(), StringComparison.Ordinal);
@@ -146,7 +101,7 @@ public sealed class AppCommandTests : IDisposable
             c.Ops.Off();
             c.Snapshots.Off();
         });
-        app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite($"Data Source={_path};Pooling=False"));
+        app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite(_database.ConnectionString));
         return app.Build<MinimalApp>();
     }
 

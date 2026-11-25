@@ -6,7 +6,6 @@ namespace Rask.Background.Tests;
 /// <c>c.Jobs.Limit&lt;TJob&gt;().After(…).IdleFor(…)</c>: a running job stops by itself at its time limit, or when it has
 /// reported no progress for too long — measured exactly, on the processor's clock, which these tests move by hand.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobLimitTests
 {
     private static readonly TimeSpan Second = TimeSpan.FromSeconds(1);

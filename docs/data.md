@@ -404,7 +404,7 @@ an `InvalidOperationException` naming the part it could not translate.
 
 The sort becomes `ORDER BY` and the page becomes `LIMIT`/`OFFSET`, in the database — the table never reaches
 memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both work against it;
-each is its own short-lived context. The [tutorial's product list](tutorial/02-first-feature.md#5-the-list-page)
+each is its own short-lived context. The [tutorial's product list](tutorial/02-first-feature.md#2-the-page)
 does the same through a query, so the read stays off the render and a write refreshes it.
 
 **EF Core's own operators go on first.** `Include`, `IgnoreQueryFilters` and `AsSplitQuery` are EF Core
@@ -886,7 +886,7 @@ Server, where a default is a named constraint, an app's
 `{table}_{column}_df` needs no `HasDefaultConstraintName`; PostgreSQL and SQLite defaults have no name.
 
 **`StoredDefault(property, stored)`** gives the default as the column stores it, for the one a value object would
-refuse — a legacy schema's `0` for a `HardwareNumber(int Value) : Whole(Value, Min: 1)`:
+refuse — a legacy schema's `0` for a `HardwareNumber(int Value) : Integer(Value, Min: 1)`:
 `b.StoredDefault(p => p.HardwareNumber, 0)`. The type is checked as the model is built: an `int` column takes an `int`.
 
 `Default(x => x.CreatedAt, () => Clock.Now)` (or `() => Clock.Now.UtcDateTime` for a `DateTime`) is **the database's
@@ -1557,11 +1557,11 @@ or on the context a hand-wired host registered — the same word and the same `s
 ```csharp
 // Before: a SchemaOwner class of the app's own — sp_getapplock, a raw OBJECT_ID check, a hand-built history row,
 // SetCommandTimeout — called from Program.cs after Build(), and an *AtDesignTime factory beside it.
-builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection));
-await SchemaOwner.Take(app.Services.GetRequiredService<IDbContextFactory<TaDomain>>(), app.Logger);
+builder.Services.AddRaskData<ShopContext>(o => o.UseSqlServer(connection));
+await SchemaOwner.Take(app.Services.GetRequiredService<IDbContextFactory<ShopContext>>(), app.Logger);
 
 // After
-builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection))
+builder.Services.AddRaskData<ShopContext>(o => o.UseSqlServer(connection))
     .OwnsSchema(s => s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes));
 ```
 
@@ -1621,16 +1621,16 @@ settings instead. It opens the database through `UseRaskDatabase`, as the app's 
 string, or `postgres` without the Rask.Postgres package each stop the command with the same sentence the app would
 start with.
 
-A host wired by hand chooses its provider in code — `AddRaskData<TaDomain>(o => o.UseSqlServer(connection))` — and
+A host wired by hand chooses its provider in code — `AddRaskData<ShopContext>(o => o.UseSqlServer(connection))` — and
 `dotnet ef` does not run that code. So there the factory requires the setting, and stops naming it rather than
 writing SQLite migrations for a SQL Server database:
 
 ```csharp
 // Before: a factory of the app's own, beside the context
-public sealed class TaDomainAtDesignTime : IDesignTimeDbContextFactory<TaDomain>
+public sealed class ShopContextAtDesignTime : IDesignTimeDbContextFactory<ShopContext>
 {
-    public TaDomain CreateDbContext(string[] args) =>
-        new(new DbContextOptionsBuilder<TaDomain>().UseSqlServer("Server=nobody;Database=nothing").Options);
+    public ShopContext CreateDbContext(string[] args) =>
+        new(new DbContextOptionsBuilder<ShopContext>().UseSqlServer("Server=nobody;Database=nothing").Options);
 }
 ```
 

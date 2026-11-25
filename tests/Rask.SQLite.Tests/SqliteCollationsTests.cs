@@ -8,11 +8,10 @@ namespace Rask.SQLite.Tests;
 // connection. (The EF Core side — that UseRaskSqlite makes OrderBy correct on every locale — is covered
 // in Rask.SQLite.EntityFrameworkCore.Tests.RaskSqliteDecimalOrderingTests.)
 //
-// The assembly disables parallelisation (see AssemblyInfo.cs), so swapping CurrentCulture is safe here.
+// CurrentCulture flows with the async context, so swapping it inside one test leaves the tests beside it alone.
 public sealed class SqliteCollationsTests : IDisposable
 {
-    private readonly string _dbPath =
-        Path.Combine(Path.GetTempPath(), $"rask-sqlite-collation-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Theory]
     [InlineData("")]
@@ -28,7 +27,7 @@ public sealed class SqliteCollationsTests : IDisposable
         try
         {
             var services = new ServiceCollection();
-            services.AddRaskSqliteAt($"Data Source={_dbPath}");
+            services.AddRaskSqliteAt(_database.ConnectionString);
             await using var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<ISqlite>();
 
@@ -133,7 +132,7 @@ public sealed class SqliteCollationsTests : IDisposable
 
     private async Task<SqliteConnection> OpenPlainAsync()
     {
-        var connection = new SqliteConnection($"Data Source={_dbPath}");
+        var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync();
         return connection;
     }
@@ -172,9 +171,5 @@ public sealed class SqliteCollationsTests : IDisposable
         return values;
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 }

@@ -60,9 +60,9 @@ public sealed class Itinerary : Aggregate<Guid, Timestamps, Versioned, Model, De
 [Collection(DataDbCollection.Name)]
 public sealed class ValueCollectionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-values-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Plain_values_are_a_primitive_collection_and_value_objects_are_json()
@@ -218,8 +218,8 @@ public sealed class ValueCollectionTests : IDisposable
     }
 
     private DbContextOptions<RaskDbContext> Options() =>
-        OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(_sqlite.ConnectionString).Options;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

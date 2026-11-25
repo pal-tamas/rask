@@ -47,6 +47,7 @@
   <ItemGroup>
     <!-- The one shared polling wait, by source: its hang ceiling is the suite's, not this project's own number. -->
     <Compile Include="..\Rask.TestSupport\WaitFor.cs" Link="WaitFor.cs"/>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
   </ItemGroup>
 
 </Project>

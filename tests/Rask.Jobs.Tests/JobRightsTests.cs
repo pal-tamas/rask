@@ -10,7 +10,6 @@ namespace Rask.Background.Tests;
 /// A job runs signed in as the user who enqueued it, with the rights they had THEN and still have NOW — never one
 /// they gained since, never one they lost since, and nothing at all once their account is gone.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobRightsTests
 {
     [Fact]
@@ -109,8 +108,7 @@ public sealed class JobRightsTests
     [Fact]
     public async Task A_database_without_the_user_claims_column_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-noclaims-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await using (var db = h.NewContext())
         {
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE Job DROP COLUMN UserClaims;", cancellationToken: TestContext.Current.CancellationToken);

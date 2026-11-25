@@ -65,7 +65,7 @@ public sealed class StylingTests
 
         Assert.DoesNotContain("UiStylesheet", app, StringComparison.Ordinal);
         Assert.DoesNotContain("Shell(", app, StringComparison.Ordinal);
-        Assert.Contains("Render() => Router", app, StringComparison.Ordinal);
+        Assert.Contains("Render() => [Router, Ui.Confirm]", app, StringComparison.Ordinal);
     }
 
     [Fact]

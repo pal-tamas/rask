@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Background.Tests;
 
-[Collection(JobsDbCollection.Name)]
 public sealed class JobProcessorTests
 {
     [Fact]
@@ -188,7 +187,7 @@ public sealed class JobProcessorTests
         await using var restarted = new JobsHarness(
             o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(),
             start: first.Clock.GetUtcNow(),
-            dbPath: first.DbPath);
+            connectionString: first.ConnectionString);
 
         await restarted.Processor.StartAsync(CancellationToken.None);
         try

@@ -1,8 +1,8 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Caching.Tests;
 
@@ -15,7 +15,6 @@ namespace Rask.Caching.Tests;
 ///     insert in for that server — the path under test is the cache's, not the provider's, and the real servers
 ///     prove the provider half in <c>Rask.Providers.E2E.Tests</c>.
 /// </remarks>
-[Collection(CacheDbCollection.Name)]
 public sealed class CacheKeyLengthErrorTests
 {
     private static readonly DistributedCacheEntryOptions FiveMinutes = new()
@@ -51,30 +50,22 @@ public sealed class CacheKeyLengthErrorTests
 
     private static async Task WithCacheAsync(Func<IDistributedCache, Task> test)
     {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"rask-cache-key-length-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddRaskCache<CacheDbContext>();
         services.AddDbContextFactory<CacheDbContext>(o => o
-            .UseSqlite($"Data Source={dbPath}")
+            .UseSqlite(database.ConnectionString)
             .AddInterceptors(new FailingInsertInterceptor()));
 
         await using var provider = services.BuildServiceProvider();
 
-        try
+        await using (var db = await provider.GetRequiredService<IDbContextFactory<CacheDbContext>>().CreateDbContextAsync())
         {
-            await using (var db = await provider.GetRequiredService<IDbContextFactory<CacheDbContext>>().CreateDbContextAsync())
-            {
-                await db.Database.EnsureCreatedAsync();
-            }
+            await db.Database.EnsureCreatedAsync();
+        }
 
-            await test(provider.GetRequiredService<IDistributedCache>());
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(dbPath);
-        }
+        await test(provider.GetRequiredService<IDistributedCache>());
     }
 
     // Stands in for a server refusing the insert: what PostgreSQL's 22001 and SQL Server's 2628 surface as.

@@ -58,6 +58,19 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
+    public void Every_template_mounts_the_confirm_an_editors_delete_asks_in()
+    {
+        var apps = new[]
+        {
+            Index(ProjectGenerator.GenerateServer(Root, "App", Full(), Version))["Features/Shared/App.cs"],
+            Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: false, Version))["Features/Shared/App.cs"],
+            Index(ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version))["Client/App.cs"],
+        };
+
+        Assert.All(apps, app => Assert.Contains("Render() => [Router, Ui.Confirm];", app, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Base_project_emits_the_core_files_and_packages_with_no_flags()
     {
         var (files, result) = Generate();
@@ -234,7 +247,7 @@ public sealed class ProjectGeneratorTests
         // The shell is the Features/Shared bucket; it hosts the Router but not the welcome page.
         var shell = files["Features/Shared/App.cs"];
         Assert.Contains("public sealed partial class App(RouteState route) : Component", shell, StringComparison.Ordinal);
-        Assert.Contains("Render() => Router;", shell, StringComparison.Ordinal);
+        Assert.Contains("Render() => [Router, Ui.Confirm];", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed partial class HomePage", shell, StringComparison.Ordinal);
 
         // The welcome page is its own Features/Home slice (no scoped .css to pair with).

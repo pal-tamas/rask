@@ -34,9 +34,9 @@ public sealed class ShapeTicket : Aggregate<string, Timestamps, Versioned, Model
 [Collection("data-db")]
 public sealed class SoftDeleteUpdateShapeTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-softdelete-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_stale_delete_is_refused_by_the_version_and_does_not_revert_a_change_made_after_it_loaded_the_row()
@@ -98,7 +98,7 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
         where T : class
     {
         var builder = OptionsLayout.LikeAddDbContext<TestContext<T>>()
-            .UseSqlite($"Data Source={_dbPath};Pooling=False")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(new SoftDeleteInterceptor(TimeProvider.System), new AuditingInterceptor(TimeProvider.System));
         if (capture is not null)
         {

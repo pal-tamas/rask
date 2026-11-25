@@ -1,18 +1,18 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
-/// <summary>A throwaway SQLite file for <see cref="LedgerContext"/>'s migrations, read and written without EF.</summary>
+/// <summary>A throwaway SQLite database for <see cref="LedgerContext"/>'s migrations, read and written without EF.</summary>
 internal sealed class LedgerDatabase : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-owns-schema-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
-    /// <summary>Unpooled, so a test's own reads never hold the file a host is about to migrate.</summary>
-    public string Connection => $"Data Source={_path};Pooling=False";
+    public string Connection => _database.ConnectionString;
 
-    /// <summary>Whether anything has opened the database yet.</summary>
-    public bool Exists => File.Exists(_path);
+    /// <summary>Whether the database still has no schema at all — nothing has created a table in it.</summary>
+    public async Task<bool> IsEmpty() => await Scalar("SELECT COUNT(*) FROM sqlite_master") is 0L;
 
     public async Task Run(string sql)
     {
@@ -40,12 +40,5 @@ internal sealed class LedgerDatabase : IDisposable
         return [.. await db.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken)];
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        foreach (var file in new[] { _path, _path + "-wal", _path + "-shm" })
-        {
-            File.Delete(file);
-        }
-    }
+    public void Dispose() => _database.Dispose();
 }

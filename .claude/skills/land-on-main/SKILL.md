@@ -76,7 +76,7 @@ git push origin HEAD:main
   runs them.
 - **A red `main` publishes nothing.** `pages.yml` runs only from a commit a push run of `ci.yml` passed on
   `main` (scoped — until 1.0 `main` runs once), so a site change is live minutes after its run goes green;
-  `nightly.yml` publishes once that run's `build` job is green (until 1.0), GitHub Packages first.
+  `nightly.yml` publishes once that run's `build` job and its `unit K/N` shards are green (until 1.0), GitHub Packages first.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.

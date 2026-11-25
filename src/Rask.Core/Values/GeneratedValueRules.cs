@@ -45,6 +45,36 @@ public static class GeneratedValueRules
         return problems.Count == 0 ? [] : [.. problems.Select(static p => p.Message)];
     }
 
+    /// <summary>The moment <paramref name="text" /> writes, on the wall clock of <see cref="Clock.Zone" />: what a <see cref="Moment" />'s <c>Parse</c> reads.</summary>
+    /// <param name="text">The moment as text: ISO 8601 (with or without an offset), or as <paramref name="format" /> writes it.</param>
+    /// <param name="format">The exact format it is written in, culture-invariant; null for ISO 8601.</param>
+    /// <returns>The moment, of <see cref="DateTimeKind.Unspecified" />.</returns>
+    /// <exception cref="FormatException"><paramref name="text" /> is no moment.</exception>
+    public static DateTime ParseMoment(string text, string? format) =>
+        WallText.TryMoment(text, format, out var moment) ? moment : throw WallText.NotA("moment", text, format);
+
+    /// <summary>The moment <paramref name="text" /> writes, as <see cref="ParseMoment" /> reads it; false when it is none.</summary>
+    /// <param name="text">The moment as text.</param>
+    /// <param name="format">The exact format it is written in, culture-invariant; null for ISO 8601.</param>
+    /// <param name="moment">The moment read; default when it is none.</param>
+    /// <returns>Whether <paramref name="text" /> is a moment.</returns>
+    public static bool TryParseMoment(string? text, string? format, out DateTime moment) => WallText.TryMoment(text, format, out moment);
+
+    /// <summary>The day <paramref name="text" /> writes — a moment's day on the wall calendar, for a moment: what a <see cref="Day" />'s <c>Parse</c> reads.</summary>
+    /// <param name="text">The day (or a moment) as text: ISO 8601, or as <paramref name="format" /> writes it.</param>
+    /// <param name="format">The exact format it is written in, culture-invariant; null for ISO 8601.</param>
+    /// <returns>The day.</returns>
+    /// <exception cref="FormatException"><paramref name="text" /> is no day.</exception>
+    public static DateOnly ParseDay(string text, string? format) =>
+        WallText.TryDay(text, format, out var day) ? day : throw WallText.NotA("day", text, format);
+
+    /// <summary>The day <paramref name="text" /> writes, as <see cref="ParseDay" /> reads it; false when it is none.</summary>
+    /// <param name="text">The day as text.</param>
+    /// <param name="format">The exact format it is written in, culture-invariant; null for ISO 8601.</param>
+    /// <param name="day">The day read; default when it is none.</param>
+    /// <returns>Whether <paramref name="text" /> is a day.</returns>
+    public static bool TryParseDay(string? text, string? format, out DateOnly day) => WallText.TryDay(text, format, out day);
+
     /// <summary>What a value left empty is told, as the only message.</summary>
     /// <returns>The required message, worded like every other rule.</returns>
     public static IReadOnlyList<string> Required() => [ValueWords.Say(new ValueProblem(ValueProblemKind.Required))];

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -118,10 +119,9 @@ public sealed class OutboxDbContext(DbContextOptions<OutboxDbContext> options) :
     }
 }
 
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-test-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly Recorder _recorder = new();
     private readonly @event.KeywordRecorder _keywordRecorder = new();
     private readonly ServiceProvider _provider;
@@ -136,7 +136,7 @@ public sealed class OutboxTests : IDisposable
         services.AddRaskData(); // the outbox owns delivery
         services.AddRaskOutbox<OutboxDbContext>(o => o.PollInterval = TimeSpan.FromMilliseconds(50));
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -257,10 +257,7 @@ public sealed class OutboxTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 }
 
