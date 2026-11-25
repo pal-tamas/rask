@@ -3070,7 +3070,7 @@ See [data access](data-access.md#lazy-loading-is-off).
 
 **A value object declared from a base record is made past its rules** · Error · quick-fix
 
-A value object declared from `Value`, `Text`, `Number`, `Whole`, `Day` or `Range` is made through its generated
+A value object declared from `Value`, `Text`, `Number`, `Integer`, `Day` or `Range` is made through its generated
 `Create`, `TryCreate` or `CreateOptional`, which check the rules it declares and name the field a refusal belongs to.
 `new KmRange(…)` throws without that field, and a `with` copies a value past its rules — its copy constructor asks
 none. Inside the value object's own type both are allowed, and tests are analyzed like any other code; EF Core loads
@@ -3116,7 +3116,7 @@ attribute or the call.
 
 **A value object declared from a base record is not `sealed partial`** · Error · quick-fix
 
-Rask writes the other half of a record deriving from `Value`, `Text`, `Number`, `Whole`, `Day` or `Range` — `Create`,
+Rask writes the other half of a record deriving from `Value`, `Text`, `Number`, `Integer`, `Day` or `Range` — `Create`,
 `TryCreate`, `CreateOptional`, and the column facets — so the record has to be `partial`; it is the value itself,
 never a base for another, so it has to be `sealed`. A type it is nested in has to be `partial` too. Nothing is
 generated until it is.
@@ -3153,7 +3153,7 @@ public sealed class Delivery : Aggregate<Guid>
 
 **Fix:** declare a value object for the property and store that (**quick-fix available** — "Declare a value object
 from its rules"). The lightbulb names the record after the type and the property, declares it from the base for what
-the property holds — `Text` for a `string`, `Number` for a `decimal`, `Whole` for an `int` or a `long`, `Day` for a
+the property holds — `Text` for a `string`, `Number` for a `decimal`, `Integer` for an `int` or a `long`, `Day` for a
 `DateOnly` — with the arguments the rules already written for it say, types the property as it, and takes those rules
 off the property:
 
@@ -3211,7 +3211,7 @@ as `[Display(Name = "X")]`, adds `using System.ComponentModel.DataAnnotations;` 
 **A value object's `Validate` is never asked: declare it from a base record** · Warning
 
 A value object states its rules in its constructor: one [declared from a base record](domain.md#declared-from-a-base-record)
-— `Text`, `Number`, `Whole`, `Day`, `Range`, or `Value` with its own `Rules()` — is checked as it is made, and a
+— `Text`, `Number`, `Integer`, `Day`, `Range`, or `Value` with its own `Rules()` — is checked as it is made, and a
 form bound to the aggregate's generated model asks the same rules
 [with nothing written on the field](domain.md#what-a-form-over-the-model-asks-by-itself). A `public static Validate`
 beside the value it holds was the earlier way to say it, and nothing reads it any more: no form asks it, and
@@ -3232,7 +3232,7 @@ public readonly record struct DriverName(string Value)
 > with them in 'protected override IEnumerable<Problem> Rules()', and make it with 'DriverName.Create(…)'
 
 **Fix:** declare it from the base that takes what it holds — `Text` for a `string`, `Number` for a `decimal`,
-`Whole` for a `long`, `Day` for a `DateOnly` — with the rules as arguments, and move a rule no argument says into
+`Integer` for a `long`, `Day` for a `DateOnly` — with the rules as arguments, and move a rule no argument says into
 `Rules()`; anything else derives from `Value`. Then make it with `X.Create(…)` ([RASK127](#rask127) points at each
 `new X(…)` left behind):
 
@@ -3906,7 +3906,7 @@ default; a warning under `<RaskStrict>`.
 
 `Form.For(Supply.Change, id)` is a form whose fields are the [operation](domain.md#an-operation-run-as-one-write)'s
 parameters: a value (text, number, day, bool, enum, id), a value object of one value — declared from `Text`, `Number`,
-`Whole`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
+`Integer`, `Day`, `Moment`, or a one-member `record TankSize(int Value) : Value` — a value object of several values, or a
 list of rows. An operation that takes anything else gets no form, and this names the parameter that keeps it from one
 rather than leaving the form silently missing. How many parameters it takes never does: an entry past the sixteen a
 `Func` holds is given as a delegate the form declares (`ChangeEntry`), which its method group converts to just the same.

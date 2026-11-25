@@ -5,11 +5,10 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
 // STRICT tables (SQLite 3.37+) make the store enforce each column's declared type instead of coercing
 // whatever it is handed. EF Core has no support for them, so UseRaskSqlite(o => o.StrictTables = true) swaps in a
-// migrations SQL generator that appends the keyword. These tests drive real files.
+// migrations SQL generator that appends the keyword. These tests drive a real database (in memory).
 public sealed class RaskSqliteStrictTableTests : IDisposable
 {
-    private readonly string _dbPath =
-        Path.Combine(Path.GetTempPath(), $"rask-sqlite-strict-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task Strict_is_off_by_default()
@@ -46,7 +45,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
             await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var insert = connection.CreateCommand();
         insert.CommandText = "INSERT INTO Rows (Quantity, Amount, Name) VALUES ('lots', '1.00', 'x')";
@@ -63,7 +62,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
             await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await using (var insert = connection.CreateCommand())
@@ -106,7 +105,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using var context = new CustomTypeDbContext(
             new DbContextOptionsBuilder<CustomTypeDbContext>()
-                .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = true)
+                .UseRaskSqliteAt(_database.ConnectionString, o => o.StrictTables = true)
                 .Options);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -136,23 +135,19 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
 
     private ProbeDbContext NewContext(bool strict) =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = strict)
+            .UseRaskSqliteAt(_database.ConnectionString, o => o.StrictTables = strict)
             .Options);
 
     private string ReadDdl()
     {
-        using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        using var connection = new SqliteConnection(_database.ConnectionString);
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT sql FROM sqlite_master WHERE name = 'Rows'";
         return (string)command.ExecuteScalar()!;
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     private sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options) : DbContext(options)
     {

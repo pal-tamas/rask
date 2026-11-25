@@ -14,7 +14,6 @@ namespace Rask.Auth.Tests;
 ///     An administrator acts in a tenant they choose (#1280): the choice is kept on the sign-in's session, so the
 ///     next request, a reconnect and a live page's next event all work in it, and signing out drops it.
 /// </summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class ActInTenantTests
 {
     private const string Password = "Password1";

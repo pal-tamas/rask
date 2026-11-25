@@ -6,14 +6,14 @@ using Rask.Data;
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
 // Integration tests for HasFullTextSearch + Search, driven through the same migration path `dotnet ef` uses (model
-// differ -> IMigrationsSqlGenerator) against a real SQLite database file, with Rask's production pragmas — notably
+// differ -> IMigrationsSqlGenerator) against a real SQLite database (in memory), with Rask's production pragmas — notably
 // trusted_schema=OFF, which the sync triggers have to run under.
 public sealed class FullTextSearchTests : IDisposable
 {
     private const char S = FullText.MatchStart;
     private const char E = FullText.MatchEnd;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-fts-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     // ---- Querying ---------------------------------------------------------------------------------------------
 
@@ -238,8 +238,8 @@ public sealed class FullTextSearchTests : IDisposable
     public async Task Configuring_the_context_twice_still_rewrites_once()
     {
         var options = new DbContextOptionsBuilder<ArticleContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}")
-            .UseRaskSqliteAt($"Data Source={_dbPath}")
+            .UseRaskSqliteAt(_database.ConnectionString)
+            .UseRaskSqliteAt(_database.ConnectionString)
             .Options;
 
         await using var db = new ArticleContext(options);
@@ -535,11 +535,7 @@ public sealed class FullTextSearchTests : IDisposable
         Assert.Equal($"beta {S}shared{E}", hit.Text);
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     // ---- Helpers ----------------------------------------------------------------------------------------------
 
@@ -618,7 +614,7 @@ public sealed class FullTextSearchTests : IDisposable
     private DbContextOptions<TContext> Options<TContext>(bool strictTables = false)
         where TContext : DbContext
         => new DbContextOptionsBuilder<TContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = strictTables)
+            .UseRaskSqliteAt(_database.ConnectionString, o => o.StrictTables = strictTables)
             .Options;
 
     private sealed class PlainMemoContext(DbContextOptions options) : DbContext(options)

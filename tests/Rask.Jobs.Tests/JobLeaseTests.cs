@@ -12,17 +12,15 @@ namespace Rask.Background.Tests;
 /// these fail every time if the claim is wrong. The one genuine race lives in
 /// <see cref="JobProcessorConcurrencyTests"/>.
 /// </remarks>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobLeaseTests
 {
     private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    /// <summary>Two instances over one database file, each with its own clock started together.</summary>
+    /// <summary>Two instances over one database, each with its own clock started together.</summary>
     private static (JobsHarness A, JobsHarness B) Pair(Action<JobsOptions>? configure = null)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
-        var a = new JobsHarness(configure, Start, path);
-        var b = new JobsHarness(configure, Start, path);
+        var a = new JobsHarness(configure, Start);
+        var b = new JobsHarness(configure, Start, a.ConnectionString);
         return (a, b);
     }
 
@@ -168,11 +166,10 @@ public sealed class JobLeaseTests
         // A hazard the drain's lease does nothing about: both instances read the same RecurringJobState,
         // both see it due, and both enqueue. The two LastEnqueuedAt writes then race with nothing to detect
         // the conflict, so neither loses — N× every recurring job, for as long as the app runs.
-        var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
         await using var a = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start);
         await using var b = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, a.ConnectionString);
 
         await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
         await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
@@ -260,11 +257,10 @@ public sealed class JobLeaseTests
         // The first tick is the one case with no state row to compare-and-swap against: both instances try
         // to create it and one loses on the primary key. It must not enqueue on the way past — and, the
         // other half, the winner must not be blocked by a NULL comparison that is never true.
-        var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
         await using var a = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start);
         await using var b = new JobsHarness(
-            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, path);
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)).RunOnFirstStart(), Start, a.ConnectionString);
 
         await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
         await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);

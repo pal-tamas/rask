@@ -897,10 +897,10 @@ public enum RaskString
     /// <summary>The accessible name of a toast's close control (<c>Ui.Toast</c>), which shows only a cross.</summary>
     ToastClose,
 
-    /// <summary>What a number below a value object's least says (<c>Number(Min: …)</c>, <c>Whole(Min: …)</c>). <c>{0}</c> is the least.</summary>
+    /// <summary>What a number below a value object's least says (<c>Number(Min: …)</c>, <c>Integer(Min: …)</c>). <c>{0}</c> is the least.</summary>
     ValidationNumberMin,
 
-    /// <summary>What a number above a value object's greatest says (<c>Number(Max: …)</c>, <c>Whole(Max: …)</c>). <c>{0}</c> is the greatest.</summary>
+    /// <summary>What a number above a value object's greatest says (<c>Number(Max: …)</c>, <c>Integer(Max: …)</c>). <c>{0}</c> is the greatest.</summary>
     ValidationNumberMax,
 
     /// <summary>What a number with more decimal places than a value object's <c>Number(Scale: …)</c> says. <c>{0}</c> is the most.</summary>

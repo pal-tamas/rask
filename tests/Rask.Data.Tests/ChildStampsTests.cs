@@ -78,10 +78,10 @@ public sealed class RosterBadge : Entity<Guid, Timestamps>
 [Collection(DataDbCollection.Name)]
 public sealed class ChildStampsTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-child-stamps-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_child_and_grandchild_that_declare_nothing_map_no_timestamps_while_the_root_maps_both()
@@ -225,5 +225,5 @@ public sealed class ChildStampsTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 }

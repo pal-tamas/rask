@@ -8,7 +8,7 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 // EF generates, not about the DDL.
 public sealed class JsonIndexTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-json-index-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task A_filter_on_a_top_level_json_value_is_an_index_search()
@@ -101,11 +101,7 @@ public sealed class JsonIndexTests : IDisposable
         Assert.Contains("ToJson()", error.Message, StringComparison.Ordinal);
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     // Enough rows, spread over enough values, that the planner's statistics — Rask's connections run PRAGMA optimize
     // as they close — say what a real table's would: on a two-row table a scan IS the cheaper plan.
@@ -135,7 +131,7 @@ public sealed class JsonIndexTests : IDisposable
         where TContext : DbContext
         => (TContext)Activator.CreateInstance(
             typeof(TContext),
-            new DbContextOptionsBuilder<TContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options)!;
+            new DbContextOptionsBuilder<TContext>().UseRaskSqliteAt(_database.ConnectionString).Options)!;
 
     private static async Task<string> PlanAsync(DbContext db, string queryString)
     {

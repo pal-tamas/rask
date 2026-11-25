@@ -11,7 +11,6 @@ namespace Rask.Auth.SignInName.Tests;
 ///     <c>Rename</c>, <c>SetPassword</c> and <c>Remove</c>, on an app shaped as the one that asked — keyed by text,
 ///     signing in by name, its users in tenants and its administrators in none.
 /// </summary>
-[Collection(NameDbCollection.Name)]
 public sealed class AdministeredAccountsTests
 {
     private const string Password = "Password1";

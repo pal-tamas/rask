@@ -83,10 +83,10 @@ public sealed class ReverseNavigationReadTests : IDisposable
     private static readonly Guid Acme = new("5a0c7e2b-1d4f-4c8a-9b3e-7f6d2a1c0e91");
     private static readonly Guid Globex = new("c3e1a9d7-2b6f-4e05-8a4c-1f9b7d3e5a20");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-reverse-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly SqlCommandLog _log = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_reverse_collection_filters_and_sorts_by_the_live_rows_that_point_here_in_one_statement()
@@ -252,5 +252,5 @@ public sealed class ReverseNavigationReadTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_log), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(_log), cancellationToken: TestContext.Current.CancellationToken);
 }

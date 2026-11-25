@@ -7,7 +7,6 @@ namespace Rask.Background.Tests;
 /// <c>Jobs.Lanes(…)</c>: what runs in each lane and what waits, in the order the lane takes it — many lanes in one query.
 /// Rows are written here as the processor and outsiders would leave them; no processor runs.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobLaneViewTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

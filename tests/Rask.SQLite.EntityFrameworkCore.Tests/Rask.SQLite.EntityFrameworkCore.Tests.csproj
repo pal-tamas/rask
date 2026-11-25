@@ -44,4 +44,10 @@
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
+    <Compile Include="..\Shared.DbCollection\SqliteFileGuard.cs" Link="SqliteFileGuard.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>

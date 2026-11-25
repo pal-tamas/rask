@@ -77,7 +77,7 @@ public sealed class Doodad : Aggregate<Guid, Timestamps, Versioned, Model, SoftD
 [Collection(DataDbCollection.Name)]
 public sealed class GeneratedModelTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-model-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly ServiceProvider _provider;
 
     public GeneratedModelTests()
@@ -85,8 +85,8 @@ public sealed class GeneratedModelTests : IDisposable
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<RaskDbContext>();
-        services.AddDbContextFactory<RaskDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
 
         _provider = services.BuildServiceProvider();
 
@@ -104,7 +104,7 @@ public sealed class GeneratedModelTests : IDisposable
         Db.Reset();
         ReadDb.Reset();
         _provider.Dispose();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     private RaskDbContext NewContext() =>

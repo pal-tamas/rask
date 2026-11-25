@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
@@ -10,12 +9,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DbTransactionRawSqlTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-raw-sql-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -144,8 +142,8 @@ public sealed class DbTransactionRawSqlTests : IDisposable
     public async Task A_context_on_another_database_runs_its_raw_sql_there_and_its_db_call_is_refused()
     {
         await using var database = await StartDatabaseAsync();
-        var otherPath = Path.Combine(Path.GetTempPath(), $"rask-raw-sql-other-{Guid.NewGuid():N}.db");
-        await using var other = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={otherPath}").Options);
+        await using var otherDatabase = new InMemorySqlite();
+        await using var other = new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(otherDatabase.ConnectionString).Options);
         await other.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
@@ -155,9 +153,6 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("another database", refused.Message, StringComparison.Ordinal);
-        await other.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-        File.Delete(otherPath);
     }
 
     [Fact]
@@ -205,5 +200,5 @@ public sealed class DbTransactionRawSqlTests : IDisposable
 
     // A short busy timeout, so a raw write left outside fails fast on the lock the transaction holds, not in 30 s.
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath};Default Timeout=2"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite($"{_sqlite.ConnectionString};Default Timeout=2"), cancellationToken: TestContext.Current.CancellationToken);
 }

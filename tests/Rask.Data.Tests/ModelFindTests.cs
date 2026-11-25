@@ -8,9 +8,9 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class ModelFindTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-find-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Finds_the_row_with_that_key()
@@ -112,7 +112,7 @@ public sealed class ModelFindTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     private static async Task<(Widget First, Widget Second)> SeedAsync(TestDatabase database, Widget first, Widget second)
     {

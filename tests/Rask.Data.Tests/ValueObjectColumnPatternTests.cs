@@ -31,12 +31,12 @@ public sealed class OdometerContext(DbContextOptions<OdometerContext> options) :
 [Collection(DataDbCollection.Name)]
 public sealed class ValueObjectColumnPatternTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-column-pattern-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<OdometerContext>();
@@ -62,7 +62,7 @@ public sealed class ValueObjectColumnPatternTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

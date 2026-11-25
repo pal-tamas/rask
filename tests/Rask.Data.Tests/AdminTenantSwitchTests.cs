@@ -20,11 +20,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class AdminTenantSwitchTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-admin-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly Guid _acme = Guid.NewGuid();
     private readonly Guid _globex = Guid.NewGuid();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_admin_lists_every_tenant_then_works_inside_the_one_they_chose()
@@ -82,5 +82,5 @@ public sealed class AdminTenantSwitchTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

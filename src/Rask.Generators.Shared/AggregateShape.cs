@@ -256,7 +256,7 @@ internal static class AggregateShape
     /// <remarks>
     ///     A value object declared from a base that holds its value (<c>record DriverName(string Value) : Text(Value, MaxLength: 1000)</c>)
     ///     stores the base's <c>Value</c> and nothing else: the rules its base keeps are not state. One declared from
-    ///     <c>Whole</c> (an <c>int</c> or a <c>long</c>) or <c>Value</c> stores its own positional members.
+    ///     <c>Integer</c> (an <c>int</c> or a <c>long</c>) or <c>Value</c> stores its own positional members.
     /// </remarks>
     public static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol type) =>
         DeclaredValueBaseOf(type) is "Text" or "Number" or "Day" or "Moment"
@@ -279,7 +279,7 @@ internal static class AggregateShape
     }
 
     /// <summary>
-    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Whole</c>,
+    ///     The base record a one-value value object is declared from — <c>Text</c>, <c>Number</c>, <c>Integer</c>,
     ///     <c>Day</c> or <c>Moment</c> of Rask.Values, derived from directly, or <c>Value</c> for a record of ONE member
     ///     that is not a value object itself (<c>record Rank(int Value) : Value</c>) — or null for any other type.
     /// </summary>
@@ -288,7 +288,7 @@ internal static class AggregateShape
         var valueBase = DeclaredValueBaseOf(type);
         return valueBase switch
         {
-            "Text" or "Number" or "Whole" or "Day" or "Moment" => valueBase,
+            "Text" or "Number" or "Integer" or "Day" or "Moment" => valueBase,
             "Value" when HoldsOneOwnValue(type) => valueBase,
             _ => null,
         };
@@ -310,7 +310,7 @@ internal static class AggregateShape
 
     /// <summary>
     ///     The Rask.Values base record a value object checked as it is made derives from directly — <c>Value</c>,
-    ///     <c>Text</c>, <c>Number</c>, <c>Whole</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
+    ///     <c>Text</c>, <c>Number</c>, <c>Integer</c>, <c>Day</c>, <c>Moment</c> or <c>Range</c> — or null for any other type.
     /// </summary>
     /// <remarks>
     ///     A record declared from one of the kinds of text — <c>Email</c>, <c>Phone</c>, <c>Url</c>, <c>Password</c>,
@@ -324,7 +324,7 @@ internal static class AggregateShape
             return "Text";
         }
 
-        return type.BaseType is { Name: "Value" or "Text" or "Number" or "Whole" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
+        return type.BaseType is { Name: "Value" or "Text" or "Number" or "Integer" or "Day" or "Moment" or "Range", Arity: 0, ContainingType: null } valueBase &&
                IsRaskValuesType(valueBase)
             ? valueBase.Name
             : null;

@@ -52,9 +52,9 @@ public sealed class IndexAsWrittenTests : IDisposable
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
     private static readonly Guid Globex = new("a1b2c3d4-0000-4000-8000-00000000beef");
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-across-tenants-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task An_index_without_the_tenant_is_left_exactly_as_written()
@@ -170,5 +170,5 @@ public sealed class IndexAsWrittenTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -112,7 +112,7 @@ internal static class FieldShapeHints
     private static string PlainKindOf(ITypeSymbol type) => KnownKindOf(type) ?? "Text";
 
     /// <summary>
-    ///     The <c>FieldKind</c> a plain value is — <c>Whole</c>, <c>Number</c>, <c>Day</c>, <c>Moment</c> or <c>Text</c> —
+    ///     The <c>FieldKind</c> a plain value is — <c>Integer</c>, <c>Number</c>, <c>Day</c>, <c>Moment</c> or <c>Text</c> —
     ///     or null for one of no kind a control is told about (a <c>bool</c>, an enum, an id).
     /// </summary>
     internal static string? KnownKindOf(ITypeSymbol type)
@@ -124,7 +124,7 @@ internal static class FieldShapeHints
         return held.SpecialType switch
         {
             SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
-                SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 => "Whole",
+                SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 => "Integer",
             SpecialType.System_Decimal or SpecialType.System_Double or SpecialType.System_Single => "Number",
             SpecialType.System_DateTime => "Moment",
             SpecialType.System_String => "Text",

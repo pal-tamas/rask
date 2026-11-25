@@ -677,7 +677,7 @@ public class OperationGeneratorTests
         Assert.Contains("__made.Add(new global::Shop.CargoPartSpec(Id: __m_Id, Hold: __m_Hold, Tonnes: __m_Tonnes, Crates: __m_Crates, Fragile: __m_Fragile));", forms, StringComparison.Ordinal);
         Assert.Contains("RegisterFieldShapes(typeof(CargoLoadInput.PartsRow), LoadPartsShapeOf);", forms, StringComparison.Ordinal);
         Assert.Contains("property is \"Hold\" or \"Tonnes\" or \"Crates\";", forms, StringComparison.Ordinal);
-        Assert.Contains("\"Crates\" => global::Rask.Core.Forms.StatedRules.Shape(typeof(global::Shop.CargoPart), \"Crates\", new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Whole)),", forms, StringComparison.Ordinal);
+        Assert.Contains("\"Crates\" => global::Rask.Core.Forms.StatedRules.Shape(typeof(global::Shop.CargoPart), \"Crates\", new global::Rask.Core.Forms.FieldShape(global::Rask.Core.Forms.FieldKind.Integer)),", forms, StringComparison.Ordinal);
         Assert.Contains("DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties, typeof(CargoLoadInput.PartsRow))", forms, StringComparison.Ordinal);
     }
 

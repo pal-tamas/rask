@@ -28,7 +28,6 @@ public sealed class ExplicitJobHandlerJobHandler(Recorder recorder) : IJobHandle
 /// <c>IJobHandler&lt;TJob&gt;</c> is found by the build and run by the processor exactly like the
 /// <c>ICommandHandler&lt;TJob&gt;</c> the other tests here use.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobHandlerTests
 {
     [Fact]

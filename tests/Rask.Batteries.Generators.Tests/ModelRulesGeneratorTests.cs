@@ -16,7 +16,7 @@ public class ModelRulesGeneratorTests
         using Rask.Values;
         namespace Shop;
         public sealed partial record Sku(string Value) : Text(Value, MinLength: 3);
-        public sealed partial record Stock(long Value) : Whole(Value, Min: 0);
+        public sealed partial record Stock(long Value) : Integer(Value, Min: 0);
         public sealed record Barcode(string Value)
         {
             public static IEnumerable<string> Validate(string value) => value.Length < 3 ? ["Too short."] : [];

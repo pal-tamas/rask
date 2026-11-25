@@ -6,7 +6,6 @@ namespace Rask.Background.Tests;
 /// <c>Jobs.Stop(id)</c>: a running job is cancelled and ends stopped, a waiting one never runs, and a stop is never a failure.
 /// The behaviours TA proved on its pumps, kept here on a fake clock.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobStopTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -410,8 +409,7 @@ public sealed class JobStopTests
     [InlineData("StartedAt")]
     public async Task A_database_without_the_stop_columns_says_which_commands_to_run(string column)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nostop-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await h.Queue.Enqueue(new RecordJob("waiting"), Ct);
         await using (var db = h.NewContext())
         {

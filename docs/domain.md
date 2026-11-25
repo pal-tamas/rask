@@ -164,7 +164,7 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 A value object is declared from the base record of what it holds, with its rules as the base's arguments, and is
 checked as it is made — no instance exists that its rules refuse. Rask writes the rest. The bases — `Value`, `Text`,
-`Number`, `Whole`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), and so is the
+`Number`, `Integer`, `Day`, `Range` and their `Problem` — are the `Rask` package's (namespace `Rask.Values`), and so is the
 generator that writes `Create`, `TryCreate`, `CreateOptional` and `Check`: a browser app or a component library on
 `Rask` alone, with no data layer, declares its values the same way with a `using Rask.Values;`. Rask.Data maps them to
 columns and imports the namespace for you, with `Range` aliased over `System.Range`:
@@ -176,7 +176,7 @@ public sealed partial record Vin(string Value) : Text(Value, MinLength: 17, MaxL
 public sealed partial record TaxNumber(string Value) : Text(Value, Pattern: @"^\d{8}-\d-\d{2}$", Message: Texts.TaxNumberForm);
 public sealed partial record Litres(decimal Value) : Number(Value, Min: 1, Scale: 2);
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Scale: 9, Round: true);   // computed: rounded, not refused
-public sealed partial record Pieces(long Value) : Whole(Value, Min: 0, Max: 1000);
+public sealed partial record Pieces(long Value) : Integer(Value, Min: 0, Max: 1000);
 public sealed partial record InvoiceDay(DateOnly Value) : Day(Value, NotAfterToday: true);
 public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
 public sealed partial record KmRange(int Start, int End) : Range(Start, End, Strict: true);   // End > Start
@@ -212,7 +212,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 |---|---|---|
 | `Text` | `string Value` | filled (`Required: false`: an empty text is the value `""`), `MaxLength`, `MinLength`, `Pattern`, `Trim` (on by default), `Upper` (kept in capitals) |
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits), `Round` (to the scale instead of refusing) |
-| `Whole` | its own `int` or `long Value` | `Min`, `Max` |
+| `Integer` | its own `int` or `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
 | `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
@@ -286,7 +286,7 @@ over the primary constructor's parameters:
 `Create` (`km with { End = 5 }` → `KmRange.Create(km.Start, 5)`). It must be `sealed partial`
 ([RASK129](diagnostics.md#rask129)), since Rask writes its other half. Two values are equal when they are of the
 same type and hold the same values; a one-value record's `ToString()` is its value — `$"{chip}"` is `C-17`, never
-`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number` and `Whole` as
+`FuelingChip { Value = C-17 }`. Every base writes it culture-invariant — `Number` and `Integer` as
 `1234.5` on every machine, never `1234,5`, a `Day` as ISO 8601 `2026-01-31` and a `Moment` as `2026-01-31T14:05:00`: it is the value's text, and showing it to a reader is the UI's and
 `Format`'s job. One declared straight from `Value` (`FuelingChip(string Value) : Value`) gets it generated the same
 way; a `ToString` the record declares itself is kept.
@@ -2166,7 +2166,7 @@ Form.Model(_destination).OnSubmit(d => Destination.Create(d))[   // _destination
 ```
 
 **The value object's own rules.** A value object that holds ONE value and is
-[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Whole`, `Day` or `Moment`, its base's
+[declared from a base record](#declared-from-a-base-record) — `Text`, `Number`, `Integer`, `Day` or `Moment`, its base's
 arguments and any `Rules()` of its own, or `: Value` with ONE positional member (`record Rank(int Value) : Value`) and
 its `Rules()` — is asked by the field that holds it, before any `.Validate(…)` written on
 the field, which then runs only for a value it accepted. The form asks exactly what its constructor checks, through

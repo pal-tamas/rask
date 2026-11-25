@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.WebPush.Tests;
 
@@ -332,11 +333,11 @@ public sealed class PushAbuseTests
 
     private static async Task<PushHost> HostAsync(Action<PushOptions>? configure = null)
     {
-        var database = Path.Combine(Path.GetTempPath(), $"rask-push-abuse-{Guid.NewGuid():N}.db");
+        var database = new InMemorySqlite();
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRaskWebPush<PushDbContext>(configure);
-        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
+        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite(database.ConnectionString));
         var app = builder.Build();
         app.MapRaskPush();
 
@@ -350,15 +351,14 @@ public sealed class PushAbuseTests
         return new PushHost(app, database);
     }
 
-    private sealed class PushHost(WebApplication app, string database) : IAsyncDisposable
+    private sealed class PushHost(WebApplication app, InMemorySqlite database) : IAsyncDisposable
     {
         public HttpClient GetTestClient() => app.GetTestClient();
 
         public async ValueTask DisposeAsync()
         {
             await app.DisposeAsync();
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            File.Delete(database);
+            await database.DisposeAsync();
         }
     }
 

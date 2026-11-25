@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
@@ -8,21 +7,17 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 // text comparison and the same `end - start` as every Rask SQLite.
 public sealed class PlainSqliteTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-sqlite-plain-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_path);
-    }
+    public void Dispose() => _database.Dispose();
 
     [Fact]
     public async Task Text_compares_as_the_app_s_SQL_Server_collation_does()
     {
         await using var db = new HungarianContext(new DbContextOptionsBuilder<HungarianContext>()
-            .UseSqlite($"Data Source={_path}").UseRaskFullTextSearch().Options);
+            .UseSqlite(_database.ConnectionString).UseRaskFullTextSearch().Options);
         await db.Database.EnsureCreatedAsync(Ct);
         db.Drivers.AddRange(
             new Driver { Name = "Csaba", Code = "c-1", Plate = "a" },
@@ -42,7 +37,7 @@ public sealed class PlainSqliteTests : IDisposable
     {
         var noon = new DateTime(2026, 11, 23, 12, 0, 0, DateTimeKind.Unspecified);
         await using var db = new TripContext(new DbContextOptionsBuilder<TripContext>()
-            .UseSqlite($"Data Source={_path}").UseRaskFullTextSearch().Options);
+            .UseSqlite(_database.ConnectionString).UseRaskFullTextSearch().Options);
         await db.Database.EnsureCreatedAsync(Ct);
         db.Trips.AddRange(
             new Trip { Id = 1, Start = noon, End = noon.AddHours(2) },

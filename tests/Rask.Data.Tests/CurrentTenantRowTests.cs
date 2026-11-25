@@ -52,13 +52,13 @@ public sealed class TextShop : Aggregate<string>
 [Collection(DataDbCollection.Name)]
 public sealed class CurrentTenantRowTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-current-tenant-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly QueryCounter _queries = new();
 
     public void Dispose()
     {
         CurrentRows.Reset();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -285,7 +285,7 @@ public sealed class CurrentTenantRowTests : IDisposable
         UseTenant<NumberShop, NumberShopRead, int>(static key => row => row.Id == key, static row => row.Id);
         var firstHasRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var secondHasRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var otherPath = Path.Combine(Path.GetTempPath(), $"rask-current-tenant-{Guid.NewGuid():N}.db");
+        await using var other = new InMemorySqlite();
 
         // Each its own flow, as two test classes running in parallel are: the first keeps its tenant 2 before the
         // second reads its own, and both databases stay open while the other reads.
@@ -306,7 +306,7 @@ public sealed class CurrentTenantRowTests : IDisposable
         }, TestContext.Current.CancellationToken);
         var second = Task.Run(async () =>
         {
-            await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={otherPath}"));
+            await using var database = await TestDatabase.Start(o => o.UseSqlite(other.ConnectionString));
             await SeedAsync(database, NumberShop.Open(2, "B"));
             await firstHasRead.Task;
             using (Tenant.Use(2))
@@ -322,7 +322,6 @@ public sealed class CurrentTenantRowTests : IDisposable
             }
         }, TestContext.Current.CancellationToken);
         var names = await Task.WhenAll(first, second);
-        File.Delete(otherPath);
 
         Assert.Equal(["AA", "B"], names);
     }
@@ -340,7 +339,7 @@ public sealed class CurrentTenantRowTests : IDisposable
     }
 
     private Task<TestDatabase> StartAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_queries));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(_queries));
 
     private sealed class QueryCounter : DbCommandInterceptor
     {

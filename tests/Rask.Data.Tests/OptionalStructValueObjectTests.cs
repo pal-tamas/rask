@@ -70,9 +70,9 @@ public sealed class OfferPlan : Aggregate<int, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class OptionalStructValueObjectTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-optional-vo-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_optional_struct_is_one_nullable_column_of_the_value_it_holds_with_its_own_facets()
@@ -220,5 +220,5 @@ public sealed class OptionalStructValueObjectTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }
