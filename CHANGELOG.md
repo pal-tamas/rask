@@ -247,6 +247,8 @@ them until tagged releases begin.
   `Company.Choices(text, detail)`; any query has `.Choices(id, text, detail)`. All are the new
   `IChoiceSource<TKey>` (namespace `Rask`: `Page(…)` → `ChoiceRowPage<TKey>`, `Find(id)`), the source a picker
   reads. Replaces the apps' own `Choice(id)`/`Find(typed, page)` pairs, TA's `ChoicePages` and Eszaf's `PagedChoices`.
+  An app's aggregates only: a battery package's tables (`RaskReadFacesOnly` — files, jobs, mail, outbox, …) get none,
+  so Rask.Storage still references no Rask.Core (#1086).
 - **A hand form's model may hold a value object itself.** `public sealed class TankForm { public Litres? Size { get; set; } }`
   with `Ui.Input.Bind(() => _form.Size)` or `Ui.Field.Bind(() => _form.Size)` works as a field of `Form.For` does: the
   control holds the value the value object holds and is shaped by its rules (`min`, `max`, `step`, `maxlength`, the
