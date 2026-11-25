@@ -115,12 +115,10 @@ namespace Shop.Tests.Features.Orders;
 
 public sealed class ReceiptTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task The_receipt_goes_to_the_customer_once()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var order = await Test.Make<Order>();
         using var mail = Mail.Fake();
 
@@ -128,7 +126,7 @@ public sealed class ReceiptTests
         await new SendOrderReceiptHandler().Handle(new SendOrderReceipt(order.Id));
 
         mail.Sent().To(order.Customer.Value).Once();
-        Assert.True((await Order.Where(o => o.Id == order.Id).First(Ct)).ReceiptSent);
+        Assert.True((await Order.Where(o => o.Id == order.Id).First()).ReceiptSent);
     }
 }
 ```

@@ -1,6 +1,6 @@
 // The rask.sh hero's third file, compiled and run here (see Product.cs).
-// The front page has room for the rule, not for a TestContext.Current.CancellationToken on every call: the test is
-// shown as short as it can be written, and it finishes in milliseconds on SQLite in memory, so nothing is lost here.
+// The front page shows the test as an app writes it, with no token passed: Rask.Testing's hook makes the test's own
+// the ambient one, which every call here uses — a strict app's test project has xUnit1051 off for that reason.
 #pragma warning disable xUnit1051
 namespace Rask.Testing.Database.Tests.Hero;
 

@@ -20,6 +20,12 @@ namespace Rask.Generators.Shared;
 ///     The C# of its field shape — its value object's <c>__Field</c> and what the property's attributes add — or null
 ///     for one whose type says all there is.
 /// </param>
+/// <param name="AsKey">
+///     The same column in the type the property declares — <c>ProductId Product</c> — for a one-value type that may be
+///     another entity's key, or null. Which one the face takes is settled once every entity is known
+///     (<see cref="ReadModelShape.KeepKeysTyped" />): an entity's key type is a converted column on the write model, so
+///     the face keeps it as declared; any other one-value type is the value it holds.
+/// </param>
 internal sealed record ReadMember(
     string Name,
     string ColumnName,
@@ -28,4 +34,5 @@ internal sealed record ReadMember(
     bool Nullable,
     bool IsReferenceType,
     string? Shown = null,
-    string? Shape = null);
+    string? Shape = null,
+    ReadMember? AsKey = null);

@@ -18,6 +18,7 @@ public static class TestRun
 {
     private static readonly AsyncLocal<Run?> Open = new();
     private static readonly AsyncLocal<IDisposable?> FixtureBinding = new();
+    private static readonly AsyncLocal<Ambient.TokenScope?> TestCancellation = new();
 
     internal static Run? Current => Open.Value;
 
@@ -49,9 +50,32 @@ public static class TestRun
         FixtureBinding.Value = FixtureDatabase.Bind(fixtures);
     }
 
+    /// <summary>
+    ///     Opens this test's app as <see cref="Begin(IEnumerable{object})" /> does, and makes <paramref name="cancellation" />
+    ///     the test's ambient one — so every Rask call the test makes without a token, <c>await Product.Create(model)</c>,
+    ///     <c>Order.Where(…)</c>, <c>TestDatabase.Start()</c>, is cancelled with the test.
+    /// </summary>
+    /// <remarks>
+    ///     The xUnit v3 hook passes <c>TestContext.Current.CancellationToken</c>. A token the test passes itself still
+    ///     wins, and a render still sets the test's aside for the lifetimes of what it mounts.
+    /// </remarks>
+    /// <param name="fixtures">The fixtures the test class was given.</param>
+    /// <param name="cancellation">The test's cancellation: the run was aborted, or the test timed out.</param>
+    public static void Begin(IEnumerable<object> fixtures, CancellationToken cancellation)
+    {
+        Begin(fixtures);
+        TestCancellation.Value = Ambient.Enter(cancellation);
+    }
+
     /// <summary>Shuts down the app this test booted, if it booted one.</summary>
     public static void End()
     {
+        if (TestCancellation.Value is { } cancellation)
+        {
+            TestCancellation.Value = null;
+            cancellation.Dispose();
+        }
+
         if (FixtureBinding.Value is { } binding)
         {
             FixtureBinding.Value = null;

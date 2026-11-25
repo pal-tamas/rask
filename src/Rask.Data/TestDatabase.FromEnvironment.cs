@@ -41,7 +41,7 @@ public partial class TestDatabase
     ///     Per test, that is the test's own database's connection string, not the variable's.
     /// </param>
     /// <param name="options">One database per test (the default), or the named one shared.</param>
-    /// <param name="cancellationToken">Cancels waiting for a turn and bringing the schema up.</param>
+    /// <param name="cancellationToken">Cancels waiting for a turn and bringing the schema up; none passed, the work in progress's — inside a test, the test's.</param>
     /// <exception cref="InvalidOperationException"><typeparamref name="TContext" /> has no constructor taking its options.</exception>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public static async Task<TestDatabase<TContext>> FromEnvironment<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
@@ -60,6 +60,7 @@ public partial class TestDatabase
             throw skip;
         }
 
+        cancellationToken = Ambient.Or(cancellationToken);
         var settings = new TestDatabaseOptions();
         options?.Invoke(settings);
         var construct = AppContextConstructor.For<TContext>();
