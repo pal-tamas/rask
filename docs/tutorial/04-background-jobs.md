@@ -153,17 +153,15 @@ namespace Shop.Tests.Features.Orders;
 
 public sealed class ReceiptTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task The_receipt_job_marks_the_order_once_it_has_run()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var order = await Test.Make<Order>();
 
         await new SendOrderReceiptHandler().Handle(new SendOrderReceipt(order.Id));
 
-        var stored = await Order.Where(o => o.Id == order.Id).First(Ct);
+        var stored = await Order.Where(o => o.Id == order.Id).First();
         Assert.True(stored.ReceiptSent);
     }
 }

@@ -26,7 +26,9 @@ layer; every property is a one-line value object carrying its rule
 (`public readonly partial record struct VehicleId(int Value);`); a refusal is `Refuse.When(…)` under its field; a
 form is `Form.For(Aggregate.Operation, id)`; another aggregate changes from a domain event; no SQL and no
 provider API (`InTextOrder()`, `Db.Lock`, `.Covering(…)` instead, RASK177); tests run on SQLite in memory
-(`TestDatabase.Start<AppDbContext>()`, `Test.Refuses(…).At("Field")`, `Test.Concurrently`).
+(`TestDatabase.Start<AppDbContext>()`, `Test.Refuses(…).At("Field")`, `Test.Concurrently`), and pass no
+`CancellationToken` — Rask.Testing makes the test's own (`TestContext.Current.CancellationToken`) the ambient one every
+Rask call given none uses, and a `<RaskStrict>` app's test project has xUnit1051 off.
 Reading the web rather than this checkout? The published index is https://rask.sh/llms.txt, every
 guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is its page's URL plus
 `.md` (https://rask.sh/docs/guides/cqrs.md).

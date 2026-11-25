@@ -85,7 +85,7 @@ public partial class TestDatabase : IAsyncDisposable
     ///     Registers what the app's handlers need beyond what Rask registers — a fake mailer, a recorder — into the
     ///     services a save publishes its domain events through.
     /// </param>
-    /// <param name="cancellationToken">Cancels schema creation.</param>
+    /// <param name="cancellationToken">Cancels schema creation; none passed, the work in progress's — inside a test, the test's.</param>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public static Task<TestDatabase> Start(
         Action<DbContextOptionsBuilder> configure,
@@ -115,7 +115,7 @@ public partial class TestDatabase : IAsyncDisposable
     ///     Registers what the app's handlers need beyond what Rask registers — a fake mailer, a recorder — into the
     ///     services a save publishes its domain events through.
     /// </param>
-    /// <param name="cancellationToken">Cancels schema creation.</param>
+    /// <param name="cancellationToken">Cancels schema creation; none passed, the work in progress's — inside a test, the test's.</param>
     /// <exception cref="InvalidOperationException"><typeparamref name="TContext" /> has no constructor taking its options.</exception>
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public static Task<TestDatabase<TContext>> Start<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
@@ -188,6 +188,8 @@ public partial class TestDatabase : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(configure);
 
+        // None passed: the work in progress's — inside a test, the test's own (Rask.Testing's hook).
+        cancellationToken = Ambient.Or(cancellationToken);
         var clock = timeProvider ?? Clock.TimeProvider;
 
         // The app's own interceptors, from services registered as the app registers them (TestDatabaseServices) — filled
@@ -309,22 +311,22 @@ public partial class TestDatabase : IAsyncDisposable
     ///     </para>
     /// </remarks>
     /// <param name="key">The aggregate's primary key.</param>
-    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load; none passed, the work in progress's — inside a test, the test's.</param>
     public Task<TEntity?> Load<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object key, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
-        return FindByKeyAsync<TEntity>(_openWrite, [key], cancellationToken);
+        return FindByKeyAsync<TEntity>(_openWrite, [key], Ambient.Or(cancellationToken));
     }
 
     /// <summary>Loads one aggregate whole, by composite key.</summary>
     /// <param name="keyValues">The key's values, in the order the key declares them.</param>
-    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load; none passed, the work in progress's — inside a test, the test's.</param>
     public Task<TEntity?> Load<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object?[] keyValues, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(keyValues);
-        return FindByKeyAsync<TEntity>(_openWrite, keyValues, cancellationToken);
+        return FindByKeyAsync<TEntity>(_openWrite, keyValues, Ambient.Or(cancellationToken));
     }
 
     /// <summary>A fresh read context, for asserting on the read model itself.</summary>

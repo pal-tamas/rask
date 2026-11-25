@@ -39,7 +39,7 @@ public static class SqliteTestDatabase
         /// <summary>Starts a plain <see cref="RaskDbContext" /> over a SQLite database in memory, of the test's own.</summary>
         /// <param name="timeProvider">The clock the audit stamps come from.</param>
         /// <param name="services">Registers what the app's handlers need beyond what Rask registers.</param>
-        /// <param name="cancellationToken">Cancels schema creation.</param>
+        /// <param name="cancellationToken">Cancels schema creation; none passed, the work in progress's — inside a test, the test's.</param>
         /// <returns>The fixture, its schema created and the model surface pointed at it.</returns>
         [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
         public static Task<TestDatabase> Start(
@@ -55,7 +55,7 @@ public static class SqliteTestDatabase
         /// <typeparam name="TContext">The app's context, built through its public constructor taking its options.</typeparam>
         /// <param name="timeProvider">The clock the audit stamps come from.</param>
         /// <param name="services">Registers what the app's handlers need beyond what Rask registers.</param>
-        /// <param name="cancellationToken">Cancels schema creation.</param>
+        /// <param name="cancellationToken">Cancels schema creation; none passed, the work in progress's — inside a test, the test's.</param>
         /// <returns>The fixture, its schema created and the model surface pointed at it.</returns>
         /// <exception cref="InvalidOperationException"><typeparamref name="TContext" /> has no constructor taking its options.</exception>
         [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]

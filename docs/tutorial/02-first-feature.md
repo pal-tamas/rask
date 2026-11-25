@@ -355,16 +355,14 @@ namespace Shop.Tests.Features.Products;
 
 public sealed class ProductTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task A_new_product_is_stored_with_what_it_was_given()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
 
-        var id = await Product.Add(ProductName.Create("Anvil"), UnitPrice.Create(9.90m), StockLevel.Create(3), Ct);
+        var id = await Product.Add(ProductName.Create("Anvil"), UnitPrice.Create(9.90m), StockLevel.Create(3));
 
-        var stored = await Product.Where(p => p.Id == id).First(Ct);
+        var stored = await Product.Where(p => p.Id == id).First();
         Assert.Equal("Anvil", stored.Name);
         Assert.Equal(9.90m, stored.Price);
     }
@@ -372,9 +370,9 @@ public sealed class ProductTests
     [Fact]
     public async Task A_discontinued_product_keeps_its_price()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var product = await Test.Make<Product>();
-        await Product.Discontinue(product.Id, product.Version, Ct);
+        await Product.Discontinue(product.Id, product.Version);
 
         var refusal = await Test.Refuses(
             () => Product.Change(product.Id, product.Version + 1, product.Name, UnitPrice.Create(5m), product.Stock));
@@ -393,9 +391,9 @@ public sealed class ProductTests
     [Fact]
     public async Task The_edit_form_says_a_discontinued_product_keeps_its_price()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var product = await Test.Make<Product>();
-        await Product.Discontinue(product.Id, product.Version, Ct);
+        await Product.Discontinue(product.Id, product.Version);
 
         await Test.FormShows(
             new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
@@ -409,7 +407,7 @@ public sealed class ProductTests
     [Fact]
     public async Task Two_edits_of_one_version_keep_one_and_refuse_the_other()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var product = await Test.Make<Product>();
 
         var refusal = await Test.Concurrently(
@@ -437,8 +435,9 @@ Each test is named as a sentence and shaped in three blocks — setup, action, c
 - **`Test.Concurrently(…)`** starts two saves of the same version at the same moment and checks that exactly one
   went through and the other was refused — the version check, proved.
 
-`TestContext.Current.CancellationToken` is xUnit's: a call that takes a token is handed the test's, so a test that
-is stopped stops its database work too. See [testing the domain](../testing.md#testing-the-domain).
+No call is handed a `CancellationToken`: inside a test, every Rask call that takes one and is given none uses the
+test's own (xUnit's `TestContext.Current.CancellationToken`), so a test that is stopped stops its database work too.
+See [testing the domain](../testing.md#testing-the-domain).
 
 ## 6. Run it
 

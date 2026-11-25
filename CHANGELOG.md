@@ -160,6 +160,14 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A test passes no `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
+  (`TestContext.Current.CancellationToken`) the ambient cancellation (`Current.Cancellation`), so every Rask call given
+  no token — `TestDatabase.Start()` (schema creation), `database.Load<T>(…)`, `TestDatabase.FromEnvironment`, a
+  generated entry, `Order.Where(…).First()`, `Jobs.Enqueue` — is cancelled with the test. A token passed by hand still
+  wins; a render still sets it aside; the app a test boots is not cancelled with it. New
+  `TestRun.Begin(fixtures, cancellation)` is what the hook calls. In a `<RaskStrict>` app's test project xUnit1051 is
+  now off (`rask-strict-tests.globalconfig`; the analyzer cannot be scoped to Rask's calls), and the tutorial's tests
+  drop their `Ct` token (`docs/testing.md#testing-the-domain`).
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,

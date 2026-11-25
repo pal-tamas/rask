@@ -395,17 +395,15 @@ namespace Shop.Tests.Features.Products;
 
 public sealed class ProductTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task A_new_product_is_stored_with_what_it_was_given()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var admin = Signed.As("admin");
 
-        var id = await Product.Add(ProductName.Create("Anvil"), UnitPrice.Create(9.90m), StockLevel.Create(3), Ct);
+        var id = await Product.Add(ProductName.Create("Anvil"), UnitPrice.Create(9.90m), StockLevel.Create(3));
 
-        var stored = await Product.Where(p => p.Id == id).First(Ct);
+        var stored = await Product.Where(p => p.Id == id).First();
         Assert.Equal("Anvil", stored.Name);
         Assert.Equal(9.90m, stored.Price);
     }
@@ -413,10 +411,10 @@ public sealed class ProductTests
     [Fact]
     public async Task A_discontinued_product_keeps_its_price()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var admin = Signed.As("admin");
         var product = await Test.Make<Product>();
-        await Product.Discontinue(product.Id, product.Version, Ct);
+        await Product.Discontinue(product.Id, product.Version);
 
         var refusal = await Test.Refuses(
             () => Product.Change(product.Id, product.Version + 1, product.Name, UnitPrice.Create(5m), product.Stock));
@@ -435,10 +433,10 @@ public sealed class ProductTests
     [Fact]
     public async Task The_edit_form_says_a_discontinued_product_keeps_its_price()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var admin = Signed.As("admin");
         var product = await Test.Make<Product>();
-        await Product.Discontinue(product.Id, product.Version, Ct);
+        await Product.Discontinue(product.Id, product.Version);
 
         await Test.FormShows(
             new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
@@ -452,7 +450,7 @@ public sealed class ProductTests
     [Fact]
     public async Task Two_edits_of_one_version_keep_one_and_refuse_the_other()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         using var admin = Signed.As("admin");
         var product = await Test.Make<Product>();
 
@@ -466,12 +464,12 @@ public sealed class ProductTests
     [Fact]
     public async Task A_shopper_may_not_change_a_product()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var product = await Test.Make<Product>();
         using var shopper = Signed.As("shopper");
 
         await Assert.ThrowsAsync<ForbiddenException>(
-            () => Product.Change(product.Id, product.Version, product.Name, product.Price, product.Stock, Ct));
+            () => Product.Change(product.Id, product.Version, product.Name, product.Price, product.Stock));
     }
 }
 ```
@@ -488,12 +486,10 @@ namespace Shop.Tests.Features.Orders;
 
 public sealed class OrderTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task An_order_without_lines_is_refused_under_its_lines()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
 
         var refusal = await Test.Refuses(
             () => Order.Place(Test.Make<CustomerEmail>(), Test.Make<ShippingAddress>(), null, []));
@@ -504,9 +500,9 @@ public sealed class OrderTests
     [Fact]
     public async Task A_shipped_order_is_not_deleted()
     {
-        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        await using var database = await TestDatabase.Start();
         var order = await Test.Make<Order>();
-        await Order.Ship(order.Id, order.Version, TrackingNumber.Create("1Z999"), Ct);
+        await Order.Ship(order.Id, order.Version, TrackingNumber.Create("1Z999"));
 
         var refusal = await Test.Refuses(() => Order.Delete(order.Id, order.Version + 1));
 

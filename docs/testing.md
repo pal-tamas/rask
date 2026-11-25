@@ -312,6 +312,16 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   so `new LegacyDb(database.Options<LegacyDb>().AddInterceptors(keeper).Options)` saves as the host does;
 - disposing it lets the database go.
 
+**No test passes a `CancellationToken`.** On xUnit v3, Rask.Testing's test hook makes the test's own
+(`TestContext.Current.CancellationToken`) the ambient one (`Current.Cancellation`), and every Rask call given no token
+uses it: `TestDatabase.Start()`, `database.Load<T>(…)`, a generated entry (`await Product.Add(…)`), a read
+(`await Order.Where(…).First()`), `Jobs.Enqueue`, `Cache.Remember`. A stopped or timed-out test stops its database work
+with it. A token passed by hand still wins; a render still sets the test's aside, so what it mounts lives as long as
+the component, and the app a test boots is not cancelled with the test either. In a `<RaskStrict>` app's test project,
+xUnit's own xUnit1051 ("pass `TestContext.Current.CancellationToken`") is therefore off: the analyzer cannot be scoped
+to Rask's calls, so it is off for the project — a call into another library takes the token by hand where cancelling
+it matters.
+
 `Start(o => o.UseSqlServer(cs))` still takes any provider, and `FromEnvironment` (below) the real server.
 The app's model is there even when the test touched none of the app's types first: `Start<CrmContext>` runs the
 app assembly's module initializer, which is what registers its aggregates, before it makes the schema.
