@@ -77,6 +77,51 @@ public sealed class FixtureContextTests
         Assert.Equal(["First", "Second"], await NamesInTheDatabase(database));
     }
 
+    [Fact]
+    public async Task A_save_of_the_fixture_context_refused_inside_a_transaction_does_not_ride_along_with_the_next()
+    {
+        await using var database = await TestDatabase.Start<PumpsContext>(cancellationToken: Ct);
+        var taken = Company.Named("First");
+        await using (var other = database.Factory.CreateDbContext())
+        {
+            other.Add(taken);
+            await other.SaveChangesAsync(Ct);
+        }
+
+        var twin = Company.Named("Twin");
+        database.Context.Entry(twin).Property(c => c.Id).CurrentValue = taken.Id;
+        database.Context.Add(twin);
+        var refused = await Record.ExceptionAsync(() => Db.Transaction(() => database.Context.SaveChangesAsync(Ct), cancellationToken: Ct));
+        database.Context.Add(Company.Named("Second"));
+        await database.Context.SaveChangesAsync(Ct);
+
+        Assert.IsType<DbUpdateException>(refused);
+        Assert.Equal(["First", "Second"], await NamesInTheDatabase(database));
+    }
+
+    [Fact]
+    public async Task A_save_of_the_fixture_context_a_transaction_rolled_back_does_not_ride_along_with_the_next()
+    {
+        await using var database = await TestDatabase.Start<PumpsContext>(cancellationToken: Ct);
+        var company = Company.Named("Acme");
+        database.Context.Add(company);
+        await database.Context.SaveChangesAsync(Ct);
+
+        var refused = await Record.ExceptionAsync(() => Db.Transaction(async () =>
+        {
+            company.Rename("Rolled back");
+            await database.Context.SaveChangesAsync(Ct);
+            throw new InvalidOperationException("Refused after the save.");
+        }, cancellationToken: Ct));
+        database.Context.Add(Company.Named("Second"));
+        await database.Context.SaveChangesAsync(Ct);
+        var read = await database.Context.Set<Company>().SingleAsync(c => c.Id == company.Id, Ct);
+
+        Assert.IsType<InvalidOperationException>(refused);
+        Assert.Equal(["Acme", "Second"], await NamesInTheDatabase(database));
+        Assert.Equal("Acme", read.Name);
+    }
+
     private static async Task RenameElsewhere(TestDatabase<PumpsContext> database, Guid id, string name)
     {
         await using var other = database.Factory.CreateDbContext();

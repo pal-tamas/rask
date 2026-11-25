@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Rask.Cqrs;
 
 namespace Rask.Data;
@@ -21,8 +22,9 @@ namespace Rask.Data;
 ///         sentence a save's delete or a save's duplicate gets.
 ///     </para>
 ///     <para>
-///         Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and an interceptor after it
-///         would not be told the save failed.
+///         Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and EF Core would not tell an
+///         interceptor after it that the save failed — so, before it throws, it tells each one itself (a test database
+///         puts the keeper of its own context there, <see cref="FixtureContextKeeper" />).
 ///     </para>
 /// </remarks>
 internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbCommandInterceptor
@@ -84,16 +86,34 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
     /// <inheritdoc />
     public override void SaveChangesFailed(DbContextErrorEventData eventData)
     {
-        Translate(eventData);
+        if (Translate(eventData) is { } violation)
+        {
+            foreach (var later in After(eventData.Context))
+            {
+                later.SaveChangesFailed(eventData);
+            }
+
+            throw violation;
+        }
+
         base.SaveChangesFailed(eventData);
     }
 
     /// <inheritdoc />
-    public override Task SaveChangesFailedAsync(
+    public override async Task SaveChangesFailedAsync(
         DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
     {
-        Translate(eventData);
-        return base.SaveChangesFailedAsync(eventData, cancellationToken);
+        if (Translate(eventData) is { } violation)
+        {
+            foreach (var later in After(eventData.Context))
+            {
+                await later.SaveChangesFailedAsync(eventData, cancellationToken).ConfigureAwait(false);
+            }
+
+            throw violation;
+        }
+
+        await base.SaveChangesFailedAsync(eventData, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -142,17 +162,26 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
         ViolationLogging.Of(eventData.Context)?.SaveEnded(translated: null);
     }
 
-    private static void Translate(DbContextErrorEventData eventData)
+    private static RaskValidationException? Translate(DbContextErrorEventData eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
 
         var logging = ViolationLogging.Of(eventData.Context);
         var violation = logging?.TranslationOf(eventData.Exception) ?? Translation(eventData.Context, eventData.Exception);
         logging?.SaveEnded(violation is null ? null : eventData.Exception);
+        return violation;
+    }
 
-        if (violation is not null)
+    // The save interceptors after this one in the context's chain, which EF Core no longer tells the save failed once
+    // this one throws the translation in its place: a test database's keeper of its own context is one.
+    private ISaveChangesInterceptor[] After(DbContext? context)
+    {
+        var chain = context?.GetService<IDbContextOptions>().FindExtension<CoreOptionsExtension>()?.Interceptors;
+        if (chain is null)
         {
-            throw violation;
+            return [];
         }
+
+        return [.. chain.SkipWhile(i => !ReferenceEquals(i, this)).Skip(1).OfType<ISaveChangesInterceptor>()];
     }
 }

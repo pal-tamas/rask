@@ -27,13 +27,15 @@ namespace Rask.Data;
 ///     <para>
 ///         Collected in <c>SavingChanges</c> (a deleted entity is detached once the save completes) and applied in
 ///         <c>SavedChanges</c>, or at the commit of a transaction the save found open, as <see cref="DataChangesInterceptor" />
-///         reports; a rollback drops it.
+///         reports; a rollback drops it. A save of its own inside a transaction that then rolls back is taken back
+///         (<see cref="FixtureContextRollback" />), and one the database refused lets go of what it tracked.
 ///     </para>
 /// </remarks>
 internal sealed class FixtureContextKeeper : SaveChangesInterceptor, IDbTransactionInterceptor
 {
     private readonly ConditionalWeakTable<DbContext, List<Written>> _collected = new();
     private readonly ConditionalWeakTable<DbContext, List<Written>> _deferred = new();
+    private readonly FixtureContextRollback _rollback = new();
 
     // The fixture's own context; null while it is not made yet.
     private DbContext? Owner { get; set; }
@@ -81,29 +83,36 @@ internal sealed class FixtureContextKeeper : SaveChangesInterceptor, IDbTransact
     }
 
     void IDbTransactionInterceptor.TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData) =>
-        Committed(eventData.Context);
+        Committed(transaction, eventData.Context);
 
     Task IDbTransactionInterceptor.TransactionCommittedAsync(
         DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
     {
-        Committed(eventData.Context);
+        Committed(transaction, eventData.Context);
         return Task.CompletedTask;
     }
 
     void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
-        RolledBack(eventData.Context);
+        RolledBack(transaction, eventData.Context);
 
     Task IDbTransactionInterceptor.TransactionRolledBackAsync(
         DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
     {
-        RolledBack(eventData.Context);
+        RolledBack(transaction, eventData.Context);
         return Task.CompletedTask;
     }
 
     private void Collect(DbContext? context)
     {
-        if (context is null || Owner is null || ReferenceEquals(context, Owner))
+        if (context is null || Owner is null)
         {
+            return;
+        }
+
+        if (ReferenceEquals(context, Owner))
+        {
+            // Its own save, inside a transaction that may still roll back: what it writes is remembered as it stood.
+            _rollback.Capture(context);
             return;
         }
 
@@ -135,8 +144,13 @@ internal sealed class FixtureContextKeeper : SaveChangesInterceptor, IDbTransact
         Apply(written);
     }
 
-    private void Committed(DbContext? context)
+    private void Committed(DbTransaction transaction, DbContext? context)
     {
+        if (ReferenceEquals(context, Owner))
+        {
+            _rollback.Committed(transaction);
+        }
+
         if (context is not null && _deferred.TryGetValue(context, out var written))
         {
             _deferred.Remove(context);
@@ -144,11 +158,17 @@ internal sealed class FixtureContextKeeper : SaveChangesInterceptor, IDbTransact
         }
     }
 
-    private void RolledBack(DbContext? context)
+    private void RolledBack(DbTransaction transaction, DbContext? context)
     {
-        if (context is not null)
+        if (context is null)
         {
-            _deferred.Remove(context);
+            return;
+        }
+
+        _deferred.Remove(context);
+        if (ReferenceEquals(context, Owner))
+        {
+            _rollback.RolledBack(transaction, context);
         }
     }
 
@@ -164,6 +184,7 @@ internal sealed class FixtureContextKeeper : SaveChangesInterceptor, IDbTransact
         {
             // As a page's context would be gone with its request: a refused change does not ride along with the next save.
             context.ChangeTracker.Clear();
+            _rollback.Forget(context);
         }
     }
 
