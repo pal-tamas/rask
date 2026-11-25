@@ -189,6 +189,48 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void Value_objects_over_dates_compile_in_a_file_that_imports_no_System()
+    {
+        const string source = """
+            using Rask.Data;
+            using Rask.Values;
+            namespace Shop;
+
+            public sealed class Reminder : Aggregate<System.Guid, Timestamps, Versioned, Model, Deletable>
+            {
+                private Reminder() { }
+                public SentAt Sent { get; private set; } = SentAt.Create(new System.DateTime(2026, 1, 1));
+                public DueOn? Due { get; private set; }
+                public Stamp? Stamped { get; private set; }
+                public Window? Open { get; private set; }
+                public System.DateTime Plain { get; private set; }
+                public System.DateOnly? PlainDay { get; private set; }
+            }
+
+            public sealed partial record SentAt(System.DateTime Value) : Moment(Value);
+            public sealed partial record DueOn(System.DateOnly Value) : Day(Value, NotAfterToday: true);
+            public sealed partial record Stamp(System.DateTime Value) : Value;
+            public sealed partial record Window(System.DateTime From, System.DateTime? To) : Rask.Values.Range(From, To);
+            public sealed partial record Slot(System.DateOnly? Date, System.TimeSpan? Length) : Value;
+            public sealed class Booking
+            {
+                public SentAt? Sent { get; set; }
+                public DueOn? Due { get; set; }
+                public Window? Open { get; set; }
+                public Slot? At { get; set; }
+            }
+            """;
+
+        var run = GeneratorHarness.Run(
+            source,
+            [new ValueObjectFactoryGenerator(), new ModelInputGenerator()],
+            ["Rask.Data", "Rask.Cqrs", "Rask.Wire", "Microsoft.EntityFrameworkCore"]);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("__Draft", run.GeneratedSource("Window.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_record_of_one_member_declared_from_Value_gets_the_rule_a_form_asks_and_one_of_two_does_not()
     {
         var run = Run("""
