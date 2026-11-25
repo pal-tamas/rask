@@ -32,6 +32,11 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A `Cached` region no longer stores its placeholder for every later visitor.** A hook ending in an `await` completes
+  its paint one statement before its context asks for the render, so a walk in that gap — a live session's render on
+  another thread — served the component's cached "loading" markup and the fragment, seeing nothing still painting,
+  stored it: every later request was handed the placeholder as a dead island. The paint now marks the component dirty
+  before it completes, and a fragment does not store from a walk that opened while any of its paints was running.
 - **A reference to an aggregate keyed by a typed id stays typed on its read face.** An order line's `ProductId Product`
   read back as a bare `Guid` (and a `UserId? ShippedByUserId` as a `Guid?`, with no `ShippedByUser` navigation), while
   the row's own `Id` kept its type: the face flattened the typed id like a one-value value object. A column whose type

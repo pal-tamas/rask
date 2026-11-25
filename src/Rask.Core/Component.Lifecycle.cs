@@ -359,8 +359,22 @@ public abstract partial class Component
             return;
         }
 
-        if (t.IsCanceled || ctx.PostFired)
+        if (t.IsCanceled)
         {
+            return;
+        }
+
+        if (ctx.PostFired)
+        {
+            // Post's own StateHasChanged comes once the continuation returns, but the paint this callback ends is
+            // complete before then, and what waits on it may walk in that gap: a session's render on another thread,
+            // a Cached fragment deciding its markup is final. Dirty now, that walk draws the state the hook just set
+            // rather than serving the render cache's placeholder — which a fragment would then store for everyone.
+            if (!comp.IsTornDown)
+            {
+                comp.MarkDirtyForFrame();
+            }
+
             return;
         }
 

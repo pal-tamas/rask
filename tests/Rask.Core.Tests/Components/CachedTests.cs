@@ -317,6 +317,60 @@ public sealed partial class CachedTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_walk_between_the_hooks_paint_and_its_render_request_stores_the_data_not_the_placeholder()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var gate = new TaskCompletionSource();
+        var hook = new CachedHookSeen();
+        var visit = Visitor();
+        var page = new StubComponent(() => Cached.Name("gap")[CachedSeenProbe.Gate(gate.Task).Seen(hook)]);
+        var inTheGap = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = page.RenderAsLiveRoot(visit);
+
+        // Registered after the framework's own continuation on the hook, so it runs once the paint has completed and
+        // before the hook's context has asked for the render: the walk a session's render can make in that gap.
+        _ = hook.Mount!.ContinueWith(
+            _ => inTheGap.TrySetResult(page.RenderAsLiveRoot(visit)),
+            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        gate.SetResult();
+        var gapWalk = await inTheGap.Task.WaitAsync(TestContext.Current.CancellationToken);
+        var later = Render(() => Cached.Name("gap")[CachedSeenProbe.Gate(gate.Task).Seen(new CachedHookSeen())], visit);
+
+        Assert.Equal("<p>loading</p>", first);
+        Assert.Equal("<p>loaded</p>", gapWalk);
+        Assert.Equal("<p>loaded</p>", later);
+    }
+
+    [Fact]
+    public void A_walk_the_hooks_paint_lands_in_the_middle_of_is_not_stored()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var gate = new TaskCompletionSource();
+        var hook = new CachedHookSeen();
+        var visit = Visitor();
+        var pass = 0;
+        var page = new StubComponent(() => Cached.Name("mid")[
+            CachedSeenProbe.Gate(gate.Task).Seen(hook),
+            CachedGateOpener.Pass(pass).Opens(gate).Seen(hook)]);
+        page.RenderAsLiveRoot(visit);
+
+        // The second walk draws the probe from the render cache, still loading; the opener after it then lets the
+        // hook end and paint before the walk closes.
+        pass = 1;
+        var middle = page.RenderAsLiveRoot(visit);
+        var storedAfterMiddle = _store.Count;
+        var next = page.RenderAsLiveRoot(visit);
+        var later = Render(() => Cached.Name("mid")[
+            CachedSeenProbe.Gate(gate.Task).Seen(new CachedHookSeen()),
+            CachedGateOpener.Pass(0).Opens(gate).Seen(new CachedHookSeen())], visit);
+
+        Assert.Equal("<p>loading</p>", middle);
+        Assert.Equal(0, storedAfterMiddle);
+        Assert.Equal("<p>loaded</p>", next);
+        Assert.Equal("<p>loaded</p>", later);
+    }
+
+    [Fact]
     public void A_live_page_keeps_its_stored_markup_as_one_verbatim_frame_while_the_key_holds()
     {
         var visit = Visitor();
@@ -498,4 +552,74 @@ public sealed partial class CachedSlowProbe : Component
     }
 
     protected override Component? Render() => P[_loaded ? "loaded" : "loading"];
+}
+
+/// <summary>Where a <see cref="CachedSeenProbe" /> hands out its OnMount, so a test can order work around its end.</summary>
+public sealed class CachedHookSeen
+{
+    /// <summary>The probe's OnMount, once it has started.</summary>
+    public Task? Mount { get; set; }
+}
+
+/// <summary>A <see cref="CachedSlowProbe" /> that hands its OnMount to the test.</summary>
+public sealed partial class CachedSeenProbe : Component
+{
+    private bool _loaded;
+
+    /// <summary>What it waits for.</summary>
+    public Task? Gate { get; set; }
+
+    /// <summary>Where it hands out its OnMount.</summary>
+    public CachedHookSeen? Seen { get; set; }
+
+    protected override Task OnMount()
+    {
+        var mount = Load();
+        Seen?.Mount = mount;
+        return mount;
+    }
+
+    protected override Component? Render() => P[_loaded ? "loaded" : "loading"];
+
+    private async Task Load()
+    {
+        if (Gate is { } gate)
+        {
+            await gate;
+        }
+
+        _loaded = true;
+    }
+}
+
+/// <summary>
+///     Drawn after a <see cref="CachedSeenProbe" />: on any pass but the first it opens the probe's gate and waits,
+///     inside the walk, until the probe's hook has ended and painted.
+/// </summary>
+public sealed partial class CachedGateOpener : Component
+{
+    /// <summary>Which pass of the page this is: only a later one opens the gate.</summary>
+    public int? Pass { get; set; }
+
+    /// <summary>The probe's gate.</summary>
+    public TaskCompletionSource? Opens { get; set; }
+
+    /// <summary>The probe's OnMount.</summary>
+    public CachedHookSeen? Seen { get; set; }
+
+    protected override Component? Render()
+    {
+        if (Pass > 0 && Opens is { } gate && Seen?.Mount is { } mount)
+        {
+            // After the framework's own continuation on the hook, so the paint has completed when this one has.
+            var painted = mount.ContinueWith(
+                static _ => { }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            gate.TrySetResult();
+#pragma warning disable xUnit1031 // the point of it: the paint lands while this walk is still running
+            painted.Wait(TestContext.Current.CancellationToken);
+#pragma warning restore xUnit1031
+        }
+
+        return null;
+    }
 }
