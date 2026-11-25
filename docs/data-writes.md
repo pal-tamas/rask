@@ -276,8 +276,7 @@ are moved one of two ways, by what the change means:
 
 A tightened rule does not make a stored row unreadable: a value object is loaded without being validated, and a save
 asks a property's rules only once that property is changed ([what every save asks](domain.md#what-every-save-asks)),
-so old rows open, and are put right as they are next edited. To find them before the rule goes in, [audit the stored
-data](#auditing-stored-data-with-rask-audit).
+so old rows open, and are put right as they are next edited.
 
 ### Moving data in C# with `b.Data`
 
@@ -291,7 +290,7 @@ public partial class TankPistols : Migration
     {
         b.CreateTable(/* …what `rask db add TankPistols` wrote… */);
         b.Data(async () =>
-            await Tank.UpdateEach(_ => true, async t => t.Draw(await Pistol.Where(p => p.TankId == t.Id).Ids())));
+            await Tank.UpdateEach(_ => true, async t => t.Draw(await Pistol.Where(p => p.TankId == t.Id).Select(p => p.Id))));
     }
 }
 ```
@@ -299,7 +298,7 @@ public partial class TankPistols : Migration
 - **It runs after the whole schema is migrated**, with the model the app has now — at the app's start (when
   [migrations apply themselves](data.md#migrations-apply-themselves-on-start)), from `dotnet App.dll rask db migrate`, and
   after `rask db update` (which runs `dotnet ef database update`, then the app's `rask db migrate`). Every tenant's
-  rows are in reach: the step runs inside `Tenant.Across()`. The rules, events and audit of every save it makes run as
+  rows are in reach: the step runs inside `Tenant.Across()`. The rules and events of every save it makes run as
   they do anywhere else.
 - **It runs once.** Each migration whose steps have run is recorded in a `__RaskDataSteps` table beside EF Core's
   history, made by the first run that has a step to record — a database whose migrations declare none never gets it.
@@ -310,72 +309,3 @@ public partial class TankPistols : Migration
 - **The model is today's.** A step names only what the model still has; the change that drops a column a step reads
   deletes the step from its migration (the migration itself stays, as history).
 - In the SQL of `dotnet ef migrations script` a step is a comment — it is C#, and the app runs it.
-
-### Auditing stored data with `rask audit`
-
-A rule is asked of what a save writes, and of a stored row only the fields a save changes — so a rule tightened
-since an old row was written says nothing about that row until someone edits the field. Before a new rule or a unique
-index is turned on, ask the stored rows instead:
-
-```bash
-rask audit                          # in the project: runs `dotnet run -- rask audit`
-rask audit --aggregate Driver       # one aggregate (repeat, or Driver,Vehicle)
-rask audit --json > audit.json      # every id, for a script
-rask audit --unique-candidates      # the rows each unique index would refuse, before it is migrated
-dotnet App.dll rask audit           # on the server, from the published app
-```
-
-The app answers it itself, through its own model: the host is built and never started (no port, no worker), each
-aggregate is loaded whole, a page at a time, from every tenant, and asked what a save **adding** it would ask — every
-validation attribute of every row of it, the type's own, `IValidatableObject`, `Validate()`, awaited rules included,
-each in the aggregate's own tenant — plus:
-
-- **the rules of every value object it holds**, which a load never asks: a `DriverName` stored longer than its
-  `MaxLength` allows now, and a value its rules accept but would keep differently — stored with the blanks `Trim`
-  cuts off, or in the small letters `Upper` raises (*"Stored differently from how its rules keep it"*);
-- **every id kept as text** (a key or a reference whose column is text, as a typed id over a `Guid` in an existing
-  schema): read as stored, before any row is loaded, and turned into the id and back — *"Not an id its type can
-  read"*, or *"Not written the way the app writes it"* for an upper-case or braced one.
-
-```text
-rask audit: 2 aggregate(s), 1530 row(s) read, 2 rule(s) broken.
-
-Driver — 412 read:
-  CardNumber: At most 16 characters. — 2
-    3f2c…, 9a41…
-  Chips[*].Period: The end cannot be before the start. — 1
-    77ab…
-
-Vehicle — 1118 read, all pass.
-```
-
-**Read only, and the ids alone.** The audit's own context refuses a save, its rules are asked as a dry run (a
-`Db.Lock` one takes is not taken), and it prints each rule's words, the field, the count and the aggregates' ids —
-never what a row holds, so the report can leave a machine whose data cannot. A child's rows are counted together
-(`Chips[*]`). A rule that throws on an old row is reported against that row (*"A rule threw: …"*) and the audit goes
-on. The exit code says the answer: `0` every row passes, `1` some do not, `2` the command line was wrong — so a
-release step can stop before a migration whose rule the stored data would break.
-
-**Before a unique index goes in — `--unique-candidates`.** Declare the index in the model
-(`b.HasIndex(d => new { d.TenantId, d.CardNumber }).IsUnique()`, with `.Where(…)` for a filtered one), and before its
-migration runs ask the stored rows instead of the rules:
-
-```bash
-rask audit --unique-candidates --aggregate Driver
-```
-
-```text
-Driver — 412 read:
-  TenantId, CardNumber: Would break the unique index on (TenantId, CardNumber): rows that hold the same values. — 1
-    3f2c… = 9a41…
-```
-
-The audit reads the model, not the database, so an index that exists only in code is asked as if it were there; one the
-database already holds answers clean. For every unique index of every row type of the aggregates (children included)
-it reads each row's key and id in LINQ — every row, a deleted one and every tenant's included, as the index will count
-them, narrowed by the index's `.Where(…)` — and reports each group of rows holding the same key by their ids alone
-(`id = id`), never the values. A row with a NULL in its key collides with nothing, as the index's filter on SQL Server
-and the NULL rules of PostgreSQL and SQLite have it. Texts that differ only in letter case are reported apart (*"under a
-case-insensitive collation (SQL Server's default)"*): they collide there and nowhere else. An index whose filter is
-hand-written SQL (`HasFilter`) cannot be asked in LINQ; the report names it under a note instead.
-

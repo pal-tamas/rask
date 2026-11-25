@@ -37,9 +37,6 @@ internal sealed class RowPaths
     /// <summary>The place of <paramref name="row" />; <c>""</c> for one the aggregate does not hold.</summary>
     internal string Of(object row) => _paths.GetValueOrDefault(row, "");
 
-    /// <summary>Every row of the aggregate, the root first, each with its place.</summary>
-    internal IEnumerable<KeyValuePair<object, string>> Rows => _paths;
-
     private void Walk(IEntityType type, object entity, string path, int depth)
     {
         _paths[entity] = path;

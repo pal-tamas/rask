@@ -4,9 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     Work a save leaves for once its rows are written and before its transaction commits: a store-generated key read
-///     into an audit entry, a numbering kept. Run by <see cref="WritableChildrenInterceptor" /> just before it ends the
-///     transaction <see cref="SaveTransaction" /> opened for the save — or inside the caller's own.
+///     Work a save leaves for once its rows are written and before its transaction commits: a numbering kept. Run by
+///     <see cref="WritableChildrenInterceptor" /> just before it ends the transaction <see cref="SaveTransaction" /> opened for the save — or inside the caller's own.
 /// </summary>
 internal static class SaveFollowUps
 {

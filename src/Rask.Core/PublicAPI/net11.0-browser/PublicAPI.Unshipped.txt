@@ -20309,8 +20309,6 @@ static Rask.Values.Secret.Applied<T>(Rask.Values.Change<T!> change, Rask.Values.
 static Rask.Values.Secret.Of<T>(T! value) -> Rask.Values.Secret<T!>!
 static Rask.Values.ValueList.Of<T>(System.Collections.Generic.IEnumerable<T>! items) -> Rask.Values.ValueList<T>!
 static Rask.Values.ValueList.Of<T>(System.ReadOnlySpan<T> items) -> Rask.Values.ValueList<T>!
-Rask.Values.IStoredValue
-Rask.Values.IStoredValue.Recheck(out bool kept) -> System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>!
 Rask.Values.Allocation
 static Rask.Values.Allocation.Split(decimal total, int parts, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!
 static Rask.Values.Allocation.Split(decimal total, System.Collections.Generic.IReadOnlyList<decimal>! weights, decimal step, Rask.Values.Remainder remainder = Rask.Values.Remainder.ToFirst) -> System.Collections.Generic.IReadOnlyList<decimal>!

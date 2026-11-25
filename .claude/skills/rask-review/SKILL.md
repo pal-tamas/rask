@@ -90,8 +90,8 @@ a job or event handler that writes, or a doc/template/site snippet that shows an
   test data from `Test.Make<T>()`, races with `Test.Concurrently`. No SQL Server fixture for a unit
   test, no mocked read face or `X.Find`.
 - **Data changes are migrations.** Moving stored data is `b.Data(…)` in the migration
-  (`docs/data-writes.md#moving-data-in-c-with-bdata`); a new unique index or tightened rule over existing rows comes after `rask audit` shows the
-  stored data passes.
+  (`docs/data-writes.md#moving-data-in-c-with-bdata`); a new unique index ships with a read-only duplicate-check SQL
+  for the user to run before deploy.
 
 ## Hold UX, security, and performance together
 Judge every change on all three at once — a win on one must not silently regress another.
