@@ -138,6 +138,14 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A save refuses a reference to another tenant's row** (`docs/multi-tenancy.md`). Every foreign key a `PerTenant`
+  row sets to another tenant-scoped table — an aggregate, a child, a `PerTenantThrough` aggregate's parent — must
+  name a row the tenant in flight reads; another tenant's, or none, is a `RaskValidationException` under the key's
+  field (`CompanyId`, `Axles[1].DepotId`). One `IN (…)` query per referenced table per save, only for keys the save
+  sets. The sentence is the relationship's new `WhenMissing("…")`, else the referenced entity's `WhenMissing("…")`,
+  else the catalog's `ValidationNotFound`. Apps drop their `Refuse.When(await Company.Choice(id) is null, …)` guards.
+  **Breaking:** a `PerTenantThrough` row saved under another tenant's parent is now that validation failure, not an
+  `InvalidOperationException`.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
