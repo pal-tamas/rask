@@ -403,9 +403,12 @@ internal sealed partial class AccountService<TUser, TKey>(
         }
         finally
         {
-            if (options.ResetAnswerFloor - Stopwatch.GetElapsedTime(started) is { Ticks: > 0 } rest)
+            // Until the floor has passed by the stopwatch, not by one delay: a timer counts whole milliseconds and may
+            // fire just short of the fraction it was asked for, which answered up to a millisecond sooner.
+            while (options.ResetAnswerFloor - Stopwatch.GetElapsedTime(started) is { Ticks: > 0 } rest)
             {
-                await Task.Delay(rest, TimeProvider.System, CancellationToken.None).ConfigureAwait(false);
+                var wholeMilliseconds = TimeSpan.FromMilliseconds(Math.Ceiling(rest.TotalMilliseconds));
+                await Task.Delay(wholeMilliseconds, TimeProvider.System, CancellationToken.None).ConfigureAwait(false);
             }
         }
 

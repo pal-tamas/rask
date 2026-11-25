@@ -95,7 +95,8 @@ The `server` template is deliberately small — a handful of files, no example p
 - **`Features/Auth/`** — the sign-in, registration, sign-out, confirmation, password-reset and devices pages,
   as your own code: the flows come from `Rask.Auth`, the pages are yours to restyle.
 - **`Shop.Tests/`** — the app's test project, with one test that renders the home page and checks its
-  greeting. `dotnet test` runs it — see [Testing](../testing.md).
+  greeting. `dotnet test` runs it — see [Testing](../testing.md). From chapter 2 on, every rule you write is proved
+  here too, on a SQLite database in memory that each test starts for itself.
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
 cross-cutting code (the app root, the `User` account, components, jobs, emails) sits in `Features/Shared/`.

@@ -41,10 +41,11 @@ public sealed partial class SiteExampleTests
             await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
             await Expect(page.Locator("h1")).ToContainTextAsync("C#");
 
-            // The hero's code is one feature back to front, and its first file — the aggregate that is
-            // the table — is in the prerendered document, both tabs with it.
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<Guid, Timestamps, Versioned, Model, Deletable>");
-            await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
+            // The hero's code is the one way an app is written — the model, the form over its operation and
+            // its test — and its first file is in the prerendered document, all three tabs with it.
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<ProductId, Timestamps, Versioned, Deletable>");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("Refuse.When(Discontinued");
+            await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(3);
 
             // The three hosts are part of the prerendered document rather than something the bundle
             // fills in later: a crawler has to see all of them. Asserted with no timeout extension, for
@@ -64,6 +65,7 @@ public sealed partial class SiteExampleTests
                     + "document.getElementById('hosts')) & Node.DOCUMENT_POSITION_FOLLOWING)"),
                 "the sections are not in whole-stack → frontend → hosts order.");
             // The back end is the real one: its data, realtime and deploy cards are in the first paint.
+            await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/domain/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/data/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/subscriptions/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/deployment/']")).ToHaveCountAsync(1);
@@ -106,10 +108,12 @@ public sealed partial class SiteExampleTests
             await button.ClickAsync();
             await Expect(count).ToHaveTextAsync("3");
 
-            // The hero's file tabs are Rask state too: the second shows the page that queries the aggregate.
-            await page.Locator(".hero-code-tab", new PageLocatorOptions { HasTextString = "ProductsPage.cs" }).ClickAsync();
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("QueryClient.Query(");
+            // The hero's file tabs are Rask state too: the second is the form over the operation, the third its test.
+            await page.Locator(".hero-code-tab", new PageLocatorOptions { HasTextString = "PriceForm.cs" }).ClickAsync();
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("Form.For(Product.Reprice, Id)");
             await Expect(page.Locator(".hero-grid pre")).Not.ToContainTextAsync(": Aggregate<");
+            await page.Locator(".hero-code-tab", new PageLocatorOptions { HasTextString = "ProductTests.cs" }).ClickAsync();
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("await using var db = await TestDatabase.Start();");
 
             // The install tabs are Rask state too — switching re-renders the selected terminal.
             // Both terminals must lead with the one-line installer: the tabs pick a TEMPLATE, not an

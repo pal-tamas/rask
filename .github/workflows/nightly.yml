@@ -40,8 +40,11 @@ run-name: >-
 permissions:
   contents: read
 
-# No run-wide group: each stage has its own (below). A newer commit's `prepare` cancels an older one that
-# is still packing or waiting for its build -- it has pushed nothing, and the newer one supersedes it. A
+# No run-wide group: each stage has its own (below). A newer commit's `prepare` does NOT cancel an older
+# one that is packing or waiting for its build: it queues behind it (one waiting, the newest), so a green
+# build that is being packed is published even when a newer push came along -- until 2026-11-25 the newer
+# one cancelled it, and on a busy day no commit stayed newest long enough to be published at all. An older
+# one whose build goes red ends at once (scripts/lib/nightly_wait.sh) and frees the stage. A
 # push in progress always finishes (half a version's packages is worse than a late one); a push waiting
 # behind it is replaced by a newer one. The verify-and-release stage of an older version is cancelled by a
 # newer one's: the newer release is the one that counts.
@@ -86,7 +89,7 @@ jobs:
     timeout-minutes: 90   # the pack, then up to an hour for the build (scripts/lib/nightly_wait.sh)
     concurrency:
       group: nightly-prepare
-      cancel-in-progress: true
+      cancel-in-progress: false   # a green build being packed is published; a newer one queues (above)
     permissions:
       actions: read    # the ci run's build job
       contents: read

@@ -134,6 +134,30 @@ public class ValueObjectFactoryGeneratorTests
     }
 
     [Fact]
+    public void A_moment_and_a_day_are_read_from_text_and_a_record_s_own_Parse_is_kept()
+    {
+        var run = Run("""
+            public sealed partial record SentAt(System.DateTime Value) : Moment(Value);
+            public sealed partial record DueOn(System.DateOnly Value) : Day(Value);
+            public sealed partial record Seats(int Value) : Whole(Value, Min: 1);
+            public sealed partial record OwnAt(System.DateTime Value) : Moment(Value)
+            {
+                public static OwnAt Parse(string text) => Create(System.DateTime.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
+            }
+            """);
+
+        var sent = run.GeneratedSource("SentAt.Value.g.cs");
+        var due = run.GeneratedSource("DueOn.Value.g.cs");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static SentAt Parse(string text, string? format = null, string? field = null) =>", sent, StringComparison.Ordinal);
+        Assert.Contains("GeneratedValueRules.TryParseMoment(text, format, out var __read)", sent, StringComparison.Ordinal);
+        Assert.Contains("GeneratedValueRules.ParseDay(text, format)", due, StringComparison.Ordinal);
+        Assert.DoesNotContain("Parse(", run.GeneratedSource("Seats.Value.g.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Parse(", run.GeneratedSource("OwnAt.Value.g.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_record_of_one_member_declared_from_Value_gets_the_rule_a_form_asks_and_one_of_two_does_not()
     {
         var run = Run("""

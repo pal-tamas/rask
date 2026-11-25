@@ -43,6 +43,10 @@
     <!-- TestDatabase.Start<TContext>() with nothing to configure: SQLite in memory, through UseRaskSqlite. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- Hero/: the rask.sh hero's three files — a model, the Form.For over its operation, and its test — compiled and
+         run here, so the front page cannot show an API that does not build. The form is the kit's. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
