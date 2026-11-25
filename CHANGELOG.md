@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Documentation
+- **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
+  `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
+  provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,
+  `Form.For`, events and `manyAggregates:`, `rask audit` before a unique index, data moved in C# — with what each
+  quick-fix does and what is left by hand.
+- **Domain and bulk-write docs checked against the code.** `domain.md` now shows an aggregate's `static Task On(E e)`
+  handler and `HandlerInTransaction` under domain events and in the transaction boundary, links `Attachment` and
+  `X.Across(reason)`; `data-writes.md` teaches `UpdateWhere`/`DeleteWhere` for batch work (a raw `ExecuteUpdate` is
+  RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
+
 ### Fixed
 - **`Form.For` takes an operation of any number of parameters.** Before: an operation of more than 13 parameters got
   no `Form.For` (only an Info RASK188 said so), and the call site then failed with a misleading RASK095 ("needs Model
