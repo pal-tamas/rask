@@ -396,8 +396,11 @@ public Task The_km_end_comes_after_its_start_on_the_form() =>
   showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
 - **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
   sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
-- A model that takes constructor arguments — an operation form over an aggregate, `new SupplyChangeInput(id,
-  version)` — goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`.
+- A model given as it is goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`. For an operation's
+  form, start it the way the page does — `await SupplyChangeInput.Of(id)` reads it from the stored aggregate, at its
+  version, every field filled as `Form.For(Supply.Change, id)` fills it (and throws when nothing is stored under the
+  id) — so a rule that reads what is stored is asked against it, and only the field under test changes. A
+  hand-built `new SupplyChangeInput(id, version)` starts every field empty.
 - The message not shown fails the test with a `FormAssertionException` that says what the field showed instead, what
   the top of the form showed, and why the store's rules could not be asked when they threw.
 

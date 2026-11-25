@@ -188,6 +188,12 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`await ProductChangeInput.Of(id)`: an operation's form model, filled as `Form.For` fills it.** Before: a test
+  handing `Test.FormShows(…)` an operation's input built it as `new ProductChangeInput(id, version)`, which starts
+  every field empty — unlike the page, whose `Form.For(Product.Change, id)` reads the stored aggregate — so the test
+  filled the other fields by hand and guessed the version. Now every operation's generated input reads itself from
+  the stored aggregate, at its version, through the same read the form uses, and throws when nothing is stored under
+  the id. The tutorial and `docs/testing.md` use it.
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,

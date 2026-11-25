@@ -1111,6 +1111,10 @@ Form.For(Note.Rename, id)[f => [
   belongs together into value objects still reads better.
 - **A saved form reads the aggregate afresh**, so its next submit is at the version the save left and a row it added
   is matched by the id it was given, not added twice. A factory's form starts empty again.
+- **The model, read as the form reads it: `await SupplyChangeInput.Of(id)`.** The fields filled from the stored
+  aggregate at its version, through the same read `Form.For(Supply.Change, id)` makes — what a test hands
+  [`Test.FormShows(…)`](testing.md#the-form-says-what-the-domain-says-testformshows). It throws when nothing is stored
+  under the id; a factory's input has none, as its form starts empty.
 - **Two operations of one signature each get their form.** `Form.For` picks the form by the delegate the method
   group converts to, and `Product.Archive` and `Product.Restore` — each taking only the id and version — would convert
   to the same one. Each is then given a hidden overload that takes a mark of its own first
