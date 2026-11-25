@@ -8,6 +8,27 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`b.Numbered(…)` grouped or ordered by a `b.Computed(…)` column numbers a row where the database puts it.** Before:
+  with `within: f => f.CountedAt` over `b.Computed(f => f.CountedAt, f => f.ModifiedPistolId ?? f.PistolId)` — the
+  docs' own example — a save read the group from the row in memory, where the computed column is not yet computed: an
+  added fueling was in no group and got no number, and one corrected to another pistol (`ModifiedPistolId`) was not
+  seen as moved, so neither pistol was numbered anew. After: a computed `within` or `by` member is read as what it is
+  computed from — the row's values now for the group it goes to, its values before the save (and the stored column)
+  for the one it leaves — a change to any member it is computed from moves the row, and both groups are numbered anew
+  in the save's transaction. A value C# cannot compute from the row (a division by zero) is read back from the
+  database once the row is written, its group locked, before the numbering and the commit. Proven on SQLite, SQL
+  Server and PostgreSQL by `NumberedParityTests`.
+- **A child two aggregates may hold counts as the aggregate its row is held by.** Before: a `Chip` listed by both
+  `Driver.Chips` and `Vehicle.Chips` (nullable `DriverId` and `VehicleId`) was named after the first parent key its type
+  declares, so saving a vehicle with one chip inside a `Db.Transaction` was refused by `OneAggregatePerTransaction` as
+  two aggregates — `Vehicle 7, Driver ` (no key, because `DriverId` is NULL) — and the root touched and the aggregate
+  type reported to `IDataChanges` could be the wrong parent. After: the parent is read off each row — the key it holds
+  (as read, for a deleted row), else the one it held when it was read — so the vehicle's save is one aggregate, a
+  chip moved between parents belongs to the one that now holds it, and a row both parents hold counts as both.
+- **`c.TenantReferences<Partner>()` no longer breaks every read.** Before: the convention also ran as the read faces'
+  model was built, where the tenant is its read face (`PartnerRead`), and threw "Partner is not an entity of this
+  model mapped to a table with a key of one column" — so every `X.Where(...)` failed. Now the read model is left as
+  it is: the reference is the schema's, which only the write model and its migrations make.
 - **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
   carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
   `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with

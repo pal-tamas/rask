@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -16,6 +17,9 @@ namespace Rask.Data;
 /// </summary>
 public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
 {
+    // Each type's keys to another entity, the parents RootOf may climb to: a property of the model, read once.
+    private static readonly ConditionalWeakTable<IEntityType, IForeignKey[]> KeysToEntities = [];
+
     private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <inheritdoc/>
@@ -407,40 +411,20 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return null;
         }
 
-        foreach (var foreignKey in entry.Metadata.GetForeignKeys())
+        // The parent the row is held by NOW: a child two parents may list holds NULL in the other's key, and one moved
+        // between them names the new one. A deleted row's keys as read: it has had them cleared.
+        foreach (var (foreignKey, values) in HeldBy.Of(entry, KeysToEntities.GetValue(entry.Metadata, static type =>
+                     [.. type.GetForeignKeys().Where(static key => typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType))])))
         {
-            if (!typeof(IEntity).IsAssignableFrom(foreignKey.PrincipalEntityType.ClrType) ||
-                PrincipalOf(context, entry, foreignKey) is not { } principal)
+            // By key values rather than through a navigation: a child mapped with a shadow foreign key and no inverse
+            // navigation — which is the shape Rask recommends — has no reference to read.
+            if (TrackedPrincipals.Find(context, foreignKey, values) is { } principal)
             {
-                continue;
+                return principal.Entity is IAggregate ? principal : RootOf(context, principal, depth + 1);
             }
-
-            return principal.Entity is IAggregate ? principal : RootOf(context, principal, depth + 1);
         }
 
         return null;
-    }
-
-    // By key values rather than through a navigation: a child mapped with a shadow foreign key and no inverse
-    // navigation — which is the shape Rask recommends — has no reference to read.
-    private static EntityEntry? PrincipalOf(DbContext context, EntityEntry child, IForeignKey foreignKey)
-    {
-        var values = new object?[foreignKey.Properties.Count];
-
-        for (var i = 0; i < values.Length; i++)
-        {
-            var property = child.Property(foreignKey.Properties[i].Name);
-
-            // A child being deleted has had its foreign key cleared, so what it USED to point at is the answer.
-            values[i] = property.CurrentValue ?? property.OriginalValue;
-
-            if (values[i] is null)
-            {
-                return null;
-            }
-        }
-
-        return TrackedPrincipals.Find(context, foreignKey, values);
     }
 
     // An Entity<TId> key that is never generated is the entity's to assign — every key that is not an integer

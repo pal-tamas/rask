@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +30,7 @@ namespace Rask.Data;
 /// </remarks>
 internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransactionInterceptor
 {
-    private static readonly ConcurrentDictionary<Type, Type> Roots = new();
+    private static readonly ConditionalWeakTable<IEntityType, TypeRoots> Roots = [];
 
     private readonly ConditionalWeakTable<DbContext, HashSet<Type>> _collected = new();
     private readonly ConditionalWeakTable<DbContext, HashSet<Type>> _deferred = new();
@@ -125,8 +125,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         foreach (var entry in context.ChangeTracker.Entries()
                      .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
-            var root = RootOf(entry.Metadata);
-            if (inSession || CurrentRows.Watches(root) || IsWatched(root))
+            foreach (var root in RootsOf(entry).Where(root => inSession || CurrentRows.Watches(root) || IsWatched(root)))
             {
                 (types ??= []).Add(root);
             }
@@ -170,7 +169,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     /// </summary>
     internal void SetWritten(DbContext context, IEntityType type)
     {
-        HashSet<Type> types = [RootOf(type)];
+        HashSet<Type> types = [.. RootsOf(type).All];
         if (AmbientTransaction.Of(context) is { } ambient)
         {
             ambient.AfterCommit(() => Notify(types));
@@ -339,48 +338,32 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     }
 
     /// <summary>
-    ///     The aggregate a row belongs to, by type: an owned type or a child entity reports its root, found
-    ///     by walking foreign keys up to an <see cref="IAggregate" />; anything else reports itself.
+    ///     The aggregates a row's save wrote: its type's root — or, for a child two aggregates may hold (a Chip under a
+    ///     Driver or a Vehicle), the root of each parent the row is held by.
+    /// </summary>
+    /// <remarks>
+    ///     Read off the row only where its type leaves the root open: one holding no parent key names every root its
+    ///     type may have.
+    /// </remarks>
+    private static IEnumerable<Type> RootsOf(EntityEntry entry)
+    {
+        var roots = RootsOf(entry.Metadata);
+        if (roots.Keys.Length == 0)
+        {
+            return roots.All;
+        }
+
+        var held = HeldBy.Of(entry, roots.Keys);
+        return held.Count == 0 ? roots.All : held.Select(h => roots.Of(h.Key));
+    }
+
+    /// <summary>
+    ///     The aggregates a row of <paramref name="entityType" /> may belong to: an owned type or a child entity reports
+    ///     its root, found by walking foreign keys up to an <see cref="IAggregate" />; anything else reports itself.
     /// </summary>
     /// <remarks>
     ///     By metadata rather than through tracked entries, so a child saved without its root loaded still
     ///     names the root. Cached per type: the answer is a property of the model, not of the save.
     /// </remarks>
-    private static Type RootOf(IEntityType entityType) =>
-        Roots.GetOrAdd(entityType.ClrType, static (_, type) => FindRoot(type, 0) ?? type.ClrType, entityType);
-
-    private static Type? FindRoot(IReadOnlyEntityType type, int depth)
-    {
-        // The same ceiling the auditing walk uses: deeper than this is several aggregates under one name.
-        if (depth >= 4)
-        {
-            return null;
-        }
-
-        if (typeof(IAggregate).IsAssignableFrom(type.ClrType))
-        {
-            return type.ClrType;
-        }
-
-        if (type.FindOwnership() is { } ownership)
-        {
-            return FindRoot(ownership.PrincipalEntityType, depth + 1);
-        }
-
-        if (!typeof(IEntity).IsAssignableFrom(type.ClrType))
-        {
-            return null;
-        }
-
-        foreach (var principal in type.GetForeignKeys().Select(static foreignKey => foreignKey.PrincipalEntityType))
-        {
-            if (typeof(IEntity).IsAssignableFrom(principal.ClrType)
-                && FindRoot(principal, depth + 1) is { } root)
-            {
-                return root;
-            }
-        }
-
-        return null;
-    }
+    private static TypeRoots RootsOf(IEntityType entityType) => Roots.GetValue(entityType, static type => TypeRoots.Of(type));
 }

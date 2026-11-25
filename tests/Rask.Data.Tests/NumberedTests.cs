@@ -49,6 +49,60 @@ public sealed class PumpShare : Aggregate<Guid>
     public static PumpShare From(PumpFueling fueling) => new() { Id = Guid.CreateVersion7(), FromId = fueling.Id };
 }
 
+/// <summary>
+///     A fueling counted at the pistol it was corrected to, else the one it was read at: a computed column, the group of
+///     its numbering — as data-writes.md declares it.
+/// </summary>
+public sealed class CorrectedFueling : Aggregate<Guid>
+{
+    private CorrectedFueling() { } // EF materialization
+
+    public string Pistol { get; private set; } = "";
+
+    public string? ModifiedPistol { get; private set; }
+
+    public string? CountedAt { get; private set; }
+
+    public DateTime Moment { get; private set; }
+
+    public int? Sequence { get; private set; }
+
+    public static CorrectedFueling At(string pistol, int hour) =>
+        new() { Id = Guid.CreateVersion7(), Pistol = pistol, Moment = new DateTime(2026, 11, 24, hour, 0, 0, DateTimeKind.Utc) };
+
+    public void CorrectTo(string pistol) => ModifiedPistol = pistol;
+
+    public static void Configure(EntityTypeBuilder<CorrectedFueling> builder)
+    {
+        builder.Computed(f => f.CountedAt, f => f.ModifiedPistol ?? f.Pistol);
+        builder.Numbered(f => f.Sequence, within: f => f.CountedAt, by: f => new { f.Moment, f.Id });
+    }
+}
+
+/// <summary>A reading numbered within a lane the database computes, which C# cannot compute for a reading of no width.</summary>
+public sealed class LaneReading : Aggregate<Guid>
+{
+    private LaneReading() { } // EF materialization
+
+    public int? Offset { get; private set; }
+
+    public int? Width { get; private set; }
+
+    public int? Lane { get; private set; }
+
+    public int Hour { get; private set; }
+
+    public int? Sequence { get; private set; }
+
+    public static LaneReading At(int offset, int width, int hour) => new() { Id = Guid.CreateVersion7(), Offset = offset, Width = width, Hour = hour };
+
+    public static void Configure(EntityTypeBuilder<LaneReading> builder)
+    {
+        builder.Computed(r => r.Lane, r => r.Offset / r.Width);
+        builder.Numbered(r => r.Sequence, within: r => r.Lane, by: r => new { r.Hour, r.Id });
+    }
+}
+
 /// <summary><c>b.Numbered(…)</c>: the running number Rask keeps in every save, with no SQL in the app.</summary>
 [Collection(DataDbCollection.Name)]
 public sealed class NumberedTests : IDisposable
@@ -173,6 +227,47 @@ public sealed class NumberedTests : IDisposable
         Assert.Equal([1, 2], await SequencesAsync(fuelings));
     }
 
+    [Fact]
+    public async Task A_row_grouped_by_a_computed_column_is_numbered_where_the_database_computes_it()
+    {
+        await using var database = await StartDatabaseAsync();
+        CorrectedFueling[] fuelings = [CorrectedFueling.At("a", 8), CorrectedFueling.At("a", 10)];
+        await SaveCorrectedAsync(database, fuelings);
+        var between = CorrectedFueling.At("a", 9);
+
+        await SaveCorrectedAsync(database, between);
+
+        Assert.Equal([1, 3, 2], await CorrectedSequencesAsync([.. fuelings, between]));
+    }
+
+    [Fact]
+    public async Task A_row_corrected_to_another_pistol_numbers_both_pistols_anew()
+    {
+        await using var database = await StartDatabaseAsync();
+        CorrectedFueling[] fuelings = [CorrectedFueling.At("a", 8), CorrectedFueling.At("a", 9), CorrectedFueling.At("a", 10), CorrectedFueling.At("b", 11)];
+        await SaveCorrectedAsync(database, fuelings);
+
+        fuelings[1].CorrectTo("b");
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([1, 1, 2, 2], await CorrectedSequencesAsync(fuelings));
+        Assert.Equal(2, fuelings[2].Sequence);
+    }
+
+    [Fact]
+    public async Task A_computed_group_C_sharp_cannot_compute_is_read_back_from_the_database_before_numbering()
+    {
+        await using var database = await StartDatabaseAsync();
+        LaneReading[] readings = [LaneReading.At(4, 2, hour: 9), LaneReading.At(5, 2, hour: 8), LaneReading.At(4, 0, hour: 7)];
+
+        database.Context.AddRange(readings);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await using var db = Db.CreateOwnContext();
+        var stored = await db.Set<LaneReading>().ToDictionaryAsync(r => r.Id, r => r.Sequence, TestContext.Current.CancellationToken);
+        Assert.Equal([2, 1, null], readings.Select(r => stored[r.Id]));
+    }
+
     private static async Task SaveAsync(TestDatabase database, params PumpFueling[] fuelings)
     {
         database.Context.AddRange(fuelings);
@@ -183,6 +278,19 @@ public sealed class NumberedTests : IDisposable
     {
         await using var db = Db.CreateOwnContext();
         var stored = await db.Set<PumpFueling>().ToDictionaryAsync(f => f.Id, f => f.Sequence, TestContext.Current.CancellationToken);
+        return [.. fuelings.Select(f => stored[f.Id])];
+    }
+
+    private static async Task SaveCorrectedAsync(TestDatabase database, params CorrectedFueling[] fuelings)
+    {
+        database.Context.AddRange(fuelings);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<int?[]> CorrectedSequencesAsync(IEnumerable<CorrectedFueling> fuelings)
+    {
+        await using var db = Db.CreateOwnContext();
+        var stored = await db.Set<CorrectedFueling>().ToDictionaryAsync(f => f.Id, f => f.Sequence, TestContext.Current.CancellationToken);
         return [.. fuelings.Select(f => stored[f.Id])];
     }
 

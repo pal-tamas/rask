@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -14,6 +15,9 @@ internal sealed class WrittenAggregates
     // How far up a child's parents are followed before it is taken as its own: an aggregate deeper than this is
     // several wearing one name (AggregateChildren stops at the same depth).
     private const int MaxDepth = 4;
+
+    // Each type's keys to the rows that may hold it: a property of the model, read once.
+    private static readonly ConditionalWeakTable<IEntityType, IForeignKey[]> ParentKeys = [];
 
     private readonly List<string> _written = [];
     private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
@@ -37,7 +41,7 @@ internal sealed class WrittenAggregates
         [
             .. context.ChangeTracker.Entries()
                 .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-                .Select(e => HasTemporaryKey(e) ? new Staged(null, e) : new Staged(RootOf(context, e, 0), null)),
+                .Select(e => HasTemporaryKey(e) ? new Staged(null, e) : new Staged(RootsOf(context, e, 0), null)),
         ];
 
         if (staged.Count > 0)
@@ -56,9 +60,9 @@ internal sealed class WrittenAggregates
         }
 
         var added = false;
-        foreach (var (root, later) in staged)
+        foreach (var (roots, later) in staged)
         {
-            if ((root ?? (later is null ? null : RootOf(context, later, 0))) is { } named && _seen.Add(named))
+            foreach (var named in (roots ?? RootsOf(context, later!, 0)).Where(_seen.Add))
             {
                 _written.Add(named);
                 added = true;
@@ -97,38 +101,63 @@ internal sealed class WrittenAggregates
     private static bool HasTemporaryKey(EntityEntry entry) =>
         entry.State == EntityState.Added && entry.Properties.Any(static p => p.IsTemporary);
 
-    // `Supply 42` for the aggregate the entry belongs to; null for a table that is no aggregate's.
-    private static string? RootOf(DbContext context, EntityEntry entry, int depth)
+    // `Supply 42` for the aggregate the entry belongs to — two for a row two parents genuinely hold; none for a table
+    // that is no aggregate's.
+    private static List<string> RootsOf(DbContext context, EntityEntry entry, int depth)
     {
         var type = entry.Metadata;
         if (IsInfrastructure(type))
         {
-            return null;
+            return [];
         }
 
-        if (typeof(IAggregate).IsAssignableFrom(type.ClrType) || depth >= MaxDepth || ParentOf(type) is not { } parent)
+        // Per row, not per type: a Chip a Driver or a Vehicle may list holds NULL in the other's key, so the first key
+        // its type declares would name a Driver with no key for every chip a vehicle saves.
+        var held = typeof(IAggregate).IsAssignableFrom(type.ClrType) || depth >= MaxDepth
+            ? []
+            : HeldBy.Of(entry, ParentKeys.GetValue(type, static t => ParentKeysOf(t)));
+        if (held.Count == 0)
         {
-            return type.FindPrimaryKey() is { } key ? Named(type, Values(entry, key.Properties)) : null;
+            return type.FindPrimaryKey() is { } key ? [Named(type, Values(entry, key.Properties))] : [];
         }
 
-        var parentKey = Values(entry, parent.Properties);
-        if (typeof(IAggregate).IsAssignableFrom(parent.PrincipalEntityType.ClrType))
+        List<string> roots = [];
+        foreach (var (parent, values) in held)
         {
-            return IsInfrastructure(parent.PrincipalEntityType) ? null : Named(parent.PrincipalEntityType, parentKey);
+            var principalType = parent.PrincipalEntityType;
+            var parentKey = Joined(values);
+            if (typeof(IAggregate).IsAssignableFrom(principalType.ClrType))
+            {
+                if (!IsInfrastructure(principalType))
+                {
+                    roots.Add(Named(principalType, parentKey));
+                }
+
+                continue;
+            }
+
+            // A grandchild: its parent's own parent, from the parent row the save tracks — or the parent taken as its own.
+            if (Tracked(context, principalType, parentKey) is { } principal)
+            {
+                roots.AddRange(RootsOf(context, principal, depth + 1));
+            }
+            else
+            {
+                roots.Add(Named(principalType, parentKey));
+            }
         }
 
-        // A grandchild: its parent's own parent, from the parent row the save tracks — or the parent taken as its own.
-        return Tracked(context, parent.PrincipalEntityType, parentKey) is { } principal
-            ? RootOf(context, principal, depth + 1)
-            : Named(parent.PrincipalEntityType, parentKey);
+        return roots;
     }
 
-    // The foreign key to the row that holds this one: the owner of an owned type, or the parent whose navigation
-    // lists it (Supply.Parts) — not a reference by id to another aggregate, which has no navigation back.
-    private static IForeignKey? ParentOf(IEntityType type) =>
-        type.FindOwnership() ??
-        type.GetForeignKeys().FirstOrDefault(static key =>
-            key.PrincipalToDependent is not null && typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType));
+    // The foreign keys to the rows that may hold this one: the owner of an owned type, or each parent whose navigation
+    // lists it (Supply.Parts, or Driver.Chips and Vehicle.Chips) — not a reference by id to another aggregate, which
+    // has no navigation back.
+    private static IForeignKey[] ParentKeysOf(IEntityType type) =>
+        type.FindOwnership() is { } ownership
+            ? [ownership]
+            : [.. type.GetForeignKeys().Where(static key =>
+                key.PrincipalToDependent is not null && typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType))];
 
     private static EntityEntry? Tracked(DbContext context, IEntityType type, string key) =>
         type.FindPrimaryKey() is { } primary
@@ -144,15 +173,15 @@ internal sealed class WrittenAggregates
 
     // A deleted row's key as it was read; any other's as it stands, a store-generated one still temporary.
     private static string Values(EntityEntry entry, IReadOnlyList<IProperty> properties) =>
-        string.Join(
-            "/",
-            properties.Select(p =>
-            {
-                var property = entry.Property(p.Name);
-                var value = entry.State == EntityState.Deleted ? property.OriginalValue : property.CurrentValue;
-                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null";
-            }));
+        Joined(properties.Select(p =>
+        {
+            var property = entry.Property(p.Name);
+            return entry.State == EntityState.Deleted ? property.OriginalValue : property.CurrentValue;
+        }));
+
+    private static string Joined(IEnumerable<object?> values) =>
+        string.Join("/", values.Select(static value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"));
 
     // A row the save writes: named before it, or (its key still to be made) the entry to name after it.
-    private readonly record struct Staged(string? Root, EntityEntry? Later);
+    private readonly record struct Staged(List<string>? Roots, EntityEntry? Later);
 }
