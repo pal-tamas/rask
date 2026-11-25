@@ -160,6 +160,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **`TestDatabase.Start()` stands the batteries in with their fakes.** Before: a save handler that called
+  `Mail.Send`, `Jobs.Enqueue`, `Cache.Remember`, `Push.Send` or `Files.Save` threw in a test for want of a host, unless
+  the test made each fake by hand. Now a model that maps a battery's table (a RaskApp's context maps them all) gets
+  that battery's fake for the database's lifetime — through the static and to a class that injects it — read back
+  as `database.Mail`, `database.Jobs`, `database.Cache`, `database.Push`, `database.Files`; `await database.Jobs.Run()`
+  runs the recorded jobs in a scope of the database's services with no host. A fake made before `Start` is the one
+  used; a battery registered through `services:` replaces it.
 - **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
   value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
   format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,

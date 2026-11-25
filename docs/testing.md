@@ -301,6 +301,15 @@ the test alone, through `UseRaskSqlite` (it comes with `Rask.SQLite.EntityFramew
   aggregate's events reach their handlers after the commit and are cleared, as in production, and a durable
   handler's event is stored (or recorded by `Outbox.Fake()`). What the handlers need beyond Rask's own registrations
   goes in `TestDatabase.Start<CrmContext>(services: s => s.AddSingleton(fakeMailer))`;
+- **the batteries are their fakes**: when the model maps a battery's table — a RaskApp's context maps them all — that
+  battery is its test fake for the database's lifetime, so a save handler's `Mail.Send`, `Jobs.Enqueue`,
+  `Cache.Remember`, `Push.Send` or `Files.Save` records what it would have done instead of throwing for want of a
+  host, and a class that injects `IMail`/`IJobs`/`ICache`/`IPush`/`IFiles` is handed the same fake. The test reads
+  them back from the database — `database.Mail.Sent().To("ann@x.io").Once()`, `database.Jobs.Enqueued<SendReceipt>().Once()`
+  — and `await database.Jobs.Run()` runs the recorded jobs through their real handlers, in a scope of the database's
+  own services, with no host. A fake the test made before starting the database (`using var mail = Mail.Fake();`) is
+  the one used; a battery the test registers itself through `services:` replaces the fake. The outbox stays real
+  (`Outbox.Fake()` when a test wants to step it);
 - the schema is made once per model and copied into each later database through SQLite's backup API — a start over
   a 54-table model took ~0.7 ms (median) after the first, against ~74 ms when every test ran `EnsureCreated`;
 - a decimal orders as a number, and a model whose `IRaskModel` names `c.OrderTextBy("Hungarian_100_CI_AS")` compares

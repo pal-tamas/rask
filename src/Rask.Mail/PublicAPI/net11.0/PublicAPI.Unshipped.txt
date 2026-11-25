@@ -330,3 +330,7 @@ static Rask.Mailing.QueuedMailReadAccess.Across(string! reason) -> Rask.Data.Mod
 static Rask.Mailing.QueuedMailReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+Rask.Mailing.MailTestDatabase
+Rask.Mailing.MailTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.Mailing.MailTestDatabase.extension(Rask.Data.TestDatabase!).Mail.get -> Rask.Mailing.MailFake!
+static Rask.Mailing.MailTestDatabase.get_Mail(Rask.Data.TestDatabase! database) -> Rask.Mailing.MailFake!

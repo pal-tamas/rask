@@ -271,3 +271,7 @@ static Rask.Storage.StoredFileReadAccess.Across(string! reason) -> Rask.Data.Mod
 static Rask.Storage.StoredFileReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Storage.FilesTestDatabase
+Rask.Storage.FilesTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.Storage.FilesTestDatabase.extension(Rask.Data.TestDatabase!).Files.get -> Rask.Storage.FilesFake!
+static Rask.Storage.FilesTestDatabase.get_Files(Rask.Data.TestDatabase! database) -> Rask.Storage.FilesFake!

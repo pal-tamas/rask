@@ -280,3 +280,7 @@ static Rask.WebPush.PushSubscriberReadAccess.Across(string! reason) -> Rask.Data
 static Rask.WebPush.PushSubscriberReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).ForUpdate() -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
+Rask.WebPush.PushTestDatabase
+Rask.WebPush.PushTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.WebPush.PushTestDatabase.extension(Rask.Data.TestDatabase!).Push.get -> Rask.WebPush.PushFake!
+static Rask.WebPush.PushTestDatabase.get_Push(Rask.Data.TestDatabase! database) -> Rask.WebPush.PushFake!

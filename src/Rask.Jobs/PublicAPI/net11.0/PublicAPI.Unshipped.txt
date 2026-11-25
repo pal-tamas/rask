@@ -542,3 +542,7 @@ static Rask.Background.RecurringJobStateReadAccess.Across(string! reason) -> Ras
 static Rask.Background.RecurringJobStateReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+Rask.Background.JobsTestDatabase
+Rask.Background.JobsTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.Background.JobsTestDatabase.extension(Rask.Data.TestDatabase!).Jobs.get -> Rask.Background.JobsFake!
+static Rask.Background.JobsTestDatabase.get_Jobs(Rask.Data.TestDatabase! database) -> Rask.Background.JobsFake!

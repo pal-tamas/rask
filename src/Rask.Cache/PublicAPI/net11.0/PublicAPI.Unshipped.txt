@@ -207,3 +207,7 @@ static Rask.Caching.CacheEntryReadAccess.Across(string! reason) -> Rask.Data.Mod
 static Rask.Caching.CacheEntryReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+Rask.Caching.CacheTestDatabase
+Rask.Caching.CacheTestDatabase.extension(Rask.Data.TestDatabase!)
+Rask.Caching.CacheTestDatabase.extension(Rask.Data.TestDatabase!).Cache.get -> Rask.Caching.CacheFake!
+static Rask.Caching.CacheTestDatabase.get_Cache(Rask.Data.TestDatabase! database) -> Rask.Caching.CacheFake!
