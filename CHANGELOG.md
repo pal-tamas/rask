@@ -138,6 +138,13 @@ them until tagged releases begin.
   PostgreSQL and Redis in one process and SQL Server in a second.
 
 ### Added
+- **A `Moment` or a `Day` read from text: `X.Parse(text, format?, field?)` and `X.TryParse`**, generated on every
+  value object declared from either, plus **`Clock.WallAt(moment)`**. Culture-invariant, ISO 8601 unless an exact
+  format is named (`"yyyy.MM.dd. HH:mm"`), and onto the app's wall clock: a moment written with its offset (`Z`,
+  `+01:00`) is converted to `Clock.Zone`, across summer time, and one without is taken as the wall's; a `Day` is a
+  moment's day on the wall calendar. No moment is a `FormatException`, a refused one the `RaskValidationException`
+  `Create` throws; `TryParse` says false for both. Replaces an app's own zone helper (`Zone`, `Of`, `FromUtc`, `Parse`):
+  `AmnisMoment.Parse(text)`, `Clock.WallAt(moment)`, `Clock.Today`.
 - **Set writes hold their locked parents, honour `Except`, and gated members stay off the read face.** `UpdateWhere`
   and `DeleteWhere` read every parent their rows hold under an update lock before asking `LockedBy`, as a save's
   `LockRead.ForUpdate` does; an `UpdateWhere` that sets only a lock's `Except(…)` columns passes. A read face
