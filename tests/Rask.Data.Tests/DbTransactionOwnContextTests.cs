@@ -1,5 +1,4 @@
 using System.Data;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -15,13 +14,13 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DbTransactionOwnContextTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-own-context-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
         // A short busy timeout, so a save left on its own connection fails on the transaction's lock in 2 s, not 30.
-        Action<DbContextOptionsBuilder> provider = o => o.UseSqlite($"Data Source={_dbPath};Default Timeout=2");
+        Action<DbContextOptionsBuilder> provider = o => o.UseSqlite($"{_sqlite.ConnectionString};Default Timeout=2");
         var services = new ServiceCollection();
         services.AddRaskData<RaskDbContext>();
         services.AddDbContextFactory<RaskDbContext>((sp, o) =>
@@ -43,8 +42,7 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     private IDbContextFactory<RaskDbContext> Contexts => _app.GetRequiredService<IDbContextFactory<RaskDbContext>>();

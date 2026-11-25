@@ -8,7 +8,7 @@ namespace Rask.SQLite.EntityFrameworkCore.Tests;
 public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-open-{Guid.NewGuid():N}.db");
-    private string ConnectionString => $"Data Source={_dbPath}";
+    private string ConnectionString => $"Data Source={_dbPath};Pooling=False";
 
     [Theory]
     [InlineData(true)]  // configureRetry supplied -> pragma busy_timeout=0
@@ -66,7 +66,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

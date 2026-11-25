@@ -20,9 +20,9 @@ public sealed class TenantResolverTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-tenant-resolver-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_read_is_filtered_by_the_tenant_the_resolver_named()
@@ -534,7 +534,7 @@ public sealed class TenantResolverTests : IDisposable
             .ToListAsync(TestContext.Current.CancellationToken);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     private sealed class RequestStub
     {

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -93,11 +94,10 @@ public sealed class NoOutboxTableContext(DbContextOptions<NoOutboxTableContext> 
         modelBuilder.Entity<Order>().HasKey(x => x.Id);
 }
 
-[Collection(OutboxDbCollection.Name)]
 public sealed class DurableHandlerTests : IDisposable
 {
     private readonly ShippingLog _log = new();
-    private readonly List<string> _paths = [];
+    private readonly List<InMemorySqlite> _databases = [];
     private readonly List<ServiceProvider> _providers = [];
 
     public void Dispose()
@@ -107,16 +107,9 @@ public sealed class DurableHandlerTests : IDisposable
             provider.Dispose();
         }
 
-        foreach (var path in _paths)
+        foreach (var database in _databases)
         {
-            try
-            {
-                File.Delete(path);
-            }
-            catch (IOException)
-            {
-                // A test file left behind is not a failure worth failing the run for.
-            }
+            database.Dispose();
         }
     }
 
@@ -278,8 +271,8 @@ public sealed class DurableHandlerTests : IDisposable
 
     private ServiceProvider Build(Action<IServiceCollection> register)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-outbox-durable-{Guid.NewGuid():N}.db");
-        _paths.Add(path);
+        var database = new InMemorySqlite();
+        _databases.Add(database);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -287,7 +280,7 @@ public sealed class DurableHandlerTests : IDisposable
         services.AddRaskCqrs();
         register(services);
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={path}")
+            .UseSqlite(database.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         var provider = services.BuildServiceProvider();

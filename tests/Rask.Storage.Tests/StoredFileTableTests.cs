@@ -13,7 +13,6 @@ namespace Rask.Storage.Tests;
 /// numbered tenant column existed. An existing Guid app must need no migration and no conversion: any difference here
 /// is one an adopted database created by hand would fail on.
 /// </remarks>
-[Collection(StorageDbCollection.Name)]
 public sealed class StoredFileTableTests
 {
     private const string SqlServerTable = """

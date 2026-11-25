@@ -8,7 +8,6 @@ namespace Rask.Auth.Tests;
 /// <summary>
 ///     The first account to register becomes the administrator, and only the first.
 /// </summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class FirstUserIsAdminTests
 {
     private const string Password = "Password1";
@@ -92,9 +91,9 @@ public sealed class FirstUserIsAdminTests
         await harness.StartAsync();
         await RegisterAsync(harness, "first@example.com", AuthHarness.FirstRunTokenValue);
 
-        // A second harness over the SAME file is this app starting again. A new file would only prove
+        // A second harness over the SAME database is this app starting again. A new database would only prove
         // that a different app issues its own token.
-        await using var restarted = new AuthHarness(dbPath: harness.DbPath);
+        await using var restarted = new AuthHarness(reopen: harness);
         await restarted.StartAsync();
 
         Assert.False(

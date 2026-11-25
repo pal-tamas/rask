@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 namespace Rask.Auth.Tests;
 
 /// <summary>A value that cannot produce a working app stops it starting, and the failure names the setting.</summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class AuthOptionsValidationTests
 {
     [Fact]

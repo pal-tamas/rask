@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,12 +12,11 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DbTransactionRetryTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-retry-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -97,9 +95,9 @@ public sealed class DbTransactionRetryTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData<TestDbContext>();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}", s => s.ExecutionStrategy(d => new RetryOnTimeout(d)))
+            .UseSqlite(_sqlite.ConnectionString, s => s.ExecutionStrategy(d => new RetryOnTimeout(d)))
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(_sqlite.ConnectionString));
         await using var provider = services.BuildServiceProvider();
         await using (var db = await provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
@@ -142,7 +140,7 @@ public sealed class DbTransactionRetryTests : IDisposable
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite(
-            $"Data Source={_dbPath}", s => s.ExecutionStrategy(d => new RetryOnTimeout(d))),
+            _sqlite.ConnectionString, s => s.ExecutionStrategy(d => new RetryOnTimeout(d))),
             cancellationToken: TestContext.Current.CancellationToken);
 
     private sealed class RetryOnTimeout(ExecutionStrategyDependencies dependencies)

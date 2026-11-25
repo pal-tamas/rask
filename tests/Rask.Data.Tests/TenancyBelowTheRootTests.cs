@@ -62,9 +62,9 @@ public sealed class TenancyBelowTheRootTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-below-root-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_grandchild_has_no_tenant_column_and_its_filter_walks_up_to_the_root()
@@ -192,7 +192,7 @@ public sealed class TenancyBelowTheRootTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     // A context that maps a child and not the aggregate it is part of: there is no path to a tenant.
     private sealed class DropsOnlyContext(DbContextOptions<DropsOnlyContext> options) : DbContext(options), ITenantScoped

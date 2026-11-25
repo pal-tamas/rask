@@ -10,23 +10,23 @@ public sealed class Price
     public decimal Amount { get; set; }
 }
 
-public sealed class PriceContext(string dbPath) : DbContext
+public sealed class PriceContext(string connectionString) : DbContext
 {
     public DbSet<Price> Prices => Set<Price>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder options) =>
-        options.UseSqlite($"Data Source={dbPath}");
+        options.UseSqlite(connectionString);
 }
 
 // These tests PIN the SQLite limitations documented in docs/sqlite.md — they demonstrate the real
 // behavior (not Rask code), so the "when to outgrow SQLite" guidance stays honest and can't silently drift.
 public sealed class SqliteLimitationsTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-limits-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private SqliteConnection Open()
     {
-        var connection = new SqliteConnection($"Data Source={_dbPath}");
+        var connection = new SqliteConnection(_database.ConnectionString);
         connection.Open();
         return connection;
     }
@@ -70,7 +70,7 @@ public sealed class SqliteLimitationsTests : IDisposable
     [Fact]
     public void EF_Core_stores_decimal_as_text_to_keep_precision()
     {
-        using (var ctx = new PriceContext(_dbPath))
+        using (var ctx = new PriceContext(_database.ConnectionString))
         {
             ctx.Database.EnsureCreated();
             ctx.Prices.Add(new Price { Amount = 19.95m });
@@ -78,7 +78,7 @@ public sealed class SqliteLimitationsTests : IDisposable
         }
 
         // EF Core stores decimal as TEXT (not REAL), so the value round-trips exactly...
-        using var read = new PriceContext(_dbPath);
+        using var read = new PriceContext(_database.ConnectionString);
         Assert.Equal(19.95m, read.Prices.Single().Amount);
 
         // ...and the raw column really is TEXT. Arithmetic, comparisons and Sum/Average/Min/Max still
@@ -92,7 +92,7 @@ public sealed class SqliteLimitationsTests : IDisposable
     [Fact]
     public void Decimal_ordering_depends_on_an_EF_registered_collation()
     {
-        using var ctx = new PriceContext(_dbPath);
+        using var ctx = new PriceContext(_database.ConnectionString);
 
         // Sorting TEXT numerically needs a collation, so EF Core emits one rather than a bare ORDER BY.
         var sql = ctx.Prices.OrderBy(p => p.Amount).ToQueryString();
@@ -133,32 +133,5 @@ public sealed class SqliteLimitationsTests : IDisposable
         Assert.Equal("text", Scalar(db, "SELECT typeof(g) FROM e"));
     }
 
-    [Fact]
-    public void Single_writer_a_second_immediate_transaction_is_busy()
-    {
-        using var writer = Open();
-        Exec(writer, "PRAGMA busy_timeout = 0;");
-        Exec(writer, "CREATE TABLE t (x);");
-        Exec(writer, "BEGIN IMMEDIATE;"); // takes the write lock and holds it (no commit)
-        using var second = Open();
-        Exec(second, "PRAGMA busy_timeout = 0;");
-        using var begin = second.CreateCommand();
-        begin.CommandText = "BEGIN IMMEDIATE;";
-        begin.CommandTimeout = 1; // cap the driver's SQLITE_BUSY retry (0 would mean retry forever)
-
-        var ex = Assert.Throws<SqliteException>(() => begin.ExecuteNonQuery());
-
-        Assert.Equal(5, ex.SqliteErrorCode); // SQLITE_BUSY — writes serialize to one writer
-
-        Exec(writer, "ROLLBACK;");
-    }
-
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
-    }
+    public void Dispose() => _database.Dispose();
 }

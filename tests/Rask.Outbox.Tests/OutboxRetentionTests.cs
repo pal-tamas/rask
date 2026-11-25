@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -11,10 +12,9 @@ namespace Rask.Outbox.Tests;
 /// application — every domain event ever raised, payload included, on the same SQLite file the app serves
 /// from (and that Litestream replicates and snapshots copy).
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxRetentionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-ret-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
     private ServiceProvider _provider = null!;
 
@@ -113,10 +113,7 @@ public sealed class OutboxRetentionTests : IDisposable
     public void Dispose()
     {
         _provider?.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     private void Build(Action<OutboxOptions> configure)
@@ -132,7 +129,7 @@ public sealed class OutboxRetentionTests : IDisposable
             configure(o);
         });
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();

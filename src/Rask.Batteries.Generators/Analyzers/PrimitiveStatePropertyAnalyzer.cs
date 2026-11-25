@@ -22,7 +22,7 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask130 = new(
         "RASK130",
         "An aggregate stores a bare value where a value object would hold its rules",
-        "'{0}.{1}' is a bare '{2}' — declare a value object for it (Text, Number, Whole, Day, Range or Value), so its rules are checked wherever one is made",
+        "'{0}.{1}' is a bare '{2}' — declare a value object for it (Text, Number, Integer, Day, Range or Value), so its rules are checked wherever one is made",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,

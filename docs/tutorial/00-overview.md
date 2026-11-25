@@ -13,13 +13,15 @@ you type and real code you write. Nothing here is pseudo-code.
 
 By the last chapter, Shop has:
 
-- a **Products** catalog with full create / read / update / delete pages, backed by SQLite through EF Core;
-- an **Orders** feature;
-- a **login** so only signed-in staff can edit the catalog;
-- a **background job** that runs work off the request thread;
+- a **Products** catalog — an aggregate with value objects and a typed id, its operations, and one page that adds,
+  edits, pictures and deletes through forms over those operations, backed by SQLite;
+- an **Orders** feature — an order with lines, a shipping address and a gift note — on the same database;
+- **roles on the operations**, so only an administrator can change the catalog;
+- **tests on SQLite in memory** for every rule: a database per test, run side by side;
+- a **background job** that works off the request thread through the order's own operation;
 - **transactional email** (an order receipt) whose body is a Rask component;
-- a **cache** in front of the catalog;
-- **domain events** delivered through a durable outbox;
+- a **cache** in front of the catalog, forgotten by the catalog's own domain event;
+- **domain events** delivered through a durable outbox — an order placed takes its stock and queues its receipt;
 - **production-grade SQLite** — WAL, a busy-timeout, snapshots, and continuous off-box backup;
 - **push notifications** sent from your own server on your own keys;
 - an **ops page** that shows every background worker's state;
@@ -34,15 +36,15 @@ whole product.
 | # | Chapter | Pillar | You'll build |
 |---|---------|--------|-----------|
 | 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop` |
-| 2 | [Your first feature](02-first-feature.md) | Data · SQLite | a `Product` slice · `rask db` |
-| 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` slice on the same database |
-| 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IJob` + handler |
+| 2 | [Your first feature](02-first-feature.md) | Data · SQLite | a `Product` aggregate · `Form.For` · its tests |
+| 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` with lines · operation roles |
+| 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IJob` whose handler calls an operation |
 | 5 | [Transactional email](05-email.md) | Mail | an email component + `IMail` |
-| 6 | [Caching the catalog](06-cache.md) | Cache | a cached read accessor |
-| 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | an event + a durable handler |
+| 6 | [Caching the catalog](06-cache.md) | Cache | a cached read · a domain event |
+| 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `OrderPlaced` · a handler on the aggregate |
 | 8 | [Production SQLite](08-production-sqlite.md) | SQLite | WAL pragmas · snapshots · Litestream |
 | 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `Push.Subscribe` · `Push.Send(…).To(customer)` |
-| 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page over every pillar's table |
+| 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page |
 | 11 | [Deploy to one box](11-deploy.md) | Deploy | `rask deploy --host … --domain …` |
 
 Read them in order — each chapter builds on the app the previous one left behind. Every chapter ends with
@@ -64,12 +66,15 @@ It installs the SDK only if you don't already have one, adds the `rask` command,
 running `rask doctor` so you can see where you stand. Everything lands under `$HOME` — no `sudo`.
 On Windows, use `irm https://rask.sh/rask.ps1 | iex`.
 
-Already set up? `dotnet --version` should print `10.0` or newer, and
+Already set up? `dotnet --version` should print `11.0` or newer, and
 `dotnet tool install -g Rask.Cli` (or `dotnet tool update -g Rask.Cli`) is all you need. Full
 detail: [Installing Rask](../installation.md).
 
-This tutorial assumes you're comfortable with C#. It does **not** assume you know EF Core or Rask — each
-idea is introduced where it first appears. If you've never built a Rask UI, skim
+This tutorial assumes you're comfortable with C#. It does **not** assume you know EF Core, domain-driven design or
+Rask — each idea is introduced where it first appears. There is one way to write a feature, and every chapter uses
+it: the business is an **aggregate** whose properties are **value objects**, every write is one of its
+**operations**, a form is the operation's (`Form.For`), and a test proves the rule on SQLite in memory. The
+[domain modelling guide](../domain.md) is the reference for all of it. If you've never built a Rask UI, skim
 [Getting started](../getting-started.md) first; we won't re-teach components here.
 
 Ready? → **[Chapter 1: Scaffold the app](01-scaffold.md)**

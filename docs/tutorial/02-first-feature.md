@@ -1,16 +1,23 @@
 # Chapter 2 — Your first feature
 
-> **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, create, edit,
-> delete — persisted in SQLite.
-> **You'll write:** a vertical slice under `Features/Products/` — an aggregate and its pages — then run
-> `rask db add`.
+> **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, add, edit, delete —
+> persisted in SQLite, and proved by tests that run on SQLite in memory.
+> **You'll write:** a vertical slice under `Features/Products/` — an aggregate and one page — its tests under
+> `Shop.Tests/Features/Products/`, then run `rask db add`.
 
-This chapter sets the pattern every later feature repeats — **aggregate → pages → migrate**. Do it once here
+This chapter sets the pattern every later feature repeats — **aggregate → page → tests → migrate**. Do it once here
 and the rest of the tutorial is variations on it.
 
-Everything below is code you write. It's longer than the chapters that follow because it's the only one
-that shows a slice end to end; once you've typed it, the shape is yours and later chapters only show
-what's new.
+There is one way to write a feature in Rask, and this chapter is it:
+
+- **The business is the aggregate.** What a product *is* and what may happen to it is one class. There is no
+  service layer, no repository and no hand-written form model.
+- **Its properties are value objects or typed ids.** A name is a `ProductName`, a price a `UnitPrice`; each says its
+  own rule once, and every form, every save and every message reads it from there.
+- **A write is one of its methods.** `Change`, `Discontinue`. Rask generates the entry that loads it, runs the method
+  and saves it in one transaction.
+- **The form is the operation's.** `Form.For(Product.Change, id)` is a form whose fields are the method's parameters,
+  checked by the method's own rules as they are typed.
 
 > **You don't name a database.** Chapter 1's `rask new` already wired one. Rask's own context,
 > `RaskAppDbContext`, maps every aggregate you declare, so there is no context to edit when you add one, and
@@ -21,305 +28,101 @@ what's new.
 `Features/Products/Product.cs`:
 
 ```csharp
-using System.ComponentModel.DataAnnotations;
-
 namespace Shop.Features.Products;
 
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public readonly partial record struct ProductId(Guid Value);
+
+public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 200);
+
+public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Max: 1_000_000, Scale: 2);
+
+public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
+
+public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
 {
-    [MaxLength(200)]
-    public string Name { get; private set; } = "";
+    public ProductName Name { get; private set; } = null!;
 
-    [Range(0, 1_000_000)]
-    public decimal Price { get; private set; }
+    public UnitPrice Price { get; private set; } = null!;
 
-    public bool InStock { get; private set; } = true;
+    public StockLevel Stock { get; private set; } = null!;
+
+    public bool Discontinued { get; private set; }
+
+    public Attachment? Photo { get; private set; }
+
+    private static Product Add(ProductName name, UnitPrice price, StockLevel stock) =>
+        new() { Id = ProductId.New(), Name = name, Price = price, Stock = stock };
+
+    public void Change(ProductName name, UnitPrice price, StockLevel stock)
+    {
+        Refuse.When(Discontinued && price != Price, () => price, "A discontinued product keeps its last price.");
+        (Name, Price, Stock) = (name, price, stock);
+    }
+
+    public void Discontinue() => Discontinued = true;
+
+    public void Picture(Attachment photo) => Photo = photo;
 }
 ```
 
-`Aggregate<Guid>` comes from [Rask.Data](../data.md). An **aggregate** is the unit your app loads, changes and
-saves as one: here, a product. Deriving from it is all the mapping there is (no `DbSet` property, no
-configuration class, no registration). The key comes first, and every name after it is a **trait** — something
-the table opts into:
+That is the whole feature's business code. Read it from the top.
 
-- **`Guid`** is the `Id`, the key, generated for you when a product is created.
+**A typed id, in one line.** `ProductId` wraps the `Guid` key, so an order line can hold a `ProductId` and the
+compiler will never let you hand it an order's id by mistake. Rask completes it — `ProductId.New()`,
+`ProductId.Parse(…)`, its JSON and its route value — and converts it to its `Guid` column
+([strongly-typed ids](../domain.md#strongly-typed-ids)).
+
+**Value objects, in one line each.** `ProductName` is a text of at most 200 characters, `UnitPrice` a number from 0
+to a million with two decimal places, `StockLevel` a whole number of 0 or more. The base record (`Text`, `Number`,
+`Integer`) *is* the rule: a `ProductName` that breaks it can't be made — `ProductName.Create("")` is refused with
+*This field is required.* — so a `Product` can never hold one. The same declaration gives the column its length and
+precision and the form's input its `maxlength`, `min` and `step`. Rask generates `Create`, `TryCreate` and
+`CreateOptional` beside each ([value objects](../domain.md#value-objects)). Only a `bool` (`Discontinued`) and an
+`enum` stay primitive.
+
+**The aggregate.** `Aggregate<ProductId, …>` comes from [Rask.Data](../domain.md). An **aggregate** is the unit your
+app loads, changes and saves as one. Deriving from it is all the mapping there is — no `DbSet`, no configuration
+class, no registration. The key comes first, and every name after it is a **trait** the table opts into:
+
 - **`Timestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
-- **`Versioned`** adds `Version`, a concurrency token bumped on every update. It's what stops two people editing
-  the same product from silently overwriting each other, and you'll see it at work in section 4.
-- **`Model`** generates the `ProductModel` the forms below bind, with `Product.Create(model)` and
-  `Product.Update(id, model)`.
-- **`Deletable`** generates `Product.Delete(id)`.
+- **`Versioned`** adds `Version`, a concurrency token bumped on every save. It is what stops two people editing the
+  same product from silently overwriting each other — section 5 proves it.
+- **`Deletable`** generates `Product.Delete(id, version)`. An aggregate whose deleted rows must stay recoverable names
+  `SoftDelete` instead ([choosing what a table carries](../domain.md#choosing-what-a-table-carries)).
 
-The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete
-removes the row; an aggregate whose deleted rows must stay recoverable names `SoftDelete` instead of `Deletable`
-and gets a `DeletedAt` column (see [choosing what a table carries](../domain.md#choosing-what-a-table-carries)).
+**A factory and three operations.** The class is `partial`, and that is what lets Rask write beside it:
+
+- `Add` is a **factory** — a static method that returns a `Product`. It is `private` because Rask generates the
+  public entry of the same name, `await Product.Add(name, price, stock)`, which builds the product, asks its rules,
+  saves it in one transaction and hands back its `ProductId`.
+- `Change`, `Discontinue` and `Picture` are **operations** — public methods that change it. Each gets a static entry,
+  `await Product.Change(id, version, name, price, stock)`, that loads the product at the version you read, runs the
+  method and saves it in one transaction ([operations](../domain.md#operations-what-the-aggregate-does)).
+
+**A refusal names its field.** `Refuse.When(…, () => price, "…")` is how a method says no: the whole operation is
+rolled back, and the message lands under the *Price* field of whatever form called it
+([refusing an operation](../domain.md#refusing-an-operation-refuse)). You never throw an exception of your own for a
+business rule.
+
+**A file the product holds.** `Attachment? Photo` is a file stored with the row — the bytes in the app's file
+storage, written in the save's transaction, and let go when it is replaced. `Picture` is an ordinary operation that
+takes one ([file storage](../file-storage.md#a-file-the-aggregate-holds-attachment)).
 
 Two rules shape the class, and the build enforces both:
 
 - **Setters are `private set`.** A public setter on an aggregate is a build error
-  ([RASK084](../diagnostics.md#rask084)): state changes only through the aggregate's own code, so nothing outside
-  can poke a field. EF Core and the forms below both write through private setters.
-- **No constructor.** The implicit one is what EF Core builds rows with and what a new form starts from. When an
-  aggregate needs a domain way to be created, it gets a static factory; chapter 7 gives `Order` one.
-
-`Name` is a `string`, not a `string?`, and that is what makes it required: the column is `NOT NULL`, and a form
-that leaves it empty is told *This field is required.* `[MaxLength(200)]` is read twice — EF Core makes the
-column 200 characters, and the form checks it when it is saved. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
-product starts with, on the create form too.
+  ([RASK084](../diagnostics.md#rask084)): state changes only through its own methods.
+- **No constructor.** The implicit one is what EF Core builds rows with. Creation is the factory's.
 
 **Reading needs nothing more.** The build generates a **read face** beside the aggregate —
-`Product.Where(…)`, `Product.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
-behaviour, nothing to save. Each read opens its own database context, runs, and disposes it before it
-returns. That's what makes it safe to call straight from a page: a Rask page lives as long as the browser
-keeps its socket open, and nothing here holds a context between calls.
+`Product.Where(…)`, `Product.OrderBy(…)`, `Product.Count()` — whose rows are `ProductRead`: the columns as plain
+values (`Name` is a `string`, `Price` a `decimal`), no behaviour, nothing to save. Each read opens its own database
+context and disposes it before it returns, so it is safe to call straight from a page, which lives as long as the
+browser keeps its socket open. See [the read face](../data.md#reading-the-read-face).
 
-Why a separate type to read from? Because an aggregate is a consistency *boundary*: it holds another
-aggregate's id and never a navigation to it, so a write cannot cross a boundary by accident. The read face
-has no such rule — it carries the joins those ids imply — and keeping the two apart is what lets both be
-true at once. [The data guide](../data.md#reading-the-read-face) has the whole of it.
+## 2. The page
 
-## 2. The form model and the writes
-
-A form edits something mutable, and `Product` isn't. So the build generates a **form model** beside it,
-`ProductModel`, and every form binds that, never the aggregate:
-
-- it has a settable copy of `Name`, `Price` and `InStock`, plus the `Version` an edit was loaded at, and never
-  the `Id`;
-- **every property is nullable**, because a form field can be empty whatever the column is;
-- `[MaxLength]` and `[Range]` are copied onto it, and a property the aggregate declares non-nullable is required,
-  so the form validates by the aggregate's rules;
-- **`new ProductModel()`** starts with the aggregate's defaults (`InStock` is `true`), and **`product.ToModel()`**
-  fills one from a row for an edit form.
-
-The writes are on the type, beside the reads, and take the model:
-
-```csharp
-var product = await Product.Create(model);        // a new row with a new Id
-await Product.Update(id, model);                  // only the changed columns; a stale Version throws
-await Product.Delete(id, version);                // removes the row; a stale Version throws
-```
-
-Each one opens a context, saves through the interceptors `rask new` wired (so the timestamps and `Version` are
-looked after), and disposes it. There's nothing to inject and nothing to write here: the next three sections are
-just pages.
-
-## 3. The create page
-
-`Features/Products/NewProductPage.cs`:
-
-```csharp
-namespace Shop.Features.Products;
-
-[Route("/products/new")]
-public sealed partial class NewProductPage : Component
-{
-    private readonly ProductModel _model = new();
-
-    protected override string? PageTitle => "New product";
-
-    protected override Component? Render()
-    {
-        // The same command every render, so "saving" survives the re-render the click causes.
-        var save = QueryClient.Command();
-
-        return
-        [
-            Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Xl[PageTitle],
-                Ui.Spacer,
-                Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
-            ],
-            Ui.Card[
-                save.IsError ? Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again.") : null,
-                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
-                {
-                    await Product.Create(model, cancellationToken: ct);
-                    Routes.ProductsPage().Go();
-                }, CancellationToken))[
-                    Ui.Input.Bind(() => _model.Name).Label("Name"),
-                    Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
-                        .Description("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Label("In stock"),
-                    Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save"]
-                ]
-            ]
-        ];
-    }
-}
-```
-
-`PageTitle` is what the page is called: the `App` that `rask new` wrote reads it as `route.Title` and puts
-*New product | Shop* in the browser's tab, and the heading here reads the same member. See
-[a page's title](../routing.md#a-pages-title--pagetitle-and-routetitle).
-
-`Routes.ProductsPage()` is generated from the `[Route]` on the list page you're about to write — a typed
-URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
-
-The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `Ui.Input` is
-a whole field in one line: its label sits over the box (put guidance in `Description`, under the label,
-rather than in a placeholder), and the field's own validation message appears under it.
-`Ui.Button.Submit` is the form's submit button, and **Cancel** is a `Ui.Button` too. Given
-`Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
-the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
-
-Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form.Model(m)`
-validates its model on its own, with no package to add and nothing to declare, and the save only runs for a
-valid one. Those attributes are on the aggregate because they shape its table too. A rule that is only the
-form's is written beside the field — `Ui.Input.Bind(…).Validate(v => …)` — see
-[forms — validation](../forms-validation.md) and [validation](../validation.md).
-
-The save goes through a **command**: `QueryClient.Command()` hands back the same command every render, and
-sending work through it is what the page reads its state from. `IsPending` greys the button while the row is
-written, so a double click can't create two products, and a failure lands on `IsError` instead of escaping the
-click — `Send` never throws, which is why there is no `try` here. `Send` hands back a step that does
-nothing until it is awaited, so the handler is `async` and awaits it; forget the `await` and
-[RASK093](../diagnostics.md#rask093) stops the build rather than letting the save silently not happen.
-A command also refreshes whatever a save made stale: the product count you'll put on the list page updates by itself once `Create` commits.
-See [queries and commands](../query.md).
-
-## 4. Edit and delete
-
-Same shape, and the list page in the next step links to both — so write them now or it won't compile.
-
-`Features/Products/EditProductPage.cs` loads the row as a `ProductModel` and saves it back:
-
-```csharp
-namespace Shop.Features.Products;
-
-[Route("/products/{id:guid}/edit")]
-public sealed partial class EditProductPage : Component
-{
-    // Loaded for this page alone: a zero GcTime drops it the moment you leave, so a later visit always
-    // starts from the database, and the form can edit what was loaded in place.
-    private static readonly QueryOptions ThisPageOnly = new() { GcTime = TimeSpan.Zero };
-
-    private ProductModel? _model;
-    private Guid _modelFor;
-
-    [RouteParam] public Guid Id { get; set; }
-
-    protected override string? PageTitle => "Edit product";
-
-    protected override Component? Render()
-    {
-        var product = QueryClient.Query(QueryKey.For<Product>("edit"), Id,
-            (id, ct) => Product.Model(id, cancellationToken: ct), ThisPageOnly);
-        var save = QueryClient.Command();
-
-        if (product.IsLoading)
-        {
-            return Ui.Text.Role("status")["Loading…"];
-        }
-
-        if (product.Data is not { } loaded)
-        {
-            return Ui.Callout.Warning.Heading("Product not found.")[
-                Ui.CalloutText[Ui.CalloutLink.Href(Routes.ProductsPage())["Back to the list"]]
-            ];
-        }
-
-        // One copy per product, taken when it arrives: a refetch landing while you type must not reset the form.
-        if (_model is null || _modelFor != Id)
-        {
-            _model = loaded;
-            _modelFor = Id;
-        }
-
-        return
-        [
-            Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Xl[PageTitle],
-                Ui.Spacer,
-                Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
-            ],
-            Ui.Card[
-                save.Error switch
-                {
-                    null => null,
-                    KeyNotFoundException => Ui.Callout.Danger.Role("alert").Heading("This product has been deleted."),
-                    _ => Ui.Callout.Danger.Role("alert").Heading("Something went wrong — please try again."),
-                },
-                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
-                {
-                    await Product.Update(Id, model, cancellationToken: ct);
-                    Routes.ProductsPage().Go();
-                }, CancellationToken))[
-                    Ui.Input.Bind(() => _model.Name).Label("Name"),
-                    Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
-                        .Description("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Label("In stock"),
-                    Ui.Button.Primary.Submit.Disabled(save.IsPending)["Save changes"]
-                ]
-            ]
-        ];
-    }
-}
-```
-
-Four things in that page are doing more than they look:
-
-- **The row comes from the route.** The page looks the product up by its `[RouteParam]` and saves to that same
-  `Id`. The model carries no id, so no input on the form can point the save at another row.
-- **`ToModel()` copies the `Version` too.** That is the whole of optimistic concurrency here: the model
-  remembers the version the form was loaded at, and `Update` refuses to write if the row has moved on
-  since rather than overwriting someone else's edit: a `RaskValidationException` about the whole form, which the
-  form shows at its top ("Someone else changed this in the meantime. Reload it and try again."). A row deleted
-  in the meantime is a `KeyNotFoundException`.
-- **The save writes what the form holds.** `Update` loads the row, copies the model onto it and saves only
-  the columns that changed. The model is how a change gets back: nothing the page holds is tracked by EF.
-- **The load is a query, and it follows the route.** `QueryClient.Query(key, Id, load)` is asked for in
-  `Render`, where the route's `Id` is already bound, and the same call is the same query every render — so
-  going from `/products/1/edit` to `/products/2/edit` re-points it at product 2 with nothing to call.
-  `IsLoading` is the only state that needs a word of its own, and the load is handed the `Id` its key was built from,
-  so a slow load for product 1 can never land in product 2's form.
-
-`Features/Products/DeleteProductButton.cs` is a small reusable button the list page drops next to each row:
-
-```csharp
-namespace Shop.Features.Products;
-
-// A reusable delete button: removes the product, then invokes OnDeleted so a caller can react.
-public sealed partial class DeleteProductButton : Component
-{
-    public Guid Id { get; set; }
-
-    // The version the row was read at, so a delete can't remove a product someone has just edited.
-    public int Version { get; set; }
-
-    // Callback, not Func<Task>. A delegate-typed property is INVOCABLE, so `DeleteProductButton.OnDeleted(x)`
-    // at the call site binds to the property being called rather than to the generated chain setter,
-    // and the compiler reports CS1593 on a delegate that "does not take 1 arguments". Callback is a
-    // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
-    // Non-nullable, and still optional: a caller that leaves it off gets an unset callback that does nothing.
-    public Callback OnDeleted { get; set; }
-
-    protected override Component? Render()
-    {
-        // One button per row, and each row is its own DeleteProductButton, so each has its own pending state.
-        var delete = QueryClient.Command();
-
-        return Ui.Button.Ghost.Red.Sm
-            .Disabled(delete.IsPending)
-            .OnClick(async () =>
-            {
-                // A row someone edited or deleted first fails here and lands on delete.Error; refreshing the
-                // list below shows the reader what happened either way.
-                await delete.Send(ct => Product.Delete(Id, Version, cancellationToken: ct), CancellationToken);
-
-                // Tell the caller. Unset, this does nothing; a synchronous handler completes without a Task.
-                await OnDeleted.Invoke();
-            })[delete.IsPending ? "Deleting…" : "Delete"];
-    }
-}
-```
-
-A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. `Product`
-names `Deletable`; naming `SoftDelete` instead would keep deleted products in the table behind a `DeletedAt`
-stamp.
-
-## 5. The list page
-
-`Features/Products/ProductsPage.cs` — the routed page, a table with a pager under it:
+`Features/Products/ProductsPage.cs` — the list, with the editor over it:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -327,7 +130,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Shop.Features.Products;
 
 [Route("/products")]
-public sealed partial class ProductsPage : Component
+public sealed partial class ProductsPage(RouteState route) : Component
 {
     private const int PageSize = 20;
 
@@ -337,51 +140,81 @@ public sealed partial class ProductsPage : Component
     // Which page is on screen and what it is sorted by. The table draws these; it sorts and pages nothing itself.
     private Listing _listing = new(Page: 1, SortBy: "name", Descending: false);
 
+    // Which product the editor holds: ?edit=new for a new one, ?edit=<id> for a stored one, nothing when closed.
+    [QueryParam("edit")] public string? Edit { get; set; }
+
     protected override string? PageTitle => "Products";
 
     protected override Component? Render()
     {
-        // Cached for this session, and refetched by itself after any Product write — a create, an edit, a
-        // delete — because its key is about Product.
+        // Cached for this session, and refetched by itself after any Product write, because its key is about Product.
         var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
-
-        // One page of rows, sorted and paged in SQL. The listing is part of its key, so a click on a heading or
-        // the pager asks for another page; and a Product write refetches it like the count.
         var rows = QueryClient.Query(QueryKey.For<Product>("page"), _listing, Read, KeepRows);
 
         return
         [
-        Div.Class("flex flex-wrap items-center gap-3")[
-            Ui.Heading.Level(1).Xl[$"Products ({count.Data})"],
-            Ui.Spacer,
-            Ui.Button.Primary.Href(Routes.NewProductPage())["New product"]
-        ],
-        Ui.Table.Class("w-full")
-            .Paginate(Ui.Pagination
-                .Paginator(new UiPaginator { Page = _listing.Page, PerPage = PageSize, Total = count.Data })
-                .OnPage(page => { _listing = _listing with { Page = page }; }))[
-            Ui.TableColumns[
-                Sortable("name", "Name"),
-                Sortable("price", "Price", "w-32"),
-                Ui.TableColumn.Class("w-28")["In stock"],
-                Ui.TableColumn.Class("w-52")["Updated"],
-                Ui.TableColumn.Class("w-44")[""]
+            Div.Class("flex flex-wrap items-center gap-3")[
+                Ui.Heading.Level(1).Xl[$"Products ({count.Data})"],
+                Ui.Spacer,
+                Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New product"]
             ],
-            Ui.TableRows[
-                (rows.Data ?? []).Select(p => Ui.TableRow.Key(p.Id)[
-                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate")[p.Name],
-                    Ui.TableCell[$"{p.Price:C}"],
-                    Ui.TableCell[p.InStock ? "Yes" : "No"],
-                    Ui.TableCell[$"{p.UpdatedAt:g}"],
-                    Ui.TableCell.Class("py-0")[
-                        Ui.Button.Ghost.Sm.Href(Routes.EditProductPage(p.Id))["Edit"],
-                        DeleteProductButton.Id(p.Id).Version(p.Version)
-                    ]
-                ])
-            ]
-        ]
+            Ui.Table.Class("w-full")
+                .Paginate(Ui.Pagination
+                    .Paginator(new UiPaginator { Page = _listing.Page, PerPage = PageSize, Total = count.Data })
+                    .OnPage(page => { _listing = _listing with { Page = page }; }))[
+                Ui.TableColumns[
+                    Sortable("name", "Name"),
+                    Sortable("price", "Price", "w-32"),
+                    Ui.TableColumn.Class("w-28")["Stock"],
+                    Ui.TableColumn.Class("w-52")["Updated"],
+                    Ui.TableColumn.Class("w-16")[""]
+                ],
+                Ui.TableRows[
+                    (rows.Data ?? []).Select(p => Ui.TableRow.Key(p.Id)[
+                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate")[p.Name],
+                        Ui.TableCell[$"{p.Price:C}"],
+                        Ui.TableCell[$"{p.Stock}"],
+                        Ui.TableCell[$"{p.UpdatedAt:g}"],
+                        Ui.RowActions.Edit(route.With("edit", p.Id.ToString()))
+                    ])
+                ]
+            ],
+            Editor()
         ];
     }
+
+    private UiEditorDialog Editor() =>
+        Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New product" : "Edit product")[
+            Edit == UiEditorDialog.New ? NewProduct()
+            : ProductId.TryParse(Edit, out var id) ? EditProduct(id)
+            : null
+        ].Delete(Product.Delete);
+
+    private static OperationForm<ProductAddInput> NewProduct() =>
+        Form.For(Product.Add)[f => [
+            Ui.Field.Bind(() => f.Name).Label("Name"),
+            Ui.Field.Bind(() => f.Price).Label("Price").Description("What a customer pays, before tax."),
+            Ui.Field.Bind(() => f.Stock).Label("In stock"),
+            Ui.Button.Primary.Submit["Add"]
+        ]];
+
+    // One form per operation: what the product is, its photo, and taking it off sale.
+    private static Component EditProduct(ProductId id) =>
+    [
+        Form.For(Product.Change, id)[f => [
+            Ui.Field.Bind(() => f.Name).Label("Name"),
+            Ui.Field.Bind(() => f.Price).Label("Price").Description("What a customer pays, before tax."),
+            Ui.Field.Bind(() => f.Stock).Label("In stock"),
+            Ui.Button.Primary.Submit["Save"]
+        ]],
+        Form.For(Product.Picture, id)[f => [
+            Ui.Field.Bind(() => f.Photo).Label("Photo"),
+            Ui.Button.Submit["Upload"]
+        ]],
+        Form.For(Product.Discontinue, id)[f => [
+            Ui.Button.Danger.Submit["Discontinue"]
+        ]],
+    ];
 
     // A heading the reader can sort by. A second click on the sorted one turns it round.
     private Component Sortable(string column, string label, string? width = null) =>
@@ -409,26 +242,49 @@ public sealed partial class ProductsPage : Component
 }
 ```
 
-[`Ui.Table`](../ui-kit.md#tables) is Flux's table, and it **sorts nothing and pages nothing**: the page keeps
-which page is showing and what it is sorted by, and the table draws them — a chevron on the sorted heading, the
-current page in the pager under the rows. Clicking a heading or a page number changes `_listing`, and the query
-whose key holds it reads that page: `OrderBy` becomes `ORDER BY` and `Skip`/`Take` become `LIMIT`/`OFFSET`, so
-the database does the work however large the catalog grows. `Key(p.Id)` on each row is what identifies it when
-the page redraws. The table has a width and every column but `Name` has one, so the columns
-[stay where they are](../ui-kit.md#tables) from one page or sort order to the next. The rows are
-read faces, read-only by construction; `UpdatedAt` is one of the columns `Timestamps` brought.
+One page does the whole of create, read, update and delete. Here is what each part is doing.
 
-Note what the page doesn't have: an `OnMount`, or anything that refreshes after a delete. Both lists are
-**queries** — asked for in `Render`, cached for the session, loading on their own. Their keys,
-`QueryKey.For<Product>(…)`, say what they are about, and that is the whole of keeping them right: once any
-`Product` write commits — `Create`, `Update`, `Delete` — every query about `Product` on this session's screen
-refetches, so deleting a row or creating a product and coming back shows the change with nothing written to
-make it happen. See [queries and commands](../query.md).
+**The forms are the operations'.** `Form.For(Product.Add)` is a form over the factory: its fields are `Add`'s
+parameters, named as the parameters, capitalised — `name` is `f.Name`. `Form.For(Product.Change, id)` is a form over
+the operation, filled from the stored product and carrying the version it was read at. Nothing in the page states
+a rule, and every rule is there:
 
-## 6. Already registered
+- A `ProductName` field is given `maxlength="200"` and is required; a `UnitPrice` field `min="0"` and two decimals.
+  `Ui.Field.Bind` picks the control (a text box, a number, a file picker for the `Attachment`) and puts the label,
+  the description and the field's own message around it.
+- **As each field is left, the operation is tried** — a dry run, nothing written — so the `Refuse` in `Change` shows
+  *A discontinued product keeps its last price.* under *Price* before the reader presses Save.
+- **The submit calls the entry**: `Product.Change(id, version, name, price, stock)`. A version somebody else saved
+  meanwhile is refused at the top of the form: *Someone else changed this in the meantime.*
 
-There's nothing to register. `RaskApp.Create(args)` in `Program.cs` turned the database on, and it reads
-where the database is from `appsettings.json`:
+See [a form over an operation](../forms.md#a-form-over-an-operation).
+
+**The editor lives over the list, at the list's address.** `Ui.EditorDialog.In("edit")` is open while the address
+holds `?edit=` — `UiEditorDialog.New` for a new product, its id otherwise — so a link, a reload or Back opens and
+closes it, and the list keeps its sort and page behind it. A form inside it reports to it: once a form saves, the
+dialog says *Saved* in a toast and closes. `.Delete(Product.Delete)` adds a **Delete** button for a stored product:
+it tries the delete first (its rules may refuse it), asks in the page's `Ui.Confirm`, deletes through
+`Product.Delete(id, version)`, says *Deleted* and closes. See [the editor over its list](../ui-kit.md#the-editor-over-its-list).
+
+**The table sorts and pages in SQL.** [`Ui.Table`](../ui-kit.md#tables) is Flux's table, and it **sorts nothing
+and pages nothing** itself: the page keeps which page is showing and what it is sorted by, and the query whose key
+holds `_listing` reads that page — `OrderBy` becomes `ORDER BY` and `Skip`/`Take` become `LIMIT`/`OFFSET`, so the
+database does the work however large the catalog grows. `Key(p.Id)` identifies each row when the page redraws.
+
+**Nothing refreshes by hand.** Both reads are **queries**, keyed `QueryKey.For<Product>(…)`. Once any `Product` write
+commits — an add, a change, a delete — every query about `Product` on this session's screen refetches. See
+[queries and commands](../query.md).
+
+`PageTitle` is what the page is called: the `App` that `rask new` wrote puts *Products | Shop* in the browser's tab.
+
+**The dialog's toast and question are already on the page.** A save's *Saved* is said in a toast, which the host
+draws for every app that places no `Ui.Toast` of its own, and a delete asks in the `Ui.Confirm` that `rask new` mounted
+beside the router in `Features/Shared/App.cs` (`Render() => [Router, Ui.Confirm]`), so every page can reach both.
+
+## 3. Already registered
+
+There's nothing to register. `RaskApp.Create(args)` in `Program.cs` turned the database on, and it reads where the
+database is from `appsettings.json`:
 
 ```jsonc
 "Rask": {
@@ -440,62 +296,153 @@ where the database is from `appsettings.json`:
 
 What that one line did for this slice:
 
-- It registered `RaskAppDbContext` **as a factory**, not as a shared context. Rask pages are long-lived and
-  can render concurrently, so every read and every write makes its own short-lived context instead of
-  sharing one. The context opens SQLite with the production pragmas (WAL, `busy_timeout`, `foreign_keys`), so
-  the app handles concurrent writers — the jobs, email and outbox of later chapters — without hitting
-  `database is locked`. A deploy overrides the connection string with `Rask__ConnectionStrings__App`, which
-  is how it points at a persistent volume.
-- It pointed the model surface at that context, which is what lets `Product.Where(…)` and
-  `Product.Create(…)` open a database with nothing injected.
-- It added the interceptors that fill in timestamps and versions, publish events, and soft-delete an
-  aggregate that asks for it.
+- It registered `RaskAppDbContext` **as a factory**, never one shared context: every read and every write makes its
+  own short-lived context. It opens SQLite with the production pragmas (WAL, `busy_timeout`, `foreign_keys`), so the
+  writers of later chapters — jobs, mail, the outbox — share it without `database is locked`. A deploy overrides
+  the connection string with `Rask__ConnectionStrings__App`.
+- It pointed the model surface at that context, which is what lets `Product.Where(…)` and `Product.Change(…)` open a
+  database with nothing injected.
+- It added the interceptors that stamp times, bump versions, publish events and store attachments.
 
 Nothing in the app injects that context: a page reads through the read face and writes through the aggregate's
-own operations, each one aggregate in one transaction. See
-[the transaction boundary](../domain.md#the-transaction-boundary).
+own entries, one aggregate in one transaction ([the transaction boundary](../domain.md#the-transaction-boundary)).
 
-## 7. Create the table
+## 4. Create the table
 
-The code is ready, but `app.db` has no table for `Product` yet. EF Core **migrations** generate the schema
-from your aggregates. `rask new` already created the first one — the batteries' tables — and `rask db` wraps
-the EF tooling for every one after it:
+The code is ready, but `app.db` has no table for `Product` yet. EF Core **migrations** generate the schema from
+your aggregates. `rask new` already created the first one — the batteries' tables — and `rask db` wraps the EF
+tooling for every one after it:
 
 ```bash
 rask db add AddProduct        # generate a migration for what changed in the model
 ```
 
-`rask db add` writes into the `Migrations/` folder you commit alongside your code. There is no second
-command: the app applies its pending migrations when it starts, before it serves a page. Every time you change
-an aggregate later, it's the same: `rask db add <Name>`, then (re)start the app.
+`rask db add` writes into the `Migrations/` folder you commit alongside your code. There is no second command: the
+app applies its pending migrations when it starts. Every time you change an aggregate later, it's the same:
+`rask db add <Name>`, then (re)start the app.
 
-## 8. Run it
+## 5. Prove it
 
-```bash
-rask dev
+The rules are on the aggregate, so that is where they are tested — on a real database, but one that lives in memory
+for one test. `Shop.Tests/Features/Products/ProductTests.cs`:
+
+```csharp
+using Shop.Features.Products;
+
+namespace Shop.Tests.Features.Products;
+
+public sealed class ProductTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task A_new_product_is_stored_with_what_it_was_given()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+
+        var id = await Product.Add(ProductName.Create("Anvil"), UnitPrice.Create(9.90m), StockLevel.Create(3), Ct);
+
+        var stored = await Product.Where(p => p.Id == id).First(Ct);
+        Assert.Equal("Anvil", stored.Name);
+        Assert.Equal(9.90m, stored.Price);
+    }
+
+    [Fact]
+    public async Task A_discontinued_product_keeps_its_price()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        var product = await Test.Make<Product>();
+        await Product.Discontinue(product.Id, product.Version, Ct);
+
+        var refusal = await Test.Refuses(
+            () => Product.Change(product.Id, product.Version + 1, product.Name, UnitPrice.Create(5m), product.Stock));
+
+        refusal.Only("Price");
+    }
+
+    [Fact]
+    public void A_price_below_zero_is_refused()
+    {
+        var refusal = Test.Refuses(() => UnitPrice.Create(-1m, "Price"));
+
+        refusal.Only("Price");
+    }
+
+    [Fact]
+    public async Task The_edit_form_says_a_discontinued_product_keeps_its_price()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        var product = await Test.Make<Product>();
+        await Product.Discontinue(product.Id, product.Version, Ct);
+
+        await Test.FormShows(
+            new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
+            "A discontinued product keeps its last price.");
+    }
+
+    [Fact]
+    public Task The_new_product_form_says_a_name_is_too_long() =>
+        Test.FormShows<ProductAddInput>(m => m.Name, new string('x', 201), "Enter at most 200 characters.");
+
+    [Fact]
+    public async Task Two_edits_of_one_version_keep_one_and_refuse_the_other()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        var product = await Test.Make<Product>();
+
+        var refusal = await Test.Concurrently(
+            () => Product.Change(product.Id, product.Version, ProductName.Create("Anvil"), product.Price, product.Stock),
+            () => Product.Change(product.Id, product.Version, ProductName.Create("Hammer"), product.Price, product.Stock));
+
+        refusal.Whole();
+    }
+}
 ```
 
-Browse to **`/products`**. You get a sortable, paged list with **New**, **Edit**, and **Delete** — each one
-reading and writing SQLite through the `Product` type. Create a product and refresh: it's still there, because
-it's on disk in `app.db`.
+Each test is named as a sentence and shaped in three blocks — setup, action, checks — which the build holds you to
+([RASK116](../diagnostics.md#rask116)). What each tool does:
+
+- **`TestDatabase.Start()`** is a SQLite database in memory for this test alone, made from the app's own model, so a
+  save runs exactly what it runs in production — the value objects' rules, the `Refuse`, the interceptors, the
+  version check. Tests run side by side, each on its own database. Nothing is mocked.
+- **`Test.Make<Product>()`** stores a product its rules accept, made through its own factory with a valid value for
+  every parameter. The test says only what it cares about.
+- **`Test.Refuses(…)`** asserts that something was refused, and `.Only("Price")` that it was refused under *Price*
+  alone — the field the reader would see the message under.
+- **`Test.FormShows(…)`** proves the reader is told: it puts the value in a real form over the operation, leaves the
+  field, and checks the message under it. A form built by hand like this one starts empty, so the test fills the
+  other fields it needs.
+- **`Test.Concurrently(…)`** starts two saves of the same version at the same moment and checks that exactly one
+  went through and the other was refused — the version check, proved.
+
+`TestContext.Current.CancellationToken` is xUnit's: a call that takes a token is handed the test's, so a test that
+is stopped stops its database work too. See [testing the domain](../testing.md#testing-the-domain).
+
+## 6. Run it
+
+```bash
+dotnet test        # the tests, on SQLite in memory
+rask dev           # the app, on app.db
+```
+
+Browse to **`/products`**. You get a sortable, paged list with **New product**, and an editor over it for each row —
+its details, its photo, *Discontinue* and *Delete*. Create a product and refresh: it's still there, on disk in
+`app.db`.
 
 ## Verify
 
-- `Features/Products/` holds the aggregate and four components — no configuration class, no hand-written form
-  model, and no context to edit.
-- The app builds with no warnings.
+- `Features/Products/` holds the aggregate and one page — no configuration class, no form model, no service.
+- `dotnet test` passes, and the app builds with no warnings.
 - After `rask db add AddProduct` and a start, `/products` renders.
-- Creating a product then restarting the app still shows it (it's persisted, not in-memory).
-- Open the same product's edit page in two tabs and save both: the second shows "Someone else changed
-  this product" instead of overwriting the first.
+- Discontinue a product, then type a new price into its form: the message appears under *Price* as you leave the
+  field, before you save.
+- Open the same product's editor in two tabs and save both: the second is told someone else changed it.
 
-> **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
-> `/products` fails with `no such table` → you skipped `rask db add AddProduct`, or the app was already running
-> when you added it — restart it so it applies the migration. The build can't find
-> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
-> catches up. For a route, the generator also needs the `[Route]` attribute on the page.
+> **Troubleshooting.** `rask db` can't find the project → `cd` into `Shop` first. `/products` fails with
+> `no such table` → you skipped `rask db add AddProduct`, or the app was already running — restart it. The IDE can't
+> find `Product.Change`, `ProductAddInput` or `Product.Where` → those are generated; build once and it catches up.
 
-**Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [tables](../ui-kit.md#tables) ·
-[the `rask` CLI](../cli.md)
+**Learn more:** [domain modelling](../domain.md) · [forms over an operation](../forms.md#a-form-over-an-operation) ·
+[testing the domain](../testing.md#testing-the-domain) · [tables](../ui-kit.md#tables) · [the `rask` CLI](../cli.md)
 
 Next → **[Chapter 3: A second feature + locking it down](03-orders-and-auth.md)**

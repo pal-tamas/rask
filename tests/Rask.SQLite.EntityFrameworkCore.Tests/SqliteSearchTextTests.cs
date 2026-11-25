@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
@@ -19,7 +18,7 @@ public sealed class SearchContext(DbContextOptions<SearchContext> options) : DbC
 // x.Loosely() on SQLite: case and accents aside, in no one language's order.
 public sealed class SqliteSearchTextTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-search-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -31,12 +30,7 @@ public sealed class SqliteSearchTextTests : IAsyncLifetime
         await context.SaveChangesAsync(Cancellation);
     }
 
-    public ValueTask DisposeAsync()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public async Task Contains_finds_the_text_case_and_accents_aside()
@@ -96,7 +90,7 @@ public sealed class SqliteSearchTextTests : IAsyncLifetime
     [Fact]
     public async Task A_plain_UseSqlite_refuses_the_query_naming_the_options_that_have_it()
     {
-        await using var context = new SearchContext(new DbContextOptionsBuilder<SearchContext>().UseSqlite($"Data Source={_dbPath}").Options);
+        await using var context = new SearchContext(new DbContextOptionsBuilder<SearchContext>().UseSqlite(_database.ConnectionString).Options);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(
             () => context.Drivers.Where(d => d.Name.Loosely().Contains("a")).ToListAsync(Cancellation));
@@ -124,5 +118,5 @@ public sealed class SqliteSearchTextTests : IAsyncLifetime
     private static Driver Named(string name, string code) => new() { Name = name, Code = code, Plate = code };
 
     private SearchContext Search() =>
-        new(new DbContextOptionsBuilder<SearchContext>().UseRaskSqliteAt($"Data Source={_dbPath}").Options);
+        new(new DbContextOptionsBuilder<SearchContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
 }

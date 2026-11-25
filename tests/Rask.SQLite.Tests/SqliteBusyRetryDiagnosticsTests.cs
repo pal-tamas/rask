@@ -9,12 +9,12 @@ namespace Rask.SQLite.Tests;
 // when a pooled handle's error slot and the returned code disagreed.
 public sealed class SqliteBusyRetryDiagnosticsTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-diag-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task A_genuine_error_throws_a_diagnosable_exception()
     {
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
@@ -36,7 +36,7 @@ public sealed class SqliteBusyRetryDiagnosticsTests : IDisposable
     [Fact]
     public async Task Ok_statements_do_not_throw()
     {
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_database.ConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // A well-formed statement returns SQLITE_OK and completes without a diagnosis.
@@ -50,15 +50,5 @@ public sealed class SqliteBusyRetryDiagnosticsTests : IDisposable
         Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!));
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-    }
+    public void Dispose() => _database.Dispose();
 }

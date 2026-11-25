@@ -10,7 +10,6 @@ namespace Rask.Auth.Tests;
 ///     tenanted shape is <c>Rask.Auth.SignInName.Tests.AdministeredAccountsTests</c>; this is what an address adds:
 ///     the link that confirms it, and the passkeys it may have.
 /// </summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class AdministeredAccountsTests
 {
     private const string Password = "Password1";

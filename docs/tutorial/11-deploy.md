@@ -73,11 +73,36 @@ file, and every deploy will have them:
 rask deploy --env-file .env.production   # Rask__Litestream__ReplicaUrl=… / AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=… inside
 ```
 
+## 5. A rule that the stored data must already meet
+
+A release that tightens a rule over rows already in production should know, before it goes out, which rows would
+break it. Say no two products may share a name — one line in `Product.Configure`:
+
+```csharp
+b.HasIndex(p => p.Name).IsUnique("There is a product of this name already.");
+```
+
+A unique index the stored rows break makes the migration fail as the new container starts — and the
+`/health`-gated swap keeps the old one running, so nothing is down, but nothing ships either. Ask the production
+database first, read only — a check that returns ids and counts, never what a row holds:
+
+```sql
+SELECT COUNT(*) AS Products, MIN(Id) AS FirstId, MAX(Id) AS LastId
+FROM Products
+GROUP BY Name
+HAVING COUNT(*) > 1;
+```
+
+Each row it returns is a group of products sharing a name. Rename the duplicates through the product's
+operation — the editor, as ever — then `rask db add UniqueProductName` and deploy. A change whose old rows are moved by a rule rather
+than by hand — a value split in two, a column filled from another — is a data step in its migration, written in C#
+through the aggregates (`b.Data(…)`, [data a migration moves](../data-writes.md#data-a-migration-moves)).
+
 ## Verify
 
 - `https://shop.example.com` serves the app over HTTPS with a valid certificate.
-- `/products` and `/orders` work; signing in gates the edit pages; buying a product fires the outbox → job →
-  email chain.
+- `/products` and `/orders` work; only the admin may change the catalog; placing an order takes its stock and fires
+  the outbox → job → email chain.
 - A second `rask deploy` swaps in a new build with no downtime **and your data is still there** (the volume
   persists across the container swap); a deliberately broken build fails the `/health` check and leaves the
   running app untouched.

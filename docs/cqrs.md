@@ -510,7 +510,7 @@ public sealed record AssignDriver(VehicleId Vehicle, DriverName Driver, KmRange 
 // {"vehicle":42,"driver":"ABC-123","km":{"start":10,"end":20}}
 ```
 
-- **A one-value value object** (declared from `Text`, `Number`, `Whole`, `Day`, or from `Value` with one
+- **A one-value value object** (declared from `Text`, `Number`, `Integer`, `Day`, or from `Value` with one
   positional parameter) and **a record struct of one value** (`record struct VehicleId(int Value)`, over a `Guid`,
   a `string`, a number, an enum, …) are their value. A record struct of several values, a `Range`, and a value
   object of several members are an object of their members.

@@ -78,7 +78,7 @@ public class ValueObjectFromRulesCodeFixTests
     [Theory]
     [InlineData("[Range(0, 1000)] public decimal Litres { get; private set; }", "", "SupplierLitres(decimal Value) : Number(Value, Min: 0, Max: 1000)")]
     [InlineData("public decimal Litres { get; private set; }", "rules.RuleFor(s => s.Litres).InclusiveBetween(0.5m, 99.5m).PrecisionScale(9, 2, false);", "SupplierLitres(decimal Value) : Number(Value, Min: 0.5m, Max: 99.5m, Scale: 2, Precision: 9)")]
-    [InlineData("public int Rank { get; private set; }", "rules.RuleFor(s => s.Rank).GreaterThanOrEqualTo(1).LessThanOrEqualTo(10);", "SupplierRank(int Value) : Whole(Value, Min: 1, Max: 10)")]
+    [InlineData("public int Rank { get; private set; }", "rules.RuleFor(s => s.Rank).GreaterThanOrEqualTo(1).LessThanOrEqualTo(10);", "SupplierRank(int Value) : Integer(Value, Min: 1, Max: 10)")]
     [InlineData("public DateOnly Since { get; private set; }", "", "SupplierSince(DateOnly Value) : Day(Value)")]
     public async Task A_number_or_a_day_becomes_the_base_record_that_holds_it(string member, string rules, string declared)
     {

@@ -3,7 +3,7 @@ using Rask.Core.Globalization;
 namespace Rask.Values;
 
 /// <summary>
-///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" />, <see cref="Moment" /> and
+///     How the rules of <see cref="Text" />, <see cref="Number" />, <see cref="Integer" />, <see cref="Day" />, <see cref="Moment" /> and
 ///     <see cref="Range" /> are worded: from Rask's strings catalog, so they are said in the reader's language, and in
 ///     English where the catalog says nothing.
 /// </summary>

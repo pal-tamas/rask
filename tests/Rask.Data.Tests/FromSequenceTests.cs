@@ -31,11 +31,11 @@ public sealed class SequencedProvider : Aggregate<int, Versioned>
 [Collection(DataDbCollection.Name)]
 public sealed class FromSequenceTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sequence-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_key_is_never_generated_by_the_store_and_carries_no_annotation_into_the_model()
@@ -80,5 +80,5 @@ public sealed class FromSequenceTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

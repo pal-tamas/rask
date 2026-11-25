@@ -16,7 +16,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
 
     public SqliteRolledBackCommitTests()
     {
-        _connectionString = $"Data Source={_dbPath}";
+        _connectionString = $"Data Source={_dbPath};Pooling=False";
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
         // Rollback-journal mode, not WAL: an EXCLUSIVE lock held by another connection is the one way to
@@ -254,7 +254,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal", $"{_dbPath}-journal" })
         {
             if (File.Exists(path))

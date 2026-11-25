@@ -18,10 +18,10 @@ public sealed class StoreRulesBeforeTheSaveTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-store-rules-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly ContactQueries _queries = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_taken_name_is_told_for_its_field_and_for_the_whole_model_and_a_free_one_is_not()
@@ -224,7 +224,7 @@ public sealed class StoreRulesBeforeTheSaveTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_queries));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(_queries));
 
     /// <summary>Counts the reads of the contacts table.</summary>
     private sealed class ContactQueries : DbCommandInterceptor

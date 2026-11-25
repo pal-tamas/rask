@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 namespace Rask.Auth.Tests;
 
 /// <summary>Hashing and checking passwords, in every format the hasher reads.</summary>
-/// <remarks>No database, so deliberately not in the database collection.</remarks>
 public sealed class PasswordHasherTests
 {
     private const string Password = "correct horse battery staple";

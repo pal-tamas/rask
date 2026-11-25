@@ -7,14 +7,12 @@ namespace Rask.Background.Tests;
 /// would otherwise be silent: the exception is swallowed by the cycle's catch, so the app looks healthy
 /// while logging the same error every poll and never processing a job again.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class MissingLeaseColumnTests
 {
     [Fact]
     public async Task A_database_without_the_lease_columns_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nolease-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         // Recreate the Jobs table as it looked before this change — no ClaimToken, no ClaimedUntil (and every later column in place,
         // so it is the lease columns the processor trips over first).
         await using (var db = h.NewContext())
@@ -61,8 +59,7 @@ public sealed class MissingLeaseColumnTests
     [Fact]
     public async Task A_database_without_the_waiting_key_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nowaitingkey-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await using (var db = h.NewContext())
         {
             await db.Database.ExecuteSqlRawAsync("DROP TABLE Job;", cancellationToken: TestContext.Current.CancellationToken);

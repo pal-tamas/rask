@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
@@ -9,12 +8,12 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class DbLockTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-lock-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     public async ValueTask InitializeAsync()
     {
         Db.Configure(() => new RaskDbContext(OptionsLayout.LikeAddDbContext<RaskDbContext>()
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(AmbientTransactionInterceptor.Instance)
             .Options));
 
@@ -25,8 +24,7 @@ public sealed class DbLockTests : IAsyncLifetime
     public ValueTask DisposeAsync()
     {
         Db.Reset();
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
         return ValueTask.CompletedTask;
     }
 

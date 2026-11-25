@@ -26,9 +26,9 @@ public sealed class TenantFilterPlanTests : IDisposable
     private const int Acme = 7;
     private const int Globex = 8;
 
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-tenant-plan-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task The_same_query_run_across_first_then_in_a_tenant_returns_each_its_own_rows()
@@ -267,5 +267,5 @@ public sealed class TenantFilterPlanTests : IDisposable
         return database;
     }
 
-    private Task<TestDatabase> StartAsync() => TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+    private Task<TestDatabase> StartAsync() => TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

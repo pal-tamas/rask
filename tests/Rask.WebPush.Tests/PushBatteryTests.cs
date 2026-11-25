@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.WebPush.Tests;
 
@@ -145,11 +146,11 @@ public sealed class PushBatteryTests
     [InlineData("""{"endpoint":"https://push.example/browser","p256dh":"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM","auth":"tBHItJI5svbpez7KI4CCXg"}""")]
     public async Task A_browser_subscribes_through_the_endpoint_and_is_kept(string body)
     {
-        var database = Path.Combine(Path.GetTempPath(), $"rask-push-endpoint-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRaskWebPush<PushDbContext>();
-        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
+        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite(database.ConnectionString));
         await using var app = builder.Build();
         app.MapRaskPush();
         await app.StartAsync(TestContext.Current.CancellationToken);
@@ -171,8 +172,6 @@ public sealed class PushBatteryTests
         }
 
         await app.StopAsync(TestContext.Current.CancellationToken);
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        File.Delete(database);
     }
 
     [Theory]
@@ -210,11 +209,11 @@ public sealed class PushBatteryTests
     [Fact]
     public async Task The_subscribe_endpoint_answers_400_to_a_subscription_with_a_malformed_key()
     {
-        var database = Path.Combine(Path.GetTempPath(), $"rask-push-endpoint-{Guid.NewGuid():N}.db");
+        await using var database = new InMemorySqlite();
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRaskWebPush<PushDbContext>();
-        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
+        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite(database.ConnectionString));
         await using var app = builder.Build();
         app.MapRaskPush();
         await app.StartAsync(TestContext.Current.CancellationToken);
@@ -224,8 +223,6 @@ public sealed class PushBatteryTests
 
         Assert.Equal(HttpStatusCode.BadRequest, subscribed.StatusCode);
         await app.StopAsync(TestContext.Current.CancellationToken);
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        File.Delete(database);
     }
 
     public sealed class UnmappedContext(DbContextOptions<UnmappedContext> options) : DbContext(options);

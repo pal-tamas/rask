@@ -13,7 +13,7 @@ namespace Rask.Values;
 ///     </para>
 ///     <para>
 ///         A value EF Core loads from a row is never checked again: it is what was stored, even when a rule has been
-///         tightened since. <see cref="Text" />, <see cref="Number" />, <see cref="Whole" />, <see cref="Day" />, <see cref="Moment" /> and
+///         tightened since. <see cref="Text" />, <see cref="Number" />, <see cref="Integer" />, <see cref="Day" />, <see cref="Moment" /> and
 ///         <see cref="Range" /> are the bases that declare their rules as arguments instead.
 ///     </para>
 /// </remarks>

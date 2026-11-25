@@ -23,7 +23,6 @@ namespace Rask.Auth.Tests;
 ///     than by calling the handlers keeps the parts that only exist over HTTP honest: the cookie, the
 ///     status codes, and the header the CSRF defence depends on.
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class AuthEndpointTests
 {
     private const string Password = "Password1";

@@ -21,7 +21,10 @@ query**. Queue depth is `SELECT count(*)`.
 | `Rask.Cache` | `CacheEntry` | How much is cached right now? |
 
 They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
-aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. Inject
+aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. This is the one place
+the tutorial opens a context, and it only reads: the batteries' tables are Rask's own bookkeeping, not your domain.
+Your aggregates are still read through their read faces and written through their operations — a save on a context
+of your own would go around their rules ([RASK133](../diagnostics.md#rask133)). Inject
 `IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh. These are EF Core's
 own calls, which do not pick up the page's cancellation by themselves, so each is handed a token that ends
 with the page (`ct` below):
@@ -210,7 +213,7 @@ public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactor
 
 ## Verify
 
-- Buy a product and watch, without touching anything: outbox processed goes up, then jobs processed, then
+- Place an order and watch, without touching anything: outbox processed goes up, then jobs processed, then
   mail sent — the chain from Chapter 7 moving through three pillars.
 - Outbox failed stays at `0`.
 - `journal_mode` reads `wal` and `foreign_keys` reads `1`.
