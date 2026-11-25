@@ -9,9 +9,9 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class KeepEmptyTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-keep-empty-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_new_row_stores_an_empty_text_kept_empty_as_empty_and_one_not_kept_as_nothing()
@@ -111,7 +111,7 @@ public sealed class KeepEmptyTests : IDisposable
     private static string Table(TestDatabase database) => database.Context.Model.FindEntityType(typeof(Firm))!.GetTableName()!;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     private sealed class Plain
     {

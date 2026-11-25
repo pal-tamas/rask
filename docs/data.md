@@ -404,7 +404,7 @@ an `InvalidOperationException` naming the part it could not translate.
 
 The sort becomes `ORDER BY` and the page becomes `LIMIT`/`OFFSET`, in the database — the table never reaches
 memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both work against it;
-each is its own short-lived context. The [tutorial's product list](tutorial/02-first-feature.md#5-the-list-page)
+each is its own short-lived context. The [tutorial's product list](tutorial/02-first-feature.md#2-the-page)
 does the same through a query, so the read stays off the render and a write refreshes it.
 
 **EF Core's own operators go on first.** `Include`, `IgnoreQueryFilters` and `AsSplitQuery` are EF Core

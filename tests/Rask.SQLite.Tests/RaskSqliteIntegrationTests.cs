@@ -16,7 +16,7 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
     public async Task Factory_connection_reports_the_configured_pragmas()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqliteAt($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt($"Data Source={_dbPath};Pooling=False");
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
 
@@ -37,7 +37,7 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

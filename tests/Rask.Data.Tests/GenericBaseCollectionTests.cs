@@ -80,9 +80,9 @@ public sealed class DutyReturn : Filing<DutyReturn>
 [Collection(DataDbCollection.Name)]
 public sealed class GenericBaseCollectionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-generic-base-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Each_closed_derived_aggregate_maps_the_generic_bases_field_collections()
@@ -151,5 +151,5 @@ public sealed class GenericBaseCollectionTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

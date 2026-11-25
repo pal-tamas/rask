@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
@@ -41,10 +42,9 @@ public sealed class ScopeLog
 ///     What one message of a claimed batch can do to the others: nothing. A payload that no longer reads is that
 ///     message's failure, each handler has a scope of its own, and the batch keeps its claim for as long as it takes.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxBatchTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-batch-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
     private readonly Recorder _recorder = new();
     private readonly ScopeLog _scopes = new();
     private readonly OutboxGate _gate = new();
@@ -68,7 +68,7 @@ public sealed class OutboxBatchTests : IDisposable
             o.LeaseDuration = TimeSpan.FromMilliseconds(300);
         });
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_db.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -137,10 +137,7 @@ public sealed class OutboxBatchTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _db.Dispose();
     }
 
     private OutboxDbContext NewContext() => _provider.GetRequiredService<IDbContextFactory<OutboxDbContext>>().CreateDbContext();

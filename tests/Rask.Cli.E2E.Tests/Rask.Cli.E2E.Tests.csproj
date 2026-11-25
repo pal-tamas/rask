@@ -47,6 +47,8 @@
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Templates\**\Dockerfile" />
     <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.ChromePin.props" />
+    <!-- Read from disk by TutorialChapterBuildE2ETests: every chapter's C#, typed into a scaffold and built. -->
+    <RaskTestReads Include="..\..\docs\tutorial\*.md" />
   </ItemGroup>
 
   <ItemGroup>

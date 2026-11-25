@@ -13,6 +13,9 @@ jobs:
   # packed or pushed from a tag they did not pass. Try them ahead of the tag on a ci/release/** branch.
   gates:
     uses: ./.github/workflows/gates.yml
+    permissions:
+      actions: write   # asked by gates.yml's fail-fast step, which this run leaves off
+      contents: read
     with:
       set: all
 

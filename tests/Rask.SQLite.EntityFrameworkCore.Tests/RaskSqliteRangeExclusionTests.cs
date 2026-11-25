@@ -5,10 +5,10 @@ using Rask.Data;
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
 // Integration tests for HasNonOverlappingRange, driven through the same migration path `dotnet ef` uses
-// (model differ -> IMigrationsSqlGenerator) against a real SQLite database file.
+// (model differ -> IMigrationsSqlGenerator) against a real SQLite database (in memory).
 public sealed class RaskSqliteRangeExclusionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-range-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     [Fact]
     public async Task Overlapping_range_is_rejected()
@@ -382,17 +382,13 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
-    }
+    public void Dispose() => _database.Dispose();
 
     private TContext Create<TContext>(bool strictTables = false)
         where TContext : DbContext
     {
         var options = new DbContextOptionsBuilder<TContext>()
-            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = strictTables)
+            .UseRaskSqliteAt(_database.ConnectionString, o => o.StrictTables = strictTables)
             .Options;
 
         return (TContext)Activator.CreateInstance(typeof(TContext), options)!;
@@ -403,7 +399,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
     private void Migrate<TFrom>(DbContext context)
         where TFrom : DbContext
     {
-        var options = new DbContextOptionsBuilder<TFrom>().UseRaskSqliteAt($"Data Source={_dbPath}").Options;
+        var options = new DbContextOptionsBuilder<TFrom>().UseRaskSqliteAt(_database.ConnectionString).Options;
         using var from = (TFrom)Activator.CreateInstance(typeof(TFrom), options)!;
         TestMigrations.Apply(context, from);
     }

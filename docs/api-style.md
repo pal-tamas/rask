@@ -208,7 +208,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `Load`, `Warm`, `Send`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `Search`, `Categories`, `Count`, `Trim().OlderThan(30.Days)` |
 | SQLite connections | `ISqlite` | `InImmediateTransaction` |
-| Time | `Clock` (static) | `Now`, `Wall`, `Today`, `Zone`; `Clock.Fake(at:)` + `Advance` in tests |
+| Time | `Clock` (static) | `Now`, `Wall`, `Today`, `Zone`, `WallAt(moment)`; `Clock.Fake(at:)` + `Advance` in tests; a `Moment`/`Day` value object reads text with `X.Parse(text, format?)` / `X.TryParse` |
 | Values for people | `Format` (static) | `Day`, `Moment`, `Number` — in the visitor's culture |
 | Text order | `TextOrder` (static) | `Current`, `In("hu")`; `c.OrderTextBy(collation)` in the model, `x.Name.InTextOrder()` in a query, `x.Name.Loosely()` for a search case and accents aside |
 | Named lock across hosts | `Db` (static) | `Lock(name)`; `.For(30.Seconds)` — no step waits as long as it takes |

@@ -284,6 +284,8 @@ host.UseTimeZone("Europe/Budapest");                                    // a bro
 | --- | --- |
 | `TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"))` | `Clock.Wall` |
 | `DateOnly.FromDateTime(…that…)` | `Clock.Today` |
+| `TimeZoneInfo.ConvertTime(moment, zone).DateTime` | `Clock.WallAt(moment)` |
+| `DateTimeOffset.Parse(text, CultureInfo.InvariantCulture)` then that, for text from a file or an API | `FuelingMoment.Parse(text)` — a `Moment` value object's ([reading one from text](domain.md#declared-from-a-base-record)) |
 
 `Clock.Wall` is a `DateTime` of kind `Unspecified` — a wall-clock time — and follows `Clock.Now`, so a test's
 `Clock.Fake(at: …)` freezes it too, across a change to or from summer time. `Clock.Zone` is the zone itself. Without a

@@ -161,6 +161,9 @@ public sealed class PageMetaTests
             // The one page that says what the software IS — and has no trail, being the start of it.
             Assert.Contains("SoftwareApplication", types);
             Assert.DoesNotContain("BreadcrumbList", types);
+            var features = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "SoftwareApplication")
+                .GetProperty("featureList").EnumerateArray().Select(f => f.GetString()).ToList();
+            Assert.Contains(features, f => f!.Contains("Form.For", StringComparison.Ordinal));
             return;
         }
 

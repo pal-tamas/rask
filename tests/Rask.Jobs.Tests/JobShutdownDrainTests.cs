@@ -7,7 +7,6 @@ namespace Rask.Background.Tests;
 ///     container claims nothing new from then on, but the job it is running keeps a live token until the host's
 ///     own shutdown budget runs out — the one `rask deploy` sizes from `stopTimeout`.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobShutdownDrainTests
 {
     [Fact]

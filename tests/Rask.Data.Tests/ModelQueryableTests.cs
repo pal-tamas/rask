@@ -11,9 +11,9 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class ModelQueryableTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-queryable-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     // ---- what a consumer calls --------------------------------------------------------------------
 
@@ -193,7 +193,7 @@ public sealed class ModelQueryableTests : IDisposable
     {
         var tally = new ContextTally();
         var options = OptionsLayout.LikeAddDbContext<RaskReadDbContext>()
-            .UseSqlite($"Data Source={_dbPath}").Options;
+            .UseSqlite(_sqlite.ConnectionString).Options;
 
         ReadDb.Configure(() => new DisposalCountingReadContext(options, tally));
         return tally;
@@ -211,7 +211,7 @@ public sealed class ModelQueryableTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     private static async Task<(Widget First, Widget Second)> SeedAsync(TestDatabase database, params string[] names)
     {

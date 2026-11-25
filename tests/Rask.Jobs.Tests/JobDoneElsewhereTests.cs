@@ -6,7 +6,6 @@ namespace Rask.Background.Tests;
 /// A running job whose row is marked done or deleted from outside — a script, the dashboard's Delete — is stopped within one
 /// look of the watch, found by its row id, and its row is left as the outsider left it.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobDoneElsewhereTests
 {
     private const string AwayWords = "Could not check the running jobs; they run on unwatched until the next tick.";

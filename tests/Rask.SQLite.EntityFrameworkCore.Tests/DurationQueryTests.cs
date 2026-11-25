@@ -27,7 +27,7 @@ public sealed class DurationQueryTests : IAsyncLifetime
 {
     private static readonly DateTime Noon = new(2026, 11, 23, 12, 0, 0, DateTimeKind.Unspecified);
 
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-sqlite-duration-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -64,12 +64,7 @@ public sealed class DurationQueryTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    public ValueTask DisposeAsync()
-    {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        File.Delete(_path);
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => _database.DisposeAsync();
 
     [Fact]
     public void A_duration_is_written_as_whole_microseconds_between_the_two_dates()
@@ -151,5 +146,5 @@ public sealed class DurationQueryTests : IAsyncLifetime
     }
 
     private TripContext Open() =>
-        new(new DbContextOptionsBuilder<TripContext>().UseRaskSqliteAt($"Data Source={_path}").Options);
+        new(new DbContextOptionsBuilder<TripContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
 }

@@ -47,9 +47,9 @@ public sealed class CartLine : Entity<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class EntityCollectionMappingTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-cart-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_read_only_collection_is_mapped_as_a_navigation_through_its_backing_field()
@@ -123,8 +123,8 @@ public sealed class EntityCollectionMappingTests : IDisposable
     }
 
     private DbContextOptions<RaskDbContext> Options() =>
-        OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(_sqlite.ConnectionString).Options;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

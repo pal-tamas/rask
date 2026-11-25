@@ -12,7 +12,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class QuietRefusalTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-quiet-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly CapturedLogs _logs = new();
     private readonly LoggerFactory _loggerFactory;
 
@@ -21,7 +21,7 @@ public sealed class QuietRefusalTests : IDisposable
     public void Dispose()
     {
         _loggerFactory.Dispose();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]
@@ -189,5 +189,5 @@ public sealed class QuietRefusalTests : IDisposable
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").UseLoggerFactory(_loggerFactory));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).UseLoggerFactory(_loggerFactory));
 }

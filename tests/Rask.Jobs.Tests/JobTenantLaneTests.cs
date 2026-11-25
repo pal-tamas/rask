@@ -7,7 +7,6 @@ namespace Rask.Background.Tests;
 /// F-27: <c>.InTenantLane("loads")</c> runs one tenant's work one at a time, beside every other tenant's — the lane named
 /// after the tenant in flight, so no app writes its own per-tenant turn.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobTenantLaneTests
 {
     private static readonly Guid Acme = Guid.Parse("0f8b6f1e-1a59-4d0e-9a3a-4c1f7b2f0a01");

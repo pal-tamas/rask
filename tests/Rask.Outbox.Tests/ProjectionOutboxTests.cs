@@ -1,19 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.Outbox.Tests;
 
 // A declared projection's event is stored in the outbox in the save that changed its rows — committed with them, or not
 // at all.
-[Collection(OutboxDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class ProjectionOutboxTests : IDisposable
 {
     private readonly ShippingLog _log = new();
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-outbox-projection-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _db = new();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public void Dispose() => File.Delete(_path);
+    public void Dispose() => _db.Dispose();
 
     [Fact]
     public async Task A_projected_event_with_a_durable_handler_is_stored_in_the_save_that_changed_its_rows()
@@ -44,7 +45,7 @@ public sealed class ProjectionOutboxTests : IDisposable
 
     private Task<TestDatabase<ShopWithOutboxContext>> Start() =>
         TestDatabase.Start<ShopWithOutboxContext>(
-            o => o.UseSqlite($"Data Source={_path};Pooling=False"),
+            o => o.UseSqlite(_db.ConnectionString),
             services: s => s.AddSingleton(_log).AddSingleton(new Recorder()),
             cancellationToken: Ct);
 }

@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Rask.Caching.Tests;
 
-[Collection(CacheDbCollection.Name)]
 public sealed class TypedCacheTests
 {
     public sealed record Widget(int Id, string Name);

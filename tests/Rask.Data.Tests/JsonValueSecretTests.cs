@@ -57,7 +57,7 @@ public sealed class WellPartner : Aggregate<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class JsonValueSecretTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-json-values-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly ISecrets? _before = SecretKeeping.Default;
 
     public JsonValueSecretTests() => SecretKeeping.Default = new ReversedSecrets();
@@ -65,8 +65,7 @@ public sealed class JsonValueSecretTests : IDisposable
     public void Dispose()
     {
         SecretKeeping.Default = _before;
-        SqliteConnection.ClearAllPools();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
@@ -172,7 +171,7 @@ public sealed class JsonValueSecretTests : IDisposable
             table = db.Model.FindEntityType(typeof(WellPartner))!.GetTableName()!;
         }
 
-        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await using var connection = new SqliteConnection(_sqlite.ConnectionString);
         await connection.OpenAsync(Cancel);
         await using var command = connection.CreateCommand();
         command.CommandText = $"SELECT \"{column}\" FROM \"{table}\" WHERE \"Id\" = $id";
@@ -181,10 +180,10 @@ public sealed class JsonValueSecretTests : IDisposable
     }
 
     private RaskDbContext Fresh() =>
-        new(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+        new(OptionsLayout.LikeAddDbContext<RaskDbContext>().UseSqlite(_sqlite.ConnectionString).Options);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 
     // Reversible and visibly not the plaintext: what a real key ring is to the test, without one.
     private sealed class ReversedSecrets : ISecrets

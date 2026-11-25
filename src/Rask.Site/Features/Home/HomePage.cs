@@ -104,7 +104,7 @@ public sealed partial class HomePage : Component
                             Span.Class("text-accent-content")["C#"], "."
                         ],
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
-                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly."],
+                        P.Class(Sub)["Write the business rules and nothing else: a value object carries its rule, an aggregate's method is its write, a form is ", Code["Form.For"], " over that method, and a test proves it on SQLite in memory. Ship it with ", Code["rask deploy"], "."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             Ui.Button.Primary.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).Id("cta-docs")["Docs"],
                             Ui.Button.Href("https://github.com/pal-tamas/rask")
@@ -117,8 +117,8 @@ public sealed partial class HomePage : Component
                             Span.Class(Badge)[B["SQLite"], " · Postgres · SQL Server"]
                         ]
                     ],
-                    // One feature back to front, on first paint: the aggregate that is the table, and the
-                    // page that queries it. The counter that used to sit here leads the Frontend section.
+                    // The one way an app is written, on first paint: the model, the form over its operation, and
+                    // its test. The counter that used to sit here leads the Frontend section.
                     Div.Class("flex min-w-0 flex-col gap-4")[HeroCode]
                 ]
             ]
@@ -253,7 +253,9 @@ public sealed partial class HomePage : Component
                     "Everything behind the page, already built.",
                     "Data, queries, auth, jobs, email, cache, files, realtime, tenants and search ship with the framework and ride your app's own database — no broker to stand up, no Redis to run, and a Redis you already have plugs in as the cache. They are built on the standard .NET pieces — EF Core, hosted services, ILogger, IDistributedCache — so each is a package reference, not a new box to operate."),
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    Feature(Ui.IconName.CircleStack, "Data & aggregates", "data", "Derive from ", Code["Aggregate<Guid, Timestamps, Versioned>"], " and the class is the table — its base names what it carries (timestamps, a version, soft delete, a tenant), plus a generated read face to query. EF Core on SQLite, PostgreSQL or SQL Server."),
+                    Feature(Ui.IconName.Cube, "Domain model", "domain", "Value objects that carry their rule in one line, typed ids, and aggregates whose methods are their writes — each one transaction, refused with ", Code["Refuse.When(…)"], " under the field it is about. No service layer."),
+                    Feature(Ui.IconName.CircleStack, "Data on any database", "data", "Derive from ", Code["Aggregate<ProductId, Timestamps, Versioned>"], " and the class is the table, with a generated read face to query. The same code on SQLite, PostgreSQL or SQL Server — no SQL, no provider API."),
+                    Feature(Ui.IconName.Beaker, "Domain tests", "testing", Code["TestDatabase.Start()"], " is SQLite in memory, a database per test, run side by side; ", Code["Test.Make<T>()"], ", ", Code["Test.Refuses(…)"], " and ", Code["Test.FormShows"], " assert what the domain says."),
                     Feature(Ui.IconName.ArrowsRightLeft, "Queries & commands", "query", Code["QueryClient.Query(…)"], " in ", Code["Render"], " — cached, deduplicated, refetched after a write. Source-generated CQRS underneath, and the same call from the browser or the server."),
                     Feature(Ui.IconName.LockClosed, "Auth, on by default", "authentication", "Register, sign in, passkeys and a session row per device with no auth code — sign-in pages scaffolded into your app, the first account made admin. OIDC providers when you need them."),
                     Feature(Ui.IconName.Clock, "Background jobs", "jobs", "Enqueued, delayed and recurring work stored in your database and run by a hosted worker — at-least-once, with exponential backoff."),
@@ -291,7 +293,7 @@ public sealed partial class HomePage : Component
                 ],
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
                     Feature(Ui.IconName.CubeTransparent, "Components as a chain", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
-                    Feature(Ui.IconName.ClipboardDocumentCheck, "Forms & validation", "forms", Code["Form.Model(m)"], " with two-way binding and inline ", Code[".Validate(…)"], " rules, sync or async. DataAnnotations and FluentValidation work too, checked again on the server."),
+                    Feature(Ui.IconName.ClipboardDocumentCheck, "Forms over operations", "forms", Code["Form.For(Product.Reprice, id)"], " is a form whose fields are the method's parameters, checked by its value objects and its ", Code["Refuse"], " as they are typed. Rows, value groups and ", Code["Ui.EditorDialog"], " with Delete."),
                     Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
                     Feature(Ui.IconName.ComputerDesktop, "A typed UI kit", "ui-kit", "Flux UI's components as C# components — ", Code["Ui.Button"], ", ", Code["Ui.Table"], ", ", Code["Ui.Chart"], " — accessible and themed, with no npm and no Tailwind config."),
                     Feature(Ui.IconName.DevicePhoneMobile, $"{BrowserApiCount} typed browser APIs", "browser-apis", "IndexedDB, passkeys, WebRTC with its signaling, view transitions and background sync as awaitable C# — and every other web API straight from MDN through ", Code["Rask.Web"], ". Serial, USB, HID and Bluetooth pickers are WebAssembly's."),

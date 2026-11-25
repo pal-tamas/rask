@@ -14,7 +14,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
 
     public SqliteImmediateTransactionTests()
     {
-        _connectionString = $"Data Source={_dbPath}";
+        _connectionString = $"Data Source={_dbPath};Pooling=False";
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
         Exec(connection, "PRAGMA journal_mode=WAL;");
@@ -262,7 +262,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Unpooled, so disposing a connection closed its file: nothing to clear, and no pool of another test's to clear.
         foreach (var path in new[] { _dbPath, $"{_dbPath}-shm", $"{_dbPath}-wal" })
         {
             if (File.Exists(path))

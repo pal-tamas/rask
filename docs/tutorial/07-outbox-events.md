@@ -1,192 +1,282 @@
 # Chapter 7 — Domain events + the outbox
 
-> **Goal:** react to "an order was placed" reliably — the reaction runs even if the process crashes right
-> after the sale.
-> **You'll write:** an event, a domain method that raises it, a component that places orders, and a
-> durable handler.
+> **Goal:** when an order is placed, take its stock and queue its receipt — reliably, so both happen even if the
+> process crashes right after the sale.
+> **You'll write:** an event the order raises, a handler on `Product` that takes the stock, and a durable handler that
+> queues the receipt.
 
-In Chapter 4 we enqueued a job explicitly. Sometimes you'd rather have the *domain* announce that something
-happened and let any number of handlers react — without the code that placed the order knowing who's
-listening. That's a **domain event**. And if the reaction must not be lost (you really will refund that
-card), it should be delivered through a **transactional outbox**: the event is written **in the same
-database transaction** as the order, so it can never be committed without the event, and a background
-processor delivers it after commit — retrying until it succeeds.
+In chapter 6 the catalog announced a change and a cache, in memory, heard it: lose that moment and the cache simply
+expires. Some reactions must not be lost — a sale must take its stock, a receipt must go out — so they are delivered
+through a **transactional outbox**: the event is written **in the same database transaction** as the order, so it can
+never be committed without the event, and a background processor delivers it after the commit, retrying until it
+succeeds.
 
-## 1. Placing an order is a domain operation
-
-Chapter 3's order form saves an `OrderModel` with `Order.Create(model)`. That is exactly right for data
-entry (a member of staff types an order in) and exactly wrong for announcing anything, because a form save
-writes properties and nothing in it says that what just happened was a *sale*. It records a row; it isn't the
-business event, so it isn't where the event belongs.
-
-A customer buying a product is a different thing, and it gets its own path: a static factory on the aggregate
-that raises the event, and a small component that inserts what it built. Four small additions.
+## 1. The order says it was placed
 
 **The event.** `Features/Orders/OrderEvents.cs` — one record per thing that happened:
 
 ```csharp
+using Shop.Features.Products;
+
 namespace Shop.Features.Orders;
 
 [LocalOnly]
-public sealed record OrderPlaced(Guid Id) : IEvent;
+public sealed record OrderPlaced(OrderId Order, IReadOnlyList<OrderedItem> Items) : IEvent;
+
+public sealed record OrderedItem(ProductId Product, long Quantity);
 ```
 
-`[LocalOnly]` keeps it on the server. Without it, a signed-in browser could publish an `OrderPlaced` for an order
-nobody placed, and its handler would send a receipt for it. Only `Order.Place` should ever say a sale happened.
+`[LocalOnly]` keeps it on the server: without it, a signed-in browser could publish an `OrderPlaced` for an order
+nobody placed. Only `Order.Place` should ever say a sale happened. The event carries what its handlers need — the
+products and how many — so none of them has to read the order back.
 
-**Raising it.** Announce the change from the same code that makes it, so an order can never be placed
-without saying so. Here is chapter 3's `Features/Orders/Order.cs` with `Place` added — the whole file, so you
-can see where it goes:
+**Raising it.** The factory raises it on the order it builds, so an order can never be placed without saying so. Here
+is `Features/Orders/Order.cs` with the one new line in `Place`:
 
 ```csharp
-using System.ComponentModel.DataAnnotations;
-
 namespace Shop.Features.Orders;
 
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public readonly partial record struct OrderId(Guid Value);
+
+public sealed partial record CustomerEmail(string Value) : Email(Value);
+
+public sealed partial record TrackingNumber(string Value) : Text(Value, MaxLength: 40, Upper: true);
+
+public sealed partial record GiftNote(string Value) : Text(Value, MaxLength: 300);
+
+public sealed partial record ShippingAddress(string Street, string City, string PostCode) : Value
 {
-    [Range(0, 1_000_000)]
-    public decimal Total { get; private set; }
-
-    public Guid ProductId { get; private set; }
-
-    public DateTime Placed { get; private set; }
-
-    public static Order Place(Guid productId, decimal total, DateTime now)
+    protected override IEnumerable<Problem> Rules()
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(total);
+        if (PostCode.Trim().Length is < 3 or > 10)
+        {
+            yield return Problem.At(PostCode, "A post code is 3 to 10 characters.");
+        }
+    }
+}
 
-        var order = new Order { Id = Guid.CreateVersion7(), ProductId = productId, Total = total, Placed = now };
-        order.Raise(new OrderPlaced(order.Id));
+public enum OrderStatus
+{
+    Placed,
+    Shipped,
+}
+
+public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned, Deletable>
+{
+    public CustomerEmail Customer { get; private set; } = null!;
+
+    public ShippingAddress ShipTo { get; private set; } = null!;
+
+    public GiftNote? Gift { get; private set; }
+
+    public OrderStatus Status { get; private set; }
+
+    public TrackingNumber? Tracking { get; private set; }
+
+    public Children<OrderLine, OrderLineSpec> Lines { get; } = new();
+
+    private static Order Place(CustomerEmail customer, ShippingAddress shipTo, GiftNote? gift, IReadOnlyList<OrderLineSpec> lines)
+    {
+        var order = new Order { Id = OrderId.New(), Customer = customer, ShipTo = shipTo, Gift = gift };
+        order.Take(lines);
+        order.Raise(new OrderPlaced(order.Id, [.. lines.Select(l => new OrderedItem(l.Product, l.Quantity.Value))]));
         return order;
     }
-}
-```
 
-The fields are chapter 3's, untouched, so the staff pages keep working. `Place` is the aggregate's **factory**:
-the domain's way to create an order, which is why `Order` still declares no constructor. `Raise` comes from
-`Aggregate<Guid>`, and the event sits on the aggregate until it is saved, which is what makes the next part
-atomic.
-
-**Placing it.** `Features/Orders/PlaceOrder.cs` — a "Buy" button that places an order for one product:
-
-```csharp
-namespace Shop.Features.Orders;
-
-// A "Buy" button. A sale is a domain operation, not a form edit, so it goes through Order.Place — the
-// factory that announces it — and Order.Create inserts the order Place built.
-public sealed partial class PlaceOrder : Component
-{
-    private bool _placing;
-
-    public Guid ProductId { get; set; }
-
-    public decimal Price { get; set; }
-
-    private async Task Place()
+    public void Change(ShippingAddress shipTo, Change<GiftNote?> gift, IReadOnlyList<OrderLineSpec> lines)
     {
-        _placing = true;
-        try
-        {
-            var order = Order.Place(ProductId, Price, DateTime.UtcNow);
-            await Order.Create(order);        // the order AND its OrderPlaced, one transaction
-        }
-        finally
-        {
-            _placing = false;
-        }
+        Refuse.Unless(Status == OrderStatus.Placed, "A shipped order cannot change.");
+        (ShipTo, Gift) = (shipTo, gift.Applied(Gift));
+        Take(lines);
     }
 
-    protected override Component? Render() =>
-        Ui.Button.Primary.Sm.Disabled(_placing).OnClick(Place)["Buy"];
+    public void Ship(TrackingNumber tracking)
+    {
+        Refuse.Unless(Status == OrderStatus.Placed, "This order has already shipped.");
+        (Status, Tracking) = (OrderStatus.Shipped, tracking);
+    }
+
+    private void Take(IReadOnlyList<OrderLineSpec> lines)
+    {
+        Refuse.When(lines.Count == 0, () => lines, "An order has at least one line.");
+        _ = Lines.Sync(lines, l => l.Id, OrderLine.For, static (line, spec) => line.Take(spec));
+    }
+
+#pragma warning disable S1144 // found by convention: every delete asks it
+    private IEnumerable<Problem> ValidateDelete()
+    {
+        if (Status == OrderStatus.Shipped)
+        {
+            yield return Problem.Whole("A shipped order stays on the books.");
+        }
+    }
+#pragma warning restore S1144
+
+    public bool ReceiptSent { get; private set; }
+
+    public void MarkReceiptSent() => ReceiptSent = true;
 }
 ```
 
-`Order.Create(order)` is the create for an aggregate you built yourself. It saves through the same
-interceptors a form save does, so the order and the event it carries are written in one transaction. The
-`_placing` flag disables the button while the save runs, so a double click can't buy twice.
-
-Drop it into `ProductsPage`'s actions column (with `using Shop.Features.Orders;` at the top of that file):
-
-```csharp
-PlaceOrder.ProductId(p.Id).Price(p.Price)
-```
-
-**Receipts follow sales now.** Take chapter 4's enqueue back out of `NewOrderPage` — the handler in
-section 3 queues the receipt from the event instead, durably.
+The event sits on the aggregate until it is saved — and that is what makes the next part atomic.
 
 ## 2. Nothing to remember
 
-There is nothing to register. The outbox is on whenever the database is, its table is mapped by
-`RaskAppDbContext`, and it was created by the first migration, so there is nothing to migrate either.
+There is nothing to register. The outbox is on whenever the database is, its table is mapped by `RaskAppDbContext`,
+and the first migration created it. Every save runs the outbox's interceptor beside the timestamps and the version
+bump, which is why `Order.Place` — through its form, a test or anything else — stores the order **and** its event's
+deliveries in one transaction.
 
-Every `SaveChanges` runs the outbox's interceptor beside the timestamps and the version bump. That's why
-`PlaceOrder`'s `Order.Create` gets all three, exactly as chapter 2's form saves do.
+## 3. The stock: a handler on the aggregate it changes
 
-## 3. React to the event
-
-An event can have any number of handlers, and **each handler chooses** how it is run:
-
-- `IEventHandler<OrderPlaced>` runs in memory straight after the commit. It's fast, but it's gone if the process
-  dies at that moment. That suits a dashboard counter.
-- `IDurableHandler<OrderPlaced>` is written to the outbox in the order's own transaction, and runs from there after
-  the commit, retried until it succeeds. That suits a receipt.
-
-A receipt must not be lost, so `Features/Orders/OrderPlacedHandler.cs` is durable. It logs the sale and queues
-chapter 4's receipt job, so the receipt is now derived from the order's own transaction:
+An order must not change a product: each aggregate is its own transaction boundary. What an event does to **another
+aggregate** is that aggregate's own business, so the handler lives on it, as one method. `Features/Products/Product.Sales.cs`
+— a second part of the `partial` class, for the half of `Product` that hears about orders:
 
 ```csharp
-using Shop.Features.Shared;
+using Shop.Features.Orders;
 
-namespace Shop.Features.Orders;
+namespace Shop.Features.Products;
 
-public sealed partial class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
-    : IDurableHandler<OrderPlaced>
+// What selling does to a product: the half of Product that hears about orders.
+public sealed partial class Product
 {
-    public async Task Handle(OrderPlaced e)
+    public void Sell(long count)
     {
-        Placed(logger, e.Id);
-        await Jobs.Enqueue(new SendOrderReceipt(e.Id));
+        Stock = StockLevel.Create(Math.Max(0, Stock.Value - count));
+        Raise(new CatalogChanged(Id));
     }
 
-    [LoggerMessage(LogLevel.Information, "Order {Id} placed")]
-    private static partial void Placed(ILogger logger, Guid id);
+    // An order was placed: each product it names sells what was ordered, in a transaction of its own.
+    private static async Task On(OrderPlaced e)
+    {
+        var sold = e.Items.Select(i => i.Product).ToList();
+        await Product.UpdateEach(p => sold.Contains(p.Id), p => p.Sell(e.Items.Where(i => i.Product == p.Id).Sum(i => i.Quantity)));
+    }
 }
 ```
 
-It's the one thing in this chapter you implement rather than call. Nothing registers it: it's found at build time.
-The log line is a `[LoggerMessage]` method, .NET's own way to log without formatting a message nobody reads —
-the analyzers a new app builds with (CA1848) ask for it over `logger.LogInformation(…)`.
+- **`static Task On(OrderPlaced e)`** is a durable handler, exactly as a handler class would be: an outbox row in the
+  transaction that placed the order, run from there after the commit, retried alone. No class, no registration, and
+  it stays private ([a handler on the aggregate](../outbox.md#a-handler-on-the-aggregate)). The build checks its shape
+  ([RASK179](../diagnostics.md#rask179)).
+- **It runs in a transaction of its own**, never the order's: one aggregate per transaction, and the event is how a
+  change reaches the next one ([the transaction boundary](../domain.md#the-transaction-boundary)).
+- **`Product.UpdateEach(where, apply)`** loads every product the order names, runs `Sell` on each and saves it — its
+  rules, its version and its events (the `CatalogChanged` that forgets the cache) as for one
+  ([writes over many rows](../data-writes.md#writes-over-many-rows)).
+- **It decides nothing it cannot decide alone.** A product that has sold out is the shop's to restock: the sale stands,
+  and the stock stops at zero. A handler that refused would be retried forever.
 
-Because its outbox row committed atomically with the order, the handler is guaranteed to run **eventually**,
-even if the app is killed the instant after the sale — which closes the gap Chapter 4 left open. Delivery is
-**at-least-once**, so make the handler safe to repeat: it can run twice if the process dies between the work
-and the acknowledgement. Here that could mean two receipt jobs, so a real shop has the job check whether a
-receipt already went out before sending another.
+## 4. The receipt: a durable handler
 
-> **Outbox or job?** Both end in a background worker, and the distinction is worth holding onto: the outbox
-> delivers what is *derived from* a transaction (the order committed, so confirm it), and
-> [jobs](04-background-jobs.md) run what you *schedule* (in an hour, purge stale carts). A confirmation email
-> belongs to the order's transaction. A nightly cleanup does not.
+Queuing a receipt changes no aggregate, so it is a handler class, `Features/Orders/OrderPlacedHandler.cs`:
 
-> **What raises nothing.** Editing an order through `EditOrderPage` announces nothing: a form save writes the
-> model's properties and calls no method, so nothing raises an event. When a change *is* something the business
-> cares about (a cancellation, a shipment) give `Order` a method for it that raises its event, and call it
-> through `Order.Update(id, o => o.Cancel(now))`.
+```csharp
+namespace Shop.Features.Orders;
+
+public sealed partial class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger) : IDurableHandler<OrderPlaced>
+{
+    public async Task Handle(OrderPlaced e)
+    {
+        Placed(logger, e.Order);
+        await Jobs.Enqueue(new SendOrderReceipt(e.Order));
+    }
+
+    [LoggerMessage(LogLevel.Information, "Order {Order} placed")]
+    private static partial void Placed(ILogger logger, OrderId order);
+}
+```
+
+An event can have any number of handlers, and **each chooses** how it is run:
+
+- `IEventHandler<OrderPlaced>` runs in memory straight after the commit — fast, but gone if the process dies at that
+  moment. That suits a cache or a dashboard counter.
+- `IDurableHandler<OrderPlaced>` — and an aggregate's `On` — gets its own outbox row in the order's transaction, and
+  runs from there after the commit, retried until it succeeds. That suits stock and receipts.
+
+The log line is a `[LoggerMessage]` method, .NET's own way to log without formatting a message nobody reads (CA1848
+asks for it over `logger.LogInformation(…)`).
+
+Delivery is **at-least-once**: a handler can run twice if the process dies between its work and the outbox's mark.
+The receipt job is safe to repeat — the order remembers (chapter 4) — but a second `Sell` would take the
+stock twice. For work in the database, turn the window off:
+`app.Configure(c => c.Outbox.Configure(o => o.HandlerInTransaction = true))` commits a handler's writes and the outbox's
+mark together, so it is exactly once ([exactly once](../outbox.md#exactly-once-for-the-database-handlerintransaction)).
+For a call outside the database, `DurableEvent.Current?.MessageId` is the same on every attempt — hand it to the other
+side as an idempotency key.
+
+> **Outbox or job?** Both end in a background worker. The outbox delivers what is *derived from* a transaction (the
+> order committed, so take its stock), and [jobs](04-background-jobs.md) run what you *schedule* or what is long (send
+> this receipt, rebuild that report). A handler on the aggregate that runs long becomes a job with one line in its
+> `Configure`: `b.Job<OrderPlaced>()` ([an aggregate's handler as a job](../jobs.md#an-aggregates-handler-as-a-job)).
+
+## 5. Prove it
+
+The receipt handler now queues a job whenever an order is saved, and a test database has no job queue: add the
+jobs to `Shop.Tests/FakeBatteries.cs`:
+
+```csharp
+namespace Shop.Tests;
+
+// The batteries a save's handlers reach, faked for one test: a TestDatabase runs every handler a save raises, and has
+// no cache or job queue of its own. Each fake records what it was asked and does nothing outside the test.
+internal sealed class FakeBatteries : IDisposable
+{
+    public CacheFake Cache { get; } = Rask.Caching.Cache.Fake();
+
+    public JobsFake Jobs { get; } = Rask.Background.Jobs.Fake();
+
+    public void Dispose()
+    {
+        Jobs.Dispose();
+        Cache.Dispose();
+    }
+}
+```
+
+In a test database a durable handler runs in line, straight after the save, so a test sees what the outbox would
+have done. `Shop.Tests/Features/Orders/OrderPlacedTests.cs`:
+
+```csharp
+using Shop.Features.Orders;
+using Shop.Features.Products;
+
+namespace Shop.Tests.Features.Orders;
+
+public sealed class OrderPlacedTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Placing_an_order_sells_its_stock_and_queues_the_receipt()
+    {
+        await using var database = await TestDatabase.Start(cancellationToken: Ct);
+        using var batteries = new FakeBatteries();
+        var anvil = await Test.Make<Product>(o => o.With("stock", StockLevel.Create(5)));
+
+        var order = await Order.Place(
+            Test.Make<CustomerEmail>(), Test.Make<ShippingAddress>(), null,
+            [new OrderLineSpec(null, anvil.Id, Quantity.Create(2))], Ct);
+
+        var stored = await Product.Where(p => p.Id == anvil.Id).First(Ct);
+        Assert.Equal(3, stored.Stock);
+        Assert.Equal(order, batteries.Jobs.Enqueued<SendOrderReceipt>().Only().Job.Order);
+    }
+}
+```
+
+`o.With("stock", …)` hands the factory's own parameter to `Test.Make`, where the test cares about it.
 
 ## Verify
 
-- Clicking **Buy** on `/products` writes an `OutboxMessage` row in the same transaction as the order.
-- The `OrderPlacedHandler` log line appears within the poll interval, and the row's `ProcessedAt` is set
-  while `Error` stays null and `Attempts` reads `1` — that combination is what "delivered cleanly" means
-  (`Attempts` counts attempts *started*: the processor bumps it when it claims the message). A
-  message that can't be deserialized doesn't throw; it records an error and retries until `MaxAttempts`.
-- A receipt job row follows, and then the receipt in `mail-pickup` — the chain from Chapters 4 and 5, now
-  starting from the transaction.
-- Kill the app immediately after buying, restart it — the handler still runs.
+- Place an order on `/orders`: an `OutboxMessage` row per durable handler is written in the same transaction as the
+  order, the product's stock drops, and a receipt job follows — then the receipt in `mail-pickup`.
+- Kill the app immediately after placing an order, restart it — the stock is still taken and the receipt still goes.
 - **Go further:** watch the outbox, job and mail counters move, in that order, on `/ops`
   ([Chapter 10](10-ops.md)).
+- `dotnet test` passes.
 
-**Learn more:** [outbox](../outbox.md) · [Rask.Data](../data.md) · [background jobs](../jobs.md)
+**Learn more:** [outbox](../outbox.md) · [domain events](../domain.md#domain-events) · [background jobs](../jobs.md)
 
 Next → **[Chapter 8: Production SQLite](08-production-sqlite.md)**

@@ -66,10 +66,10 @@ public sealed class StallMark : Entity<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class SoftRemovedTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-soft-removed-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 3, 1, 8, 0, 0, TimeSpan.Zero));
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_soft_removed_child_maps_a_DeletedAt_and_the_soft_delete_filter()
@@ -142,5 +142,5 @@ public sealed class SoftRemovedTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), _clock);
 }
