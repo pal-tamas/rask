@@ -117,6 +117,12 @@ them until tagged releases begin.
   event re-rendered the composite and the rows it added were never drawn. Now the component rendering as the
   handler is set is its owner: an element's handler is noted as it is set, and a component's event callback is
   wrapped for it, as one that captures `this` always was.
+- **A handler that shares its closure with a delegate of its writer's re-renders the writer too.** Before: the lambdas
+  of one method share one closure, so `Ui.Button.OnClick(() => pairs.Add(new()))` written beside a row drawn through
+  a `Func` parameter (`find`, a method of the component's own) held that delegate, and a handler holding anything
+  that *might* be a component was left unowned: inside a `Ui.Card` the button added the row and nothing drew it. Now
+  what the closure holds is looked at, not only its field types: a handler whose captured delegates and objects reach
+  no component but the one rendering is that component's, and one that reaches another is left as before.
 - **The sign-in throttle and the account slowdown hold at most 10 000 keys.** Before: each dropped only the keys
   whose failures had expired, so a spray of distinct addresses or clients inside one window — every one of them
   failing just now — grew both tables without bound, and the old sweep walked the whole table on every attempt

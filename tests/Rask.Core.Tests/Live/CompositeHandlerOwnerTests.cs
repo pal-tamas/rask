@@ -70,6 +70,23 @@ public partial class CompositeHandlerOwnerTests : global::Rask.Core.RaskMarkup
         Assert.Contains("row-1", after);
     }
 
+    [Fact]
+    public async Task A_handler_sharing_its_closure_with_a_method_of_the_writer_nested_in_a_composite_rerenders_the_writer()
+    {
+        var owner = new NamedRowsOwner();
+        var view = new StubComponent(() => owner);
+        var before = view.RenderAsLiveRoot();
+        var addId = System.Text.RegularExpressions.Regex.Match(before, "data-rask-on-click=\"([^\"]+)\"").Groups[1].Value;
+        using var payload = JsonDocument.Parse("{}");
+
+        await view.TryInvokeHandlerAsync(addId, payload.RootElement);
+        var after = view.RenderAsLiveRoot();
+
+        Assert.Contains("rows=0", before);
+        Assert.Contains("rows=1", after);
+        Assert.Contains("named-row-1", after);
+    }
+
     private sealed class TabOwner : Component
     {
         public int Active;
@@ -104,6 +121,28 @@ public partial class CompositeHandlerOwnerTests : global::Rask.Core.RaskMarkup
             kids.AddRange(rows.Select(row => (Component)Span.Key(row)[row]));
             return [new PassThrough()[kids]];
         }
+    }
+
+    // The list and a method of the component's own handed in as a delegate: the lambdas of one method share one closure,
+    // so the button's handler holds the list AND that delegate — a component, but only the one writing it.
+    private sealed class NamedRowsOwner : Component
+    {
+        public List<string> Rows { get; } = [];
+
+        protected override Component? Render() => [new PassThrough()[Drawn(Rows, Named)]];
+
+        private static List<Component> Drawn(List<string> rows, Func<string, string> name)
+        {
+            var kids = new List<Component>
+            {
+                Span[$"rows={rows.Count}"],
+                Button.OnClick(() => rows.Add($"row-{rows.Count + 1}"))["add"],
+            };
+            kids.AddRange(rows.Select(row => (Component)Span.Key(row)[name(row)]));
+            return kids;
+        }
+
+        private string Named(string row) => $"named-{row}" + (Rows.Count < 0 ? "?" : "");
     }
 
     // The same list, added to through a component's event: the callback is wrapped as a generated chain step wraps
