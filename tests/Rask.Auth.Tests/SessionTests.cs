@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 namespace Rask.Auth.Tests;
 
 /// <summary>Session rows: the thing a sign-in cookie points at, and what ending a session deletes.</summary>
-[Collection(AuthDbCollection.Name)]
 public sealed class SessionTests
 {
     private const string Password = "Password1";

@@ -20,7 +20,6 @@ namespace Rask.Caching.Tests;
 /// so there is nothing to get wrong.
 /// </para>
 /// </remarks>
-[Collection(CacheDbCollection.Name)]
 public sealed class CacheTenantTests
 {
     private readonly Guid _acme = Guid.NewGuid();

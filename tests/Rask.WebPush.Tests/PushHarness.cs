@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Tests.Shared;
 
 namespace Rask.WebPush.Tests;
 
@@ -48,18 +49,18 @@ internal sealed class StubSender : IWebPush
     }
 }
 
-/// <summary>The battery on a real SQLite file, with the sender stubbed out unless a test asks for the real one.</summary>
+/// <summary>The battery on a real SQLite database, in memory and its own, with the sender stubbed out unless a test asks for the real one.</summary>
 internal sealed class PushHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
-    private readonly string _database = Path.Combine(Path.GetTempPath(), $"rask-push-test-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public PushHarness(bool stubSender = true, Action<PushOptions>? configure = null, IWebPush? sender = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddRaskWebPush<PushDbContext>(configure);
-        services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={_database}"));
+        services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite(_database.ConnectionString));
 
         if (stubSender)
         {
@@ -91,7 +92,6 @@ internal sealed class PushHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        File.Delete(_database);
+        await _database.DisposeAsync();
     }
 }

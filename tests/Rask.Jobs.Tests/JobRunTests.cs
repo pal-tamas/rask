@@ -71,7 +71,7 @@ public sealed class AwaitOwnLaneHandler(Recorder recorder) : IJobHandler<AwaitOw
 /// <c>await Jobs.Run(job).InLane(key)</c>: the job is stored and run like any lane job - one at a time with that lane's
 /// other jobs - and the caller awaits its answer or its failure. Giving up the wait never gives up the job.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
+[Collection(DbFacadeCollection.Name)]
 public sealed class JobRunTests
 {
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(300);
@@ -288,8 +288,7 @@ public sealed class JobRunTests
     [Fact]
     public async Task A_database_without_the_result_columns_says_which_commands_to_run()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-noresult-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await h.Queue.Enqueue(new RecordJob("waiting"), TestContext.Current.CancellationToken);
         await using (var db = h.NewContext())
         {

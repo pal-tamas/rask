@@ -85,12 +85,12 @@ public sealed class RefundContext(DbContextOptions<RefundContext> options) : Ras
 [Collection(DataDbCollection.Name)]
 public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-held-child-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private ServiceProvider _app = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var connection = $"Data Source={_dbPath};Pooling=False";
+        var connection = _sqlite.ConnectionString;
         var services = new ServiceCollection();
         services.AddRaskCqrs();
         services.AddRaskData<RefundContext>();
@@ -134,7 +134,7 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
     {
         Db.Reset();
         await _app.DisposeAsync();
-        File.Delete(_dbPath);
+        _sqlite.Dispose();
     }
 
     [Fact]

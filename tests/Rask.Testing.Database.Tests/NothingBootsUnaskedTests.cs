@@ -1,18 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using Rask.Cqrs;
 using Rask.Testing.Fixture.UnsetApp;
 
 namespace Rask.Testing.Database.Tests;
 
-// One collection, so its tests run one at a time: TestDatabase points the process-wide model surface at its database.
-[Collection(nameof(TestDatabase))]
-public sealed class NothingBootsUnaskedTests : IDisposable
+public sealed class NothingBootsUnaskedTests
 {
     private static readonly DateTimeOffset Monday = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);
-
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-testing-db-{Guid.NewGuid():N}.db");
-
-    public void Dispose() => File.Delete(_dbPath);
 
     [Fact]
     public async Task A_test_with_a_database_of_its_own_reads_it_without_booting_the_app()
@@ -58,6 +51,6 @@ public sealed class NothingBootsUnaskedTests : IDisposable
         Assert.Contains(UnsetApp.DatabaseVariable, booted.Message, StringComparison.Ordinal);
     }
 
-    private Task<TestDatabase> Start() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+    private static Task<TestDatabase> Start() =>
+        TestDatabase.Start(cancellationToken: TestContext.Current.CancellationToken);
 }

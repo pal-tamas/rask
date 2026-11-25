@@ -12,7 +12,6 @@ using Outbox = Rask.Cqrs.Outbox;
 ///     The fake records what the outbox would have COMMITTED: an event whose save failed or whose transaction rolled
 ///     back never reaches a durable handler for real, so the fake does not say it was stored either.
 /// </summary>
-[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxFakeFailedSaveTests : IAsyncLifetime
 {
     private readonly SqliteConnection _keeper = new($"Data Source=rask-outbox-fake-failed-{Guid.NewGuid():N};Mode=Memory;Cache=Shared");

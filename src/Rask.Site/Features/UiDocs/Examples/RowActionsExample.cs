@@ -1,6 +1,9 @@
+using System.Globalization;
+
 namespace Rask.Site.Features.UiDocs.Examples;
 
 // The ⋯ opens the row's menu: Edit opens its form, Delete asks in the layout's Ui.Confirm. A supplier with orders cannot be deleted.
+// The supplier is a Name beside two more columns, and the ⋯ still keeps inside a phone's screen.
 public sealed partial class RowActionsExample : Component
 {
     private static readonly Supplier[] Everyone =
@@ -15,14 +18,16 @@ public sealed partial class RowActionsExample : Component
             Div[Ui.Button.Key("restore").Sm.OnClick(() => { _suppliers = [.. Everyone]; })["Restore"]],
             Ui.Table.Id("ura-suppliers").ContainerClass("min-w-0")[
                 Ui.TableColumns[
-                    Ui.TableColumn["Supplier"],
+                    Ui.TableColumn.Width(Ui.ColumnWidth.Name)["Supplier"],
                     Ui.TableColumn.Width(Ui.ColumnWidth.Reference)["City"],
+                    Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Orders"],
                     Ui.TableColumn.RowMenu
                 ],
                 Ui.TableRows[
                     _suppliers.Select(supplier => Ui.TableRow.Key(supplier.Name)[
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(supplier.Name),
                         Ui.TableCell.Cut(supplier.City),
+                        Ui.TableCell.End[supplier.Orders.ToString(CultureInfo.InvariantCulture)],
                         Ui.RowActions.Key(supplier.Name).Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
                     ])
                 ]

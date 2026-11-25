@@ -109,9 +109,9 @@ public sealed class LaneReading : Aggregate<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class NumberedTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-numbered-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task Rows_are_numbered_in_order_within_each_group()
@@ -310,5 +310,5 @@ public sealed class NumberedTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), cancellationToken: TestContext.Current.CancellationToken);
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString), cancellationToken: TestContext.Current.CancellationToken);
 }

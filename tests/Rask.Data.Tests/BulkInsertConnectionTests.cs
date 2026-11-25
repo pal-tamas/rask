@@ -12,7 +12,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class BulkInsertConnectionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-connection-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly OpenCounter _opens = new();
     private readonly ServiceProvider _provider;
 
@@ -22,7 +22,7 @@ public sealed class BulkInsertConnectionTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(_opens)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
@@ -82,15 +82,7 @@ public sealed class BulkInsertConnectionTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try
-        {
-            File.Delete(_dbPath);
-        }
-        catch (IOException)
-        {
-            // A leftover temp file is not worth failing a test over.
-        }
+        _sqlite.Dispose();
     }
 
     private sealed class OpenCounter : DbConnectionInterceptor

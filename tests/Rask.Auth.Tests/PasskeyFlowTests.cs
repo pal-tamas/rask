@@ -13,7 +13,6 @@ namespace Rask.Auth.Tests;
 /// <see cref="PasskeyVerifierTests" /> covers the cryptography on its own. What is here is everything around it: the
 /// sealed challenge, whose account a ceremony belongs to, what a removed passkey can still do, and the throttle.
 /// </remarks>
-[Collection(AuthDbCollection.Name)]
 public sealed class PasskeyFlowTests
 {
     private const string Password = "Password1";

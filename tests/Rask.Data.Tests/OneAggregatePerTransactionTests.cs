@@ -53,7 +53,7 @@ public sealed class CellarNote : Aggregate<Guid>
 [Collection(DataDbCollection.Name)]
 public sealed class OneAggregatePerTransactionTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-one-aggregate-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -272,13 +272,13 @@ public sealed class OneAggregatePerTransactionTests : IDisposable
         Assert.Empty(saves.Transactions);
     }
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     private Task<TestDatabase> StartAsync(
         Action<RaskDataOptions>? policy = null, Action<IServiceCollection>? services = null)
     {
         return TestDatabase.Start(
-            o => o.UseSqlite($"Data Source={_dbPath}"),
+            o => o.UseSqlite(_sqlite.ConnectionString),
             services: s =>
             {
                 if (policy is not null)

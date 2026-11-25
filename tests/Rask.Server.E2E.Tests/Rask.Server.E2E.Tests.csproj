@@ -88,6 +88,7 @@
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\TooltipWalk.cs" Link="Infrastructure\TooltipWalk.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\VirtualListJourneys.cs" Link="Infrastructure\VirtualListJourneys.cs"/>
     <Compile Include="..\Rask.Ui.Tests\Live\ReportColumnsDraft.cs" Link="ReportColumnsDraft.cs"/>
+    <Compile Include="..\Shared.Sqlite\InMemorySqlite.cs" Link="InMemorySqlite.cs"/>
   </ItemGroup>
 
   <!-- What a test reads from disk outside this project (the scoped gates run these tests when it changes):

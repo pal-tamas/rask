@@ -51,7 +51,7 @@ public static class RigWords
 public sealed partial record RigSerial(string Value) : Text(Value, MinLength: 3, MaxLength: 5, Pattern: "^[A-Z]+$", Message: RigWords.Serial);
 
 /// <summary>A whole number said in its own words.</summary>
-public sealed partial record RigCount(long Value) : Whole(Value, Min: 1, Message: RigWords.Count);
+public sealed partial record RigCount(long Value) : Integer(Value, Min: 1, Message: RigWords.Count);
 
 /// <summary>A number said in its own words.</summary>
 public sealed partial record RigShare(decimal Value) : Number(Value, Max: 100, Scale: 0, Message: RigWords.Share);
@@ -66,7 +66,7 @@ public sealed partial record RigMeterRead(DateTime Value) : Moment(Value, NotAft
 public sealed partial record RigOdometer(int StartKm, int EndKm) : Range(StartKm, EndKm, Strict: true, Min: 0, Message: RigWords.Odometer);
 
 /// <summary>A whole number in a range.</summary>
-public sealed partial record RigAxles(long Value) : Whole(Value, Min: 2, Max: 9);
+public sealed partial record RigAxles(long Value) : Integer(Value, Min: 2, Max: 9);
 
 /// <summary>A day that cannot be in the future.</summary>
 public sealed partial record RigInspected(DateOnly Value) : Day(Value, NotAfterToday: true);
@@ -161,7 +161,7 @@ public sealed partial record RigRank(int Value) : Value
 }
 
 /// <summary>A whole number held as an int.</summary>
-public sealed partial record RigSeats(int Value) : Whole(Value, Min: 1, Max: 9);
+public sealed partial record RigSeats(int Value) : Integer(Value, Min: 1, Max: 9);
 
 /// <summary>An aggregate holding one-value value objects of an int, written through its generated model.</summary>
 public sealed class Ladder : Aggregate<int, Model>

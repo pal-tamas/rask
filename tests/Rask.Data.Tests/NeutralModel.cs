@@ -85,7 +85,7 @@ public sealed class StorageTank
 }
 
 /// <summary>A pistol's number at the pump: 1 or more, though a legacy schema gives a row written without one 0.</summary>
-public sealed partial record NozzleNumber(int Value) : Whole(Value, Min: 1);
+public sealed partial record NozzleNumber(int Value) : Integer(Value, Min: 1);
 
 /// <summary>When a pump was last told something, as the clock on the wall showed it.</summary>
 public sealed partial record NozzleSent(DateTime Value) : Value;

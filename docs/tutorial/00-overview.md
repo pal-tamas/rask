@@ -44,7 +44,7 @@ whole product.
 | 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `OrderPlaced` · a handler on the aggregate |
 | 8 | [Production SQLite](08-production-sqlite.md) | SQLite | WAL pragmas · snapshots · Litestream |
 | 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `Push.Subscribe` · `Push.Send(…).To(customer)` |
-| 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page · `rask audit` |
+| 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page |
 | 11 | [Deploy to one box](11-deploy.md) | Deploy | `rask deploy --host … --domain …` |
 
 Read them in order — each chapter builds on the app the previous one left behind. Every chapter ends with

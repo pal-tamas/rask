@@ -24,7 +24,7 @@ public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 
 
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Max: 1_000_000, Scale: 2);
 
-public sealed partial record StockLevel(long Value) : Whole(Value, Min: 0);
+public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
 public sealed record CatalogChanged(ProductId Product) : IEvent;
 

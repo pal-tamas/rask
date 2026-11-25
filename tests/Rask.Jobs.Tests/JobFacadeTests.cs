@@ -12,7 +12,6 @@ public sealed class ChainJobHandler : ICommandHandler<ChainJob>
 /// A job is work in progress like a request or a render: the static facades reach the app from inside its
 /// handler, on the processor's thread, with nothing injected.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobFacadeTests
 {
     [Fact]

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Background.Tests;
 
@@ -145,14 +146,28 @@ public sealed class JobsDbContext(DbContextOptions<JobsDbContext> options) : DbC
 public sealed class JobsHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
-    private readonly bool _ownsDb;
 
+    // The database this harness made, and so holds open and closes; null when it joined another harness's.
+    private readonly InMemorySqlite? _ownDb;
+
+    /// <param name="configure">The jobs options the test sets.</param>
+    /// <param name="start">The clock's first reading.</param>
+    /// <param name="connectionString">
+    ///     Another harness's <see cref="ConnectionString" />, to stand a second instance over the same database, or one
+    ///     the test keeps itself; null gives this harness a database of its own, in memory.
+    /// </param>
+    /// <param name="services">Extra registrations for the container.</param>
     public JobsHarness(
-        Action<JobsOptions>? configure = null, DateTimeOffset? start = null, string? dbPath = null,
+        Action<JobsOptions>? configure = null, DateTimeOffset? start = null, string? connectionString = null,
         Action<IServiceCollection>? services = null)
     {
-        _ownsDb = dbPath is null;
-        DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-jobs-test-{Guid.NewGuid():N}.db");
+        if (connectionString is null)
+        {
+            _ownDb = new InMemorySqlite();
+            connectionString = _ownDb.ConnectionString;
+        }
+
+        ConnectionString = connectionString;
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
         var collection = new ServiceCollection();
@@ -177,10 +192,11 @@ public sealed class JobsHarness : IAsyncDisposable
             o.PollInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={DbPath}").AddInterceptors(Commands));
+        services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite(ConnectionString).AddInterceptors(Commands));
     }
 
-    public string DbPath { get; }
+    /// <summary>The connection string of the database the harness's contexts open; a second harness may share it.</summary>
+    public string ConnectionString { get; }
 
     /// <summary>Every formatted log message the processor wrote, for asserting on diagnostics.</summary>
     public System.Collections.Concurrent.ConcurrentBag<string> Logs { get; } = [];
@@ -295,9 +311,9 @@ public sealed class JobsHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
-        if (_ownsDb && File.Exists(DbPath))
+        if (_ownDb is not null)
         {
-            File.Delete(DbPath);
+            await _ownDb.DisposeAsync();
         }
     }
 }

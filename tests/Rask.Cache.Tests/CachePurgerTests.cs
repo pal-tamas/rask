@@ -4,7 +4,6 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace Rask.Caching.Tests;
 
-[Collection(CacheDbCollection.Name)]
 public sealed class CachePurgerTests
 {
     private static byte[] Bytes(string s) => Encoding.UTF8.GetBytes(s);

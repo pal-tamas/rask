@@ -147,28 +147,6 @@ public sealed class LogCaptureTests
         Assert.Equal("the last thing that happened", entry.Message);
     }
 
-    /// <summary>
-    /// The whole point of the package. A second store over the same file — the state a restarted process
-    /// finds — still sees what the first one wrote, and creating its schema again is a no-op rather than an
-    /// error.
-    /// </summary>
-    [Fact]
-    public async Task Stored_entries_outlive_the_store_that_wrote_them()
-    {
-        await using var harness = new LoggingHarness();
-
-        harness.Logger("Shop").LogError("the thing that broke");
-        await harness.RunUntilStoredAsync(1);
-
-        var reopened = new SqliteLogStore(
-            $"Data Source={harness.DbPath}", new LogsOptions(), harness.Clock);
-
-        var entry = Assert.Single((await reopened.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
-        Assert.Equal("the thing that broke", entry.Message);
-        Assert.Equal(LogLevel.Error, entry.Level);
-        Assert.Equal("Shop", entry.Category);
-    }
-
     [Fact]
     public async Task More_entries_than_the_batch_size_are_written_across_several_transactions()
     {

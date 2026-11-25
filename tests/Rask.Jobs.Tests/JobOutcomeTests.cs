@@ -8,7 +8,6 @@ namespace Rask.Background.Tests;
 ///     How a handler says its job ended (#1368): <c>Jobs.Warn</c> ends it warned, <c>Jobs.Refuse</c> failed for good — never
 ///     retried, no dead letter, its words shown — and <c>Jobs.Note</c> adds words to a job that is done; the worst said stands.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobOutcomeTests
 {
     private static readonly Guid Alice = Guid.Parse("0e4b6c1e-7b52-4f3c-9d2f-1a1a1a1a1a1a");
@@ -153,8 +152,7 @@ public sealed class JobOutcomeTests
     [InlineData("Detail")]
     public async Task A_database_without_the_outcome_columns_says_which_commands_to_run(string column)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nooutcome-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await h.Queue.Enqueue(new RecordJob("waiting"), Ct);
         await using (var db = h.NewContext())
         {
@@ -171,7 +169,6 @@ public sealed class JobOutcomeTests
         finally
         {
             await h.Processor.StopAsync(CancellationToken.None);
-            File.Delete(path);
         }
 
         Assert.DoesNotContain(h.Logs, l => l.Contains("Job processing cycle failed", StringComparison.Ordinal));

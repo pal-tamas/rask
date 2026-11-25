@@ -32,9 +32,9 @@ public sealed class Truck : Aggregate<Guid, Model, Deletable>
 [Collection(DataDbCollection.Name)]
 public sealed class NestedReadFaceQueryTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-nested-read-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
 
-    public void Dispose() => File.Delete(_dbPath);
+    public void Dispose() => _sqlite.Dispose();
 
     [Fact]
     public async Task A_list_orders_by_a_name_looked_up_through_another_read_face()
@@ -67,7 +67,7 @@ public sealed class NestedReadFaceQueryTests : IDisposable
     {
         var log = new SqlCommandLog();
         await using var database = await TestDatabase.Start(
-            o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(log),
+            o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(log),
             cancellationToken: TestContext.Current.CancellationToken);
         await Truck.In(null, "X-1").Save(cancellationToken: TestContext.Current.CancellationToken);
         log.Clear();
@@ -135,5 +135,5 @@ public sealed class NestedReadFaceQueryTests : IDisposable
     private static bool IsInteresting(string name) => name.Length > 0;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
+        TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString));
 }

@@ -9,7 +9,6 @@ namespace Rask.Background.Tests;
 ///     its bar — published at most four times a second and on the row once a poll — and only its enqueuer, in the tenant they
 ///     enqueued it in, ever hears of it.
 /// </summary>
-[Collection(JobsDbCollection.Name)]
 public sealed class JobWorkNoticeTests
 {
     private static readonly Guid Alice = Guid.Parse("0e4b6c1e-7b52-4f3c-9d2f-1a1a1a1a1a1a");
@@ -258,8 +257,7 @@ public sealed class JobWorkNoticeTests
     [InlineData("Of")]
     public async Task A_database_without_the_work_columns_says_which_commands_to_run(string column)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"rask-nowork-{Guid.NewGuid():N}.db");
-        await using var h = new JobsHarness(dbPath: path);
+        await using var h = new JobsHarness();
         await h.Queue.Enqueue(new RecordJob("waiting"), Ct);
         await using (var db = h.NewContext())
         {

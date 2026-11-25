@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 namespace Rask.Generators;
 
 // `ToString()` for a value object of one member declared straight from Value — `FuelingChip(string Value) : Value`: the
-// value it holds, as the one-value bases (Text, Number, Whole, Day, Moment) print theirs, rather than the record's
+// value it holds, as the one-value bases (Text, Number, Integer, Day, Moment) print theirs, rather than the record's
 // `FuelingChip { Value = … }`. A number or a date is printed culture-invariant, so the same value reads the same in a
 // log, a key or a file name on every machine. One the record declares itself is left alone.
 public sealed partial class ValueObjectFactoryGenerator

@@ -9,7 +9,7 @@ namespace Rask.Data.Tests;
 [Collection(DataDbCollection.Name)]
 public sealed class RaskDataTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-data-test-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _sqlite = new();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
@@ -22,7 +22,7 @@ public sealed class RaskDataTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData();
         services.AddDbContextFactory<TestDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite(_sqlite.ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         _provider = services.BuildServiceProvider();
@@ -230,9 +230,6 @@ public sealed class RaskDataTests : IDisposable
     public void Dispose()
     {
         _provider.Dispose();
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
+        _sqlite.Dispose();
     }
 }

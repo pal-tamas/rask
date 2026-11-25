@@ -1,10 +1,10 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Data;
 using Rask.Mailing;
+using Rask.Tests.Shared;
 
 namespace Rask.Auth.Tests;
 
@@ -100,19 +100,20 @@ public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbC
 ///     A real-SQLite service provider wired the way the auth battery wires a scaffolded app.
 /// </summary>
 /// <remarks>
-///     Deliberately a file rather than <c>:memory:</c>: the concurrency tests need several connections
-///     to see one database, which an in-memory database only does through a shared cache and a kept-open
-///     connection. A file is what a real app uses, and it is what makes a contended write actually contend.
+///     The database is in memory and the harness's own (<see cref="InMemorySqlite" />): a shared cache that every
+///     connection the harness opens sees, so the concurrency tests still have several connections contending for one
+///     database, and test classes run side by side with nothing on disk between them.
 /// </remarks>
 public sealed class AuthHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
-    private readonly bool _ownsFile;
+    private readonly InMemorySqlite? _owned;
 
     /// <param name="configure">Deviations from the default options.</param>
-    /// <param name="dbPath">
-    ///     An existing database to reopen. Passing the <see cref="DbPath" /> of another harness is how a
-    ///     test restarts the same app: the file is the only thing a restart actually keeps.
+    /// <param name="reopen">
+    ///     Another harness whose database this one opens. It is how a test restarts the same app: a new provider —
+    ///     new singletons, a new startup — over the rows the first one left, which are the only thing a restart keeps.
+    ///     The database stays the first harness's, and lives as long as it does.
     /// </param>
     /// <param name="mail">
     ///     Whether to register a mail battery. <b>Off by default, deliberately</b> — it is the state of a
@@ -123,13 +124,13 @@ public sealed class AuthHarness : IAsyncDisposable
     /// <param name="extraServices">Registrations a test adds last, such as a host environment.</param>
     public AuthHarness(
         Action<AuthOptions>? configure = null,
-        string? dbPath = null,
+        AuthHarness? reopen = null,
         bool mail = false,
         TimeProvider? clock = null,
         Action<IServiceCollection>? extraServices = null)
     {
-        _ownsFile = dbPath is null;
-        DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-auth-test-{Guid.NewGuid():N}.db");
+        _owned = reopen is null ? new InMemorySqlite() : null;
+        ConnectionString = reopen?.ConnectionString ?? _owned!.ConnectionString;
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -143,9 +144,12 @@ public sealed class AuthHarness : IAsyncDisposable
         // events are not dispatched: nothing here has a dispatcher, and no test asserts on delivery.
         services.AddRaskData();
 
-        // Pooling off, for the reason InstanceClaimStoreTests.PoolingOff gives (#1087).
+        // Pooling off, which the in-memory database's connection string carries (#1087): a pooled connection's return
+        // runs SqliteConnection.Deactivate, which un-registers the EF_DECIMAL collation EF Core adds — and SQLite refuses
+        // that while a collected-but-unfinalized statement is still active, so the many-simultaneous-claims shape failed
+        // unrelated gates with "unable to delete/modify collation sequence due to active statements".
         services.AddDbContextFactory<AuthDbContext>((sp, o) => o
-            .UseSqlite($"Data Source={DbPath};Pooling=False")
+            .UseSqlite(ConnectionString)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         // A real hash at a fraction of the work: 600,000 iterations per registration would make this suite
@@ -184,7 +188,8 @@ public sealed class AuthHarness : IAsyncDisposable
     /// <summary>The origin emailed links are built against.</summary>
     public const string Origin = "https://rask.test";
 
-    public string DbPath { get; }
+    /// <summary>The connection string of the database this harness runs on.</summary>
+    public string ConnectionString { get; }
 
     /// <summary>What the app would have sent, when the harness was built with a mail battery.</summary>
     public MailSpy? Mail { get; }
@@ -233,23 +238,10 @@ public sealed class AuthHarness : IAsyncDisposable
     {
         await _provider.DisposeAsync();
 
-        // The pooled connections keep a handle on the file, so the delete below fails without this.
-        // Rask has hit this before as an intermittent "database is locked" in unrelated suites.
-        SqliteConnection.ClearAllPools();
-
-        if (!_ownsFile)
+        // A reopened database belongs to the harness that made it.
+        if (_owned is not null)
         {
-            // A reopened database belongs to the harness that made it.
-            return;
-        }
-
-        try
-        {
-            File.Delete(DbPath);
-        }
-        catch (IOException)
-        {
-            // A leftover temp file is not worth failing a test over.
+            await _owned.DisposeAsync();
         }
     }
 }
