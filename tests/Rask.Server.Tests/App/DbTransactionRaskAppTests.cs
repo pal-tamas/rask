@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Background;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Tests.Shared;
 
 namespace Rask.Server.Tests.App;
 
@@ -35,12 +36,12 @@ public sealed class PairMooringsHandler : ICommandHandler<PairMoorings>
 [Collection(RaskAppCollection.Name)]
 public sealed class DbTransactionRaskAppTests : IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-transaction-app-{Guid.NewGuid():N}.db");
+    private readonly InMemorySqlite _database = new();
 
     public void Dispose()
     {
         Db.Reset();
-        File.Delete(_dbPath);
+        _database.Dispose();
     }
 
     internal static Task Pair(string name, bool fail) =>
@@ -104,7 +105,7 @@ public sealed class DbTransactionRaskAppTests : IDisposable
         {
             builder.WebHost.UseSetting("urls", "http://127.0.0.1:0");
             builder.Configuration.AddInMemoryCollection(
-                [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", $"Data Source={_dbPath};Pooling=False")]);
+                [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", _database.ConnectionString)]);
         });
 
         app.MapEndpoints(endpoints =>

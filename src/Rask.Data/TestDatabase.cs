@@ -74,6 +74,7 @@ public partial class TestDatabase : IAsyncDisposable
         Func<RaskReadDbContext> openRead,
         Func<DbContext> openWrite,
         Action<DbContextOptionsBuilder> configure,
+        IServiceProvider services,
         IAsyncDisposable? lease,
         TestDatabaseFakes fakes)
     {
@@ -83,7 +84,7 @@ public partial class TestDatabase : IAsyncDisposable
         _openWrite = openWrite;
         _configure = configure;
         _lease = lease;
-        _flow = Db.BindFlow(openWrite, openRead);
+        _flow = Db.BindFlow(openWrite, openRead, services);
     }
 
     /// <summary>Builds the database over a plain <see cref="RaskDbContext" />, creates its schema, and makes it the ambient one.</summary>
@@ -258,7 +259,8 @@ public partial class TestDatabase : IAsyncDisposable
         var schemaOwner = write();
         Db.Configure(write);
         ReadDb.Configure(read);
-        return new TestDatabase<TContext>(schemaOwner, read, write, configure, Holding(services, lease), fakes).WithSchema(createSchema, cancellationToken);
+        return new TestDatabase<TContext>(schemaOwner, read, write, configure, services, Holding(services, lease), fakes)
+            .WithSchema(createSchema, cancellationToken);
     }
 
     // The model the app's context builds. EF Core keeps it, so the contexts opened afterwards build none.

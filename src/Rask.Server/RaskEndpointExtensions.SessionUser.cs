@@ -506,7 +506,7 @@ public static partial class RaskEndpointExtensions
         // The sign-in page in the language of the page the reader was on.
         var signIn = InLanguageOf(route, path, RouteAuthorizationGuard.ChallengePath);
         var anotherApplications = session.OwnsPath is { } owns && !owns(signIn);
-        return new GuardRedirect(signIn, "?returnUrl=" + Uri.EscapeDataString(pageUrl), AsPage: anotherApplications);
+        return new GuardRedirect(signIn, ChallengeReturnUrl.Query(pageUrl, route.RoutePathOf), AsPage: anotherApplications);
     }
 
     // Said once, as the app's live endpoints are mapped: with sign-in and nothing to ask, an open page keeps whatever its connection
@@ -660,7 +660,7 @@ public static partial class RaskEndpointExtensions
         if (HasSignInPage(selector))
         {
             location = pathBase + languages.Keep(path, RouteAuthorizationGuard.ChallengePath)
-                       + "?returnUrl=" + Uri.EscapeDataString(pageUrl);
+                       + ChallengeReturnUrl.Query(pageUrl, languages.RoutePathOf);
         }
         else if (await HostSignInPage.FindAsync(ctx.RequestServices).ConfigureAwait(false) is { } host)
         {

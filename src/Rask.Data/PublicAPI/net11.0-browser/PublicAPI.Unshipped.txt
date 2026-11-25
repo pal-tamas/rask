@@ -704,42 +704,6 @@ static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskGate<TGate>(this Mic
 Rask.Data.SequenceBuilderExtensions
 static Rask.Data.SequenceBuilderExtensions.FromSequence(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
 static Rask.Data.SequenceBuilderExtensions.FromSequence<TKey>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>! property, string? name = null, long start = 1) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<TKey>!
-Rask.Data.Audited
-Rask.Data.Audited.Audited() -> void
-Rask.Data.AuditAction
-Rask.Data.AuditAction.Insert = 0 -> Rask.Data.AuditAction
-Rask.Data.AuditAction.Update = 1 -> Rask.Data.AuditAction
-Rask.Data.AuditAction.Delete = 2 -> Rask.Data.AuditAction
-Rask.Data.AuditEntry
-Rask.Data.AuditEntry.Action.get -> Rask.Data.AuditAction
-Rask.Data.AuditEntry.After.get -> string?
-Rask.Data.AuditEntry.Aggregate.get -> string!
-Rask.Data.AuditEntry.At.get -> System.DateTime
-Rask.Data.AuditEntry.Before.get -> string?
-Rask.Data.AuditEntry.Id.get -> long
-Rask.Data.AuditEntry.Key.get -> string!
-Rask.Data.AuditEntry.User.get -> string!
-const Rask.Data.AuditEntry.System = "system" -> string!
-Rask.Data.AuditFormat
-Rask.Data.AuditFormat.AuditFormat() -> void
-static Rask.Data.AuditFormat.Default.get -> Rask.Data.AuditFormat!
-virtual Rask.Data.AuditFormat.Value(object! value) -> string!
-virtual Rask.Data.AuditFormat.Values(System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>! values) -> string!
-Rask.Data.AuditValue
-Rask.Data.AuditValue.AuditValue() -> void
-Rask.Data.AuditValue.AuditValue(string! Name, object? Value) -> void
-Rask.Data.AuditValue.Name.get -> string!
-Rask.Data.AuditValue.Name.init -> void
-Rask.Data.AuditValue.Value.get -> object?
-Rask.Data.AuditValue.Value.init -> void
-Rask.Data.TraitSet.Audited = 1024 -> Rask.Data.TraitSet
-~override Rask.Data.AuditValue.Equals(object obj) -> bool
-~override Rask.Data.AuditValue.ToString() -> string
-override Rask.Data.AuditValue.GetHashCode() -> int
-Rask.Data.AuditValue.Deconstruct(out string! Name, out object? Value) -> void
-Rask.Data.AuditValue.Equals(Rask.Data.AuditValue other) -> bool
-static Rask.Data.AuditValue.operator !=(Rask.Data.AuditValue left, Rask.Data.AuditValue right) -> bool
-static Rask.Data.AuditValue.operator ==(Rask.Data.AuditValue left, Rask.Data.AuditValue right) -> bool
 Rask.Data.NumberedBuilderExtensions
 static Rask.Data.NumberedBuilderExtensions.Numbered<TEntity, TNumber, TWithin, TOrder>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, System.Linq.Expressions.Expression<System.Func<TEntity!, TNumber>!>! number, System.Linq.Expressions.Expression<System.Func<TEntity!, TWithin>!>! within, System.Linq.Expressions.Expression<System.Func<TEntity!, TOrder>!>! by, System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>? skip = null) -> Rask.Data.Numbering<TEntity!>!
 Rask.Data.Numbering<TEntity>
@@ -748,19 +712,19 @@ Rask.Data.Numbering<TEntity>.SkipWhen<TOther, TRow>(System.Linq.Expressions.Expr
 Rask.Data.GeneratedGates
 static Rask.Data.GeneratedGates.IsShut(System.Type! entity, string! member) -> bool
 static Rask.Data.GeneratedGates.Declare(System.Type! entity, string! member, object! gate) -> void
-Rask.Data.AuditBuilderExtensions
-static Rask.Data.AuditBuilderExtensions.AuditAs<TRow, TUserId>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Rask.Data.AuditFormat<TRow!, TUserId>! format) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-Rask.Data.AuditedWrite<TUserId>
-Rask.Data.AuditedWrite<TUserId>.Aggregate.get -> System.Type!
-Rask.Data.AuditedWrite<TUserId>.Action.get -> Rask.Data.AuditAction
-Rask.Data.AuditedWrite<TUserId>.Key.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
-Rask.Data.AuditedWrite<TUserId>.Before.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
-Rask.Data.AuditedWrite<TUserId>.After.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.AuditValue>!
-Rask.Data.AuditedWrite<TUserId>.Changed.get -> System.Collections.Generic.IReadOnlySet<string!>!
-Rask.Data.AuditedWrite<TUserId>.User.get -> TUserId?
-Rask.Data.AuditedWrite<TUserId>.At.get -> System.DateTime
-Rask.Data.AuditFormat<TRow, TUserId>
-Rask.Data.AuditFormat<TRow, TUserId>.AuditFormat() -> void
-abstract Rask.Data.AuditFormat<TRow, TUserId>.Row(Rask.Data.AuditedWrite<TUserId>! write) -> TRow!
 Rask.Data.ForUpdateQueryableExtensions
 static Rask.Data.ForUpdateQueryableExtensions.ForUpdate<T>(this System.Linq.IQueryable<T>! source) -> System.Linq.IQueryable<T>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder! entity, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TEntity, TRelatedEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder<TEntity!, TRelatedEntity!>! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceReferenceBuilder<TEntity!, TRelatedEntity!>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! entity, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.ViolationMessageBuilderExtensions.WhenMissing<TPrincipal, TDependent>(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder<TPrincipal!, TDependent!>! relationship, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder<TPrincipal!, TDependent!>!
+Rask.Data.Renumbering
+Rask.Data.Renumbering.extension<T>(T!)
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).Renumber(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.extension<T>(T!).RenumberAll(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(object! group, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.Renumber<T>(System.Collections.Generic.IEnumerable<object!>! groups, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.Renumbering.RenumberAll<T>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!

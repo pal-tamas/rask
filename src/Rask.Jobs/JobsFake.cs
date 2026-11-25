@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Batteries;
 using Rask.Cqrs;
 using Rask.Data;
@@ -72,7 +73,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         {
             using var tenant = next.Tenant is { } owner ? Tenant.Use(owner) : null;
             using var user = Current.UseUser(next.User);
-            await Noticed(next, () => Dispatcher.Send(next.Job, cancellationToken), cancellationToken).ConfigureAwait(false);
+            await InTheApp(() => Noticed(next, () => Dispatcher.Send(next.Job, cancellationToken), cancellationToken)).ConfigureAwait(false);
         }
     }
 
@@ -157,13 +158,32 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
     {
         var run = RecordRun(job, lane);
         TResult answer = default!;
-        await Noticed(run, async () => answer = await Dispatcher.Send<TResult>(job, cancellationToken).ConfigureAwait(false), cancellationToken)
+        await InTheApp(() => Noticed(
+                run, async () => answer = await Dispatcher.Send<TResult>(job, cancellationToken).ConfigureAwait(false), cancellationToken))
             .ConfigureAwait(false);
         return answer;
     }
 
     Task IJobs.Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken) =>
-        Noticed(RecordRun(job, lane), () => Dispatcher.Send(job, cancellationToken), cancellationToken);
+        InTheApp(() => Noticed(RecordRun(job, lane), () => Dispatcher.Send(job, cancellationToken), cancellationToken));
+
+    // Runs a job where its handler is: the work in progress's, or — in a test with a TestDatabase and no host — that
+    // database's services, which are the app such a test has (its saves publish their events through them too).
+    private static async Task InTheApp(Func<Task> run)
+    {
+        if (Ambient.Services is not null || Db.InFlow?.Services is not { } app)
+        {
+            await run().ConfigureAwait(false);
+            return;
+        }
+
+        var scope = app.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            using var work = Ambient.Enter(scope.ServiceProvider);
+            await run().ConfigureAwait(false);
+        }
+    }
 
     // Nothing runs on its own here, so nothing can be stopped.
     Task<bool> IJobs.Stop(long id, CancellationToken cancellationToken) => Task.FromResult(false);

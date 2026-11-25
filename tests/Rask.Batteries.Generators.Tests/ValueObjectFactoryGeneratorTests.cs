@@ -73,24 +73,8 @@ public class ValueObjectFactoryGeneratorTests
         var generated = run.GeneratedSource(name + ".Value.g.cs");
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue, global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
+        Assert.Contains($"partial record {name} : global::System.IComparable<{name}>, global::System.IComparable", generated, StringComparison.Ordinal);
         Assert.Contains($"public static bool operator >=({name}? left, {name}? right)", generated, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("DriverName", "this.Value")]
-    [InlineData("KmRange", "this.Start, this.End")]
-    [InlineData("ChipPeriod", "this.From, this.To")]
-    [InlineData("Opening", "this.Date, this.Quantity")]
-    public void Every_record_can_be_asked_again_as_stored_by_making_it_from_its_own_members(string name, string members)
-    {
-        var run = Run(ValueObjects);
-
-        var generated = run.GeneratedSource(name + ".Value.g.cs");
-
-        Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains($"partial record {name} : global::Rask.Values.IStoredValue", generated, StringComparison.Ordinal);
-        Assert.Contains($"TryCreate({members}, out var __made, out var __problems);", generated, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -644,6 +628,47 @@ public class ValueObjectFactoryGeneratorTests
         Assert.Equal(["Note", "Litres", "Day", "Reference"], flagged);
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
         Assert.Contains("'Delivery.Litres' is a bare 'decimal?' — declare a value object for it", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bare_Guid_is_told_to_take_a_typed_id_not_a_value_object()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), Entity);
+
+        var reference = diagnostics.Single(d => d.Flagged() == "Reference").GetMessage();
+
+        Assert.Contains("'Delivery.Reference' is a bare 'Guid' — declare a strongly-typed id for it", reference, StringComparison.Ordinal);
+        Assert.DoesNotContain("value object", reference, StringComparison.Ordinal);
+    }
+
+    // The scaffold's own User (src/Rask.Templates/server/Features/Shared/User.cs) and an order that names the account it
+    // was placed by: a strict app starts with no RASK130 of its own, and the account is a typed id over the user's Guid.
+    [Fact]
+    public async Task The_scaffolds_user_and_a_typed_reference_to_it_are_not_RASK130()
+    {
+        var source = """
+            using System;
+            using Rask.Data;
+            using Rask.Values;
+            namespace Shop;
+            public readonly partial record struct AccountId(Guid Value);
+            public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: 100, Required: false);
+            public sealed class User : Aggregate<Guid>
+            {
+                public UserDisplayName? DisplayName { get; private set; }
+            }
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public AccountId? Account { get; private set; }
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new PrimitiveStatePropertyAnalyzer(), source);
+
+        var none = diagnostics;
+
+        Assert.Empty(none);
     }
 
     [Fact]

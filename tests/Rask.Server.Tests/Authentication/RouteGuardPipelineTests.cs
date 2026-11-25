@@ -235,6 +235,42 @@ public class RouteGuardPipelineTests
         }
     }
 
+    [Fact]
+    public async Task A_sign_in_page_challenged_again_and_again_keeps_the_same_address_instead_of_growing_until_431()
+    {
+        PutTheNotFoundPageUnderAGuardedLayout(); // /login itself falls to the guarded not-found page
+        try
+        {
+            using var host = CreateHost();
+            var first = (await host.Http.GetAsync("/orders?tab=2", TestContext.Current.CancellationToken)).Headers.Location!;
+
+            var location = first;
+            for (var i = 0; i < 5; i++)
+            {
+                location = (await host.Http.GetAsync(location, TestContext.Current.CancellationToken)).Headers.Location!;
+            }
+
+            Assert.Equal("/login?ReturnUrl=%2Forders%3Ftab%3D2", first.PathAndQuery);
+            Assert.Equal(first.PathAndQuery, location.PathAndQuery);
+        }
+        finally
+        {
+            __RaskRoutesRegistry.RefreshAll();
+        }
+    }
+
+    [Fact]
+    public async Task A_challenge_of_an_address_past_the_cap_sends_the_reader_back_to_the_root()
+    {
+        using var host = CreateHost();
+        var path = "/e2e/members?q=" + new string('a', LocalUrl.MaxLength);
+
+        var resp = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
+        Assert.Equal("/login?ReturnUrl=%2F", resp.Headers.Location!.PathAndQuery);
+    }
+
     // This assembly's routes as an app whose [NotFound] page sits under its [Authorize] root layout, registered the
     // way the generator registers a [NotFound] one: under the reserved fallback template, parented by its layout.
     private static void PutTheNotFoundPageUnderAGuardedLayout() =>

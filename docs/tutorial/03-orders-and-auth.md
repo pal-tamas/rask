@@ -146,8 +146,8 @@ What is new since chapter 2:
   top of the form. `Refuse.When(lines.Count == 0, () => lines, …)` names the list, so it is under the lines.
 - **An enum stays an enum.** `OrderStatus` is a column of its own, read and compared as it is.
 
-`Ship` takes a `TrackingNumber`, so it is an operation of its own shape. That is also how `Form.For` tells two forms
-apart: it picks the operation by the parameters of its entry ([RASK174](../diagnostics.md#rask174)).
+`Ship` takes a `TrackingNumber`, so it is an operation of its own shape. `Form.For` tells two forms apart by the
+operation's method group, even when two operations take the same parameters ([forms](../forms.md)).
 
 ## 2. The orders page
 
@@ -441,8 +441,7 @@ public sealed class ProductTests
         await Product.Discontinue(product.Id, product.Version, Ct);
 
         await Test.FormShows(
-            new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
-            "A discontinued product keeps its last price.");
+            await ProductChangeInput.Of(product.Id, Ct), m => m.Price, 5m, "A discontinued product keeps its last price.");
     }
 
     [Fact]

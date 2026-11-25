@@ -26,8 +26,8 @@ namespace Rask.Cli.E2E.Tests;
 /// is compiled.
 /// </para>
 /// <para>
-/// Rewriting the tutorial to aggregates found, on the way in: a scaffold whose <c>App</c> mounts no <c>Ui.Confirm</c>,
-/// so an editor dialog's Delete had nowhere to ask (chapter 2 adds it); and that a test database has no cache or job
+/// Rewriting the tutorial to aggregates found, on the way in: a scaffold whose <c>App</c> mounted no <c>Ui.Confirm</c>,
+/// so an editor dialog's Delete had nowhere to ask (the templates mount it now); and that a test database has no cache or job
 /// battery, so a save whose in-memory handler reaches <c>Cache</c> fails the test (chapter 6 fakes them).
 /// </para>
 /// <para>
@@ -53,9 +53,7 @@ public sealed partial class TutorialChapterBuildE2ETests
         var ch10 = Fences("10-ops.md");
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-        // Through the real path: macOS's temp directory is under /var, a link to /private/var, and a restore run through
-        // the link left Shop.Tests without its reference to Shop — so the tests lost every package the app brings.
-        var temp = Path.Combine(Unlinked(Path.GetTempPath()), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
+        var temp = Path.Combine(Path.GetTempPath(), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
         var projectDir = Path.Combine(temp, "Shop");
 
         try
@@ -78,14 +76,12 @@ public sealed partial class TutorialChapterBuildE2ETests
             var testsCsproj = Path.Combine(tests, "Shop.Tests.csproj");
             Assert.True(File.Exists(testsCsproj), "rask new no longer writes Shop.Tests, which every chapter writes its tests into.");
 
-            var shared = Path.Combine(projectDir, "Features", "Shared");
             var products = Path.Combine(projectDir, "Features", "Products");
             var orders = Path.Combine(projectDir, "Features", "Orders");
             var productTests = Path.Combine(tests, "Features", "Products");
             var orderTests = Path.Combine(tests, "Features", "Orders");
 
-            // --- Chapter 2: the Product aggregate, the one page over it, the App that mounts the editor's confirm, the tests ---
-            Write(fs, shared, "App.cs", Pick(ch2, "Ui.Toast, Ui.Confirm", "2"));
+            // --- Chapter 2: the Product aggregate, the one page over it, the tests ---
             Write(fs, products, "Product.cs", Pick(ch2, "class Product : Aggregate<ProductId", "2"));
             Write(fs, products, "ProductsPage.cs", Pick(ch2, "class ProductsPage", "2"));
             Write(fs, productTests, "ProductTests.cs", Pick(ch2, "class ProductTests", "2"));
@@ -262,21 +258,6 @@ public sealed partial class TutorialChapterBuildE2ETests
 
         Assert.True(lines.Count > fs.ReadAllText(path).Split('\n').Length, $"{Path.GetFileName(path)} has no '{anchor}' for the chapter's line to follow.");
         fs.WriteAllText(path, string.Join('\n', lines));
-    }
-
-    // The path with its first linked directory resolved (/var/folders/… → /private/var/folders/…).
-    private static string Unlinked(string path)
-    {
-        var full = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
-        for (var dir = full; !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
-        {
-            if (new DirectoryInfo(dir).ResolveLinkTarget(returnFinalTarget: true) is { } target)
-            {
-                return Path.Combine(target.FullName, Path.GetRelativePath(dir, full));
-            }
-        }
-
-        return full;
     }
 
     private static string TutorialDirectory()

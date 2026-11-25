@@ -45,17 +45,17 @@ public sealed class SystemPageBackupTests
             new BackupVerificationInfo("Failed", BackupVerificationLevel.Broken, null, "litestream restore failed with exit code 1."),
             replicating: true));
 
-        var html = Render(harness);
+        var page = Rendered(harness);
 
-        Assert.Contains("running", html, StringComparison.Ordinal);         // replication looks healthy…
-        Assert.Contains("Last verified restore", html, StringComparison.Ordinal);
+        Assert.Contains("running", page.Html, StringComparison.Ordinal);         // replication looks healthy…
+        Assert.Contains("Last verified restore", page.Html, StringComparison.Ordinal);
         // The tone, not the word: "failed" also appears in the error text below the tile, so asserting on
         // it alone would pass even if the tile itself never rendered. RestartCount is 0 here, so nothing
         // else on the card is red.
-        Assert.Contains("data-color=\"red\"", html, StringComparison.Ordinal);
+        Assert.Contains("red", BackupTones(page));
         // And red ONLY — an amber tile here would mean the level collapsed to a single "something is off".
-        Assert.DoesNotContain("data-color=\"amber\"", html, StringComparison.Ordinal);
-        Assert.Contains("exit code 1", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("amber", BackupTones(page));
+        Assert.Contains("exit code 1", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,13 +64,13 @@ public sealed class SystemPageBackupTests
         await using var harness = Harness(new FakeBackupProbe(new BackupVerificationInfo(
             "Inconclusive", BackupVerificationLevel.Unknown, Now.AddDays(-1), "the sentinel had not reached the replica")));
 
-        var html = Render(harness);
+        var page = Rendered(harness);
 
-        Assert.Contains("inconclusive", html, StringComparison.Ordinal);
+        Assert.Contains("inconclusive", page.Html, StringComparison.Ordinal);
         // Warning, never danger: a tile that goes red every time the check races replication is a tile
         // operators learn to ignore.
-        Assert.Contains("data-color=\"amber\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-color=\"red\"", html, StringComparison.Ordinal);
+        Assert.Contains("amber", BackupTones(page));
+        Assert.DoesNotContain("red", BackupTones(page));
     }
 
     private static DashboardHarness Harness(FakeBackupProbe probe) =>
@@ -78,11 +78,26 @@ public sealed class SystemPageBackupTests
 
     // The page reads its backup state on PollingPanel's asynchronous mount, so the first render is the
     // placeholder — wait for the card rather than assert on markup that has not loaded yet.
-    private static string Render(DashboardHarness harness)
+    private static string Render(DashboardHarness harness) => Rendered(harness).Html;
+
+    private static Page Rendered(DashboardHarness harness)
     {
         var page = Page.Render(ActivatorUtilities.CreateInstance<SystemPage>(harness.Services), harness.Services);
         page.Shows("Backup");
-        return page.Html;
+        return page;
+    }
+
+    // The tones on the Backup card alone. The Database card above it describes the harness's own database, which is
+    // in memory: its journal mode is MEMORY, not WAL, and that fact is rightly amber — but it is not the backup's.
+    private static List<string> BackupTones(Page page)
+    {
+        var card = page.FindAll("h2").Single(h => h.TextContent.Trim() == "Backup");
+        while (card.Parent is { } parent && !card.TextContent.Contains("Continuous replication", StringComparison.Ordinal))
+        {
+            card = parent;
+        }
+
+        return [.. card.DescendantsAndSelf().Select(n => n.Attribute("data-color")).OfType<string>()];
     }
 
     private sealed class FakeBackupProbe(BackupVerificationInfo? verification, bool replicating = true)

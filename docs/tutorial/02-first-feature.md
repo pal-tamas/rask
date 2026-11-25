@@ -277,31 +277,9 @@ commits — an add, a change, a delete — every query about `Product` on this s
 
 `PageTitle` is what the page is called: the `App` that `rask new` wrote puts *Products | Shop* in the browser's tab.
 
-**The dialog's toast and question are the app's.** A save's *Saved* is said in a `Ui.Toast`, and a delete asks in a
-`Ui.Confirm`; both are mounted once, beside the router, so every page can reach them. Add them to
-`Features/Shared/App.cs` — the last line is the only change:
-
-```csharp
-namespace Shop.Features.Shared;
-
-// The document around this — charset, the UI kit's stylesheet and theme, your Styles/app.css — is Rask's. A page
-// says what it is called with a PageTitle override, and the line below puts that in the tab.
-public sealed partial class App(RouteState route) : Component
-{
-    protected override Component? HeadAssets => [
-        Title[route.Title is { } page ? $"{page} | Shop" : "Shop"],
-        // Edge to edge on a phone, as an app is: the kit's header, sidebar, flyouts and toasts keep clear of the notch.
-        Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover"),
-        // The browser's own bar in the page's ground, light and dark.
-        Meta.Name("theme-color").Content("#ffffff").Media("(prefers-color-scheme: light)"),
-        Meta.Name("theme-color").Content("#27272a").Media("(prefers-color-scheme: dark)")
-    ];
-
-    // The page, and the two things every page's editor reaches for: the toast that says "Saved", and the dialog a
-    // delete asks its question in.
-    protected override Component? Render() => [Router, Ui.Toast, Ui.Confirm];
-}
-```
+**The dialog's toast and question are already on the page.** A save's *Saved* is said in a toast, which the host
+draws for every app that places no `Ui.Toast` of its own, and a delete asks in the `Ui.Confirm` that `rask new` mounted
+beside the router in `Features/Shared/App.cs` (`Render() => [Router, Ui.Confirm]`), so every page can reach both.
 
 ## 3. Already registered
 
@@ -398,8 +376,7 @@ public sealed class ProductTests
         await Product.Discontinue(product.Id, product.Version, Ct);
 
         await Test.FormShows(
-            new ProductChangeInput(product.Id, product.Version + 1) { Name = "Anvil", Stock = 3 }, m => m.Price, 5m,
-            "A discontinued product keeps its last price.");
+            await ProductChangeInput.Of(product.Id, Ct), m => m.Price, 5m, "A discontinued product keeps its last price.");
     }
 
     [Fact]
@@ -432,8 +409,9 @@ Each test is named as a sentence and shaped in three blocks — setup, action, c
 - **`Test.Refuses(…)`** asserts that something was refused, and `.Only("Price")` that it was refused under *Price*
   alone — the field the reader would see the message under.
 - **`Test.FormShows(…)`** proves the reader is told: it puts the value in a real form over the operation, leaves the
-  field, and checks the message under it. A form built by hand like this one starts empty, so the test fills the
-  other fields it needs.
+  field, and checks the message under it. `ProductChangeInput.Of(product.Id)` fills the form exactly as
+  `Form.For(Product.Change, id)` does on the page — read from the stored product, at its version — so only the field
+  under test changes. A factory's input (`ProductAddInput`) starts empty, as its form does.
 - **`Test.Concurrently(…)`** starts two saves of the same version at the same moment and checks that exactly one
   went through and the other was refused — the version check, proved.
 

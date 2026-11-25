@@ -25,19 +25,8 @@ public sealed partial class OperationGenerator
     // The most a Func takes; an entry that takes more is given as a delegate of its own the form declares (`ChangeEntry`).
     private const int MostFuncParameters = 16;
 
-    internal static readonly DiagnosticDescriptor Rask174 = new(
-        "RASK174",
-        "Two operations take the same parameters, so neither gets a Form.For",
-        "'{0}' and another operation take the same parameters, so 'Form.For({0}, …)' could not tell them apart and "
-        + "neither gets one — give one of them a value object of its own for what it takes",
-        DiagnosticHelp.Category,
-        DiagnosticSeverity.Info,
-        true,
-        description: "Form.For(Supply.Change, id) picks the operation by the parameters of its generated entry, since a "
-                     + "method group carries no name a call can be told by. Two operations whose entries take the same "
-                     + "types — Rename(DriverName) and SetFullName(DriverName) — would make every call ambiguous, so "
-                     + "neither gets a form; a value object per meaning (FullName) tells them apart.",
-        helpLinkUri: DiagnosticHelp.Link("RASK174"));
+    // What a marked entry's hidden overload names its mark: no operation's parameter, as `__` starts none a person writes.
+    private const string MarkParameter = "__mark";
 
     internal static readonly DiagnosticDescriptor Rask188 = new(
         "RASK188",
@@ -260,17 +249,32 @@ public sealed partial class OperationGenerator
     private static string EntryResult(OperatedAggregate aggregate, Operation operation) =>
         operation.Factory ? TaskFqn + "<" + aggregate.IdType + ">" : TaskFqn;
 
-    // Whether the entry takes more than a Func holds, and so is given as `{Operation}Entry`, a delegate the form declares.
-    private static bool EntryOutgrowsFunc(OperatedAggregate aggregate, Operation operation) =>
-        FormEntryParameters(aggregate, operation) is { Count: > MostFuncParameters };
+    // Whether the form takes its entry as `{Operation}Entry`, a delegate it declares: one past a Func's sixteen, or one
+    // whose signature another operation shares, told apart by the mark its hidden overload takes first.
+    private static bool EntryDeclared(OperatedAggregate aggregate, Operation operation, bool marked) =>
+        marked || FormEntryParameters(aggregate, operation) is { Count: > MostFuncParameters };
 
-    // `public delegate Task ChangeEntry(Guid id, int version, …, CancellationToken cancellationToken);`: the entry of an
-    // operation past Func's sixteen, which its method group converts to just as it would to a Func.
-    private static void AppendEntryDelegate(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    // What the declared entry takes: the mark first when the operation is told apart by one, then the entry's own.
+    private static List<(string Type, string Name)> DeclaredEntryParameters(OperatedAggregate aggregate, Operation operation, bool marked)
     {
         var parameters = FormEntryParameters(aggregate, operation)!;
+        if (marked)
+        {
+            parameters.Insert(0, (MarkName(aggregate, operation), MarkParameter));
+        }
+
+        return parameters;
+    }
+
+    // `public delegate Task ChangeEntry(Guid id, int version, …, CancellationToken cancellationToken);`: the entry of an
+    // operation past Func's sixteen, which its method group converts to just as it would to a Func — or, with the mark
+    // first, the one overload of an entry whose signature another shares that its method group alone converts to.
+    private static void AppendEntryDelegate(StringBuilder s, OperatedAggregate aggregate, Operation operation, bool marked)
+    {
+        var parameters = DeclaredEntryParameters(aggregate, operation, marked);
         s.Append("    /// <summary>The entry <c>").Append(aggregate.Name).Append('.').Append(operation.Name)
-            .AppendLine("</c>, which takes more than a Func holds: what its method group converts to in <c>Form.For</c>.</summary>");
+            .Append(marked ? "</c>, marked as its own, since another entry takes the same parameters" : "</c>, which takes more than a Func holds")
+            .AppendLine(": what its method group converts to in <c>Form.For</c>.</summary>");
         foreach (var (_, name) in parameters)
         {
             var bare = name.TrimStart('@');
@@ -301,10 +305,9 @@ public sealed partial class OperationGenerator
         return counts;
     }
 
-    private static string? RenderForms(
-        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous, List<Unformed> unformed)
+    private static string? RenderForms(OperatedAggregate aggregate, Dictionary<string, int> signatures, List<Unformed> unformed)
     {
-        var formed = Formed(aggregate, signatures, ambiguous, unformed);
+        var formed = Formed(aggregate, signatures, unformed);
         var deleting = aggregate.Dialog && aggregate.Delete is not null;
         if (formed.Count == 0 && !deleting)
         {
@@ -341,13 +344,14 @@ public sealed partial class OperationGenerator
         }
 
         // A classic extension of the seed, which the chain analyzer knows as an opening that takes the owed steps itself.
-        foreach (var (operation, entry) in formed)
+        foreach (var (operation, marked) in formed)
         {
-            AppendFor(s, aggregate, operation, entry);
+            AppendFor(s, aggregate, operation, marked);
         }
 
         foreach (var (operation, _) in formed)
         {
+            AppendLoader(s, aggregate, operation);
             AppendReader(s, aggregate, operation);
             AppendShapesAndRequired(s, operation);
             AppendRules(s, aggregate, operation);
@@ -355,14 +359,16 @@ public sealed partial class OperationGenerator
 
         AppendShapeHelpers(s, formed);
         s.AppendLine("}");
+        AppendMarkedEntries(s, aggregate, formed);
         return s.ToString();
     }
 
-    // The operations a form can be told apart for: every parameter one a field holds, and no other entry alike.
-    private static List<(Operation Operation, string Entry)> Formed(
-        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<string> ambiguous, List<Unformed> unformed)
+    // The operations a form is made for: every parameter one a field holds. One whose entry takes what another's takes is
+    // marked, so `Form.For(Product.Archive, id)` and `Form.For(Product.Restore, id)` still pick one each.
+    private static List<(Operation Operation, bool Marked)> Formed(
+        OperatedAggregate aggregate, Dictionary<string, int> signatures, List<Unformed> unformed)
     {
-        var formed = new List<(Operation Operation, string Entry)>();
+        var formed = new List<(Operation Operation, bool Marked)>();
         foreach (var operation in aggregate.Operations)
         {
             if (EntryDelegate(aggregate, operation) is not { } entry)
@@ -371,16 +377,60 @@ public sealed partial class OperationGenerator
                 continue;
             }
 
-            if (signatures[entry] > 1)
-            {
-                ambiguous.Add(aggregate.Name + "." + operation.Name);
-                continue;
-            }
-
-            formed.Add((operation, entry));
+            formed.Add((operation, signatures[entry] > 1));
         }
 
         return formed;
+    }
+
+    // `ProductOperationForms.ArchiveMark`: the type only Archive's hidden overload takes, which tells its method group apart.
+    private static string MarkName(OperatedAggregate aggregate, Operation operation) =>
+        aggregate.Name + "OperationForms." + operation.Name + "Mark";
+
+    // `public readonly struct ArchiveMark { }`, in the forms class: what only Archive's hidden overload takes first.
+    private static void AppendMark(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        s.Append("    /// <summary>Tells <c>").Append(aggregate.Name).Append('.').Append(operation.Name)
+            .AppendLine("</c> apart from an entry that takes the same parameters: what its hidden overload takes first.</summary>");
+        s.Append("    ").AppendLine(HiddenFqn);
+        s.Append("    public readonly struct ").Append(operation.Name).AppendLine("Mark { }");
+        s.AppendLine();
+    }
+
+    // The hidden overload of each marked entry, taking its mark first: the one overload its method group has that
+    // converts to the delegate its `Form.For` takes, and no other operation's does.
+    private static void AppendMarkedEntries(StringBuilder s, OperatedAggregate aggregate, List<(Operation Operation, bool Marked)> formed)
+    {
+        var marked = formed.Where(static f => f.Marked).Select(static f => f.Operation).ToList();
+        if (marked.Count == 0)
+        {
+            return;
+        }
+
+        s.AppendLine();
+        s.Append("partial class ").AppendLine(aggregate.Name);
+        s.AppendLine("{");
+        foreach (var operation in marked)
+        {
+            var parameters = DeclaredEntryParameters(aggregate, operation, marked: true);
+            s.Append("    /// <summary>Runs <c>").Append(operation.Name).Append("</c> as its entry does: what <c>Form.For(")
+                .Append(aggregate.Name).Append('.').Append(operation.Name).AppendLine(", …)</c> converts it to.</summary>");
+            foreach (var (_, name) in parameters)
+            {
+                var bare = name.TrimStart('@');
+                s.Append("    /// <param name=\"").Append(bare).Append("\">What the entry is given as <c>").Append(bare).AppendLine("</c>.</param>");
+            }
+
+            s.AppendLine("    /// <returns>The write, done.</returns>");
+            s.Append("    ").AppendLine(HiddenFqn);
+            s.Append("    public static ").Append(EntryResult(aggregate, operation)).Append(' ').Append(operation.Name).Append('(')
+                .Append(string.Join(", ", parameters.Select(static p => p.Type + " " + p.Name))).AppendLine(") =>");
+            s.Append("        ").Append(operation.Name).Append('(')
+                .Append(string.Join(", ", parameters.Skip(1).Select(static p => p.Name))).AppendLine(");");
+            s.AppendLine();
+        }
+
+        s.AppendLine("}");
     }
 
     // What keeps an operation from a form, for RASK188: the first parameter no field holds.
@@ -395,7 +445,7 @@ public sealed partial class OperationGenerator
     private sealed record Unformed(string Aggregate, string Operation, string Why, SymbolLocation? Location);
 
     // The helpers a shape above is written with, once each: a range's end, a value object's lengths its attributes tighten.
-    private static void AppendShapeHelpers(StringBuilder s, List<(Operation Operation, string Entry)> formed)
+    private static void AppendShapeHelpers(StringBuilder s, List<(Operation Operation, bool Marked)> formed)
     {
         var shapes = formed
             .SelectMany(static f => f.Operation.Parameters.Select(static p => p.Field!))
@@ -415,7 +465,7 @@ public sealed partial class OperationGenerator
         }
     }
 
-    private static void AppendRegistrations(StringBuilder s, OperatedAggregate aggregate, List<(Operation Operation, string Entry)> formed)
+    private static void AppendRegistrations(StringBuilder s, OperatedAggregate aggregate, List<(Operation Operation, bool Marked)> formed)
     {
         s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         foreach (var (_, type) in formed.SelectMany(f => NestedModels(aggregate, f.Operation)))
@@ -538,6 +588,7 @@ public sealed partial class OperationGenerator
             s.AppendLine("    /// <summary>The version the aggregate was read at: never a field.</summary>");
             s.AppendLine("    public int Version { get; }");
             s.AppendLine();
+            AppendOf(s, aggregate, operation);
         }
 
         foreach (var parameter in operation.Parameters)
@@ -611,13 +662,19 @@ public sealed partial class OperationGenerator
         s.AppendLine();
     }
 
-    private static void AppendFor(StringBuilder s, OperatedAggregate aggregate, Operation operation, string entry)
+    private static void AppendFor(StringBuilder s, OperatedAggregate aggregate, Operation operation, bool marked)
     {
         var input = InputName(aggregate, operation);
         var form = OperationFormFqn + "<" + input + ">";
-        if (EntryOutgrowsFunc(aggregate, operation))
+        var entry = EntryDelegate(aggregate, operation)!;
+        if (EntryDeclared(aggregate, operation, marked))
         {
-            AppendEntryDelegate(s, aggregate, operation);
+            if (marked)
+            {
+                AppendMark(s, aggregate, operation);
+            }
+
+            AppendEntryDelegate(s, aggregate, operation, marked);
             entry = operation.Name + "Entry";
         }
 
@@ -640,14 +697,14 @@ public sealed partial class OperationGenerator
         s.AppendLine(") =>");
         s.Append("            global::Rask.Core.Forms.OperationForms.Of<").Append(input).AppendLine(">(");
         s.Append("                ").Append(operation.Factory ? "null" : "id").AppendLine(",");
-        AppendLoad(s, aggregate, operation, input);
-        AppendSubmit(s, aggregate, operation);
+        AppendLoad(s, operation, input);
+        AppendSubmit(s, aggregate, operation, marked);
         s.Append("                static () => ").Append(aggregate.FullyQualifiedName).Append(".May").Append(operation.Name).AppendLine(");");
         s.AppendLine();
     }
 
-    // A factory's form starts empty; an operation's is read from the aggregate, each field from what it holds alike.
-    private static void AppendLoad(StringBuilder s, OperatedAggregate aggregate, Operation operation, string input)
+    // A factory's form starts empty; an operation's is read from the aggregate through its loader (`ChangeLoad`).
+    private static void AppendLoad(StringBuilder s, Operation operation, string input)
     {
         if (operation.Factory)
         {
@@ -655,7 +712,23 @@ public sealed partial class OperationGenerator
             return;
         }
 
-        s.Append("                async cancellationToken => await global::Rask.Data.GeneratedModelWrites.Find<").Append(aggregate.FullyQualifiedName)
+        s.Append("                cancellationToken => ").Append(operation.Name).AppendLine("Load(id, cancellationToken),");
+    }
+
+    // `ChangeLoad(id)`: the fields as the form starts them, read from the stored aggregate — what `Form.For` and the
+    // input's own `Of(id)` both fill from, or null when nothing is stored under the id.
+    private static void AppendLoader(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        if (operation.Factory)
+        {
+            return;
+        }
+
+        var input = InputName(aggregate, operation);
+        s.AppendLine();
+        s.Append("    internal static async ").Append(TaskFqn).Append('<').Append(input).Append("?> ").Append(operation.Name).Append("Load(")
+            .Append(aggregate.IdType).Append(" id, ").Append(TokenFqn).AppendLine(" cancellationToken) =>");
+        s.Append("        await global::Rask.Data.GeneratedModelWrites.Find<").Append(aggregate.FullyQualifiedName)
             .Append(">(id!, cancellationToken) is { } aggregate ? new ")
             .Append(input).Append("(id, ").Append(aggregate.Versioned ? "aggregate.Version" : "0").Append(')');
         var fills = operation.Parameters.Where(static p => p.Field!.Fill is not null)
@@ -665,10 +738,36 @@ public sealed partial class OperationGenerator
             s.Append(" { ").Append(string.Join(", ", fills)).Append(" }");
         }
 
-        s.AppendLine(" : null,");
+        s.AppendLine(" : null;");
     }
 
-    private static void AppendSubmit(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    // `await ProductChangeInput.Of(id)`: the fields filled as `Form.For(Product.Change, id)` fills them — what a test
+    // hands `Test.FormShows(…)` to start from the stored aggregate rather than from nothing. Left out when a field is
+    // itself named `Of`, which the method would clash with.
+    private static void AppendOf(StringBuilder s, OperatedAggregate aggregate, Operation operation)
+    {
+        if (operation.Factory || operation.Parameters.Any(static p => string.Equals(p.Field!.Property, "Of", StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        var input = InputName(aggregate, operation);
+        s.Append("    /// <summary>The fields as <c>Form.For(").Append(aggregate.Name).Append('.').Append(operation.Name)
+            .AppendLine(", id)</c> starts them: read from the stored aggregate, at the version it is at.</summary>");
+        s.AppendLine("    /// <param name=\"id\">The aggregate the form changes.</param>");
+        s.AppendLine("    /// <param name=\"cancellationToken\">Cancels the read.</param>");
+        s.AppendLine("    /// <returns>The fields, filled from what is stored.</returns>");
+        s.AppendLine("    /// <exception cref=\"global::System.InvalidOperationException\">Nothing is stored under <paramref name=\"id\" />.</exception>");
+        s.Append("    public static async ").Append(TaskFqn).Append('<').Append(input).Append("> Of(").Append(aggregate.IdType)
+            .Append(" id, ").Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("        await ").Append(aggregate.Name).Append("OperationForms.").Append(operation.Name).Append("Load(id, cancellationToken) ?? ")
+            .Append("throw new global::System.InvalidOperationException($\"No ").Append(aggregate.Name)
+            .Append(" {id} is stored, so ").Append(input).Append(".Of(id) has nothing to fill the fields from: store it first, as Form.For(")
+            .Append(aggregate.Name).Append('.').Append(operation.Name).AppendLine(", id) reads it.\");");
+        s.AppendLine();
+    }
+
+    private static void AppendSubmit(StringBuilder s, OperatedAggregate aggregate, Operation operation, bool marked)
     {
         var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
         s.Append("                async (input, cancellationToken) =>").AppendLine();
@@ -679,7 +778,7 @@ public sealed partial class OperationGenerator
         s.AppendLine("                        throw new global::Rask.Cqrs.RaskValidationException(failures);");
         s.AppendLine("                    }");
         s.AppendLine();
-        s.Append("                    await operation(");
+        s.Append("                    await operation(").Append(marked ? "default, " : "");
         if (!operation.Factory)
         {
             s.Append("input.Id, ");

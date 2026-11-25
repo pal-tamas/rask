@@ -24,6 +24,8 @@ public sealed partial class AppFrameDriverDemoPage : Component
         Div.Key("driver").Class("space-y-4")[
             Ui.Heading.Level(1).Xl[driver.Name],
             Ui.Text["Licence " + driver.Licence],
-            driver.Active ? Ui.Badge.Color(Ui.Color.Lime)["Driving this week"] : null
+            driver.Active ? Ui.Badge.Color(Ui.Color.Lime)["Driving this week"] : null,
+            // Back to the list as the reader left it: the tab they were on, kept in its address.
+            Div[Ui.Button.Ghost.Href(Routes.AppFrameDriversDemoPage().AsLeft()).Attributes(("data-testid", "af-back"))["Back to drivers"]]
         ];
 }

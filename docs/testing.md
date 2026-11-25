@@ -405,8 +405,11 @@ public Task The_km_end_comes_after_its_start_on_the_form() =>
   showed nothing of the kind, the form is **submitted**, so a rule over several fields counts too.
 - **The path is reached as a form reaches it**: a row the list does not have yet is added (`m.Parts[1]` adds two), a
   sub-object nobody filled is made, and a number is converted to the field's type (`0` for a `decimal?`).
-- A model that takes constructor arguments — an operation form over an aggregate, `new SupplyChangeInput(id,
-  version)` — goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`.
+- A model given as it is goes first: `Test.FormShows(model, m => m.Name, "", Texts.NameNeeded)`. For an operation's
+  form, start it the way the page does — `await SupplyChangeInput.Of(id)` reads it from the stored aggregate, at its
+  version, every field filled as `Form.For(Supply.Change, id)` fills it (and throws when nothing is stored under the
+  id) — so a rule that reads what is stored is asked against it, and only the field under test changes. A
+  hand-built `new SupplyChangeInput(id, version)` starts every field empty.
 - The message not shown fails the test with a `FormAssertionException` that says what the field showed instead, what
   the top of the form showed, and why the store's rules could not be asked when they threw.
 
@@ -652,7 +655,9 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
 
 `Run()` executes each recorded piece of work as the tenant and user who started it, includes work a running
 handler enqueues and delayed jobs (`.In`, `.At`), and lets a handler's exception out. `Outbox.Fake()` records
-where the outbox is on; without it a durable handler already runs in line.
+where the outbox is on; without it a durable handler already runs in line. A test with only a `TestDatabase` and no host runs
+`jobs.Run()` (and an awaited `Jobs.Run(...)`) through the database's own services — the app such a test has — so the
+job's handler, and what it saves, are the test's.
 
 ---
 

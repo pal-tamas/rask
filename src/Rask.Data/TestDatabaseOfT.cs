@@ -13,9 +13,14 @@ public sealed class TestDatabase<[DynamicallyAccessedMembers(DataTrimming.Contex
     where TContext : RaskDbContext
 {
     internal TestDatabase(
-        TContext schemaOwner, Func<RaskReadDbContext> openRead, Func<TContext> openWrite, Action<DbContextOptionsBuilder> configure, IAsyncDisposable? lease,
+        TContext schemaOwner,
+        Func<RaskReadDbContext> openRead,
+        Func<TContext> openWrite,
+        Action<DbContextOptionsBuilder> configure,
+        IServiceProvider services,
+        IAsyncDisposable? lease,
         TestDatabaseFakes fakes)
-        : base(schemaOwner, openRead, openWrite, configure, lease, fakes)
+        : base(schemaOwner, openRead, openWrite, configure, services, lease, fakes)
     {
         Context = schemaOwner;
         Factory = new TestContextFactory<TContext>(openWrite);
