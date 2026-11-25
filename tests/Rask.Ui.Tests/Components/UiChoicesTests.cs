@@ -256,4 +256,40 @@ public partial class UiChoicesTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(["3", "1"], page.FindAll("[role=\"option\"]").Select(row => row.Attribute("data-rask-key")));
     }
+
+    private sealed class Pairing
+    {
+        public int? CompanyId { get; set; }
+
+        public int? DriverId { get; set; }
+    }
+
+    private static readonly Ui.Choice<int>[] Drivers = [new(10, "Ada"), new(11, "Grace")];
+
+    private static IEnumerable<string> Chosen(int? id) => id is null ? ["Choose one."] : [];
+
+    // What each field's Ui.Error says, in the order the fields stand.
+    private static string[] Errors(Page page) =>
+        [.. page.FindAll("[data-ui-field]").Select(field => string.Concat(
+            field.DescendantsAndSelf().Where(node => node.Attributes.ContainsKey("data-ui-error")).Select(error => error.TextContent.Trim())))];
+
+    [Fact]
+    public async Task A_second_save_clears_the_message_of_the_field_picked_since_and_keeps_the_other()
+    {
+        var order = new Pairing();
+        var page = Page.Render(() => Form.Model(order).OnSubmit(() => { })[
+            Ui.Field[Ui.Label["Company"], Ui.Select.Bind(() => order.CompanyId).Choices(Companies).Validate(Chosen), Ui.Error],
+            Ui.Field[Ui.Label["Driver"], Ui.Select.Bind(() => order.DriverId).Choices(Drivers).Validate(Chosen), Ui.Error]
+        ]);
+
+        await page.On("form").Submit();
+        var first = Errors(page);
+        await HeldList.Pick(page, "Walther");
+        await page.On("form").Submit();
+        var second = Errors(page);
+
+        Assert.Equal(["Choose one.", "Choose one."], first);
+        Assert.Equal(["", "Choose one."], second);
+        Assert.Equal(3, order.CompanyId);
+    }
 }

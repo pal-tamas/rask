@@ -2,7 +2,6 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -170,10 +169,6 @@ public sealed partial class CraneFormApp : Component
 [Collection(RaskAppCollection.Name)]
 public sealed partial class FormStoreFailureTests : IDisposable
 {
-    private const string MsSqlVariable = "RASK_MSSQL_TEST_DB";
-    private const string MsSqlSkip = "Needs a SQL Server: set RASK_MSSQL_TEST_DB.";
-    private const string MsSqlDatabase = "rask_form_failures";
-
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-form-failure-{Guid.NewGuid():N}.db");
 
     public void Dispose()
@@ -190,24 +185,6 @@ public sealed partial class FormStoreFailureTests : IDisposable
         using var host = await StartAsync<WharfFormApp>(Sqlite(), indexPresent);
 
         await TakenNameScenarioAsync(host);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task On_sql_server_a_taken_name_is_told_under_its_field_the_same_way(bool indexPresent)
-    {
-        Assert.SkipUnless(MsSql() is not null, MsSqlSkip);
-        using var host = await StartAsync<WharfFormApp>(MsSql()!, indexPresent);
-
-        try
-        {
-            await TakenNameScenarioAsync(host);
-        }
-        finally
-        {
-            await DropAsync(host);
-        }
     }
 
     [Theory]
@@ -316,11 +293,6 @@ public sealed partial class FormStoreFailureTests : IDisposable
 
     private Action<DbContextOptionsBuilder> Sqlite() => o => o.UseSqlite($"Data Source={_dbPath};Pooling=False");
 
-    private static Action<DbContextOptionsBuilder>? MsSql() =>
-        Environment.GetEnvironmentVariable(MsSqlVariable) is { Length: > 0 } server
-            ? o => o.UseSqlServer(new SqlConnectionStringBuilder(server) { InitialCatalog = MsSqlDatabase }.ConnectionString)
-            : null;
-
     // With the index DROPPED the host is wired the documented way, and only the declared rule can refuse a
     // duplicate. With the index PRESENT the same registrations are made WITHOUT the declared-rule check, so the
     // refusal has to come from the database's own index and be translated.
@@ -364,15 +336,8 @@ public sealed partial class FormStoreFailureTests : IDisposable
 
         if (!indexPresent)
         {
-            var onTable = legacy.Database.IsSqlServer();
-#pragma warning disable EF1002 // identifiers this test declared, not values
-            await legacy.Database.ExecuteSqlRawAsync(
-                onTable ? "DROP INDEX [IX_Wharves_Name_TenantId] ON [Wharves]" : "DROP INDEX \"IX_Wharves_Name_TenantId\"",
-                TestContext.Current.CancellationToken);
-            await legacy.Database.ExecuteSqlRawAsync(
-                onTable ? "DROP INDEX [IX_Cranes_Pier_Slot_TenantId] ON [Cranes]" : "DROP INDEX \"IX_Cranes_Pier_Slot_TenantId\"",
-                TestContext.Current.CancellationToken);
-#pragma warning restore EF1002
+            await legacy.Database.ExecuteSqlRawAsync("DROP INDEX \"IX_Wharves_Name_TenantId\"", TestContext.Current.CancellationToken);
+            await legacy.Database.ExecuteSqlRawAsync("DROP INDEX \"IX_Cranes_Pier_Slot_TenantId\"", TestContext.Current.CancellationToken);
         }
 
         return host;
@@ -391,13 +356,6 @@ public sealed partial class FormStoreFailureTests : IDisposable
             o.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
         });
         services.AddDbContextFactory<RaskReadDbContext>(database);
-    }
-
-    private static async Task DropAsync(RaskTestHost host)
-    {
-        await using var legacy = await host.Services.GetRequiredService<IDbContextFactory<LegacyHarbourContext>>()
-            .CreateDbContextAsync(TestContext.Current.CancellationToken);
-        await legacy.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 
     [GeneratedRegex("data-rask-on-change=\"([^\"]+)\"")]

@@ -173,9 +173,9 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (`scripts/lib/conventional-commit.sh`) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged; `scripts/tests/prose-comments.test.sh` over the staged `src/*.cs` files. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the benchmark budgets when what they measure is reached, the CLI build and templates when the CLI, a template, the kit or a project file changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, WASM E2E (`run-wasm-e2e-local.sh`), CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
-| **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the benchmark budgets when what they measure is reached, the CLI build and templates when the CLI, a template, the kit or a project file changed, the `providers` gate (SQL Server and PostgreSQL on Testcontainers) when the data stack or its suite changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, WASM E2E (`run-wasm-e2e-local.sh`), CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), providers (`run-providers-local.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
 The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml`, `full.yml`
@@ -525,10 +525,21 @@ True of the scripts wherever they run — a CI job or your terminal.
   is one of the unit gate's own tests: the pure helpers, POSIX `sh`, truncation safety (by running
   prefixes of the file) and the install URL byte-identical everywhere it is written. **Not covered:**
   a real Windows host.
-- **Storage providers — `scripts/run-storage-providers-local.sh`** and **providers —
-  `scripts/run-providers-local.sh`** (release set). Rask.Storage's S3 and Azure signing against MinIO
-  and Azurite, and the database batteries against real servers, all in containers; a provider fact
-  whose server is not reachable reports SKIPPED, never PASSED.
+- **Storage providers — `scripts/run-storage-providers-local.sh`** (release set). Rask.Storage's S3 and
+  Azure signing against MinIO and Azurite, in containers; a provider fact whose server is not reachable
+  reports SKIPPED, never PASSED.
+- **Providers — `scripts/run-providers-local.sh`** (push set, when the data stack or its suite changed;
+  daily in `full.yml`). `tests/Rask.Providers.E2E.Tests` against a real SQL Server 2022 and PostgreSQL 19,
+  which the suite starts itself on Testcontainers — one container per server per run, on first use, stopped
+  at the end; no service container or `docker run` in any workflow. **Local policy: no Docker by default.**
+  Outside CI (`CI`/`GITHUB_ACTIONS` unset) the server facts report SKIPPED ("runs in CI on Testcontainers")
+  and the SQLite legs run; `RASK_PROVIDERS_LOCAL=1` lets it start the containers on your machine (SQL Server
+  only on amd64 — its image segfaults under emulation on Apple Silicon), and `RASK_MSSQL_TEST_DB` /
+  `RASK_PG_TEST_DB` point a leg at a server you have instead. SQL Server runs in a process of its own
+  (`RASK_PROVIDERS_SERVERS`): EF Core refuses a process its twenty-first internal service provider. Only
+  what Rask writes or translates per provider is held to a server — collations, locks, sequences, the DDL
+  the conventions write, decimals, constraint violations, the batteries' own SQL, migrations; everything
+  provider-independent runs on SQLite alone ([the conformance suite](data.md#the-conformance-suite)).
 - **Linux dev host — `scripts/run-devhost-linux-local.sh`** (on request, `RASK_DEVHOST_E2E=1`, in no
   CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
   container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really

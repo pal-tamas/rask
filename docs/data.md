@@ -1102,13 +1102,19 @@ maps it.
 ### The conformance suite
 
 `tests/Rask.Providers.E2E.Tests` holds one suite per behaviour, written once and run on SQLite, SQL Server and
-PostgreSQL (`scripts/run-providers-local.sh`; the `providers` release gate): text order and case-insensitive matching
+PostgreSQL (`scripts/run-providers-local.sh`; the `providers` gate, in CI on Testcontainers — locally the server legs
+skip unless `RASK_PROVIDERS_LOCAL=1`): text order and case-insensitive matching
 (`TextOrderParityTests`), dates (`DateTimeParityTests`), durations (`DurationQueryTests`), decimals
 (`DecimalParityTests`), JSON columns (`ValueCollectionParityTests`), computed columns, defaults and filtered unique
 indexes (`NeutralModelTests`), `Db.Lock` (`DbLockTests`), a parent read `LockRead.ForUpdate`
 (`ParentLockParityTests`), a read face's `ForUpdate()` (`ReadForUpdateParityTests`), and the sentences of a unique index and of a referenced delete — through a save,
 `ExecuteUpdate` and `ExecuteDelete` (`UniqueViolationParityTests`, `ReferencedDeleteParityTests`). What passes there
 is what lets an app run its own tests on SQLite in memory alone.
+
+A server leg exists only where Rask writes provider-specific SQL or translates a provider's error: collations, row and
+named locks, sequences, the DDL the conventions write, decimal scale, constraint violations, and migrations' and the
+batteries' own SQL. What is the same on every provider — audit rows, the bulk writes' rules, read-face shapes, value
+objects and collections EF Core translates — runs on SQLite alone.
 
 ## One holder at a time, across hosts: `Db.Lock`
 

@@ -43,9 +43,10 @@ public sealed partial class AppFrameDriversPage : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Key("drivers")[
+            Ui.PageHeader.Heading("Drivers"),
             P.Id("page")["Drivers list"],
             Button.Id("open-7").OnClick(() => Go.To("/ui-app-frame/drivers/7"))["Ada"],
-            Ui.EditorDialog.In("edit")[P["Editor"]]
+            Ui.EditorDialog.In("edit").Heading("New driver")[P["Editor"]]
         ];
 }
 
@@ -251,6 +252,20 @@ public sealed partial class UiAppFrameTests
         var reports = page.Find("[data-ui-sidebar-nav] a[href=\"/old/reports\"]");
 
         Assert.Null(reports.Attribute("aria-current"));
+    }
+
+    [Fact]
+    public void An_editor_open_over_a_list_leaves_the_trail_and_the_h1_the_lists_and_heads_the_dialog_with_the_forms_h2()
+    {
+        var page = Page.Visit("/ui-app-frame/drivers?edit=new");
+
+        var steps = page.FindAll("[data-ui-header] [data-ui-breadcrumbs-item]");
+        var h1 = page.FindAll("h1");
+
+        Assert.Equal("true", page.Find("main dialog").Attribute("data-rask-modal-open"));
+        Assert.Equal("Drivers", steps[^1].TextContent.Trim());
+        Assert.Equal("Drivers", Assert.Single(h1).TextContent.Trim());
+        Assert.Equal("New driver", page.TextOf("main dialog h2"));
     }
 
     [Fact]

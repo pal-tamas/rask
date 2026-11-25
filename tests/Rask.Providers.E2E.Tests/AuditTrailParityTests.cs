@@ -57,7 +57,8 @@ public sealed class AuditedNoteDbContext(DbContextOptions<AuditedNoteDbContext> 
 
 /// <summary>
 ///     <c>Audited</c> on every provider: the entry is written in the save — the identity key the database generated read
-///     into it before the commit — with its children's rows under their place, in the invariant culture.
+///     into it before the commit — with its children's rows under their place, in the invariant culture. Rask writes no
+///     provider SQL for it, so it runs on SQLite alone.
 /// </summary>
 public abstract class AuditTrailParityTests(ProviderLeg leg) : ParityTests<AuditedNoteDbContext>(leg)
 {
@@ -116,8 +117,3 @@ public abstract class AuditTrailParityTests(ProviderLeg leg) : ParityTests<Audit
 
 public sealed class SqliteAuditTrailParityTests() : AuditTrailParityTests(ProviderLeg.Sqlite("audit-trail"));
 
-[Collection(SqlServerCollection.Name)]
-public sealed class SqlServerAuditTrailParityTests() : AuditTrailParityTests(ProviderLeg.SqlServer("rask_e2e_audit_trail"));
-
-[Collection(PostgresCollection.Name)]
-public sealed class PostgresAuditTrailParityTests() : AuditTrailParityTests(ProviderLeg.Postgres(AuditedNoteDbContext.Schema));

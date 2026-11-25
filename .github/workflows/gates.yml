@@ -100,6 +100,10 @@ jobs:
           #
           # The benchmark gate is the byte and allocation budgets only — exact counts, the same on a
           # shared runner as anywhere. No time is measured here: a runner's clock proves nothing.
+          #
+          # The provider gate starts its own SQL Server and PostgreSQL on Testcontainers (the runner's
+          # Docker), one each per run — no service container and no docker run here. It was a release
+          # gate until 2026-11-25; selected by the data-stack FILES a change touches ("providers").
           GATES: >-
             [
               {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
@@ -118,11 +122,11 @@ jobs:
               {"set": "push", "when": "bench",     "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},
+              {"set": "push", "when": "providers", "name": "providers",         "run": "scripts/run-providers-local.sh"},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
-              {"set": "release", "name": "installer",          "run": "scripts/run-install-e2e-local.sh"},
-              {"set": "release", "name": "providers",          "run": "scripts/run-providers-local.sh"}
+              {"set": "release", "name": "installer",          "run": "scripts/run-install-e2e-local.sh"}
             ]
         run: |
           mode=full

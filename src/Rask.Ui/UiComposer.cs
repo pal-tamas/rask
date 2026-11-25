@@ -127,6 +127,16 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
         set => _timing.Debounce = value;
     }
 
+    /// <summary>
+    ///     Waits for the next action even in a form over an operation, which otherwise has the field commit as it is
+    ///     left: <c>Ui.Composer.Bind(() =&gt; m.Prompt).Defer()</c>. Livewire's <c>wire:model.defer</c>.
+    /// </summary>
+    public bool? Defer
+    {
+        get => _timing.Defer;
+        set => _timing.Defer = value;
+    }
+
     private BindTiming _timing;
 
     // Nothing names it — no Id, no bound member, no label: an id of its own.
@@ -190,7 +200,7 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
     {
         // Bind and Value are the two openings of Core's textarea, and both hand back the same element.
         var textarea = Bind is { } bind
-            ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce)
+            ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce).Defer(Defer)
             : Textarea.Value(Value).OnChange(OnChange);
 
         return textarea
