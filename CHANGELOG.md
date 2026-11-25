@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A child two aggregates may hold counts as the aggregate its row is held by.** Before: a `Chip` listed by both
+  `Driver.Chips` and `Vehicle.Chips` (nullable `DriverId` and `VehicleId`) was named after the first parent key its type
+  declares, so saving a vehicle with one chip inside a `Db.Transaction` was refused by `OneAggregatePerTransaction` as
+  two aggregates — `Vehicle 7, Driver ` (no key, because `DriverId` is NULL) — and the root touched and the aggregate
+  type reported to `IDataChanges` could be the wrong parent. After: the parent is read off each row — the key it holds
+  (as read, for a deleted row), else the one it held when it was read — so the vehicle's save is one aggregate, a
+  chip moved between parents belongs to the one that now holds it, and a row both parents hold counts as both.
 - **A bound decimal field shows the number, not its column's scale.** Before: a `decimal` read from the database
   carries the scale of its column, and a field bound to it — `Form.For(CorrectiveNorm.SetPercent, id)`,
   `Form.Model(m)`, `Input.Bind`, `Ui.Input`/`Ui.Field`, a one-value decimal value object alike — was filled with
