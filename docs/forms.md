@@ -1055,7 +1055,9 @@ Form.For(Note.Rename, id)[f => [
 - **The domain's rules are the form's.** As each field is committed — a field typed into commits as it is left
   here, unless it says `.Live()`, `.Debounce(…)` or `.Defer()` ([bind timing](#bind-timing)) — the operation is tried
   (`Note.DryRunRename(…)`, [nothing written](domain.md#an-operation-run-as-one-write)) and what it would be refused for —
-  a `Refuse`, an attribute, `Validate()` — is shown under its field before the save is tried. The submit calls the
+  a `Refuse`, an attribute, `Validate()`, and what only the store refuses: a name an `IsUnique("…")` rule finds taken, an
+  id that names no row of the tenant's (`WhenMissing`) — is shown under its field before the save is tried. Those
+  are asked as queries of the columns the operation changes, never by writing. The submit calls the
   entry `Note.Rename(id, version, title)` at the version the form was read at, so a save somebody made meanwhile is
   refused at the top of the form.
 - **Keep, clear or set: `Change<T>`.** A parameter that may leave its value alone is a `Change<T>` (`Rask.Values`):

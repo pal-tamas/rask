@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A form's dry run tells what only the store refuses: "Már van ilyen név" as the field is left.** Before, a
+  `Form.For` (and `Test.FormShows` over it) asked only the domain's rules, so a name an `IsUnique("…")` rule finds taken
+  or an id of another tenant's row was refused by the save alone. The operation's dry run (`X.DryRunChange(…)`,
+  `DryRunRegister(…)`) now also asks each unique rule a new or changed column touches (one query per rule, none for a
+  column the operation leaves as it was) and each reference the save's same-tenant check would ask (`WhenMissing`), and
+  `X.DryRunDelete(…)` asks whether a row still points at the aggregate through a relationship with a sentence
+  (`WhenReferenced("…")`) — all as queries, nothing written. A tenant's aggregate's generated model (`Form.Model(m)`)
+  asks its references the same way as each id's field is left.
 - **A child entity's read face is a picker's rows too: `Pistol.Choices(p => p.Serial)`, `Pistol.Choice(id, …)`,
   `Pistol.ChoicePage(…)`.** Before, only an aggregate had them, and a picker over a child (TA's pistols of a shooter) was
   a `Where(…).Choices(p => p.Id, …)` written by hand. Every child keyed by an `Id` now gets the three, read through its

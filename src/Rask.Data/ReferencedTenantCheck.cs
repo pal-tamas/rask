@@ -61,18 +61,25 @@ internal static class ReferencedTenantCheck
     /// <exception cref="RaskValidationException">One does: a failure under each such reference's field.</exception>
     internal static async Task RefuseAsync(DbContext context, CancellationToken cancellationToken)
     {
+        if (await FailuresAsync(context, cancellationToken).ConfigureAwait(false) is { Count: > 0 } failures)
+        {
+            throw new RaskValidationException(failures);
+        }
+    }
+
+    /// <summary>
+    ///     What the save of what <paramref name="context" /> tracks would be refused for: a failure under each reference
+    ///     it sets that names no row the tenant in flight reads, empty when none does. What a dry run asks, too.
+    /// </summary>
+    internal static async Task<List<FieldFailure>> FailuresAsync(DbContext context, CancellationToken cancellationToken)
+    {
         if (Tenant.IsAcrossTenants || Tenant.IsUnresolved ||
             !Models.GetValue(context.Model, static m => new(m.GetEntityTypes().Any(t => KeysOf(t).Length > 0))).Value)
         {
-            return;
+            return [];
         }
 
         var asked = Asked(context);
-        if (asked.Count == 0)
-        {
-            return;
-        }
-
         var failures = new List<FieldFailure>();
         var said = new HashSet<string>(StringComparer.Ordinal);
 
@@ -91,11 +98,16 @@ internal static class ReferencedTenantCheck
             }
         }
 
-        if (failures.Count > 0)
-        {
-            throw new RaskValidationException(failures);
-        }
+        return failures;
     }
+
+    /// <summary>
+    ///     Whether <paramref name="values" />, set to <paramref name="key" />, name no row the tenant in flight reads — what
+    ///     a form over the dependent asks of one reference as its field is left. False with no tenant to ask in.
+    /// </summary>
+    internal static async Task<bool> MissesAsync(DbContext context, IForeignKey key, object?[] values, CancellationToken cancellationToken) =>
+        !Tenant.IsAcrossTenants && !Tenant.IsUnresolved &&
+        (await MissingAsync(context, key.PrincipalKey, [values], cancellationToken).ConfigureAwait(false)).Count > 0;
 
     // Every reference the save sets, by the key of the table it points at; a row added beside it is left out.
     private static Dictionary<IKey, List<(EntityEntry Entry, IForeignKey Key, object?[] Values)>> Asked(DbContext context)
@@ -131,7 +143,7 @@ internal static class ReferencedTenantCheck
 
     // The references to another tenant-scoped table a PerTenant row holds — not the one that holds a child in its
     // aggregate, whose tenant is its parent's (ParentTenantCheck).
-    private static IForeignKey[] KeysOf(IEntityType entityType) =>
+    internal static IForeignKey[] KeysOf(IEntityType entityType) =>
         Checked.GetValue(entityType, static type =>
             !ConventionRegistry.IsPerTenant(type.ClrType)
                 ? []
@@ -255,7 +267,7 @@ internal static class ReferencedTenantCheck
         return [.. key.Properties.Select(p => row + p.Name)];
     }
 
-    private static string SentenceOf(IForeignKey key) =>
+    internal static string SentenceOf(IForeignKey key) =>
         key.FindAnnotation(RelationshipAnnotation)?.Value as string
         ?? key.PrincipalEntityType.FindAnnotation(EntityAnnotation)?.Value as string
         ?? HeldRowReference.Sentence();

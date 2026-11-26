@@ -180,6 +180,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             BorrowsStatedRules = seams.StatedRules,
             TypedIds = typedIds,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
+            ChecksReferences = entity.ChecksReferences && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
         };
 
@@ -227,6 +228,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         int Writes,
         bool Deletable,
         bool DeclaresUniqueRules = false,
+        bool ChecksReferences = false,
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
         bool DuplicateRowFromCatalog = false,

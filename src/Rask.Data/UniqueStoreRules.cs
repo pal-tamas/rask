@@ -11,7 +11,6 @@ namespace Rask.Data;
 ///     is asked about the tenant in flight, one that does not about every tenant's rows.
 /// </summary>
 internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity, TModel>(
-    IServiceProvider? services,
     Func<TModel, string, object?> valueOf,
     Func<TModel, object?> keyOf)
     where TEntity : class
@@ -22,19 +21,8 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
     ///     <paramref name="field" />, or every rule when it is <see langword="null" />.
     /// </summary>
     internal async ValueTask<IReadOnlyList<FieldFailure>> Check(
-        TModel typed, string? field, CancellationToken cancellationToken)
+        DbContext context, TModel typed, string? field, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // The host has this open around a session's work already. Opened here only for a caller that has not,
-        // so the tenant is the one resolved for THIS scope and never one left over from somewhere else.
-        using var scope = Db.ScopeServices is null && services is not null ? Db.OpenScope(services) : null;
-
-        // A context of its own from the factory: the scope is a session's, and a session-long DbContext is
-        // shared by everything the session does.
-        var context = Db.CreateContext();
-        await using var contextScope = context.ConfigureAwait(false);
-
         if (context.Model.FindEntityType(typeof(TEntity)) is not { } entityType)
         {
             return [];
@@ -147,16 +135,7 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
 
         // A text field nobody has typed into holds "", the entity's own default: not filled in, like a null.
         return valueOf(model, property.Name) is { } value and not ""
-            ? InPropertyType(property, value)
+            ? ModelValue.InPropertyType(property, value)
             : null;
     }
-
-    // A one-value value object is its value on the form and itself in the model: the column's own converter
-    // turns the one into the other.
-    private static object? InPropertyType(IProperty property, object value) =>
-        !property.ClrType.IsInstanceOfType(value) &&
-        property.GetValueConverter() is { } converter &&
-        converter.ProviderClrType.IsInstanceOfType(value)
-            ? converter.ConvertFromProvider(value)
-            : value;
 }

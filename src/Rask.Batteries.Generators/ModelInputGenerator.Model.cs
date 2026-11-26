@@ -136,6 +136,8 @@ public sealed partial class ModelInputGenerator
             DeletableOf(symbol),
             ConfiguresUniqueRule(symbol, cancellationToken))
         {
+            // A tenant's aggregate: an id its form holds is asked, as the field is left, whether it names the tenant's row.
+            ChecksReferences = AggregateShape.IsAggregate(symbol) && AggregateShape.Has(symbol, AggregateShape.PerTenant),
             CompositeChildren = new EquatableArray<string>(shape.CompositeChildren
                 .Where(static c => c.Form.Problem is not null && c.Child.Access != ModelChildAccess.None)
                 .Select(static c => c.Child.Name + "|" + c.Child.ChildType.Name + "|" + c.Form.Problem)),
