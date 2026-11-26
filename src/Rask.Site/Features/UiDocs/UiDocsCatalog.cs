@@ -438,8 +438,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry DatePicker { get; } = new(
         Routes.UiDatePickerPage(), "Date picker", Components,
         "Date picker and range picker in C#: Ui.DatePicker",
-        "Flux UI's date picker in C#: a day or a range typed in the reader's order or picked from a calendar popup, "
-        + "bound to a DateOnly, a DateTime or a value object, with presets, limits and a sheet on a phone.",
+        "Flux UI's date picker in C#: a day or range typed or picked from a calendar, bound to a DateOnly, "
+        + "DateTime or value object, with presets and limits.",
         "date-picker");
 
     public static UiDocsEntry DatetimePicker { get; } = new(

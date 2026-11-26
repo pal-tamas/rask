@@ -31,14 +31,24 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return base.SavingChanges(eventData, result);
         }
 
-        ReplacedChildren.Match(context);
-        SeveredChildren.Delete(context);
-        using (TrackedPrincipals.During(context))
+        try
         {
-            ChildWrites.RefuseOutsideTheirAggregate(context);
-            ReferencedTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
-            ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
-            Apply(context);
+            ReplacedChildren.Match(context);
+            SeveredChildren.Delete(context);
+            using (TrackedPrincipals.During(context))
+            {
+                ChildWrites.RefuseOutsideTheirAggregate(context);
+                ReferencedTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+                ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+                Apply(context);
+            }
+        }
+        catch (Exception refused)
+        {
+            // EF Core tells no interceptor a save failed that one of them refused before it began, so the later ones
+            // (a test database's keeper of its own context) are told here, or the refused change rides along with the next.
+            LaterSaveInterceptors.TellFailed(this, LaterSaveInterceptors.Failed(eventData, refused));
+            throw;
         }
 
         return base.SavingChanges(eventData, result);
@@ -53,14 +63,24 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
         }
 
-        ReplacedChildren.Match(context);
-        SeveredChildren.Delete(context);
-        using (TrackedPrincipals.During(context))
+        try
         {
-            ChildWrites.RefuseOutsideTheirAggregate(context);
-            await ReferencedTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
-            await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
-            Apply(context);
+            ReplacedChildren.Match(context);
+            SeveredChildren.Delete(context);
+            using (TrackedPrincipals.During(context))
+            {
+                ChildWrites.RefuseOutsideTheirAggregate(context);
+                await ReferencedTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+                await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+                Apply(context);
+            }
+        }
+        catch (Exception refused)
+        {
+            // As the synchronous save: the later interceptors are told the save this one refused failed.
+            await LaterSaveInterceptors.TellFailedAsync(this, LaterSaveInterceptors.Failed(eventData, refused), cancellationToken)
+                .ConfigureAwait(false);
+            throw;
         }
 
         return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);

@@ -23,6 +23,8 @@ public sealed partial class Wharf : Aggregate<Guid, Versioned, Model, PerTenant>
 
     public void Rename(string name) => Name = name;
 
+    public void RunBy(Guid operatorId) => WharfOperatorId = operatorId;
+
     public static void Configure(EntityTypeBuilder<Wharf> b)
     {
         b.HasIndex(x => new { x.TenantId, x.Name }).IsUnique(NameTaken);

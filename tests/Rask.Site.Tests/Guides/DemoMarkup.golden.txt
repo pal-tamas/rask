@@ -519,12 +519,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-div
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -534,6 +540,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -547,7 +680,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
@@ -902,12 +1035,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-span .text-zinc-400
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -917,6 +1056,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -930,7 +1196,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
@@ -7405,12 +7671,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-div
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -7420,6 +7692,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -7433,7 +7832,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
@@ -7715,12 +8114,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-div
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -7730,6 +8135,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -7743,7 +8275,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
@@ -8867,12 +9399,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-div
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -8882,6 +9420,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -8895,7 +9560,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
@@ -9176,12 +9841,18 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .min-w-[12rem] .sm:min-w-[240px]
 input
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:shadow-none .flex .h-10 .items-center .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .flex .h-10 .items-center .leading-[1.375rem] .overflow-hidden .px-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 svg .[:where(&amp;)]:size-5 .dark:text-white/60 .me-2 .shrink-0 .text-zinc-400/75
 path
-div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-zinc-700 .whitespace-nowrap
-div
-svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
+div .-ms-px .flex .items-center .min-w-0 .overflow-hidden
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(2ch&#x2B;2px)]
+span
+input .cursor-text .focus:ring-0 .focus:ring-offset-0 .font-mono .p-0 .rounded-sm .tabular-nums .text-center .w-[calc(4ch&#x2B;2px)]
+input
+span .flex-1
+svg .-me-1 .[:hover:not(:has(input:hover))&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover:not(:has(input:hover))&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
 dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
 div
@@ -9191,6 +9862,133 @@ div .relative
 div .absolute .inset-x-0 .p-2 .top-0 .z-10
 header .flex .items-center .justify-between
 div .flex .gap-2 .items-center
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+div .dark:text-white .font-medium .text-sm .text-zinc-800
+select .appearance-none .bg-zinc-100 .dark:[&amp;&gt;option]:bg-zinc-700 .dark:bg-white/10 .h-8 .max-sm:h-10 .max-sm:ps-3 .pe-[1.35rem] .ps-2 .rounded-lg
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
+option
 div .flex .items-center
 button .dark:hover:bg-white/5 .dark:hover:text-white .disabled:opacity-50 .disabled:pointer-events-none .flex .hover:bg-zinc-100 .hover:text-zinc-800 .items-center .justify-center .max-sm:size-10 .rounded-lg .size-8 .text-start .text-zinc-400
 svg .[:where(&amp;)]:size-5 .rtl:hidden .shrink! .shrink-0
@@ -9204,7 +10002,7 @@ svg .[:where(&amp;)]:size-5 .hidden .rtl:inline .shrink! .shrink-0
 path
 div .flex .gap-4 .justify-center .p-2 .relative
 div
-div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .px-2
+div .flex .h-8 .items-center .max-sm:h-10 .mb-2 .opacity-0 .px-2
 div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
