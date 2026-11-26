@@ -318,9 +318,11 @@ public sealed partial class ParityTooltip : IFluxCommand
               }
             }
             """, new JsonObject { ["cases"] = cases, ["SAVE"] = Save });
-        // Wired, not waited for: Flux's element gives each content its id when it has taken the case over.
+        // Wired, not waited for: Flux's element gives each content its id when it has taken the case over. Given the
+        // page load's own minute and a half: parity-all runs every check at once, and on a runner that busy the dark
+        // page's cases took longer than 10 s to be taken over (run 45203331678) — a crash, so no news about Flux.
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('[data-case] [data-flux-tooltip-content]')].every(content => content.id)", null,
-            new PageWaitForFunctionOptions { Timeout = 10000 });
+            new PageWaitForFunctionOptions { Timeout = 90000 });
     }
 
     private static ILocator Locate(IPage page, Case test, string side)
