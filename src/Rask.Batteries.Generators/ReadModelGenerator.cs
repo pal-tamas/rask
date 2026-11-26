@@ -656,10 +656,11 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         s.AppendLine("}");
     }
 
-    // A picker's rows (IChoiceSource): an aggregate's, by the read face's own Id.
+    // A picker's rows (IChoiceSource), by the read face's own Id: an aggregate's, and a child's — read, as every read of
+    // a child is, through its parent's tenant and soft delete.
     private static void AppendChoices(StringBuilder s, ReadShape shape, string read, string open)
     {
-        if (!shape.IsAggregate || !HasId(shape))
+        if (!HasId(shape))
         {
             return;
         }

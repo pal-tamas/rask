@@ -86,13 +86,16 @@ base. A member declared on the aggregate itself always wins, so your own static 
 
 A select over another table — a company, a driver, a vehicle — asks the read face for its rows, and every app used to
 write the same three helpers for it: the row the form holds, a page of rows for what was typed, and how many there are.
-The read face of every aggregate of the app has them (a battery package's own tables, built `RaskReadFacesOnly`, do not —
-nothing picks a stored file or a queued job, and Rask.Storage must not reference Rask.Core):
+The read face of every aggregate of the app has them, and so does every child entity keyed by an `Id` — a shooter's
+pistol, a supply's part — read, as every read of a child is, [through its parent's tenant](multi-tenancy.md#a-child-belongs-to-its-roots-tenant)
+and soft delete (a battery package's own tables, built `RaskReadFacesOnly`, do not — nothing picks a stored file or a
+queued job, and Rask.Storage must not reference Rask.Core):
 
 ```csharp
 await Company.Choice(id, c => c.Name);                          // ChoiceRow<int>? — null for no row, or another tenant's
 await Company.ChoicePage(c => c.Name, typed, skip: 0, take: 50, picked: [held]);
 IChoiceSource<int> companies = Company.Choices(c => c.Name, c => c.City);    // the text, and a muted line under it
+IChoiceSource<int> pistols = Pistol.Choices(p => p.Serial);    // a child's: only those under the tenant's shooters
 await Company.Where(c => c.Active).Choices(c => c.Id, c => c.Name).Page(typed, 0, 50);  // any query of a read face
 ```
 

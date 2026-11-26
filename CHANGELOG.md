@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A child entity's read face is a picker's rows too: `Pistol.Choices(p => p.Serial)`, `Pistol.Choice(id, …)`,
+  `Pistol.ChoicePage(…)`.** Before, only an aggregate had them, and a picker over a child (TA's pistols of a shooter) was
+  a `Where(…).Choices(p => p.Id, …)` written by hand. Every child keyed by an `Id` now gets the three, read through its
+  parent's tenant and soft delete as every read of it is, so another tenant's row is named by nothing. A
+  `RaskReadFacesOnly` package still gets none.
 - **A hand form's model may hold a value object of several values, bound a member at a time.** `public Opening? Start
   { get; set; }` over a `Range` or a `: Value` record of two members or more, with `Ui.Input.Bind(() => _form.Start!.Quantity)`
   and `Ui.DayAndTime.Bind(() => _form.Start!.Date)`: each control is bound to the member of a draft the form keeps

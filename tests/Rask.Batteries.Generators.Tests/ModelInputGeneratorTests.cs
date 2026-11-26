@@ -1376,6 +1376,34 @@ public class ModelInputGeneratorTests
         Assert.Contains("global::Rask.IChoiceSource<global::System.Guid> Choices(", run.GeneratedSource("OrderRead"), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_child_entity_gets_a_pickers_members_like_its_aggregate()
+    {
+        var run = RunAll(
+            """
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Club;
+            public sealed class Shooter : Aggregate<int, PerTenant<int>>
+            {
+                private readonly List<Pistol> _pistols = [];
+                public IReadOnlyList<Pistol> Pistols => _pistols;
+            }
+            public sealed class Pistol : Entity<int>
+            {
+                public string Serial { get; private set; } = "";
+            }
+            """,
+            options: null);
+
+        var pistol = run.GeneratedSource("PistolRead");
+
+        Assert.Contains("global::Rask.IChoiceSource<int> Choices(", pistol, StringComparison.Ordinal);
+        Assert.Contains("Choice(int? id,", pistol, StringComparison.Ordinal);
+        Assert.Contains("ChoicePage(", pistol, StringComparison.Ordinal);
+    }
+
     // ---- Model / CreateModel / UpdateModel: the FORM surface ---------------------------------------
 
     [Fact]
