@@ -108,6 +108,12 @@ internal static class DockerCommands
         args.AddRange(["--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges"]);
         AddPlacementArguments(args, slug, domain, color, port, containerPort);
 
+        // The CLI's own defaults are inline -e, and docker lets an inline -e beat --env-file — so a default the
+        // user also sets would override the user's value whenever theirs travels in the env file. A default the
+        // user's environment already names is therefore not emitted at all, and their value wins on either transport.
+        var defaults = new RunDefaults(args, env);
+        AddProxyDefaults(defaults, domain);
+
         // The names the proxy redirects to this app, read back from the label to regenerate the Caddyfile like the
         // domains are. Only when there are some, so a container without redirects is labelled exactly as before.
         if (domain is not null && redirects.Length > 0)
@@ -115,33 +121,7 @@ internal static class DockerCommands
             args.AddRange(["--label", $"{RedirectLabel}={redirects}"]);
         }
 
-        // Persist the SQLite database on a per-app named volume so it survives container replacement — every
-        // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
-        // destroyed on every redeploy. Point the app at it via Rask:ConnectionStrings:App, which every Rask
-        // database battery reads; the volume is shared by both blue/green colors so the swap keeps the same database. A
-        // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
-        // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
-        // exception page; relying on the base image's default left a deployed app in whatever environment
-        // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
-        args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
-
-        // The app's own shutdown budget, cut from the same stopTimeout the retiring `docker stop -t` waits for, so
-        // the app gives up (and cancels a job still running) before the SIGKILL lands. See ShutdownBudget.
-        var hostShutdown = ShutdownBudget.HostShutdownSeconds(stopTimeout ?? ShutdownBudget.DefaultStopTimeout);
-        args.AddRange(["-e", $"ASPNETCORE_SHUTDOWNTIMEOUTSECONDS={hostShutdown.ToString(CultureInfo.InvariantCulture)}"]);
-
-        args.AddRange(["-v", $"{slug}-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db"]);
-
-        // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
-        // this it would land in the container's writable layer and be destroyed by the very restart it
-        // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
-        args.AddRange(["-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db"]);
-
-        // The release /version answers. An -e beats the env file, so a release the user named comes as null, not overridden.
-        if (release is not null)
-        {
-            args.AddRange(["-e", $"{ReleaseName.Key}={release}"]);
-        }
+        AddAppDefaults(args, defaults, slug, stopTimeout, release);
 
         if (envFilePath is not null)
         {
@@ -156,6 +136,40 @@ internal static class DockerCommands
 
         args.Add($"{slug}:{tag}");
         return args;
+    }
+
+    // What every app container gets: its environment, its shutdown budget, its data volume and the stores on it, its release.
+    private static void AddAppDefaults(List<string> args, RunDefaults defaults, string slug, TimeSpan? stopTimeout, string? release)
+    {
+        // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
+        // exception page; relying on the base image's default left a deployed app in whatever environment
+        // the image happened to assume.
+        defaults.Add("ASPNETCORE_ENVIRONMENT", "Production");
+
+        // The app's own shutdown budget, cut from the same stopTimeout the retiring `docker stop -t` waits for, so
+        // the app gives up (and cancels a job still running) before the SIGKILL lands. See ShutdownBudget.
+        var hostShutdown = ShutdownBudget.HostShutdownSeconds(stopTimeout ?? ShutdownBudget.DefaultStopTimeout);
+        defaults.Add("ASPNETCORE_SHUTDOWNTIMEOUTSECONDS", hostShutdown.ToString(CultureInfo.InvariantCulture));
+
+        // Persist the SQLite database on a per-app named volume so it survives container replacement — every
+        // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
+        // destroyed on every redeploy. Point the app at it via Rask:ConnectionStrings:App, which every Rask
+        // database battery reads; the volume is shared by both blue/green colors so the swap keeps the same
+        // database. The volume stays mounted when the user points the app elsewhere: it is cheap and a log
+        // store or upload directory may still use it.
+        args.AddRange(["-v", $"{slug}-data:/data"]);
+        defaults.Add("Rask__ConnectionStrings__App", "Data Source=/data/app.db");
+
+        // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
+        // this it would land in the container's writable layer and be destroyed by the very restart it
+        // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
+        defaults.Add("Rask__ConnectionStrings__Logs", "Data Source=/data/logs.db");
+
+        // The release /version answers. A release the user named comes as null here, and is skipped as a default anyway.
+        if (release is not null)
+        {
+            defaults.Add(ReleaseName.Key, release);
+        }
     }
 
     // Port mode publishes the container straight to the host; domain mode puts it on the proxy's network as
@@ -176,17 +190,26 @@ internal static class DockerCommands
             args.AddRange(["--name", $"{slug}-{color}", "--restart", "unless-stopped", "--network", Network]);
             args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
             args.AddRange(["--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
-
-            // Caddy terminates TLS in front of this container, so the app trusts its forwarded headers — without
-            // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
-            // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
-            args.AddRange(["-e", "Rask__BehindProxy=true"]);
-
-            // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
-            // from the request, whose Host header anyone can set, so without this no such email goes out. With several
-            // domains the links name the first, the one the app is primarily known by.
-            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{SiteDomains.Primary(domain)}"]);
         }
+    }
+
+    // Domain mode only: Caddy is in front of the container.
+    private static void AddProxyDefaults(RunDefaults defaults, string? domain)
+    {
+        if (domain is null)
+        {
+            return;
+        }
+
+        // Caddy terminates TLS in front of this container, so the app trusts its forwarded headers — without
+        // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
+        // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
+        defaults.Add("Rask__BehindProxy", "true");
+
+        // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
+        // from the request, whose Host header anyone can set, so without this no such email goes out. With several
+        // domains the links name the first, the one the app is primarily known by.
+        defaults.Add("Rask__Auth__PublicOrigin", $"https://{SiteDomains.Primary(domain)}");
     }
 
     /// <summary>

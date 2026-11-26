@@ -474,6 +474,23 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
+    public async Task A_connection_string_in_the_users_env_file_suppresses_the_default()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.env.prod", "Rask__ConnectionStrings__App=Server=db;Database=shop\n");
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run"));
+        var written = fs.Written[Path.GetFullPath(run.Arguments[run.Arguments.ToList().IndexOf("--env-file") + 1])];
+        Assert.DoesNotContain(run.Arguments, a => a.StartsWith("Rask__ConnectionStrings__App=", StringComparison.Ordinal));
+        Assert.Contains("Rask__ConnectionStrings__App=Server=db;Database=shop", written, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Env_flags_and_env_file_both_reach_the_container()
     {
         // --env-file lines (comments and blanks skipped) and repeated --env flags are merged into the one
@@ -1012,15 +1029,16 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void Run_arguments_set_the_production_environment_but_let_the_user_override_it()
+    public void Run_arguments_set_the_production_environment_unless_the_user_sets_their_own()
     {
         // Without this the deployed app runs in whatever environment the base image assumes — which is
         // what selects appsettings.Production.json and turns off the developer exception page.
         var args = DockerCommands.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, ["ASPNETCORE_ENVIRONMENT=Staging"]);
 
-        var ours = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Production");
-        var theirs = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Staging");
-        Assert.True(ours >= 0 && theirs > ours, "the user's own --env must come last so it wins.");
+        // The default is left out rather than placed first: an inline -e beats --env-file, so ordering alone cannot
+        // let the user win once their value travels in the env file.
+        Assert.DoesNotContain("ASPNETCORE_ENVIRONMENT=Production", args, StringComparer.Ordinal);
+        Assert.Contains("ASPNETCORE_ENVIRONMENT=Staging", args, StringComparer.Ordinal);
     }
 
     // ── Runtime environment: remembered by name, never by value ─────────────────────────────────────

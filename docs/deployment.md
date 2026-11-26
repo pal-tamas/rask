@@ -557,13 +557,18 @@ The replica URL is remembered by name like any other variable, so once set, a la
 
 ## What `rask deploy` sets on the container
 
-Beyond your own `--env` values, every deployed container gets:
+Beyond your own `--env` values, every deployed container gets the settings below. Any of the environment
+variables you set yourself — through `--env` or `--env-file`, spelled with `__` or `:`, in any case — replaces the
+default: the default is then not passed at all, so your value wins however it reaches the container. The
+`/data` volume stays mounted either way.
+
+
 
 | Setting | Why |
 | --- | --- |
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=<stopTimeout − 5>` | The app's own shutdown budget (`HostOptions.ShutdownTimeout`), cut from the same `"stopTimeout"` the deploy waits for, so the app gives up before the `SIGKILL`. See [the shutdown ladder](#the-shutdown-ladder). |
-| `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
+| `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. Set your own (a SQL Server or PostgreSQL connection string) and it replaces this one. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
 | `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`; the first one when there are several) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
 | `Rask__Version=v<yy.MM.dd.HH.mm.ss>` | The release name — the UTC moment the deploy started — which `MapRaskVersion()` answers on `/version`. A rollback restores the old image's own name. Your own `--env Rask:Version=…` replaces it. See [Release names](#release-names-and-version). |

@@ -68,6 +68,13 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`rask deploy --env Rask__ConnectionStrings__App=…` reaches the app again when the env goes in a file.** The
+  CLI's own defaults (`Rask__ConnectionStrings__App`/`__Logs`, `ASPNETCORE_ENVIRONMENT`,
+  `ASPNETCORE_SHUTDOWNTIMEOUTSECONDS`, `Rask__Version`, and with `--domain` `Rask__BehindProxy` and
+  `Rask__Auth__PublicOrigin`) were inline `-e`, while the user's values went through `--env-file` — and docker lets an
+  inline `-e` win, so a SQL Server app was started on `Data Source=/data/app.db` and failed to connect. A default whose
+  key the user sets (by `--env` or their own `--env-file`; `__` and `:` and any case count as the same key, as .NET
+  configuration reads them) is now not passed at all. The `/data` volume stays mounted.
 - **A scaffolded server or hosted app builds again: `Features/Shared/User.cs` no longer writes `using Rask.Values;`.**
   Every app on `Rask.Server` already imports the namespace through Rask.Data's (transitive) props, so the explicit
   using was IDE0005 under warnings-as-errors. The templates compile test now hands the scaffold the same imports.
