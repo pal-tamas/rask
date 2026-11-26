@@ -456,7 +456,11 @@ warning.
 
 **Rask.Data registers them for an aggregate's generated model**: every unique index its `Configure`
 declares with a message, `IsUnique("…")`, is asked this way by a form bound to `DestinationModel` — for
-the current tenant's rows only, and leaving out the row an edit form was filled from. A model written by
+the current tenant's rows only, and leaving out the row an edit form was filled from. A tenant's aggregate's
+model also asks, as an id's field is left, whether the id names a row of the tenant in flight — the save's
+[reference check](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant), in its `WhenMissing("…")` sentence,
+one query per committed reference. A [`Form.For`](forms.md#a-form-over-an-operation) asks the same through the
+operation's dry run. A model written by
 hand is not asked about; its save still is. See
 [what a form over the model asks by itself](domain.md#what-a-form-over-the-model-asks-by-itself).
 

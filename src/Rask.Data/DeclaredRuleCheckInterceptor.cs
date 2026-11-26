@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Rask.Cqrs;
-using Rask.Wire;
 
 namespace Rask.Data;
 
@@ -101,7 +99,7 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
 
     private static async Task CheckAsync(DbContext? context, CancellationToken cancellationToken)
     {
-        if (context is null || Touched(context) is not { Count: > 0 } rows)
+        if (context is null || UniqueRulesOfSave.Touched(context) is not { Count: > 0 } rows)
         {
             return;
         }
@@ -110,7 +108,9 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
 
         try
         {
-            var failures = await FailuresAsync(context, rows, cancellationToken).ConfigureAwait(false);
+            // The tenant is stamped by now, so every value is the row's own.
+            var failures = await UniqueRulesOfSave.FailuresAsync(
+                context, rows, static (row, name) => row.Property(name).CurrentValue, static _ => "", cancellationToken).ConfigureAwait(false);
             if (failures.Count > 0)
             {
                 throw new RaskValidationException(failures);
@@ -123,49 +123,6 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
             throw;
         }
     }
-
-    // The rows this save writes that a declared rule is about: new ones, and changed ones whose change is to a
-    // column some rule names.
-    private static List<EntityEntry> Touched(DbContext context) =>
-        [.. context.ChangeTracker.Entries().Where(static entry =>
-            entry.State is EntityState.Added or EntityState.Modified &&
-            DeclaredUniqueRules.Rules(entry.Metadata).Any(rule =>
-                entry.State == EntityState.Added ||
-                rule.Properties.Any(p => entry.Property(p.Name).IsModified)))];
-
-    private static async Task<List<FieldFailure>> FailuresAsync(
-        DbContext context, List<EntityEntry> rows, CancellationToken cancellationToken)
-    {
-        var failures = new List<FieldFailure>();
-        var inThisSave = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var row in rows)
-        {
-            // Two rows of one save can break a rule between them, and neither is in the database to be found.
-            foreach (var rule in DeclaredUniqueRules.Rules(row.Metadata))
-            {
-                var values = rule.Properties.Select(p => row.Property(p.Name).CurrentValue).ToList();
-                if (!values.Contains(null) &&
-                    DeclaredUniqueRules.Kept(rule, name => row.Property(name).CurrentValue) &&
-                    !inThisSave.Add(rule.GetDatabaseName() + "\u001f" + string.Join('\u001f', values)))
-                {
-                    failures.Add(UniqueViolation.FailureOf(rule));
-                }
-            }
-
-            failures.AddRange(await DeclaredUniqueRules.CheckAsync(
-                context,
-                row.Metadata,
-                name => row.Property(name).CurrentValue,
-                row.State == EntityState.Modified ? KeyOf(row) : null,
-                cancellationToken).ConfigureAwait(false));
-        }
-
-        return failures;
-    }
-
-    private static List<object?>? KeyOf(EntityEntry row) =>
-        row.Metadata.FindPrimaryKey()?.Properties.Select(p => row.Property(p.Name).CurrentValue).ToList();
 
     private static Task OpenAsync(DbContext context, CancellationToken cancellationToken) =>
         SaveTransaction.Open(context, cancellationToken);

@@ -1286,8 +1286,13 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
 - **Tried, not done: `Supply.DryRunChange(id, version, …)`** (hidden; a factory's is `DryRunRegister(…)`) runs the
   operation on a fresh copy of the aggregate and asks the rules a save would — the changed properties' attributes,
   `Validate()`, a `Refuse` in the method, a stale version — and hands back every `FieldFailure` under the field it
-  names, empty when it would go through. Nothing is written, no version bumped, no event published, and a
-  `Db.Lock` inside the rules is not taken. It is what a form over the operation asks while it is filled in, so the
+  names, empty when it would go through. It asks what only the store would refuse too, as queries and never as a
+  write: each `IsUnique("…")` rule a new or changed column touches (one query per rule, none for a column the
+  operation leaves as it was), each reference it sets to another tenant-scoped table
+  ([`WhenMissing`](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant), one query per table) — so "Már van
+  ilyen név" is shown as the name is left — and, for `DryRunDelete`, a row that still points at the aggregate through
+  a relationship with a sentence (`WhenReferenced("…")`, `OnDelete(behavior, "…")`). Nothing is written, no version
+  bumped, no event published, and a `Db.Lock` inside the rules is not taken. It is what a form over the operation asks while it is filled in, so the
   rules the form shows are the domain's own.
 - **The roles are read where the entry is generated**, as `[Authorize(Roles = …)]` is read by the compiler: written
   in the aggregate's own static `Configure`, the operation as a lambda and the roles as a constant. Anywhere else the

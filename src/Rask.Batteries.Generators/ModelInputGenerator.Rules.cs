@@ -279,7 +279,7 @@ public sealed partial class ModelInputGenerator
     ///     Decided here, from the source, because a form that asks the store waits for it: a model with no such
     ///     rule must not gain a validator to await. A rule declared anywhere else is still enforced by the save.
     /// </remarks>
-    private static bool AsksTheStore(Entity entity) => !entity.IsChild && entity.DeclaresUniqueRules;
+    private static bool AsksTheStore(Entity entity) => !entity.IsChild && (entity.DeclaresUniqueRules || entity.ChecksReferences);
 
     private static bool ConfiguresUniqueRule(INamedTypeSymbol symbol, CancellationToken cancellationToken) =>
         symbol.GetMembers("Configure").OfType<IMethodSymbol>()
