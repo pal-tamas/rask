@@ -12,10 +12,10 @@
     <PackageVersion Include="ColorCode.HTML" Version="2.0.15" />
     <PackageVersion Include="coverlet.collector" Version="10.1.1" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
-    <PackageVersion Include="Jint" Version="4.18.0" />
+    <PackageVersion Include="Jint" Version="4.18.1" />
     <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="Markdig" Version="1.6.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.341" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.342" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="11.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="11.0.0" />
@@ -47,7 +47,7 @@
     <PackageVersion Include="Microsoft.Extensions.Validation" Version="11.0.0" />
     <PackageVersion Include="Microsoft.JSInterop" Version="11.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.65.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.65.1" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
     <!-- Rask.Postgres. Npgsql versions on its own line (11.0.x tracks EF Core 11 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
@@ -63,7 +63,7 @@
       and it is built against the exact matching Spectre.Console.
     -->
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.36.0.15337" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.37.0.15768" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
     <!--
