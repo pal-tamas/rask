@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using Rask.Generators.Json;
@@ -695,12 +696,12 @@ internal static class DomEmitter
 
         if (Str(data, "mdn") is { } mdn)
         {
-            remarks.Add($"<see href=\"{mdn}\">MDN</see>");
+            remarks.Add(SeeHref(mdn, "MDN"));
         }
 
         if (Str(data, "spec") is { } spec)
         {
-            remarks.Add($"<see href=\"{spec}\">Spec</see>");
+            remarks.Add(SeeHref(spec, "Spec"));
         }
 
         if (remarks.Count > 0)
@@ -759,6 +760,10 @@ internal static class DomEmitter
     internal static string Literal(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     internal static string? Str(JsonNode e, string name) => e[name]?.AsString();
+
+    // A link in a doc comment. The URL is an XML attribute value, so it is escaped: MDN's spec links carry a
+    // bare `&` (whatwg's `#heading-levels-&-offsets`), and an unescaped one is CS1570 in every generated file.
+    internal static string SeeHref(string url, string text) => $"<see href=\"{SecurityElement.Escape(url)}\">{text}</see>";
 
     internal static JsonNode Get(JsonNode e, string name) =>
         e[name] ?? throw new DomEmitException($"the snapshot has no `{name}` where one was expected");

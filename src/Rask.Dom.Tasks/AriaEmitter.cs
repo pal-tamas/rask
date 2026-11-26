@@ -148,7 +148,7 @@ internal static class AriaEmitter
             remarks.Add("Takes no accessible name.");
         }
 
-        remarks.Add($"<see href=\"{Str(role, "spec")}\">Spec</see>");
+        remarks.Add(SeeHref(Str(role, "spec") ?? "", "Spec"));
         return string.Join(" ", remarks);
     }
 
@@ -221,7 +221,7 @@ internal static class AriaEmitter
 
         sb.AppendLine("</summary>");
         sb.Append("    /// <remarks><see href=\"https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/")
-            .Append(a.Name).Append("\">MDN</see> <see href=\"").Append(Str(a.Data, "spec")).AppendLine("\">Spec</see></remarks>");
+            .Append(a.Name).Append("\">MDN</see> ").Append(SeeHref(Str(a.Data, "spec") ?? "", "Spec")).AppendLine("</remarks>");
         sb.Append("    ").AppendLine(Mark);
         sb.Append("    public ").Append(a.Type).Append(' ').AppendLine(a.Property);
         sb.AppendLine("    {");
@@ -257,7 +257,7 @@ internal static class AriaEmitter
     {
         sb.Append("/// <summary>The keywords <c>").Append(a.Name).Append("</c> takes, for <see cref=\"Element.")
             .Append(a.Property).AppendLine("\" />.</summary>");
-        sb.Append("/// <remarks><see href=\"").Append(Str(a.Data, "spec")).AppendLine("\">Spec</see></remarks>");
+        sb.Append("/// <remarks>").Append(SeeHref(Str(a.Data, "spec") ?? "", "Spec")).AppendLine("</remarks>");
         if (a.IsFlags)
         {
             sb.AppendLine("[global::System.Flags]");

@@ -34,7 +34,7 @@ internal static class KeyboardValueEmitter
         sb.AppendLine("namespace Rask.Core;");
         sb.AppendLine();
         sb.Append("/// <summary>").Append(what).AppendLine(", as UI Events lists them.</summary>");
-        sb.Append("/// <remarks>").Append(note).Append(" <see href=\"").Append(spec).Append("\">Spec</see>")
+        sb.Append("/// <remarks>").Append(note).Append(' ').Append(DomEmitter.SeeHref(spec, "Spec"))
             .Append(commit is null ? "" : $" (w3c/uievents-{kind} {commit.Substring(0, Math.Min(7, commit.Length))})").AppendLine("</remarks>");
         sb.Append("public static partial class ").AppendLine(type);
         sb.AppendLine("{");
@@ -56,7 +56,7 @@ internal static class KeyboardValueEmitter
             sb.Append("    /// <summary><c>\"").Append(name).Append("\"</c>, from the spec's <c>").Append(value["group"]?.AsString())
                 .AppendLine("</c> table.</summary>");
             var optional = value["optional"]?.AsBoolean() == true ? "Optional: a conforming browser need not report it. " : "";
-            sb.Append("    /// <remarks>").Append(optional).Append("<see href=\"").Append(value["spec"]?.AsString() ?? spec).AppendLine("\">Spec</see></remarks>");
+            sb.Append("    /// <remarks>").Append(optional).Append(DomEmitter.SeeHref(value["spec"]?.AsString() ?? spec, "Spec")).AppendLine("</remarks>");
             sb.Append("    public const string ").Append(name).Append(" = \"").Append(name).AppendLine("\";");
         }
 

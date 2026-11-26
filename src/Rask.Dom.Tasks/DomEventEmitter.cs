@@ -764,12 +764,12 @@ namespace Rask.Core.Dom.Build
 
             if (data["mdn"]?.AsString() is { } mdn)
             {
-                parts.Add($"<see href=\"{mdn}\">MDN</see>");
+                parts.Add(DomEmitter.SeeHref(mdn, "MDN"));
             }
 
             if (data["spec"]?.AsString() is { } spec)
             {
-                parts.Add($"<see href=\"{spec}\">Spec</see>");
+                parts.Add(DomEmitter.SeeHref(spec, "Spec"));
             }
 
             if (parts.Count > 0)

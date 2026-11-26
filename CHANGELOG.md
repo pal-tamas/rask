@@ -85,6 +85,10 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **An MDN link with an `&` in it no longer breaks the build of the generated DOM.** MDN's new `headingoffset` /
+  `headingreset` globals link whatwg's `#heading-levels-&-offsets`, which the emitters wrote verbatim into a
+  `<see href>` — CS1570 in `HTMLElement.g.cs`, so the `mdn` follower could not land (#1259). Every spec and MDN link
+  the DOM, event, ARIA and keyboard emitters write is now XML-escaped (`DomEmitter.SeeHref`).
 - **Your component keeps its chain entry when a referenced library has one of the same name (RASK040).** An app's
   `NotFoundPage` already won over Rask.Dashboard's console page in the app itself, but a test project referencing the
   app saw two referenced libraries on one name and gave the entry to neither — RASK040, and `NotFoundPage` bare no
