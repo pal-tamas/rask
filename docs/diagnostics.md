@@ -830,7 +830,18 @@ Neither component gets an entry, because choosing which type `Card` means is the
 not the generator's. Both types still compile and nothing else breaks — you just cannot write
 `Card` bare.
 
-**Fix:** rename one of them (`ProductCard` / `OrderCard`). Suppress with
+**A referenced library's component does not collide with yours.** When your app declares a
+`NotFoundPage` and a library it references (Rask.Dashboard's console pages, say) publishes one too,
+**your own component gets the entry** — no RASK040 — and the library's stays reachable qualified, through
+its assembly's entry host: `global::RaskEntriesRask_Dashboard.NotFoundPage`. One step further out the
+same order holds: a test project that references your app sees the app's `NotFoundPage`, because the
+app reaches the library and already won the name there. RASK040 is left for the clashes nothing
+orders: two components of **one** compilation (above), or two referenced libraries that do not reach
+each other — then neither library's component is bare. Two of your own still keep the name from a
+library: neither of them has the entry, and the library's does not slip in under it.
+
+**Fix:** for two of your own components, rename one of them (`ProductCard` / `OrderCard`); for two
+unrelated libraries, build the one you mean through its entry host. Suppress with
 `#pragma warning disable RASK040` / `.editorconfig` (`dotnet_diagnostic.RASK040.severity = none`) if
 you are happy to build both with `new` from inside Rask.Core.
 

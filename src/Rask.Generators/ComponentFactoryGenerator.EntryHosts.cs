@@ -58,7 +58,7 @@ public sealed partial class ComponentFactoryGenerator
         }
 
         var refs = OwnEntryRefs(entries, "global::" + EntryHostName(host.AssemblyName));
-        refs.AddRange(UsableExternalEntries(spc, external.Libraries, refs, host));
+        refs.AddRange(UsableExternalEntries(spc, external, refs, OwnClaimedNames(candidates), host));
 
         var hosts = EntryHostDecls(candidates, extraHosts);
         // The framework tags, for the one host shape that cannot inherit them. Read off Rask.Core's own
@@ -414,19 +414,27 @@ public sealed partial class ComponentFactoryGenerator
     //  * a name Component already carries (its own members, plus every tag entry Rask.Core emitted) would
     //    HIDE that member — CS0108, an error here — and the inherited entry is the better one anyway,
     //  * a name one of this assembly's own components already claims stays with the local component: it
-    //    is the one the author wrote, and two members cannot share a name (CS0102),
-    //  * the same name from two different libraries is not resolvable here at all, so neither is used and
+    //    is the one the author wrote, and two members cannot share a name (CS0102). That holds even when
+    //    two own components claim it and RASK040 withholds it from both — handing it to the library
+    //    instead would make the bare name quietly mean a third type the author never wrote,
+    //  * the same name from two libraries where one REFERENCES the other stays with the referencing one —
+    //    it is the nearer library, and inside its own compilation that component already had the name (a
+    //    test project referencing an app and the app's Rask.Dashboard sees the app's NotFoundPage),
+    //  * the same name from two unrelated libraries is not resolvable here at all, so neither is used and
     //    RASK040 says which types collided — the same answer two same-named local components get.
     private static List<EntryRef> UsableExternalEntries(
-        SourceProductionContext spc, EquatableArray<EntryRef> external, List<EntryRef> own, ComponentHost host)
+        SourceProductionContext spc, ExternalEntrySet externalSet, List<EntryRef> own, HashSet<string> claimed,
+        ComponentHost host)
     {
         var result = new List<EntryRef>();
+        var external = externalSet.Libraries;
         if (external.Count == 0)
         {
             return result;
         }
 
         var taken = new HashSet<string>(host.MemberNames, StringComparer.Ordinal);
+        taken.UnionWith(claimed);
         foreach (var e in own)
         {
             taken.Add(e.Name);
@@ -451,6 +459,12 @@ public sealed partial class ComponentFactoryGenerator
         foreach (var pair in byName.OrderBy(static p => p.Key, StringComparer.Ordinal))
         {
             var hosts = new HashSet<string>(pair.Value.Select(static e => e.HostFqn), StringComparer.Ordinal);
+            if (hosts.Count > 1 && NearestEntryHost(hosts, externalSet.Dependencies) is { } nearest)
+            {
+                result.AddRange(pair.Value.Where(e => string.Equals(e.HostFqn, nearest, StringComparison.Ordinal)));
+                continue;
+            }
+
             if (hosts.Count > 1)
             {
                 var names = string.Join("', '",
@@ -539,6 +553,7 @@ public sealed partial class ComponentFactoryGenerator
         var declaring = component.ContainingAssembly;
         var libraries = new List<EntryRef>();
         var framework = new List<EntryRef>();
+        var libraryHosts = new List<(IAssemblySymbol Assembly, string HostFqn)>();
         foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
         {
             var hostType = assembly.GetTypeByMetadataName(EntryHostName(SanitizeIdentifier(assembly.Name)));
@@ -558,8 +573,14 @@ public sealed partial class ComponentFactoryGenerator
                 continue;
             }
 
-            var into = SymbolEqualityComparer.Default.Equals(assembly, declaring) ? framework : libraries;
+            var isFramework = SymbolEqualityComparer.Default.Equals(assembly, declaring);
+            var into = isFramework ? framework : libraries;
             var hostFqn = hostType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            if (!isFramework)
+            {
+                libraryHosts.Add((assembly, hostFqn));
+            }
+
             foreach (var member in hostType.GetMembers())
             {
                 if (!member.IsStatic || !VisibleToEntryScan(member.DeclaredAccessibility, friend))
@@ -580,7 +601,8 @@ public sealed partial class ComponentFactoryGenerator
             }
         }
 
-        return new ExternalEntrySet(SortedEntries(libraries), SortedEntries(framework));
+        return new ExternalEntrySet(SortedEntries(libraries), SortedEntries(framework),
+            EntryHostDependencies(libraryHosts, declaring));
     }
 
     // Public entries are visible everywhere; internal ones only across an `InternalsVisibleTo` grant. The
@@ -591,7 +613,8 @@ public sealed partial class ComponentFactoryGenerator
     // What a referenced assembly publishes, split by whether this compilation's hosts already inherit it.
     private readonly record struct ExternalEntrySet(
         EquatableArray<EntryRef> Libraries,
-        EquatableArray<EntryRef> Framework);
+        EquatableArray<EntryRef> Framework,
+        EquatableArray<EntryHostDependency> Dependencies);
 
     private static EquatableArray<EntryRef> SortedEntries(List<EntryRef> entries)
     {

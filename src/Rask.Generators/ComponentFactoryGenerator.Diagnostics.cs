@@ -66,7 +66,9 @@ public sealed partial class ComponentFactoryGenerator
                      + "sharing a simple name can have at most one entry between them, and picking a winner would be "
                      + "the generator guessing which type the name means. Neither gets one until you rename. Their "
                      + "namespaces do not separate them here the way they separate the types themselves: a member "
-                     + "name has no namespace.",
+                     + "name has no namespace. A referenced library's component never collides with one of this "
+                     + "compilation's — the own one keeps the name — nor with a library that reaches it through its "
+                     + "references; only two of one compilation, or two libraries unrelated to each other, do.",
         helpLinkUri: DiagnosticHelp.Link("RASK040"));
 
     private static readonly DiagnosticDescriptor Rask041 = new(

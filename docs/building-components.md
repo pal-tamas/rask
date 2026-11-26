@@ -210,6 +210,11 @@ public sealed partial class ProductCard : Component
 ProductCard.Title("Coffee").Subtitle("Dark roast").OnPick(Pick)
 ```
 
+The entry is named after the type, so a name you share with a referenced library's component — your
+`NotFoundPage` beside Rask.Dashboard's — is yours: your component gets the bare entry and the library's is
+built through its entry host (`global::RaskEntriesRask_Dashboard.NotFoundPage`). Only two components of
+your own on one name are [RASK040](diagnostics.md#rask040).
+
 A non-nullable property with no initializer is required — the same rule
 [RASK001](diagnostics.md#rask001) describes — so it becomes a step. Give it a nullable type or an
 initializer if it is genuinely optional. Skip one and [RASK095](diagnostics.md#rask095) names it —

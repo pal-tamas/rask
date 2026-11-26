@@ -59,13 +59,16 @@ internal static class BuilderGeneratorHarness
     ///     (<c>Div[Span]</c>) binds to generated entries, so analyzing the bare source would leave every chain
     ///     expression an error type and any rule under test would report nothing and pass for the wrong reason.
     /// </summary>
-    internal static Compilation Compile(string source, string assemblyName = "TestAssembly")
+    internal static Compilation Compile(string source, string assemblyName = "TestAssembly",
+        IEnumerable<MetadataReference>? references = null)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(
             assemblyName,
             new[] { syntaxTree },
-            GeneratorDriverFixture.BuildReferences(),
+            references is null
+                ? GeneratorDriverFixture.BuildReferences()
+                : GeneratorDriverFixture.BuildReferences().AddRange(references),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 

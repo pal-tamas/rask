@@ -85,6 +85,14 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **Your component keeps its chain entry when a referenced library has one of the same name (RASK040).** An app's
+  `NotFoundPage` already won over Rask.Dashboard's console page in the app itself, but a test project referencing the
+  app saw two referenced libraries on one name and gave the entry to neither — RASK040, and `NotFoundPage` bare no
+  longer compiled in the app's tests. A referenced library now wins over one it reaches through its own references
+  (the app reaches the dashboard through Rask.Server), so the test project sees the app's page and the dashboard's
+  stays reachable as `global::RaskEntriesRask_Dashboard.NotFoundPage`. RASK040 reports only two components of one
+  compilation, or two libraries unrelated to each other (as before); and two own components on one name no longer
+  hand that name to a referenced library's same-named component while RASK040 withholds it from both.
 - **An operation or factory whose parameter is named `field`, `model`, `input`, `failures`, `operation`, `form`,
   `aggregate` or `editing` builds again.** The generated `<Aggregate>.OperationForms.g.cs` declared its own
   `model`/`field`/`input`/`failures` beside an `out var` named after each parameter (CS0136, CS0100), and a parameter
