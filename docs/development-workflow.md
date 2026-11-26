@@ -558,8 +558,8 @@ True of the scripts wherever they run — a CI job or your terminal.
   at the end; no service container or `docker run` in any workflow. **Local policy: no Docker by default.**
   Outside CI (`CI`/`GITHUB_ACTIONS` unset) the server facts report SKIPPED ("runs in CI on Testcontainers")
   and the SQLite legs run; `RASK_PROVIDERS_LOCAL=1` lets it start the containers on your machine (SQL Server
-  only on amd64 — its image segfaults under emulation on Apple Silicon), and `RASK_MSSQL_TEST_DB` /
-  `RASK_PG_TEST_DB` point a leg at a server you have instead. SQL Server runs in a process of its own
+  only on amd64 — its image segfaults under emulation on Apple Silicon). There is no hand-started server to
+  point a leg at, and no test anywhere needs local Docker. SQL Server runs in a process of its own
   (`RASK_PROVIDERS_SERVERS`): EF Core refuses a process its twenty-first internal service provider. Only
   what Rask writes or translates per provider is held to a server — collations, locks, sequences, the DDL
   the conventions write, decimals, constraint violations, the batteries' own SQL, migrations; everything

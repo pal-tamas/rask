@@ -544,13 +544,15 @@ what its handlers publish in turn. A durable handler the outbox stored in the sa
 outbox's to run (`Outbox.Fake()`). `.Twice()`, `.None()` and `.Exactly(n)` count as every fake does; a failed count names every event that was
 published instead.
 
-### A real database server, when the machine has one
+### A real database server, in CI
 
-An app's tests run on SQLite in memory: what the app writes is neutral
-([code written for one database](data.md#code-written-for-one-database)), and Rask's conformance suite proves it
-behaves the same on SQL Server and PostgreSQL ([in Rask's CI, on Testcontainers](data.md#the-conformance-suite)). A test of the database itself — a migration against the production
-engine, a schema another tool made — is the exception, and not every machine has the server. Name it with an environment variable, and the tests run where it is set and are **skipped**
-(not failed) where it is not:
+An app's tests run on **SQLite in memory**, and need no Docker and no database server on the machine: what the app
+writes is neutral ([code written for one database](data.md#code-written-for-one-database)), and Rask's conformance
+suite proves it behaves the same on SQL Server and PostgreSQL ([in Rask's CI, on Testcontainers](data.md#the-conformance-suite)).
+A test of the database itself — a migration against the production engine, a schema another tool made — is the
+exception, and it belongs in CI, where the pipeline provides the server (a Testcontainers fixture, or a database the
+CI job owns). Name it with an environment variable that CI sets, and the tests run there and are **skipped** (not
+failed) on a laptop, which never starts a container or a server for a test:
 
 ```csharp
 [Fact]
@@ -564,8 +566,11 @@ public async Task An_invoice_number_is_never_handed_out_twice()
 }
 ```
 
-```bash
-SHOP_TEST_DB="Server=localhost;Initial Catalog=Shop;User ID=sa;Password=…;TrustServerCertificate=true" dotnet test
+```yaml
+# The CI job — the connection string comes from wherever that pipeline's server is, never from a developer machine.
+- run: dotnet test
+  env:
+    SHOP_TEST_DB: ${{ secrets.SHOP_TEST_DB }}
 ```
 
 Without `SHOP_TEST_DB` the test reports *skipped — SHOP_TEST_DB is not set, so this test has no database to run on*

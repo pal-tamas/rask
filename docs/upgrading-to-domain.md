@@ -114,7 +114,7 @@ public sealed class SupplierTests
 - A `TestDatabase` runs at `OneAggregatePerTransaction = Throw`, which is how step 7's sites announce themselves.
 
 Only an end-to-end gate before a release still needs the real server
-([a real database server](testing.md#a-real-database-server-when-the-machine-has-one)).
+([a real database server](testing.md#a-real-database-server-in-ci)).
 
 ## 3. Value objects and typed ids
 

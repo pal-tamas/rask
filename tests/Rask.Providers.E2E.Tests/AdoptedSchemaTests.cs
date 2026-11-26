@@ -267,29 +267,48 @@ internal static class AdoptedSchemaScenario
 }
 
 /// <summary>
-/// The scenario against a database that ALREADY EXISTS and that this test did not build — a copy of the
-/// schema an app is being moved off, with whatever data it holds. Opt-in, and never started by the suite: the
-/// mapping it proves is provider-independent and runs on SQLite in Rask.Data.Tests; this is for checking a real copy.
+/// The scenario against a database this test did not model: the tables are made by hand-written DDL, the shape an app
+/// being moved off another tool already has, with rows in them before Rask touches it. On the run's SQL Server
+/// container (<see cref="ProviderServer" />), never a hand-started server; the mapping it proves is
+/// provider-independent and also runs on SQLite in Rask.Data.Tests.
 /// </summary>
-/// <remarks>
-/// Set <c>RASK_MSSQL_EXISTING_DB</c> to the whole connection string of a database that has
-/// <c>dbo.Tenants (Id int)</c> with at least two rows and <c>dbo.Destinations (Id int IDENTITY, Name
-/// nvarchar(255) NOT NULL, TenantId int NULL)</c> with the unique index <c>IX_Destinations_Name_TenantId</c>.
-/// Nothing is created, altered or migrated, and every row the test inserts is deleted again.
-/// </remarks>
 [Collection(SqlServerCollection.Name)]
-public sealed class SqlServerExistingDatabaseTests
+public sealed class SqlServerAdoptedSchemaTests : IAsyncLifetime
 {
-    private const string SkipReason =
-        "Needs a database that already has Tenants and Destinations: set RASK_MSSQL_EXISTING_DB to its connection string.";
+    private const string DatabaseName = "rask_e2e_adopted";
 
-    private static string? ConnectionString => Environment.GetEnvironmentVariable("RASK_MSSQL_EXISTING_DB");
+    // Tenant 1 owns two rows and tenant 2 one, so the reads compare against real data; tenant 3 owns none.
+    private const string ExistingSchema = """
+        CREATE TABLE dbo.Tenants (Id int NOT NULL CONSTRAINT PK_Tenants PRIMARY KEY);
+        INSERT INTO dbo.Tenants (Id) VALUES (1), (2), (3);
+        CREATE TABLE dbo.Destinations (Id int IDENTITY CONSTRAINT PK_Destinations PRIMARY KEY,
+            Name nvarchar(255) NOT NULL, TenantId int NULL);
+        CREATE UNIQUE INDEX IX_Destinations_Name_TenantId ON dbo.Destinations (Name, TenantId) WHERE TenantId IS NOT NULL;
+        INSERT INTO dbo.Destinations (Name, TenantId) VALUES (N'Budapest', 1), (N'Debrecen', 1), (N'Budapest', 2);
+        """;
+
+    public async ValueTask InitializeAsync()
+    {
+        if (SqlServer.Available)
+        {
+            await SqlServer.RecreateDatabaseAsync(DatabaseName, ExistingSchema);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (SqlServer.Available)
+        {
+            SqlConnection.ClearAllPools();
+            await SqlServer.DropDatabaseAsync(DatabaseName);
+        }
+    }
 
     [Fact]
     public async Task A_table_somebody_else_created_is_read_written_and_left_as_it_was_found()
     {
-        Assert.SkipUnless(!string.IsNullOrWhiteSpace(ConnectionString), SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
-        await AdoptedSchemaScenario.RunAsync(ConnectionString!, TestContext.Current.TestOutputHelper!.WriteLine);
+        await AdoptedSchemaScenario.RunAsync(SqlServer.Database(DatabaseName), TestContext.Current.TestOutputHelper!.WriteLine);
     }
 }

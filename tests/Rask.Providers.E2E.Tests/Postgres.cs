@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Rask.Providers.E2E.Tests;
 
-/// <summary>The PostgreSQL server under test: <c>RASK_PG_TEST_DB</c>, or the run's container (<see cref="ProviderServer" />).</summary>
+/// <summary>The PostgreSQL server under test: the run's container (<see cref="ProviderServer" />).</summary>
 /// <remarks>
 /// A fact that needs it calls <c>Assert.SkipUnless(Postgres.Available, Postgres.SkipReason)</c> first, so a run with no
 /// server reports SKIPPED instead of a wall of red — and never PASSED, which is the lie that matters.

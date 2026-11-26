@@ -45,6 +45,13 @@ them until tagged releases begin.
   handler and `HandlerInTransaction` under domain events and in the transaction boundary, links `Attachment` and
   `X.Across(reason)`; `data-writes.md` teaches `UpdateWhere`/`DeleteWhere` for batch work (a raw `ExecuteUpdate` is
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
+- **No test needs local Docker or a hand-started database server.** An app's tests run on SQLite in memory;
+  `docs/testing.md#a-real-database-server-in-ci` now places `TestDatabase.FromEnvironment` in CI, where the pipeline
+  provides the server, with a laptop skipping those tests. In this repo the provider suite's `RASK_MSSQL_TEST_DB` /
+  `RASK_PG_TEST_DB` overrides are gone (its servers are Testcontainers only, in CI or with `RASK_PROVIDERS_LOCAL=1`),
+  the adopted-schema test builds its existing tables by DDL on that container instead of needing
+  `RASK_MSSQL_EXISTING_DB`, and `scripts/run-bulk-insert-benchmarks-local.sh` no longer `docker run`s PostgreSQL: the
+  benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
 - **An administrator writes in a partner's tenant without crossing tenants.** The save's same-tenant reference check

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Real database servers, started by the suite itself on Testcontainers (ProviderServer.cs) — in CI, or where
-       RASK_PROVIDERS_LOCAL=1 says Docker may be used; RASK_MSSQL_TEST_DB / RASK_PG_TEST_DB point a leg at a server
-       you have instead. Anywhere else the server facts report SKIPPED and the SQLite legs still run. The .E2E.Tests
-       suffix keeps it out of the unit gate; scripts/run-providers-local.sh is what runs it. -->
+       RASK_PROVIDERS_LOCAL=1 says Docker may be used; never a hand-started server. Anywhere else the server facts
+       report SKIPPED and the SQLite legs still run. The .E2E.Tests suffix keeps it out of the unit gate;
+       scripts/run-providers-local.sh is what runs it. -->
   <PropertyGroup>
     <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

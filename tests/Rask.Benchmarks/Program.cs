@@ -56,6 +56,12 @@ if (args.Length >= 1 && args[0] == "session-hibernation")
     return SessionHibernationReport.Run(args);
 }
 
+// `postgres-bulk-insert` starts PostgreSQL on Testcontainers behind netem latency and runs PostgresBulkInsertBenchmarks.
+if (args.Length >= 1 && args[0] == "postgres-bulk-insert")
+{
+    return await PostgresBulkInsertReport.Run(args);
+}
+
 if (args.Length >= 1 && args[0] == "big-table")
 {
     return BigTableReport.Run(args);

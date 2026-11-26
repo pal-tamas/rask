@@ -79,7 +79,7 @@ public sealed class SqlServerDatabaseStorageTests : IAsyncLifetime
             return;
         }
 
-        await RecreateAsync(NumberedDatabase, """
+        await SqlServer.RecreateDatabaseAsync(NumberedDatabase, """
             CREATE TABLE dbo.Tenants (Id int IDENTITY CONSTRAINT PK_Tenants PRIMARY KEY, Name nvarchar(255) NOT NULL);
             INSERT INTO dbo.Tenants (Name) VALUES (N'Acme'), (N'Globex');
             CREATE TABLE dbo.Consignments (Id uniqueidentifier NOT NULL PRIMARY KEY, Reference nvarchar(max) NOT NULL,
@@ -88,8 +88,9 @@ public sealed class SqlServerDatabaseStorageTests : IAsyncLifetime
 
             ALTER TABLE dbo.StoredFile ADD CONSTRAINT FK_StoredFile_Tenants FOREIGN KEY (TenantId) REFERENCES dbo.Tenants (Id);
             """);
-        await RecreateAsync(GuidDatabase, Ddl("sqlserver-guid").Replace("dbo.", GuidFilesContext.Schema + ".", StringComparison.Ordinal),
-            $"CREATE SCHEMA {GuidFilesContext.Schema};");
+        await SqlServer.RecreateDatabaseAsync(GuidDatabase,
+            $"CREATE SCHEMA {GuidFilesContext.Schema};",
+            Ddl("sqlserver-guid").Replace("dbo.", GuidFilesContext.Schema + ".", StringComparison.Ordinal));
     }
 
     public async ValueTask DisposeAsync()
@@ -97,8 +98,8 @@ public sealed class SqlServerDatabaseStorageTests : IAsyncLifetime
         if (SqlServer.Available)
         {
             SqlConnection.ClearAllPools();
-            await DropAsync(NumberedDatabase);
-            await DropAsync(GuidDatabase);
+            await SqlServer.DropDatabaseAsync(NumberedDatabase);
+            await SqlServer.DropDatabaseAsync(GuidDatabase);
         }
     }
 
@@ -184,39 +185,6 @@ public sealed class SqlServerDatabaseStorageTests : IAsyncLifetime
         var match = Regex.Match(docs, $@"<!-- ddl:{Regex.Escape(name)} -->\s*```sql\n(?<sql>.*?)```", RegexOptions.Singleline);
         Assert.True(match.Success, $"docs/file-storage.md has no ddl:{name} block.");
         return match.Groups["sql"].Value;
-    }
-
-    private static async Task RecreateAsync(string database, string ddl, string? first = null)
-    {
-        await DropAsync(database);
-        await using (var master = new SqlConnection(SqlServer.Database("master")))
-        {
-            await master.OpenAsync();
-            await using var create = new SqlCommand($"CREATE DATABASE [{database}]", master) { CommandTimeout = 300 };
-            await create.ExecuteNonQueryAsync();
-        }
-
-        await using var connection = new SqlConnection(SqlServer.Database(database));
-        await connection.OpenAsync();
-        foreach (var batch in new[] { first, ddl }.OfType<string>())
-        {
-            // Schema work on a busy shared runner outlasts the 30-second default.
-            await using var command = new SqlCommand(batch, connection) { CommandTimeout = 300 };
-            await command.ExecuteNonQueryAsync();
-        }
-    }
-
-    private static async Task DropAsync(string database)
-    {
-        await using var master = new SqlConnection(SqlServer.Database("master"));
-        await master.OpenAsync();
-        await using var drop = new SqlCommand(
-            $"IF DB_ID('{database}') IS NOT NULL BEGIN ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}]; END",
-            master)
-        {
-            CommandTimeout = 300,
-        };
-        await drop.ExecuteNonQueryAsync();
     }
 
     private static async Task<object?> ScalarAsync(string database, string sql, Guid id)

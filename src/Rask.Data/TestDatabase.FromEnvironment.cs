@@ -13,9 +13,10 @@ public partial class TestDatabase
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         For the tests that need the app's real database server rather than a SQLite file: a machine with the
-    ///         variable set runs them, and one without it (a laptop with no server, a pull-request build) reports them
-    ///         skipped with a reason that names the variable.
+    ///         For the few tests that need the app's real database server rather than SQLite in memory — everything
+    ///         else runs on SQLite, with no Docker or server on the machine. CI provides the server and sets the
+    ///         variable, so the tests run there; a machine without it (a laptop, a pull-request build) reports them
+    ///         skipped with a reason that names the variable, and never starts a container for them.
     ///     </para>
     ///     <code>
     /// await using var database = await TestDatabase.FromEnvironment&lt;ShopContext&gt;("SHOP_TEST_DB", (o, cs) =&gt; o.UseSqlServer(cs));

@@ -24,6 +24,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <!-- PostgresBulkInsertReport starts the server those arms run against; never a hand-started one. -->
+    <PackageReference Include="Testcontainers.PostgreSql"/>
   </ItemGroup>
 
   <ItemGroup>

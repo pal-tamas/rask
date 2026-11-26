@@ -8,8 +8,8 @@
 # The servers are the suite's own: Testcontainers starts one SQL Server and one PostgreSQL per run, on first use, and
 # stops them at the end (tests/Rask.Providers.E2E.Tests/ProviderServer.cs). In CI (CI / GITHUB_ACTIONS set) that just
 # happens; on a dev machine the server facts report SKIPPED unless RASK_PROVIDERS_LOCAL=1 says Docker may be used, so
-# this runs the SQLite legs alone there by default. RASK_MSSQL_TEST_DB / RASK_PG_TEST_DB point a leg at a server you
-# have instead of a container. SQL Server's image is amd64-only (it segfaults under emulation on Apple Silicon).
+# this runs the SQLite legs alone there by default. There is no hand-started server to point a leg at: a container or
+# nothing. SQL Server's image is amd64-only (it segfaults under emulation on Apple Silicon).
 #
 # Run by CI on every push that reaches the data stack (.github/workflows/gates.yml, "providers") and in the daily
 # full run; registered in scripts/run-all-gates.sh.

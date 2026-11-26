@@ -133,7 +133,7 @@ to bind there. **On PostgreSQL, SQL Server and MySQL** every statement is a roun
 into each `INSERT … VALUES (…), (…)` — fewer on SQL Server, whose request carries at most 2,100 parameters. Against
 PostgreSQL 17 with 1 ms of added latency, 10,000 rows took 136 ms and allocated 11.6 MB that way, against 225 ms
 and 99 MB through the change tracker and 20.1 s one row at a time (`PostgresBulkInsertBenchmarks`, run with
-`scripts/run-bulk-insert-benchmarks-local.sh`). Another provider gets the per-row shape, which is correct
+`scripts/run-bulk-insert-benchmarks-local.sh`, which starts the server on Testcontainers). Another provider gets the per-row shape, which is correct
 everywhere and slow wherever there is a network.
 
 It is opt-in because of what it skips: **no `ISaveChangesInterceptor` runs** — not Rask.Data's, and not any

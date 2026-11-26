@@ -20,8 +20,9 @@ namespace Rask.Benchmarks;
 //   DbBatch            — raw ADO.NET: N single-row prepared INSERTs per round trip in one DbBatch.
 //   MultiRowValues     — raw ADO.NET: INSERT … VALUES (…),(…) with RowsPerTrip rows per statement.
 //
-// Run against a server with realistic RTT: scripts/run-bulk-insert-benchmarks-local.sh starts PostgreSQL 17 with
-// `tc netem` delaying its egress, and exports RASK_PG_BENCH_DB. A container on the same machine with no delay
+// Run against a server with realistic RTT: scripts/run-bulk-insert-benchmarks-local.sh runs the `postgres-bulk-insert`
+// subcommand (PostgresBulkInsertReport), which starts PostgreSQL on Testcontainers with `tc netem` delaying its egress
+// and sets RASK_PG_BENCH_DB for these arms. A container on the same machine with no delay
 // flatters every per-row arm, which is how #1063's first measurement came out wrong in both directions.
 //
 // Every arm stamps the audit columns, as SqliteBulkInsertBenchmarks' arms do, so the raw arms carry the same work.
@@ -66,9 +67,9 @@ public abstract class PostgresBulkInsertArms
     [GlobalSetup]
     public void Setup()
     {
-        _connectionString = Environment.GetEnvironmentVariable("RASK_PG_BENCH_DB")
+        _connectionString = Environment.GetEnvironmentVariable(PostgresBulkInsertReport.ConnectionVariable)
             ?? throw new InvalidOperationException(
-                "RASK_PG_BENCH_DB is not set. Run scripts/run-bulk-insert-benchmarks-local.sh, which starts the server.");
+                "No server: run scripts/run-bulk-insert-benchmarks-local.sh, whose postgres-bulk-insert subcommand starts one on Testcontainers.");
 
         using (var context = NewContext())
         {
