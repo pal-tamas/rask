@@ -3711,7 +3711,8 @@ await using var turn = await Db.Lock("pump").For(30.Seconds);                  /
 **Fix:** the message names the neutral form. `EF.Functions.Like` → `Contains`/`StartsWith`/`EndsWith`;
 `EF.Functions.Collate` and `UseCollation` → `OrderTextBy(…)` once and `InTextOrder()` where a query sorts, and `x.Loosely()` where it searches case and accents aside;
 `EF.Functions.DateDiff*` → `end - start`; `HasColumnType` → the value object's `Scale`/`MaxLength`, or `HasPrecision`
-/ `HasMaxLength`; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c) (`b.StoredDefault(…)` for a value the value object refuses, `() => Clock.Wall` for `CURRENT_TIMESTAMP`);
+/ `HasMaxLength`; `HasColumnType("date")` on a `DateTime` → a `DateOnly`, or a `Day` value object
+(`record InvoiceDay(DateOnly Value) : Day(Value)`), both `date` on SQL Server and PostgreSQL, so no migration; `SetContainerColumnType` → nothing (Rask keeps a JSON column `nvarchar(max)` on SQL Server at every level); `HasDefaultValueSql` → [`b.Default(…)`](data.md#computed-columns-defaults-and-filtered-indexes-in-c) (`b.StoredDefault(…)` for a value the value object refuses, `() => Clock.Wall` for `CURRENT_TIMESTAMP`);
 `HasComputedColumnSql` → `b.Computed(…)`; `HasFilter` → `HasIndex(…).Where(x => …)`; `IncludeProperties` →
 `.Covering(…)`; raw SQL → a LINQ query, a change through the aggregate, `Db.Lock(name)` for `sp_getapplock` and
 `X.Where(…).ForUpdate()` inside `Db.Transaction` for `UPDLOCK`/`HOLDLOCK`/`FOR UPDATE`; a driver's exception → `IsUnique("…")` on the index and the

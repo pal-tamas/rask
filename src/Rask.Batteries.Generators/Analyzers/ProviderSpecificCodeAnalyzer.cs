@@ -170,7 +170,8 @@ public sealed class ProviderSpecificCodeAnalyzer : DiagnosticAnalyzer
                 => (method.Name, "one database's SQL", SqlReplacement(call, "a change through the aggregate, or ExecuteUpdate/ExecuteDelete over a LINQ query")),
             "ToSqlQuery" => (method.Name, "one database's SQL", "map the entity to a table or a view, and query it with LINQ"),
             "HasColumnType" => (method.Name, "one database's column types",
-                "declare the value object's facets (Number(Value, Scale: 2), Text(Value, MaxLength: 200)) or HasPrecision / HasMaxLength"),
+                "declare the value object's facets (Number(Value, Scale: 2), Text(Value, MaxLength: 200)) or HasPrecision / HasMaxLength; "
+                + "for \"date\" on a DateTime, take a DateOnly or a Day value object (record X(DateOnly Value) : Day(Value)), date on SQL Server and PostgreSQL"),
             "SetContainerColumnType" => (method.Name, "one database's column types",
                 "leave the JSON column's type to Rask, which keeps it the same at every compatibility level"),
             "UseCollation" => (method.Name, "one database's collations",

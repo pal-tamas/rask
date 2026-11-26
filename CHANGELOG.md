@@ -55,6 +55,9 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Documentation
+- **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
+  (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In
+  the analyzer's message and in `docs/diagnostics.md#rask177`.
 - **Inside `Db.Transaction`, every generated entry and every set write joins it — now proven and said where the
   analyzers point.** `await X.Factory(…)`, `X.M(id, version, …)`, `X.DeleteWhere(…)` and `X.UpdateWhere(…)` called in
   the block run on its connection and transaction, beside a `SaveChangesAsync()` on the app's own context: rolled back
