@@ -20258,6 +20258,7 @@ Rask.Core.Forms.OperationForm<TInput>.Data(string! name, string? value) -> Rask.
 Rask.Core.Forms.OperationForm<TInput>.Id(string? id) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForm<TInput>.OnInvalidSubmit(System.Func<TInput!, System.Threading.Tasks.Task!>! invalid) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForm<TInput>.Saved(string! message) -> Rask.Core.Forms.OperationForm<TInput!>!
+Rask.Core.Forms.OperationForm<TInput>.Starting(System.Action<TInput!>! starting) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForm<TInput>.Style(string? style) -> Rask.Core.Forms.OperationForm<TInput!>!
 Rask.Core.Forms.OperationForms
 static Rask.Core.Forms.OperationForms.Of<TInput>(object? identity, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TInput?>!>! load, System.Func<TInput!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! submit, System.Func<bool>! may) -> Rask.Core.Forms.OperationForm<TInput!>!

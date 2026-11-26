@@ -38,6 +38,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     private Func<TInput, IEnumerable<Component?>> _fields = static _ => [];
     private Func<Task>? _saved;
     private Func<TInput, Task>? _invalid;
+    private Action<TInput>? _starting;
     private string? _savedMessage;
     private OperationFormLook _look = new();
     private Component? _missing;
@@ -69,6 +70,26 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     public OperationForm<TInput> Missing(Component? missing)
     {
         _missing = missing;
+        return this;
+    }
+
+    /// <summary>
+    ///     What the form starts with, set on the model before it is first drawn:
+    ///     <c>Form.For(Tank.Create).Starting(m =&gt; m.Pistols = [new()])</c> opens with one pistol row ready.
+    /// </summary>
+    /// <remarks>
+    ///     It is no edit of the reader's: the form drawn with it asks nothing on leaving and is not marked changed until
+    ///     the reader changes something. It runs on every read of the model — the first, one for another id, and the one
+    ///     after a save, so a factory's form starts again with it. An operation's form runs it over the values read from
+    ///     the stored aggregate, so it adds rather than replaces there:
+    ///     <c>m =&gt; { if (m.Pistols.Count == 0) m.Pistols.Add(new()); }</c>.
+    /// </remarks>
+    /// <param name="starting">Sets the starting values on the model.</param>
+    /// <returns>The same form.</returns>
+    public OperationForm<TInput> Starting(Action<TInput> starting)
+    {
+        ArgumentNullException.ThrowIfNull(starting);
+        _starting = starting;
         return this;
     }
 
@@ -196,6 +217,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         _may = may;
         _saved = null;
         _invalid = null;
+        _starting = null;
         _savedMessage = null;
         _missing = null;
         _look = new OperationFormLook();
@@ -203,7 +225,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
 
     // What the generated Form.For wired, asked without a render: the tests that drive a generated form read and save
     // through these, as OnMount and a submit do.
-    internal Task<TInput?> Read(CancellationToken cancellationToken) => _load(cancellationToken);
+    internal Task<TInput?> Read(CancellationToken cancellationToken) => Started(cancellationToken);
 
     internal Task Submit(TInput input, CancellationToken cancellationToken) => _submit(input, cancellationToken);
 
@@ -211,7 +233,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
     protected override async Task OnMount()
     {
         _mounted = true;
-        _input = await _load(CancellationToken).ConfigureAwait(false);
+        _input = await Started(CancellationToken).ConfigureAwait(false);
         _loaded = true;
     }
 
@@ -239,11 +261,24 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
         ];
     }
 
+    // The model as read, with what the form starts with set on it — before any render draws it, so nothing the reader
+    // did is in it and the leave guard counts none of it.
+    private async Task<TInput?> Started(CancellationToken cancellationToken)
+    {
+        var input = await _load(cancellationToken).ConfigureAwait(false);
+        if (input is not null && _starting is { } starting)
+        {
+            starting(input);
+        }
+
+        return input;
+    }
+
     private async Task Reload()
     {
         // Yields first: the render that handed the new id is still in flight.
         await Task.Yield();
-        _input = await _load(CancellationToken).ConfigureAwait(false);
+        _input = await Started(CancellationToken).ConfigureAwait(false);
         _loaded = true;
         await StateHasChangedAsync().ConfigureAwait(false);
     }
@@ -254,7 +289,7 @@ public sealed class OperationForm<[DynamicallyAccessedMembers(DynamicallyAccesse
 
         // Read again: the save moved the version on and gave a new row its id, so the next submit of this form is
         // neither refused as stale nor adds that row twice. A factory's form starts empty again.
-        _input = await _load(CancellationToken).ConfigureAwait(false);
+        _input = await Started(CancellationToken).ConfigureAwait(false);
         if (_saved is { } saved)
         {
             await saved().ConfigureAwait(false);

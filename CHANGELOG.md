@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **An operation's form opens with a starting model: `Form.For(Tank.Create).Starting(m => m.Pistols = [new()])`.**
+  Before, a factory's form always opened empty, so a form whose rows are its point (a tank's pistols) opened with none
+  and the reader had to press "Add" first. The lambda is set on the model as it is read, before the first render, so an
+  untouched form asks nothing on leaving and is not marked changed. It runs on every read, an operation's form included
+  — there over the stored values, so write it to add (`if (m.Pistols.Count == 0) m.Pistols.Add(new())`) — and again
+  after a save, so a factory's form starts again with it. A test states the same model as `Test.FormShows`' `given`.
 - **A form's dry run tells what only the store refuses: "Már van ilyen név" as the field is left.** Before, a
   `Form.For` (and `Test.FormShows` over it) asked only the domain's rules, so a name an `IsUnique("…")` rule finds taken
   or an id of another tenant's row was refused by the save alone. The operation's dry run (`X.DryRunChange(…)`,

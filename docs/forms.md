@@ -1073,6 +1073,14 @@ Form.For(Note.Rename, id)[f => [
 - **Who may.** A principal the operation's roles do not admit (`Note.MayRename` is false) sees the form with every
   control disabled, the submit among them.
 - **A factory** is a form too, empty to start: `Form.For(Note.Write)[…]` saves through `await Note.Write(…)`.
+- **A starting model: `.Starting(m => …)`.** `Form.For(Tank.Create).Starting(m => m.Pistols = [new()])` opens a new
+  tank's form with one pistol row ready. It is set on the model as it is read, before the form is first drawn, so it is
+  no edit of the reader's: an untouched form asks nothing on leaving (`.ConfirmLeave(…)`) and carries no changed mark.
+  It runs on every read — the first, one for another id, and the one after a save, so a factory's form starts again
+  with it. An operation's form runs it **over what the stored aggregate holds**, so there it adds rather than replaces:
+  `Form.For(Tank.Change, id).Starting(m => { if (m.Pistols.Count == 0) m.Pistols.Add(new()); })`. In a test the
+  same lambda is [`Test.FormShows`](testing.md#the-form-says-what-the-domain-says-testformshows)' `given`:
+  `Test.FormShows<TankCreateInput>(m => m.Pistols[0].Number, 0, given: m => m.Pistols = [new()], …)`.
 - `.Missing(component)` is drawn for an id no row has, `.OnSaved(async () => …)` runs after a save — closing a dialog,
   say. A form handed another id reads that aggregate afresh.
 - **Every step a hand form takes.** The `<form>` it draws takes what `Form.Model(m)` does — `.Id(…)`, `.Class(…)`,
