@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Cqrs;
@@ -278,6 +279,63 @@ public sealed class ReferencedTenantTests : IDisposable
             Assert.Equal(globexCompany, (await RefTruck.First(t => t.Id == id, Token)).RefCompanyId);
         }
     }
+
+    [Fact]
+    public async Task An_administrator_of_no_tenant_writes_into_the_tenant_it_opened_naming_a_row_of_no_tenant()
+    {
+        await using var database = await Start();
+        var shared = await Ownerless(database);
+        Guid id;
+
+        using (Current.UsePrincipal(Administrator()))
+        using (Tenant.Use(Acme))
+        {
+            var truck = RefTruck.Of("ADM-1", shared);
+            await truck.Save(cancellationToken: Token);
+            id = truck.Id;
+
+            Assert.Equal(1, await RefTruck.Count(cancellationToken: Token));
+        }
+
+        using (Tenant.Across())
+        {
+            Assert.Equal(Acme, (await RefTruck.First(t => t.Id == id, Token)).TenantId);
+        }
+    }
+
+    [Fact]
+    public async Task An_administrator_inside_one_tenant_still_may_not_name_another_tenants_row()
+    {
+        await using var database = await Start();
+        var (_, globexCompany) = await Companies();
+
+        using (Current.UsePrincipal(Administrator()))
+        using (Tenant.Use(Acme))
+        {
+            var refused = await Assert.ThrowsAsync<RaskValidationException>(
+                () => RefTruck.Of("ADM-1", globexCompany).Save(cancellationToken: Token));
+
+            Assert.Equal(["No such company."], refused.Errors["RefCompanyId"]);
+        }
+    }
+
+    // A company of no tenant, as a seeded administrator's account is: a save always stamps one, so it is taken away after.
+    private static async Task<Guid> Ownerless(TestDatabase database)
+    {
+        var id = await Company(Globex, "shared");
+
+        using (Tenant.Across())
+        {
+            await database.Context.Set<RefCompany>().Where(c => c.Id == id)
+                .ExecuteUpdateAsync(set => set.SetProperty(c => EF.Property<Guid?>(c, Columns.TenantId), (Guid?)null), Token);
+        }
+
+        return id;
+    }
+
+    // Signed in with no tenant claim: an administrator, who belongs to no customer.
+    private static ClaimsPrincipal Administrator() =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())], "Test"));
 
     // An Acme truck of another tenant's company, written inside Tenant.Across(): the deliberate way round.
     private static async Task<Guid> Lent(TestDatabase database, Guid company)

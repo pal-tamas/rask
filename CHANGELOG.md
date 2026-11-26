@@ -47,6 +47,13 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **An administrator writes in a partner's tenant without crossing tenants.** The save's same-tenant reference check
+  refused a note an administrator wrote for a partner, because its author — the administrator's account, of no tenant —
+  is no row of the partner's; the app saved it inside `Tenant.Across()` and stamped the partner by hand (Eszaf's
+  `DeliveryNote.SaveNew`). A reference to a row whose `TenantId` is NULL now saves from any tenant (asked only for a
+  key the tenant's own read missed), so inside the tenant the request resolves — or `Tenant.Use(partner)` — a plain
+  `Save()`, a generated entry or a `Form.For` submit is stamped with that tenant, checked against it and reads it.
+  Another tenant's row is still refused (`docs/multi-tenancy.md#writing-in-a-partners-tenant`).
 - **`Test.FormShows` drives a value object a hand form's model holds.** It converted the value given to the
   property's type, so `m => m.Size` over a `TankCapacity? Size` failed with "Invalid cast from Int32 to TankCapacity",
   and a member of a value object of several values (`m => m.Start!.Quantity`, or `m => m.Start.Value!.Quantity` over a

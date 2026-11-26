@@ -32,6 +32,12 @@ namespace Rask.Data;
 ///         catalog's <c>ValidationNotFound</c> — the same for a row that is not there and one of another tenant's, so
 ///         the answer never says another tenant has it. <see cref="Tenant.Across" /> is the deliberate way round.
 ///     </para>
+///     <para>
+///         A row of NO tenant — <c>TenantId</c> NULL: an administrator's account, which belongs to no customer — is
+///         nobody's to keep apart, so any tenant may name it: a note an administrator writes inside
+///         <c>Tenant.Use(partner)</c> names its author and saves. It is asked only for a key the tenant's own read
+///         missed, so a save that names the tenant's rows asks nothing more.
+///     </para>
 /// </remarks>
 internal static class ReferencedTenantCheck
 {
@@ -42,7 +48,7 @@ internal static class ReferencedTenantCheck
     internal const string EntityAnnotation = "Rask:WhenMissingEntityMessage";
 
     private static readonly MethodInfo FoundMethod =
-        ((MethodCallExpression)((Expression<Func<Task<HashSet<object>>>>)(() => FoundAsync<object, object>(null!, null!, null!, default))).Body)
+        ((MethodCallExpression)((Expression<Func<Task<HashSet<object>>>>)(() => FoundAsync<object, object>(null!, null!, null!, false, default))).Body)
         .Method.GetGenericMethodDefinition();
 
     // The references each entity type's save checks, read once off the model.
@@ -166,9 +172,20 @@ internal static class ReferencedTenantCheck
 
         if (principalKey.Properties is [var only])
         {
-            var found = await Found(context, principalKey.DeclaringEntityType, only, [.. distinct.Select(static v => v[0]!)], cancellationToken)
+            var principal = principalKey.DeclaringEntityType;
+            var found = await Found(context, principal, only, [.. distinct.Select(static v => v[0]!)], ownerless: false, cancellationToken)
                 .ConfigureAwait(false);
-            missing.UnionWith(distinct.Where(v => !found.Contains(v[0]!)).Select(Joined));
+            var unseen = distinct.Where(v => !found.Contains(v[0]!)).ToList();
+
+            // A row of no tenant — an administrator's account — is nobody's to keep apart, so any tenant may name it.
+            if (unseen.Count > 0 && principal.FindProperty(Columns.TenantId) is not null && ConventionRegistry.IsPerTenant(principal.ClrType))
+            {
+                found = await Found(context, principal, only, [.. unseen.Select(static v => v[0]!)], ownerless: true, cancellationToken)
+                    .ConfigureAwait(false);
+                unseen.RemoveAll(v => found.Contains(v[0]!));
+            }
+
+            missing.UnionWith(unseen.Select(Joined));
             return missing;
         }
 
@@ -190,21 +207,30 @@ internal static class ReferencedTenantCheck
     [UnconditionalSuppressMessage("AOT", "IL3050",
         Justification = "As above: a mapped entity type, always a reference type, and its key's own type.")]
     private static Task<HashSet<object>> Found(
-        DbContext context, IReadOnlyEntityType principal, IProperty key, List<object> ids, CancellationToken cancellationToken) =>
+        DbContext context, IReadOnlyEntityType principal, IProperty key, List<object> ids, bool ownerless, CancellationToken cancellationToken) =>
         (Task<HashSet<object>>)FoundMethod.MakeGenericMethod(principal.ClrType, key.ClrType)
-            .Invoke(null, [context, key, ids, cancellationToken])!;
+            .Invoke(null, [context, key, ids, ownerless, cancellationToken])!;
 
     // SELECT Key FROM Principal WHERE Key IN (…), through the principal's filters: the keys the tenant in flight reads.
+    // Ownerless, the tenant's filter is lifted for the rows whose TenantId is NULL; the soft delete's still stands.
     private static async Task<HashSet<object>> FoundAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity, TKey>(
-        DbContext context, IProperty key, List<object> ids, CancellationToken cancellationToken)
+        DbContext context, IProperty key, List<object> ids, bool ownerless, CancellationToken cancellationToken)
         where TEntity : class
     {
         var typed = new StrongBox<List<TKey>>([.. ids.Cast<TKey>()]);
         var row = Expression.Parameter(typeof(TEntity), "row");
         var stored = StoredProperty.Of(row, key);
-        var held = Expression.Call(Expression.Field(Expression.Constant(typed), Keys<TKey>.Value), Keys<TKey>.Contains, stored);
+        Expression held = Expression.Call(Expression.Field(Expression.Constant(typed), Keys<TKey>.Value), Keys<TKey>.Contains, stored);
+        var rows = context.Set<TEntity>().AsNoTracking();
 
-        var found = await context.Set<TEntity>().AsNoTracking()
+        if (ownerless)
+        {
+            var tenant = key.DeclaringType.ContainingEntityType.FindProperty(Columns.TenantId)!;
+            held = Expression.AndAlso(held, Expression.Equal(StoredProperty.Of(row, tenant), Expression.Constant(null, tenant.ClrType)));
+            rows = rows.IgnoreQueryFilters([ModelBuilderExtensions.TenantFilter]);
+        }
+
+        var found = await rows
             .Where(Expression.Lambda<Func<TEntity, bool>>(held, row))
             .Select(Expression.Lambda<Func<TEntity, TKey>>(stored, row))
             .ToListAsync(cancellationToken)

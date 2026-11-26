@@ -560,6 +560,38 @@ private async Task Load()
 
 A report over every tenant is `Tenant.Across()` — one greppable thing a reviewer can find.
 
+### Writing in a partner's tenant
+
+An administrator who acts in a tenant — chosen for the sign-in, named by the resolver, or opened with
+`Tenant.Use(partner)` — writes in it exactly as one of its own users does, with nothing crossed:
+
+- **Every write is that tenant's.** A generated entry (`await Note.Write(…)`, `Note.Change(id, version, …)`), a
+  `Save()` and a `Form.For` submit stamp a new row with the tenant in flight, and every read — the operation's own
+  load, a rule's `Where(…)` — sees that tenant's rows alone.
+- **The references are checked against it.** A reference the save sets must name a row of that tenant
+  ([below](#a-reference-names-a-row-of-the-same-tenant)) — or a row of **no** tenant, whose `TenantId` is NULL: the
+  administrator's own account, seeded with none, is nobody's to keep apart, so a note that names its author saves.
+  Another tenant's row is still refused.
+- **A form works in the tenant of the request.** A `Form.For` asks its dry run as each field is left and runs the
+  entry on submit, each in an event of its own, so the tenant it works in is the one each event resolves — the
+  sign-in's choice or the resolver's answer. A `Tenant.Use` a page opened around its own read does not reach them:
+  choose the tenant for the sign-in, or let the resolver name it.
+
+```csharp
+// Before: an administrator's note was saved across tenants, stamped by hand, so the author's reference passed.
+public async Task SaveNew()
+{
+    TenantId = Current.TenantId;
+    using (Tenant.Across())
+    {
+        await this.Save();
+    }
+}
+
+// After: the tenant in flight is the partner's, and the author — of no tenant — is a reference any tenant may make.
+await note.Save();
+```
+
 ## A read with no tenant throws
 
 ```csharp
@@ -658,6 +690,11 @@ public void Change(int? companyId, …) => CompanyId = companyId;
   delete's (a soft-deleted row is not there to pick). A key of several columns is asked row by row.
 - The references are the model's: a relationship its `Configure` maps, or one EF Core finds. An id with no
   relationship behind it is a plain column, and only the read face infers a join from it.
+- **A row of no tenant may be named from any tenant.** A tenant-scoped row whose `TenantId` is NULL — an
+  administrator's account, seeded with none — belongs to no customer, so a reference to it crosses no boundary:
+  a note an administrator writes in a partner's tenant names its author and saves
+  ([Writing in a partner's tenant](#writing-in-a-partners-tenant)). It is asked only for a key the tenant's own read
+  missed, with the soft delete still standing.
 - `Tenant.Across()` is the deliberate way round. `ExecuteUpdate` and `BulkInsert` with `SkipChangeTracking` do not
   pass through the save, so they are not checked.
 
