@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`database.Arrange<T>(where, set)` / `database.ArrangeGone<T>(where)` (Rask.Testing.Data): a test's setup of a
+  state the aggregate would not make.** A legacy row, a user moved to another tenant, a period closed under a note
+  already written — one `ExecuteUpdate`/`ExecuteDelete` each on the test's database, every tenant's rows (no query
+  filter), no lock, no `UpdatedAt`/`Version` stamp, no live notice, the rows written handed back. RASK187 does not
+  report them, where a raw `ExecuteUpdateAsync` in a test is; `docs/testing.md` and the RASK187 entry say which to use.
 - **An operation's form opens with a starting model: `Form.For(Tank.Create).Starting(m => m.Pistols = [new()])`.**
   Before, a factory's form always opened empty, so a form whose rows are its point (a tank's pistols) opened with none
   and the reader had to press "Add" first. The lambda is set on the model as it is read, before the first render, so an

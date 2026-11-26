@@ -70,6 +70,28 @@ public class RawSetWriteAnalyzerTests
     }
 
     [Fact]
+    public async Task A_tests_Arrange_and_ArrangeGone_are_setup_and_not_RASK187()
+    {
+        var source = Source("""
+            await db.Arrange<Pairing>(p => p.Pump == pump, s => s.SetProperty(p => p.Sent, true));
+            await db.ArrangeGone<Pairing>(p => p.Pump == pump);
+            """) + """
+
+            public static class Arranging
+            {
+                public static Task<int> Arrange<T>(this ShopDb db, System.Linq.Expressions.Expression<Func<T, bool>> where,
+                    Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<T>> set) where T : class => Task.FromResult(0);
+                public static Task<int> ArrangeGone<T>(this ShopDb db, System.Linq.Expressions.Expression<Func<T, bool>> where)
+                    where T : class => Task.FromResult(0);
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new RawSetWriteAnalyzer(), source);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public async Task A_set_write_on_a_table_that_is_no_aggregate_is_not_RASK187()
     {
         var source = Source("await db.Notes.Where(n => n.Pump == pump).ExecuteDeleteAsync(token);");

@@ -3911,7 +3911,15 @@ await Pairing.DeleteWhere(p => p.Pump == pumpId);                               
 await Period.UpdateWhere(p => p.Id == id, s => s.SetProperty(p => p.Closed, true));     // ✓ for ExecuteUpdateAsync
 ```
 
-A table that is no aggregate (a plain entity, Rask's own outbox or cache) is not reported.
+A table that is no aggregate (a plain entity, Rask's own outbox or cache) is not reported. A test reports it too: there,
+a state the aggregate would never make is setup, written with `Rask.Testing.Data`'s
+[`database.Arrange<T>(…)` / `database.ArrangeGone<T>(…)`](testing.md#a-state-the-aggregate-would-not-make-databasearrange--databasearrangegone)
+— one statement, every tenant, no stamp, lock or notice — which RASK187 does not report:
+
+```csharp
+await db.Periods.Where(p => p.Id == id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Closed, true));   // ℹ RASK187 in a test
+await database.Arrange<Period>(p => p.Id == id, set => set.SetProperty(p => p.Closed, true));          // ✓ setup, said so
+```
 
 **Fix:** call the aggregate's own (**quick-fix available** for the awaitable form on a `DbSet`, straight —
 `_ => true` — or behind one `Where`; the synchronous form, and a query composed further, are reported without one).

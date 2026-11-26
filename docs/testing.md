@@ -429,6 +429,26 @@ var ticket = await Test.Make<Ticket>(o => o.Factory = nameof(Ticket.Season));   
   references, or a made aggregate its rules refuse is an `InvalidOperationException` that names it and the option
   that helps (`o.With("…", …)`, `o.Factory = "…"`, `o.Use(…)`).
 
+### A state the aggregate would not make: `database.Arrange` / `database.ArrangeGone`
+
+Some tests start from a state no operation leads to — a legacy row from before a rule, a user moved to another tenant,
+a period closed under a note already written. `Rask.Testing.Data` writes it straight to the table, one statement each,
+and hands back how many rows it wrote:
+
+```csharp
+await database.Arrange<Period>(p => p.Id == id, set => set.SetProperty(p => p.Closed, true));   // an UPDATE
+await database.ArrangeGone<User>(u => u.Id == anna);                                              // a DELETE
+```
+
+- **Setup, never the write under test.** Every tenant's rows are matched and soft-deleted ones too (no query filter); a
+  `SoftDelete` aggregate's row is removed, not stamped. No `LockedBy` is asked, `UpdatedAt` and `Version` stay as they
+  were, no live page is told and nothing counts toward [`manyAggregates:`](#one-aggregate-per-transaction-dbrecord).
+- **What the app does goes through the aggregate**: `X.UpdateWhere(…)` / `X.DeleteWhere(…)` and its entries keep all of
+  the above. EF Core's own `ExecuteUpdateAsync`/`ExecuteDeleteAsync` in a test is
+  [RASK187](diagnostics.md#rask187); `Arrange`/`ArrangeGone` are not, as their name says they are setup.
+- It runs on `database.Context`, which reads what the database has afterwards: a row it tracks takes the arranged
+  values on its next read.
+
 ### The form says what the domain says: `Test.FormShows`
 
 One line per feature proves the reader is told a rule where they type it — the rule's own test proves the domain

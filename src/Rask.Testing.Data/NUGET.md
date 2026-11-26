@@ -35,4 +35,17 @@ var ticket = await Test.Make<Ticket>(o => o.Factory = nameof(Ticket.Season));
 - What it cannot make, or its rules refuse, is an `InvalidOperationException` naming the parameter and the option
   that helps.
 
+## A state the aggregate would not make: `database.Arrange` / `database.ArrangeGone`
+
+Setup a test needs and no operation leads to — a legacy row, a user moved to another tenant, a period closed under a
+note — written straight to the table, one statement each, the rows written handed back:
+
+```csharp
+await database.Arrange<Period>(p => p.Id == id, set => set.SetProperty(p => p.Closed, true));
+await database.ArrangeGone<User>(u => u.Id == anna);
+```
+
+Every tenant's rows, no filter, no lock, no `UpdatedAt`/`Version` stamp, no live notice — setup, never the write under
+test, which goes through the aggregate (`X.UpdateWhere`, `X.DeleteWhere`). RASK187 does not report them.
+
 See the [testing guide](https://github.com/pal-tamas/rask/blob/main/docs/testing.md).
