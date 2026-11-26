@@ -15,8 +15,10 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///     failed request the person sees as an error. <c>Refuse.When(…)</c> / <c>Refuse.Unless(…)</c> (Rask.Data) say the
 ///     same sentence where it is read. Only those two exact types are reported: a subclass
 ///     (<c>ArgumentNullException</c>, <c>ArgumentOutOfRangeException</c>) is a guard against a caller's mistake, not a
-///     rule. Reported only when the compilation has <c>Rask.Data.Refuse</c>, so the quick-fix always has somewhere to
-///     point. A suggestion by default; a warning under <c>&lt;RaskStrict&gt;</c>.
+///     rule. A broken invariant — a programming error, never a rule the person at the screen could act on — throws
+///     <c>System.Diagnostics.UnreachableException</c>, which is not reported either. Reported only when the compilation
+///     has <c>Rask.Data.Refuse</c>, so the quick-fix always has somewhere to point. A suggestion by default; a warning
+///     under <c>&lt;RaskStrict&gt;</c>.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class RuleExceptionAnalyzer : DiagnosticAnalyzer
@@ -31,7 +33,9 @@ public sealed class RuleExceptionAnalyzer : DiagnosticAnalyzer
         description: "A rule of an aggregate or an entity that says no is a refusal for the person at the screen: "
                      + "Refuse.When(condition, message) throws a RaskValidationException, which a form shows under the "
                      + "field it names or above the form. An InvalidOperationException or an ArgumentException is a "
-                     + "failed request instead. A suggestion by default; a warning under <RaskStrict>.",
+                     + "failed request instead. A broken invariant, a programming error no one at the screen can act "
+                     + "on, throws System.Diagnostics.UnreachableException, which is not reported. A suggestion by "
+                     + "default; a warning under <RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK184"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask184);

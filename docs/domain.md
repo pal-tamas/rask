@@ -1342,6 +1342,9 @@ for (var i = 0; i < Parts.Count; i++)
 }
 ```
 
+- **A broken invariant is no refusal.** `Refuse` is for what the person at the screen can act on. A state the
+  aggregate's own methods never let it reach is a programming error: throw `System.Diagnostics.UnreachableException`,
+  which [RASK184](diagnostics.md#rask184) leaves alone, and it reaches the logs as the bug it is.
 - `Refuse.When(condition, …)` refuses when the condition holds, `Refuse.Unless(condition, …)` when it does not,
   and `Refuse.At(() => field, message)` always — the branch that already knows. Each takes the field as a lambda,
   or no field for the form as a whole.

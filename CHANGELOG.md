@@ -56,6 +56,9 @@ them until tagged releases begin.
   with it, an entry's id there for the rows added after it, counted toward `manyAggregates:`, the notices sent once it
   commits (`DbTransactionJoinedWritesTests`). RASK133's and RASK187's descriptions and `docs/diagnostics.md`,
   `docs/data-writes.md` and `docs/domain.md` now say so, so following the analyzer inside a block keeps the load atomic.
+- **A broken invariant throws `UnreachableException`; `Refuse` is for what the person at the screen can act on.**
+  RASK184's description, `docs/diagnostics.md` and `docs/domain.md` now say so, and a test pins that RASK184 never
+  reports `throw new UnreachableException(…)` in an aggregate.
 - **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
   `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
   provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,

@@ -3819,11 +3819,18 @@ failed request instead — an error toast that says nothing useful, or an error 
 reported: `ArgumentNullException`, `ArgumentOutOfRangeException` and the other subclasses guard against a caller's
 mistake, not a rule.
 
+`Refuse` is for a refusal the person at the screen can act on — change a field, pick another row, try later. A broken
+invariant is not one: a state the aggregate's own methods never let it reach is a programming error, and it throws
+`System.Diagnostics.UnreachableException`, which RASK184 does not report. It reaches the logs and the error page as the
+bug it is, not as a sentence under a field.
+
 ```csharp
 public void Ship()
 {
     if (Lines.Count == 0) throw new InvalidOperationException("Nothing to ship.");   // ℹ RASK184
     Refuse.When(Lines.Count == 0, "Nothing to ship.");                              // ✓ shown above the form
+    if (Shipped && ShippedAt is null)                                               // ✓ not reported: a bug, not a rule
+        throw new UnreachableException("Ship() always stamps ShippedAt.");
 }
 ```
 

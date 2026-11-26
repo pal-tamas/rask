@@ -58,6 +58,31 @@ public class RuleExceptionAnalyzerTests
     }
 
     [Fact]
+    public async Task A_broken_invariant_thrown_as_UnreachableException_is_no_refusal_and_not_reported()
+    {
+        const string invariant = """
+            using System;
+            using System.Diagnostics;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public int Quantity { get; private set; }
+                public void Ship()
+                {
+                    if (Quantity < 0) throw new UnreachableException("Set keeps Quantity at zero or more.");
+                }
+                public int Picked(int? amount) => amount ?? throw new UnreachableException("Pick always passes an amount.");
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new RuleExceptionAnalyzer(), invariant);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public async Task An_app_that_sets_RaskStrict_is_warned_about_an_aggregate_throwing_a_plain_exception()
     {
         var strict = StrictConfig.Severity("RASK184");
