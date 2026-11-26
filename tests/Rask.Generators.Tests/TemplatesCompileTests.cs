@@ -125,6 +125,8 @@ public class TemplatesCompileTests
         global using Microsoft.Extensions.Logging;
         global using Rask.Auth;
         global using Rask.Data;
+        global using Rask.Values;
+        global using Range = Rask.Values.Range;
         global using Rask.Logging;
         global using Rask.Mailing;
         global using Rask.Caching;

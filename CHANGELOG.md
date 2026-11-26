@@ -68,6 +68,9 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A scaffolded server or hosted app builds again: `Features/Shared/User.cs` no longer writes `using Rask.Values;`.**
+  Every app on `Rask.Server` already imports the namespace through Rask.Data's (transitive) props, so the explicit
+  using was IDE0005 under warnings-as-errors. The templates compile test now hands the scaffold the same imports.
 - **A chunked upload whose message does not decode leaves nothing on disk when the 400 is sent.** Its parts were
   deleted only after the response, so a caller (or a test) looking right after the refusal could still find them.
 - **A SQLite `TestDatabase` started under a cancelled token is cancelled** even once another test made the model's

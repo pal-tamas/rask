@@ -1,5 +1,3 @@
-using Rask.Values;
-
 namespace Company.RaskServer.Features.Shared;
 
 // Your user. Add the columns your app needs — a locale, a team id — and create the migration with
