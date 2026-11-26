@@ -769,7 +769,7 @@ public sealed partial class OperationGenerator
 
     private static void AppendSubmit(StringBuilder s, OperatedAggregate aggregate, Operation operation, bool marked)
     {
-        var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
+        var arguments = string.Join(", ", operation.Parameters.Select(static p => Argument(p)));
         s.Append("                async (input, cancellationToken) =>").AppendLine();
         s.AppendLine("                {");
         s.Append("                    var failures = new ").Append(FailureListFqn).AppendLine("();");
@@ -793,7 +793,11 @@ public sealed partial class OperationGenerator
     }
 
     private static string Outs(Operation operation) =>
-        string.Concat(operation.Parameters.Select(static p => ", out var " + p.Name));
+        string.Concat(operation.Parameters.Select(static p => ", out var " + Argument(p)));
+
+    // What the generated reader, submit and rules name a parameter's made value (`__p_field`): no name a person writes,
+    // so a parameter named `field`, `model`, `input`, `failures` or `operation` shadows none they declare themselves.
+    private static string Argument(OperationParameter parameter) => "__p_" + parameter.Name.TrimStart('@');
 
     // The fields made into the operation's arguments: each value object through its rules, every refusal collected.
     private static void AppendReader(StringBuilder s, OperatedAggregate aggregate, Operation operation)
@@ -803,7 +807,7 @@ public sealed partial class OperationGenerator
         s.Append("    private static bool ").Append(operation.Name).Append("Read(").Append(input).Append(" input, ").Append(FailureListFqn).Append(" failures");
         foreach (var parameter in operation.Parameters)
         {
-            s.Append(", out ").Append(parameter.Type).Append(' ').Append(parameter.Name);
+            s.Append(", out ").Append(parameter.Type).Append(' ').Append(Argument(parameter));
         }
 
         s.AppendLine(")");
@@ -819,7 +823,7 @@ public sealed partial class OperationGenerator
                 made = ShutCall(aggregate, field) + " ? " + kept + " : " + made;
             }
 
-            s.Append("        ").Append(parameter.Name).Append(" = ").Append(made).AppendLine(";");
+            s.Append("        ").Append(Argument(parameter)).Append(" = ").Append(made).AppendLine(";");
         }
 
         s.AppendLine("        return failures.Count == 0;");
@@ -938,7 +942,7 @@ public sealed partial class OperationGenerator
     private static void AppendRules(StringBuilder s, OperatedAggregate aggregate, Operation operation)
     {
         var input = InputName(aggregate, operation);
-        var arguments = string.Join(", ", operation.Parameters.Select(static p => p.Name));
+        var arguments = string.Join(", ", operation.Parameters.Select(static p => Argument(p)));
         s.AppendLine();
         s.Append("    private sealed class ").Append(operation.Name).AppendLine("Rules : global::Rask.Core.Forms.IStoreRules");
         s.AppendLine("    {");

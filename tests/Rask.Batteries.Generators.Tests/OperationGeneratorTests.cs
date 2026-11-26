@@ -46,10 +46,10 @@ public class OperationGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public static global::System.Threading.Tasks.Task Change(global::System.Guid id, int version, string note, global::System.Collections.Generic.IReadOnlyList<int> parts, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
-        Assert.Contains("Run<global::Shop.Supply>(\"Change\", null, id!, version, aggregate => { aggregate.Change(note, parts); return global::System.Threading.Tasks.Task.CompletedTask; }, cancellationToken);", generated, StringComparison.Ordinal);
-        Assert.Contains("aggregate => { aggregate.Rename(note); return", generated, StringComparison.Ordinal);
+        Assert.Contains("Run<global::Shop.Supply>(\"Change\", null, id!, version, __aggregate => { __aggregate.Change(note, parts); return global::System.Threading.Tasks.Task.CompletedTask; }, cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("__aggregate => { __aggregate.Rename(note); return", generated, StringComparison.Ordinal);
         Assert.Contains("Distribute(global::System.Guid id, int version, int count = (int)3, global::System.Threading.CancellationToken", generated, StringComparison.Ordinal);
-        Assert.Contains("aggregate => aggregate.Distribute(count), cancellationToken);", generated, StringComparison.Ordinal);
+        Assert.Contains("__aggregate => __aggregate.Distribute(count), cancellationToken);", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class OperationGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("public static global::System.Threading.Tasks.Task Change(global::System.Guid id, string note, global::System.Collections.Generic.IReadOnlyList<int> parts, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
-        Assert.Contains("Run<global::Shop.Supply>(\"Change\", null, id!, null, aggregate =>", generated, StringComparison.Ordinal);
+        Assert.Contains("Run<global::Shop.Supply>(\"Change\", null, id!, null, __aggregate =>", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class OperationGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("Rename(int id, string name, global::System.Threading.CancellationToken cancellationToken = default)", generated, StringComparison.Ordinal);
-        Assert.Contains("(\"Rename\", null, id!, null, aggregate =>", generated, StringComparison.Ordinal);
+        Assert.Contains("(\"Rename\", null, id!, null, __aggregate =>", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class OperationGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("DryRunBump(global::System.Guid id, int version, int level, global::System.Threading.CancellationToken cancellationToken = default) =>", generated, StringComparison.Ordinal);
-        Assert.Contains("GeneratedOperations.Try<global::Shop.Tag>(id!, version, aggregate => { aggregate.Bump(level); return", generated, StringComparison.Ordinal);
+        Assert.Contains("GeneratedOperations.Try<global::Shop.Tag>(id!, version, __aggregate => { __aggregate.Bump(level); return", generated, StringComparison.Ordinal);
         Assert.Contains("GeneratedOperations.TryBuild<global::Shop.Tag>(() => global::System.Threading.Tasks.Task.FromResult(Open(level)), cancellationToken);", generated, StringComparison.Ordinal);
         Assert.Contains("EditorBrowsableState.Never", generated, StringComparison.Ordinal);
     }
@@ -313,14 +313,76 @@ public class OperationGeneratorTests
         Assert.Contains("public sealed class DriverChangeInput", forms, StringComparison.Ordinal);
         Assert.Contains("public string? Name { get; set; }", forms, StringComparison.Ordinal);
         Assert.Contains("public int? Seats { get; set; }", forms, StringComparison.Ordinal);
-        Assert.Contains("seats = global::Rask.Data.GeneratedOperations.Given(() => input.Seats is { } __given ? __given : throw", forms, StringComparison.Ordinal);
+        Assert.Contains("__p_seats = global::Rask.Data.GeneratedOperations.Given(() => input.Seats is { } __given ? __given : throw", forms, StringComparison.Ordinal);
         Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, global::System.Func<global::System.Guid, int, global::Shop.DriverName, global::Shop.Nickname?, int, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operation, global::System.Guid id)", forms, StringComparison.Ordinal);
         Assert.Contains("Name = aggregate.Name.Value, Nick = aggregate.Nick?.Value, Seats = aggregate.Seats", forms, StringComparison.Ordinal);
         Assert.Contains("\"Name\" => global::Shop.DriverName.__Field,", forms, StringComparison.Ordinal);
         Assert.Contains("property is \"Name\" or \"Seats\";", forms, StringComparison.Ordinal);
         Assert.Contains("global::Shop.Nickname.CreateOptional(input.Nick, \"Nick\")", forms, StringComparison.Ordinal);
-        Assert.Contains("DryRunChange(input.Id, input.Version, name, nick, seats, cancellationToken)", forms, StringComparison.Ordinal);
+        Assert.Contains("DryRunChange(input.Id, input.Version, __p_name, __p_nick, __p_seats, cancellationToken)", forms, StringComparison.Ordinal);
         Assert.Contains("static () => global::Shop.Driver.MayChange", forms, StringComparison.Ordinal);
+    }
+
+    // Every name the generated entry, form, reader and rules declare for themselves — none a parameter may shadow.
+    private const string TakenNames = """
+        using System;
+        using Rask.Data;
+
+        namespace Shop
+        {
+            public sealed partial class Memo : Aggregate<Guid, Versioned>
+            {
+                public string Text { get; private set; } = "";
+
+                public void Note(string field, string model, string input, string failures) => Text = field + model + input + failures;
+                public void Reword(string operation, string form, string aggregate, string editing) => Text = operation + form + aggregate + editing;
+                private static Memo Open(string field, string model, string input, string failures, string operation, string form, string aggregate) =>
+                    new() { Id = Guid.CreateVersion7(), Text = field + model + input + failures + operation + form + aggregate };
+            }
+        }
+        """;
+
+    [Fact]
+    public void Parameters_named_as_the_generated_locals_get_an_entry_and_a_form_that_compile()
+    {
+        var run = RunWithForms(TakenNames);
+
+        var forms = run.GeneratedSource("Shop.Memo.OperationForms");
+        var entries = run.GeneratedSource("Shop.Memo.Operations");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public sealed class MemoNoteInput", forms, StringComparison.Ordinal);
+        Assert.Contains("public sealed class MemoRewordInput", forms, StringComparison.Ordinal);
+        Assert.Contains("public sealed class MemoOpenInput", forms, StringComparison.Ordinal);
+        Assert.Contains(".Reword(operation, form, aggregate, editing)", entries, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_parameter_named_cancellationToken_is_RASK171_and_leaves_code_that_compiles()
+    {
+        var run = RunWithForms("""
+            using System;
+            using System.Threading;
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public sealed partial class Memo : Aggregate<Guid, Versioned>
+                {
+                    public string Text { get; private set; } = "";
+
+                    public void Note(string field, CancellationToken cancellationToken) => Text = field;
+                    private static Memo Open(string model, CancellationToken cancellationToken) => new() { Id = Guid.CreateVersion7(), Text = model };
+                }
+            }
+            """);
+
+        var refused = run.Diagnostics.Where(static d => d.Id == "RASK171").Select(static d => d.GetMessage()).ToList();
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Equal(2, refused.Count);
+        Assert.All(refused, static m => Assert.Contains("parameter named 'cancellationToken'", m, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -529,7 +591,7 @@ public class OperationGeneratorTests
         Assert.Contains("public delegate global::System.Threading.Tasks.Task ArchiveEntry(TagOperationForms.ArchiveMark __mark, global::System.Guid id, int version, global::System.Threading.CancellationToken cancellationToken);", forms, StringComparison.Ordinal);
         Assert.Contains("For(this global::Rask.Core.RaskSeed_Form form, RestoreEntry operation, global::System.Guid id)", forms, StringComparison.Ordinal);
         Assert.Contains("public static global::System.Threading.Tasks.Task Lower(TagOperationForms.LowerMark __mark, global::System.Guid id, int version, int level, global::System.Threading.CancellationToken cancellationToken) =>", forms, StringComparison.Ordinal);
-        Assert.Contains("await operation(default, input.Id, input.Version, level, cancellationToken);", forms, StringComparison.Ordinal);
+        Assert.Contains("await operation(default, input.Id, input.Version, __p_level, cancellationToken);", forms, StringComparison.Ordinal);
     }
 
     [Fact]

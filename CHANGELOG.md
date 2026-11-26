@@ -82,6 +82,12 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **An operation or factory whose parameter is named `field`, `model`, `input`, `failures`, `operation`, `form`,
+  `aggregate` or `editing` builds again.** The generated `<Aggregate>.OperationForms.g.cs` declared its own
+  `model`/`field`/`input`/`failures` beside an `out var` named after each parameter (CS0136, CS0100), and a parameter
+  named `aggregate` was shadowed by the entry's lambda, so `aggregate.Note(aggregate)` handed the method the aggregate
+  itself (CS1503). The made values are now `__p_<name>` and the entry's lambda names its aggregate `__aggregate` —
+  `__` starts no name a person writes. `id`, `version` and `cancellationToken` stay RASK171.
 - **`rask deploy --env Rask__ConnectionStrings__App=…` reaches the app again when the env goes in a file.** The
   CLI's own defaults (`Rask__ConnectionStrings__App`/`__Logs`, `ASPNETCORE_ENVIRONMENT`,
   `ASPNETCORE_SHUTDOWNTIMEOUTSECONDS`, `Rask__Version`, and with `--domain` `Rask__BehindProxy` and

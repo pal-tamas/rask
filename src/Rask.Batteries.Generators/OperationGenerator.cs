@@ -48,6 +48,10 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
     internal const string Tool = "Rask.Operations";
 
     private const string OperationCall = "Operation";
+
+    // What the entry's lambda names the aggregate it loaded: no operation's parameter, as `__` starts none a person
+    // writes — a parameter named `aggregate` would otherwise be shadowed and handed the aggregate itself.
+    private const string Self = "__aggregate";
     private const string DeleteName = "Delete";
     private const string EditorDialogType = "Rask.UiEditorDialog";
     private const string RolesParameter = "roles";
@@ -261,7 +265,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
     {
         if (method.ReturnsVoid || SymbolEqualityComparer.Default.Equals(method.ReturnType, aggregate))
         {
-            return "{ aggregate.{0}; return " + TaskFqn + ".CompletedTask; }";
+            return "{ " + Self + ".{0}; return " + TaskFqn + ".CompletedTask; }";
         }
 
         var returned = method.ReturnType.OriginalDefinition.ToDisplayString();
@@ -270,10 +274,10 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
 
         return returned switch
         {
-            "System.Threading.Tasks.Task" => "aggregate.{0}",
-            "System.Threading.Tasks.ValueTask" => "aggregate.{0}.AsTask()",
-            "System.Threading.Tasks.Task<TResult>" when ofSelf => "aggregate.{0}",
-            "System.Threading.Tasks.ValueTask<TResult>" when ofSelf => "aggregate.{0}.AsTask()",
+            "System.Threading.Tasks.Task" => Self + ".{0}",
+            "System.Threading.Tasks.ValueTask" => Self + ".{0}.AsTask()",
+            "System.Threading.Tasks.Task<TResult>" when ofSelf => Self + ".{0}",
+            "System.Threading.Tasks.ValueTask<TResult>" when ofSelf => Self + ".{0}.AsTask()",
             _ => null,
         };
     }
@@ -552,7 +556,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             s.Append(", ").Append(Literal(operation.ManyAggregates)).Append(", ").Append(LockLambda(aggregate, operation.ForUpdate));
         }
 
-        s.Append(", id!, ").Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call)
+        s.Append(", id!, ").Append(aggregate.Versioned ? "version" : "null").Append(", ").Append(Self).Append(" => ").Append(call)
             .AppendLine(", cancellationToken);");
         s.AppendLine();
     }
@@ -583,7 +587,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
             s.Append(", ").Append(Literal(operation.ManyAggregates)).Append(", ").Append(LockLambda(aggregate, operation.ForUpdate));
         }
 
-        s.Append(", id!, null, aggregate => ").Append(call).AppendLine(", cancellationToken);");
+        s.Append(", id!, null, ").Append(Self).Append(" => ").Append(call).AppendLine(", cancellationToken);");
         s.AppendLine();
     }
 
@@ -636,7 +640,7 @@ public sealed partial class OperationGenerator : IIncrementalGenerator
         AppendParameters(s, operation);
         s.AppendLine("global::System.Threading.CancellationToken cancellationToken = default) =>");
         s.Append("        global::Rask.Data.GeneratedOperations.Try<").Append(aggregate.FullyQualifiedName).Append(">(id!, ")
-            .Append(aggregate.Versioned ? "version" : "null").Append(", aggregate => ").Append(call).AppendLine(", cancellationToken);");
+            .Append(aggregate.Versioned ? "version" : "null").Append(", ").Append(Self).Append(" => ").Append(call).AppendLine(", cancellationToken);");
         s.AppendLine();
     }
 
