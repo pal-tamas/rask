@@ -487,15 +487,30 @@ public static partial class RaskCqrsEndpointExtensions
             }
 
             var uploads = context.RequestServices.GetRequiredService<UploadSessionStore>();
-            var assembled = uploads.Take(owner, uploadId, context.Response.RegisterForDispose)
+            IDisposable? leftovers = null;
+            var assembled = uploads.Take(owner, uploadId, parts =>
+                            {
+                                leftovers = parts;
+                                context.Response.RegisterForDispose(parts);
+                            })
                             ?? throw new BadRequestException(
                                 StatusCodes.Status400BadRequest, "Unknown upload",
                                 "That upload session has expired, was already spent, or belongs to "
                                 + "somebody else.");
 
-            var sessionReader = new Utf8JsonReader(payload);
-            sessionReader.Read();
-            return contract.ReadMessage(ref sessionReader, assembled);
+            try
+            {
+                var sessionReader = new Utf8JsonReader(payload);
+                sessionReader.Read();
+                return contract.ReadMessage(ref sessionReader, assembled);
+            }
+            catch
+            {
+                // A message that does not decode reaches no handler, so its parts are deleted now rather
+                // than after the response: the refusal is sent with nothing of the upload left on disk.
+                leftovers?.Dispose();
+                throw;
+            }
         }
 
         var reader = new Utf8JsonReader(payload);

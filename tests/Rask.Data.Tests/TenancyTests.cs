@@ -463,9 +463,7 @@ public sealed class TenancyTests : IDisposable
     public async Task A_new_row_that_names_a_tenant_itself_is_saved_inside_Across_and_refused_in_another_tenant()
     {
         await using var database = await StartDatabaseAsync();
-        var theirs = Vault.For("V-1");
-        database.Context.Add(theirs);
-        database.Context.Entry(theirs).Property(v => v.TenantId).CurrentValue = _acme;
+        AddNamingAcme(database, "V-1");
 
         using (Tenant.Use(_globex))
         {
@@ -473,6 +471,8 @@ public sealed class TenancyTests : IDisposable
                 () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
         }
 
+        // The refused row is let go with its save, as a request's context would be: it is added again.
+        AddNamingAcme(database, "V-1");
         using (Tenant.Across())
         {
             await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -482,6 +482,13 @@ public sealed class TenancyTests : IDisposable
         {
             Assert.Equal(["V-1"], await Vault.Select(v => v.Code));
         }
+    }
+
+    private void AddNamingAcme(TestDatabase database, string code)
+    {
+        var vault = Vault.For(code);
+        database.Context.Add(vault);
+        database.Context.Entry(vault).Property(v => v.TenantId).CurrentValue = _acme;
     }
 
     // Its TenantId is its own data: no tenant in flight says anything about who may change it.

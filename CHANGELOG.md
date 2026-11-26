@@ -55,6 +55,14 @@ them until tagged releases begin.
   RASK187) and its data-step example no longer calls a read-face `Ids()` that does not exist.
 
 ### Fixed
+- **A chunked upload whose message does not decode leaves nothing on disk when the 400 is sent.** Its parts were
+  deleted only after the response, so a caller (or a test) looking right after the refusal could still find them.
+- **A SQLite `TestDatabase` started under a cancelled token is cancelled** even once another test made the model's
+  schema template; the template copy ran without looking at the token.
+- **A save of `TestDatabase.Context` refused before it began leaves nothing for the next.** A reference to another
+  tenant's row (or any refusal the auditing interceptor makes) threw before EF Core would tell a later interceptor the
+  save failed, so the fixture's keeper never let go of the refused change and the next valid save was refused again; the
+  auditing interceptor now tells the later ones itself, as the unique-violation translator does.
 - **An administrator writes in a partner's tenant without crossing tenants.** The save's same-tenant reference check
   refused a note an administrator wrote for a partner, because its author — the administrator's account, of no tenant —
   is no row of the partner's; the app saved it inside `Tenant.Across()` and stamped the partner by hand (Eszaf's

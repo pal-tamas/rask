@@ -34,6 +34,10 @@ internal sealed class SqliteSchemaTemplate
 
     private async Task CopyInto(DbContext context, SqliteConnection database, CancellationToken cancellationToken)
     {
+        // The template copy below takes no token, so once another test has made the template a cancelled start would
+        // otherwise succeed: the work it was given up on is refused here, whichever path the schema takes.
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (Volatile.Read(ref _schema) is { } made)
         {
             Copy(made, database);

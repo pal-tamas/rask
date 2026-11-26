@@ -477,8 +477,11 @@ public sealed class NumberedTenantTests : IDisposable
                 () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
         }
 
+        // The refused change is let go with its save, as a request's context would be: it is made again.
         using (Tenant.Across())
         {
+            loaded = await database.Context.Set<Destination>().SingleAsync(d => d.Id == orphan, TestContext.Current.CancellationToken);
+            loaded.Rename("claimed");
             await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
