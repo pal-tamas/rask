@@ -42,6 +42,18 @@ session, a pairing a pump re-sends). What a save keeps it still keeps:
 What it cannot keep it refuses: a `ValidateDelete()` asks each row in C#, as does a lock declared on a child the
 delete would cascade to, so `DeleteWhere` on such an aggregate throws and names `X.Delete(id)`, which asks them.
 Both run in a `Db.Transaction` of their own, or join the one in progress, and hand back how many rows they wrote.
+Joined, they are part of that one transaction and no other: the same connection as everything else the block writes —
+the aggregates' entries, a `SaveChangesAsync()` on the app's own context — at the block's isolation, rolled back with it,
+their notices sent once it commits:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    await Pairing.DeleteWhere(p => p.Pump == pump);              // joins the block's transaction
+    db.AddRange(rows.Select(r => Pairing.Of(pump, r)));
+    await db.SaveChangesAsync();                                 // the same transaction
+}, manyAggregates: "A pump's pairings are replaced as one", isolation: IsolationLevel.Serializable);
+```
 
 **`UpdateEach` goes through the aggregate**: the keys the predicate matches are read first, then each aggregate is
 loaded whole, changed by its own method and saved — its rules, events and notices as for one — `batchSize` (500) to a

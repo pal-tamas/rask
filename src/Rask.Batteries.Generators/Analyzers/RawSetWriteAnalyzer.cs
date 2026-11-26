@@ -16,7 +16,8 @@ namespace Rask.Batteries.Generators.Analyzers;
 /// <remarks>
 ///     <para>
 ///         The raw statement skips what the aggregate's own set write keeps: <c>UpdatedAt</c> and <c>Version</c>, its
-///         declared locks, the one-aggregate rule, the data-changed notices a live page repaints on.
+///         declared locks, the one-aggregate rule, the data-changed notices a live page repaints on. Inside a
+///         <c>Db.Transaction</c> the set write joins the block's transaction, so it is reported there too.
 ///     </para>
 ///     <para>
 ///         The quick-fix is offered only where the rewrite is the same statement: the awaitable form, on a <c>DbSet</c>
@@ -47,9 +48,11 @@ public sealed class RawSetWriteAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Every aggregate has UpdateWhere and DeleteWhere: one statement over the rows a predicate matches, "
-                     + "inside a Db.Transaction, that stamps UpdatedAt and Version, asks its LockedBy, counts toward the "
-                     + "one-aggregate rule and tells the pages showing the rows. EF Core's ExecuteUpdate/ExecuteDelete "
-                     + "does none of it. A suggestion by default; a warning under <RaskStrict>.",
+                     + "that stamps UpdatedAt and Version, asks its LockedBy, counts toward the one-aggregate rule and "
+                     + "tells the pages showing the rows. It runs in a Db.Transaction of its own, or — inside "
+                     + "Db.Transaction(…) — joins that one, committed or rolled back with everything else the work writes. "
+                     + "EF Core's ExecuteUpdate/ExecuteDelete does none of it. A suggestion by default; a warning under "
+                     + "<RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK187"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask187);

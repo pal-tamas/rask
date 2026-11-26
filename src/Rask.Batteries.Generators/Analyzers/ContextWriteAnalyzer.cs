@@ -22,7 +22,8 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///         write's <c>db:</c> does, is not. Not reported in a seed (a method or a type whose name says <c>Seed</c>,
 ///         the work of <c>UseSeeding</c>/<c>UseAsyncSeeding</c>), a migration (a <c>Migrations</c> folder, a
 ///         <c>Migration</c> or <c>ModelSnapshot</c>), a test (a <c>*.Tests</c> assembly, a test attribute) or generated
-///         code — Rask's own generated entries among it.
+///         code — Rask's own generated entries among it. Reported inside <c>Db.Transaction(…)</c> too: an entry
+///         called there joins the block's transaction, so the rewrite is as atomic as the write it replaces.
 ///     </para>
 ///     <para>
 ///         <see cref="FactoryProperty" /> is set when the rewrite is mechanical: <c>db.Add(X.F(…));</c> followed at once by
@@ -51,8 +52,10 @@ public sealed class ContextWriteAnalyzer : DiagnosticAnalyzer
                      + "operation, ask its roles and its rules and save it in one transaction. DbSet.Add/Update/Remove "
                      + "or DbContext.Add/Update/Remove followed by SaveChanges writes it around all of that. Call the "
                      + "generated entry (X.Register(…), X.M(id, version, …), X.Delete(id, version)), or Find, the "
-                     + "operation and Save() inside Db.Transaction. Seeds, migrations, tests and generated code are not "
-                     + "reported. A suggestion by default; a warning under <RaskStrict>.",
+                     + "operation and Save() inside Db.Transaction. Inside Db.Transaction(…) a generated entry joins "
+                     + "that transaction — the same connection, committed or rolled back with everything else the work "
+                     + "writes — so the rewrite keeps a load of several writes atomic. Seeds, migrations, tests and "
+                     + "generated code are not reported. A suggestion by default; a warning under <RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK133"));
 
     private static readonly ImmutableHashSet<string> AddNames = ImmutableHashSet.Create(

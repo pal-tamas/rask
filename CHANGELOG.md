@@ -50,6 +50,12 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Documentation
+- **Inside `Db.Transaction`, every generated entry and every set write joins it — now proven and said where the
+  analyzers point.** `await X.Factory(…)`, `X.M(id, version, …)`, `X.DeleteWhere(…)` and `X.UpdateWhere(…)` called in
+  the block run on its connection and transaction, beside a `SaveChangesAsync()` on the app's own context: rolled back
+  with it, an entry's id there for the rows added after it, counted toward `manyAggregates:`, the notices sent once it
+  commits (`DbTransactionJoinedWritesTests`). RASK133's and RASK187's descriptions and `docs/diagnostics.md`,
+  `docs/data-writes.md` and `docs/domain.md` now say so, so following the analyzer inside a block keeps the load atomic.
 - **Upgrading to the domain way** (`docs/upgrading-to-domain.md`, on rask.sh under Data): moving an existing app from
   `IDbContextFactory`, services and hand-written forms to aggregates, in the order that keeps every release safe —
   provider-neutral code (RASK177), tests on SQLite in memory, value objects and typed ids, `Versioned`, operations,

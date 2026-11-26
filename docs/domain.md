@@ -2364,6 +2364,13 @@ is made, so the next reader does not have to guess which invariant needed it —
 second aggregate without one is refused in a test ([below](#one-aggregate-per-transaction-manyaggregates)). An
 operation that always needs it says so once, in its `Configure`: `b.Operation(x => x.M, manyAggregates: "why")`.
 
+**Every write the block makes joins it**, with no parameter to pass: a factory's or an operation's entry, a set write
+(`X.UpdateWhere(…)`, `X.DeleteWhere(…)`) and a `SaveChangesAsync()` on the app's own context alike — one connection,
+one transaction, at the block's isolation. An entry's id is there for the rows added after it, a later read in the
+block sees what it wrote, and the stamps, the `Version` bump, `LockedBy` and `ValidateDelete()` apply as they do
+outside. The one context that stays out is one whose connection its owner opened by hand
+(`db.Database.OpenConnectionAsync()`) — it runs as it always did — so open none inside a block.
+
 #### One aggregate per transaction: `manyAggregates:`
 
 An aggregate is the transaction boundary. A `Db.Transaction` that writes a second one is a decision, so it says

@@ -3305,6 +3305,21 @@ generated entry. It calls `await X.F(…, cancellationToken: …)` — the token
 call to the entry rather than to the factory — and drops the context. A suggestion by default; a warning under
 `<RaskStrict>`.
 
+**Inside `Db.Transaction` too.** An entry called inside `Db.Transaction(…)` runs in no transaction of its own: it
+[joins the block's](domain.md#changing-two-aggregates-together--the-last-resort) — the same connection and transaction
+as what the work saves on its own `db` — so the rewrite keeps a load of several writes atomic. Its id is there for the
+rows added after it, it counts toward [`manyAggregates:`](domain.md#one-aggregate-per-transaction-manyaggregates), and
+its notices go out once the block commits, never on a rollback:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    var load = await HayLoad.Deliver(meadow, bales);              // ✓ joins the block's transaction
+    db.AddRange(tags.Select(tag => HayBale.Of(load, tag)));       // the id is there already
+    await db.SaveChangesAsync();
+}, manyAggregates: "A load and its bales are only valid together");
+```
+
 ## RASK140
 
 **Domain code reads the machine's clock** · Info (Warning under `<RaskStrict>`) · quick-fix
@@ -3893,8 +3908,10 @@ A table that is no aggregate (a plain entity, Rask's own outbox or cache) is not
 
 **Fix:** call the aggregate's own (**quick-fix available** for the awaitable form on a `DbSet`, straight —
 `_ => true` — or behind one `Where`; the synchronous form, and a query composed further, are reported without one).
-The rewrite runs on the app's context in a `Db.Transaction`, not on the one the raw call named. A suggestion by
-default; a warning under `<RaskStrict>`.
+The rewrite runs on a context of the aggregate's own, not the one the raw call named — and inside `Db.Transaction(…)`
+that context joins the block's transaction, so `await Pairing.DeleteWhere(…)` followed by `db.AddRange(…)` and
+`db.SaveChangesAsync()` commits once or not at all, at the block's isolation. A suggestion by default; a warning under
+`<RaskStrict>`.
 
 ## RASK188
 
