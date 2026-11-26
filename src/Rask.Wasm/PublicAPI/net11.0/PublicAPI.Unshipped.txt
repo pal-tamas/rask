@@ -56,6 +56,7 @@ Rask.Web.Types.EXT_texture_mirror_clamp_to_edge
 Rask.Web.Types.NV_shader_noperspective_interpolation
 Rask.Web.Types.OES_sample_variables
 Rask.Web.Types.OES_shader_multisample_interpolation
+Rask.Web.Types.WEBGL_blend_func_extended
 Rask.Web.Types.WEBGL_polygon_mode
 Rask.Web.Types.WEBGL_polygon_mode.PolygonModeWEBGL(int face, int mode) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_render_shared_exponent
