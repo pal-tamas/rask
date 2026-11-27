@@ -19,9 +19,14 @@ namespace Rask.Generators.Shared;
 ///     — or null. When it is the collection a root holds its children in, the relationship is the child's way back to
 ///     that root, which the read face maps already.
 /// </param>
+/// <param name="Navigation">
+///     The navigation's name when the declaration gives it — a <c>BelongsTo&lt;Vehicle&gt;? Vehicle</c> is <c>Vehicle</c> on
+///     the read face too — or null, for the name the id and the target settle.
+/// </param>
 internal sealed record ReadRelationship(
     string DependentTypeName,
     string PrincipalTypeName,
     EquatableArray<string> ForeignKeys,
     bool OnAlternateKey,
-    string? PrincipalCollection);
+    string? PrincipalCollection,
+    string? Navigation = null);

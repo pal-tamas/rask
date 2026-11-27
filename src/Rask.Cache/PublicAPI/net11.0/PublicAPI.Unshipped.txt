@@ -142,7 +142,7 @@ static Rask.Caching.CacheEntryReadAccess.AsQueryable() -> System.Linq.IQueryable
 static Rask.Caching.CacheEntryReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
-static Rask.Caching.CacheEntryReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!, TProperty>!
 static Rask.Caching.CacheEntryReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
@@ -155,7 +155,7 @@ static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AsQ
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
-static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!, TProperty>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!

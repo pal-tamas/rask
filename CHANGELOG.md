@@ -19,6 +19,20 @@ them until tagged releases begin.
   the rule (an attribute, another size, a delete rule it cannot read). A project that restates the naming pattern still
   hears about these. A `HasOne<T>().WithMany().HasForeignKey(…)` is not reported: Rask infers that navigation for the
   read face only, so in the write model the line is the foreign key. The kinds are tabled in `docs/diagnostics.md#rask192`.
+- **`BelongsTo<T>`: a reference to another aggregate, Rails' `belongs_to` across the border.** `public partial
+  BelongsTo<Vehicle>? Vehicle { get; }` on a partial entity generates the stored `VehicleId` (the vehicle's key type,
+  nullable as the reference is, `private set`) and maps it as `HasOne<Vehicle>().WithMany().HasForeignKey(…)` with
+  `OnDelete(NoAction)` below an explicit one — no navigation, so the vehicle is never loaded, tracked or saved with the
+  fueling. Read it through the read face: `await f.Vehicle.Read()`, `Read(v => v.Plate)`, the batched
+  `fuelings.Select(f => f.Vehicle).Read()` (one query, a dictionary by id), or `Fueling.Include(f => f.Vehicle)`; assign
+  it through the id inside the aggregate. A hand-written id (with or without a navigation or a configured `HasOne`) moves
+  to it with no migration — the differ finds nothing on SQLite, SQL Server and PostgreSQL. RASK194 (error) refuses a
+  declaration Rask cannot complete (not partial, not to an aggregate, to the tenant, a child to its own root, a key name
+  taken, an aggregate with a form); RASK195 (error) an EF Core `Include`/`ThenInclude`/`Reference` over a `BelongsTo`;
+  RASK196 (suggestion, quick-fix) another aggregate's id held by hand. `docs/domain.md#relationships-hasmany-and-belongsto`.
+- **`ThenInclude` on the read face.** `Order.Include(o => o.Lines).ThenInclude(l => l.Product)`,
+  `Fueling.Include(f => f.Vehicle).ThenInclude(v => v.Owner)`: `Include` now returns `ModelQuery<T, TIncluded>`, which
+  `ThenInclude` continues — a reference, a child list or the rows that point here.
 - **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
   the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
 - **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,

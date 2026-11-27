@@ -108,6 +108,7 @@ internal static class ReadModelShape
             return null;
         }
 
+        AddBelongsToKeys(entity, members);
         AddKey(entity, members, references, keyParts);
         AddFrameworkColumns(entity, members);
         AddTenantColumn(entity, members);
@@ -200,6 +201,22 @@ internal static class ReadModelShape
         references.InsertRange(0, keyParts
             .Where(static p => p.Aggregate is not null && AggregateShape.IsAggregate(p.Aggregate))
             .Select(static p => new ReadReference(p.Name, p.Aggregate!.Name, TypeOf(p.Type), false)));
+    }
+
+    // The key each BelongsTo generates, which no symbol here shows: a column of the target's key type, nullable as the
+    // reference is. Its navigation is the declaration's, as a relationship (ConfiguredRelationships), never a guess.
+    private static void AddBelongsToKeys(INamedTypeSymbol entity, List<ReadMember> members)
+    {
+        foreach (var reference in BelongsToShape.Of(entity))
+        {
+            var name = BelongsToShape.KeyName(reference);
+            if (BelongsToShape.KeyTypeOf(reference) is not { } key || members.Exists(m => string.Equals(m.Name, name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            members.Add(new ReadMember(name, name, name, TypeOf(key), BelongsToShape.IsOptional(reference), IsReferenceType(key)));
+        }
     }
 
     // A primitive column, and — for a {X}Id — the candidate reference it might be.

@@ -134,6 +134,7 @@ from a form.
 | `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
 | `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
 | `ProductId? ProductId` (a [typed id](domain.md#strongly-typed-ids) some entity is keyed by) | `ProductId? ProductId` — **kept typed**, nullable as declared, with its `ProductRead? Product` navigation |
+| `partial BelongsTo<Vehicle>? Vehicle` ([another aggregate](domain.md#another-aggregate-belongsto)) | `VehicleId? VehicleId` — the generated key — and `VehicleRead? Vehicle`, named by the declaration, never guessed |
 | `Quantity Quantity` (a one-value value object) | `long Quantity` — the value it holds |
 | `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
 | *another aggregate's* `Guid OrderId`, on `Invoice` | `IReadOnlyList<InvoiceRead> Invoices` — the rows that point here, [below](#the-rows-that-point-here) |
@@ -276,7 +277,8 @@ every tenant. The target keeps its own filters too, so another tenant's fueling 
 appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
 would both claim with no words of their own to tell them apart gets no collection and a
 [RASK108](diagnostics.md#rask108) warning;
-the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row.
+the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row. `ThenInclude` continues an `Include` with a navigation of what it loaded:
+`Fueling.Include(f => f.DistributionsTo).ThenInclude(d => d.FromFueling)`.
 
 ### By id: a row, or the aggregate
 

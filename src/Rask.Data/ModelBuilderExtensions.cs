@@ -98,6 +98,7 @@ public static class ModelBuilderExtensions
         ApplyTenancy(modelBuilder, entityTypes, context);
         TenantColumnFollowers.Settle(modelBuilder);
         BindChildrenToTheirParents(modelBuilder);
+        BelongsToRelationships.Apply(modelBuilder, entityTypes);
 
         return modelBuilder;
     }

@@ -31,7 +31,8 @@ namespace Rask.Data;
 ///     </para>
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
-public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>
+// Not sealed for ModelQuery<TEntity, TIncluded> alone, the query an Include returns: no constructor is reachable outside Rask.Data.
+public class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>
     where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
@@ -48,7 +49,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     {
     }
 
-    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool unrankedSearch, bool forUpdate)
+    private protected ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool unrankedSearch, bool forUpdate)
     {
         _compose = compose;
         _ordered = ordered;
@@ -130,11 +131,14 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// <summary>Takes at most <paramref name="count" /> rows.</summary>
     public ModelQuery<TEntity> Take(int count) => Then(q => q.Take(count), _ordered, _unrankedSearch);
 
-    /// <summary>Eager-loads a related navigation.</summary>
-    public ModelQuery<TEntity> Include<TProperty>(Expression<Func<TEntity, TProperty>> navigation)
+    /// <summary>Eager-loads a related navigation; <c>ThenInclude</c> right after it loads one of that navigation's own.</summary>
+    /// <typeparam name="TProperty">The navigation's type: a read face, or a list of them.</typeparam>
+    /// <param name="navigation">The navigation — <c>f =&gt; f.Vehicle</c>.</param>
+    /// <returns>The query, which <c>ThenInclude</c> continues.</returns>
+    public ModelQuery<TEntity, TProperty> Include<TProperty>(Expression<Func<TEntity, TProperty>> navigation)
     {
         ArgumentNullException.ThrowIfNull(navigation);
-        return Then(q => q.Include(navigation), _ordered, _unrankedSearch);
+        return Including<TProperty>(q => q.Include(navigation));
     }
 
     /// <summary>Eager-loads a related navigation named by a path, as EF Core's string overload does.</summary>
@@ -472,6 +476,13 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     // AsQueryable() in a Where or an OrderBy — bound to that same context, so the whole read is one statement.
     private IQueryable<TEntity> Open(DbContext context) =>
         ModelQueryBinder.BindNested(Apply(context.Set<TEntity>()), context);
+
+    // The query after an Include or a ThenInclude: the same, plus the navigation a ThenInclude continues from.
+    private protected ModelQuery<TEntity, TIncluded> Including<TIncluded>(Func<IQueryable<TEntity>, IQueryable<TEntity>> step)
+    {
+        var previous = _compose;
+        return new ModelQuery<TEntity, TIncluded>(previous is null ? step : q => step(previous(q)), _ordered, _unrankedSearch, _forUpdate);
+    }
 
     private ModelQuery<TEntity> Then(
         Func<IQueryable<TEntity>, IQueryable<TEntity>> step,

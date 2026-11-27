@@ -83,6 +83,7 @@
     <Compile Include="..\Rask.Generators.Shared\KeyPart.cs" Link="Shared\KeyPart.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadModelShape.cs" Link="Shared\ReadModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\BelongsToShape.cs" Link="Shared\BelongsToShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadMember.cs" Link="Shared\ReadMember.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadReference.cs" Link="Shared\ReadReference.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadNavigation.cs" Link="Shared\ReadNavigation.cs"/>
