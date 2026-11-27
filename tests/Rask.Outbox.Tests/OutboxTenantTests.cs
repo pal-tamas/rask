@@ -26,7 +26,7 @@ public sealed class OutboxTenantTests
     {
         using (Tenant.Use(_acme))
         {
-            Assert.Equal(_acme, OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow).TenantId);
+            Assert.Equal(_acme, OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", Timestamp.Now).TenantId);
         }
     }
 
@@ -35,7 +35,7 @@ public sealed class OutboxTenantTests
     {
         // Not an error: a message raised at startup, or by a console tool, has no tenant. Refusing to write
         // it would be wrong — which is why the row's tenant is read with InFlight rather than Required.
-        Assert.Null(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow).TenantId);
+        Assert.Null(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", Timestamp.Now).TenantId);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class OutboxTenantTests
         // enqueues must not claim otherwise.
         using (Tenant.Across())
         {
-            Assert.Null(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow).TenantId);
+            Assert.Null(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", Timestamp.Now).TenantId);
         }
     }
 
@@ -61,7 +61,7 @@ public sealed class OutboxTenantTests
 
             using (Tenant.Use(_acme))
             {
-                db.Add(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", DateTime.UtcNow));
+                db.Add(OutboxMessage.For("T", "{}", "Some.Handler:Some.Event", Timestamp.Now));
             }
 
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);

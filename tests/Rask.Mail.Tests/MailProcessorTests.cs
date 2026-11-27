@@ -36,6 +36,34 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task Sends_either_side_of_the_autumn_hour_are_stored_and_taken_as_the_utc_instants_they_are()
+    {
+        // In Budapest both are due at 02:30 on the wall: only their instants tell them apart, and the claim at 01:00Z
+        // takes the first alone.
+        using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
+        await using var harness = new MailHarness();
+        harness.Clock.Advance(new DateTimeOffset(2026, 10, 25, 1, 0, 0, TimeSpan.Zero) - harness.Clock.GetUtcNow());
+        var first = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero);
+        var second = new DateTimeOffset(2026, 10, 25, 1, 30, 0, TimeSpan.Zero);
+        await harness.Queue.Add(SampleEmail().Subject("later"), second, null, TestContext.Current.CancellationToken);
+        await harness.Queue.Add(SampleEmail().Subject("earlier"), first, null, TestContext.Current.CancellationToken);
+
+        await using var db = harness.NewContext();
+        var processor = (MailProcessor<MailDbContext>)harness.Processor;
+        var claimed = await processor.ClaimAsync(db, harness.Clock.GetUtcNow().UtcDateTime, TestContext.Current.CancellationToken);
+
+        var taken = Assert.Single(claimed);
+        Assert.Equal("earlier", taken.Subject);
+        Assert.Equal(first, taken.RunAt.Instant);
+        Assert.Equal(new DateTime(2026, 10, 25, 2, 30, 0), taken.RunAt.Value);
+        Assert.True(taken.ClaimedUntil!.Instant > harness.Clock.GetUtcNow());
+        var stored = await db.Database
+            .SqlQueryRaw<string>("SELECT \"RunAt\" AS \"Value\" FROM \"QueuedMail\" ORDER BY \"RunAt\"")
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["2026-10-25 00:30:00", "2026-10-25 01:30:00"], stored);
+    }
+
+    [Fact]
     public async Task A_queued_email_records_the_user_it_was_sent_for()
     {
         var alice = Guid.NewGuid();

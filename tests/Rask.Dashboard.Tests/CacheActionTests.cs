@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Caching;
+using Rask.Values;
 
 namespace Rask.Dashboard.Tests;
 
@@ -49,10 +50,10 @@ public sealed class CacheActionTests
         await using (var db = h.NewContext())
         {
             db.Set<CacheEntry>().AddRange(
-                CacheEntry.For("fresh", new byte[10], now.AddHours(1), now),
+                CacheEntry.For("fresh", new byte[10], Timestamp.Create(now.AddHours(1)), now),
                 // Past its expiry but still a row: the purge sweep runs on its own schedule, and the gap
                 // between "stops being served" and "actually deleted" is worth showing.
-                CacheEntry.For("stale", new byte[5], now.AddHours(-1), now));
+                CacheEntry.For("stale", new byte[5], Timestamp.Create(now.AddHours(-1)), now));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -88,7 +89,7 @@ public sealed class CacheActionTests
         var now = harness.Clock.GetUtcNow().UtcDateTime;
         await using var db = harness.NewContext();
         db.Set<CacheEntry>().AddRange(
-            keys.Select(k => CacheEntry.For(k, [1, 2, 3], now.AddHours(1), now)));
+            keys.Select(k => CacheEntry.For(k, [1, 2, 3], Timestamp.Create(now.AddHours(1)), now)));
         await db.SaveChangesAsync();
     }
 }

@@ -1,5 +1,7 @@
 using Rask.Data;
 
+using Rask.Values;
+
 namespace Rask.Storage;
 
 /// <summary>One stored file: what it is, where its bytes are, and whether it is public.</summary>
@@ -80,7 +82,7 @@ public sealed class StoredFile : Aggregate<Guid>, IHasTimestamps, IInfrastructur
         // This package can be pointed at any DbContext, Rask interceptors or not, and CreatedAt is load
         // bearing here: it is the orphan sweep's cutoff and the Last-Modified of every file response. So the
         // row records its own time rather than hoping something else will.
-        file.Stamp(savedAt);
+        file.Stamp(Timestamp.Create(savedAt));
 
         // And which tenant it belongs to, for the same reason: the interceptors may not be there. Null when
         // there is none, which is an ordinary answer — a file saved by the host itself belongs to nobody.

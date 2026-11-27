@@ -226,7 +226,8 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         var stored = await Widget.IgnoreQueryFilters().First(w => w.Id == widget.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
-        Assert.Equal(Start.AddHours(1).UtcDateTime, stored.DeletedAt!.Instant.UtcDateTime);
+        // A read face shows a stamp on the wall clock, as it shows any moment.
+        Assert.Equal(Rask.Values.Timestamp.At(Start.AddHours(1)).Value, stored.DeletedAt);
         Assert.Equal(1, stored.Version);
     }
 

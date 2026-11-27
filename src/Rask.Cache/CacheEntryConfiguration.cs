@@ -14,6 +14,7 @@ public sealed class CacheEntryConfiguration : IEntityTypeConfiguration<CacheEntr
 
         // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
         KeptNames.Keep(builder.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(builder);
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
@@ -23,6 +24,9 @@ public sealed class CacheEntryConfiguration : IEntityTypeConfiguration<CacheEntr
         // unique index rather than as the primary key.
         builder.HasIndex(x => x.Key).IsUnique();
         builder.Property(x => x.Value).IsRequired();
+        // Rask's own moments: each stored as the UTC instant it holds, on any context.
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.ExpiresAt));
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.AbsoluteExpiration));
         // Drives the purge sweep and the "is this row still fresh?" read filter.
         builder.HasIndex(x => x.ExpiresAt);
     }

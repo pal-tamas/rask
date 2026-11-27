@@ -27,21 +27,19 @@ internal sealed class JobsQueuePanel<TContext>(
 
     protected override bool IsRegistered => _options is not null;
 
-    protected override string RunAtProperty => nameof(Job.RunAt);
+    protected override Expression<Func<Job, bool>> Processed => j => j.ProcessedAt != null;
 
     protected override bool ShowsRunning => true;
 
-    // The row's timestamps, as the UTC instants the shared row shape holds (read after the query, in the projection).
     protected override Expression<Func<Job, QueueRow>> Projection => j => new QueueRow(
-        j.Id, j.Type, j.Payload, Utc(j.CreatedAt), Utc(j.RunAt), UtcOrNull(j.ProcessedAt), j.Attempts, j.Error, j.Payload)
+        j.Id, j.Type, j.Payload, j.CreatedAt.Instant.UtcDateTime, j.RunAt.Instant.UtcDateTime,
+        j.ProcessedAt == null ? null : j.ProcessedAt.Instant.UtcDateTime, j.Attempts, j.Error, j.Payload)
     {
         Lane = j.Lane,
-        StartedAt = UtcOrNull(j.StartedAt),
-        ClaimedUntil = UtcOrNull(j.ClaimedUntil),
+        StartedAt = j.StartedAt == null ? null : j.StartedAt.Instant.UtcDateTime,
+        ClaimedUntil = j.ClaimedUntil == null ? null : j.ClaimedUntil.Instant.UtcDateTime,
         Stopped = j.Stopped,
     };
-
-    protected override Expression<Func<Job, bool>> Outstanding => j => j.ProcessedAt == null;
 
     protected override Expression<Func<Job, bool>> ProcessedBefore(DateTime cutoff)
     {
@@ -49,19 +47,17 @@ internal sealed class JobsQueuePanel<TContext>(
         return j => j.ProcessedAt != null && j.ProcessedAt < before;
     }
 
-    protected override Expression<Func<Job, bool>> DueBy(DateTime now)
+    protected override Expression<Func<Job, bool>> RunsBy(DateTime now)
     {
         var at = Timestamp.Create(now);
         return j => j.RunAt <= at;
     }
 
-    protected override IOrderedQueryable<Job> InRunOrder(IQueryable<Job> rows) => rows.OrderBy(j => j.RunAt).ThenBy(j => j.Id);
+    protected override IOrderedQueryable<Job> InRunOrder(IQueryable<Job> rows) =>
+        rows.OrderBy(j => j.RunAt).ThenBy(j => j.Id);
 
-    protected override void Reschedule(UpdateSettersBuilder<Job> setters, DateTime now)
-    {
-        ArgumentNullException.ThrowIfNull(setters);
+    protected override void Reschedule(UpdateSettersBuilder<Job> setters, DateTime now) =>
         setters.SetProperty(j => j.RunAt, Timestamp.Create(now));
-    }
 
     // Running is what the processor's own lane check calls busy: claimed, unexpired, unprocessed.
     protected override IQueryable<Job> OnlyRunning(IQueryable<Job> rows, DateTime now)
@@ -79,8 +75,4 @@ internal sealed class JobsQueuePanel<TContext>(
     // Through the queue itself, so the host running the job cancels it at once when it is this one.
     public Task<bool> Stop(Guid id, CancellationToken cancellationToken) =>
         services.GetRequiredService<IJobs>().Stop(id, cancellationToken);
-
-    private static DateTime Utc(Timestamp timestamp) => timestamp.Instant.UtcDateTime;
-
-    private static DateTime? UtcOrNull(Timestamp? timestamp) => timestamp?.Instant.UtcDateTime;
 }

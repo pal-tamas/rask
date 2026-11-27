@@ -1,5 +1,6 @@
 #nullable enable
 Rask.WebPush.IWebPush
+Rask.WebPush.PushSubscriber.ExpiresAt.get -> Rask.Values.Timestamp?
 Rask.WebPush.PushUrgency
 Rask.WebPush.PushUrgency.High = 3 -> Rask.WebPush.PushUrgency
 Rask.WebPush.PushUrgency.Low = 1 -> Rask.WebPush.PushUrgency
@@ -136,7 +137,6 @@ Rask.WebPush.PushKey.PushKey(string! PublicKey) -> void
 Rask.WebPush.PushSubscriber
 Rask.WebPush.PushSubscriber.Auth.get -> string!
 Rask.WebPush.PushSubscriber.Endpoint.get -> string!
-Rask.WebPush.PushSubscriber.ExpiresAt.get -> System.DateTime?
 Rask.WebPush.PushSubscriber.P256dh.get -> string!
 Rask.WebPush.PushSubscriber.PushSubscriber() -> void
 Rask.WebPush.PushSubscriber.Subscription.get -> Rask.Wire.PushSubscription!

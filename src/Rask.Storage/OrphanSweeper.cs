@@ -3,6 +3,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Storage.Backends;
 
+using Rask.Values;
+
 namespace Rask.Storage;
 
 /// <summary>
@@ -122,7 +124,7 @@ internal sealed partial class OrphanSweeper<TContext>(
             return null;
         }
 
-        var cutoff = (runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod).UtcDateTime;
+        var cutoff = Timestamp.At(runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod);
         var missing = 0;
         var examples = new List<Guid>();
 

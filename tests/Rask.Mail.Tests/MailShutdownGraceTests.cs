@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Mailing.Tests;
 
@@ -53,7 +54,7 @@ public sealed class MailShutdownGraceTests
         await h.WaitUntilAsync(async () =>
         {
             await using var db = h.NewContext();
-            var now = h.Clock.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(h.Clock.GetUtcNow());
             return await db.Set<QueuedMail>().AnyAsync(m => m.Subject == "Second" && m.ClaimedUntil > now);
         });
         sender.Release!.SetResult();

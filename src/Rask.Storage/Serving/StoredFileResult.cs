@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Rask.Storage.Upload;
 
+using Rask.Values;
+
 namespace Rask.Storage.Serving;
 
 /// <summary>Streams one stored file: row lookup, provider check, safe headers, ranges and conditional requests.</summary>
@@ -54,7 +56,7 @@ internal sealed partial class StoredFileResult(Guid id, StoredFileAccess access)
             stream,
             ContentTypePolicy.ServedType(file.ContentType),
             fileDownloadName: null,
-            lastModified: new DateTimeOffset(DateTime.SpecifyKind(file.CreatedAt, DateTimeKind.Utc)),
+            lastModified: file.CreatedAt.Instant,
             entityTag: new EntityTagHeaderValue("\"" + file.Sha256 + "\""),
             enableRangeProcessing: true);
 

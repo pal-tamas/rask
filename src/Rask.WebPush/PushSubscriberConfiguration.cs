@@ -10,6 +10,7 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
     {
         // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
         KeptNames.Keep(entity.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(entity);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         entity.Ignore(s => s.Version);
@@ -21,6 +22,8 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
         entity.HasIndex(s => s.Endpoint).IsUnique();
         entity.HasIndex(s => s.UserId);
         entity.Ignore(s => s.Subscription);
+        // Rask's own moment: stored as the UTC instant it holds, on any context.
+        ValueObjectColumn.MapTimestamp(entity.Property(s => s.ExpiresAt));
         // Mapped explicitly, and the table is deliberately not IBelongsTo<Tenant>: a broadcast from a background
         // job has no tenant to filter by. The tenant is data on the row.
         entity.Property(s => s.TenantId);

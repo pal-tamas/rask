@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Mailing;
 
@@ -13,7 +14,7 @@ internal static class MailSerializer
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
     /// <summary>Builds a persisted row from a built <see cref="Mail.Message"/>, defaulting the sender and stamping times.</summary>
-    internal static QueuedMail ToQueuedMail(Mail.Message email, EmailAddress from, DateTime runAt, DateTime createdAt)
+    internal static QueuedMail ToQueuedMail(Mail.Message email, EmailAddress from, Timestamp runAt, DateTime createdAt)
     {
         if (email.ToRecipients.Count == 0)
         {

@@ -23,6 +23,30 @@ public sealed class PushBatteryTests
     }
 
     [Fact]
+    public async Task Expiries_either_side_of_the_autumn_hour_are_stored_as_the_utc_instants_they_are()
+    {
+        // In Budapest both read 02:30 on the wall: only their instants tell them apart.
+        using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
+        await using var harness = new PushHarness();
+        var first = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero);
+        var second = new DateTimeOffset(2026, 10, 25, 1, 30, 0, TimeSpan.Zero);
+        await harness.Push.Subscribe(
+            PushHarness.Browser("later") with { ExpirationTime = second.ToUnixTimeMilliseconds() }, TestContext.Current.CancellationToken);
+        await harness.Push.Subscribe(
+            PushHarness.Browser("earlier") with { ExpirationTime = first.ToUnixTimeMilliseconds() }, TestContext.Current.CancellationToken);
+
+        await using var db = harness.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContext();
+        var rows = await db.Set<PushSubscriber>().OrderBy(s => s.ExpiresAt).ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([first, second], rows.Select(s => s.ExpiresAt!.Instant));
+        Assert.All(rows, s => Assert.Equal(new DateTime(2026, 10, 25, 2, 30, 0), s.ExpiresAt!.Value));
+        var stored = await db.Database
+            .SqlQueryRaw<string>("SELECT \"ExpiresAt\" AS \"Value\" FROM \"PushSubscriber\" ORDER BY \"ExpiresAt\"")
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["2026-10-25 00:30:00", "2026-10-25 01:30:00"], stored);
+    }
+
+    [Fact]
     public async Task A_subscription_belongs_to_the_user_who_was_signed_in()
     {
         await using var harness = new PushHarness();

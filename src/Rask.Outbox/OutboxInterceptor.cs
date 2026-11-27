@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Outbox;
 
@@ -107,7 +108,7 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
             return;
         }
 
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(_timeProvider.GetUtcNow());
         var rows = new List<OutboxMessage>();
         var held = new List<(OutboxFake Fake, OutboxFake.Held Held)>();
         foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
@@ -147,7 +148,7 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
     }
 
     /// <summary>One row per durable handler of <paramref name="e"/>.</summary>
-    internal static List<OutboxMessage> Rows(IEvent e, IReadOnlyList<string> handlers, DateTime now)
+    internal static List<OutboxMessage> Rows(IEvent e, IReadOnlyList<string> handlers, Timestamp now)
     {
         var (type, payload) = OutboxSerializerRegistry.Serialize(e);
         return [.. handlers.Select(handler => OutboxMessage.For(type, payload, handler, now))];

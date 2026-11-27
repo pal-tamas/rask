@@ -14,6 +14,7 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
 
         // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
         KeptNames.Keep(builder.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(builder);
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
@@ -26,6 +27,10 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         builder.Property(x => x.From).IsRequired();
         builder.Property(x => x.To).IsRequired();
         builder.Property(x => x.Subject).IsRequired();
+        // Rask's own moments: each stored as the UTC instant it holds, on any context.
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.RunAt));
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.ProcessedAt));
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.ClaimedUntil));
 
         // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
         // that states none, and would otherwise cut these off.

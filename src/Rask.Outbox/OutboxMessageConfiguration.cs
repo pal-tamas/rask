@@ -12,6 +12,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     {
         // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
         KeptNames.Keep(builder.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(builder);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
@@ -26,6 +27,10 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Handler).HasMaxLength(1024);
         builder.Property(x => x.Payload).IsRequired();
+        // Rask's own moments: each stored as the UTC instant it holds, on any context.
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.OccurredAt));
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.ProcessedAt));
+        ValueObjectColumn.MapTimestamp(builder.Property(x => x.ClaimedUntil));
 
         // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
         // that states none, and would otherwise cut these off.

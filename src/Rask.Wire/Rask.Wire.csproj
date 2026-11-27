@@ -49,6 +49,11 @@
     <InternalsVisibleTo Include="Rask.SqlServer.Tests"/>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <!-- AmbientClock.UseZone: a battery's own timestamps, kept as UTC across the autumn hour. -->
+    <InternalsVisibleTo Include="Rask.Outbox.Tests"/>
+    <InternalsVisibleTo Include="Rask.Mail.Tests"/>
+    <InternalsVisibleTo Include="Rask.Cache.Tests"/>
+    <InternalsVisibleTo Include="Rask.WebPush.Tests"/>
   </ItemGroup>
 
 </Project>

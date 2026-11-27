@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.WebPush;
@@ -32,7 +33,7 @@ public sealed class PushSubscriber : Aggregate<Guid>, IHasTimestamps, IInfrastru
     public Guid? TenantId { get; private set; }
 
     /// <summary>When the push service will drop the subscription, when it said.</summary>
-    public DateTime? ExpiresAt { get; internal set; }
+    public Timestamp? ExpiresAt { get; internal set; }
 
     /// <summary>The wire shape a sender encrypts for.</summary>
     public PushSubscription Subscription => new(Endpoint, P256dh, Auth);
@@ -51,7 +52,7 @@ public sealed class PushSubscriber : Aggregate<Guid>, IHasTimestamps, IInfrastru
         Auth = subscription.Auth;
         UserId = userId;
         ExpiresAt = subscription.ExpirationTime is { } ms
-            ? DateTime.UnixEpoch.AddMilliseconds(ms)
+            ? Timestamp.At(DateTimeOffset.UnixEpoch.AddMilliseconds(ms))
             : null;
 
         // This battery can be pointed at any DbContext, Rask interceptors or not, so the row records its own

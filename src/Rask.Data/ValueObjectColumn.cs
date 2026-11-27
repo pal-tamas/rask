@@ -209,12 +209,20 @@ public static class ValueObjectColumn
         var read = value.Compile();
         var rebuild = build.Compile();
 
-        return (
-            OneValueConverters.Create(value, build),
-            new ValueComparer<TValueObject>(
+        // A moment is compared, hashed and kept by the instant it holds: its Value is the wall clock, which the hour
+        // October shows twice gives two instants of, and a copy rebuilt from it would be the first. It is immutable,
+        // so the snapshot is the value itself.
+        var comparer = typeof(Rask.Values.Moment).IsAssignableFrom(typeof(TValueObject))
+            ? new ValueComparer<TValueObject>(
+                static (a, b) => Equals(a, b),
+                static v => v == null ? 0 : ((Rask.Values.Moment)(object)v).Instant.GetHashCode(),
+                static v => v)
+            : new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
                 v => Hash(read, v),
-                v => Copy(read, rebuild, v)));
+                v => Copy(read, rebuild, v));
+
+        return (OneValueConverters.Create(value, build), comparer);
     }
 
     // A value object that checks its rules as it is made (Rask.Values.Value) is rebuilt from its column inside a loading
