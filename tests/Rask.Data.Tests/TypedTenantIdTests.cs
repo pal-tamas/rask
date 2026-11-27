@@ -17,7 +17,7 @@ public sealed class BoothShop : Aggregate<BoothShopId>
     public static BoothShop Open(int id, string name) => new() { Id = new BoothShopId(id), Name = name };
 }
 
-public sealed class Booth : Aggregate<int, Model, PerTenant<BoothShopId>>
+public sealed class Booth : Aggregate<int>, IHasForm, IBelongsTo<BoothShop>
 {
     private Booth() { }
 

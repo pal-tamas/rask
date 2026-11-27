@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NpgsqlTypes;
@@ -24,6 +25,9 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
+    // EF Core's services builder activates the translator by reflection without a trimming annotation.
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentDayTranslator))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
@@ -31,6 +35,10 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
             .TryAdd<IConventionSetPlugin, PostgresMomentConventionSetPlugin>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor, PostgresFullTextSearchQueryInterceptor>());
+
+        // A moment's day on the wall calendar, read in a query off its UTC column (MomentDayTranslator).
+        services.TryAddScoped<IMomentDays, PostgresMomentDays>();
+        new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
 
         // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);

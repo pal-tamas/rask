@@ -43,7 +43,7 @@ public sealed partial class SiteExampleTests
 
             // The hero's code is the one way an app is written — the model, the form over its operation and
             // its test — and its first file is in the prerendered document, all three tabs with it.
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<ProductId, Timestamps, Versioned, Deletable>");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable");
             await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("Refuse.When(Discontinued");
             await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(3);
 

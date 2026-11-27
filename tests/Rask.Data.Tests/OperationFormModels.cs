@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 namespace Rask.Data.Tests;
 
 /// <summary>What a truck of a convoy carries: at least one tonne.</summary>
@@ -23,7 +25,7 @@ public sealed record ConvoyTruckSpec(Guid? Id, string Plate, ConvoyLoad Load);
 
 // A partial aggregate whose operations take a list of rows for its HasMany and value objects of several values: what
 // the generated Form.For of each holds (OperationFormEntryTests).
-public sealed partial class Convoy : Aggregate<Guid, Versioned>
+public sealed partial class Convoy : Aggregate<Guid>, IVersioned
 {
     internal const string Banned = "BANNED";
 
@@ -32,6 +34,11 @@ public sealed partial class Convoy : Aggregate<Guid, Versioned>
     public string Name { get; private set; } = "";
 
     public HasMany<ConvoyTruck> Trucks { get; } = new();
+
+    // The trucks are the form's row list, edited by place and saved in the order its rows give: that order is the data, so
+    // it is stored. Left out, they load in the store's order — for two trucks made in one millisecond, whichever of their
+    // version-7 ids (random below the millisecond) sorts first.
+    public static void Configure(EntityTypeBuilder<Convoy> builder) => builder.InOrder(c => c.Trucks);
 
     public RigOpening Opening { get; private set; } = null!;
 

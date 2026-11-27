@@ -46,7 +46,7 @@ public sealed partial record BerthName(string Value) : Text(Value)
 }
 
 /// <summary>An existing table whose unique rule is over a value object's column.</summary>
-public sealed class Berth : Aggregate<int, Model, Deletable, PerTenant>
+public sealed class Berth : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<Mooring>
 {
     public const string NameTaken = "Ilyen néven már létezik kikötőhely.";
 
@@ -65,7 +65,7 @@ public sealed class Berth : Aggregate<int, Model, Deletable, PerTenant>
 }
 
 /// <summary>An aggregate of plain properties: nothing but their types says what must be filled.</summary>
-public sealed class Trailer : Aggregate<int, Model, Deletable>
+public sealed class Trailer : Aggregate<int>, IHasForm, IDeletable
 {
     private Trailer() { }
 

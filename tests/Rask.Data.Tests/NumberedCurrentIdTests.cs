@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // A user numbered by the app and kept per tenant — Eszaf's shape. It does not say IUser: the test names it to
 // CurrentRows exactly as the generated code would.
-public sealed class Teller : Aggregate<int, Model, PerTenant<int>>
+public sealed class Teller : Aggregate<int>, IHasForm, IBelongsTo<NumberShop>
 {
     private Teller() { }
 

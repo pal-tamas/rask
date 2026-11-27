@@ -131,6 +131,9 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services => new NoOverlapConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new SequenceConvention(ModelSql.For(services)));
 
+        // A table that belongs to the app's tenant refers to its key, so a tenant with rows is not deleted.
+        configurationBuilder.Conventions.Add(static _ => new TenantReferenceConvention());
+
         foreach (var contribution in Contributions.Values)
         {
             contribution.ConfigureConventions(configurationBuilder);
@@ -190,7 +193,7 @@ public static class ModelRegistry
         // moved the key its filter asks by.
         ModelBuilderExtensions.SettleTenancyThroughParents(modelBuilder, context);
 
-        // OneInForce<TChild> reads the condition the child's own Configure declared.
+        // A child's InForceWhile(…), declared in its own Configure, becomes the index on its aggregate's rows.
         InForceIndexes.Apply(modelBuilder);
 
         return modelBuilder;

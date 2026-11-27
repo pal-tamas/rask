@@ -30,10 +30,10 @@ open alongside.
 
 Declare the aggregate under `Features/Orders/` and its pages beside it. Nothing goes on the context — no
 `DbSet`, no configuration class: `RaskDbContext` maps every aggregate you declare, and the build generates —
-from the traits on its base — its form model (`OrderModel`), read face (`OrderRead`, queried as `Order.Where(…)`), `Order.Find(id)` + `order.Save()`, and writes (`Order.Create(model)`).
+from the traits the class says — its form model (`OrderModel`), read face (`OrderRead`, queried as `Order.Where(…)`), `Order.Find(id)` + `order.Save()`, and writes (`Order.Create(model)`).
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     [MaxLength(40)]
     public string Reference { get; private set; } = "";
@@ -64,11 +64,11 @@ through the root; loading the root by id loads it whole. Many-to-many between ag
 
 ## Keep deleted rows, or forbid deleting
 
-`Deletable` on the base generates a delete that removes the row. Name another trait, or none, to say otherwise:
+`IDeletable` on the class generates a delete that removes the row. Say another trait, or none, to say otherwise:
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete> { }  // Order.Delete stamps DeletedAt; reads hide the row
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model> { }              // no Order.Delete at all — cancel it instead
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes { }  // Order.Delete stamps DeletedAt; reads hide the row
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm { }              // no Order.Delete at all — cancel it instead
 ```
 
 Then `rask db add OrderDeletes && rask db update`. `Order.IgnoreQueryFilters()` brings soft-deleted rows
@@ -111,7 +111,7 @@ One trait partitions a table by tenant; every read filters to the signed-in user
 stamps it:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant> { }
+public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<Tenant> { }
 
 using (Tenant.Use(tenantId)) { /* an admin working in one tenant */ }
 ```

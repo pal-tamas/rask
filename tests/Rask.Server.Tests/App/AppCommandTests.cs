@@ -73,6 +73,18 @@ public sealed class AppCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task A_migration_that_fails_says_why_and_exits_one()
+    {
+        await using var services = new ServiceCollection().AddSingleton<IAppMigration, FailingMigration>().BuildServiceProvider();
+        using var error = new StringWriter();
+
+        var exit = await AppCommand.RunAsync(services, ["rask", "db", "migrate"], TextWriter.Null, error, Token);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("rask db migrate failed: the database is not there", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Rask_db_pending_lists_the_migrations_the_database_has_not_had_in_order()
     {
         var app = StepApp(migrateOnStart: false);
@@ -158,6 +170,16 @@ public sealed class AppCommandTests : IDisposable
         await using var db = await app.Services.GetRequiredService<IDbContextFactory<TallyContext>>().CreateDbContextAsync(Token);
         return [.. await db.Database.GetAppliedMigrationsAsync(Token)];
     }
+}
+
+/// <summary>A migration that cannot reach its database.</summary>
+internal sealed class FailingMigration : IAppMigration
+{
+    public Task MigrateAsync(CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("the database is not there");
+
+    public Task<IReadOnlyList<PendingMigration>> PendingAsync(CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("the database is not there");
 }
 
 /// <summary>What the data step below did, in the flow of the test that ran it.</summary>

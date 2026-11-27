@@ -1,3 +1,5 @@
+using Rask.Data;
+
 namespace Rask.Storage;
 
 /// <summary>
@@ -9,7 +11,7 @@ namespace Rask.Storage;
 /// orphan sweep never read a byte of them. Written and read as a stream (<c>DatabaseBlobBackend</c>), never through
 /// this class, which exists so the model — and an app's migrations — know the table.
 /// </remarks>
-internal sealed class StoredFileBytes
+internal sealed class StoredFileBytes : IInfrastructure
 {
     /// <summary>The id of the <see cref="StoredFile"/> these bytes belong to.</summary>
     public Guid Id { get; set; }

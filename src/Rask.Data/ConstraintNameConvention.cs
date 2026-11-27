@@ -18,7 +18,7 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
     {
         var limit = modelBuilder.Metadata.GetMaxIdentifierLength();
 
-        // The tenant references TenantReferences<T>() declares are foreign keys too, though not the model's.
+        // The tenant references are foreign keys too, though not the model's.
         TenantReferenceDeclaration.Declare(modelBuilder, name);
 
         foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())

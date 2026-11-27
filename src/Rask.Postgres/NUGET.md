@@ -89,10 +89,12 @@ opened yourself outside it: wrap a hand-written `BeginTransaction` in
 
 ## Moments
 
-A `Moment` value object holds a wall-clock time (`Kind = Unspecified`), which Npgsql refuses to write to a
-`timestamptz` column. `UseRaskPostgres` stores each one as the UTC instant it is in `Clock.Zone` and reads it back
-onto the wall clock, so the same moment is saved, compared and ordered as on SQL Server and SQLite — to the
-microsecond, which is what PostgreSQL keeps.
+A `Moment` value object is an instant, and `UseRaskPostgres` stores it as that instant in UTC in a `timestamptz` — as
+SQL Server and SQLite store it too — and reads it back exactly, the hour the clock shows twice in autumn included. A
+query's `f.At.Day` reads the day on the app's wall calendar (`timezone('Europe/Budapest', column)::date`). A bare
+`DateTime` on an aggregate or an entity is refused as the model is built, since Npgsql would refuse a wall-clock one only
+when the row is saved: hold an instant as a `Moment` and a calendar day as a `Day` (RASK147), or say how the column is
+stored with `HasConversion(…)`.
 
 ## What stays behind
 

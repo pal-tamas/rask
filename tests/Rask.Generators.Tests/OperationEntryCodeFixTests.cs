@@ -7,7 +7,7 @@ namespace Rask.Generators.Tests;
 public class OperationEntryCodeFixTests
 {
     // The generated surface, written by hand: the Update the model writes and the entry the operation generator gives.
-    private static string Source(string work, string traits = ", Versioned", string version = "int version, ") => $$"""
+    private static string Source(string work, string traits = ", IVersioned", string version = "int version, ") => $$"""
         using System;
         using System.CodeDom.Compiler;
         using System.Threading;
@@ -15,7 +15,7 @@ public class OperationEntryCodeFixTests
         using Microsoft.EntityFrameworkCore;
         using Rask.Data;
         namespace Shop;
-        public sealed partial class Supply : Aggregate<Guid{{traits}}>
+        public sealed partial class Supply : Aggregate<Guid>{{traits}}
         {
             private Supply() { }
             public string Name { get; private set; } = "";

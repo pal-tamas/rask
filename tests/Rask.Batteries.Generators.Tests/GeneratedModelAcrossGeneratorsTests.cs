@@ -26,7 +26,7 @@ public class GeneratedModelAcrossGeneratorsTests
         {
             public sealed record Money(decimal Amount, string Currency);
 
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [Required, MaxLength(200)] public string Name { get; private set; } = "";
@@ -131,7 +131,7 @@ public class GeneratedModelAcrossGeneratorsTests
         var run = RunCodec("""
             namespace Billing
             {
-                public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 {
                     private Product() { }
                     public string Sku { get; private set; } = "";
@@ -156,7 +156,7 @@ public class GeneratedModelAcrossGeneratorsTests
         var run = RunCodec("""
             namespace Billing
             {
-                public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 {
                     private Product() { }
                     public string Sku { get; private set; } = "";
@@ -224,7 +224,7 @@ public class GeneratedModelAcrossGeneratorsTests
                     public string City { get; private set; } = "";
                 }
 
-                public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 {
                     private Customer() { }
                     public string Name { get; private set; } = "";

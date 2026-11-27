@@ -35,7 +35,7 @@ public class RaskSqliteRangeExclusionSqlGenerator(
         IModel? model = null,
         MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
     {
-        var commands = base.Generate(operations, model, options).ToList();
+        var commands = base.Generate(SqliteMoments.Written(operations, Dependencies.SqlGenerationHelper), model, options).ToList();
         commands.AddRange(NoOverlapDdl.Build(operations, model, Dependencies));
         commands.AddRange(FullTextSearchDdl.Build(operations, model, Dependencies));
         commands.AddRange(JsonIndexDdl.Build(operations, model, Dependencies));

@@ -858,7 +858,7 @@ of any accessibility on an aggregate, an entity, a form model or a value object.
 registered like an `AbstractValidator<T>` class — no class to write, no scan, trim-safe.
 
 ```csharp
-public sealed partial class Supplier : Aggregate<SupplierId, Model>
+public sealed partial class Supplier : Aggregate<SupplierId>, IHasForm
 {
     public string Name { get; private set; } = "";
     public string? Email { get; private set; }

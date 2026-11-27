@@ -251,7 +251,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     }
 
     /// <summary>
-    ///     Publishes a <c>DataChanged</c> for each written entity whose base names <see cref="Broadcast" />,
+    ///     Publishes a <c>DataChanged</c> for each written entity that says <see cref="IBroadcasts" />,
     ///     which is what a query's <c>Live()</c> listens for.
     /// </summary>
     [SuppressMessage(

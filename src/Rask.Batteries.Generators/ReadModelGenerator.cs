@@ -230,7 +230,7 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         foreach (var shape in shapes)
         {
             (shape.IsAggregate ? aggregates : children)[shape.SourceName] =
-                new ReadModelShape.ReadTarget(shape.FullyQualifiedName, shape.IdTypeName, shape.SourceTypeName);
+                new ReadModelShape.ReadTarget(shape.SourceName, shape.FullyQualifiedName, shape.IdTypeName, shape.SourceTypeName);
         }
 
         return (aggregates, children);
@@ -440,26 +440,42 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         return null;
     }
 
-    // Exact before suffix, and an aggregate before a child within each: a VirtualTankId reaches the VirtualTank child
-    // even though it also ends in an aggregate's name, Tank. The first rule whose name matches settles it.
+    // The id's type first: a typed id that is one entity's key points there, whatever the property is called — a
+    // FromVirtualTankId of type VirtualTankId reaches the VirtualTank child, never the Tank aggregate its name ends in.
+    // Then the name, exact before suffix and an aggregate before a child within each: a VirtualTankId string reaches the
+    // VirtualTank child too. A name whose entity is keyed by another type does not settle it — the next rule may still
+    // match — and is reported only when none does.
     private static (ReadNavigation? Navigation, ReadModelShape.ReadReferenceProblem Problem) Infer(
         ReadReference reference,
         string owner,
         IReadOnlyDictionary<string, ReadModelShape.ReadTarget> aggregates,
         IReadOnlyDictionary<string, ReadModelShape.ReadTarget> children)
     {
+        if (ReadModelShape.TryResolveByType(reference, owner, aggregates, children, out var typed))
+        {
+            return (typed, ReadModelShape.ReadReferenceProblem.None);
+        }
+
+        var mismatch = ReadModelShape.ReadReferenceProblem.None;
         foreach (var exact in new[] { true, false })
         {
             foreach (var targets in new[] { aggregates, children })
             {
-                if (ReadModelShape.TryResolve(reference, owner, targets, exact, out var navigation, out var problem))
+                if (!ReadModelShape.TryResolve(reference, owner, targets, exact, out var navigation, out var problem))
+                {
+                    continue;
+                }
+
+                if (problem is not ReadModelShape.ReadReferenceProblem.KeyTypeMismatch)
                 {
                     return (navigation, problem);
                 }
+
+                mismatch = problem;
             }
         }
 
-        return (null, ReadModelShape.ReadReferenceProblem.None);
+        return (null, mismatch);
     }
 
     private static string EmitFace(

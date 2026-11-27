@@ -39,7 +39,7 @@ public enum OrderStatus
     Shipped,
 }
 
-public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned, Deletable>
+public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned, IDeletable
 {
     public CustomerEmail Customer { get; private set; } = null!;
 
@@ -307,7 +307,7 @@ public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Ma
 
 public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
-public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable
 {
     public ProductName Name { get; private set; } = null!;
 

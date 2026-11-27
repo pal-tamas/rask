@@ -781,7 +781,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
 ### Binding a data model
 
 The form that changes an aggregate is the [form over its operation](#a-form-over-an-operation). An aggregate with no
-steps of its own — a category, a setting — may name the `Model` trait instead, and gets a form model generated beside
+steps of its own — a category, a setting — may say the `IHasForm` trait instead, and gets a form model generated beside
 it: `CategoryModel` beside `Category`, every mapped property settable, its value objects' rules and unique indexes
 asked by the form with nothing declared here:
 
@@ -1022,7 +1022,7 @@ An operation of a `partial` aggregate ([an operation, run as one write](domain.m
 form of its own, its fields its parameters — no model class to write, no rule to repeat:
 
 ```csharp
-public sealed partial class Note : Aggregate<Guid, Versioned>
+public sealed partial class Note : Aggregate<Guid>, IVersioned
 {
     public string Title { get; private set; } = "";
 

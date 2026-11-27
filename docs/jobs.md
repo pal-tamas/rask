@@ -183,7 +183,7 @@ after the commit. When it runs long — a file import, a pull from a partner —
 declare it a job in the aggregate's `Configure`:
 
 ```csharp
-public sealed partial class QueuedFile : Aggregate<int, PerTenant>
+public sealed partial class QueuedFile : Aggregate<int>, IBelongsTo<Tenant>
 {
     static Task On(FileQueued e) => QueuedFile.Update(e.File, f => f.Load());
 

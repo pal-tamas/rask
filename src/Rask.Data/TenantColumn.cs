@@ -8,14 +8,14 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     The <c>TenantId</c> column of a <see cref="PerTenant" /> table, in the type the entity declared
+///     The <c>TenantId</c> column of a <see cref="IBelongsTo{TTenant}" /> table, in the type the entity declared
 ///     it: its query filter and the value an insert is stamped with.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The declared property's type decides — <c>Guid?</c>, <c>int?</c>, <c>long?</c>, or the tenant's own
 ///         typed id over one of them (<see cref="ITypedTenantColumn" />) — and an entity that declares nothing keeps
-///         a shadow <c>Guid?</c>, or the type its <c>PerTenant&lt;TKey&gt;</c> names. The framework goes on carrying the tenant as a
+///         a shadow column of its tenant's key — <c>Guid?</c> for a <c>Guid</c> or <c>string</c> tenant. The framework goes on carrying the tenant as a
 ///         <see cref="Guid" /> everywhere else; an integer column compares against, and is stamped with, the
 ///         number that <see cref="Guid" /> carries (<see cref="TenantNumber" />).
 ///     </para>
@@ -249,24 +249,24 @@ internal static class TenantColumn
             Nullable.GetUnderlyingType(declared) != key)
         {
             throw new InvalidOperationException(
-                $"'{entity.Name}' names PerTenant<{key.Name}> but declares a TenantId of type '{Display(declared)}'. " +
+                $"'{entity.Name}' belongs to a tenant keyed by {key.Name} but declares a TenantId of type '{Display(declared)}'. " +
                 $"Make them agree: declare `public {key.Name}? TenantId {{ get; private set; }}`, or name " +
-                $"PerTenant<{Display(declared).TrimEnd('?')}>.");
+                "IBelongsTo<…> of a tenant keyed by that type.");
         }
 
         return column == typeof(Guid?) || column == typeof(int?) || column == typeof(long?) || TypedFor(column)?.Column == column
             ? column
             : throw new InvalidOperationException(
-                $"'{entity.Name}' names PerTenant and declares a TenantId of type '{Display(column)}'. " +
+                $"'{entity.Name}' belongs to a tenant and declares a TenantId of type '{Display(column)}'. " +
                 "A tenant-scoped table keeps its tenant in a Guid?, an int?, a long? or the tenant's own typed id " +
                 "made nullable — nullable, because a row has none until it is saved. Declare " +
                 "`public int? TenantId { get; private set; }`, or leave " +
                 "the property out and name " +
-                "PerTenant<int> (or plain PerTenant for a Guid?) on its base. A typed id is the tenant's own once " +
+                "let IBelongsTo<Tenant> give it the tenant's key. A typed id is the tenant's own once " +
                 "the aggregate keyed by it says ITenant.");
     }
 
-    // PerTenant<int> names the column a table with no TenantId property gets; plain PerTenant keeps a Guid?.
+    // The tenant's key names the column a table with no TenantId property gets; a Guid or string tenant keeps a Guid?.
     private static Type ShadowColumnFor(Type entity) =>
         ConventionRegistry.TenantKeyFor(entity) switch
         {

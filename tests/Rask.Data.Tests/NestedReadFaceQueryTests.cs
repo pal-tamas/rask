@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A group of trucks, named — what a truck list sorts by.</summary>
-public sealed class TruckFleet : Aggregate<Guid, Model, SoftDelete>
+public sealed class TruckFleet : Aggregate<Guid>, IHasForm, ISoftDeletes
 {
     private TruckFleet() { }
 
@@ -13,7 +13,7 @@ public sealed class TruckFleet : Aggregate<Guid, Model, SoftDelete>
 }
 
 /// <summary>A truck that names its fleet by a bare id, so the fleet's name is a correlated lookup.</summary>
-public sealed class Truck : Aggregate<Guid, Model, Deletable>
+public sealed class Truck : Aggregate<Guid>, IHasForm, IDeletable
 {
     private Truck() { }
 

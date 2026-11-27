@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,9 +34,15 @@ internal sealed class ValueObjectQueryOptionsExtension : IDbContextOptionsExtens
     // EF Core's services builder activates the plugin by reflection without a trimming annotation, so its constructor
     // is kept here.
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ValueObjectMemberTranslator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentDayTranslator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(UtcMomentConventionSetPlugin))]
     public void ApplyServices(IServiceCollection services)
     {
-        new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, ValueObjectMemberTranslator>();
+        // The moment's day first: it refuses a part of the time read off a UTC moment's .Value, which the other reads.
+        new EntityFrameworkRelationalServicesBuilder(services)
+            .TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>()
+            .TryAdd<IMemberTranslatorPlugin, ValueObjectMemberTranslator>()
+            .TryAdd<IConventionSetPlugin, UtcMomentConventionSetPlugin>();
 
         // An optional value object whose members are all optional, on a provider Rask does not configure.
         OptionalComplexValueValidator.Register(services);

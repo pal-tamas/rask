@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,18 +34,26 @@ internal sealed class RaskSqlServerOptionsExtension(SqlServerOptions options) : 
     // EF Core's services builder activates the plugin by reflection without a trimming annotation, so its constructor
     // is kept here.
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqlServerDurationTranslatorPlugin))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqlServerMigrationsSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqlServerMomentDayTranslator))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
             .TryAdd<IConventionSetPlugin, RaskSqlServerConventionSetPlugin>()
             .TryAdd<IMethodCallTranslatorPlugin, SqlServerDurationTranslatorPlugin>()
-            .TryAdd<IMemberTranslatorPlugin, SqlServerDurationTranslatorPlugin>();
+            .TryAdd<IMemberTranslatorPlugin, SqlServerDurationTranslatorPlugin>()
+            .TryAdd<IMemberTranslatorPlugin, SqlServerMomentDayTranslator>();
 
         // `end - start` between two dates reaches the plugin above as a call it can translate.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor>(QueryDuration.Interceptor));
 
         // Carried by every UseRaskSqlServer context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);
+
+        // A column of moments kept as the wall clock is rewritten to UTC as its migration applies (MomentsInUtc).
+        // Added, not tried, as the differ is: the provider registers its own generator, and the last registration wins.
+        services.AddScoped<IMigrationsSqlGenerator, RaskSqlServerMigrationsSqlGenerator>();
+
 
         // An optional value object whose members are all optional is held in its row's columns (OptionalComplexValues).
         // Added, not tried: the provider registers its own validator, and the last registration wins.

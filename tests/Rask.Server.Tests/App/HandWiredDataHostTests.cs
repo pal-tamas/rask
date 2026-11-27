@@ -20,7 +20,7 @@ using Rask.Tests.Shared;
 namespace Rask.Server.Tests.App;
 
 /// <summary>A table that already exists, mapped as it is: an identity key and a tenant numbered by an int.</summary>
-public sealed class Terminal : Aggregate<int, Model, Deletable, PerTenant>
+public sealed class Terminal : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<Mooring>
 {
     private Terminal() { }
 

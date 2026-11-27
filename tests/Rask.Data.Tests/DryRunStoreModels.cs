@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 ///     A tenant's slipway: its name unique within the tenant, and of a company of the tenant's — what only the store
 ///     refuses, which a dry run tells (DryRunStoreTests).
 /// </summary>
-public sealed partial class Slipway : Aggregate<Guid, Versioned, Deletable, PerTenant>
+public sealed partial class Slipway : Aggregate<Guid>, IVersioned, IDeletable, IBelongsTo<GuidShop>
 {
     internal const string NameTaken = "Már van ilyen név.";
 
@@ -36,7 +36,7 @@ public sealed partial class Slipway : Aggregate<Guid, Versioned, Deletable, PerT
 }
 
 /// <summary>A boat moored at a slipway, which keeps the slipway from being deleted.</summary>
-public sealed class Hawser : Aggregate<Guid, PerTenant>
+public sealed class Hawser : Aggregate<Guid>, IBelongsTo<GuidShop>
 {
     private Hawser() { } // EF materialization
 
