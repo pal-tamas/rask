@@ -6,27 +6,15 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 # add-diagnostic
 
 ## 1. Pick the next ID
-**Do not trust the number written here** — this line has gone stale twice, and both times the id was
-already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
-run it again before you merge.
-
-At the last edit the highest allocated here was RASK107 (an entity made with `new` outside the type that guards it, `EntityCreationAnalyzer` in `Rask.Batteries.Generators`; RASK106 a key of several columns that cannot be built, `CompositeKeyGenerator` in `Rask.Batteries.Generators`; RASK105 a value object that compares by reference, in `Rask.Batteries.Generators`; RASK104 a static member keeping a component built from a chain
-entry, `StaticChainEntryAnalyzer` in `Rask.Generators`; RASK103 a constructor-built value object holding a value object
-of several values, in `Rask.Batteries.Generators`; RASK102 (retired) a value object's `Validate` that is not the shape of a
-rule, in `Rask.Batteries.Generators`; RASK101 an authorization attribute the CQRS generators cannot
-read, in `Rask.Batteries.Generators`; RASK100 a `[BlazorParameter]` naming no hosted parameter;
-RASK098/099 the browser-targets analyzer, RASK097 the route-helper name collision, all in `Rask.Generators`),
-so the next free is **RASK108** — and note this line once said RASK092 while
-RASK092–094 were already taken, once said RASK087 while
-RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
-were first written as RASK077–081 while another generator held RASK077–080 on main, which is the staleness it
-warns about; RASK025/027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100/102 are retired and
-never recycled — a retired id is absent from the grep below, so never take one for a gap. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
+**No number is written here, on purpose** — every one this skill ever named went stale, each time
+because the id was already taken on a branch base ahead of the checkout it was picked against. Run the
+grep, and run it again before you merge. A retired id (listed in `docs/diagnostics.md`) is absent from
+the grep, so never take one for a gap: retired ids are never recycled. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 
 ```bash
 grep -rhoE '"RASK[0-9]{3}"' src/ | sort -u | tail   # ALL of src/ — the list of projects grows
 ```
-Grep **both** analyzer assemblies plus the shared sources. RS1019 only sees duplicate descriptor ids
+Grep **all four** allocating assemblies (the grep over `src/` does). RS1019 only sees duplicate descriptor ids
 *within* one assembly, so an id reused across them compiles clean and ships twice.
 
 ## 2. Define the descriptor

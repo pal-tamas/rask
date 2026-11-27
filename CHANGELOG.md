@@ -166,6 +166,10 @@ them until tagged releases begin.
   becomes a `TenantId` property set by your own method. A typed-id account's session resume is the one join a `Guid`
   key's is (`ON s.UserId = u.Id`, no `CAST`) where the store keeps a `Guid` natively, and two reads on SQLite.
   `docs/authentication.md#your-user`, `#accounts-and-tenants`.
+- **BREAKING (core): `.Key(...)` is the only keyed identity; a `Data["rask-key"]` entry is no longer written.** It used
+  to stand in for a key when no `Key` was set, and RASK022 accepted it. Now the `rask-key` name in a `Data` bag is
+  reserved and dropped at render, and RASK022 reports a list keyed that way: chain `.Key(item.Id)` instead (it still
+  renders `data-rask-key`, so E2E selectors on that attribute keep working).
 - **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
   is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
   and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,

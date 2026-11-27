@@ -76,7 +76,8 @@ public abstract partial class Element : Component
     ///     <para>
     ///         This is the supported place to hang your own metadata on an element — test hooks, values a
     ///         piece of interop JS reads back through <c>dataset</c>. Names must be lowercase and
-    ///         hyphenated, never camelCase.
+    ///         hyphenated, never camelCase. <c>rask-key</c> is reserved: an entry by that name is never
+    ///         written — keyed identity is <see cref="Component.Key" />'s alone.
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/data-*">MDN</see>
     /// </summary>
@@ -603,20 +604,22 @@ public abstract partial class Element : Component
         AppendAttr(sb, "data-", "rask-key", KeyString);
     }
 
+    // The data-* name Key owns (data-rask-key). A Data bag entry by that name is dropped.
+    private const string ReservedKeyData = "rask-key";
+
     private void WriteDataGroup(StringBuilder sb)
     {
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
         // transparent ancestor component (Consume clears the slot so only the FIRST element
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
-        // among the leading attribute frames, same as a Data["rask-key"] entry.
+        // among the leading attribute frames.
         var forwarded = KeyForwardScope.Consume();
-        var hasKey = Key is not null || forwarded is not null;
 
         if (Data is not null)
         {
-            // A literal Data["rask-key"] is superseded by an effective Key to avoid a duplicate
-            // attribute — Key is the canonical API; Data stays for back-compat.
-            AppendPrefixedAttrs(sb, "data-", Data, hasKey ? "rask-key" : null);
+            // `rask-key` is reserved for Key: a Data entry by that name is never written, so the
+            // keyed identity has exactly one source and the attribute is never duplicated.
+            AppendPrefixedAttrs(sb, "data-", Data, ReservedKeyData);
         }
 
         if (Key is not null)
@@ -697,7 +700,7 @@ public abstract partial class Element : Component
     // Dictionary<,> uses its struct enumerator (no allocation); foreach over the
     // IReadOnlyDictionary interface instead boxes an enumerator on every render of an element that
     // carries a Data or Aria bag — the common literal (`new() { ... }`) is a Dictionary, so it
-    // takes the fast path. `skipKey`, when set, drops one entry (Data["rask-key"] superseded by Key), and
+    // takes the fast path. `skipKey`, when set, drops one entry (the reserved Data["rask-key"]), and
     // `shadow`, when set, drops every aria-* entry a typed Aria* property already wrote. A key that is no attribute
     // name (AttributeName) is never written: a name has no escape, so it would end the tag's name and write markup.
     private static void AppendPrefixedAttrs(StringBuilder sb, string prefix,

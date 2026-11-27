@@ -102,7 +102,6 @@ internal sealed partial class DevToolsTree : Component
             .Role("treeitem")
             .Class("overflow-hidden")
             .Style("height:" + Px(RowHeight))
-            .Data("rask-key", RowId(id))
             .Aria(RowAria(row, selected))[
                 Div
                     .Id(RowId(id) + "-l")
