@@ -47,7 +47,7 @@ dotnet_diagnostic.RASK147.severity = error
 
 # An entity keyed by Guid.CreateVersion7() or Guid.NewGuid() (RASK148): ids made in one millisecond sort either way, so
 # the key is not the order the rows were made. A suggestion everywhere else; under <RaskStrict> an error — the quick-fix
-# writes the typed id's New() or OrderedGuid.New().
+# writes the typed id's New() or Uuid.Create().
 dotnet_diagnostic.RASK148.severity = error
 
 # Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,

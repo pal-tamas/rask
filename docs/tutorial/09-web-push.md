@@ -162,7 +162,7 @@ public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersion
 
     private static Order Place(CustomerEmail customer, ShippingAddress shipTo, GiftNote? gift, IReadOnlyList<OrderLineSpec> lines)
     {
-        var order = new Order { Id = OrderId.New(), Customer = customer, ShipTo = shipTo, Gift = gift, Account = AccountId.Of(Current.UserId) };
+        var order = new Order { Id = OrderId.Create(), Customer = customer, ShipTo = shipTo, Gift = gift, Account = AccountId.Of(Current.UserId) };
         order.Take(lines);
         order.Raise(new OrderPlaced(order.Id, [.. lines.Select(l => new OrderedItem(l.Product, l.Quantity.Value))]));
         return order;

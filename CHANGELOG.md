@@ -8,18 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
-- **`OrderedGuid.New()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
-  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `New()` now returns it
+- **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
   instead of emitting its own copy, and every key Rask makes is one: the batteries' rows (jobs, outbox, mail, logs,
   cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
   `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
   after the millisecond are random, so two made in one millisecond sorted either way. Rask's clock (`Clock.Now`, so
-  `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
+  `Clock.Fake` too) stamps it; `Uuid.Create(timeProvider)` stamps a service's own time on a sequence of its own,
   so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
 - **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
   (`new OrderId(Guid.CreateVersion7())`) — is a suggestion, an error under `<RaskStrict>`. The quick-fix (Fix all
-  included) writes `OrderId.New()` for a typed id that makes its own key, else `OrderedGuid.New()`, and
-  `Guid.CreateVersion7(time.GetUtcNow())` becomes `OrderedGuid.New(time)`. A strict app keyed by
+  included) writes `OrderId.Create()` for a typed id that makes its own key, else `Uuid.Create()`, and
+  `Guid.CreateVersion7(time.GetUtcNow())` becomes `Uuid.Create(time)`. A strict app keyed by
   `Guid.CreateVersion7()` fails to build until the fix is applied.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
@@ -131,6 +131,10 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: typed ids: `New()` → `Create()`; one verb, as .NET's `Guid.CreateVersion7()`.** The generated
+  `OrderId.New()` is now `OrderId.Create()` (a version-7 id from `Uuid.Create()`); a typed id that declares its own
+  parameterless `Create()` keeps it, and a hand-written `Create(Guid)` or other overload sits beside the generated one.
+  Replace `XId.New()` with `XId.Create()` at each call site.
 - **BREAKING (wire): a `Moment` travels as the UTC instant it holds, not its wall-clock `.Value`.** The generated CQRS
   codec, the API client and System.Text.Json (each record declared from `Moment` now gets its own generated
   `[JsonConverter]`, over `Rask.Values.MomentJsonConverter<T>`) write `"2026-10-25T00:30:00Z"`, so the hour the clock

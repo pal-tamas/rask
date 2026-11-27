@@ -39,7 +39,7 @@
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Wire.Tests"/>
     <InternalsVisibleTo Include="Rask.Pdf"/>
-    <!-- OrderedGuid.Of: a log row read from SQLite is keyed by its millisecond and its number. -->
+    <!-- Uuid.Of: a log row read from SQLite is keyed by its millisecond and its number. -->
     <InternalsVisibleTo Include="Rask.Logging"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>

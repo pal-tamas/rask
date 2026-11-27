@@ -112,7 +112,7 @@ public sealed class SqliteLogKeyTests
         var entries = (await store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries;
         var at = new DateTimeOffset(2026, 1, 1, 0, 0, 0, 1, TimeSpan.Zero);
         Assert.Equal(["new order shipped", "old order failed", "old order shipped"], entries.Select(e => e.Message));
-        Assert.Equal([OrderedGuid.Of(at, 8), OrderedGuid.Of(at, 7)], entries.Skip(1).Select(e => e.Id));
+        Assert.Equal([Uuid.Of(at, 8), Uuid.Of(at, 7)], entries.Skip(1).Select(e => e.Id));
         Assert.Equal("r1", entries[2].Scopes!.Single().Value);
         Assert.Equal(
             ["new order shipped", "old order shipped"],

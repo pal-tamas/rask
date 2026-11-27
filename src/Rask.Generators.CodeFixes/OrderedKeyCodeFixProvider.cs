@@ -12,13 +12,13 @@ namespace Rask.Generators.CodeFixes;
 
 /// <summary>
 ///     RASK148 — an entity's key made by Rask's ordered maker: <c>new OrderId(Guid.CreateVersion7())</c> →
-///     <c>OrderId.New()</c> for a typed id that makes its own, and otherwise <c>Guid.CreateVersion7()</c> /
-///     <c>Guid.NewGuid()</c> → <c>OrderedGuid.New()</c>, with <c>Guid.CreateVersion7(time.GetUtcNow())</c> →
-///     <c>OrderedGuid.New(time)</c>.
+///     <c>OrderId.Create()</c> for a typed id that makes its own, and otherwise <c>Guid.CreateVersion7()</c> /
+///     <c>Guid.NewGuid()</c> → <c>Uuid.Create()</c>, with <c>Guid.CreateVersion7(time.GetUtcNow())</c> →
+///     <c>Uuid.Create(time)</c>.
 /// </summary>
 /// <remarks>
 ///     The analyzer reports the node to replace — the whole typed id, or the Guid alone — so the fix reads it from the
-///     node's shape. <c>OrderedGuid</c> is written bare where it binds to <c>Rask.OrderedGuid</c>, qualified where it does
+///     node's shape. <c>Uuid</c> is written bare where it binds to <c>Rask.Uuid</c>, qualified where it does
 ///     not. A <c>CreateVersion7</c> of any other moment gets no fix: there is no time source to keep.
 /// </remarks>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(OrderedKeyCodeFixProvider))]
@@ -27,7 +27,7 @@ public sealed class OrderedKeyCodeFixProvider : RaskCodeFixProvider<ExpressionSy
 {
     public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK148"];
 
-    protected override string Title => "Make the key with Rask's ordered New()";
+    protected override string Title => "Make the key with Rask's ordered Create()";
 
     protected override string EquivalenceKey => "RASK148_OrderedNew";
 
@@ -50,11 +50,11 @@ public sealed class OrderedKeyCodeFixProvider : RaskCodeFixProvider<ExpressionSy
         switch (node)
         {
             case BaseObjectCreationExpressionSyntax creation when model.GetTypeInfo(creation, cancellationToken).Type is { } id:
-                return New(ParseExpression(id.ToMinimalDisplayString(model, node.SpanStart)));
+                return Create(ParseExpression(id.ToMinimalDisplayString(model, node.SpanStart)));
             case InvocationExpressionSyntax { ArgumentList.Arguments.Count: 0 }:
-                return New(OrderedGuid(model, node.SpanStart));
+                return Create(Uuid(model, node.SpanStart));
             case InvocationExpressionSyntax { ArgumentList.Arguments.Count: 1 } call when TimeOf(call) is { } time:
-                return New(OrderedGuid(model, node.SpanStart), time);
+                return Create(Uuid(model, node.SpanStart), time);
             default:
                 return null;
         }
@@ -70,13 +70,13 @@ public sealed class OrderedKeyCodeFixProvider : RaskCodeFixProvider<ExpressionSy
             ? now.Expression.WithoutTrivia()
             : null;
 
-    private static InvocationExpressionSyntax New(ExpressionSyntax on, ExpressionSyntax? time = null) =>
+    private static InvocationExpressionSyntax Create(ExpressionSyntax on, ExpressionSyntax? time = null) =>
         InvocationExpression(
-            MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, on, IdentifierName("New")),
+            MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, on, IdentifierName("Create")),
             time is null ? ArgumentList() : ArgumentList(SingletonSeparatedList(Argument(time))));
 
-    private static ExpressionSyntax OrderedGuid(SemanticModel model, int position) =>
-        UsingDirectives.Binds(model, position, "OrderedGuid", "Rask.OrderedGuid")
-            ? IdentifierName("OrderedGuid")
-            : ParseExpression("global::Rask.OrderedGuid");
+    private static ExpressionSyntax Uuid(SemanticModel model, int position) =>
+        UsingDirectives.Binds(model, position, "Uuid", "Rask.Uuid")
+            ? IdentifierName("Uuid")
+            : ParseExpression("global::Rask.Uuid");
 }

@@ -28,7 +28,7 @@ public class OrderedKeyCodeFixTests
         namespace Shop;
         public readonly partial record struct OrderId(Guid Value)
         {
-            public static OrderId New() => new(global::Rask.OrderedGuid.New());
+            public static OrderId Create() => new(global::Rask.Uuid.Create());
         }
         public readonly record struct PlainId(Guid Value);
         public sealed class Order : Aggregate<OrderId>
@@ -44,9 +44,9 @@ public class OrderedKeyCodeFixTests
             new OrderedKeyAnalyzer(), new OrderedKeyCodeFixProvider(), "RASK148", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
 
     [Theory]
-    [InlineData("public static Order Place() => new() { Id = new OrderId(Guid.CreateVersion7()) };", "new() { Id = OrderId.New() }")]
-    [InlineData("public static Order Place() => new() { Id = new(Guid.NewGuid()) };", "new() { Id = OrderId.New() }")]
-    [InlineData("public static Order Place(TimeProvider t) => new() { Id = new OrderId(Guid.CreateVersion7(t.GetUtcNow())) };", "new() { Id = new OrderId(OrderedGuid.New(t)) }")]
+    [InlineData("public static Order Place() => new() { Id = new OrderId(Guid.CreateVersion7()) };", "new() { Id = OrderId.Create() }")]
+    [InlineData("public static Order Place() => new() { Id = new(Guid.NewGuid()) };", "new() { Id = OrderId.Create() }")]
+    [InlineData("public static Order Place(TimeProvider t) => new() { Id = new OrderId(Guid.CreateVersion7(t.GetUtcNow())) };", "new() { Id = new OrderId(Uuid.Create(t)) }")]
     public async Task The_RASK148_fix_makes_a_typed_key_with_its_New_and_keeps_a_time_source(string written, string expected)
     {
         var source = Source(written);
@@ -64,22 +64,22 @@ public class OrderedKeyCodeFixTests
         var fixed_ = await CodeFixHarness.ApplyAnalyzerFixAllAsync(
             new OrderedKeyAnalyzer(), new OrderedKeyCodeFixProvider(), "RASK148", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
 
-        Assert.Contains("new() { Id = OrderId.New() }", fixed_, StringComparison.Ordinal);
-        Assert.Contains("new() { Id = new PlainId(OrderedGuid.New()) }", fixed_, StringComparison.Ordinal);
-        Assert.Contains("new() { Id = OrderedGuid.New(clock) }", fixed_, StringComparison.Ordinal);
-        Assert.Contains("new() { Id = OrderedGuid.New() }", fixed_, StringComparison.Ordinal);
+        Assert.Contains("new() { Id = OrderId.Create() }", fixed_, StringComparison.Ordinal);
+        Assert.Contains("new() { Id = new PlainId(Uuid.Create()) }", fixed_, StringComparison.Ordinal);
+        Assert.Contains("new() { Id = Uuid.Create(clock) }", fixed_, StringComparison.Ordinal);
+        Assert.Contains("new() { Id = Uuid.Create() }", fixed_, StringComparison.Ordinal);
         Assert.DoesNotContain("Guid.NewGuid", fixed_, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateVersion7", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_RASK148_fix_qualifies_OrderedGuid_where_Rask_is_not_imported()
+    public async Task The_RASK148_fix_qualifies_Uuid_where_Rask_is_not_imported()
     {
         var source = Source("public static Order Place() => new() { Id = new OrderId(Guid.CreateVersion7(TimeProvider.System.GetUtcNow())) };", usings: "");
 
         var fixed_ = await Fix(source);
 
-        Assert.Contains("new() { Id = new OrderId(global::Rask.OrderedGuid.New(TimeProvider.System)) }", fixed_, StringComparison.Ordinal);
+        Assert.Contains("new() { Id = new OrderId(global::Rask.Uuid.Create(TimeProvider.System)) }", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]

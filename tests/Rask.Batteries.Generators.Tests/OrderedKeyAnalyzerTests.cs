@@ -15,7 +15,7 @@ public class OrderedKeyAnalyzerTests
             namespace Shop;
             public readonly partial record struct OrderId(Guid Value)
             {
-                public static OrderId New() => new(Rask.OrderedGuid.New());
+                public static OrderId Create() => new(Rask.Uuid.Create());
             }
             public sealed class Order : Aggregate<OrderId>
             {
@@ -38,13 +38,13 @@ public class OrderedKeyAnalyzerTests
         Assert.Equal(["new OrderId(Guid.CreateVersion7())", "Guid.NewGuid()", "Guid.CreateVersion7()"], diagnostics.Select(d => d.Flagged()));
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
         Assert.Equal(
-            "'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'",
+            "'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.Create()'",
             diagnostics[0].GetMessage());
-        Assert.EndsWith("use 'OrderedGuid.New()'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+        Assert.EndsWith("use 'Uuid.Create()'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_key_stamped_by_a_TimeProvider_is_told_to_keep_it_as_OrderedGuid_s_time_source()
+    public async Task A_key_stamped_by_a_TimeProvider_is_told_to_keep_it_as_Uuid_s_time_source()
     {
         const string source = """
             using System;
@@ -61,8 +61,8 @@ public class OrderedKeyAnalyzerTests
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new OrderedKeyAnalyzer(), source);
 
         Assert.Equal(2, diagnostics.Count);
-        Assert.EndsWith("use 'OrderedGuid.New(clock)'", diagnostics[0].GetMessage(), StringComparison.Ordinal);
-        Assert.EndsWith("use 'OrderedGuid.New(timeProvider)'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+        Assert.EndsWith("use 'Uuid.Create(clock)'", diagnostics[0].GetMessage(), StringComparison.Ordinal);
+        Assert.EndsWith("use 'Uuid.Create(timeProvider)'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -96,18 +96,18 @@ public class OrderedKeyAnalyzerTests
             namespace Shop;
             public readonly partial record struct OrderId(Guid Value)
             {
-                public static OrderId New() => new(Rask.OrderedGuid.New());
+                public static OrderId Create() => new(Rask.Uuid.Create());
             }
             public sealed class Order : Aggregate<OrderId>
             {
                 private Order() { }
                 public Guid Ticket { get; private set; }
-                public static Order Place() => new() { Id = OrderId.New(), Ticket = Guid.NewGuid() };
+                public static Order Place() => new() { Id = OrderId.Create(), Ticket = Guid.NewGuid() };
             }
             public sealed class Note : Aggregate<Guid>
             {
                 private Note() { }
-                public static Note Write() => new() { Id = Rask.OrderedGuid.New() };
+                public static Note Write() => new() { Id = Rask.Uuid.Create() };
             }
             """;
 

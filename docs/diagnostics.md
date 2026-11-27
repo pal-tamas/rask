@@ -34,7 +34,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK133** | calls the factory's generated entry: `await using var db = …; db.Add(Product.Place(n)); await db.SaveChangesAsync(t);` → `await Product.Place(n, cancellationToken: t);` |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK147** | holds the member as a value object of Rask's — *Hold it as a Moment* (`public DateTime FueledAt` → `public DeliveryFueledAt FueledAt`, with `public sealed partial record DeliveryFueledAt(DateTime Value) : Moment(Value);` written after the type) or *Hold it as a Day* (over a `DateOnly`), the `Day` offered first where the name says a day (`DueDate`, `PayDay`, `DeliveredOn`) |
-| **RASK148** | makes the key with Rask's ordered maker: `new OrderId(Guid.CreateVersion7())` → `OrderId.New()`, `Guid.NewGuid()` → `OrderedGuid.New()`, `Guid.CreateVersion7(time.GetUtcNow())` → `OrderedGuid.New(time)` (Fix all supported) |
+| **RASK148** | makes the key with Rask's ordered maker: `new OrderId(Guid.CreateVersion7())` → `OrderId.Create()`, `Guid.NewGuid()` → `Uuid.Create()`, `Guid.CreateVersion7(time.GetUtcNow())` → `Uuid.Create(time)` (Fix all supported) |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
@@ -2164,7 +2164,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
 {
     public string Reference { get; private set; } = "";
 
-    public static Order Place(string reference) => new() { Id = OrderedGuid.New(), Reference = reference };   // ✓
+    public static Order Place(string reference) => new() { Id = Uuid.Create(), Reference = reference };   // ✓
 }
 
 var order = new Order();                       // ✗ RASK107
@@ -3504,9 +3504,9 @@ public sealed class Order : Aggregate<int>
 ```
 
 > The event raised in 'Order' reads 'order.Id', which the database produces only on insert: raised before the first
-> save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with New())
+> save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with Create())
 
-**Fix:** key the entity on the client — a typed id over a `Guid`, made with its generated `New()` (a time-ordered
+**Fix:** key the entity on the client — a typed id over a `Guid`, made with its generated `Create()` (a time-ordered
 version-7 `Guid`, so the primary-key index stays append-only), [the default Rask recommends](domain.md#choosing-the-key-a-typed-id-over-a-guid):
 
 ```csharp
@@ -3516,7 +3516,7 @@ public sealed class Order : Aggregate<OrderId>
 {
     public static Order Place(string reference)
     {
-        var order = new Order { Id = OrderId.New(), Reference = reference };
+        var order = new Order { Id = OrderId.Create(), Reference = reference };
         order.Raise(new OrderPlaced(order.Id));      // ✓ the id is the row's from the start
         return order;
     }
@@ -3604,19 +3604,19 @@ public static Order Place(string reference) =>
     new() { Id = new OrderId(Guid.CreateVersion7()), Reference = reference };   // ℹ RASK148
 ```
 
-> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'
+> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.Create()'
 
-**Fix:** a typed id's generated `New()`, or `OrderedGuid.New()` for a plain `Guid` key (**quick-fix available**, Fix all
-included — `Guid.CreateVersion7(time.GetUtcNow())` becomes `OrderedGuid.New(time)`; a `CreateVersion7` of any other moment
+**Fix:** a typed id's generated `Create()`, or `Uuid.Create()` for a plain `Guid` key (**quick-fix available**, Fix all
+included — `Guid.CreateVersion7(time.GetUtcNow())` becomes `Uuid.Create(time)`; a `CreateVersion7` of any other moment
 gets none). Both are version-7 `Guid`s whose 12 bits after the millisecond count (RFC 9562's method 1), so every id is
 later than the one before it:
 
 ```csharp
-public static Order Place(string reference) => new() { Id = OrderId.New(), Reference = reference };   // ✓
-public static Note Write(string text) => new() { Id = OrderedGuid.New(), Text = text };              // ✓ a Guid key
+public static Order Place(string reference) => new() { Id = OrderId.Create(), Reference = reference };   // ✓
+public static Note Write(string text) => new() { Id = Uuid.Create(), Text = text };              // ✓ a Guid key
 ```
 
-A service handed a `TimeProvider` stamps its ids with it: `OrderedGuid.New(timeProvider)` — a test's fake time then
+A service handed a `TimeProvider` stamps its ids with it: `Uuid.Create(timeProvider)` — a test's fake time then
 stamps them, counting within its millisecond on a sequence of its own.
 
 ## RASK150
