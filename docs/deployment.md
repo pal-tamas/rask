@@ -526,6 +526,31 @@ answers, `{"version":"2026.11.11-build.42"}`; any other shape is ignored); the a
 `rask deploy --health-path /version` gates the swap on the new container serving at all, and the response says
 which release did.
 
+## Migrations as a one-off step
+
+A `RaskApp` applies its pending migrations as it starts, so most deploys need nothing else. A cutover that should
+migrate **before** the new release serves — a long rewrite, several instances, a database the old release must stop
+writing first — runs the published app as a one-off instead:
+
+```bash
+docker run --rm --env-file app.env my-app:v26.11.27 dotnet App.dll rask db migrate
+```
+
+`rask db migrate` builds the app's host and never starts it: no port is bound, no job, outbox or mail worker runs. It
+applies every pending migration — Rask's own steps in them included, such as the [rewrite of a moment column to
+UTC](data.md#dates-and-moments-what-each-database-keeps) — then the migrations' [data steps](data-writes.md#moving-data-in-c-with-bdata),
+in the app's own zone and configuration, and exits:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | the database is up to date |
+| `1` | a migration or a data step failed; the reason is on standard error. Each migration is its own transaction, so the database is at the last one that applied, and a run after the fix picks up there |
+| `2` | the command line was wrong, or the app has the Data battery off |
+
+A cutover is then: stop the old release (or put it in maintenance), run the one-off, check its exit code, start the new
+release — whose own start finds nothing pending. With `c.MigrateOnStart = false` the one-off is the only way the
+schema moves, which is what a release pipeline that migrates as a step of its own wants.
+
 ## Backups
 
 Two different questions, two answers. **"Let me look at what production has"**, or "that migration was a

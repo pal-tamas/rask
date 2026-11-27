@@ -73,6 +73,18 @@ public sealed class AppCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task A_migration_that_fails_says_why_and_exits_one()
+    {
+        await using var services = new ServiceCollection().AddSingleton<IAppMigration, FailingMigration>().BuildServiceProvider();
+        using var error = new StringWriter();
+
+        var exit = await AppCommand.RunAsync(services, ["rask", "db", "migrate"], error, Token);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("rask db migrate failed: the database is not there", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_command_that_needs_the_database_says_so_when_the_data_battery_is_off()
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
@@ -110,6 +122,13 @@ public sealed class AppCommandTests : IDisposable
         await using var db = await app.Services.GetRequiredService<IDbContextFactory<TallyContext>>().CreateDbContextAsync(Token);
         return [.. await db.Database.GetAppliedMigrationsAsync(Token)];
     }
+}
+
+/// <summary>A migration that cannot reach its database.</summary>
+internal sealed class FailingMigration : IAppMigration
+{
+    public Task MigrateAsync(CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("the database is not there");
 }
 
 /// <summary>What the data step below did, in the flow of the test that ran it.</summary>

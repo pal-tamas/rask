@@ -94,6 +94,9 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
+  error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
+  (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.
 - **BREAKING (data): a `Moment` is stored as its UTC instant on SQL Server and SQLite too, as on PostgreSQL.** The
   column holds `.Instant` to the tick and the row comes back as exactly that instant, so the two `02:30`s of an October
   night stay two moments and order, compare, `Min`/`Max` alike on all three. A database that kept moments as the wall
