@@ -213,7 +213,7 @@ public sealed class SessionTests
     {
         using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
         var first = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero);
-        var clock = new MutableClock(first);
+        var clock = new ManualClock(first);
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
 
