@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Rask.Values;
 
 namespace Rask.Data;
 
@@ -59,6 +60,14 @@ internal static class OneValueConverters
     public static ValueConverter Then(ValueConverter written, ValueConverter stored) =>
         written is IOwn own ? own.StoringThrough(stored) : written.ComposeWith(stored);
 
+    /// <summary>
+    ///     Rask's own converter of a <see cref="Moment" /> (<paramref name="written" />), storing the instant the moment
+    ///     holds as UTC and building it back from that instant — exactly, the hour the clock shows twice in autumn
+    ///     included — while its <c>.Value</c>, read in a query, still reads the column through
+    ///     <see cref="WallClockInUtc" />. Null for a converter of the app's own, whose stored value Rask cannot know.
+    /// </summary>
+    public static ValueConverter? StoringInstant(ValueConverter written) => (written as IOwn)?.OfInstant();
+
     private interface IOwn
     {
         /// <summary>The member the converter reads the value from — <c>v.Value</c> — or null for a computed one.</summary>
@@ -69,11 +78,19 @@ internal static class OneValueConverters
 
         /// <summary>The same converter, storing the value through <paramref name="stored" />.</summary>
         ValueConverter StoringThrough(ValueConverter stored);
+
+        /// <summary>The same converter of a moment, storing its instant as UTC (<see cref="StoringInstant" />).</summary>
+        ValueConverter OfInstant();
     }
 
     private sealed class Own<TValueObject, TValue>(
-        Expression<Func<TValueObject, TValue>> value, Expression<Func<TValue, TValueObject>> build, ValueConverter? stored)
-        : ValueConverter<TValueObject, TValue>(Through(value, stored), Back(build, stored)), IOwn
+        Expression<Func<TValueObject, TValue>> value,
+        Expression<Func<TValue, TValueObject>> build,
+        ValueConverter? stored,
+        bool instant = false)
+        : ValueConverter<TValueObject, TValue>(
+            instant ? InstantOf(value) : Through(value, stored),
+            instant ? FromInstant(build) : Back(build, stored)), IOwn
     {
         public MemberInfo? Held { get; } =
             value.Body is MemberExpression { Member: var member } access && access.Expression == value.Parameters[0] ? member : null;
@@ -82,6 +99,30 @@ internal static class OneValueConverters
 
         public ValueConverter StoringThrough(ValueConverter stored) =>
             new Own<TValueObject, TValue>(value, build, Stored is null ? stored : Stored.ComposeWith(stored));
+
+        public ValueConverter OfInstant() =>
+            typeof(Moment).IsAssignableFrom(typeof(TValueObject)) && typeof(TValue) == typeof(DateTime)
+                ? new Own<TValueObject, TValue>(value, build, WallClockInUtc.Converter, instant: true)
+                : throw new InvalidOperationException($"{typeof(TValueObject).Name} is no moment over a DateTime.");
+
+        // v => v.Instant.UtcDateTime: the instant the moment holds, as UTC.
+        private static Expression<Func<TValueObject, TValue>> InstantOf(Expression<Func<TValueObject, TValue>> read)
+        {
+            var moment = Expression.Convert(read.Parameters[0], typeof(Moment));
+            var instant = typeof(Moment).GetProperty(nameof(Moment.Instant))!;
+            var inUtc = typeof(DateTimeOffset).GetProperty(nameof(DateTimeOffset.UtcDateTime))!;
+            var utc = Expression.Property(Expression.Property(moment, instant), inUtc);
+            return Expression.Lambda<Func<TValueObject, TValue>>(utc, read.Parameters);
+        }
+
+        // c => build(DateTime.SpecifyKind(c, DateTimeKind.Utc)): the column's UTC instant, built into the moment as one.
+        private static Expression<Func<TValue, TValueObject>> FromInstant(Expression<Func<TValue, TValueObject>> build)
+        {
+            var column = Expression.Parameter(typeof(TValue), "utc");
+            var kind = typeof(DateTime).GetMethod(nameof(DateTime.SpecifyKind), [typeof(DateTime), typeof(DateTimeKind)])!;
+            var utc = Expression.Call(kind, column, Expression.Constant(DateTimeKind.Utc));
+            return Expression.Lambda<Func<TValue, TValueObject>>(ReplacingExpressionVisitor.Replace(build.Parameters[0], utc, build.Body), column);
+        }
 
         // v => stored(read(v)): the value read from the object, then stored the provider's way.
         private static Expression<Func<TValueObject, TValue>> Through(Expression<Func<TValueObject, TValue>> read, ValueConverter? stored) =>

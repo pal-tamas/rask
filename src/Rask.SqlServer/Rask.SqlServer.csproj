@@ -42,9 +42,16 @@
     <!-- An optional value object whose members are all optional, held in its row's columns (RaskSqlServerModelValidator). -->
     <Compile Include="..\Rask.Data\OptionalComplexValues.cs" Link="Shared\OptionalComplexValues.cs"/>
     <Compile Include="..\Rask.Data\TenantReference.cs" Link="Shared\TenantReference.cs"/>
+    <!-- The rewrite of a column of moments from the wall clock to UTC, which the differ adds and the generator writes. -->
+    <Compile Include="..\Rask.Data\MomentsInUtc.cs" Link="Shared\MomentsInUtc.cs"/>
     <!-- end - start between two dates in a query, which SQL Server's own provider does not translate. -->
     <Compile Include="..\Rask.Data\QueryDuration.cs" Link="Shared\QueryDuration.cs"/>
     <Compile Include="..\Rask.Data\DurationTranslation.cs" Link="Shared\DurationTranslation.cs"/>
+  </ItemGroup>
+
+  <!-- Clock.Zone: the app's zone, which a moment's rewrite to UTC and its day on the wall calendar are read in. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

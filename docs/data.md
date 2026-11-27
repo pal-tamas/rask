@@ -1109,7 +1109,9 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 | A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
-| A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | kept to the microsecond, orders by its time: `UseRaskPostgres` stores it as the UTC instant it is in `Clock.Zone` and reads it back onto the wall clock |
+| A `Moment` value object | the UTC instant, kept to the tick, in a `datetime2` | the UTC instant, kept to the tick, as text | the UTC instant, kept to the microsecond, in a `timestamptz` |
+| Order, `=`, `<`, `Min`/`Max` on a `Moment` | by instant | by instant | by instant |
+| `GroupBy(f => f.At.Day)`, `f.At.Day == day` | the day on the app's wall calendar (`AT TIME ZONE`) | the same (`rask_moment_wall_day`) | the same (`timezone(zone, …)::date`) |
 
 SQLite has no date type, and EF Core's provider stores a `DateTimeOffset` as text with its offset — then refuses
 `OrderBy`, `<`, `>` and `Max` over it, because the text's order is not the time's. `UseRaskSqlite` keeps the text as
@@ -1120,12 +1122,39 @@ Unix time) keeps that column. A `DateTime` needs nothing: its text, written to t
 time does. An existing SQLite database with `DateTimeOffset` columns gets the collation through one migration
 (`rask db add MomentOrder`); the stored values do not change.
 
-A `Moment` value object is the same moment on all three. Npgsql writes a `DateTime` to `timestamptz` only as UTC, so
-`UseRaskPostgres` gives every column of one a conversion: the wall-clock time is turned into its UTC instant through
-`Clock.Zone` as it is written, and back onto the wall clock as it is read — the value object and every query see the
-wall-clock time (`Where(f => f.Moment.Value > since)` included), the column holds UTC. A wall time the clock skips
-when summer time begins is stored as the instant just after the jump; one it shows twice in autumn, as its
-standard-time instant. A bare `DateTime` property is left as Npgsql maps it.
+A `Moment` value object is the same instant on all three, **stored as UTC**: the column holds `.Instant` — every
+tick of it, the two `02:30`s of an October night kept apart — and the row comes back as that instant, shown on the
+wall clock of `Clock.Zone` (`.Value`). The value object and every query still speak the wall clock:
+`Where(f => f.At.Value > since)` compares the column with `since` made an instant by the rule a moment follows (a time
+shown twice is its first occurrence, a skipped one moves forward — [Moment and Day](domain.md#moment-and-day)), and
+stays an index seek. A moment's day reads the wall calendar in SQL on every provider: `GroupBy(f => f.At.Day)` and
+`f.At.Day == day` group and filter by the day the app shows, in the zone the app was set to as the query is compiled.
+A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
+instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
+comparison of moments for a stretch of time. A moment inside a JSON document keeps the wall clock there.
+
+**A database that kept moments as the wall clock is rewritten by its next migration.** Until Rask stored them as UTC,
+SQL Server and SQLite kept a moment as the wall clock. Each of their moment columns is now marked in the model, the
+marking is in the migration snapshot, and a model whose snapshot lacks it has changes pending — so the app refuses to
+start over rows it would read an hour or two off, saying to add a migration. `rask db add MomentsInUtc` then writes one
+step per column:
+
+```csharp
+migrationBuilder.Sql("-- Rask: this column's moments, kept as the app's wall clock until now, are rewritten to UTC as the migration applies: [dbo].[Fueling].[At]");
+```
+
+As the migration applies, Rask's SQL generator writes it as the `UPDATE` it is, in the app's zone at that moment —
+`CAST(([At] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2)` on SQL Server,
+`rask_moment_utc("At")` on SQLite — inside the migration's transaction, with its history row, so it runs once and
+whole. Run it where the app's zone is set (`c.TimeZone`, `AddRask(timeZone: …)`): the app's start, or
+`dotnet App.dll rask db migrate` ([a one-off migration](deployment.md#migrations-as-a-one-off-step)). PostgreSQL kept
+moments as UTC from the start and owes nothing.
+
+**A bare `DateTime` on an aggregate or an entity is refused on PostgreSQL** as the model is built: Npgsql would refuse a
+wall-clock one only when the row is saved, long after the model was written. Hold an instant as a `Moment` and a
+calendar day as a `Day` ([RASK146](diagnostics.md#rask146) points at each one); a column that must stay a `DateTime`
+says how it is stored with `HasConversion(…)`. Rask's own `CreatedAt`/`UpdatedAt`, and a table that is no entity of
+the domain, are left as Npgsql maps them.
 
 ### Decimals: what each database keeps
 

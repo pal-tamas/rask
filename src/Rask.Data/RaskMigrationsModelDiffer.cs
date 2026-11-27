@@ -32,6 +32,10 @@ namespace Rask.Data;
 ///         here from the annotations of the two models — inside the <c>CREATE TABLE</c> on SQLite, which makes a foreign
 ///         key only with its table, and after every other operation elsewhere, once the tenant's table is there too.
 ///     </para>
+///     <para>
+///         A column of moments the target stores as UTC and the source kept as the wall clock gets its rewrite step
+///         (<see cref="MomentsInUtc" />), after every other operation.
+///     </para>
 /// </remarks>
 internal sealed class RaskMigrationsModelDiffer(
     IRelationalTypeMappingSource typeMappingSource,
@@ -73,7 +77,7 @@ internal sealed class RaskMigrationsModelDiffer(
             return operations;
         }
 
-        operations = WithTenantReferences(operations, source, target);
+        operations = [.. WithTenantReferences(operations, source, target), .. MomentsInUtc.Between(source, target)];
 
         foreach (var operation in operations)
         {
@@ -90,6 +94,15 @@ internal sealed class RaskMigrationsModelDiffer(
 
         return operations;
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     Also a column of moments to rewrite from the wall clock to UTC (<see cref="MomentsInUtc" />): the snapshot holds
+    ///     no column facet that changed, so EF Core's own differ would let the app start over rows it then reads an hour
+    ///     or two off.
+    /// </remarks>
+    public override bool HasDifferences(IRelationalModel? source, IRelationalModel? target) =>
+        base.HasDifferences(source, target) || (target is not null && MomentsInUtc.Between(source, target).Any());
 
     // The tenant references the target declares and the source did not, added; the ones it no longer declares, dropped.
     private List<MigrationOperation> WithTenantReferences(

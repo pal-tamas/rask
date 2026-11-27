@@ -89,6 +89,17 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (data): a `Moment` is stored as its UTC instant on SQL Server and SQLite too, as on PostgreSQL.** The
+  column holds `.Instant` to the tick and the row comes back as exactly that instant, so the two `02:30`s of an October
+  night stay two moments and order, compare, `Min`/`Max` alike on all three. A database that kept moments as the wall
+  clock is rewritten by its next migration: every moment column is marked in the model (`Rask:MomentInUtc`, kept in the
+  snapshot), so the app refuses to start until `rask db add MomentsInUtc` adds one step per column, which Rask's SQL
+  generator applies as an `UPDATE` in the app's zone inside the migration's transaction (`AT TIME ZONE` on SQL Server,
+  `rask_moment_utc(…)` on SQLite). `GroupBy(f => f.At.Day)` and `f.At.Day == day` now read the day on the app's wall
+  calendar in SQL on all three; `f.At.Value.Date`/`.Year`/`.Hour` on such a column — the UTC instant's parts — is
+  refused with the way to say it. A moment inside a JSON document keeps the wall clock. `UseRaskPostgres` refuses a bare
+  `DateTime` on an aggregate or an entity as the model is built (a `HasConversion` of the app's own, Rask's own types
+  and tables outside the domain are left alone). `docs/data.md#dates-and-moments-what-each-database-keeps`.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
   where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
   time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter

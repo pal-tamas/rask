@@ -75,6 +75,7 @@
          without a public name nobody but a provider would ever type. -->
     <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
     <InternalsVisibleTo Include="Rask.Data.Tests"/>
+    <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore.Tests"/>
     <InternalsVisibleTo Include="Rask.Postgres"/>
     <!-- The host asks the app's tenant resolver as a request starts and as a live session opens
          (ResolvedTenant.Capture), which is a moment only the host knows and no app should have to name. -->
