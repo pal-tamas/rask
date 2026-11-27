@@ -144,7 +144,7 @@ public sealed class DefaultNamingTests
     [Fact]
     public void A_name_stated_in_configure_wins_over_rasks()
     {
-        using var legacy = new LegacyNamedContext(new DbContextOptionsBuilder<LegacyNamedContext>().UseSqlite("Data Source=:memory:").Options);
+        using var legacy = new LegacyNamedContext(OptionsLayout.LikeAddDbContext<LegacyNamedContext>().UseSqlite("Data Source=:memory:").Options);
         var fueling = legacy.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(Fueling))!;
 
         var names = (fueling.GetTableName(), Column(fueling, nameof(Fueling.PistolId)), fueling.FindPrimaryKey()!.GetName());
@@ -155,7 +155,7 @@ public sealed class DefaultNamingTests
     [Fact]
     public async Task A_database_created_from_the_model_reads_and_writes_through_the_names()
     {
-        await using var db = new RaskNamedContext(new DbContextOptionsBuilder<RaskNamedContext>().UseSqlite("Data Source=:memory:").Options);
+        await using var db = new RaskNamedContext(OptionsLayout.LikeAddDbContext<RaskNamedContext>().UseSqlite("Data Source=:memory:").Options);
         await db.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         db.Add(new Fueling { Pistol = new Pistol { Number = 1, Label = "A" }, CreatedAt = new DateTime(2026, 11, 27), Km = new Odometer(10, 42) });
@@ -175,7 +175,7 @@ public sealed class DefaultNamingTests
 
     private static IModel Model()
     {
-        using var db = new RaskNamedContext(new DbContextOptionsBuilder<RaskNamedContext>().UseSqlite("Data Source=:memory:").Options);
+        using var db = new RaskNamedContext(OptionsLayout.LikeAddDbContext<RaskNamedContext>().UseSqlite("Data Source=:memory:").Options);
         return db.GetService<IDesignTimeModel>().Model;
     }
 }

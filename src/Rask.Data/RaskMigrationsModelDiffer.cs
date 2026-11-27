@@ -110,6 +110,9 @@ internal sealed class RaskMigrationsModelDiffer(
             operations = ConstraintRenames.Apply([.. operations], source, target, databaseProvider.Name, sqlGenerationHelper);
         }
 
+        // SQLite refuses a rename that changes only a name's case (Fuelings → fuelings): it goes through a name of its own.
+        operations = CaseOnlyRenames.Apply(operations, databaseProvider.Name);
+
         foreach (var operation in operations)
         {
             switch (operation)

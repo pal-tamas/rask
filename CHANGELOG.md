@@ -117,7 +117,8 @@ them until tagged releases begin.
   after its class in snake case and plural (Rails' plural: `DeliveryNote` → `delivery_notes`, `Company` →
   `companies`, `Person` → `people`), a column after its property's path in snake case (`pistol_id`, `km_start`,
   `discriminator`), and its constraints `pk_{table}`, `fk_{table}_{columns}`, `uq_{table}_{columns}`,
-  `ix_{table}_{columns}`, `ck_{table}_{name}` and (SQL Server) `df_{table}_{column}` — cut to PostgreSQL's 63 bytes on
+  `ix_{table}_{columns}`, `ck_{table}_{name}`, `xc_{table}_{columns}` for a `NoOverlap` rule (its SQL Server
+  trigger `tr_…`, its SQLite index `ix_…`) and (SQL Server) `df_{table}_{column}` — cut to PostgreSQL's 63 bytes on
   every database, a longer one ending in a hash of the whole name. Rask's battery tables follow too (`jobs`,
   `outbox_messages`, `queued_mails`, `cache_entries`, `stored_files`, `push_subscribers`, `auth_sessions`,
   `auth_passkeys`, `auth_instance_claims`, `log_entries`, …). A name stated in `Configure` (`ToTable`,

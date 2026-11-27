@@ -141,9 +141,10 @@ public sealed class BatteryTablesTests
             snapshot.GetRelationalModel(), context.GetService<IDesignTimeModel>().Model.GetRelationalModel());
 
         var rebuild = Assert.Single(operations.OfType<SqlOperation>(), static o => o.Sql.Contains("rebuilds the key of", StringComparison.Ordinal));
-        Assert.Contains("\"Job\"", rebuild.Sql, StringComparison.Ordinal);
-        Assert.Contains(operations, static o => o is DropTableOperation { Name: "Job" });
-        Assert.DoesNotContain(operations, static o => o is AlterColumnOperation { Table: "Job" });
+        Assert.Contains("\"jobs\"", rebuild.Sql, StringComparison.Ordinal);
+        Assert.Contains(operations, static o => o is RenameTableOperation { Name: "Job", NewName: "jobs" });
+        Assert.Contains(operations, static o => o is DropTableOperation { Name: "jobs" });
+        Assert.DoesNotContain(operations, static o => o is AlterColumnOperation { Table: "jobs" or "Job" });
         Assert.True(ExclusiveMigrations.IsExclusive(new Written(operations)));
     }
 

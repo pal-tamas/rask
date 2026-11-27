@@ -40,11 +40,11 @@ public sealed class NoOverlapScriptTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("CREATE INDEX [IX_DeskBooking_DeskId_StartsAt] ON [DeskBooking] ([DeskId], [StartsAt]);", script, StringComparison.Ordinal);
-        Assert.Contains("CREATE TRIGGER [TR_DeskBooking_DeskId_StartsAt] ON [DeskBooking] AFTER INSERT, UPDATE AS", script, StringComparison.Ordinal);
-        Assert.Contains("JOIN (SELECT * FROM [DeskBooking] WITH (UPDLOCK, HOLDLOCK) WHERE [Cancelled]", script, StringComparison.Ordinal);
-        Assert.Contains("AS x ON x.[DeskId] = n.[DeskId]", script, StringComparison.Ordinal);
-        Assert.Contains("THROW 51101, N'EX_DeskBooking_DeskId_StartsAt', 1;", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE INDEX [ix_desk_bookings_desk_id_starts_at] ON [desk_bookings] ([desk_id], [starts_at]);", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE TRIGGER [tr_desk_bookings_desk_id_starts_at] ON [desk_bookings] AFTER INSERT, UPDATE AS", script, StringComparison.Ordinal);
+        Assert.Contains("JOIN (SELECT * FROM [desk_bookings] WITH (UPDLOCK, HOLDLOCK) WHERE [cancelled]", script, StringComparison.Ordinal);
+        Assert.Contains("AS x ON x.[desk_id] = n.[desk_id]", script, StringComparison.Ordinal);
+        Assert.Contains("THROW 51101, N'xc_desk_bookings_desk_id_starts_at', 1;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class NoOverlapScriptTests
 
         var entity = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(DeskBooking))!;
 
-        Assert.Equal(["TR_DeskBooking_DeskId_StartsAt"], entity.GetDeclaredTriggers().Select(static t => t.ModelName));
+        Assert.Equal(["tr_desk_bookings_desk_id_starts_at"], entity.GetDeclaredTriggers().Select(static t => t.ModelName));
     }
 
     private static DbContextOptions<DeskBookingContext> Options() =>

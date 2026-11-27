@@ -28,6 +28,8 @@ public sealed class NamingRenameDiffTests
         Assert.All(operations, o => Assert.Contains(o.GetType(), SqliteRenames));
         Assert.Contains(operations, o => o is RenameTableOperation { Name: "Fueling", NewName: "fuelings" });
         Assert.Contains(operations, o => o is RenameColumnOperation { Name: "pistolId", NewName: "pistol_id" });
+        Assert.Contains(operations, o => o is RenameColumnOperation { Name: "Id", NewName: "Id_rask_renamed" });
+        Assert.Contains(operations, o => o is RenameColumnOperation { Name: "Id_rask_renamed", NewName: "id" });
     }
 
     [Fact]

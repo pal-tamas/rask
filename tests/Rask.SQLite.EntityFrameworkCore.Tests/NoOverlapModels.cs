@@ -38,8 +38,8 @@ internal class BookingContext(DbContextOptions options) : RuledContext(options)
     }
 }
 
-// The Bookings table with no rule at all — the "before" of adding one, and the "after" of removing it (#1113).
-internal sealed class UnruledBookingContext(DbContextOptions options) : DbContext(options)
+// The bookings table, named as the ruled ones are, with no rule at all — the "before" of adding one, and the "after" of removing it (#1113).
+internal sealed class UnruledBookingContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Booking> Bookings => Set<Booking>();
 

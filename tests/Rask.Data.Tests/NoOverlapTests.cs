@@ -35,9 +35,9 @@ public sealed class NoOverlapTests
 
         var rule = Assert.Single(NoOverlapRule.Of(model.FindEntityType(typeof(Booking))!));
 
-        Assert.Equal("EX_Booking_RoomId_Wing_StartsAt", rule.Name);
-        Assert.Equal(["RoomId", "Wing"], rule.Keys);
-        Assert.Equal(("StartsAt", "EndsAt"), (rule.From, rule.To));
+        Assert.Equal("xc_bookings_room_id_wing_starts_at", rule.Name);
+        Assert.Equal(["room_id", "wing"], rule.Keys);
+        Assert.Equal(("starts_at", "ends_at"), (rule.From, rule.To));
         Assert.Equal(("Taken", "StartsAt"), (rule.Message, rule.Field));
         Assert.Equal("", rule.Rows);
     }
@@ -53,7 +53,7 @@ public sealed class NoOverlapTests
 
         var rule = Assert.Single(NoOverlapRule.Of(model.FindEntityType(typeof(Booking))!));
 
-        Assert.Equal(("Period_From", "Period_To"), (rule.From, rule.To));
+        Assert.Equal(("period_from", "period_to"), (rule.From, rule.To));
         Assert.Equal(("Period.From", "Period.To", "Period"), (rule.FromPath, rule.ToPath, rule.Field));
     }
 
@@ -66,7 +66,7 @@ public sealed class NoOverlapTests
 
         var rule = Assert.Single(NoOverlapRule.Of(model.FindEntityType(typeof(Booking))!));
 
-        Assert.Equal("\"Wing\" IS NOT NULL", rule.Rows);
+        Assert.Equal("\"wing\" IS NOT NULL", rule.Rows);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class NoOverlapTests
         var lease = Assert.Single(NoOverlapRule.Of(model.FindEntityType(typeof(OverlapLease))!));
         var desk = Assert.Single(NoOverlapRule.Of(model.FindEntityType(typeof(OverlapDesk))!));
 
-        Assert.Equal("\"DeletedAt\" IS NULL", lease.Rows);
+        Assert.Equal("\"deleted_at\" IS NULL", lease.Rows);
         Assert.Equal("", desk.Rows);
     }
 
@@ -97,13 +97,13 @@ public sealed class NoOverlapTests
 
         var rules = NoOverlapRule.Of(model.FindEntityType(typeof(Booking))!);
 
-        Assert.Equal(["EX_Booking_RoomId_StartsAt", "EX_Booking_RoomId_StartsAt_2"], rules.Select(r => r.Name));
+        Assert.Equal(["xc_bookings_room_id_starts_at", "xc_bookings_room_id_starts_at_2"], rules.Select(r => r.Name));
     }
 
     [Fact]
     public void The_rules_round_trip_through_the_annotation_s_text()
     {
-        NoOverlapRule[] rules = [new("EX_T_K_F", ["K"], ["Key"], "F", "Span.From", "T", "Span.To", "\"A\" = 'x|y'", "No, \"quoted\".", "Span")];
+        NoOverlapRule[] rules = [new("xc_T_K_F", ["K"], ["Key"], "F", "Span.From", "T", "Span.To", "\"A\" = 'x|y'", "No, \"quoted\".", "Span")];
 
         var read = NoOverlapRule.Parse(NoOverlapRule.Write(rules));
 

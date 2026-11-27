@@ -630,6 +630,7 @@ says nothing about names, and `ToTable`, `HasColumnName` and `HasDatabaseName` a
 | a unique index or alternate key | `uq_{table}_{columns}` | `uq_users_tenant_key_email` |
 | an index | `ix_{table}_{columns}` | `ix_fuelings_created_at` |
 | a check constraint the model declares unnamed | `ck_{table}_{name}` | `ck_bookings_ends_after_start` |
+| a [`NoOverlap`](#non-overlapping-ranges) rule | `xc_{table}_{key columns}_{start column}` | `xc_bookings_room_id_starts_at` |
 | a column default (SQL Server names it) | `df_{table}_{column}` | `df_jobs_awaited` |
 
 - **The table is the class's, never the `DbSet`'s**: `public DbSet<Fueling> Tankolasok` still maps `fuelings`. A
@@ -1554,7 +1555,7 @@ What counts as an overlap is PostgreSQL's, on all three databases:
   constants, joined by `&&`), and, for an aggregate that soft deletes, the rows not deleted — a deleted row frees its
   range.
 
-An entity may declare several rules. Each is one database object named `EX_{table}_{key columns}_{start column}`:
+An entity may declare several rules. Each is one database object named `xc_{table}_{key columns}_{start column}`:
 
 | Database | Holds it as |
 | --- | --- |
@@ -1667,7 +1668,10 @@ rask db add RaskNames      # RenameTable, RenameColumn, RenameIndex — and each
 EF Core has no operation that renames a primary, foreign or unique key, and writes a drop and an add for one; Rask's
 migration differ turns each such pair — the same key of the same entity, over the same properties — into the
 database's own rename: `ALTER TABLE … RENAME CONSTRAINT` on PostgreSQL, `sp_rename … 'OBJECT'` on SQL Server. SQLite
-checks no constraint by name, so there the pair is left out rather than rebuilding the table for a name. Read the
+checks no constraint by name, so there the pair is left out rather than rebuilding the table for a name. SQLite also
+refuses a rename that changes only a name's case (`Fuelings` → `fuelings`, `Id` → `id`), so there it goes through
+a name of its own (`Fuelings_rask_renamed`) in two steps; a SQL Server default constraint is renamed in place too,
+found by its column, whatever the server named it. Read the
 migration before it runs: anything that is not a rename is a change the model made besides the names.
 
 A step at a time works too: keep a table's old names with `ToTable`/`HasColumnName` until its turn, or restate the old
