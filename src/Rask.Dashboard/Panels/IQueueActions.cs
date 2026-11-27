@@ -19,7 +19,7 @@ public interface IQueueActions
     /// operation, so it needs no coordination with the drain at all. Returns rows affected.
     /// </para>
     /// </summary>
-    Task<int> Retry(long id, CancellationToken cancellationToken);
+    Task<int> Retry(Guid id, CancellationToken cancellationToken);
 
     /// <summary>Retries every dead letter in this queue. Same guard, no id.</summary>
     Task<int> RetryAll(CancellationToken cancellationToken);
@@ -34,5 +34,5 @@ public interface IQueueActions
     /// Deletes one outstanding row, destroying the work. Guarded on <c>ProcessedAt IS NULL</c> so a
     /// completed row's record is never lost; requires <see cref="RaskDashboardActions.Destructive"/>.
     /// </summary>
-    Task<int> Delete(long id, CancellationToken cancellationToken);
+    Task<int> Delete(Guid id, CancellationToken cancellationToken);
 }

@@ -66,5 +66,5 @@ public sealed class WorkViewerTests
     }
 
     private static WorkReported Work(Guid? owner, Guid? tenant, bool shared, string kind = "Loads.Open") =>
-        new(1, "Load", null, null, null, WorkState.Running, At) { Owner = owner, Tenant = tenant, Shared = shared, Kind = kind };
+        new(Guid.CreateVersion7(), "Load", null, null, null, WorkState.Running, At) { Owner = owner, Tenant = tenant, Shared = shared, Kind = kind };
 }

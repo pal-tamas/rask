@@ -242,7 +242,7 @@ public sealed class LogWriterResilienceTests
     }
 
     private static LogRecord Entry(string message) =>
-        new(0, DateTimeOffset.UnixEpoch, LogLevel.Information, "Test", 0, message, null);
+        new(Guid.Empty, DateTimeOffset.UnixEpoch, LogLevel.Information, "Test", 0, message, null);
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {

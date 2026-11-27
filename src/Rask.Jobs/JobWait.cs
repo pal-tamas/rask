@@ -12,7 +12,7 @@ internal sealed class JobWait<TContext>(IDbContextFactory<TContext> contextFacto
     where TContext : DbContext
 {
     /// <summary>The answer of job <paramref name="id"/> as its row keeps it (JSON, or null for a job that answers nothing).</summary>
-    public async Task<string?> For(long id, string type, TimeSpan? within, CancellationToken cancellationToken)
+    public async Task<string?> For(Guid id, string type, TimeSpan? within, CancellationToken cancellationToken)
     {
         using var deadline = within is { } wait ? new CancellationTokenSource(wait, timeProvider) : null;
         using var linked = deadline is null ? null : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
@@ -44,7 +44,7 @@ internal sealed class JobWait<TContext>(IDbContextFactory<TContext> contextFacto
         }
     }
 
-    private async Task<(bool Ended, string? Result)> Outcome(long id, string type, CancellationToken cancellationToken)
+    private async Task<(bool Ended, string? Result)> Outcome(Guid id, string type, CancellationToken cancellationToken)
     {
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);

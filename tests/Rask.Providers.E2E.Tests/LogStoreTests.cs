@@ -47,11 +47,11 @@ internal static class LogStoreScenarios
         var now = DateTimeOffset.UtcNow;
         await store.Append(
         [
-            new LogRecord(0, now.AddMinutes(-30), LogLevel.Information, "Shop.Checkout", 0, "cart opened", null,
+            new LogRecord(Guid.Empty, now.AddMinutes(-30), LogLevel.Information, "Shop.Checkout", 0, "cart opened", null,
                 [new LogScopeValue("RequestId", "r1")]),
-            new LogRecord(0, now.AddMinutes(-20), LogLevel.Warning, "Shop.Checkout", 0, "disk at 100% capacity", null,
+            new LogRecord(Guid.Empty, now.AddMinutes(-20), LogLevel.Warning, "Shop.Checkout", 0, "disk at 100% capacity", null,
                 [new LogScopeValue("RequestId", "r2")]),
-            new LogRecord(0, now.AddMinutes(-10), LogLevel.Error, "Shop.Orders", 7, "opaque",
+            new LogRecord(Guid.Empty, now.AddMinutes(-10), LogLevel.Error, "Shop.Orders", 7, "opaque",
                 "System.InvalidOperationException: NEEDLE in the trace",
                 [new LogScopeValue("RequestId", "r22"), new LogScopeValue("UserId", "u1")]),
         ]);
@@ -147,7 +147,7 @@ internal static class LogStoreScenarios
                 await app.SaveChangesAsync();
 
                 await store.Append(
-                    [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Error, "App.Checkout", 0, "payment failed, rolling back", null)]);
+                    [new LogRecord(Guid.Empty, DateTimeOffset.UtcNow, LogLevel.Error, "App.Checkout", 0, "payment failed, rolling back", null)]);
 
                 await transaction.RollbackAsync();
             });
@@ -164,8 +164,8 @@ internal static class LogStoreScenarios
     {
         await store.Append(
         [
-            new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Warning, "Shop.Input", 0, "user sent a\0b", "System.Exception: x\0y"),
-            new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
+            new LogRecord(Guid.Empty, DateTimeOffset.UtcNow, LogLevel.Warning, "Shop.Input", 0, "user sent a\0b", "System.Exception: x\0y"),
+            new LogRecord(Guid.Empty, DateTimeOffset.UtcNow, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
         ]);
 
         var page = await store.Search(new LogQuery());
@@ -178,7 +178,7 @@ internal static class LogStoreScenarios
 
     private static List<LogRecord> Records(int count, DateTimeOffset at, string prefix) =>
         Enumerable.Range(0, count)
-            .Select(i => new LogRecord(0, at, LogLevel.Information, "Bulk", 0, $"{prefix} {i}", null))
+            .Select(i => new LogRecord(Guid.Empty, at, LogLevel.Information, "Bulk", 0, $"{prefix} {i}", null))
             .ToList();
 }
 

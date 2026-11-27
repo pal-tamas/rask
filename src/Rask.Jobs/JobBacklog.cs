@@ -109,7 +109,7 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
         RunAndWait(job, lane, within, cancellationToken);
 
     /// <inheritdoc/>
-    public Task<bool> Stop(long id, CancellationToken cancellationToken = default) =>
+    public Task<bool> Stop(Guid id, CancellationToken cancellationToken = default) =>
         new JobStops<TContext>(contextFactory, timeProvider, options).Stop(id, cancellationToken);
 
     /// <inheritdoc/>

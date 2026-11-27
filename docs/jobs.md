@@ -255,7 +255,7 @@ job of that pump waiting. Three things end it, and none of them is a failure: th
 its lane are given back at once, the lane's next job runs on the same host, and it is never tried again.
 
 ```csharp
-// By hand — a button, an admin page, the dashboard's Stop. By row id, on whichever host runs it:
+// By hand — a button, an admin page, the dashboard's Stop. By the row's id (a Guid), on whichever host runs it:
 await Jobs.Stop(lane.Running!.Id);                                    // false: already done, already stopped, or no such job
 
 // By itself, at a time limit and when it reports no progress — Program.cs, beside the schedules:
@@ -447,7 +447,9 @@ write a job for work that may roll back.
 ## How it works
 
 - **`IJobs`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
-  `IDbContextFactory<TContext>`.
+  `IDbContextFactory<TContext>`. Its key is a version-7 `Guid` Rask makes before the insert — strictly increasing on
+  the host that enqueued it, time-ordered across hosts — never a number the database hands out, so "oldest first"
+  and the tie between two jobs due at the same instant are the order they were enqueued in.
 - **`JobProcessor<TContext>`** — a hosted `BackgroundService` that polls on `PollInterval` for **due** jobs
   (`RunAt <= now`, oldest first), dispatches each through `IDispatcher` to its `IJobHandler`, and stamps
   `ProcessedAt`. On failure it records the error, increments the attempt count, and pushes `RunAt` out by an
@@ -471,6 +473,16 @@ write a job for work that may roll back.
   without a cadence fails the host's start rather than silently never running.
 - **The `Rask.Jobs` source generator** registers every `IJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
+
+### Upgrading to `Guid` keys
+
+A database made before Rask keyed its own rows by `Guid` has a `Job` table numbered by the database (`bigint`
+identity, `INTEGER` rowid). Its next migration (`rask db add RaskGuidKeys && rask db update`) rebuilds the table: an
+[exclusive migration](deployment.md), so `rask deploy` stops the old version before the new one migrates. It refuses
+to run while a job is pending — waiting, running or a dead letter: let the queue drain, retry or delete the dead
+letters on the dashboard, then deploy. Processed jobs are kept, each with the deterministic id of its `CreatedAt` and
+old number, so the bell's recently ended work and the dashboard's history survive. See
+[docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 
 ## The user and tenant a job runs for
 

@@ -130,7 +130,7 @@ public sealed class SaboteurJobHandler(IDbContextFactory<JobsDbContext> factory)
             .FirstOrDefaultAsync(Current.Cancellation)
             .ConfigureAwait(false);
 
-        if (doomed != 0)
+        if (doomed != Guid.Empty)
         {
             await db.Set<Job>().Where(j => j.Id == doomed).ExecuteDeleteAsync(Current.Cancellation).ConfigureAwait(false);
         }

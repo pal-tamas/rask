@@ -11,7 +11,7 @@ namespace Rask.Background;
 internal sealed class JobStops<TContext>(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, JobsOptions options)
     where TContext : DbContext
 {
-    public async Task<bool> Stop(long id, CancellationToken cancellationToken)
+    public async Task<bool> Stop(Guid id, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

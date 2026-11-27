@@ -19,7 +19,7 @@ public sealed class DispatchLog
 {
     public bool FailsAfterWriting { get; set; }
 
-    public ConcurrentQueue<(long MessageId, int Attempt)> Seen { get; } = new();
+    public ConcurrentQueue<(Guid MessageId, int Attempt)> Seen { get; } = new();
 }
 
 /// <summary>Writes a row of its own, then — when told to — fails.</summary>

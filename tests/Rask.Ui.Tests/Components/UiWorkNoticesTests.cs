@@ -125,8 +125,8 @@ public sealed partial class UiWorkNoticesTests : global::Rask.Core.RaskMarkup
 
         var shown = UiWorkFeed.Merge([row, endedRow], [heard, lateReport]);
 
-        Assert.Equal(5, shown.Single(w => w.Id == 1).Done);
-        Assert.Equal(WorkState.Done, shown.Single(w => w.Id == 2).State);
+        Assert.Equal(5, shown.Single(w => w.Id == Id(1)).Done);
+        Assert.Equal(WorkState.Done, shown.Single(w => w.Id == Id(2)).State);
     }
 
     [Fact]
@@ -137,9 +137,9 @@ public sealed partial class UiWorkNoticesTests : global::Rask.Core.RaskMarkup
         var shown = UiWorkFeed.Merge([.. ended, Work(99, "Running", WorkState.Running)], []);
 
         Assert.Equal(11, shown.Count);
-        Assert.Equal(99, shown[0].Id);
-        Assert.Equal(12, shown[1].Id);
-        Assert.DoesNotContain(shown, w => w.Id is 1 or 2);
+        Assert.Equal(Id(99), shown[0].Id);
+        Assert.Equal(Id(12), shown[1].Id);
+        Assert.DoesNotContain(shown, w => w.Id == Id(1) || w.Id == Id(2));
     }
 
     [Fact]
@@ -159,6 +159,9 @@ public sealed partial class UiWorkNoticesTests : global::Rask.Core.RaskMarkup
     private static UiWorkList List(params WorkReported[] work) => Ui.WorkList.Showing(work);
 
     private static WorkReported Work(
-        long id, string title, WorkState state, int? done = null, int? of = null, string? progress = null, DateTime? at = null) =>
-        new(id, title, progress, done, of, state, at ?? Before);
+        int id, string title, WorkState state, int? done = null, int? of = null, string? progress = null, DateTime? at = null) =>
+        new(Id(id), title, progress, done, of, state, at ?? Before);
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }

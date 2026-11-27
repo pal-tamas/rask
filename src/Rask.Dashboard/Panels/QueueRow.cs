@@ -15,7 +15,7 @@ namespace Rask.Dashboard.Panels;
 /// <param name="Error">The last failure message.</param>
 /// <param name="Payload">The stored payload, for the drill-down.</param>
 public sealed record QueueRow(
-    long Id,
+    Guid Id,
     string Type,
     string Summary,
     DateTime CreatedAt,

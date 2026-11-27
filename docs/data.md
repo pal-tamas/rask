@@ -1911,6 +1911,40 @@ CAST(SUBSTRING(@n, 13, 4) + SUBSTRING(@n, 11, 2) + SUBSTRING(@n, 9, 2) + SUBSTRI
 A migration of your own that re-keys rows writes ids through EF (`UpdateData`, a data step) and gets the stored form
 without either.
 
+### Rask's own tables re-keyed from store numbers to Guids
+
+A table of Rask's own whose key moves from a store-numbered integer (an `IDENTITY`, a PostgreSQL identity, SQLite's
+rowid) to a Guid the app makes before the insert cannot be altered in place — SQL Server refuses to alter an identity,
+PostgreSQL has no cast from `bigint` to `uuid`, and SQLite's table rebuild would copy `1`, `2`, `3` in as ids. The
+battery marks such a table, and **the migration you add after upgrading rebuilds it** instead:
+
+1. **The guard.** While a row is still pending (a job, an outbox message or a queued mail not yet processed — dead
+   letters included), the migration fails with *"Rask cannot rebuild the key of …: rows with no ProcessedAt are still
+   waiting"* and changes nothing. Let the queue drain, retry or delete what the dashboard shows, then migrate again.
+2. **The kept rows set aside**, where the table keeps its history: each gets a deterministic version-7 id made from
+   what it holds — the Unix millisecond of its own time, version 7, then the old number as the last fifteen hex digits
+   (`xxxxxxxx-xxxx-7000-8iii-iiiiiiiiiiii`) — so the ids sort by that time, then by the old number, and every id made
+   afterwards sorts after them. They wait in a `<table>_rask_rebuild` table beside it. A table whose rows are pure
+   history keeps none: they are dropped with it.
+3. **The table dropped and created again** from the current model, with its indexes.
+4. **The kept rows written back**, and the scratch table dropped.
+
+| Table | Refused while | Kept | Why |
+| --- | --- | --- | --- |
+| `Job` | a job has no `ProcessedAt` (waiting, running, a dead letter) | processed jobs, ids from `CreatedAt` | the dashboard's history and the bell's recently ended work |
+| `QueuedMail` | a mail has no `ProcessedAt` | sent mail, ids from `CreatedAt` | the record of what was sent |
+| `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
+| `RaskLog` | never | none | old log lines are history; read what you need first |
+
+The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
+full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+
+The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
+[`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,
+so nothing is enqueued under the old key while it runs. With plain `dotnet ef`, stop the old instances yourself first.
+On SQL Server a database still in the native Guid layout gets both changes in one migration: the rebuilt rows come back
+in the stored form.
+
 One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.
 A longer cache key cannot be stored there; `ICache` rejects it with an error naming the limit, so hash long keys.
