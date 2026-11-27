@@ -28,26 +28,21 @@ internal static class PistolRace
         });
         services.AddDbContextFactory<RaskReadDbContext>(provider);
         await using var app = services.BuildServiceProvider(validateScopes: true);
-        Db.Configure(app);
+        // Both halves bound to this flow alone — the claims' Task.Runs and a retried attempt inherit it — never the
+        // process, where another class's Configure or Reset would move them mid-race.
+        using var bound = Db.Use(app);
 
-        try
-        {
-            var pistol = Guid.NewGuid();
-            var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var second = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pistol = Guid.NewGuid();
+        var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var failures = await Task.WhenAll(
-                Task.Run(() => Claim(pistol, "ada@example.com", first, second.Task, isolation)),
-                Task.Run(() => Claim(pistol, "bob@example.com", second, first.Task, isolation)));
+        var failures = await Task.WhenAll(
+            Task.Run(() => Claim(pistol, "ada@example.com", first, second.Task, isolation)),
+            Task.Run(() => Claim(pistol, "bob@example.com", second, first.Task, isolation)));
 
-            await using var db = open();
-            var claims = await db.Members.CountAsync(m => m.Owner == pistol, TestContext.Current.CancellationToken);
-            return (claims, failures);
-        }
-        finally
-        {
-            Db.Reset();
-        }
+        await using var db = open();
+        var claims = await db.Members.CountAsync(m => m.Owner == pistol, TestContext.Current.CancellationToken);
+        return (claims, failures);
     }
 
     private static async Task<Exception?> Claim(

@@ -161,7 +161,9 @@ public abstract class CaseInsensitiveTextOrderParityTests : TextOrderParityTests
         await using var db = await WithAsync(Named("Kovács Béla", "k-1"));
         var typed = "kovács";
         var start = "KOV";
-        var end = "S BÉLA";
+        // Not "S BÉLA": in Hungarian "cs" is one letter, and SQL Server's Hungarian_100 collation does not split it, so
+        // "Kovács Béla" does not end in "s Béla" there. A search for the whole letter is the same on every provider.
+        var end = "ÁCS BÉLA";
         var unaccented = "kovacs";
 
         var contains = await db.Speakers.Where(s => s.Name.Contains(typed)).Select(s => s.Code).ToListAsync(Ct);

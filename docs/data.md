@@ -718,7 +718,10 @@ public sealed class AppModel : IRaskModel
   foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
   foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
   two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
-  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A search that cuts a
+  Hungarian double letter in two (`cs`, `sz`, `gy`, …) differs too: SQL Server's `Hungarian_100` keeps the letter
+  whole, so `Kovács Béla` does not end in `s Béla` there, while SQLite and PostgreSQL find it; `EndsWith("ács Béla")`
+  is the same on all three. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
@@ -1129,7 +1132,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 |---|---|---|---|
 | Smallest step kept | a tick (100 ns) | a tick (stored as text, seven fractional digits) | a microsecond: the seventh digit is rounded away |
 | A `DateTime` reads back as | `Kind = Unspecified` | `Kind = Unspecified` | `Kind = Utc`, and writing one that is not UTC is refused |
-| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
+| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter — a parameter as an `InvalidCastException` around the `ArgumentException`) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
 | A `Moment` value object (a wall-clock `DateTime`, `Kind = Unspecified`) | kept to the tick, orders by its time | kept to the tick, orders by its time | kept to the microsecond, orders by its time: `UseRaskPostgres` stores it as the UTC instant it is in `Clock.Zone` and reads it back onto the wall clock |
