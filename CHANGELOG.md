@@ -81,6 +81,12 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`Db.Lock` and numbering take a 64-bit lock on PostgreSQL.** `pg_advisory_lock(hashtextextended(name, 0))` (and
+  `pg_advisory_xact_lock` for numbering) instead of the 32-bit `hashtext`, whose keys collide at a few tens of
+  thousands of names. The key a name locks changes, so an instance of the previous version and one of this version do
+  not exclude each other: never run the two side by side against one PostgreSQL database — `rask deploy`'s blue-green
+  overlap included. No app runs on PostgreSQL yet; after one does, a change of lock identity takes both keys for a
+  release.
 - **PostgreSQL: a text key is binary.** Through `UseRaskPostgres` under a case-insensitive `c.OrderTextBy(…)`, a text
   primary or alternate key column and a text foreign key column are now `COLLATE "C"` instead of `rask_text`: an id
   compares byte for byte and its index deduplicates; every other text column keeps `rask_text`. A database already

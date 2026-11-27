@@ -1183,8 +1183,9 @@ await pump.Talk();
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
   with its connection. Disposing twice lets go once.
 - **SQL Server** takes it with `sp_getapplock` (owned by the session, names up to 255 characters), released with
-  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtext(name))` — a 32-bit hash, so two names that hash
-  alike share one lock — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
+  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtextextended(name, 0))` — a 64-bit hash, so two names
+  would share one lock only if they hashed alike (about once in 2⁶⁴; the 32-bit `hashtext` before it collided at a
+  few tens of thousands of names) — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
   connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
   name. Any other provider throws `NotSupportedException`.
 
@@ -1194,8 +1195,8 @@ await pump.Talk();
 await using var chips = await Db.Lock(driver.Chips.Touched.Select(c => "chip:" + c.Code)).For(30.Seconds);
 ```
 
-Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtext`, the locks it
-really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
+Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtextextended`, the
+locks it really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
 waits for. A name given twice is taken once, and an empty list takes nothing. `.For(wait)` is the whole call's wait,
 not each name's. All or none: when one is not granted, the ones already taken are let go before the
 `TimeoutException`. Disposing the handle lets go of every one.
