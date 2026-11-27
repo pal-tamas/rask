@@ -2007,13 +2007,20 @@ tables included — with its bytes rearranged so SQL Server's order is the id's.
 and serializes is unchanged; a column of text (`nvarchar`, or a Guid stored as text) and JSON are left as they are.
 No default is added: Rask assigns every key in the app.
 
-It applies where Rask's migrations do (`UseRaskSqlServer`, a `RaskApp`): the model carries a `Rask:GuidOrder`
+It applies where Rask's migrations do — every `UseRaskSqlServer` context, a `RaskApp`'s, and a plain `DbContext` that
+holds a battery's tables (`modelBuilder.AddRaskJobs()`, `AddRaskLogging()`) alike; a plain `UseSqlServer` context keeps
+SQL Server's own layout. The model carries a `Rask:GuidOrder`
 annotation, and **the first migration you add after upgrading rewrites the rows an existing database holds**, once —
 every `uniqueidentifier` column of every table the context's migrations own, with the foreign keys between them
 switched off while it runs and checked again after. A database the first migration creates needs none. Until that
 migration exists, `MigrateOnStart` refuses to start the app (a pending model change), so the new code never reads
 rows in the old layout; [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before
 the new one applies it.
+
+A context without migrations gets no rewrite: one that `EnsureCreated()` makes on an empty database is in the stored
+form from its first row, but a database it made before the upgrade still holds SQL Server's layout, and its rows read
+back as other ids. Make such a database again, or rewrite each `uniqueidentifier` column with the T-SQL below before
+the new version reads it.
 
 **Raw SQL sees the stored form** — `FromSql`, Dapper, SSMS. EF's own parameters, `BulkInsert` and Rask's own
 statements convert for you. In T-SQL, the stored form of an id's text is

@@ -45,6 +45,9 @@
     <!-- The one-time rewrite the differ emits when the model starts storing its uniqueidentifier columns by time. -->
     <Compile Include="..\Rask.Data\GuidOrderRewrite.cs" Link="Shared\GuidOrderRewrite.cs"/>
     <Compile Include="..\Rask.Data\SqlServerGuidOrder.cs" Link="Shared\SqlServerGuidOrder.cs"/>
+    <!-- The convention that stores every uniqueidentifier by time, for a model Rask.Data's conventions did not build. -->
+    <Compile Include="..\Rask.Data\SqlServerGuidOrderConvention.cs" Link="Shared\SqlServerGuidOrderConvention.cs"/>
+    <Compile Include="..\Rask.Data\StoredGuidConverter.cs" Link="Shared\StoredGuidConverter.cs"/>
     <Compile Include="..\Rask.Data\ProviderNames.cs" Link="Shared\ProviderNames.cs"/>
     <Compile Include="..\Rask.Data\ExclusiveMigrations.cs" Link="Shared\ExclusiveMigrations.cs"/>
     <!-- The rebuild of a battery table whose key turns from a store-numbered integer into a Guid. -->

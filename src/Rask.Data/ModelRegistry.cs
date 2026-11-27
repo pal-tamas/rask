@@ -125,8 +125,10 @@ public static class ModelRegistry
             new GuidIdTextConvention(services.GetService<IRelationalTypeMappingSource>()));
 
         // On SQL Server every uniqueidentifier is stored so it sorts as .NET, PostgreSQL and SQLite sort it: by time.
-        // After the text convention above, which takes the columns that are text out of its way.
-        configurationBuilder.Conventions.Add(static services => SqlServerGuidOrderConvention.For(services));
+        // After the text convention above, which takes the columns that are text out of its way. The mark tells
+        // UseRaskSqlServer's own copy, which holds every other model to it, to leave this one to this convention.
+        configurationBuilder.Conventions.Add(static _ => new RaskConventionsMark());
+        configurationBuilder.Conventions.Add(static services => SqlServerGuidOrderConvention.For(services, OneValueConverters.ThenStoredGuid));
 
         // Computed(…), Default(…) and an index's Where(…) become the provider's own SQL there too.
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));

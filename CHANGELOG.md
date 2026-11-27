@@ -366,6 +366,12 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A plain `DbContext` on `UseRaskSqlServer` stores its Guids by time too, as docs/data.md says.** Only a model built
+  with Rask's model conventions (`RaskDbContext`, a read face) got the time-ordered `uniqueidentifier` layout, so a plain
+  context holding a battery's tables (`AddRaskJobs()`, `AddRaskLogging()`) stored version-7 ids raw and SQL Server
+  sorted the job lanes and the log pages by their random tail. `UseRaskSqlServer` now holds every model to it; one built
+  with Rask's conventions is still stored by theirs, once. A context without migrations gets no rewrite of the rows it
+  made before (docs/data.md).
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.
