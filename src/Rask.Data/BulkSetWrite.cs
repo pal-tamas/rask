@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Rask.Cqrs;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Data;
@@ -54,7 +55,7 @@ internal static class BulkSetWrite
             // A soft delete is a stamp, as SoftDeleteInterceptor makes it: DeletedAt alone, and the rows stay.
             var written = type.FindProperty(Columns.DeletedAt) is not null
                 ? await rows.ExecuteUpdateAsync(
-                    s => s.SetProperty(e => EF.Property<DateTime?>(e, Columns.DeletedAt), Now(context)),
+                    s => s.SetProperty(e => EF.Property<Timestamp?>(e, Columns.DeletedAt), Timestamp.Create(Now(context))),
                     cancellationToken).ConfigureAwait(false)
                 : await rows.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
 
@@ -118,7 +119,11 @@ internal static class BulkSetWrite
     {
         if (type.FindProperty(Columns.UpdatedAt) is { } updated)
         {
-            if (updated.ClrType == typeof(DateTime))
+            if (updated.ClrType == typeof(Timestamp))
+            {
+                setters.SetProperty(e => EF.Property<Timestamp>(e, Columns.UpdatedAt), Timestamp.Create(now));
+            }
+            else if (updated.ClrType == typeof(DateTime))
             {
                 setters.SetProperty(e => EF.Property<DateTime>(e, Columns.UpdatedAt), now);
             }

@@ -73,6 +73,21 @@ public static class ValueObjectColumn
     }
 
     /// <summary>
+    ///     Stores <paramref name="property" />, a <see cref="Rask.Values.Timestamp" />, as the UTC instant it holds — on
+    ///     every context, not only one whose provider adds Rask's moment convention: a plain <c>DbContext</c> would
+    ///     otherwise store the wall clock, and read the hour October shows twice back as its first. What Rask's own tables
+    ///     map their times with; an app's moments are mapped by its generated model.
+    /// </summary>
+    /// <param name="property">The timestamp's property.</param>
+    /// <returns>The same builder.</returns>
+    public static PropertyBuilder MapTimestamp(PropertyBuilder property)
+    {
+        Map(property, static (Rask.Values.Timestamp t) => t.Value);
+        property.Metadata.SetValueConverter(OneValueConverters.StoringInstant(property.Metadata.GetValueConverter()!));
+        return property;
+    }
+
+    /// <summary>
     ///     Stores <paramref name="property" /> — held inside another value object — as the one value
     ///     <paramref name="value" /> reads from it.
     /// </summary>

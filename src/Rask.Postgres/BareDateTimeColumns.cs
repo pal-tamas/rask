@@ -14,9 +14,8 @@ namespace Rask.Postgres;
 /// </summary>
 /// <remarks>
 ///     A property the app gave a converter of its own (<c>HasConversion(…)</c>) says how it is stored, and is left alone;
-///     so is one Rask's own types declare (an entity's <c>CreatedAt</c>, a passkey's <c>LastUsedAt</c> — a namespace
-///     <c>Rask</c> or <c>Rask.*</c>, which Rask stamps in UTC itself), and a table that is no aggregate or entity of the
-///     domain — a row an import stages.
+///     so is a table that is no aggregate or entity of the domain — a row an import stages. No namespace is exempt: Rask's
+///     own tables hold their times as a <c>Timestamp</c>, a moment, as an app's do.
 /// </remarks>
 internal static class BareDateTimeColumns
 {
@@ -37,8 +36,7 @@ internal static class BareDateTimeColumns
             if ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(DateTime) &&
                 property.GetValueConverter() is null &&
                 property.GetProviderClrType() is null &&
-                (property.PropertyInfo as MemberInfo ?? property.FieldInfo) is { DeclaringType: { } declaring } &&
-                !IsRasks(declaring.Namespace))
+                (property.PropertyInfo as MemberInfo ?? property.FieldInfo) is not null)
             {
                 throw new InvalidOperationException(
                     $"{type.DisplayName()}.{property.Name} is a bare DateTime, which PostgreSQL stores only as UTC: Npgsql refuses "
@@ -54,7 +52,4 @@ internal static class BareDateTimeColumns
             Refuse(complex.ComplexType);
         }
     }
-
-    private static bool IsRasks(string? ns) =>
-        string.Equals(ns, "Rask", StringComparison.Ordinal) || ns?.StartsWith("Rask.", StringComparison.Ordinal) == true;
 }

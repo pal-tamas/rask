@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Rask.Values;
 
 namespace Rask.Data;
 
@@ -366,12 +367,12 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         var property = entry.Property(column);
 
-        if (onlyWhenUnset && property.CurrentValue is DateTime { } existing && existing != default)
+        if (onlyWhenUnset && property.CurrentValue is Moment or DateTime { Ticks: > 0 })
         {
             return;
         }
 
-        property.CurrentValue = now;
+        property.CurrentValue = TimestampColumn.Of(property.Metadata.ClrType, now);
     }
 
 

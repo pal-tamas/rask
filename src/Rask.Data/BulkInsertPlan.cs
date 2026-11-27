@@ -229,7 +229,7 @@ internal sealed class BulkInsertPlan
 
         return createdAt is null || updatedAt is null
             ? null
-            : new BulkTimestamps(BuildSetter<TEntity>(createdAt), BuildSetter<TEntity>(updatedAt));
+            : new BulkTimestamps(BuildObjectSetter<TEntity>(createdAt), BuildObjectSetter<TEntity>(updatedAt), createdAt.ClrType);
     }
 
     // The REGISTRY decides, as it does for the interceptor's stamp: a table that is not partitioned may keep a TenantId of
@@ -247,18 +247,6 @@ internal sealed class BulkInsertPlan
 
     // The framework owns CreatedAt/UpdatedAt, so their CLR setters are deliberately not public. EF exposes the
     // backing field it maps, which is the same door AuditingInterceptor goes through when it writes the entry.
-    private static Action<object, DateTime> BuildSetter<TEntity>(IProperty property)
-        where TEntity : class
-    {
-        var entity = Expression.Parameter(typeof(object), "e");
-        var value = Expression.Parameter(typeof(DateTime), "v");
-        var typed = Expression.Convert(entity, typeof(TEntity));
-
-        var target = Writable(typed, property);
-
-        return Expression.Lambda<Action<object, DateTime>>(Expression.Assign(target, value), entity, value).Compile();
-    }
-
     private static Action<object, object?> BuildObjectSetter<TEntity>(IProperty property)
         where TEntity : class
     {

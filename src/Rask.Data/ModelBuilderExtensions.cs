@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Values;
 
 namespace Rask.Data;
 
@@ -13,10 +14,10 @@ namespace Rask.Data;
 /// </summary>
 public static class ModelBuilderExtensions
 {
-    // EF.Property<DateTime?>(entity, name), captured from a real expression rather than through
+    // EF.Property<Timestamp?>(entity, name), captured from a real expression rather than through
     // MakeGenericMethod — no reflection for the trimmer to be unable to follow.
-    private static readonly MethodInfo EfPropertyNullableDateTime =
-        ((MethodCallExpression)((Expression<Func<object, DateTime?>>)(e => EF.Property<DateTime?>(e, Columns.DeletedAt))).Body)
+    private static readonly MethodInfo EfPropertyTimestamp =
+        ((MethodCallExpression)((Expression<Func<object, Timestamp?>>)(e => EF.Property<Timestamp?>(e, Columns.DeletedAt))).Body)
         .Method;
 
     /// <summary>
@@ -212,7 +213,7 @@ public static class ModelBuilderExtensions
     {
         if (ConventionRegistry.Has(clrType, trait))
         {
-            builder.Property<DateTime>(column);
+            TimestampColumn.Map(builder, column);
         }
         else
         {
@@ -241,7 +242,7 @@ public static class ModelBuilderExtensions
         // whatever this does; declining one has to say so out loud.
         if (ConventionRegistry.Has(clrType, TraitSet.SoftDelete))
         {
-            builder.Property<DateTime?>(Columns.DeletedAt);
+            TimestampColumn.Map(builder, Columns.DeletedAt);
 
             // NAMED, so IgnoreQueryFilters() can lift this one and leave the tenant filter standing.
             builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
@@ -261,7 +262,7 @@ public static class ModelBuilderExtensions
             return;
         }
 
-        builder.Property<DateTime?>(Columns.DeletedAt);
+        TimestampColumn.Map(builder, Columns.DeletedAt);
         builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
     }
 
@@ -688,7 +689,7 @@ public static class ModelBuilderExtensions
             || underlying == typeof(ushort) || underlying == typeof(sbyte);
     }
 
-    // `e => e.DeletedAt == null`, or `e => EF.Property<DateTime?>(e, "DeletedAt") == null` when the class
+    // `e => e.DeletedAt == null`, or `e => EF.Property<Timestamp?>(e, "DeletedAt") == null` when the class
     // does not declare the property and the column is a shadow one. EF's non-generic HasQueryFilter takes
     // a LambdaExpression, so the typed lambda is synthesized here either way.
     internal static LambdaExpression BuildNotDeletedFilter(EntityTypeBuilder builder, Type clrType)
@@ -699,10 +700,13 @@ public static class ModelBuilderExtensions
         // The member EF mapped, not a lookup by name: Expression.Property(x, "name") reflects over a type the trimmer
         // cannot see, and the metadata already holds the PropertyInfo (or the backing field) the column reads.
         Expression deletedAt = mapped is null || mapped.IsShadowProperty()
-            ? Expression.Call(EfPropertyNullableDateTime, parameter, Expression.Constant(Columns.DeletedAt))
+            ? Expression.Call(EfPropertyTimestamp, parameter, Expression.Constant(Columns.DeletedAt))
             : Expression.MakeMemberAccess(parameter, (MemberInfo?)mapped.PropertyInfo ?? mapped.FieldInfo!);
 
-        var body = Expression.Equal(deletedAt, Expression.Constant(null, typeof(DateTime?)));
+        // A reference compared with null, never the record's own ==: the column IS NULL.
+        var body = deletedAt.Type.IsValueType
+            ? Expression.Equal(deletedAt, Expression.Constant(null, deletedAt.Type))
+            : Expression.ReferenceEqual(deletedAt, Expression.Constant(null, deletedAt.Type));
         return Expression.Lambda(body, parameter);
     }
 }

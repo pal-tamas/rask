@@ -1691,6 +1691,11 @@ change: the two `02:30`s of an October night are two moments, ordered as they ha
 Going back out: `.Value` is the app's wall clock, `.Day` its day, `.Instant` the UTC instant and `.WallIn(zone)` the
 wall clock of another zone — what a device that keeps its own local time is sent.
 
+**Rask obeys the same rule.** The stamps it writes on every entity — `CreatedAt`, `UpdatedAt`, `DeletedAt` — and the
+times of its own tables (a job's `RunAt`, a session's `ExpiresAt`) are a `Timestamp`, the framework's own `Moment`:
+`order.CreatedAt.Instant`, `order.CreatedAt.Day`, `Timestamp.Now`. An app's moments stay its own types, with the bounds
+its domain says.
+
 ### Services stay outside the domain
 
 The domain decides from the state it holds and what its caller hands it. A service it would need — a price list, an

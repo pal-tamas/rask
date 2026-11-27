@@ -63,7 +63,7 @@ internal static class BulkInsertWriter
         var now = ResolveTimeProvider(context).GetUtcNow().UtcDateTime;
         var synchronous = ExecutesSynchronously(context.Database.ProviderName);
         var strategy = context.Database.CreateExecutionStrategy();
-        var write = new BatchWrite(plan, now, synchronous, rowsPerStatement);
+        var write = new BatchWrite(plan, now, plan.Timestamps is { } stamps ? TimestampColumn.Of(stamps.ClrType, now) : null, synchronous, rowsPerStatement);
 
         var written = 0;
         foreach (var batch in entities.Chunk(options.BatchSize))
@@ -296,8 +296,11 @@ internal static class BulkInsertWriter
 
         // AuditingInterceptor never sees these rows, so the writer stamps them itself — on the entity as well as in
         // the row, so an object the caller keeps reads back what was stored.
-        plan.Timestamps?.SetCreatedAt(entity, write.Now);
-        plan.Timestamps?.SetUpdatedAt(entity, write.Now);
+        if (plan.Timestamps is { } stamps)
+        {
+            stamps.SetCreatedAt(entity, write.Stamp);
+            stamps.SetUpdatedAt(entity, write.Stamp);
+        }
         plan.Tenant?.Stamp(entity);
 
         for (var c = 0; c < plan.Columns.Count; c++)
@@ -327,5 +330,6 @@ internal static class BulkInsertWriter
         ?? Clock.TimeProvider;
 
     /// <summary>What every batch of one load shares.</summary>
-    private sealed record BatchWrite(BulkInsertPlan Plan, DateTime Now, bool Synchronous, int RowsPerCommand);
+    // Stamp: what CreatedAt and UpdatedAt are set to, one immutable value shared by every row of the batch.
+    private sealed record BatchWrite(BulkInsertPlan Plan, DateTime Now, object? Stamp, bool Synchronous, int RowsPerCommand);
 }

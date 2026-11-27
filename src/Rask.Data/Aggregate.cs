@@ -54,11 +54,12 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 #pragma warning restore S1144
 
     /// <summary>
-    /// When the aggregate was deleted, in UTC, or <c>null</c>. A delete stamps this instead of removing the row,
+    /// When the aggregate was deleted — a <see cref="Rask.Values.Timestamp" />, stored as the UTC instant — or <c>null</c>. A delete stamps this instead of removing the row,
     /// and a global query filter hides it from every read; <c>IgnoreQueryFilters()</c> lists it again.
     /// </summary>
 #pragma warning disable S1144 // EF materializes the column through the setter; SoftDeleteInterceptor stamps it
-    public DateTime? DeletedAt { get; private set; }
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public Rask.Values.Timestamp? DeletedAt { get; private set; }
 #pragma warning restore S1144
 
     /// <inheritdoc/>

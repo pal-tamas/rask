@@ -3560,8 +3560,9 @@ and a `Day` for a calendar day. A bare `DateTime` or `DateTimeOffset` says neith
 read on (the app's wall clock, UTC, the machine's), and PostgreSQL refuses a `DateTime` that is not UTC only when the
 row is saved. Reported for the state of an aggregate, an entity, a value object, a domain event (an `IEvent`) or a read
 model (an `IReadModel`): an auto-property, a property with a setter, a record's positional member, a field — nullable or
-not. A property computed from others, a static member, a constant and the stamps Rask writes (`CreatedAt`,
-`UpdatedAt`, `DeletedAt`) are not, nor are Rask's own types (a namespace `Rask` or `Rask.*`).
+not. A property computed from others, a static member and a constant are not. No name and no namespace is exempt:
+Rask's own stamps (`CreatedAt`, `UpdatedAt`, `DeletedAt`) and tables (jobs, the outbox, mail, sessions, the cache, stored
+files) hold their times as a `Timestamp`, the framework's own `Moment`, as an app's do.
 
 ```csharp
 public sealed class Delivery : Aggregate<DeliveryId>

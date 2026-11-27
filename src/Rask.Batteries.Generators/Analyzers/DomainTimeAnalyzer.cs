@@ -20,10 +20,11 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///     </para>
 ///     <para>
 ///         Stored state only: an auto-property, a record's positional member, a property with a setter, a field. A
-///         property computed from others, a static member, a constant and the entity stamps Rask writes
-///         (<c>CreatedAt</c>, <c>UpdatedAt</c>, <c>DeletedAt</c>) are left alone, and so are Rask's own types (a namespace
-///         <c>Rask</c> or <c>Rask.*</c>): the framework's tables, and the one value a <c>Moment</c> record hands its base. A warning; an error under <c>&lt;RaskStrict&gt;</c>. Reported only when
-///         the compilation has <c>Rask.Values.Moment</c>, so the quick-fix always has somewhere to point.
+///         property computed from others, a static member and a constant are left alone, and so is the one value a
+///         record declared from <c>Moment</c> hands its base. No name and no namespace is exempt: Rask's own tables hold
+///         their times as a <c>Timestamp</c> (a <c>Moment</c>), as an app's do. A warning; an error under
+///         <c>&lt;RaskStrict&gt;</c>. Reported only when the compilation has <c>Rask.Values.Moment</c>, so the quick-fix
+///         always has somewhere to point.
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -46,10 +47,6 @@ public sealed class DomainTimeAnalyzer : DiagnosticAnalyzer
                      + "Moment where it comes in, with FromWall(local, zone). A warning; an error under <RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK147"));
 
-    // The framework's own stamps on every entity, which Rask writes: never the app's to wrap (as RASK130 leaves them).
-    private static readonly ImmutableHashSet<string> FrameworkMembers =
-        ImmutableHashSet.Create(System.StringComparer.Ordinal, "CreatedAt", "UpdatedAt", "DeletedAt");
-
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask146);
 
     public override void Initialize(AnalysisContext context)
@@ -71,7 +68,7 @@ public sealed class DomainTimeAnalyzer : DiagnosticAnalyzer
     {
         var member = context.Symbol;
         if (member.IsStatic || member.IsImplicitlyDeclared || member is IFieldSymbol { IsConst: true } ||
-            FrameworkMembers.Contains(member.Name) ||
+            HandsItsBase(member) ||
             TimeOf(member) is not { } time || !IsDomain(member.ContainingType) || !IsStored(member, context.CancellationToken))
         {
             return;
@@ -110,16 +107,30 @@ public sealed class DomainTimeAnalyzer : DiagnosticAnalyzer
         };
     }
 
-    // Rask's own types are the framework's, not an app's domain: Moment holds its DateTime on purpose, and a job, a
-    // session or a queued mail is a table Rask stamps in UTC itself.
     private static bool IsDomain(INamedTypeSymbol? type) =>
         type is not null &&
-        !IsRasks(type.ContainingNamespace?.ToDisplayString()) &&
         (AggregateShape.IsEntity(type) || AggregateShape.IsValueRecord(type) ||
          type.AllInterfaces.Any(static i => IsNamed(i, "Rask.Cqrs", "IEvent") || IsNamed(i, "Rask.Data", "IReadModel")));
 
-    private static bool IsRasks(string? ns) =>
-        string.Equals(ns, "Rask", System.StringComparison.Ordinal) || ns?.StartsWith("Rask.", System.StringComparison.Ordinal) == true;
+    // The one value a Moment holds is a DateTime by definition: Moment's own Value, and the positional member of a record
+    // declared from it that feeds it (`record FueledAt(DateTime Value) : Moment(Value)`).
+    private static bool HandsItsBase(ISymbol member)
+    {
+        if (!string.Equals(member.Name, "Value", System.StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        for (INamedTypeSymbol? type = member.ContainingType; type is not null; type = type.BaseType)
+        {
+            if (type is { Name: "Moment", ContainingNamespace: { Name: "Values", ContainingNamespace: { Name: "Rask", ContainingNamespace.IsGlobalNamespace: true } } })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool IsNamed(INamedTypeSymbol type, string ns, string name) =>
         string.Equals(type.Name, name, System.StringComparison.Ordinal) &&

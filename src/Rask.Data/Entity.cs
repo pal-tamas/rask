@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using Rask.Values;
+
 namespace Rask.Data;
 
 /// <summary>
@@ -41,11 +44,23 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
     /// <summary>The entity's identity. Set by the derived type's constructor or factory (or EF on materialization).</summary>
     public TId Id { get; protected set; } = default!;
 
-    /// <summary>When the row was inserted, in UTC. Stamped by the framework on insert.</summary>
-    public DateTime CreatedAt { get; private set; }
+    /// <summary>
+    ///     When the row was inserted — a <see cref="Timestamp" />, stored as the UTC instant. Stamped by the framework on
+    ///     insert; a column only where the class says <see cref="IHasCreatedAt" />, and null where it does not.
+    /// </summary>
+    /// <remarks>
+    ///     Not mapped by EF Core's own conventions: <c>ApplyRaskConventions</c> maps it where the trait asks for it, so a
+    ///     context that does not call it has no such column, rather than a moment it cannot store.
+    /// </remarks>
+    [NotMapped]
+    public Timestamp CreatedAt { get; private set; } = null!;
 
-    /// <summary>When the row last changed, in UTC. Stamped by the framework on every insert and update.</summary>
-    public DateTime UpdatedAt { get; private set; }
+    /// <summary>
+    ///     When the row last changed — a <see cref="Timestamp" />, stored as the UTC instant. Stamped by the framework on
+    ///     every insert and update; a column only where the class says <see cref="IHasUpdatedAt" />, and null where it does not.
+    /// </summary>
+    [NotMapped]
+    public Timestamp UpdatedAt { get; private set; } = null!;
 
     private bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default!);
 
@@ -80,7 +95,7 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
     /// <summary>
     ///     Stamps this row's own times, for an entity whose package writes it and knows when.
     /// </summary>
-    /// <param name="at">The moment to record (UTC).</param>
+    /// <param name="at">The moment to record.</param>
     /// <remarks>
     ///     <para>
     ///         <c>CreatedAt</c> and <c>UpdatedAt</c> are normally the framework's: Rask's auditing interceptor
@@ -96,13 +111,10 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
     ///         application should be able to do.
     ///     </para>
     /// </remarks>
-    protected void Stamp(DateTime at)
+    protected void Stamp(Timestamp at)
     {
-        if (CreatedAt == default)
-        {
-            CreatedAt = at;
-        }
-
+        ArgumentNullException.ThrowIfNull(at);
+        CreatedAt ??= at;
         UpdatedAt = at;
     }
 }

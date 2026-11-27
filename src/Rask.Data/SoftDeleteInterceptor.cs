@@ -73,7 +73,7 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
     {
         entry.State = EntityState.Unchanged;
         var deletedAt = entry.Property(Columns.DeletedAt);
-        deletedAt.CurrentValue = now;
+        deletedAt.CurrentValue = TimestampColumn.Of(deletedAt.Metadata.ClrType, now);
         deletedAt.IsModified = true;
     }
 

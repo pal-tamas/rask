@@ -316,7 +316,7 @@ For a shape this does not wrap — a group-by, a join, an aggregate — `Query` 
 
 ```csharp
 var byMonth = await Product.Query((q, ct) =>
-    q.GroupBy(p => p.CreatedAt.Month)
+    q.GroupBy(p => p.CreatedAt.Day.Month)
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
 ```
@@ -1177,8 +1177,17 @@ moments as UTC from the start and owes nothing.
 **A bare `DateTime` on an aggregate or an entity is refused on PostgreSQL** as the model is built: Npgsql would refuse a
 wall-clock one only when the row is saved, long after the model was written. Hold an instant as a `Moment` and a
 calendar day as a `Day` ([RASK147](diagnostics.md#rask147) points at each one); a column that must stay a `DateTime`
-says how it is stored with `HasConversion(…)`. Rask's own `CreatedAt`/`UpdatedAt`, and a table that is no entity of
-the domain, are left as Npgsql maps them.
+says how it is stored with `HasConversion(…)`. A table that is no entity of the domain is left as Npgsql maps it. No
+name and no namespace is exempt: Rask's own tables hold their times as moments too (see below).
+
+**Rask's own times are moments.** `CreatedAt`, `UpdatedAt` and `DeletedAt` on every entity, and the times of Rask's
+own tables — a job's `RunAt`, a session's `ExpiresAt`, a queued mail's `ProcessedAt` — are a `Timestamp`, the
+framework's own `Moment` (`Rask.Values.Timestamp`), stored as the UTC instant on every database: `.Instant` is the
+instant, `.Value` the app's wall clock, `.Day` its day. Rask always wrote these columns as UTC, so the upgrade changes
+the CLR type only: the next migration has no operation for them, and no row is rewritten. In a query they are moments
+like any other — `OrderByDescending(p => p.CreatedAt)`, `p.CreatedAt >= since` with a `Timestamp since`,
+`EF.Property<Timestamp>(p, Columns.CreatedAt)` for a shadow column, `.Day` for the wall-calendar day (`.Value.Month`
+of a UTC column is refused). A read face shows one as its wall-clock `DateTime`, as it shows any moment.
 
 ### Decimals: what each database keeps
 
@@ -1491,7 +1500,7 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
   rules of the save ([what every save asks](domain.md#what-every-save-asks)) before any other interceptor touches a row.
 - **`ProjectionInterceptor`** — next: raises each [declared projection](domain.md#declared-projections-projects)'s event onto
   the rows the save changed, before soft-delete rewrites a removal and before the outbox and the publish read the events.
-- **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
+- **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (a `Timestamp` of now, from an injectable `TimeProvider`) and
   increments each `IVersioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
 - **`SoftDeleteInterceptor`** — for an aggregate that says `ISoftDeletes`, rewrites a `Deleted`
   entry to `Modified` + sets `DeletedAt`. Your handler just calls `db.Remove(entity)`; to restore, load with
