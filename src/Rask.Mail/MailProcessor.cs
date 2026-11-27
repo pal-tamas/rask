@@ -525,16 +525,16 @@ public sealed partial class MailProcessor<TContext>(
         Message = "Email {Id} was interrupted by shutdown after its {Grace} grace period. It will be sent again on "
             + "restart — and it may already have been delivered, since a cancelled SMTP conversation can be "
             + "accepted by the server before the row is marked.")]
-    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, TimeSpan grace);
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, Guid id, TimeSpan grace);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Email {Id} failed to send (attempt {Attempts}).")]
-    private static partial void SendFailed(ILogger logger, Exception exception, long id, int attempts);
+    private static partial void SendFailed(ILogger logger, Exception exception, Guid id, int attempts);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Email {Id} lost its lease mid-send on instance {Instance}; another instance owns it now. "
             + "Increase MailOptions.LeaseDuration past the time a send takes.")]
-    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+    private static partial void LeaseLost(ILogger logger, Exception exception, Guid id, Guid instance);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not renew this instance's mail lease; retrying on the next tick.")]
     private static partial void LeaseRenewalFailed(ILogger logger, Exception exception);

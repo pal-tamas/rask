@@ -133,7 +133,7 @@ Rask.Mailing.QueuedMailRead.From.get -> string!
 Rask.Mailing.QueuedMailRead.From.init -> void
 Rask.Mailing.QueuedMailRead.HtmlBody.get -> string?
 Rask.Mailing.QueuedMailRead.HtmlBody.init -> void
-Rask.Mailing.QueuedMailRead.Id.get -> long
+Rask.Mailing.QueuedMailRead.Id.get -> System.Guid
 Rask.Mailing.QueuedMailRead.Id.init -> void
 Rask.Mailing.QueuedMailRead.ProcessedAt.get -> System.DateTime?
 Rask.Mailing.QueuedMailRead.ProcessedAt.init -> void

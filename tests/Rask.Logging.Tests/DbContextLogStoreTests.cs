@@ -124,7 +124,7 @@ public sealed class DbContextLogStoreTests
         var category = new string('c', LogEntry.CategoryMaxLength + 88);
 
         await harness.Store.Append(
-            [new LogRecord(0, harness.Clock.GetUtcNow(), LogLevel.Warning, category, 0, "long category", null)], TestContext.Current.CancellationToken);
+            [new LogRecord(Guid.Empty, harness.Clock.GetUtcNow(), LogLevel.Warning, category, 0, "long category", null)], TestContext.Current.CancellationToken);
 
         var entry = Assert.Single((await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
         Assert.Equal(category[..LogEntry.CategoryMaxLength], entry.Category);

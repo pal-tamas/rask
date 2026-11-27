@@ -1,3 +1,4 @@
+using Rask.Batteries;
 using Rask.Data;
 
 namespace Rask.Background;
@@ -11,7 +12,7 @@ namespace Rask.Background;
 /// from the claim query and turn the dashboard's purge into a stamp, and a <c>Version</c> would be a second
 /// concurrency token beside <see cref="ClaimToken"/> that the processor's <c>ExecuteUpdate</c> never maintains.
 /// </remarks>
-public sealed class Job : Aggregate<long, Timestamps>
+public sealed class Job : Aggregate<Guid, Timestamps>
 {
     private Job()
     {
@@ -167,7 +168,10 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// <param name="runAt">The earliest time (UTC) it may run.</param>
     /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
     /// <remarks>
-    ///     <para>The key is the store's, and is the tiebreak for run order, so nothing assigns one here.</para>
+    ///     <para>
+    ///         The key is made here, before the insert — a version-7 Guid, strictly increasing within the host — and is the
+    ///         tiebreak for run order: two jobs due at the same instant run in the order they were enqueued.
+    ///     </para>
     ///     <para>
     ///         The row records the tenant and the user it was enqueued for, so the runner can re-enter them
     ///         before invoking the handler. Null when there is none — a job scheduled by the host itself
@@ -179,6 +183,7 @@ public sealed class Job : Aggregate<long, Timestamps>
         var userId = CurrentUser.Id;
         return new Job
         {
+            Id = OrderedGuid.New(),
             Type = type,
             Payload = payload,
             RunAt = runAt,

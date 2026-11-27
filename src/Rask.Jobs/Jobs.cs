@@ -60,7 +60,7 @@ public static class Jobs
     ///     It checks no rights and sees every tenant's jobs: who may stop a job is the app's to decide, at the button.
     /// </summary>
     /// <returns><see langword="false" /> when the job is done already, stopped already, or does not exist.</returns>
-    public static Task<bool> Stop(long id, CancellationToken cancellationToken = default) =>
+    public static Task<bool> Stop(Guid id, CancellationToken cancellationToken = default) =>
         Resolve().Stop(id, Ambient.Or(cancellationToken));
 
     /// <summary>

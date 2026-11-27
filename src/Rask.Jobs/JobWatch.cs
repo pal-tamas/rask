@@ -52,7 +52,7 @@ internal sealed partial class JobWatch<TContext>(
         }
     }
 
-    private async Task<Dictionary<long, Row>> Rows(IReadOnlyCollection<JobRun> runs, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, Row>> Rows(IReadOnlyCollection<JobRun> runs, CancellationToken cancellationToken)
     {
         var ids = runs.Select(run => run.Id).ToList();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -94,7 +94,7 @@ internal sealed partial class JobWatch<TContext>(
     }
 
     // The reason on the row, unless the row already has one or has ended: true when it was this one that was written.
-    private async Task<bool> Mark(long id, JobStop why, CancellationToken cancellationToken)
+    private async Task<bool> Mark(Guid id, JobStop why, CancellationToken cancellationToken)
     {
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
@@ -143,14 +143,14 @@ internal sealed partial class JobWatch<TContext>(
         IgnoresStop(logger, run.Id, run.Type, run.Lane, now - stoppedAt);
     }
 
-    private sealed record Row(long Id, DateTime? ProcessedAt, JobStop? Stopped);
+    private sealed record Row(Guid Id, DateTime? ProcessedAt, JobStop? Stopped);
 
     [LoggerMessage(
         EventName = "JobIgnoresStop",
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}, lane {Lane}) still runs {Elapsed} after it was stopped; its work does not pass "
             + "Current.Cancellation on, so it holds its lane until it returns.")]
-    private static partial void IgnoresStop(ILogger logger, long id, string type, string? lane, TimeSpan elapsed);
+    private static partial void IgnoresStop(ILogger logger, Guid id, string type, string? lane, TimeSpan elapsed);
 
     [LoggerMessage(
         EventName = "JobWatchFailed",

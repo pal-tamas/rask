@@ -105,6 +105,32 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: a generated form model holds another row's typed id AS the typed id.** `CompanyId Company` on an
+  aggregate (`readonly partial record struct CompanyId(int Value)`, or a `Guid`/`long`/`string` one) was `int? Company`
+  on its `XModel`; it is now `CompanyId? Company`, and a `List<TagId>` value collection stays one. So
+  `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c => c.Name))` — and `Ui.Field`, `Ui.Pillbox`, a paged
+  `Ui.ChoiceRows` source — binds the read face's `IChoiceSource<CompanyId>` with no bridge to the number, a query string
+  parses it through its own `IParsable`, and the save hands it to the aggregate as it is. A non-nullable one is still
+  required with the same message, and its field shape is still `FieldKind.Id`. **Upgrade:** drop a `.AsNumbers()`-style
+  bridge and the `new CompanyId(n)` / `.Value` an app wrote between the model and an id; `model.Company = 5` becomes
+  `model.Company = new CompanyId(5)`. A one-value record that is not a typed id (no `partial`, or no `Id` name) is still
+  carried as the value it holds.
+- **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
+  and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
+  is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.
+  The key is strictly increasing on the host that made it (the same monotonic `New()` a typed id gets) and time-ordered
+  across hosts — on SQL Server stored time-ordered too — so the queues still take the oldest first and two jobs due at
+  the same instant still run in the order they were enqueued. Every id the batteries hand out is now a `Guid`:
+  `Jobs.Stop(Guid)`, `LaneJob.Id`, `WorkReported.Id` (a string on the work wire), `DurableEvent.MessageId`,
+  `LogRecord.Id`, the dashboard's `QueueRow.Id` and `IQueueActions.Retry/Delete(Guid)`; the dashboard lists a row by
+  the last eight hex digits of its id and shows the whole id in its details. **Upgrading is one migration per app**
+  (`rask db add RaskGuidKeys`): Rask's differ rebuilds each of these tables instead of altering its key, as an
+  exclusive migration (`rask deploy` stops the old version, then starts the new one). It refuses to run while a job,
+  an outbox message or a mail is still pending — dead letters included: retry or delete them, let the queues drain,
+  then migrate. Processed jobs and sent mail are kept, each given the deterministic id of its `CreatedAt` and old
+  number; processed outbox rows and the stored log are history and are not carried over. A SQLite file log store
+  (`AddRaskLogging()` without a context) keeps its own integer rowid — its full-text index needs one — and derives each
+  entry's `Guid` from it. docs/data.md, docs/jobs.md, docs/outbox.md, docs/mail.md, docs/logging.md.
 - **BREAKING: `b.NoOverlap(…)` replaces `HasNonOverlappingRange`, and holds on PostgreSQL and SQL Server too.**
   `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld).Where(x => x.DriverId != null)` (a
   `Range` value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken)`: two rows with
@@ -235,6 +261,10 @@ them until tagged releases begin.
   cannot translate once the id's column is text (SQLite's every Guid, a column an app's converter keeps as text). Each member is now
   ordered by as it is mapped, so the database orders by its column exactly as for an untyped id; only the first
   member's place is still compared by a value object's value, and only where that value has an order.
+- **A `Ui.Select` over a member that may hold none takes options of the type it holds.** A select bound to `CompanyId?`
+  (or `int?`, `Guid?`) is handed `Ui.SelectOption.Value(new CompanyId(3))` and rows of `CompanyId`, as the docs say,
+  without relying on the runtime to unbox one into the nullable; and an option of another type is refused naming both
+  types as the page wrote them (`holds CompanyId, and its Ui.Select holds Int32?`), not `Nullable`1`.
 - **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
   `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
   and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`

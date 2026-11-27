@@ -1,3 +1,4 @@
+using Rask.Batteries;
 using Rask.Data;
 
 namespace Rask.Outbox;
@@ -18,7 +19,7 @@ namespace Rask.Outbox;
 /// Nothing creates one of these from a form, so no form model is generated: its base names no <c>Model</c>.
 /// </para>
 /// </remarks>
-public sealed class OutboxMessage : Aggregate<long, Updated>
+public sealed class OutboxMessage : Aggregate<Guid, Updated>
 {
     private OutboxMessage()
     {
@@ -102,6 +103,7 @@ public sealed class OutboxMessage : Aggregate<long, Updated>
     {
         return new OutboxMessage
         {
+            Id = OrderedGuid.New(),
             Type = type,
             Payload = payload,
             Handler = handler,

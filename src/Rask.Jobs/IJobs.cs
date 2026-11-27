@@ -51,7 +51,7 @@ public interface IJobs
     /// </summary>
     /// <returns><see langword="false"/> when the job is done already, stopped already, or does not exist.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    Task<bool> Stop(long id, CancellationToken cancellationToken = default);
+    Task<bool> Stop(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The state of <paramref name="lanes"/>, in one read: every lane asked for is in the answer, idle or not. The primitive

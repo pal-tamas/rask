@@ -179,14 +179,14 @@ internal static class StopWords
 internal static class Rows
 {
     /// <summary>The id of the one job whose payload names <paramref name="tag" />.</summary>
-    public static async Task<long> IdOf(this JobsHarness h, string tag)
+    public static async Task<Guid> IdOf(this JobsHarness h, string tag)
     {
         await using var db = h.NewContext();
         var rows = await db.Set<Job>().AsNoTracking().ToListAsync();
         return rows.Single(j => j.Payload.Contains($"\"{tag}\"", StringComparison.Ordinal)).Id;
     }
 
-    public static async Task<Job?> Row(this JobsHarness h, long id)
+    public static async Task<Job?> Row(this JobsHarness h, Guid id)
     {
         await using var db = h.NewContext();
         return await db.Set<Job>().AsNoTracking().SingleOrDefaultAsync(j => j.Id == id);
@@ -197,7 +197,7 @@ internal static class Rows
         h.WaitUntilAsync(() => Task.FromResult(h.Recorder.Values.Contains(value)), expression: $"recorded '{value}'");
 
     /// <summary>Waits until job <paramref name="id" />'s row is processed — and gives it back.</summary>
-    public static async Task<Job> Processed(this JobsHarness h, long id)
+    public static async Task<Job> Processed(this JobsHarness h, Guid id)
     {
         await h.WaitUntilAsync(async () => (await h.Row(id))?.ProcessedAt is not null, expression: $"job {id} processed");
         return (await h.Row(id))!;

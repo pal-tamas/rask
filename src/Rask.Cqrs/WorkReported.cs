@@ -27,7 +27,7 @@ namespace Rask.Background;
 /// <param name="Of">How much there is to do, when it reported a count; null draws a bar that moves without an end.</param>
 /// <param name="State">Where it stands.</param>
 /// <param name="At">When this was so (UTC).</param>
-public sealed record WorkReported(long Id, string Title, string? Progress, int? Done, int? Of, WorkState State, DateTime At) : IEvent
+public sealed record WorkReported(Guid Id, string Title, string? Progress, int? Done, int? Of, WorkState State, DateTime At) : IEvent
 {
     /// <summary>
     ///     The batch it was enqueued in — every job of one <c>Jobs.Enqueue(jobs)</c> carries the same — or null for a job

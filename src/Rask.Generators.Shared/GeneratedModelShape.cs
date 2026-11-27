@@ -735,7 +735,9 @@ internal static class GeneratedModelShape
 
         public ModelValueObject? Of(ITypeSymbol type, int depth, ImmutableHashSet<string> seen)
         {
-            if (depth >= MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(type) is not { } named)
+            // A typed id (`readonly partial record struct CompanyId(int Value)`) is no value object here: the model carries
+            // it AS the id, so a select picks a CompanyId from the read face's choices and the write needs no unwrap.
+            if (depth >= MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(type) is not { } named || TypedIdShape.Is(named))
             {
                 return null;
             }
