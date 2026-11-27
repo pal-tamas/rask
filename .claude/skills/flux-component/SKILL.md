@@ -940,11 +940,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`Placement` in `scripts/flux/Flux/Lib/Placement.cs`, which every
   open-state script now ends with — `EDGES` is the list of places, `landings()` the comparison, Flux's side
   cached as `edges.json`): the side asked for, then the other alignment, then the opposite side, then that with
-  the other alignment — the first that fits the viewport EDGE TO EDGE (no padding: a panel 3 px from the edge
-  is not turned); when none fits, the one that overflows least. Then it is slid along the trigger's edge to
-  stay 5 px inside (one wider than the viewport keeps its start at 5), and one taller than the room 5 px
-  from the edge gets that as `max-height`. Not held to a height: a context menu (it runs past the edge on
-  Flux), and a panel that scrolls itself and would overflow by under 2 px once held — a `flex flex-col gap-4`
+  the other alignment — the first that fits the viewport 5 px INSIDE its edges (Flux 2.22, measured 2026-11-27: a
+  panel that would end 3 px from the edge is turned; 2.21 fitted edge to edge); when none fits, the one that
+  overflows least. Then it is slid along the trigger's edge to stay 5 px inside (one wider than the viewport keeps
+  its start at 5), and one taller than the room 5 px from the edge gets that as `max-height` — a context menu
+  too since 2.22 (it ran past the edge on 2.21). Not held to a height: a panel that scrolls itself and would
+  overflow by under 2 px once held — a `flex flex-col gap-4`
   popover absorbs up to 15 px that way and hangs that far past the edge on Flux, so it does here. Flux's
   inline `max-height` is STICKY between two opens of one panel (it measures the held height the second time);
   the kit starts every open fresh — not reproduced. The tooltip is on the hook too (`Ui.TooltipContent` writes
@@ -1127,8 +1128,8 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
 - Pagination (2026-10-08): `UiPaginator` (`Page`, `PerPage`, `Total`, `HasMore`) stands in for the Laravel paginator
   Flux's `paginator` prop is handed. ARIA is Flux's live DOM and differs between the two forms: a COUNTED pager
   names its steps `aria-label="&laquo; Previous"` / `"Next &raquo;"` — the entity unresolved, which is what Flux's
-  DOM says — and a spent one is a `<div aria-disabled="true">`; the SIMPLE pager writes no `aria-label` and its
-  spent step is a bare `<div>`. The numbers show once the pager's OWN box is 640px (`@container`), which Flux's
+  DOM says — and since Flux 2.22 (2026-11-27) the SIMPLE pager names them too, and a spent step in either form is
+  a `<button type="button" disabled>` with its name (it was a `<div>`). The numbers show once the pager's OWN box is 640px (`@container`), which Flux's
   606px previews never reach, so `flux parity pagination` compares the narrow form and `UiPaginationTests` holds
   the numbered one. `PaginationParity` writes "1 to 75 of" over the large example's summary: Flux's demo data
   is not a list a paginator could describe. Flux's "Scroll to top" section renders no example, so `ScrollTo`

@@ -134,10 +134,10 @@ public sealed partial class UiPagination : Component
     private Component Next() =>
         Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next »"), 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
 
-    // A step with nowhere to go is not a control: it keeps its place. A counted pager names its steps and
-    // says aria-disabled on a spent one; the simple one says neither. The label is Laravel's translation as
-    // a reader hears it — "« Previous", the character and not the name of its entity — encoded once.
-    // The arrow turns round where the page reads right to left.
+    // A step with nowhere to go is a disabled button that keeps its place (Flux 2.22, measured: both forms, the
+    // simple one too, name their steps and draw a spent one as `<button disabled>`). The label is Laravel's
+    // translation as a reader hears it — "« Previous", the character and not the name of its entity — encoded
+    // once. The arrow turns round where the page reads right to left.
     private Component Step(string key, string name, int step, Ui.IconName arrow, Ui.IconName mirrored)
     {
         var page = Spent(step) ? (int?)null : Paginator.Current + step;
@@ -147,16 +147,13 @@ public sealed partial class UiPagination : Component
             Ui.Icon.Name(mirrored).Micro.Class("hidden rtl:inline"),
         ];
 
-        var counted = Paginator.LastPage is not null;
-        var look = counted ? Arrow : ArrowAlone;
-        var label = counted ? name : null;
+        var look = Paginator.LastPage is not null ? Arrow : ArrowAlone;
 
         return page switch
         {
-            null when counted => Div.Key(key).Class(ArrowOff).Aria(("disabled", "true"), ("label", label))[arrows],
-            null => Div.Key(key).Class(ArrowOff)[arrows],
-            { } to when Href is { } href => Link(key, href.Invoke(to), look, label, arrows),
-            _ => Button.Key(key).Type(ButtonType.Button).Class(look).AriaLabel(label).OnClick(() => SteppedAsync(step))[arrows],
+            null => Button.Key(key).Type(ButtonType.Button).Disabled(true).Class(ArrowOff).AriaLabel(name)[arrows],
+            { } to when Href is { } href => Link(key, href.Invoke(to), look, name, arrows),
+            _ => Button.Key(key).Type(ButtonType.Button).Class(look).AriaLabel(name).OnClick(() => SteppedAsync(step))[arrows],
         };
     }
 

@@ -55,6 +55,10 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`Ui.Pagination`'s spent Previous / Next is a disabled `<button>`, as Flux 2.22's is (#1189).** It was a `<div>`
+  (with `aria-disabled` in a counted pager): now `<button type="button" disabled>` in both forms, named like the other
+  step ("« Previous" / "Next »") — the simple pager names its steps too now, as Flux's does. A screen reader hears a
+  dimmed button where it heard nothing; the look is unchanged.
 - **`Ui.Flag`'s picture lies over its frame, as Flux 2.22's does (#1189).** The `<img>` is `absolute inset-0` inside the
   frame (it was in the frame's flow); so are the flags of `Ui.Phone`'s country list and button. Same box, same look.
 - **A calendar's weekday row is Flux 2.22's (#1189).** Each heading of `Ui.Calendar` — and of the date and datetime
