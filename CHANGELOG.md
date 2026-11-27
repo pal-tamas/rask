@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
+  `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
+  and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a
+  referenced assembly counts too. `{id:int}` over a `Guid` id is still RASK005.
 - **A tenant or user keyed by a typed id.** `public sealed class Shop : Aggregate<ShopId>, ITenant` (a typed id over a
   `Guid`, an `int` or a `long`) was RASK114; it now gets `Current.TenantId` / `Current.RequiredTenantId` as a `ShopId`,
   `Tenant.Use(shopId)`, and its tables keep the id — `ShopId? TenantId`, or `PerTenant<ShopId>` — filtered by and

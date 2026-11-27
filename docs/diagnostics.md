@@ -255,7 +255,12 @@ A `{segment}` in the route has no public settable property to bind to.
 
 The route constraint (e.g. `{id:int}`) is incompatible with the bound property's CLR type.
 
-**Fix:** align the types — `{id:int}` ↔ `int Id`, `{slug}` ↔ `string Slug`.
+A typed id matches the constraint of the value it holds: `{id:guid}` ↔ `DriverId Id` for
+`public readonly partial record struct DriverId(Guid Value);` (declared here or in a referenced assembly), and the
+generated `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId id)` take the typed id. `{id:int}` on that
+`DriverId` is still RASK005.
+
+**Fix:** align the types — `{id:int}` ↔ `int Id`, `{slug}` ↔ `string Slug`, `{id:guid}` ↔ a typed id over a `Guid`.
 
 ## RASK006
 **`[QueryParam]` applied to a path-segment property** · Error
