@@ -18,9 +18,9 @@ public sealed class Booking
 
     public string Room { get; set; } = "";
 
-    public DateTime From { get; set; }
+    public DateOnly From { get; set; }
 
-    public DateTime? To { get; set; }
+    public DateOnly? To { get; set; }
 }
 
 /// <summary>A model whose text compares case-insensitively, with a text key and a foreign key to it.</summary>
@@ -60,7 +60,7 @@ public sealed class PostgresCapabilityTests() : ParityTests<CapabilityDbContext>
         await Sql(db, """
             CREATE EXTENSION IF NOT EXISTS btree_gist;
             ALTER TABLE rask_capabilities."Bookings" ADD CONSTRAINT "EX_Bookings_Room"
-                EXCLUDE USING gist ("Room" WITH =, tsrange("From", "To", '[)') WITH &&);
+                EXCLUDE USING gist ("Room" WITH =, daterange("From", "To", '[)') WITH &&);
             """);
         await Book(db, "Kék szoba", 1, 3);
 
@@ -108,7 +108,7 @@ public sealed class PostgresCapabilityTests() : ParityTests<CapabilityDbContext>
     private static async Task Book(CapabilityDbContext db, string room, int fromDay, int? toDay)
     {
         await Sql(db, """INSERT INTO rask_capabilities."Tariffs" ("Code", "Name") VALUES ('T', 'T') ON CONFLICT DO NOTHING;""");
-        var day = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var day = new DateOnly(2026, 1, 1);
         db.Bookings.Add(new Booking { TariffCode = "T", Room = room, From = day.AddDays(fromDay), To = toDay is { } to ? day.AddDays(to) : null });
         try
         {
