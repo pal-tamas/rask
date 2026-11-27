@@ -372,6 +372,9 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`Rask.Testing`: a `TestJSRuntime.SetResponse(id, null)` reads back as `null`.** The browser answering "nothing"
+  (an absent IndexedDB or storage key) faulted with the type-mismatch error, because `null` is not an instance of
+  any type; it is now handed back for any reference or nullable return type, and still refused for a value type.
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.
