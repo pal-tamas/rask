@@ -55,7 +55,7 @@ public sealed class SqliteLogKeyTests
     public async Task Search_finds_entries_after_insert_purge_and_vacuum()
     {
         await using var database = new InMemorySqlite();
-        var clock = new FakeTimeProvider(Start);
+        var clock = new ManualClock(Start);
         var store = new SqliteLogStore(database.ConnectionString, new LogsOptions(), clock);
         await store.Append(
             [.. Enumerable.Range(0, 30).Select(i => Record($"old needle {i}", at: Start))],
@@ -124,7 +124,7 @@ public sealed class SqliteLogKeyTests
     }
 
     private static SqliteLogStore Store(InMemorySqlite database) =>
-        new(database.ConnectionString, new LogsOptions(), new FakeTimeProvider(Start));
+        new(database.ConnectionString, new LogsOptions(), new ManualClock(Start));
 
     private static LogRecord Record(string message, DateTimeOffset? at = null) =>
         new(Guid.Empty, at ?? Start, LogLevel.Information, "Test", 0, message, null);

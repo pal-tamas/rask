@@ -60,7 +60,7 @@ public sealed class UuidTests
     public void A_fake_time_source_stamps_its_own_time_and_counts_within_its_millisecond()
     {
         var at = new DateTimeOffset(2001, 2, 3, 4, 5, 6, 789, TimeSpan.Zero);
-        var time = new FrozenTime(at);
+        var time = new ManualClock(at);
 
         var made = Enumerable.Range(0, 4_097).Select(_ => Uuid.Create(time)).ToList();
 
@@ -75,8 +75,8 @@ public sealed class UuidTests
     public void Two_fake_time_sources_count_apart_so_neither_runs_the_other_ahead()
     {
         var at = new DateTimeOffset(2001, 2, 3, 4, 5, 6, 789, TimeSpan.Zero);
-        var later = new FrozenTime(at.AddYears(20));
-        var frozen = new FrozenTime(at);
+        var later = new ManualClock(at.AddYears(20));
+        var frozen = new ManualClock(at);
 
         _ = Uuid.Create(later);
         var first = Uuid.Create(frozen);
@@ -89,7 +89,7 @@ public sealed class UuidTests
     public void Rask_s_clock_as_a_time_source_is_the_sequence_New_runs()
     {
         var at = DateTimeOffset.UtcNow.AddMinutes(1);
-        using var time = AmbientClock.Use(new FrozenTime(at));
+        using var time = AmbientClock.Use(new ManualClock(at));
 
         var made = Enumerable.Range(0, 100)
             .Select(static i => i % 2 == 0 ? Uuid.Create() : Uuid.Create(Clock.TimeProvider)).ToList();
@@ -118,11 +118,6 @@ public sealed class UuidTests
     private static long Millisecond(Guid id) => BinaryPrimitives.ReadInt64BigEndian(id.ToByteArray(bigEndian: true)) >>> 16;
 
     private static long Counter(Guid id) => BinaryPrimitives.ReadInt64BigEndian(id.ToByteArray(bigEndian: true)) & 0xFFF;
-
-    private sealed class FrozenTime(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
 
     // PostgreSQL compares two uuids byte by byte, unsigned, in their written (big-endian) order.
     private sealed class ByteOrder : IComparer<byte[]>

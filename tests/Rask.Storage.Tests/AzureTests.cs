@@ -262,7 +262,7 @@ public sealed class AzureBlobBackendTests : IDisposable
     {
         var handler = new RecordingHandler();
         return (new AzureBlobBackend(new HttpClient(handler), AzureAccount.Parse(connectionString), "files",
-            new FakeTimeProvider(new DateTimeOffset(2026, 8, 8, 12, 0, 0, TimeSpan.Zero))), handler);
+            new ManualClock(new DateTimeOffset(2026, 8, 8, 12, 0, 0, TimeSpan.Zero))), handler);
     }
 
     private static string ListXml(string? nextMarker, params string[] names) =>

@@ -9,7 +9,7 @@ public class PlaceholderDataTests
     private static (SessionQueryClient Client, CountingDispatcher Dispatcher) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        return (new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
+        return (new SessionQueryClient(dispatcher, new ManualClock(DateTimeOffset.UnixEpoch)), dispatcher);
     }
 
     private static QueryOptions Keeping => new()
