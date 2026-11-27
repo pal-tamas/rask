@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 public sealed partial record FirmVat(string Value) : Text(Value, MaxLength: 10, Pattern: @"^HU\d{8}$");
 
 /// <summary>An aggregate whose old rows tell an empty text from a missing one: two texts kept empty, one not.</summary>
-public sealed class Firm : Aggregate<int, Model>
+public sealed class Firm : Aggregate<int>, IHasForm
 {
     private Firm() { }
 

@@ -23,10 +23,10 @@ namespace Rask.Batteries.Generators;
 /// reflected, so a trimmed publish keeps them.
 /// </para>
 /// <para>
-/// The tenant's key must be the one its <c>PerTenant</c> tables keep in <c>TenantId</c>: a <c>Guid</c> (or a
+/// The tenant's key must be the one its tables keep in <c>TenantId</c>: a <c>Guid</c> (or a
 /// <c>string</c> holding one) for a <c>Guid</c> column, the same number type for a number, the same typed id for a
-/// typed-id column (<c>TenantId? TenantId</c>, or <c>PerTenant&lt;TenantId&gt;</c>). A project with
-/// <c>PerTenant</c> tables and no <c>ITenant</c> is told how to say it.
+/// typed-id column (<c>TenantId? TenantId</c>, or none and <c>IBelongsTo&lt;Tenant&gt;</c>). A project with
+/// tables that belong to a tenant and no <c>ITenant</c> is told how to say it.
 /// </para>
 /// </remarks>
 [Generator]
@@ -58,15 +58,15 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         true,
         description: "The framework carries the current tenant and user as a Guid, and reads the row back by the key "
                      + "that Guid stands for: a Guid, a string holding one, the int or long it carries, or a typed id "
-                     + "holding a Guid, an int or a long. The tenant's key must also be the one its PerTenant tables "
-                     + "keep, or a filter and the row would name different tenants.",
+                     + "holding a Guid, an int or a long. The tenant's key must also be the one its tables keep "
+                     + "(IBelongsTo<Tenant>), or a filter and the row would name different tenants.",
         helpLinkUri: DiagnosticHelp.Link("RASK114"));
 
     private static readonly DiagnosticDescriptor Rask115 = new(
         "RASK115",
         "Tenant-scoped tables and no tenant aggregate",
-        "'{0}' is PerTenant, but no aggregate in this project says ITenant, so there is no Current.Tenant. Say it on "
-        + "the tenant aggregate: public sealed class Tenant : Aggregate<{1}>, ITenant.",
+        "'{0}' says IBelongsTo<{1}>, but no aggregate in this project says ITenant, so there is no Current.Tenant. Say "
+        + "it on the tenant aggregate: public sealed class {1} : Aggregate<…>, ITenant.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -97,7 +97,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         }
 
         var marker = MarkerOf(symbol);
-        var tenantColumn = marker is null && AggregateShape.IsAggregate(symbol) && AggregateShape.Has(symbol, AggregateShape.PerTenant)
+        var tenantColumn = marker is null && AggregateShape.IsAggregate(symbol) && AggregateShape.TenantOf(symbol) is not null
             ? TenantColumnOf(symbol)
             : null;
 
@@ -119,6 +119,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
             ReadFaceName.Fqn(symbol),
             symbol.DeclaredAccessibility == Accessibility.Public,
             tenantColumn,
+            AggregateShape.TenantOf(symbol)?.Name,
             SymbolLocation.From(symbol));
     }
 
@@ -159,7 +160,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         _ => null,
     };
 
-    // The type a PerTenant root keeps its tenant in: the TenantId it declares, else PerTenant<TKey>'s, else Guid —
+    // The type a root that belongs to a tenant keeps it in: the TenantId it declares, else its tenant's key, else Guid —
     // as the runtime's TenantColumn decides it. Written as the key type that agrees with it.
     private static string TenantColumnOf(INamedTypeSymbol symbol)
     {
@@ -212,7 +213,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
             {
                 var first = tables[0];
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask115, first.Location?.ToLocation(), first.Name, Keyword(first.TenantColumn!)));
+                    Rask115, first.Location?.ToLocation(), first.Name, first.TenantName ?? "Tenant"));
             }
         }
         else if (Usable(context, tenant, tables))
@@ -262,7 +263,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         if (tables.FirstOrDefault(t => !string.Equals(t.TenantColumn, agreeing, StringComparison.Ordinal)) is { } other)
         {
             var fix = marked.KeyValue is not null
-                ? $"give the tables the tenant's key: {marked.KeyName}? TenantId, or PerTenant<{marked.KeyName}>"
+                ? $"give the tables the tenant's key: {marked.KeyName}? TenantId, or leave it to IBelongsTo<{marked.Name}>"
                 : "give the tenant the key its tables keep, or the tables the tenant's";
             context.ReportDiagnostic(Diagnostic.Create(
                 Rask114, marked.Location?.ToLocation(), marked.Name, marked.Marker,
@@ -430,5 +431,6 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         string ReadFace,
         bool IsPublic,
         string? TenantColumn,
+        string? TenantName,
         SymbolLocation? Location);
 }

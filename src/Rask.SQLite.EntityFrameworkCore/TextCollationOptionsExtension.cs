@@ -27,10 +27,17 @@ internal sealed class TextCollationOptionsExtension : IDbContextOptionsExtension
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
+    // EF Core's services builder activates the translator by reflection without a trimming annotation.
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentDayTranslator))]
     public void ApplyServices(IServiceCollection services)
     {
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor>(SqliteCollationInterceptor.Instance));
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IMethodCallTranslatorPlugin, SqliteSearchTranslatorPlugin>());
+
+        // A moment's day on the wall calendar, read in a query off a column that keeps it as UTC (MomentDayTranslator).
+        services.TryAddScoped<IMomentDays, SqliteMomentDays>();
+        new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
     }
 
     public void Validate(IDbContextOptions options)

@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 
 // Tenant aggregates of each key type. None says ITenant — one assembly may say it once, and this one keeps tenant-scoped
 // tables of every column type — so each test names its tenant to CurrentRows exactly as the generated code would.
-public sealed class NumberShop : Aggregate<int, Model, Deletable>
+public sealed class NumberShop : Aggregate<int>, IHasForm, IDeletable
 {
     private NumberShop() { }
 

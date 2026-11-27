@@ -25,7 +25,7 @@ public sealed record ConvoyTruckSpec(Guid? Id, string Plate, ConvoyLoad Load);
 
 // A partial aggregate whose operations take a list of rows for its HasMany and value objects of several values: what
 // the generated Form.For of each holds (OperationFormEntryTests).
-public sealed partial class Convoy : Aggregate<Guid, Versioned>
+public sealed partial class Convoy : Aggregate<Guid>, IVersioned
 {
     internal const string Banned = "BANNED";
 

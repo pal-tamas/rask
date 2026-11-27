@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 // Soft-deletable because it asks to be: its rule holds the live rows only.
-public sealed class OverlapLease : Aggregate<int, Timestamps, Versioned, Model, SoftDelete>
+public sealed class OverlapLease : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes
 {
     public int AssetId { get; private set; }
 
@@ -15,7 +15,7 @@ public sealed class OverlapLease : Aggregate<int, Timestamps, Versioned, Model, 
 }
 
 // The default aggregate: hard delete, so there is no DeletedAt for the rule to filter on.
-public sealed class OverlapDesk : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class OverlapDesk : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     public int RoomId { get; private set; }
 

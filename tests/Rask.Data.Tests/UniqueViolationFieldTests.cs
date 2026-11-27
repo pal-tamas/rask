@@ -5,7 +5,7 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>An aggregate whose children carry a number unique across every armory.</summary>
-public sealed class Armory : Aggregate<int, Model, Deletable>
+public sealed class Armory : Aggregate<int>, IHasForm, IDeletable
 {
     private readonly List<Pistol> _pistols = [];
 
@@ -39,7 +39,7 @@ public sealed class Pistol : Entity<int>
 }
 
 /// <summary>An aggregate whose unique column is a normalised copy of what the form edits.</summary>
-public sealed class PlateLocker : Aggregate<int, Model, Deletable>
+public sealed class PlateLocker : Aggregate<int>, IHasForm, IDeletable
 {
     public const string PlateTaken = "A locker with this plate already exists.";
 

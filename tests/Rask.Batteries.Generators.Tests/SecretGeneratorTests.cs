@@ -24,7 +24,7 @@ public class SecretGeneratorTests
             public ValueList<Pair> Pairs { get; init; } = [];
         }
 
-        public sealed class Partner : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Partner : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Partner() { }
             public string Name { get; private set; } = "";

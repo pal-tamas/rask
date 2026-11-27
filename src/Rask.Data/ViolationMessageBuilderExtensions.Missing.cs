@@ -15,7 +15,7 @@ public static partial class ViolationMessageBuilderExtensions
     ///     <code>
     /// builder.HasOne&lt;Company&gt;().WithMany().HasForeignKey(v =&gt; v.CompanyId).WhenMissing("No such company.");
     ///     </code>
-    ///     A save of a <see cref="PerTenant" /> row checks every reference it sets to another tenant's table, so a
+    ///     A save of a <see cref="IBelongsTo{TTenant}" /> row checks every reference it sets to another tenant's table, so a
     ///     method needs no <c>Refuse.When(…)</c> of its own for it. Without a sentence here the referenced entity's
     ///     <c>WhenMissing("…")</c> answers, and without that the strings catalog's <c>ValidationNotFound</c>.
     /// </remarks>

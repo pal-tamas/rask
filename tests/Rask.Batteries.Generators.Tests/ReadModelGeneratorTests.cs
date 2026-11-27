@@ -19,13 +19,13 @@ public class ReadModelGeneratorTests
         using Rask.Data;
         namespace Shop;
 
-        public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Customer() { }
             public string Country { get; private set; } = "";
         }
 
-        public sealed class User : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class User : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private User() { }
             public string Name { get; private set; } = "";
@@ -33,7 +33,7 @@ public class ReadModelGeneratorTests
 
         public sealed record Money(decimal Amount, string Currency);
 
-        public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private readonly List<OrderLine> _lines = [];
             private Order() { }
@@ -160,6 +160,99 @@ public class ReadModelGeneratorTests
         Assert.Empty(run.Diagnostics);
         Assert.Contains("public global::Fuel.VirtualTankRead VirtualTank { get; init; }", face, StringComparison.Ordinal);
         Assert.DoesNotContain("TankRead VirtualTank", face.Replace("VirtualTankRead", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    // TA's stock move: two typed ids of a child, each named after where the move goes, both ending in the aggregate Tank.
+    private const string StockMoves = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Fuel;
+        public readonly partial record struct TankId(Guid Value);
+        public readonly partial record struct VirtualTankId(Guid Value);
+        public readonly partial record struct StockMoveId(Guid Value);
+        public readonly partial record struct GaugeId(Guid Value);
+        public sealed class Tank : Aggregate<TankId>
+        {
+            private readonly List<VirtualTank> _virtualTanks = [];
+            private Tank() { }
+            public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+        }
+        public sealed class VirtualTank : Entity<VirtualTankId>
+        {
+            private VirtualTank() { }
+            public string Name { get; private set; } = "";
+        }
+        public sealed class StockMove : Aggregate<StockMoveId>
+        {
+            private StockMove() { }
+            public VirtualTankId FromVirtualTankId { get; private set; }
+            public VirtualTankId? ToVirtualTankId { get; private set; }
+            public TankId MeasuredAtId { get; private set; }
+            public GaugeId ReadOnTankId { get; private set; }
+        }
+        """;
+
+    [Fact]
+    public void A_typed_id_of_a_child_whose_name_ends_in_an_aggregate_reaches_the_child_its_type_names()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::Fuel.VirtualTankRead FromVirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("public global::Fuel.VirtualTankRead? ToVirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_typed_id_reaches_the_aggregate_its_type_names_whatever_the_property_is_called()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.Contains("public global::Fuel.TankRead MeasuredAt { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_typed_id_named_after_no_entity_is_no_reference_to_the_aggregate_its_name_ends_in()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::System.Guid ReadOnTankId { get; init; }", face, StringComparison.Ordinal);
+        Assert.DoesNotContain(" ReadOnTank {", face, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_typed_id_keying_one_entity_reaches_it_and_not_the_aggregate_its_name_ends_in()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Fuel;
+            public readonly partial record struct TankId(Guid Value);
+            public readonly partial record struct StorageKey(Guid Value);
+            public sealed class Tank : Aggregate<TankId> { private Tank() { } }
+            public sealed class Silo : Aggregate<StorageKey> { private Silo() { } }
+            public sealed class Delivery : Aggregate<Guid>
+            {
+                private Delivery() { }
+                public StorageKey UnloadedIntoTankId { get; private set; }
+            }
+            """);
+
+        var face = run.GeneratedSource("Fuel_DeliveryRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::Fuel.StorageKey UnloadedIntoTankId { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("public global::Fuel.SiloRead UnloadedIntoTank { get; init; }", face, StringComparison.Ordinal);
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
@@ -314,11 +407,11 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Customer() { }
             }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public int CustomerId { get; private set; }
@@ -351,7 +444,7 @@ public class ReadModelGeneratorTests
             private Fueling() { }
             public decimal Quantity { get; private set; }
         }
-        public sealed class Distribution : Aggregate<string, Deletable>
+        public sealed class Distribution : Aggregate<string>, IDeletable
         {
             private Distribution() { }
             public string FromFuelingId { get; private set; } = "";
@@ -502,7 +595,7 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Category : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Category : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Category() { }
                 public Guid? ParentId { get; private set; }
@@ -524,7 +617,7 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Supply : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+            public sealed class Supply : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Supply() { }
                 public int? SumSupplyId { get; private set; }
@@ -545,27 +638,27 @@ public class ReadModelGeneratorTests
         using Rask.Data;
         namespace Shop;
 
-        public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+        public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
         {
             private Invoice() { }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+        public sealed class Receipt : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
         {
             private Receipt() { }
             public Guid? TenantId { get; private set; }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Delivery : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Delivery : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Delivery() { }
             public Guid? TenantId { get; set; }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Tank : Aggregate<int, PerTenant<int>>
+        public sealed class Tank : Aggregate<int>, IBelongsTo<IntTenant>
         {
             private readonly System.Collections.Generic.List<Compartment> _compartments = new();
             private Tank() { }
@@ -579,12 +672,14 @@ public class ReadModelGeneratorTests
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Crate : Aggregate<long, PerTenant>
+        public sealed class Crate : Aggregate<long>, IBelongsTo<GuidTenant>
         {
             private Crate() { }
             public long? TenantId { get; private set; }
             public string Number { get; private set; } = "";
         }
+        public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
+        public sealed class IntTenant : Rask.Data.Aggregate<int> { }
         """;
 
     [Theory]
@@ -676,12 +771,12 @@ public class ReadModelGeneratorTests
     [Theory]
     [InlineData("", "CreatedAt")]
     [InlineData("", "UpdatedAt")]
-    [InlineData("Created", "UpdatedAt")]
-    [InlineData("Updated", "CreatedAt")]
-    [InlineData("Timestamps", "Version")]
-    [InlineData("Timestamps, Versioned", "DeletedAt")]
-    [InlineData("Timestamps, Versioned, Deletable", "DeletedAt")]
-    public void A_column_the_base_does_not_name_is_not_on_the_read_face(string traits, string column)
+    [InlineData("IHasCreatedAt", "UpdatedAt")]
+    [InlineData("IHasUpdatedAt", "CreatedAt")]
+    [InlineData("IHasTimestamps", "Version")]
+    [InlineData("IHasTimestamps, IVersioned", "DeletedAt")]
+    [InlineData("IHasTimestamps, IVersioned, IDeletable", "DeletedAt")]
+    public void A_column_the_class_does_not_say_is_not_on_the_read_face(string traits, string column)
     {
         var run = Run($$"""
             using System;
@@ -701,12 +796,12 @@ public class ReadModelGeneratorTests
     }
 
     [Theory]
-    [InlineData("Timestamps", "CreatedAt")]
-    [InlineData("Timestamps", "UpdatedAt")]
-    [InlineData("Versioned", "Version")]
-    [InlineData("Created", "CreatedAt")]
-    [InlineData("SoftDelete", "DeletedAt")]
-    public void A_column_the_base_names_stays_on_the_read_face(string traits, string column)
+    [InlineData("IHasTimestamps", "CreatedAt")]
+    [InlineData("IHasTimestamps", "UpdatedAt")]
+    [InlineData("IVersioned", "Version")]
+    [InlineData("IHasCreatedAt", "CreatedAt")]
+    [InlineData("ISoftDeletes", "DeletedAt")]
+    public void A_column_the_class_says_stays_on_the_read_face(string traits, string column)
     {
         var run = Run($$"""
             using System;
@@ -726,5 +821,5 @@ public class ReadModelGeneratorTests
     }
 
     private static string DepotBase(string traits) =>
-        traits.Length == 0 ? "Aggregate<int>" : "Aggregate<int, " + traits + ">";
+        traits.Length == 0 ? "Aggregate<int>" : "Aggregate<int>, " + traits;
 }

@@ -13,14 +13,15 @@ namespace Rask.Data;
 /// of it: a property of another composite type is a value object, stored as columns on the aggregate's row.
 /// </para>
 /// <para>
-/// A table carries only what its base names, in any order: <see cref="Timestamps" /> (or <see cref="Created" /> /
-/// <see cref="Updated" />), <see cref="Versioned" />, <see cref="Model" />, <see cref="Deletable" /> or
-/// <see cref="SoftDelete" />, <see cref="PerTenant" />, <see cref="Broadcast" />. Every aggregate has a
-/// domain-events buffer that the <see cref="DomainEventInterceptor"/> publishes after the change commits.
+/// A table carries only what the class says, read like a sentence: <see cref="IHasTimestamps" /> (or
+/// <see cref="IHasCreatedAt" /> / <see cref="IHasUpdatedAt" />), <see cref="IVersioned" />, <see cref="IHasForm" />,
+/// <see cref="IDeletable" /> or <see cref="ISoftDeletes" />, <see cref="IBelongsTo{TTenant}" />,
+/// <see cref="IBroadcasts" />. Every aggregate has a domain-events buffer that the
+/// <see cref="DomainEventInterceptor"/> publishes after the change commits.
 /// </para>
 /// <example>
 /// <code>
-/// public sealed class Product : Aggregate&lt;Guid, Timestamps, Versioned, Model, Deletable&gt;
+/// public sealed class Product : Aggregate&lt;Guid&gt;, IHasTimestamps, IVersioned, IHasForm, IDeletable
 /// {
 ///     private Product() { }
 ///
@@ -86,112 +87,4 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
     void IProjectionCarrier.Raise(IEvent projected) => Raise(projected);
 
     void IProjectionCarrier.Withdraw(Predicate<IEvent> projected) => _domainEvents?.RemoveAll(projected);
-}
-
-/// <summary>An aggregate that asks for one trait, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1> : Aggregate<TId>
-    where T1 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
-}
-
-/// <summary>An aggregate that asks for 2 traits, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-/// <typeparam name="T2">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1, T2> : Aggregate<TId>
-    where T1 : IAggregateTrait
-    where T2 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
-}
-
-/// <summary>An aggregate that asks for 3 traits, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-/// <typeparam name="T2">A trait.</typeparam>
-/// <typeparam name="T3">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1, T2, T3> : Aggregate<TId>
-    where T1 : IAggregateTrait
-    where T2 : IAggregateTrait
-    where T3 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
-}
-
-/// <summary>An aggregate that asks for 4 traits, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-/// <typeparam name="T2">A trait.</typeparam>
-/// <typeparam name="T3">A trait.</typeparam>
-/// <typeparam name="T4">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1, T2, T3, T4> : Aggregate<TId>
-    where T1 : IAggregateTrait
-    where T2 : IAggregateTrait
-    where T3 : IAggregateTrait
-    where T4 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
-}
-
-/// <summary>An aggregate that asks for 5 traits, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-/// <typeparam name="T2">A trait.</typeparam>
-/// <typeparam name="T3">A trait.</typeparam>
-/// <typeparam name="T4">A trait.</typeparam>
-/// <typeparam name="T5">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1, T2, T3, T4, T5> : Aggregate<TId>
-    where T1 : IAggregateTrait
-    where T2 : IAggregateTrait
-    where T3 : IAggregateTrait
-    where T4 : IAggregateTrait
-    where T5 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
-}
-
-/// <summary>An aggregate that asks for 6 traits, in any order — see <see cref="IAggregateTrait" />.</summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">A trait.</typeparam>
-/// <typeparam name="T2">A trait.</typeparam>
-/// <typeparam name="T3">A trait.</typeparam>
-/// <typeparam name="T4">A trait.</typeparam>
-/// <typeparam name="T5">A trait.</typeparam>
-/// <typeparam name="T6">A trait.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Aggregate<TId, T1, T2, T3, T4, T5, T6> : Aggregate<TId>
-    where T1 : IAggregateTrait
-    where T2 : IAggregateTrait
-    where T3 : IAggregateTrait
-    where T4 : IAggregateTrait
-    where T5 : IAggregateTrait
-    where T6 : IAggregateTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Aggregate()
-    {
-    }
 }

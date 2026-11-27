@@ -76,38 +76,6 @@ public static class ModelConfigurationBuilderExtensions
     }
 
     /// <summary>
-    ///     A foreign key from every <see cref="PerTenant" /> table's <c>TenantId</c> to the tenant's own key:
-    ///     <c>c.TenantReferences&lt;Partner&gt;()</c> — so the database refuses to delete a tenant that still has rows, on
-    ///     SQLite as on SQL Server and PostgreSQL.
-    /// </summary>
-    /// <typeparam name="TTenant">The app's tenant aggregate, the one that says <see cref="ITenant" />.</typeparam>
-    /// <param name="configurationBuilder">The conventions being configured.</param>
-    /// <returns>The same builder.</returns>
-    /// <remarks>
-    ///     <para>
-    ///         The key is the database's, made by the migrations and by <c>EnsureCreated</c> through <c>UseRaskSqlite</c>,
-    ///         <c>UseRaskSqlServer</c> and <c>UseRaskPostgres</c>: <c>NO ACTION</c> on delete, named by the app's
-    ///         <c>ConstraintNames</c> rule (<see cref="ConstraintKind.ForeignKey" />) or <c>FK_{table}_{tenant}_{column}</c>.
-    ///         It is no relationship of the model — EF Core relates only properties of one type, and a tenant is often a
-    ///         <see cref="Guid" /> to its tables and text to its own row — so a save neither orders its commands by it nor
-    ///         deletes a tenant's rows with it. Give the tenant a <c>WhenReferenced("…")</c> sentence and a refused delete
-    ///         says it.
-    ///     </para>
-    ///     <para>
-    ///         SQLite makes a foreign key only with its table, so there it is in the <c>CREATE TABLE</c> — a database
-    ///         made from the model, a test's — and a migration that adds it to a table SQLite already has adds nothing.
-    ///     </para>
-    /// </remarks>
-    public static ModelConfigurationBuilder TenantReferences<TTenant>(this ModelConfigurationBuilder configurationBuilder)
-        where TTenant : class
-    {
-        ArgumentNullException.ThrowIfNull(configurationBuilder);
-
-        configurationBuilder.Conventions.Add(_ => new TenantReferenceConvention(typeof(TTenant).FullName!));
-        return configurationBuilder;
-    }
-
-    /// <summary>
     ///     What a delete does, for every relationship the model left to convention: <paramref name="children" /> for an
     ///     aggregate's children, <paramref name="others" /> for every other foreign key.
     /// </summary>

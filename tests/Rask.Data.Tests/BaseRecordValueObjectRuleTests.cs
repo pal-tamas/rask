@@ -117,7 +117,7 @@ public sealed class BaseRecordValueObjectRuleTests
     [Fact]
     public void A_wall_clock_moment_is_kept_as_given()
     {
-        var wall = new DateTime(2024, 3, 31, 2, 30, 0, DateTimeKind.Unspecified);
+        var wall = new DateTime(2024, 3, 31, 12, 30, 0, DateTimeKind.Unspecified);
 
         var fueled = RigFueled.Create(wall);
 

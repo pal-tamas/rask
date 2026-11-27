@@ -3,22 +3,31 @@ using Rask.Data;
 
 namespace Rask.Storage.Tests;
 
-/// <summary>A tenant-scoped table whose tenants are numbered: <c>PerTenant&lt;int&gt;</c>, with no declared column.</summary>
-public sealed class NumberedLedger : Aggregate<Guid, PerTenant<int>>
+/// <summary>Tenants of each key type: what the ledgers belong to, never mapped here.</summary>
+public sealed class NumberedBank : Aggregate<int>;
+
+/// <summary>A tenant numbered by <c>long</c>.</summary>
+public sealed class LongBank : Aggregate<long>;
+
+/// <summary>A tenant keyed by a <c>Guid</c>.</summary>
+public sealed class GuidBank : Aggregate<Guid>;
+
+/// <summary>A tenant-scoped table whose tenants are numbered: <c>IBelongsTo&lt;NumberedBank&gt;</c>, with no declared column.</summary>
+public sealed class NumberedLedger : Aggregate<Guid>, IBelongsTo<NumberedBank>
 {
     public string Name { get; private set; } = "";
 }
 
 /// <summary>The same numbered by <c>long</c>, declaring its column.</summary>
-public sealed class LongLedger : Aggregate<Guid, PerTenant<long>>
+public sealed class LongLedger : Aggregate<Guid>, IBelongsTo<LongBank>
 {
     public long? TenantId { get; private set; }
 
     public string Name { get; private set; } = "";
 }
 
-/// <summary>A tenant-scoped table whose tenants are Guids, as plain <c>PerTenant</c> gives it.</summary>
-public sealed class GuidLedger : Aggregate<Guid, PerTenant>
+/// <summary>A tenant-scoped table whose tenants are Guids.</summary>
+public sealed class GuidLedger : Aggregate<Guid>, IBelongsTo<GuidBank>
 {
     public string Name { get; private set; } = "";
 }

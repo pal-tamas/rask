@@ -43,6 +43,7 @@ internal sealed class SqliteCollationInterceptor : DbConnectionInterceptor
 
         SqliteCollations.Apply(sqlite);
         SqliteSearchText.Apply(sqlite);
+        SqliteMoments.Apply(sqlite);
         if (eventData.Context?.Model.FindAnnotation(TextCollation.Annotation)?.Value is string name)
         {
             var collation = TextCollation.Parse(name);

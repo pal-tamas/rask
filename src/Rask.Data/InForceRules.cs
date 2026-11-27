@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 namespace Rask.Data;
 
 /// <summary>
-///     The condition each <see cref="OneInForce{TChild}" /> child declared, compiled once, for the aggregate to ask of
+///     The condition each child declared with <c>InForceWhile(…)</c>, compiled once, for the aggregate to ask of
 ///     the children in hand.
 /// </summary>
 /// <remarks>Remembered as the model is built: the declaration lives in the child's <c>Configure</c>, and nowhere else.</remarks>

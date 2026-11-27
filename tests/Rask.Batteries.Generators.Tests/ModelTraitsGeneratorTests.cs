@@ -1,9 +1,8 @@
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// The traits that carry a type or reach a child — <c>SoftRemoved</c>, <c>PerTenantThrough&lt;T&gt;</c>,
-/// <c>OneInForce&lt;T&gt;</c> — as the registry records them and the read faces show them, and <c>Across(reason)</c> on
-/// every face.
+/// The traits that carry a type or reach a child — a child's <c>ISoftDeletes</c>, <c>IBelongsToTenantThrough&lt;T&gt;</c>
+/// — as the registry records them and the read faces show them, and <c>Across(reason)</c> on every face.
 /// </summary>
 public class ModelTraitsGeneratorTests
 {
@@ -35,12 +34,12 @@ public class ModelTraitsGeneratorTests
     }
 
     [Fact]
-    public void An_aggregate_that_keeps_one_child_in_force_names_the_child()
+    public void An_aggregate_that_keeps_one_child_in_force_says_nothing_of_it_the_child_says_when()
     {
         var run = Run();
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains(Registry + "DeclareInForce(typeof(global::Yard.Port), typeof(global::Yard.Filing));", Conventions(run), StringComparison.Ordinal);
+        Assert.DoesNotContain("InForce", Conventions(run), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,7 +63,7 @@ public class ModelTraitsGeneratorTests
             using Rask.Data;
             namespace Yard;
 
-            public sealed class Port : Aggregate<Guid, PerTenant, OneInForce<Filing>>
+            public sealed class Port : Aggregate<Guid>, IBelongsTo<GuidTenant>
             {
                 private readonly List<Stall> _stalls = [];
                 private readonly List<Filing> _filings = [];
@@ -74,7 +73,7 @@ public class ModelTraitsGeneratorTests
                 public IReadOnlyList<Filing> Filings => _filings;
             }
 
-            public sealed class Stall : Entity<Guid, SoftRemoved>
+            public sealed class Stall : Entity<Guid>, ISoftDeletes
             {
                 private Stall() { }
                 public string Name { get; private set; } = "";
@@ -86,12 +85,13 @@ public class ModelTraitsGeneratorTests
                 public DateTime? UnfiledAt { get; private set; }
             }
 
-            public sealed class Ticket : Aggregate<Guid, PerTenantThrough<Port>>
+            public sealed class Ticket : Aggregate<Guid>, IBelongsToTenantThrough<Port>
             {
                 private Ticket() { }
                 public Guid PortId { get; private set; }
                 public string Note { get; private set; } = "";
             }
+            public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
             """,
             [new ModelInputGenerator(), new ModelRegistryGenerator(), new ReadModelGenerator()],
             "Rask.Data",

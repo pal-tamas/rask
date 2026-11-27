@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant whose key is the text of a Guid, as TA's <c>Partner</c> is.</summary>
-public sealed class Agency : Aggregate<string, Deletable>
+public sealed class Agency : Aggregate<string>, IDeletable
 {
     public const string InUse = "The agency still has data.";
 
@@ -20,7 +20,7 @@ public sealed class Agency : Aggregate<string, Deletable>
 }
 
 /// <summary>One of an agency's rows: its tenant a Guid, kept as text in the column.</summary>
-public sealed class Voyage : Aggregate<Guid, Deletable, PerTenant>
+public sealed class Voyage : Aggregate<Guid>, IDeletable, IBelongsTo<Agency>
 {
     private Voyage() { }
 
@@ -37,9 +37,8 @@ public sealed class AgencyDbContext(DbContextOptions<AgencyDbContext> options) :
     public const string Schema = "rask_tenant_refs";
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-        configurationBuilder
-            .ConstraintNames(n => n.Kind == ConstraintKind.ForeignKey ? $"{n.Table}_{n.Columns[0]}_fkey" : null)
-            .TenantReferences<Agency>();
+        ModelRegistry.ApplyConventions(configurationBuilder)
+            .ConstraintNames(n => n.Kind == ConstraintKind.ForeignKey ? $"{n.Table}_{n.Columns[0]}_fkey" : null);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,8 +54,8 @@ public sealed class AgencyDbContext(DbContextOptions<AgencyDbContext> options) :
 }
 
 /// <summary>
-///     <c>c.TenantReferences&lt;Agency&gt;()</c> on each provider: a tenant that still has rows is not deleted — on SQLite
-///     too — and the refusal says the tenant's sentence, though its key and the rows' are of two types.
+///     A table that belongs to the app's tenant refers to it on each provider: a tenant that still has rows is not deleted —
+///     on SQLite too — and the refusal says the tenant's sentence, though its key and the rows' are of two types.
 /// </summary>
 public abstract class TenantReferenceParityTests(ProviderLeg leg) : ParityTests<AgencyDbContext>(leg)
 {
@@ -107,7 +106,13 @@ public abstract class TenantReferenceParityTests(ProviderLeg leg) : ParityTests<
         await Assert.ThrowsAnyAsync<DbUpdateException>(() => db.SaveChangesAsync(Ct));
     }
 
-    private protected override AgencyDbContext Open() => Leg.Open<AgencyDbContext>(o => new AgencyDbContext(o));
+    // The agency is the app's tenant, as the generated registration of the aggregate that says ITenant names it.
+    private protected override AgencyDbContext Open()
+    {
+        CurrentRows.Use(new CurrentRow<AgencyRead, string>(
+            CurrentRowKind.Tenant, typeof(Agency), static key => row => row.Id == key, static row => row.Id));
+        return Leg.Open<AgencyDbContext>(o => new AgencyDbContext(o));
+    }
 }
 
 public sealed class SqliteTenantReferenceParityTests() : TenantReferenceParityTests(ProviderLeg.Sqlite("tenant-references"));

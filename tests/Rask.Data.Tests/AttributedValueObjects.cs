@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>Value objects whose columns an attribute on the property shapes instead of their own declaration.</summary>
-public sealed class Granary : Aggregate<int, Model>
+public sealed class Granary : Aggregate<int>, IHasForm
 {
     private Granary() { }
 

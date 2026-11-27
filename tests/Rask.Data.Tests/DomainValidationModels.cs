@@ -4,7 +4,7 @@ namespace Rask.Data.Tests;
 
 // An aggregate written the DataAnnotations way, with a rule of its own over its rows and one about its delete: what
 // every save of it is asked (DomainValidationTests).
-public sealed class Voyage : Aggregate<Guid, Versioned, Model, Deletable>
+public sealed class Voyage : Aggregate<Guid>, IVersioned, IHasForm, IDeletable
 {
     private readonly List<VoyageLeg> _legs = [];
 
@@ -114,7 +114,7 @@ public sealed class NotForbiddenAttribute : ValidationAttribute
 }
 
 // An aggregate whose form model the app completes: an awaited attribute on a property, and the model's own rule.
-public sealed class Charter : Aggregate<Guid, Model>
+public sealed class Charter : Aggregate<Guid>, IHasForm
 {
     private Charter() { } // EF materialization
 
@@ -154,7 +154,7 @@ public sealed class NameNotTakenAttribute() : AsyncValidationAttribute("{0} is t
 }
 
 // A form-written aggregate whose attribute asks the work's services.
-public sealed class Mooring : Aggregate<Guid, Model>
+public sealed class Mooring : Aggregate<Guid>, IHasForm
 {
     private Mooring() { } // EF materialization
 
