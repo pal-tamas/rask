@@ -86,7 +86,7 @@ The table is keyed by a version-7 `Guid` the writer makes for each entry, never 
 `RaskLog` table from before that is rebuilt by the app's next migration (`rask db add RaskGuidKeys && rask db
 update`), an [exclusive one](deployment.md): the old entries are history and are not carried over, so read what you
 need from them first. The file store keeps its own integer rowid — its full-text index needs one that never changes —
-and derives each entry's `Guid` from it. See [docs/data.md](data.md#rebuilding-a-store-numbered-key-as-a-guid).
+and derives each entry's `Guid` from it. See [docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 
 An app built with `RaskApp` gets this without writing it: when `Rask:Database:Provider` is `postgres` or
 `sqlserver`, the log store moves into the application database and `RaskAppDbContext` maps the table. On SQLite it

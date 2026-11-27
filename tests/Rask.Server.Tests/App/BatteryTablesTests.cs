@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Background;
 using Rask.Caching;
+using Rask.Data;
 
 namespace Rask.Server.Tests.App;
 
@@ -38,6 +39,24 @@ public sealed class NeverHadJobsContextModelSnapshot : ModelSnapshot
             b.Property<string>("Key");
             b.HasKey("Key");
             b.ToTable("CacheEntries");
+        });
+}
+
+/// <summary>An app whose last migration predates Rask's Guid keys: its jobs table numbered by the store.</summary>
+public sealed class NumberedJobsContext(DbContextOptions<RaskAppDbContext> options) : RaskAppDbContext(options);
+
+[DbContext(typeof(NumberedJobsContext))]
+public sealed class NumberedJobsContextModelSnapshot : ModelSnapshot
+{
+    protected override void BuildModel(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity("Rask.Background.Job", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
+            b.Property<string>("Type").IsRequired().HasColumnType("TEXT");
+            b.Property<DateTime>("CreatedAt").HasColumnType("TEXT");
+            b.Property<DateTime?>("ProcessedAt").HasColumnType("TEXT");
+            b.HasKey("Id");
+            b.ToTable("Job");
         });
 }
 
@@ -111,6 +130,36 @@ public sealed class BatteryTablesTests
         Assert.False(model.FindEntityType(typeof(CacheEntry))!.IsTableExcludedFromMigrations());
     }
 
+    [Fact]
+    public void The_migration_after_the_upgrade_rebuilds_a_numbered_jobs_table_as_an_exclusive_one()
+    {
+        using var context = Open(o => new NumberedJobsContext(o), BatteryTables.All);
+        var snapshot = context.GetService<IModelRuntimeInitializer>().Initialize(
+            context.GetService<IMigrationsAssembly>().ModelSnapshot!.Model, designTime: true, validationLogger: null);
+
+        var operations = context.GetService<IMigrationsModelDiffer>().GetDifferences(
+            snapshot.GetRelationalModel(), context.GetService<IDesignTimeModel>().Model.GetRelationalModel());
+
+        var rebuild = Assert.Single(operations.OfType<SqlOperation>(), static o => o.Sql.Contains("rebuilds the key of", StringComparison.Ordinal));
+        Assert.Contains("\"Job\"", rebuild.Sql, StringComparison.Ordinal);
+        Assert.Contains(operations, static o => o is DropTableOperation { Name: "Job" });
+        Assert.DoesNotContain(operations, static o => o is AlterColumnOperation { Table: "Job" });
+        Assert.True(ExclusiveMigrations.IsExclusive(new Written(operations)));
+    }
+
+    [Theory]
+    [InlineData(typeof(Job), "ProcessedAt|CreatedAt")]
+    [InlineData(typeof(Rask.Outbox.OutboxMessage), "ProcessedAt|")]
+    [InlineData(typeof(Rask.Mailing.QueuedMail), "ProcessedAt|CreatedAt")]
+    public void Each_queue_says_what_the_rebuild_of_its_old_numbered_key_refuses_and_keeps(Type entity, string rebuild)
+    {
+        using var context = Open(o => new RaskAppDbContext(o), BatteryTables.All);
+
+        var said = context.GetService<IDesignTimeModel>().Model.FindEntityType(entity)!.FindAnnotation(StoreKeyRebuild.Annotation)?.Value;
+
+        Assert.Equal(rebuild, said);
+    }
+
     // The migrations are looked for in the context's own assembly, which for KeptJobsContext is this one.
     private static T Open<T>(Func<DbContextOptions<RaskAppDbContext>, T> create, BatteryTables tables)
         where T : DbContext =>
@@ -128,4 +177,9 @@ public sealed class BatteryTablesTests
         after.GetService<IMigrationsModelDiffer>().GetDifferences(
             before.GetService<IDesignTimeModel>().Model.GetRelationalModel(),
             after.GetService<IDesignTimeModel>().Model.GetRelationalModel());
+
+    private sealed class Written(IReadOnlyList<MigrationOperation> operations) : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Operations.AddRange(operations);
+    }
 }

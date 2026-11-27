@@ -171,7 +171,7 @@ A later release added a `UserId` column, the user a handler runs for. Add it wit
 the `OutboxMessage` table as an [exclusive migration](deployment.md): `rask deploy` stops the old version first. It
 refuses to run while a message is pending, dead letters included — let the outbox drain, retry or delete what the
 dashboard shows failed, then deploy. Processed rows are history and are not carried over, so no idempotency key a
-partner has already seen is ever handed out again. See [docs/data.md](data.md#rebuilding-a-store-numbered-key-as-a-guid).
+partner has already seen is ever handed out again. See [docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 
 ## How it works
 

@@ -1937,6 +1937,16 @@ battery marks such a table, and **the migration you add after upgrading rebuilds
 3. **The table dropped and created again** from the current model, with its indexes.
 4. **The kept rows written back**, and the scratch table dropped.
 
+| Table | Refused while | Kept | Why |
+| --- | --- | --- | --- |
+| `Job` | a job has no `ProcessedAt` (waiting, running, a dead letter) | processed jobs, ids from `CreatedAt` | the dashboard's history and the bell's recently ended work |
+| `QueuedMail` | a mail has no `ProcessedAt` | sent mail, ids from `CreatedAt` | the record of what was sent |
+| `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
+| `RaskLog` | never | none | old log lines are history; read what you need first |
+
+The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
+full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+
 The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
 [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,
 so nothing is enqueued under the old key while it runs. With plain `dotnet ef`, stop the old instances yourself first.

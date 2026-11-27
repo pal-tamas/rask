@@ -15,6 +15,9 @@ internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
         entity.HasKey(e => e.Id);
         // Made by Rask as the batch is written (LogEntry.From), never by the store: no identity column or sequence.
         entity.Property(e => e.Id).ValueGeneratedNever();
+        // A table from before that is rebuilt by the app's next migration, its old lines dropped as history. Rask.Data's
+        // RebuildsStoreKey, spelled out: this package does not reference Rask.Data (docs/data.md).
+        entity.HasAnnotation("Rask:StoreKeyRebuild", "|");
         entity.Property(e => e.Category).HasMaxLength(LogEntry.CategoryMaxLength).IsRequired();
         entity.Property(e => e.Message).IsRequired();
 

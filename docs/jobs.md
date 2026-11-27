@@ -482,7 +482,7 @@ identity, `INTEGER` rowid). Its next migration (`rask db add RaskGuidKeys && ras
 to run while a job is pending — waiting, running or a dead letter: let the queue drain, retry or delete the dead
 letters on the dashboard, then deploy. Processed jobs are kept, each with the deterministic id of its `CreatedAt` and
 old number, so the bell's recently ended work and the dashboard's history survive. See
-[docs/data.md](data.md#rebuilding-a-store-numbered-key-as-a-guid).
+[docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 
 ## The user and tenant a job runs for
 

@@ -124,7 +124,7 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
   from before that is rebuilt by its next migration (`rask db add RaskGuidKeys && rask db update`), an
   [exclusive one](deployment.md): it refuses to run while a mail is still queued (dead letters included — retry or
   delete them on the dashboard), and keeps the sent ones, each with the deterministic id of its `CreatedAt` and old
-  number. See [docs/data.md](data.md#rebuilding-a-store-numbered-key-as-a-guid).
+  number. See [docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 - **`QueuedMail` has a read face**, like every Rask.Data entity: `QueuedMail.Where(m => m.ProcessedAt ==
   null).Count()` is the queue's depth, with no context of your own.
 - **`IMailSender`** — the delivery seam. `AddRaskMail` picks `MailKitSender` (SMTP) when `Smtp` is set,
