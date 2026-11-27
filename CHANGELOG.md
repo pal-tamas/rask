@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK146: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
+  positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
+  (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
+  offered first for `*Date`/`*Day`/`*On`) and types the member as it. RASK130 no longer reports a `DateTime` where
+  RASK146 does. Rask's own types (namespace `Rask.*`) and the stamps it writes are left alone.
 - **`FuelingMoment.FromWall(local, zone)`: a wall-clock time from outside made a `Moment` by one fixed rule.** A pump
   or a file that writes its local time without an offset is made an instant where it comes in — `FromWall(local)` reads
   it on `Clock.Zone`. A time the clock shows twice when summer time ends is its FIRST occurrence (still in summer time),

@@ -51,10 +51,15 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
     {
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterSymbolAction(Analyze, SymbolKind.Property);
+        context.RegisterCompilationStartAction(static start =>
+        {
+            // A DateTime or DateTimeOffset is RASK146's where the app has Moment and Day to hold it: one report, one fix.
+            var timeIsRask146 = start.Compilation.GetTypeByMetadataName("Rask.Values.Moment") is not null;
+            start.RegisterSymbolAction(symbol => Analyze(symbol, timeIsRask146), SymbolKind.Property);
+        });
     }
 
-    private static void Analyze(SymbolAnalysisContext context)
+    private static void Analyze(SymbolAnalysisContext context, bool timeIsRask146)
     {
         var property = (IPropertySymbol)context.Symbol;
         if (property is not { IsStatic: false, IsIndexer: false, IsOverride: false, DeclaredAccessibility: Accessibility.Public } ||
@@ -62,6 +67,7 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
             !property.ExplicitInterfaceImplementations.IsEmpty ||
             !AggregateShape.IsEntity(property.ContainingType) ||
             Bare(property.Type) is not { } bare ||
+            (timeIsRask146 && IsTime(property.Type)) ||
             !IsStored(property))
         {
             return;
@@ -74,6 +80,15 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
             property.Name,
             bare.Name,
             bare.IsGuid ? DeclareTypedId : DeclareValueObject));
+    }
+
+    private static bool IsTime(ITypeSymbol type)
+    {
+        var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
+        return held.SpecialType == SpecialType.System_DateTime ||
+               held is { Name: "DateTimeOffset", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } };
     }
 
     // The type's name when it is one a value object or a typed id would wrap, and whether it is a Guid; null for anything else.

@@ -40,6 +40,11 @@ dotnet_diagnostic.RASK133.severity = warning
 # an error, since the handlers that run after the commit are handed the wrong row.
 dotnet_diagnostic.RASK145.severity = error
 
+# A bare DateTime or DateTimeOffset held by an aggregate, an entity, a value object, a domain event or a read model
+# (RASK146): time is a Moment (an instant, stored as UTC) or a Day. A warning everywhere else; under <RaskStrict> an
+# error, since PostgreSQL refuses a DateTime that is not UTC only when the row is saved.
+dotnet_diagnostic.RASK146.severity = error
+
 # Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,
 # ExecuteSql*, SqlQuery*), SQL in the model (HasColumnType, UseCollation, HasDefaultValueSql, HasComputedColumnSql,
 # HasFilter, ToSqlQuery). The app's tests run on SQLite in memory; Rask proves only what it translates on all three
