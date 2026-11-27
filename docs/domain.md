@@ -2222,6 +2222,10 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 - **A value object as a model of its own:** `Money Price` on `Product` is a nested `MoneyModel? Price` on `ProductModel`, filled by `new ProductModel()` and `ToModel()`, so a
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.
+- **Another row's typed id as the typed id:** `CompanyId Company` (`readonly partial record struct CompanyId(int Value)`)
+  is `CompanyId? Company` on the model, never the `int?` it holds, so `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c
+  => c.Name))` binds it with nothing in between, a query string parses it through its own `IParsable`, and the save hands
+  it to the aggregate as it is. A list of them (`List<TagId>`) stays a list of them. A non-nullable one is still required.
 - **Children keyed by several columns:** a link table as a list of ids (`List<int> ActivityIds`), a row with fields of
   its own as a list of rows (`List<CompanyColumnModel> Columns`) — see
   [Link tables and child rows on the form](#link-tables-and-child-rows-on-the-form).

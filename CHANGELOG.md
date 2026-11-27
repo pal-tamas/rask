@@ -123,6 +123,16 @@ them until tagged releases begin.
   `IDeletable` beside `ISoftDeletes`, `IBelongsTo<T>` of an aggregate other than the app's tenant. The registry's
   `TraitSet` is unchanged, so the EF Core model is otherwise identical (the Rask.Data test model, all 4564 lines of its
   debug view, did not change): rewrite the class lines, and the tenant references are all a migration adds.
+- **BREAKING: a generated form model holds another row's typed id AS the typed id.** `CompanyId Company` on an
+  aggregate (`readonly partial record struct CompanyId(int Value)`, or a `Guid`/`long`/`string` one) was `int? Company`
+  on its `XModel`; it is now `CompanyId? Company`, and a `List<TagId>` value collection stays one. So
+  `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c => c.Name))` — and `Ui.Field`, `Ui.Pillbox`, a paged
+  `Ui.ChoiceRows` source — binds the read face's `IChoiceSource<CompanyId>` with no bridge to the number, a query string
+  parses it through its own `IParsable`, and the save hands it to the aggregate as it is. A non-nullable one is still
+  required with the same message, and its field shape is still `FieldKind.Id`. **Upgrade:** drop a `.AsNumbers()`-style
+  bridge and the `new CompanyId(n)` / `.Value` an app wrote between the model and an id; `model.Company = 5` becomes
+  `model.Company = new CompanyId(5)`. A one-value record that is not a typed id (no `partial`, or no `Id` name) is still
+  carried as the value it holds.
 - **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
   and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
   is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.
