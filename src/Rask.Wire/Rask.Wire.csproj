@@ -41,7 +41,7 @@
     <InternalsVisibleTo Include="Rask.Pdf"/>
     <!-- Uuid.Of: a log row read from SQLite is keyed by its millisecond and its number. -->
     <InternalsVisibleTo Include="Rask.Logging"/>
-    <!-- OrderedGuid.Of: the ids SqliteLogKeyTests expects a numbered log row to read back as. -->
+    <!-- Uuid.Of: the ids SqliteLogKeyTests expects a numbered log row to read back as. -->
     <InternalsVisibleTo Include="Rask.Logging.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
