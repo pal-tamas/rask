@@ -236,7 +236,7 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
         switch (way)
         {
             case "no":
-                await page.ClickAsync(Dialog + " .flex button:not([data-rask-confirm-dialog])");
+                await page.ClickAsync(Dialog + " [data-rask-confirm-dialog=no]");
                 break;
             case "x":
                 await page.ClickAsync(Dialog + " button[aria-label='Close modal']");

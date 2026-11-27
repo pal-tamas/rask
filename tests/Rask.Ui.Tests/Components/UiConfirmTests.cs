@@ -39,7 +39,7 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
             withoutTheField, " data-rask-confirm-dialog=\"heading\" data-rask-confirm-default=\"[^\"]*\" data-rask-opaque", string.Empty);
         // So are the labels and the look a question from code words for itself.
         var withoutItsLabels = Regex.Replace(
-            withoutItsTitle, "<span data-rask-confirm-dialog=\"(no|yes)\" data-rask-confirm-default=\"[^\"]*\" data-rask-opaque>([^<]*)</span>", "$2");
+            withoutItsTitle, "( data-rask-confirm-dialog=\"no\")? data-rask-confirm-default=\"[^\"]*\" data-rask-opaque", string.Empty);
         var withoutItsTones = Regex.Replace(
             withoutItsLabels, " data-rask-confirm-tone=\"[^\"]*\" data-rask-confirm-other=\"[^\"]*\"", string.Empty);
         var asLeave = withoutItsTones
@@ -106,7 +106,7 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         Assert.All(buttons, button => Assert.Contains("command=\"close\"", button.Tag, StringComparison.Ordinal));
         Assert.All(buttons, button => Assert.Contains("commandfor=\"ui-confirm\"", button.Tag, StringComparison.Ordinal));
         Assert.Equal(Ui.Button.Ghost.ToHtml()[..20], buttons[0].Tag[..20]);
-        Assert.DoesNotContain("data-rask-confirm-dialog", buttons[0].Tag, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-dialog=\"no\"", buttons[0].Tag, StringComparison.Ordinal);
         Assert.Contains("data-rask-confirm-dialog=\"go\"", buttons[1].Tag, StringComparison.Ordinal);
         Assert.Contains("bg-red-500", buttons[1].Tag, StringComparison.Ordinal);
     }
@@ -143,11 +143,18 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Confirm.No("Nem").Yes("Igen").ToHtml().AsText();
 
-        var no = Tag(html, "<span data-rask-confirm-dialog=\"no\"");
-        var yes = Tag(html, "<span data-rask-confirm-dialog=\"yes\"");
+        var buttons = Buttons(html);
+        var (no, yes) = (buttons[0].Tag, buttons[1].Tag);
 
-        Assert.Contains(no + "Nem</span>", html, StringComparison.Ordinal);
-        Assert.Contains(yes + "Igen</span>", html, StringComparison.Ordinal);
+        // As Flux's: Cancel holds its words alone, the delete the spinner and its words in a span after it.
+        Assert.Contains(no + "Nem</button>", html, StringComparison.Ordinal);
+        var inYes = html[(html.IndexOf(yes, StringComparison.Ordinal) + yes.Length)..];
+        inYes = inYes[..inYes.IndexOf("</button>", StringComparison.Ordinal)];
+        Assert.StartsWith("<div class=\"absolute inset-0", inYes, StringComparison.Ordinal);
+        Assert.Contains("data-ui-loading-indicator><svg", inYes, StringComparison.Ordinal);
+        Assert.Matches("</svg></div><span class=\"[^\"]*\">Igen</span>$", inYes);
+        Assert.Contains("data-rask-confirm-dialog=\"no\"", no, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-dialog=\"go\"", yes, StringComparison.Ordinal);
         Assert.Contains("data-rask-confirm-default=\"Nem\" data-rask-opaque", no, StringComparison.Ordinal);
         Assert.Contains("data-rask-confirm-default=\"Igen\" data-rask-opaque", yes, StringComparison.Ordinal);
     }
@@ -178,8 +185,8 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         for (var at = row.IndexOf("<button", StringComparison.Ordinal); at >= 0; at = row.IndexOf("<button", at + 1, StringComparison.Ordinal))
         {
             var end = row.IndexOf("</button>", at, StringComparison.Ordinal);
-            var tag = row[at..(row.IndexOf('>', at) + 1)];
-            var label = Regex.Replace(row[(at + tag.Length)..end], "<[^>]+>", string.Empty).Trim();
+            var tag = Regex.Match(row[at..], "^<(?:[^>\"]|\"[^\"]*\")*>").Value;
+            var label = Regex.Replace(row[(at + tag.Length)..end], "<(?:[^>\"]|\"[^\"]*\")*>", string.Empty).Trim();
             if (label.Length > 0)
             {
                 buttons.Add((tag, label));

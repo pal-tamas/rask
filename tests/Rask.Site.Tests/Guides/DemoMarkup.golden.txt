@@ -685,20 +685,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10
@@ -1201,20 +1194,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10
@@ -7837,20 +7823,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10
@@ -8280,20 +8259,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10
@@ -9565,20 +9537,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10
@@ -10007,20 +9972,13 @@ div .dark:text-white .font-medium .text-sm .text-zinc-800
 table
 thead
 tr .flex
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
-th .dark:text-zinc-300 .flex .font-medium .items-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
-div .text-center .w-full
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
+th .dark:text-zinc-300 .flex .font-medium .items-center .justify-center .max-sm:size-11 .p-0 .size-10 .text-sm .text-zinc-500
 tbody
 tr .flex
 td .max-sm:size-11 .opacity-50 .p-0 .rounded-s-lg .size-10

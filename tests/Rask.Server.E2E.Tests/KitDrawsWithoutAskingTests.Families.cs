@@ -317,7 +317,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["confirm"] = On<KitLeaveFramePage>("confirm",
             Press("ask, and be asked", "#confirm-delete"),
             Press("ask for a typed answer, and be asked", "#confirm-wipe"),
-            Press("ask, be asked, and say no", "#ui-confirm .flex button:not([data-rask-confirm-dialog])", Pressing("#confirm-delete")),
+            Press("ask, be asked, and say no", "#ui-confirm [data-rask-confirm-dialog=no]", Pressing("#confirm-delete")),
             Escape(Pressing("#confirm-delete"), "ask, be asked, and close by Escape"),
             Outside(Pressing("#confirm-delete"), "ask, be asked, and close by a press outside"),
             Press("ask, be asked, and close by the X", "#ui-confirm [aria-label='Close modal']", Pressing("#confirm-delete")),

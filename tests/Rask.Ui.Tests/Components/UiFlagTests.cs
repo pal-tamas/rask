@@ -95,6 +95,6 @@ public partial class UiFlagTests : global::Rask.Core.RaskMarkup
         var html = flag.ToHtml();
 
         Assert.Contains("aspect-square rounded-full", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"size-full object-cover\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"absolute inset-0 size-full object-cover\"", html, StringComparison.Ordinal);
     }
 }

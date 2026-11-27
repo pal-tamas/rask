@@ -178,20 +178,23 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
 
         var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
 
-        Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
+        // The one button left in each form is the spent Previous, which presses nothing.
+        Assert.Equal(2, Count(html, "<button"));
+        Assert.Equal(2, Count(html, " disabled type=\"button\">"));
+        Assert.DoesNotContain("data-rask-on-", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/logs?page=2\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void On_the_first_page_Previous_is_not_a_control()
+    public void On_the_first_page_Previous_is_a_disabled_button()
     {
         var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
 
         var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml().AsText();
 
-        // Once in each form: a <div> that says it is disabled, where Next is a button.
-        Assert.Equal(2, Count(html, "<div class=\"flex items-center justify-center rounded-md text-zinc-300 size-8 sm:size-6 dark:text-zinc-500\" data-rask-key=\"previous\" aria-disabled=\"true\" aria-label=\"« Previous\">"));
-        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"Next »\""));
+        // Once in each form: a button that is disabled and keeps its name, as Flux's, where Next is pressable.
+        Assert.Equal(2, Count(html, "<button class=\"flex items-center justify-center rounded-md text-zinc-300 size-8 sm:size-6 dark:text-zinc-500\" data-rask-key=\"previous\" aria-label=\"« Previous\" disabled type=\"button\">"));
+        Assert.Equal(0, Count(html, "aria-label=\"Next »\" disabled"));
         Assert.Equal(2, Count(html, "aria-label=\"Next »\""));
     }
 
@@ -210,14 +213,14 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void On_the_last_page_Next_is_not_a_control()
+    public void On_the_last_page_Next_is_a_disabled_button()
     {
         var paginator = new UiPaginator { Page = 5, PerPage = 5, Total = 24 };
 
         var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml().AsText();
 
-        Assert.Equal(2, Count(html, "aria-disabled=\"true\" aria-label=\"Next »\""));
-        Assert.Equal(0, Count(html, "aria-disabled=\"true\" aria-label=\"« Previous\""));
+        Assert.Equal(2, Count(html, "aria-label=\"Next »\" disabled"));
+        Assert.Equal(0, Count(html, "aria-label=\"« Previous\" disabled"));
     }
 
     [Theory]
@@ -280,12 +283,12 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         var paginator = new UiPaginator { Page = 2, HasMore = false };
 
-        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+        var html = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml().AsText();
 
-        // Flux's simple pager names nothing and states nothing: the spent step is a bare box.
-        Assert.Equal(1, Count(html, "dark:text-zinc-500\" data-rask-key=\"next\"><svg"));
-        Assert.Equal(1, Count(html, "<button"));
-        Assert.DoesNotContain("aria-", html.Replace("aria-hidden", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        // Flux's simple pager names its steps too, and the spent one is a disabled button.
+        Assert.Equal(1, Count(html, "data-rask-key=\"next\" aria-label=\"Next »\" disabled type=\"button\">"));
+        Assert.Equal(2, Count(html, "<button"));
+        Assert.Equal(1, Count(html, " disabled "));
     }
 
     [Fact]

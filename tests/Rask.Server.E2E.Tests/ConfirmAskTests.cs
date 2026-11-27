@@ -109,14 +109,14 @@ public sealed class ConfirmAskTests(PlaywrightFixture playwright) : IClassFixtur
 
     private static async Task<(string No, string Yes)> WordsAsync(IPage page) =>
         ((await page.TextContentAsync(Dialog + " [data-rask-confirm-dialog=no]"))!,
-            (await page.TextContentAsync(Dialog + " [data-rask-confirm-dialog=yes]"))!);
+            (await page.TextContentAsync(Dialog + " [data-rask-confirm-dialog=go] > span"))!);
 
     private static async Task CloseAsync(IPage page, string way)
     {
         switch (way)
         {
             case "no":
-                await page.ClickAsync(Dialog + " .flex button:not([data-rask-confirm-dialog])");
+                await page.ClickAsync(Dialog + " [data-rask-confirm-dialog=no]");
                 break;
             case "x":
                 await page.ClickAsync(Dialog + " button[aria-label='Close modal']");

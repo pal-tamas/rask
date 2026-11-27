@@ -230,9 +230,9 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         var german = Ui.Calendar.Value(default(DateOnly)).Locale("de-DE").On(Today).ToHtml();
         var told = Single().StartDay(DayOfWeek.Monday).ToHtml();
 
-        Assert.StartsWith("Su", Regex.Match(american, "<th[^>]*><div[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
-        Assert.StartsWith("Mo", Regex.Match(german, "<th[^>]*><div[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
-        Assert.StartsWith("Mo", Regex.Match(told, "<th[^>]*><div[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
+        Assert.StartsWith("Su", Regex.Match(american, "<th[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
+        Assert.StartsWith("Mo", Regex.Match(german, "<th[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
+        Assert.StartsWith("Mo", Regex.Match(told, "<th[^>]*>([^<]+)<").Groups[1].Value, StringComparison.Ordinal);
         Assert.Contains("data-date=\"2025-12-29\" data-outside", told, StringComparison.Ordinal);
     }
 

@@ -242,9 +242,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         options.WeekNumbers ? UiCalendarLook.CellBesideWeek(options.Size) : UiCalendarLook.Cell(options.Size);
 
     private static global::Rask.Core.Component Weekday(string cell, object key, string name) =>
-        Th.Key(key).Class("p-0", UiCalendarLook.Weekday, cell).Attributes(("scope", "col"))[
-            Div.Class(UiCalendarLook.WeekdayText)[name]
-        ];
+        Th.Key(key).Class("p-0", UiCalendarLook.Weekday, cell).Attributes(("scope", "col"))[name];
 
     // The ISO week its Thursday falls in, which is the week a row is known by whichever day it starts on.
     private static int WeekOf(DateOnly[] week) =>

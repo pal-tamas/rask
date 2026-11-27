@@ -127,7 +127,7 @@ public sealed class EditorDialogStaysClosedTests(PlaywrightFixture playwright) :
         }
         else
         {
-            await page.ClickAsync(Question + " .flex button:not([data-rask-confirm-dialog])");
+            await page.ClickAsync(Question + " [data-rask-confirm-dialog=no]");
         }
 
         await Expect(page.Locator(Question)).ToBeHiddenAsync();

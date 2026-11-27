@@ -222,9 +222,9 @@
       "integrity": "sha512-/e87cbxcM5WJOJrL1IrM9gJqO3EK8LdQoPvs+r4ss1lRO5t5QeqkU0SlmDvcitCSDUbm8s/MxbBB6ds4pY6Xlg=="
     },
     "node_modules/prosemirror-view": {
-      "version": "1.43.0",
-      "resolved": "https://registry.npmjs.org/prosemirror-view/-/prosemirror-view-1.43.0.tgz",
-      "integrity": "sha512-MZOUuhD+Gv7Cp7UlgvyhptUfb920NkLBgymhyhaM8xp+JXQyLhkssS2EXZvMI3ZU3vRoz5z7mRC32udVgNYHqg=="
+      "version": "1.44.0",
+      "resolved": "https://registry.npmjs.org/prosemirror-view/-/prosemirror-view-1.44.0.tgz",
+      "integrity": "sha512-Ga7889C0DYI1AI0zzgXBNVElPRLh6B2+K87XLjza90Bm/02XyEGXUr0gnla+Oefv7krvo3VIUDwM+YHKU9xGxg=="
     },
     "node_modules/rope-sequence": {
       "version": "1.3.4",

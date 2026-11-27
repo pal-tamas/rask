@@ -18,7 +18,7 @@ public sealed class ConfirmInFlyoutTests(PlaywrightFixture playwright) : IClassF
 {
     private const string Dialog = "#ui-confirm";
     private const string Yes = Dialog + " [data-rask-confirm-dialog=go]";
-    private const string No = Dialog + " .flex button:not([data-rask-confirm-dialog])";
+    private const string No = Dialog + " [data-rask-confirm-dialog=no]";
     private const string Delete = "button[data-rask-confirm]";
 
     [Theory]

@@ -4,7 +4,8 @@
 //
 // The dialog is a Ui.Modal (rask-ask.ts opens it and hears how it closed). Its parts carry data-rask-confirm-dialog:
 // `message` the question, `heading` its title (`heading:`, else the layout's), `field` the box `expect:` is typed into,
-// `go` the button that says yes, `no` and `yes` the two buttons' labels. Nothing of it is the page's to hear: opening,
+// `go` the button that says yes, `no` the one that says no; each keeps the layout's words in
+// data-rask-confirm-default. Nothing of it is the page's to hear: opening,
 // typing and closing send nothing, and only a yes lets the action go — made again by the press or the submit that
 // asked, which the runtime then lets through; for a question from code, the answer is what goes back.
 //
@@ -39,9 +40,11 @@ if (page) {
         return dialog.querySelector<T>("[" + PART + "=" + name + "]");
     };
 
+    // No holds its words; Yes (`go`) holds Flux's spinner and its words in the span after it.
     const label = function (dialog: Element, name: string, text: string | null): void {
-        const el = part(dialog, name);
-        if (el) el.textContent = text ?? el.getAttribute(DEFAULT) ?? "";
+        const el = part(dialog, name === "yes" ? "go" : name);
+        const into = el && el.hasAttribute(DEFAULT) ? (name === "yes" ? el.querySelector(":scope > span") : el) : null;
+        if (into) into.textContent = text ?? el!.getAttribute(DEFAULT) ?? "";
     };
 
     // Yes in the tone asked for: the dialog's own unless a question from code brought the other.

@@ -62,6 +62,23 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`Ui.Confirm`'s buttons are built as Flux 2.22's confirmation's (#1189).** No holds its words alone (no `<span>`
+  around them) and carries `data-rask-confirm-dialog="no"`; Yes holds Flux's spinner and its words in a span, never
+  shown — Yes sends nothing (`Loading(false)`), as does `Ui.ConfirmLeave`'s. A question asked from code still words
+  both (the runtime writes No's text and Yes's span). Fixed with it: the other tone's look Yes takes for such a
+  question (`Ui.Confirm.Ask(…)` with a tone) was a 40 px icon square's (`w-10`, no padding), now a worded button's.
+- **`Ui.Pagination`'s spent Previous / Next is a disabled `<button>`, as Flux 2.22's is (#1189).** It was a `<div>`
+  (with `aria-disabled` in a counted pager): now `<button type="button" disabled>` in both forms, named like the other
+  step ("« Previous" / "Next »") — the simple pager names its steps too now, as Flux's does. A screen reader hears a
+  dimmed button where it heard nothing; the look is unchanged.
+- **`Ui.Flag`'s picture lies over its frame, as Flux 2.22's does (#1189).** The `<img>` is `absolute inset-0` inside the
+  frame (it was in the frame's flow); so are the flags of `Ui.Phone`'s country list and button. Same box, same look.
+- **A calendar's weekday row is Flux 2.22's (#1189).** Each heading of `Ui.Calendar` — and of the date and datetime
+  pickers' calendars — holds the day's short name itself, centred by its own flex row (`justify-center`), where it
+  wrapped it in a `<div>`. Nothing moves on the page.
+- **`Ui.Editor`'s engine takes `prosemirror-view` 1.44.0** (was 1.43.0; Tiptap stays 3.35.0, `prosemirror-model` still
+  held at 1.25.1). `ui-editor.js` grows by 857 bytes (451,899 -> 452,756), which the tiptap follower leaves to the
+  owner; approved, landed by hand (#1263).
 - **`Rask.Postgres` ships stable, at the version of every other package, on Npgsql's stable EF Core 11 provider.**
   `Npgsql.EntityFrameworkCore.PostgreSQL` moves from 11.0.0-rc.3 to 11.0.0, which asks for EF Core [11.0.0, 12.0.0),
   the line the rest of Rask is on. The November hold is lifted: no `x.y.z-rc.1` suffix on a stable tag, no NU1608 for a
