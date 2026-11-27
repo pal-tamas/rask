@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK145: an event that reads a key the database has not produced yet; client-generated keys are the default.**
+  `Raise(new OrderPlaced(Id))` in a factory takes `Id` before the insert, and an `int`/`long` identity (or a typed id
+  over one) is still `0` there — EF Core keeps the temporary key in its own entry — so the handlers got `0` for good.
+  The build now reports it (a warning; an error under `<RaskStrict>`) where the entity is certainly new: `Id` read in
+  the aggregate's constructor, or `x.Id` of a local the same method made with `new` or a static factory of its type (a
+  factory's aggregate, an operation's new child), when its key is an integer not marked `ValueGeneratedNever()` or any
+  key marked `ValueGeneratedOnAdd()`. `docs/domain.md` now says the default key is a typed id over a `Guid` made in the
+  factory (`OrderId.New()`, version 7, generated for every such id), and `rask new`'s first-entity example uses one.
 - **`database.Arrange<T>(where, set)` / `database.ArrangeGone<T>(where)` (Rask.Testing.Data): a test's setup of a
   state the aggregate would not make.** A legacy row, a user moved to another tenant, a period closed under a note
   already written — one `ExecuteUpdate`/`ExecuteDelete` each on the test's database, every tenant's rows (no query

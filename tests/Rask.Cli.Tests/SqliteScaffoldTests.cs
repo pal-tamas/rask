@@ -57,4 +57,15 @@ public sealed class SqliteScaffoldTests
         // Not the FIRST migration any more — `rask new` creates and applies that itself.
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_next_steps_key_the_first_entity_by_a_typed_id_over_a_guid()
+    {
+        var next = ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(["data"]), Version).Notes;
+
+        Assert.NotNull(next);
+        Assert.Contains("public readonly partial record struct ProductId(Guid Value);", next, StringComparison.Ordinal);
+        Assert.Contains("Product : Aggregate<ProductId,", next, StringComparison.Ordinal);
+        Assert.Contains("ProductId.New()", next, StringComparison.Ordinal);
+    }
 }

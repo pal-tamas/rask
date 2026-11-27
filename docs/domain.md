@@ -131,7 +131,7 @@ framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
-| `Id` | `Entity<TId>` | The key. A `Guid` (or a typed id over one) is assigned in the factory; an integer (or a typed id over one) is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
+| `Id` | `Entity<TId>` | The key. A `Guid` (or a typed id over one) is assigned in the factory — [the default](#choosing-the-key-a-typed-id-over-a-guid); an integer (or a typed id over one) is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
 | `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
@@ -660,6 +660,34 @@ at model build. Ids that need no converter — `Guid`, `int`, `long`, `string` �
 `ProductId Product` reads back as a `ProductId`, and a `ProductId? ProductId` as a `ProductId?` beside its inferred
 `Product` navigation ([what the face holds](data.md#what-the-read-face-is)). A one-value type no entity is keyed by reads as
 the value it holds, like any other one-value value object.
+
+### Choosing the key: a typed id over a `Guid`
+
+**The default key is a typed id over a `Guid`, made by the entity itself:**
+
+```csharp
+public readonly partial record struct OrderId(Guid Value);
+
+public sealed class Order : Aggregate<OrderId, Timestamps, Versioned, Model>
+{
+    public static Order Place(string reference)
+    {
+        var order = new Order { Id = OrderId.New(), Reference = reference };
+        order.Raise(new OrderPlaced(order.Id));          // the row's id, from the first line
+        return order;
+    }
+}
+```
+
+`OrderId.New()` is a version-7 `Guid` (`Guid.CreateVersion7()`): time-ordered, so the primary-key index stays
+append-only as an identity's does, and unique without asking the database. That is what makes the id real before the
+save: an event raised in the factory, a child pointing at its parent, a log line, a redirect to `/orders/{id}` all name
+the row that will be written. `rask new`'s first-entity example and the generated `Create(model)` use it.
+
+An integer identity is for a table the database must number — one an existing schema owns, or one whose number is the
+business's (an invoice's, which [`Numbered`](data-writes.md#a-running-number) keeps gap-free). Its `Id` is `0` until
+the insert, and so is anything that read it first: an event raised in the factory with `Id` carries `0` for good, which
+the build reports as [RASK145](diagnostics.md#rask145) (an error under `<RaskStrict>`).
 
 Who produces the key follows the value it holds:
 
@@ -1656,6 +1684,8 @@ loaded and saved on its own, and a change that spans two follows from an event �
 ### Domain events
 
 What happened is said once, by the aggregate, with `Raise(…)` inside the operation — `Raise(new OrderShipped(Id))`.
+An event a factory raises reads the id as it is then, so key the aggregate [on the client](#choosing-the-key-a-typed-id-over-a-guid):
+a store-generated key is still `0` there ([RASK145](diagnostics.md#rask145)).
 The events are saved with the aggregate and published after its transaction commits, never on a rollback: each
 `IEventHandler<T>` runs in memory straight after the commit, and each `IDurableHandler<T>` runs from the
 [outbox](outbox.md), which stored it in the save's own transaction, so it is retried until it succeeds. A handler
