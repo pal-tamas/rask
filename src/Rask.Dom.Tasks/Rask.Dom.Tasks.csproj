@@ -25,7 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Rask.Dom.Tasks.Tests"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
   </ItemGroup>
 

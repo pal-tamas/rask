@@ -107,7 +107,7 @@ public sealed class NumberedTenantTests : IDisposable
         Assert.Equal("Destinations", destination.GetTableName());
         Assert.False(column.IsShadowProperty());
         Assert.Equal(typeof(int?), column.ClrType);
-        Assert.Equal("TenantId", column.GetColumnName());
+        Assert.Equal("tenant_id", column.GetColumnName());
     }
 
     [Fact]
@@ -220,8 +220,8 @@ public sealed class NumberedTenantTests : IDisposable
         }
 
         // A literal here would be cached with the query and served to the next tenant.
-        Assert.Contains("\"TenantId\" = @", write.Split("\n\n")[^1], StringComparison.Ordinal);
-        Assert.Contains("\"TenantId\" = @", face.Split("\n\n")[^1], StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", write.Split("\n\n")[^1], StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", face.Split("\n\n")[^1], StringComparison.Ordinal);
         Assert.DoesNotContain("987654", write.Split("\n\n")[^1], StringComparison.Ordinal);
         Assert.DoesNotContain("987654", face.Split("\n\n")[^1], StringComparison.Ordinal);
     }
@@ -756,21 +756,21 @@ public sealed class NumberedTenantTests : IDisposable
     // Straight to the table, past every filter and stamp: what the database holds, whoever is asking.
     private static async Task<int?> StoredTenantAsync(TestDatabase database, int id) =>
         (await database.Context.Database
-            .SqlQuery<int?>($"SELECT TenantId AS Value FROM Destinations WHERE Id = {id}")
+            .SqlQuery<int?>($"SELECT tenant_id AS Value FROM Destinations WHERE id = {id}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private static async Task<string> StoredNameAsync(TestDatabase database, int id) =>
         (await database.Context.Database
-            .SqlQuery<string>($"SELECT Name AS Value FROM Destinations WHERE Id = {id}")
+            .SqlQuery<string>($"SELECT name AS Value FROM Destinations WHERE id = {id}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private static async Task<int> InsertOrphanAsync(TestDatabase database, string name)
     {
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Destinations (Name, TenantId) VALUES ({name}, NULL)", TestContext.Current.CancellationToken);
+            $"INSERT INTO Destinations (name, tenant_id) VALUES ({name}, NULL)", TestContext.Current.CancellationToken);
 
         return (await database.Context.Database
-            .SqlQuery<int>($"SELECT Id AS Value FROM Destinations WHERE Name = {name}")
+            .SqlQuery<int>($"SELECT id AS Value FROM Destinations WHERE name = {name}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
     }
 

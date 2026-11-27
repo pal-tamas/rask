@@ -19,7 +19,9 @@ namespace Rask.Data;
 
 /// <summary>
 ///     EF Core's migration differ, with an empty ARRAY — not an object — as the default of a JSON collection column that
-///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys from a tenant's tables to the tenant (<c>IBelongsTo&lt;Tenant&gt;</c>).
+///     a migration adds or turns <c>NOT NULL</c>, the foreign keys from a tenant's tables to the tenant
+///     (<c>IBelongsTo&lt;Tenant&gt;</c>), and a constraint renamed rather than dropped and added
+///     (<see cref="ConstraintRenames" />).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -107,6 +109,15 @@ internal sealed class RaskMigrationsModelDiffer(
         operations = WithGuidOrder(operations, source, target);
         operations = WithNoOverlapRules(operations, source, target);
         operations = [.. operations, .. MomentsInUtc.Between(source, target)];
+
+        // A constraint only renamed — Rask's pk_/fk_/uq_ names over an existing database — is renamed, not dropped and added.
+        if (source is not null)
+        {
+            operations = ConstraintRenames.Apply([.. operations], source, target, databaseProvider.Name, sqlGenerationHelper);
+        }
+
+        // SQLite refuses a rename that changes only a name's case (Fuelings → fuelings): it goes through a name of its own.
+        operations = CaseOnlyRenames.Apply(operations, databaseProvider.Name);
 
         foreach (var operation in operations)
         {

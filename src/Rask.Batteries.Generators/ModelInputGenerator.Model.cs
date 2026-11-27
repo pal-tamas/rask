@@ -287,7 +287,8 @@ public sealed partial class ModelInputGenerator
     }
 
     // Who can produce the key of a row inserted WITHOUT one — which decides whether Create(model) exists.
-    //  * A Guid: this code, as a version-7 Guid (time-ordered, so the primary-key index stays append-only), and
+    //  * A Guid: this code, as Rask.OrderedGuid.New() (version 7, time-ordered and strictly increasing, so the
+    //    primary-key index stays append-only), and
     //    the same inside a strongly-typed id over a Guid.
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
     //    and marks every other Entity<TId> key never-generated, so EF produces nothing else — unless the
@@ -309,7 +310,7 @@ public sealed partial class ModelInputGenerator
 
         if (idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is "global::System.Guid")
         {
-            return (KeySource.Guid, "global::System.Guid.CreateVersion7()");
+            return (KeySource.Guid, "global::Rask.OrderedGuid.New()");
         }
 
         return ModelRegistryGenerator.StronglyTypedId.For(idType) switch
@@ -317,7 +318,7 @@ public sealed partial class ModelInputGenerator
             { Problem: null, TypeName: { } typeName, ValueTypeName: "global::System.Guid" } =>
                 (KeySource.Guid, HasNew(idType)
                     ? typeName + ".New()"
-                    : "new " + typeName + "(global::System.Guid.CreateVersion7())"),
+                    : "new " + typeName + "(global::Rask.OrderedGuid.New())"),
             _ => (KeySource.Caller, null),
         };
     }

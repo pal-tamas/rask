@@ -79,7 +79,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                      + "<WarningsAsErrors>RASK020</WarningsAsErrors>.",
         helpLinkUri: DiagnosticHelp.Link("RASK020"));
 
-    private static readonly DiagnosticDescriptor Rask054 = new(
+    private static readonly DiagnosticDescriptor Rask055 = new(
         "RASK055",
         "Scoped JavaScript is no longer supported",
         "'{0}' sits beside component '{1}', and Rask no longer compiles or registers a scoped '.js' file — rename it "
@@ -362,7 +362,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 continue;
             }
 
-            spc.ReportDiagnostic(Diagnostic.Create(Rask054, AssetPairing.SourceLocation(path), path, stem));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask055, AssetPairing.SourceLocation(path), path, stem));
         }
     }
 

@@ -334,7 +334,7 @@ public sealed class LockedByTests : IDisposable
 
         private void Fail(DbCommand command)
         {
-            if (FailNextInsert && command.CommandText.Contains("INSERT INTO \"TallyClaim", StringComparison.Ordinal))
+            if (FailNextInsert && command.CommandText.Contains("INSERT INTO \"tally_claims", StringComparison.Ordinal))
             {
                 FailNextInsert = false;
                 throw new TransientFault();

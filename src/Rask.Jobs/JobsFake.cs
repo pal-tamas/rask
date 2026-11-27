@@ -117,7 +117,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jobs);
-        var batch = Guid.CreateVersion7();
+        var batch = OrderedGuid.New();
         var tenant = Tenant.Key;
         var user = CurrentUser.Id;
         lock (_gate)

@@ -271,12 +271,11 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     private DbContextOptions<TContext> Sqlite<TContext>()
         where TContext : DbContext => Sqlite<TContext>(_sqlite.ConnectionString);
 
-    // Through Rask's differ, which UseRaskSqlite, UseRaskSqlServer, UseRaskPostgres and a RaskApp register; the wiring
-    // is pinned in their own test projects, so here it is put in place directly.
+    // Through Rask's differ, in the one options shape every differ test shares (RaskDifferOptions).
     private static DbContextOptions<TContext> Sqlite<TContext>(string connectionString)
         where TContext : DbContext => OptionsLayout.LikeAddDbContext<TContext>()
         .UseSqlite(connectionString)
-        .ReplaceService<IMigrationsModelDiffer, RaskMigrationsModelDiffer>()
+        .WithRaskDiffer()
         .Options;
 }
 

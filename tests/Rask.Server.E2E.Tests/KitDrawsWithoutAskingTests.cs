@@ -57,6 +57,7 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
         ["flag"] = "an image",
         ["heading"] = "words",
         ["icon"] = "an image",
+        ["item"] = "a row of words laid out in a grid: its actions are buttons, switches and menus, each walked as its own",
         ["text"] = "words",
     };
 

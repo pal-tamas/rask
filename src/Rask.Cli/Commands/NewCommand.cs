@@ -60,7 +60,7 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
             .Flag("no-cache", description: "Leave out the database-backed ICache + IDistributedCache.")
-            .Flag("no-storage", description: "Leave out file storage for uploads (IFiles) and its StoredFile table.")
+            .Flag("no-storage", description: "Leave out file storage for uploads (IFiles) and its stored_files table.")
             .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
             .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")

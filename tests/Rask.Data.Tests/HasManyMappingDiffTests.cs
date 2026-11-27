@@ -27,8 +27,8 @@ public sealed class HasManyMappingDiffTests
         var (before, after) = (hand.Database.GenerateCreateScript(), listed.Database.GenerateCreateScript());
 
         Assert.Equal(before, after);
-        Assert.Contains("\"RackId\"", after, StringComparison.Ordinal);
-        Assert.DoesNotContain(Columns.Position, after, StringComparison.Ordinal);
+        Assert.Contains("\"rack_id\"", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"position\"", after, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -54,6 +54,6 @@ public sealed class HasManyMappingDiffTests
             ordered.GetService<IDesignTimeModel>().Model.GetRelationalModel());
 
         var added = Assert.IsType<AddColumnOperation>(Assert.Single(operations));
-        Assert.Equal(("Shelf", Columns.Position, typeof(int)), (added.Table, added.Name, added.ClrType));
+        Assert.Equal(("shelves", "position", typeof(int)), (added.Table, added.Name, added.ClrType));
     }
 }

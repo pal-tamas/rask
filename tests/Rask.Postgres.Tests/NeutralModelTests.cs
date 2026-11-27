@@ -97,7 +97,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"CountedAt\" integer GENERATED ALWAYS AS (COALESCE(\"ModifiedPistol\", \"Pistol\")) STORED", script, StringComparison.Ordinal);
+        Assert.Contains("counted_at integer GENERATED ALWAYS AS (COALESCE(modified_pistol, pistol)) STORED", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -107,9 +107,9 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("GENERATED ALWAYS AS ((CAST(\"Year\" AS TEXT) || '.' || CAST(\"Month\" AS TEXT))) STORED", script, StringComparison.Ordinal);
+        Assert.Contains("GENERATED ALWAYS AS ((CAST(year AS TEXT) || '.' || CAST(month AS TEXT))) STORED", script, StringComparison.Ordinal);
         Assert.Contains(
-            "GENERATED ALWAYS AS ((COALESCE(\"Note\", '') || '#' || COALESCE(CAST(\"ModifiedPistol\" AS TEXT), ''))) STORED", script, StringComparison.Ordinal);
+            "GENERATED ALWAYS AS ((COALESCE(note, '') || '#' || COALESCE(CAST(modified_pistol AS TEXT), ''))) STORED", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class NeutralModelTests
         var script = context.Database.GenerateCreateScript();
 
         Assert.Contains(
-            "GENERATED ALWAYS AS (CASE WHEN (\"ModifiedPistol\" IS NOT NULL AND \"ModifiedPistol\" = \"Pistol\") THEN TRUE ELSE FALSE END) STORED",
+            "GENERATED ALWAYS AS (CASE WHEN (modified_pistol IS NOT NULL AND modified_pistol = pistol) THEN TRUE ELSE FALSE END) STORED",
             script,
             StringComparison.Ordinal);
     }
@@ -132,8 +132,8 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON \"Permit\" (\"Partner\") WHERE \"RevokedAt\" IS NULL;", script, StringComparison.Ordinal);
-        Assert.Contains("ON \"Permit\" (\"Kind\") WHERE \"Active\" = TRUE AND \"Kind\" = 1;", script, StringComparison.Ordinal);
+        Assert.Contains("ON permits (partner) WHERE revoked_at IS NULL;", script, StringComparison.Ordinal);
+        Assert.Contains("ON permits (kind) WHERE active = TRUE AND kind = 1;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -143,9 +143,9 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Size\" integer NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
-        Assert.Contains("\"CreatedAt\" timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
-        Assert.Contains("\"CountedAt\" timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
+        Assert.Contains("size integer NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
+        Assert.Contains("created_at timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
+        Assert.Contains("counted_at timestamp with time zone NOT NULL DEFAULT (now())", script, StringComparison.Ordinal);
     }
 
     private static DbContextOptions<NeutralContext> Options() =>

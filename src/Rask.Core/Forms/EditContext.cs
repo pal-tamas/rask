@@ -65,8 +65,6 @@ public sealed partial class EditContext : IDisposable
     // a form over an operation (Form.For) says so, so the domain's dry run answers as each field is left.
     internal bool CommitsOnLeave { get; set; }
 
-    internal IEnumerable<FieldIdentifier> RegisteredFields => _states.Keys;
-
     // The key form-level messages are recorded under: the model itself, with no field name.
     private FieldIdentifier FormField => new(Model, string.Empty);
 

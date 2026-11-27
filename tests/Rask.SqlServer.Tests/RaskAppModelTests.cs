@@ -90,12 +90,14 @@ public sealed class RaskAppModelTests
         var jobs = model.FindEntityType(typeof(Job))!;
         var table = jobs.GetTableName();
         Assert.Equal($"{table}_pkey", jobs.FindPrimaryKey()!.GetName());
-        Assert.Equal($"{table}_WaitingKey_key", jobs.GetIndexes().Single(i => i.IsUnique).GetDatabaseName());
-        Assert.Equal($"{table}_Lane_ProcessedAt_idx", jobs.GetIndexes().Single(i => i.Properties[0].Name == nameof(Job.Lane)).GetDatabaseName());
-        Assert.Equal($"{table}_Attempts_df", jobs.FindProperty(nameof(Job.Attempts))!.GetDefaultConstraintName());
+        Assert.Equal($"{table}_waiting_key_key", jobs.GetIndexes().Single(i => i.IsUnique).GetDatabaseName());
+        Assert.Equal($"{table}_lane_processed_at_idx", jobs.GetIndexes().Single(i => i.Properties[0].Name == nameof(Job.Lane)).GetDatabaseName());
+        Assert.Equal($"{table}_attempts_df", jobs.FindProperty(nameof(Job.Attempts))!.GetDefaultConstraintName());
         Assert.Equal("jobs_lane_as_written", jobs.FindProperty(nameof(Job.Lane))!.GetDefaultConstraintName());
-        var cut = model.FindEntityType(typeof(CacheEntry))!.FindPrimaryKey()!.GetName();
-        Assert.Equal($"{RuledAppContext.LongTable}_pkey"[..128], cut);
+        var cut = model.FindEntityType(typeof(CacheEntry))!.FindPrimaryKey()!.GetName()!;
+        Assert.Equal(128, cut.Length);
+        Assert.StartsWith(RuledAppContext.LongTable[..119], cut, StringComparison.Ordinal);
+        Assert.Matches("^c{119}_[0-9a-f]{8}$", cut);
     }
 
     [Fact]
@@ -106,8 +108,8 @@ public sealed class RaskAppModelTests
         var sql = context.Set<Job>().Where(j => j.Lane == "main").OrderBy(j => j.Type.InTextOrder()).ToQueryString();
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        Assert.Contains("ORDER BY [j].[Type] COLLATE Hungarian_100_CI_AS", sql, StringComparison.Ordinal);
-        Assert.Contains("WHERE [j].[Lane] = N'main'", sql, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY [j].[type] COLLATE Hungarian_100_CI_AS", sql, StringComparison.Ordinal);
+        Assert.Contains("WHERE [j].[lane] = N'main'", sql, StringComparison.Ordinal);
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(sql, "COLLATE"));
         var texts = model.GetEntityTypes().SelectMany(e => e.GetProperties()).Where(p => p.ClrType == typeof(string));
         Assert.All(texts, p => Assert.Null(p.GetCollation()));

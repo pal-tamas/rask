@@ -110,7 +110,7 @@ public sealed class CoveringIndexTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON \"Remittance\" (\"PayeeId\");", script, StringComparison.Ordinal);
+        Assert.Contains("ON \"remittances\" (\"payee_id\");", script, StringComparison.Ordinal);
         Assert.DoesNotContain("INCLUDE", script, StringComparison.Ordinal);
     }
 
@@ -152,7 +152,7 @@ public sealed class CoveringIndexTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON \"CoveredLeg\" (\"DriverId\");", script, StringComparison.Ordinal);
+        Assert.Contains("ON \"covered_legs\" (\"driver_id\");", script, StringComparison.Ordinal);
     }
 
     [Fact]

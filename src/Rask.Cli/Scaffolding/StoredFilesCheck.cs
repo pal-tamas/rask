@@ -16,8 +16,9 @@ internal static class StoredFilesCheck
     /// has no stored-file table.
     /// </summary>
     /// <remarks>
-    /// The table is found by its columns rather than by name: EF names it <c>StoredFile</c> by convention, but an app
-    /// that exposes a <c>DbSet&lt;StoredFile&gt;</c> gets the property's name instead.
+    /// The table is found by its columns rather than by name: Rask names it <c>stored_files</c> (its columns <c>key</c>,
+    /// <c>provider</c>, <c>sha256</c>), a database from before Rask's names has <c>StoredFile</c> (<c>Key</c>, …), and an app
+    /// may name it as it likes. SQLite reads a column's name in any case, so one query reads either.
     /// </remarks>
     internal static MissingStoredFiles? FindMissing(string databasePath, string root)
     {
@@ -66,10 +67,10 @@ internal static class StoredFilesCheck
             """
             SELECT m.name FROM sqlite_master m
             WHERE m.type = 'table'
-              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'Key')
-              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'Provider')
-              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'Sha256')
-            ORDER BY m.name = 'StoredFile' DESC
+              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'key' COLLATE NOCASE)
+              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'provider' COLLATE NOCASE)
+              AND EXISTS (SELECT 1 FROM pragma_table_info(m.name) WHERE name = 'sha256' COLLATE NOCASE)
+            ORDER BY m.name IN ('stored_files', 'StoredFile') DESC
             LIMIT 1
             """;
         return command.ExecuteScalar() as string;

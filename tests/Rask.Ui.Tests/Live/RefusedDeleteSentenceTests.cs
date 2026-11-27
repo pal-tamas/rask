@@ -67,12 +67,16 @@ public sealed partial class RefusedDeleteSentenceTests : global::Rask.Core.RaskM
     {
         var hitch = Hitch.Plated("ABC-123");
         await hitch.Save(cancellationToken: TestContext.Current.CancellationToken);
-        await context.Database.ExecuteSqlAsync(
-            $"""
-             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "HitchId" INTEGER NOT NULL REFERENCES "Hitch" ("Id"));
-             INSERT INTO "TripLog" ("HitchId") VALUES ({hitch.Id});
-             """,
+        // The hitch's table and key as Rask names them in the database, not as the class spells them.
+        var table = context.Model.FindEntityType(typeof(Hitch))!;
+        var key = table.FindProperty(nameof(Hitch.Id))!.GetColumnName();
+#pragma warning disable EF1002 // the names come from the model, not from input; the id is a parameter below
+        await context.Database.ExecuteSqlRawAsync(
+            $"""CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "HitchId" INTEGER NOT NULL REFERENCES "{table.GetTableName()}" ("{key}"));""",
             TestContext.Current.CancellationToken);
+#pragma warning restore EF1002
+        await context.Database.ExecuteSqlAsync(
+            $"""INSERT INTO "TripLog" ("HitchId") VALUES ({hitch.Id});""", TestContext.Current.CancellationToken);
         return hitch;
     }
 

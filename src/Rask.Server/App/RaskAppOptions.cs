@@ -135,7 +135,7 @@ public sealed class RaskAppOptions
     /// <summary>
     /// The durable log store. On SQLite it does not need the database — it keeps a SQLite file of its own, so it
     /// survives the restart that hid the log you wanted. On PostgreSQL or SQL Server, with <see cref="Data"/> on, it
-    /// keeps the log in the application database's <c>RaskLog</c> table instead (unless the app wired a store itself).
+    /// keeps the log in the application database's <c>log_entries</c> table instead (unless the app wired a store itself).
     /// </summary>
     public Battery<LogsOptions> Logs { get; } = new();
 
