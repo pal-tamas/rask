@@ -25,7 +25,7 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
         CancellationToken cancellationToken)
     {
         var due = Due(at, after);
-        var batch = Guid.CreateVersion7(timeProvider.GetUtcNow());
+        var batch = OrderedGuid.New(timeProvider);
         var rows = new List<Job>(jobs.Count);
         foreach (var (job, notice) in jobs)
         {
