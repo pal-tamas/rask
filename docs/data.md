@@ -1154,7 +1154,8 @@ wall clock of `Clock.Zone` (`.Value`). The value object and every query still sp
 `Where(f => f.At.Value > since)` compares the column with `since` made an instant by the rule a moment follows (a time
 shown twice is its first occurrence, a skipped one moves forward — [Moment and Day](domain.md#moment-and-day)), and
 stays an index seek. A moment's day reads the wall calendar in SQL on every provider: `GroupBy(f => f.At.Day)` and
-`f.At.Day == day` group and filter by the day the app shows, in the zone the app was set to as the query is compiled.
+`f.At.Day == day` group and filter by the day the app shows, in `Clock.Zone` as the query runs — a query run again
+after the zone changed (a test under a zone of its own) is compiled again for the new zone.
 A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
 instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
 comparison of moments for a stretch of time. A moment inside a JSON document keeps the wall clock there.
@@ -1976,8 +1977,10 @@ battery marks such a table, and **the migration you add after upgrading rebuilds
 | `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
 | `RaskLog` | never | none | old log lines are history; read what you need first |
 
-The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
-full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+The SQLite **file** log store (`logs.db`) is not part of any migration, and it is keyed by a `Guid` too: a
+`WITHOUT ROWID` table whose primary key is the version-7 `Guid` made before the insert, with a `Sequence` column beside
+it that the full-text index addresses the row by. A `logs.db` from an earlier release is rebuilt into that shape when it
+is opened, every entry kept under the id it was shown with before ([docs/logging.md](logging.md)).
 
 The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
 [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,

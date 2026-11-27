@@ -52,6 +52,8 @@ public sealed class MomentUtcTests
 {
     private static readonly TimeZoneInfo Budapest = TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest");
 
+    private static readonly TimeZoneInfo NewYork = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+
     private static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?> { ["Rask:ConnectionStrings:App"] = "Server=unused;Database=unused" }).Build());
 
@@ -65,6 +67,19 @@ public sealed class MomentUtcTests
 
         Assert.Contains(
             "CAST(([r].[At] AT TIME ZONE N'UTC') AT TIME ZONE N'Central Europe Standard Time' AS date)", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_same_query_run_again_under_another_zone_reads_that_zone_s_day()
+    {
+        using var context = new RefuellingContext(On<RefuellingContext>());
+        var day = new DateOnly(2026, 10, 25);
+
+        var inBudapest = InZone(Budapest, () => context.Refuellings.Where(r => r.At.Day == day).ToQueryString());
+        var inNewYork = InZone(NewYork, () => context.Refuellings.Where(r => r.At.Day == day).ToQueryString());
+
+        Assert.Contains("AT TIME ZONE N'Central Europe Standard Time'", inBudapest, StringComparison.Ordinal);
+        Assert.Contains("AT TIME ZONE N'Eastern Standard Time'", inNewYork, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -100,6 +115,12 @@ public sealed class MomentUtcTests
         var commands = today.GetService<IMigrationsSqlGenerator>().Generate(operations, today.Model);
 
         Assert.DoesNotContain(commands, c => c.CommandText.Contains("UPDATE", StringComparison.Ordinal));
+    }
+
+    private static string InZone(TimeZoneInfo zone, Func<string> query)
+    {
+        using var ambient = AmbientClock.UseZone(zone);
+        return query();
     }
 
     private static DbContextOptions<TContext> On<TContext>()

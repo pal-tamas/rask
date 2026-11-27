@@ -21,7 +21,8 @@ namespace Rask.SqlServer;
 /// <remarks>
 ///     The column is one the model marks <see cref="MomentsInUtc.Annotation" />, and the member <c>Moment.Day</c>, known
 ///     by name: this package does not reference the one that declares it. The zone is <see cref="Clock.Zone" /> as the
-///     query is translated, under SQL Server's name for it (<see cref="SqlServerZone" />).
+///     query is translated, under SQL Server's name for it (<see cref="SqlServerZone" />); it is in the compiled query's
+///     cache key too (<see cref="ZonedQueryCacheKeys{TProvider}" />), so a query run again under another zone is compiled for it.
 /// </remarks>
 /// <param name="sql">The provider's SQL expression factory.</param>
 /// <param name="typeMappings">The provider's type mappings.</param>
