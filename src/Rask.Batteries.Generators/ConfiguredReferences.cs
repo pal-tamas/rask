@@ -71,12 +71,20 @@ internal sealed class ConfiguredReferences
         var candidates = Of(shape).Select(r => Candidate(shape, r)).OfType<Navigable>().ToList();
         var names = new Dictionary<Navigable, string>();
 
-        foreach (var candidate in candidates.Where(c => c.NamedById && taken.Add(c.IdName!)))
+        // A name the declaration gives — a BelongsTo's — is the navigation's or nothing: never another one.
+        foreach (var candidate in candidates.Where(c => c.Declared is not null && taken.Add(c.Declared)))
+        {
+            names[candidate] = candidate.Declared!;
+        }
+
+        candidates.RemoveAll(c => c.Declared is not null && !names.ContainsKey(c) && Report(context, shape, c));
+
+        foreach (var candidate in candidates.Where(c => c.Declared is null && c.NamedById && taken.Add(c.IdName!)))
         {
             names[candidate] = candidate.IdName!;
         }
 
-        var rest = candidates.Where(c => !names.ContainsKey(c)).ToList();
+        var rest = candidates.Where(c => c.Declared is null && !names.ContainsKey(c)).ToList();
 
         foreach (var candidate in rest)
         {
@@ -99,8 +107,7 @@ internal sealed class ConfiguredReferences
         {
             if (!names.TryGetValue(candidate, out var name))
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Rask112, shape.Location?.ToLocation(), shape.SourceName, candidate.ForeignKey.Name, shape.Name, Tried(candidate)));
+                Report(context, shape, candidate);
                 continue;
             }
 
@@ -108,6 +115,14 @@ internal sealed class ConfiguredReferences
         }
 
         return navigations;
+    }
+
+    // RASK112 for a candidate that got no name; true, so a filter can drop it once reported.
+    private static bool Report(SourceProductionContext context, ReadShape shape, Navigable candidate)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            Rask112, shape.Location?.ToLocation(), shape.SourceName, candidate.ForeignKey.Name, shape.Name, Tried(candidate)));
+        return true;
     }
 
     private List<ReadRelationship> Of(ReadShape shape) =>
@@ -130,7 +145,8 @@ internal sealed class ConfiguredReferences
             ? foreignKey.Name.Substring(0, foreignKey.Name.Length - 2)
             : null;
 
-        return new Navigable(foreignKey, target, idName, idName?.EndsWith(LastWord(target.SourceName), StringComparison.Ordinal) == true);
+        return new Navigable(
+            foreignKey, target, idName, idName?.EndsWith(LastWord(target.SourceName), StringComparison.Ordinal) == true, relationship.Navigation);
     }
 
     // The relationship a root holds this entity by — HasMany(c => c.Countries) over its own children — is the face's way
@@ -142,10 +158,17 @@ internal sealed class ConfiguredReferences
             string.Equals(c.Name, collection, StringComparison.Ordinal) &&
             string.Equals(c.ChildReadType, shape.FullyQualifiedName, StringComparison.Ordinal));
 
-    private static string Tried(Navigable candidate) =>
-        candidate.IdName is null || string.Equals(candidate.IdName, candidate.Target.SourceName, StringComparison.Ordinal)
+    private static string Tried(Navigable candidate)
+    {
+        if (candidate.Declared is { } declared)
+        {
+            return $"'{declared}' is";
+        }
+
+        return candidate.IdName is null || string.Equals(candidate.IdName, candidate.Target.SourceName, StringComparison.Ordinal)
             ? $"'{candidate.Target.SourceName}' is"
             : $"'{candidate.Target.SourceName}' and '{candidate.IdName}' are";
+    }
 
     // ForeignTaxCategory -> Category: the noun an id has to end in to be named after itself.
     internal static string LastWord(string name)
@@ -162,6 +185,6 @@ internal sealed class ConfiguredReferences
     }
 
     // A relationship a navigation can carry: its id's column, the face it points at, the name the id gives it, and
-    // whether the id names itself — ends in the target's last word.
-    private sealed record Navigable(ReadMember ForeignKey, ReadShape Target, string? IdName, bool NamedById);
+    // whether the id names itself — ends in the target's last word — and the name its declaration gives, if it does.
+    private sealed record Navigable(ReadMember ForeignKey, ReadShape Target, string? IdName, bool NamedById, string? Declared);
 }

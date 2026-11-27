@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Rask.Site.E2E.Tests.Infrastructure;
+namespace Rask.TestFiles;
 
 /// <summary>
 ///     Asks the OS for a free loopback port, so nothing in this suite has to keep a list of numbers unique
@@ -39,13 +39,20 @@ internal static class LoopbackPort
     private static readonly Lock Gate = new();
 
     /// <summary>Returns a port the OS has just confirmed free on the loopback family <c>localhost</c> uses.</summary>
-    public static int Reserve()
+    public static int Reserve() =>
+        Reserve(Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback);
+
+    /// <summary>
+    ///     Returns a port the OS has just confirmed free on <paramref name="loopback" />, for a host told an
+    ///     explicit address (<c>127.0.0.1</c>) rather than <c>localhost</c>.
+    /// </summary>
+    public static int Reserve(IPAddress loopback)
     {
         lock (Gate)
         {
             for (var attempt = 0; attempt < 64; attempt++)
             {
-                var port = Probe();
+                var port = Probe(loopback);
                 if (HandedOut.Add(port))
                 {
                     return port;
@@ -56,9 +63,8 @@ internal static class LoopbackPort
         }
     }
 
-    private static int Probe()
+    private static int Probe(IPAddress loopback)
     {
-        var loopback = Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback;
         var probe = new TcpListener(loopback, 0);
         probe.Start();
         var port = ((IPEndPoint)probe.LocalEndpoint).Port;

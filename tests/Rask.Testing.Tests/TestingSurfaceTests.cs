@@ -222,8 +222,10 @@ public class TestingSurfaceTests
         _ = Page.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
 
         // Swallow-and-log is the framework's designed behaviour here; without a capture there is no
-        // supported way for an app author to assert that it happened, or that it didn't.
-        await WaitForCaptureAsync(diagnostics, IsTheSwallowedFault);
+        // supported way for an app author to assert that it happened, or that it didn't. The hook faults on a
+        // thread-pool continuation, so the wait is for THIS diagnostic, not a non-empty list: the sink is
+        // process-global, and a sibling class running in parallel can drop its own in first.
+        await WaitFor.True(() => diagnostics.Captured.Any(IsTheSwallowedFault), "the swallowed fault is captured");
 
         Assert.Contains(diagnostics.Captured, IsTheSwallowedFault);
     }
@@ -243,7 +245,7 @@ public class TestingSurfaceTests
         first.Dispose();
 
         _ = Page.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
-        await WaitForCaptureAsync(second, IsTheSwallowedFault);
+        await WaitFor.True(() => second.Captured.Any(IsTheSwallowedFault), "the swallowed fault is captured");
 
         Assert.Contains(second.Captured, IsTheSwallowedFault);
     }
@@ -260,43 +262,8 @@ public class TestingSurfaceTests
         // the global pointing at its own dead list.
         using var after = CapturingDiagnostics.Install();
         _ = Page.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
-        await WaitForCaptureAsync(after);
+        await WaitFor.True(() => after.Captured.Count > 0, "a diagnostic is captured");
 
         Assert.NotEmpty(after.Captured);
-    }
-
-    // The hook faults on a thread-pool continuation, so the report lands after Render() returns.
-    //
-    // Waits for the diagnostic the caller is actually about, not merely for the list to become non-empty.
-    // CapturingDiagnostics installs a PROCESS-GLOBAL sink, so a sibling test class running in parallel can
-    // drop its own diagnostic in first; a "wait until non-empty" loop then returns before the awaited one
-    // has landed and the assertion fails on a full-solution run while passing standalone.
-    //
-    // Throws when it gives up, rather than returning and letting the caller's Assert.Contains report an
-    // empty collection: "the diagnostic never arrived" and "the sink was unhooked underneath us" look
-    // identical in that assertion, and telling them apart cost #769 a full investigation. The budget is
-    // generous because this only ever waits as long as the thread pool actually takes — the gate runs 40+
-    // test hosts at once, and a two-second ceiling is a duration, not a synchronisation primitive.
-    private static async Task WaitForCaptureAsync(
-        CapturingDiagnostics diagnostics, Func<CapturedDiagnostic, bool>? match = null)
-    {
-        match ??= _ => true;
-
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            if (diagnostics.Captured.Any(match))
-            {
-                return;
-            }
-
-            await Task.Delay(15);
-        }
-
-        if (!diagnostics.Captured.Any(match))
-        {
-            throw new TimeoutException(
-                $"no matching diagnostic was captured within 30s (captured {diagnostics.Captured.Count})");
-        }
     }
 }

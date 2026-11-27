@@ -134,6 +134,7 @@ from a form.
 | `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
 | `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
 | `ProductId? ProductId` (a [typed id](domain.md#strongly-typed-ids) some entity is keyed by) | `ProductId? ProductId` — **kept typed**, nullable as declared, with its `ProductRead? Product` navigation |
+| `partial BelongsTo<Vehicle>? Vehicle` ([another aggregate](domain.md#another-aggregate-belongsto)) | `VehicleId? VehicleId` — the generated key — and `VehicleRead? Vehicle`, named by the declaration, never guessed |
 | `Quantity Quantity` (a one-value value object) | `long Quantity` — the value it holds |
 | `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
 | *another aggregate's* `Guid OrderId`, on `Invoice` | `IReadOnlyList<InvoiceRead> Invoices` — the rows that point here, [below](#the-rows-that-point-here) |
@@ -276,7 +277,8 @@ every tenant. The target keeps its own filters too, so another tenant's fueling 
 appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
 would both claim with no words of their own to tell them apart gets no collection and a
 [RASK108](diagnostics.md#rask108) warning;
-the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row.
+the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row. `ThenInclude` continues an `Include` with a navigation of what it loaded:
+`Fueling.Include(f => f.DistributionsTo).ThenInclude(d => d.FromFueling)`.
 
 ### By id: a row, or the aggregate
 
@@ -667,6 +669,18 @@ c.TableNames(t => "app_" + t.SnakeCasePlural);                 // app_fuelings
 c.ColumnNames(n => n.AsDeclared);                              // EF Core's PistolId, Km_Start
 c.ConstraintNames(n => n.Kind == ConstraintKind.Index ? $"{n.Table}_{n.Joined}_idx" : n.Prefixed);
 ```
+
+**Adopting one existing table as it is** — a table another tool made, under a Rask context — needs no API of its own:
+name the table in its `Configure` (`b.ToTable("Fueling")`), and let the column and constraint rules ask for it. A
+column's `n.Table` and a constraint's `n.Table` are the table as the database names it, so:
+
+```csharp
+c.ColumnNames(n => n.Table == "Fueling" ? n.AsDeclared : n.SnakeCase);    // PistolId there, pistol_id elsewhere
+c.ConstraintNames(n => n.Table == "Fueling" ? null : n.Prefixed);         // PK_Fueling there, pk_pistols elsewhere
+```
+
+Every other table keeps Rask's names. A project that states any of the three rules gets no naming report from
+[RASK192](diagnostics.md#rask192) (its other defaults still are).
 
 ### App-wide model rules: one `IRaskModel`
 
@@ -1237,6 +1251,11 @@ whole. The step marks the migration exclusive (`rask db pending` says so): an ol
 writing wall-clock times into the UTC column, so stop it first. Run it where the app's zone is set (`c.TimeZone`, `AddRask(timeZone: …)`): the app's start, or
 `dotnet App.dll rask db migrate` ([a one-off migration](deployment.md#migrations-as-a-one-off-step)). PostgreSQL kept
 moments as UTC from the start and owes nothing.
+
+One migration may do both moves at once — a database still under EF Core's names (`Fuelings`, `At`) taking
+[Rask's](#names-rasks-own-in-postgresqls-style) (`fuelings`, `at`) and its moments' rewrite: each column is found under
+the name the same migration renames it from, and the rewrite runs after the renames, on the new name
+(`UPDATE [fuelings] SET [at] = …`).
 
 **A bare `DateTime` on an aggregate or an entity is refused on PostgreSQL** as the model is built: Npgsql would refuse a
 wall-clock one only when the row is saved, long after the model was written. Hold an instant as a `Moment` and a

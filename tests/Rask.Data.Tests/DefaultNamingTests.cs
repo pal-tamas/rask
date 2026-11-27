@@ -170,6 +170,22 @@ public sealed class DefaultNamingTests
         Assert.Contains("\"f\".\"pistol_id\" = 1", sql, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_table_adopted_as_it_is_keeps_ef_cores_names_while_every_other_table_takes_rasks()
+    {
+        using var db = new AdoptedTableContext(OptionsLayout.LikeAddDbContext<AdoptedTableContext>().UseSqlite("Data Source=:memory:").Options);
+        var model = db.GetService<IDesignTimeModel>().Model;
+        var fueling = model.FindEntityType(typeof(Fueling))!;
+        var pistol = model.FindEntityType(typeof(Pistol))!;
+
+        var adopted = (fueling.GetTableName(), Column(fueling, nameof(Fueling.PistolId)), fueling.FindPrimaryKey()!.GetName(),
+            fueling.GetIndexes().Single(i => !i.IsUnique && i.Properties[0].Name == nameof(Fueling.CreatedAt)).GetDatabaseName());
+        var others = (pistol.GetTableName(), Column(pistol, nameof(Pistol.Number)), pistol.FindPrimaryKey()!.GetName());
+
+        Assert.Equal(("Fueling", "PistolId", "PK_Fueling", "IX_Fueling_CreatedAt"), adopted);
+        Assert.Equal(("pistols", "number", "pk_pistols"), others);
+    }
+
     private static string? Column(IReadOnlyEntityType entityType, string property) =>
         entityType.FindProperty(property)!.GetColumnName(StoreObjectIdentifier.Table(entityType.GetTableName()!, entityType.GetSchema()));
 
@@ -177,5 +193,25 @@ public sealed class DefaultNamingTests
     {
         using var db = new RaskNamedContext(OptionsLayout.LikeAddDbContext<RaskNamedContext>().UseSqlite("Data Source=:memory:").Options);
         return db.GetService<IDesignTimeModel>().Model;
+    }
+}
+
+/// <summary>
+///     A Rask context that adopts one existing table as it is: the table named in its <c>Configure</c>, its columns and
+///     constraints left to EF Core by a rule that asks for the table — the rest named as Rask names them.
+/// </summary>
+public sealed class AdoptedTableContext(DbContextOptions<AdoptedTableContext> options) : DbContext(options)
+{
+    private const string Adopted = "Fueling";
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder)
+            .ColumnNames(n => n.Table == Adopted ? n.AsDeclared : n.SnakeCase)
+            .ConstraintNames(n => n.Table == Adopted ? null : n.Prefixed);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        NamingModel.Map(modelBuilder);
+        modelBuilder.Entity<Fueling>().ToTable(Adopted);
     }
 }

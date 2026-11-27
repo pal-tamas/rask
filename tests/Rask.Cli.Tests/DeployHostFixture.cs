@@ -82,7 +82,7 @@ public sealed class DeployHostFixture : IAsyncLifetime
             return;
         }
 
-        var sshPort = DeployE2E.FreePort();
+        var sshPort = LoopbackPort.Reserve(System.Net.IPAddress.Loopback);
         var (runExit, runOut) = await DeployE2E.RunAsync(
             "docker",
             [

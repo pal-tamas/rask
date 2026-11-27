@@ -8,6 +8,31 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK192 reports the other defaults a configuration restates, not only names.** An `OnDelete(…)` equal to Rask's
+  rule (a child's key cascades from its aggregate, or the `children:`/`others:` of the app's `c.DeleteBehavior(…)`, or
+  with none EF Core's `Cascade`/`ClientSetNull` by the key's nullability), a `HasMaxLength`/`HasPrecision` equal to the
+  value object's `MaxLength`/`Precision`/`Scale`, an `IsRequired()` on a property that cannot be null, a
+  `b.HasKey(x => x.Id);`, a `ValueGeneratedNever()` on the `Id` of an entity keyed by a `Guid`, a `string` or a typed id
+  over one, an `IsConcurrencyToken()` on an `IVersioned` aggregate's `Version`, and a
+  `HasConversion(v => v.Value, v => new X(v))` on a typed id or a one-value value object are each a suggestion the quick
+  fix (with Fix all) deletes — only where the line is provably equal to the default, and silent where the app changes
+  the rule (an attribute, another size, a delete rule it cannot read). A project that restates the naming pattern still
+  hears about these. A `HasOne<T>().WithMany().HasForeignKey(…)` is not reported: Rask infers that navigation for the
+  read face only, so in the write model the line is the foreign key. The kinds are tabled in `docs/diagnostics.md#rask192`.
+- **`BelongsTo<T>`: a reference to another aggregate, Rails' `belongs_to` across the border.** `public partial
+  BelongsTo<Vehicle>? Vehicle { get; }` on a partial entity generates the stored `VehicleId` (the vehicle's key type,
+  nullable as the reference is, `private set`) and maps it as `HasOne<Vehicle>().WithMany().HasForeignKey(…)` with
+  `OnDelete(NoAction)` below an explicit one — no navigation, so the vehicle is never loaded, tracked or saved with the
+  fueling. Read it through the read face: `await f.Vehicle.Read()`, `Read(v => v.Plate)`, the batched
+  `fuelings.Select(f => f.Vehicle).Read()` (one query, a dictionary by id), or `Fueling.Include(f => f.Vehicle)`; assign
+  it through the id inside the aggregate. A hand-written id (with or without a navigation or a configured `HasOne`) moves
+  to it with no migration — the differ finds nothing on SQLite, SQL Server and PostgreSQL. RASK194 (error) refuses a
+  declaration Rask cannot complete (not partial, not to an aggregate, to the tenant, a child to its own root, a key name
+  taken, an aggregate with a form); RASK195 (error) an EF Core `Include`/`ThenInclude`/`Reference` over a `BelongsTo`;
+  RASK196 (suggestion, quick-fix) another aggregate's id held by hand. `docs/domain.md#relationships-hasmany-and-belongsto`.
+- **`ThenInclude` on the read face.** `Order.Include(o => o.Lines).ThenInclude(l => l.Product)`,
+  `Fueling.Include(f => f.Vehicle).ThenInclude(v => v.Owner)`: `Include` now returns `ModelQuery<T, TIncluded>`, which
+  `ThenInclude` continues — a reference, a child list or the rows that point here.
 - **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
   the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
 - **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
@@ -389,6 +414,10 @@ them until tagged releases begin.
   accept a package held as a prerelease of the set's version.
 
 ### Documentation
+- **Adopting one existing table under a Rask context, with no new API**: `b.ToTable("Fueling")` in its `Configure`, and
+  `c.ColumnNames(n => n.Table == "Fueling" ? n.AsDeclared : n.SnakeCase)` with
+  `c.ConstraintNames(n => n.Table == "Fueling" ? null : n.Prefixed)` keep EF Core's names on that table and Rask's on
+  every other (`docs/data.md#names-rasks-own-in-postgresqls-style`, pinned by a test).
 - **The browser-API guides are two pages, not four, and the docs say only the current API.** The capability matrix is
   the first table of `docs/browser-apis-reference.md` ("Where each wrapper works": what each wrapper wraps, its shape,
   Server and WASM as columns, `IViewTransitions` included), and the sharing model — shared vs WASM-only, `Shareable`,
@@ -434,6 +463,20 @@ them until tagged releases begin.
   sorted the job lanes and the log pages by their random tail. `UseRaskSqlServer` now holds every model to it; one built
   with Rask's conventions is still stored by theirs, once. A context without migrations gets no rewrite of the rows it
   made before (docs/data.md).
+- **One migration that renames a legacy model to Rask's names and rewrites its moments to UTC does both.** The rewrite
+  matched a column by its name in the snapshot, so `Fuelings.At` becoming `fuelings.at` in the same migration left the
+  wall-clock rows unrewritten. It now finds each table and column under the name the migration renames it from, and
+  runs after the renames, on the new name — SQLite (executed in the tests), SQL Server (`UPDATE [fuelings] SET [at] = …`
+  after the `sp_rename`s) and PostgreSQL (which owes no rewrite) alike.
+- **BREAKING (SQLite) — `HasJsonIndex` and `HasFullTextSearch` name their objects as Rask names everything.** A JSON
+  index is `ix_{table}_{column}_{path}` (the path in snake case, its steps joined by `.`: `ix_orders_meta_address.city`)
+  instead of `IX_Orders_Meta.Address.City`; the full-text triggers are `tr_{table}_fts_insert`/`_delete`/`_update`
+  instead of `TR_{Table}_fts_Insert`; every one, and the `{table}_fts` index and `{table}_fts_keys` map, is cut to 63
+  bytes with a hash of the whole name. A database built under the older names owes one migration (`rask db add`), which
+  drops the old index or triggers and builds them under the new names.
+- **`Rask.Testing`: a `TestJSRuntime.SetResponse(id, null)` reads back as `null`.** The browser answering "nothing"
+  (an absent IndexedDB or storage key) faulted with the type-mismatch error, because `null` is not an instance of
+  any type; it is now handed back for any reference or nullable return type, and still refused for a value type.
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.

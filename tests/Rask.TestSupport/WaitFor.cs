@@ -28,6 +28,40 @@ public static class WaitFor
     public static Task True(Func<bool> condition, string? reason = null) => True(condition, HangCeiling, reason);
 
     /// <summary>
+    /// <see cref="True(Func{bool}, string?)"/> for a condition that has to ask something asynchronous — a
+    /// database read, a round trip — before it can answer.
+    /// </summary>
+    public static Task True(Func<Task<bool>> condition, string? reason = null) => True(condition, HangCeiling, reason);
+
+    /// <summary>
+    /// <see cref="True(Func{bool}, TimeSpan, string?)"/> for a condition that has to ask something
+    /// asynchronous before it can answer.
+    /// </summary>
+    public static async Task True(Func<Task<bool>> condition, TimeSpan timeout, string? reason = null)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (await condition())
+            {
+                return;
+            }
+
+            await Task.Delay(15);
+        }
+
+        // One last look, as the synchronous form takes.
+        if (await condition())
+        {
+            return;
+        }
+
+        throw TimedOut(timeout, reason);
+    }
+
+    /// <summary>
     /// Polls <paramref name="condition"/> until it holds, and <b>throws</b> if it never does within
     /// <paramref name="timeout"/>.
     /// </summary>
@@ -65,8 +99,11 @@ public static class WaitFor
             return;
         }
 
-        throw new TimeoutException(reason is null
+        throw TimedOut(timeout, reason);
+    }
+
+    private static TimeoutException TimedOut(TimeSpan timeout, string? reason) =>
+        new(reason is null
             ? $"WaitFor timed out after {timeout}."
             : $"WaitFor timed out after {timeout}: {reason}");
-    }
 }

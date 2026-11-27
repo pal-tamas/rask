@@ -96,7 +96,7 @@ public sealed class HelloSameUserTests
 
         // Nothing is pushed when nothing changed, so the attach is observed through the store rather than
         // by waiting for a frame that correctly never comes.
-        await WaitForConnectedAsync(host, 1);
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
         Assert.Equal(1, host.Store.ConnectedCount);
     }
 
@@ -113,7 +113,7 @@ public sealed class HelloSameUserTests
         using var ws = await ConnectAsync(host, "bob");
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        await WaitForConnectedAsync(host, 1);
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
         Assert.Equal(1, host.Store.ConnectedCount);
     }
 
@@ -175,7 +175,7 @@ public sealed class HelloSameUserTests
         using var ws = await ConnectAsync(host, user: null);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        await WaitForConnectedAsync(host, 1);
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
         Assert.Equal(1, host.Store.ConnectedCount);
     }
 
@@ -201,15 +201,7 @@ public sealed class HelloSameUserTests
         using var ws = await ConnectAsync(host, "bob");
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        await WaitForConnectedAsync(host, 1);
+        await WaitFor.True(() => host.Store.ConnectedCount == 1);
         Assert.Equal(1, host.Store.ConnectedCount);
-    }
-
-    private static async Task WaitForConnectedAsync(RaskTestHost host, int expected)
-    {
-        for (var i = 0; i < 100 && host.Store.ConnectedCount != expected; i++)
-        {
-            await Task.Delay(20);
-        }
     }
 }

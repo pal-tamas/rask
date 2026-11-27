@@ -7,7 +7,7 @@ public class ViewTransitionsTests
     [Fact]
     public async Task Asking_whether_view_transitions_are_supported_calls_the_helper()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskVt.supported", true);
 
         Assert.True(await new ViewTransitions(js).IsSupported());
@@ -18,7 +18,7 @@ public class ViewTransitionsTests
     {
         // No response registered: the helper reports false rather than throwing, so enabling on Firefox
         // or an older Safari is inert instead of an error.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
 
         Assert.False(await new ViewTransitions(js).IsSupported());
     }
@@ -28,7 +28,7 @@ public class ViewTransitionsTests
     [InlineData(false)]
     public async Task Enabling_passes_the_flag_and_gives_back_what_took_effect(bool enabled)
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskVt.set", enabled);
 
         Assert.Equal(enabled, await new ViewTransitions(js).SetEnabled(enabled));
@@ -43,7 +43,7 @@ public class ViewTransitionsTests
         // The distinction the API exists to expose: a settings toggle can be ON while nothing animates,
         // because the browser lacks the API or the reader asked for reduced motion. A UI that conflates
         // the two tells the user their preference was ignored.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskVt.set", true);
         js.SetResponse("__raskVt.active", false);
 

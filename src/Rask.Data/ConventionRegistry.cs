@@ -117,6 +117,23 @@ public static class ConventionRegistry
     }
 
     /// <summary>
+    ///     Records the relationship a <see cref="BelongsTo{TAggregate}" /> property stands for: <paramref name="foreignKey" />
+    ///     on <typeparamref name="TEntity" />, to <typeparamref name="TAggregate" />'s key. Called by generated code.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity declaring the reference.</typeparam>
+    /// <typeparam name="TAggregate">The aggregate referred to.</typeparam>
+    /// <param name="foreignKey">The generated id — <c>VehicleId</c>.</param>
+    public static void DeclareBelongsTo<
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity,
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate>(string foreignKey)
+        where TEntity : class
+        where TAggregate : class, IAggregate
+    {
+        ArgumentException.ThrowIfNullOrEmpty(foreignKey);
+        BelongsToRelationships.Declare<TEntity, TAggregate>(foreignKey);
+    }
+
+    /// <summary>
     ///     Records the aggregate <c>IBelongsToTenantThrough&lt;TParent&gt;</c> names: <paramref name="entity" /> belongs to the
     ///     tenant of the <paramref name="parent" /> it points at. Called by generated code.
     /// </summary>

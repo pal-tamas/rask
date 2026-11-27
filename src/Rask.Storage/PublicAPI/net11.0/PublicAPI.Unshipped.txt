@@ -195,7 +195,7 @@ static Rask.Storage.StoredFileReadAccess.AsQueryable() -> System.Linq.IQueryable
 static Rask.Storage.StoredFileReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
-static Rask.Storage.StoredFileReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!, TProperty>!
 static Rask.Storage.StoredFileReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
@@ -208,7 +208,7 @@ static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AsQ
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
-static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!, TProperty>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!

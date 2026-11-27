@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -47,7 +46,8 @@ internal sealed class WatchApp : IAsyncDisposable
         // That was a guess, and it was wrong — the cause was the unresolved temp path, resolved above.)
         var csproj = Path.Combine(app.ProjectDir, name + ".csproj");
 
-        app.Port = FreePort();
+        // Never a fixed port: a concurrent worktree running its own would silently hijack this one.
+        app.Port = LoopbackPort.Reserve(System.Net.IPAddress.Loopback);
         app.StartWatch(WatchArguments(csproj), WatchEnvironment(app.Port));
         app.Http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{app.Port}") };
 
@@ -351,17 +351,6 @@ internal sealed class WatchApp : IAsyncDisposable
         var match = Regex.Match(html, "data-rask-root=\"([^\"]+)\"");
         Assert.True(match.Success, $"no data-rask-root in the served HTML:\n{html}");
         return match.Groups[1].Value;
-    }
-
-    private static int FreePort()
-    {
-        // Never a fixed port: the repo's other E2E suites hard-code theirs, and a concurrent worktree
-        // running its own would silently hijack this one.
-        var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
     }
 
     public async ValueTask DisposeAsync()

@@ -47,6 +47,18 @@ public sealed class WallDutyContext(DbContextOptions<WallDutyContext> options) :
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<WallDuty>().ToTable("Duties");
 }
 
+/// <summary>The duties as a Rask context names them today: <c>duties</c>, <c>start</c>, <c>pk_duties</c>.</summary>
+public sealed class SnakeDutyContext(DbContextOptions<SnakeDutyContext> options) : DbContext(options)
+{
+    public DbSet<Duty> Duties => Set<Duty>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        ValueObjectColumn.Map<DutyStart, DateTime>(modelBuilder.Entity<Duty>().Property(s => s.Start), v => v.Value);
+}
+
 // UseRaskSqlite keeps a Moment as the UTC instant it holds: ordered, compared and grouped by day as SQL Server and
 // PostgreSQL do, the hour the clock shows twice in autumn kept apart, and an older wall-clock column rewritten by its migration.
 public sealed class SqliteMomentUtcTests : IAsyncLifetime
@@ -188,6 +200,34 @@ public sealed class SqliteMomentUtcTests : IAsyncLifetime
         Assert.Contains(commands, c => c.CommandText.Contains("rask_moment_utc(\"Start\")", StringComparison.Ordinal));
         Assert.Equal(
             [("repeated", Utc(2026, 10, 25, 0, 30)), ("skipped", Utc(2026, 3, 29, 1, 30)), ("winter", Utc(2026, 1, 14, 8, 0))],
+            read.Select(r => (r.Code, r.Start.Instant.UtcDateTime)));
+    }
+
+    [Fact]
+    public async Task One_migration_that_renames_to_rasks_names_rewrites_the_moments_under_the_new_names_after_the_renames()
+    {
+        using var zone = AmbientClock.UseZone(Budapest);
+        await using var wall = new WallDutyContext(new DbContextOptionsBuilder<WallDutyContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
+        await using var today = new SnakeDutyContext(new DbContextOptionsBuilder<SnakeDutyContext>().UseRaskSqliteAt(_database.ConnectionString).Options);
+        await wall.Database.ExecuteSqlRawAsync("DELETE FROM \"Duties\"", Cancellation);
+        wall.Duties.AddRange(
+            new WallDuty { Code = "winter", Start = new DateTime(2026, 1, 14, 9, 0, 0) },
+            new WallDuty { Code = "repeated", Start = new DateTime(2026, 10, 25, 2, 30, 0) });
+        await wall.SaveChangesAsync(Cancellation);
+        var before = wall.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+        var after = today.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+
+        var operations = today.GetService<IMigrationsModelDiffer>().GetDifferences(before, after);
+        var commands = today.GetService<IMigrationsSqlGenerator>().Generate(operations, today.GetService<IDesignTimeModel>().Model);
+        await today.GetService<IMigrationCommandExecutor>().ExecuteNonQueryAsync(commands, today.GetService<IRelationalConnection>(), Cancellation);
+        var read = await today.Duties.OrderBy(s => s.Code).Select(s => new { s.Code, s.Start }).ToListAsync(Cancellation);
+
+        var rewrite = operations.ToList().FindIndex(o => MomentsInUtc.Of(o) is not null);
+        Assert.Equal(("duties", "start"), MomentsInUtc.Of(operations[rewrite]) is { } of ? (of.Table, of.Column) : default);
+        Assert.True(rewrite > operations.ToList().FindLastIndex(static o => o is RenameTableOperation or RenameColumnOperation));
+        Assert.Contains(commands, c => c.CommandText.Contains("UPDATE \"duties\" SET \"start\" = rask_moment_utc(\"start\")", StringComparison.Ordinal));
+        Assert.Equal(
+            [("repeated", Utc(2026, 10, 25, 0, 30)), ("winter", Utc(2026, 1, 14, 8, 0))],
             read.Select(r => (r.Code, r.Start.Instant.UtcDateTime)));
     }
 

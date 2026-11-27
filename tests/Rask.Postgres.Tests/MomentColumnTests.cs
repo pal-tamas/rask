@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.Configuration;
 using Rask.Data;
 using Rask.Values;
@@ -44,6 +48,17 @@ namespace Shop.Deliveries
             base.OnModelCreating(modelBuilder);
             ValueObjectColumn.Map<DeliveredAt, DateTime>(modelBuilder.Entity<Delivery>().Property(d => d.At), v => v.Value);
             modelBuilder.Entity<StagedRow>();
+        }
+    }
+
+    /// <summary>The deliveries as EF Core named them before Rask's names: <c>Deliveries</c>, <c>Id</c>, <c>At</c>.</summary>
+    public sealed class LegacyDeliveryContext(DbContextOptions<LegacyDeliveryContext> options) : DbContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            ValueObjectColumn.Map<DeliveredAt, DateTime>(modelBuilder.Entity<Delivery>().Property(d => d.At), v => v.Value);
+            modelBuilder.Entity<Delivery>().ToTable("Deliveries");
+            modelBuilder.Entity<StagedRow>().ToTable("StagedRow");
         }
     }
 
@@ -130,6 +145,24 @@ namespace Rask.Postgres.Tests
 
             Assert.NotNull(shipment);
             Assert.NotNull(row);
+        }
+
+        [Fact]
+        public void A_migration_to_rasks_names_renames_the_moments_column_and_rewrites_nothing_since_postgres_kept_utc_from_the_start()
+        {
+            using var zone = AmbientClock.UseZone(Budapest);
+            using var legacy = new LegacyDeliveryContext(On<LegacyDeliveryContext>());
+            using var today = new DeliveryContext(On<DeliveryContext>());
+            var before = legacy.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+            var after = today.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+
+            var operations = today.GetService<IMigrationsModelDiffer>().GetDifferences(before, after);
+            var commands = today.GetService<IMigrationsSqlGenerator>().Generate(operations, today.GetService<IDesignTimeModel>().Model)
+                .Select(static c => c.CommandText).ToList();
+
+            Assert.Contains(operations, static o => o is RenameTableOperation { Name: "Deliveries", NewName: "deliveries" });
+            Assert.Contains(operations, static o => o is RenameColumnOperation { Name: "At", NewName: "at" });
+            Assert.DoesNotContain(commands, static c => c.Contains("UPDATE", StringComparison.Ordinal));
         }
 
         private static string InZone(TimeZoneInfo zone, Func<string> query)

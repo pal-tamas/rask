@@ -52,6 +52,12 @@ public sealed class WallRefuellingContext(DbContextOptions<WallRefuellingContext
         });
 }
 
+/// <summary>The same table as EF Core named it before Rask's names: <c>Refuellings</c>, <c>Id</c>, <c>At</c>.</summary>
+public sealed class LegacyWallRefuellingContext(DbContextOptions<LegacyWallRefuellingContext> options) : DbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<WallRefuelling>().ToTable("Refuellings");
+}
+
 /// <summary>What a refuelling's note says, kept whole in one JSON column.</summary>
 public sealed class RefuellingNote
 {
@@ -137,6 +143,25 @@ public sealed class MomentUtcTests
             c => c.CommandText.Contains(
                 "UPDATE [refuellings] SET [at] = CAST(([at] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2) WHERE [at] IS NOT NULL;",
                 StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void One_migration_that_renames_to_rasks_names_rewrites_the_moments_under_the_new_names_after_the_renames()
+    {
+        using var zone = AmbientClock.UseZone(Budapest);
+        using var wall = new LegacyWallRefuellingContext(On<LegacyWallRefuellingContext>());
+        using var today = new RefuellingContext(On<RefuellingContext>());
+        var before = wall.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+        var after = today.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+
+        var operations = today.GetService<IMigrationsModelDiffer>().GetDifferences(before, after);
+        var commands = today.GetService<IMigrationsSqlGenerator>().Generate(operations, today.GetService<IDesignTimeModel>().Model)
+            .Select(static c => c.CommandText).ToList();
+
+        var update = commands.FindIndex(static c => c.Contains("UPDATE [refuellings] SET [at] = CAST(([at] AT TIME ZONE", StringComparison.Ordinal));
+        Assert.True(update >= 0, string.Join('\n', commands));
+        Assert.True(update > commands.FindLastIndex(static c => c.Contains("sp_rename", StringComparison.Ordinal)));
+        Assert.Contains(commands, static c => c.Contains("sp_rename", StringComparison.Ordinal) && c.Contains("refuellings", StringComparison.Ordinal));
     }
 
     [Fact]

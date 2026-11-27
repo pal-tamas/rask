@@ -10,7 +10,7 @@ namespace Rask.Generators.Shared;
 
 /// <summary>Reads the relationships an entity's static <c>Configure</c> declares, from its source.</summary>
 /// <remarks>
-///     Every <c>HasForeignKey</c> in the method, bound to EF Core's builder so the two ends come from its type
+///     Every <c>BelongsTo</c> the entity declares, and every <c>HasForeignKey</c> in the method, bound to EF Core's builder so the two ends come from its type
 ///     arguments: <c>HasOne&lt;P&gt;().WithMany()</c> makes the entity the dependent, <c>HasMany&lt;D&gt;().WithOne()</c>
 ///     makes <c>D</c> one, and a one-to-one names its dependent itself. It sees what is written in that method —
 ///     not a helper it calls, an <c>IEntityTypeConfiguration</c>, or <c>OnModelCreating</c>.
@@ -42,7 +42,30 @@ internal static class ConfiguredRelationships
             }
         }
 
+        // A BelongsTo whose relationship Configure also writes out (to say its OnDelete) is that one relationship, named
+        // by the declaration.
+        var declared = BelongsToOf(entity).ToList();
+        found.RemoveAll(r => declared.Exists(d =>
+            string.Equals(d.PrincipalTypeName, r.PrincipalTypeName, StringComparison.Ordinal) && d.ForeignKeys.SequenceEqual(r.ForeignKeys, StringComparer.Ordinal)));
+        found.AddRange(declared);
         return found;
+    }
+
+    // Each BelongsTo is a relationship by declaration: to the aggregate it names, on the key it generates, under its name.
+    private static IEnumerable<ReadRelationship> BelongsToOf(INamedTypeSymbol entity)
+    {
+        var dependent = entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        foreach (var reference in BelongsToShape.Of(entity))
+        {
+            yield return new ReadRelationship(
+                dependent,
+                BelongsToShape.TargetOf(reference.Type)!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                new EquatableArray<string>([BelongsToShape.KeyName(reference)]),
+                OnAlternateKey: false,
+                PrincipalCollection: null,
+                Navigation: reference.Name);
+        }
     }
 
     private static ReadRelationship? Read(InvocationExpressionSyntax call, SemanticModel model, CancellationToken cancellationToken)

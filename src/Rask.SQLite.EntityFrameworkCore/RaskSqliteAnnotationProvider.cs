@@ -53,6 +53,12 @@ internal sealed class RaskSqliteAnnotationProvider(RelationalAnnotationProviderD
                 if (mapping.TypeBase.FindAnnotation(name) is { Value: string spec })
                 {
                     yield return new Annotation(name, spec);
+                    if (string.Equals(name, FullTextSearchSpec.AnnotationName, StringComparison.Ordinal))
+                    {
+                        // Which names the index is built under: a snapshot from before Rask's owes the rename.
+                        yield return new Annotation(FullTextSearchDdl.NamesAnnotation, FullTextSearchDdl.RaskNames);
+                    }
+
                     break;
                 }
             }

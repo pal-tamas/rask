@@ -8,7 +8,7 @@ public class SignalingTests
     [Fact]
     public async Task Joining_opens_the_socket_then_sends_a_join_frame()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
 
         await new Signaling(js).Join("room-1", new SignalingHandlers());
 
@@ -25,7 +25,7 @@ public class SignalingTests
     [Fact]
     public async Task Joining_honours_a_custom_path()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
 
         await new Signaling(js).Join("room", new SignalingHandlers(), "/custom/signal");
 
@@ -35,7 +35,7 @@ public class SignalingTests
     [Fact]
     public async Task Joining_unregisters_when_the_socket_fails_to_open()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetException("__raskSignal.open", new InvalidOperationException("refused"));
         var fired = false;
         var handlers = new SignalingHandlers
@@ -61,7 +61,7 @@ public class SignalingTests
     [Fact]
     public async Task Sending_addresses_one_peer()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var connection = await new Signaling(js).Join("room", new SignalingHandlers());
 
         await connection.Send("peer-9", "an-offer");
@@ -73,7 +73,7 @@ public class SignalingTests
     [Fact]
     public async Task OnJoined_carries_our_id_and_the_peers_already_there()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         string? self = null;
         IReadOnlyList<string> peers = [];
 
@@ -98,7 +98,7 @@ public class SignalingTests
     public async Task OnJoined_survives_a_malformed_peer_list()
     {
         // The list is parsed, so a relay that ever sent something else must not take the app down.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         IReadOnlyList<string>? peers = null;
 
         await new Signaling(js).Join("room", new SignalingHandlers
@@ -119,7 +119,7 @@ public class SignalingTests
     [Fact]
     public async Task Every_relay_message_reaches_its_own_callback()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         string? joined = null, left = null, error = null;
         (string From, string Payload)? signal = null;
 
@@ -147,7 +147,7 @@ public class SignalingTests
     public async Task An_unknown_message_type_is_ignored()
     {
         // The relay may grow a message this client doesn't know; that must not throw across interop.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         await new Signaling(js).Join("room", new SignalingHandlers());
         var id = (int)js.ArgsFor("__raskSignal.open")![0]!;
 
@@ -157,7 +157,7 @@ public class SignalingTests
     [Fact]
     public async Task Closing_fires_once_and_stops_delivery()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var closed = 0;
         var afterClose = false;
 
@@ -179,7 +179,7 @@ public class SignalingTests
     [Fact]
     public async Task Disposing_closes_once_and_stops_delivery()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var fired = false;
         var connection = await new Signaling(js).Join("room", new SignalingHandlers
         {
@@ -207,7 +207,7 @@ public class SignalingTests
     [Fact]
     public async Task Null_and_empty_arguments_are_rejected()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var signaling = new Signaling(js);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
