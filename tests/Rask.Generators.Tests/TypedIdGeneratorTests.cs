@@ -21,7 +21,7 @@ public class TypedIdGeneratorTests
     }
 
     [Fact]
-    public void Only_an_id_over_a_Guid_gets_New()
+    public void Only_an_id_over_a_Guid_gets_Create()
     {
         var src = """
                   namespace Fleet;
@@ -31,8 +31,30 @@ public class TypedIdGeneratorTests
 
         var run = GeneratorDriverFixture.Run([("Ids.cs", src)], new TypedIdGenerator());
 
-        Assert.Contains("public static DriverId New()", run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
-        Assert.DoesNotContain(" New()", run.GeneratedSource("Fleet.VehicleId.TypedId.g.cs"));
+        Assert.Contains("public static DriverId Create()", run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
+        Assert.DoesNotContain(" Create()", run.GeneratedSource("Fleet.VehicleId.TypedId.g.cs"));
+    }
+
+    [Fact]
+    public void A_hand_written_Create_overload_sits_beside_the_generated_Create_and_a_parameterless_one_replaces_it()
+    {
+        var src = """
+                  namespace Fleet;
+                  public readonly partial record struct DriverId(System.Guid Value)
+                  {
+                      public static DriverId Create(string text) => new(System.Guid.Parse(text));
+                  }
+                  public readonly partial record struct ShiftId(System.Guid Value)
+                  {
+                      public static ShiftId Create() => new(System.Guid.Empty);
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run([("Ids.cs", src)], new TypedIdGenerator());
+
+        Assert.Contains("public static DriverId Create()", run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
+        Assert.DoesNotContain(" Create()", run.GeneratedSource("Fleet.ShiftId.TypedId.g.cs"));
+        Assert.Empty(run.GeneratedCompileErrors());
     }
 
     [Fact]

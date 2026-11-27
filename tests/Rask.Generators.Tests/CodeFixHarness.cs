@@ -48,6 +48,39 @@ internal static class CodeFixHarness
         return await ApplyAsync(provider, document, FirstOf(diagnostics, diagnosticId));
     }
 
+    // Applies the provider's Fix All over the document for every `diagnosticId` the analyzer reports — what the IDE's
+    // "Fix all occurrences in document" runs, through the provider's own FixAllProvider.
+    public static async Task<string> ApplyAnalyzerFixAllAsync(
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
+        params string[] extraAssemblies)
+    {
+        var document = CreateDocument(source, extraAssemblies);
+        var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
+        compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
+        var diagnostics = (await compilation.WithAnalyzers(ImmutableArray.Create(analyzer)).GetAnalyzerDiagnosticsAsync())
+            .Where(d => d.Id == diagnosticId).ToImmutableArray();
+        var first = (await CollectActionsAsync(provider, document, FirstOf(diagnostics, diagnosticId)))[0];
+        var context = new FixAllContext(
+            document, provider, FixAllScope.Document, first.EquivalenceKey, [diagnosticId],
+            new FixedDiagnostics(diagnostics), CancellationToken.None);
+
+        var action = await provider.GetFixAllProvider()!.GetFixAsync(context);
+        var applied = (await action!.GetOperationsAsync(CancellationToken.None)).OfType<ApplyChangesOperation>().Single();
+        return (await applied.ChangedSolution.GetDocument(document.Id)!.GetTextAsync()).ToString();
+    }
+
+    private sealed class FixedDiagnostics(ImmutableArray<Diagnostic> diagnostics) : FixAllContext.DiagnosticProvider
+    {
+        public override Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken) =>
+            Task.FromResult<IEnumerable<Diagnostic>>(diagnostics);
+
+        public override Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken) =>
+            Task.FromResult(Enumerable.Empty<Diagnostic>());
+
+        public override Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken) =>
+            Task.FromResult<IEnumerable<Diagnostic>>(diagnostics);
+    }
+
     // True when the provider offers a fix for an analyzer diagnostic. The counterpart of the generator
     // version below, and the more used of the two now: RASK014's fix is deliberately withheld for
     // anything but an argument-free construction, which is a claim only this can test.

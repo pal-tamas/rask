@@ -146,7 +146,7 @@ public sealed class DashboardHarness : IAsyncDisposable
     /// <summary>A directory of its own for the storage battery's files, removed on dispose.</summary>
     public string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"rask-dash-files-{Guid.NewGuid():N}");
 
-    public FakeClock Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+    public ManualClock Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
     public IServiceProvider Services => _provider;
 
@@ -178,16 +178,6 @@ internal sealed class HarnessModelCacheKeyFactory : IModelCacheKeyFactory
 {
     public object Create(DbContext context, bool designTime) =>
         (context.GetType(), HarnessDbContext.Mapped, designTime);
-}
-
-/// <summary>A hand-rolled controllable clock — no external package, matching the other suites.</summary>
-public sealed class FakeClock(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
 }
 
 /// <summary>Minimal <see cref="IHostEnvironment"/> so the environment-dependent policy can be tested.</summary>

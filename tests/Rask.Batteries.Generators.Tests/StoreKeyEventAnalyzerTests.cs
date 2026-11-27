@@ -74,7 +74,7 @@ public class StoreKeyEventAnalyzerTests
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Warning, d.Severity));
         Assert.Equal(
             "The event raised in 'Order' reads 'order.Id', which the database produces only on insert: raised before the "
-            + "first save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with New())",
+            + "first save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with Create())",
             diagnostics[0].GetMessage());
         Assert.Contains("give 'Line'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
     }

@@ -7,7 +7,7 @@ namespace Rask.Data;
 /// <remarks>
 /// <para>
 /// An entity always has an <see cref="Id" />. The entity assigns it where it is built — a <see cref="Guid" /> key
-/// is <c>OrderedGuid.New()</c> (a typed id's <c>New()</c>) in its constructor or factory — except an integer key, which the database
+/// is <c>Uuid.Create()</c> (a typed id's <c>New()</c>) in its constructor or factory — except an integer key, which the database
 /// produces on insert.
 /// </para>
 /// <para>

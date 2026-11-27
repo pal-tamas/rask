@@ -55,7 +55,7 @@ public sealed class SqliteLogKeyTests
     public async Task Search_finds_entries_after_insert_purge_and_vacuum()
     {
         await using var database = new InMemorySqlite();
-        var clock = new FakeTimeProvider(Start);
+        var clock = new ManualClock(Start);
         var store = new SqliteLogStore(database.ConnectionString, new LogsOptions(), clock);
         await store.Append(
             [.. Enumerable.Range(0, 30).Select(i => Record($"old needle {i}", at: Start))],
@@ -112,7 +112,7 @@ public sealed class SqliteLogKeyTests
         var entries = (await store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries;
         var at = new DateTimeOffset(2026, 1, 1, 0, 0, 0, 1, TimeSpan.Zero);
         Assert.Equal(["new order shipped", "old order failed", "old order shipped"], entries.Select(e => e.Message));
-        Assert.Equal([OrderedGuid.Of(at, 8), OrderedGuid.Of(at, 7)], entries.Skip(1).Select(e => e.Id));
+        Assert.Equal([Uuid.Of(at, 8), Uuid.Of(at, 7)], entries.Skip(1).Select(e => e.Id));
         Assert.Equal("r1", entries[2].Scopes!.Single().Value);
         Assert.Equal(
             ["new order shipped", "old order shipped"],
@@ -124,7 +124,7 @@ public sealed class SqliteLogKeyTests
     }
 
     private static SqliteLogStore Store(InMemorySqlite database) =>
-        new(database.ConnectionString, new LogsOptions(), new FakeTimeProvider(Start));
+        new(database.ConnectionString, new LogsOptions(), new ManualClock(Start));
 
     private static LogRecord Record(string message, DateTimeOffset? at = null) =>
         new(Guid.Empty, at ?? Start, LogLevel.Information, "Test", 0, message, null);

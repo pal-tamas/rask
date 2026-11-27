@@ -35,6 +35,11 @@ public static class GuideCatalog
             SearchTitle = "Blazor alternative: migrating from Blazor to C#",
             Description = "Map Blazor concepts to plain C# components: .razor to Render(), [Parameter] to properties, cascading values to Context, lifecycle, routing and forms.",
         },
+        new("upgrading", "Upgrading Rask", "What each release removed, and what replaces it.", "Start here")
+        {
+            SearchTitle = "Upgrading a C# web app across framework releases",
+            Description = "Upgrade a Rask app across releases: every API a release removed, from CLI flags to Ui components, beside the call that replaces it today.",
+        },
         new("one-person-framework", "Philosophy: the One Person Framework",
             "Why one codebase and one server carry a whole product — for one developer or a team.", "Start here")
         {
@@ -315,7 +320,7 @@ public static class GuideCatalog
             SearchTitle = "Nested form models and custom form controls",
             Description = "Bind and validate nested models and collections, build radio and checkbox groups, keep form state across a redeploy, and write your own form controls in C#.",
         },
-        new("validation", "Validation", "Inline rules in a form; attributes and AbstractValidator<T> on requests too.", "Frontend")
+        new("validation", "Validation", "Rules on the type: which to write, on a form, a request and an endpoint.", "Frontend")
         {
             SearchTitle = "Model validation for forms and HTTP requests",
             Description = "Built-in .NET validation: inline rules in a form, and DataAnnotations or FluentValidation rules that run again on the server before a request is handled.",
@@ -407,20 +412,15 @@ public static class GuideCatalog
             SearchTitle = "Call any browser Web API from C#, generated from MDN",
             Description = "Every web API the browser ships, generated from MDN into C#: Navigator, Window, Document, localStorage by MDN's names, one round trip per await.",
         },
-        new("browser-apis", "Browser APIs", "MDN's browser APIs in C#, and the few typed wrappers beside them.", "Browser & devices")
+        new("browser-apis", "Browser APIs", "MDN's browser APIs in C#, the typed wrappers beside them, sharing and subscriptions.", "Browser & devices")
         {
             SearchTitle = "Browser Web APIs from C#: MDN's surface, typed",
-            Description = "Call browser Web APIs from C#: MDN's own surface generated into Rask.Web, plus a few typed wrappers. A map of the whole surface on server and WASM hosts.",
+            Description = "Call browser Web APIs from C#: MDN's surface in Rask.Web, typed wrappers, Web Share and gesture triggers on the server host, subscriptions into C#.",
         },
-        new("browser-apis-sharing", "Browser APIs — sharing model", "Where wrappers live; declarative vs imperative; subscriptions.", "Browser & devices")
-        {
-            SearchTitle = "Web Share, gesture triggers and API subscriptions",
-            Description = "Which typed browser APIs run on server and WASM hosts, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#.",
-        },
-        new("browser-apis-reference", "Browser APIs — reference & demos", "Every browser API with a runnable live demo.", "Browser & devices")
+        new("browser-apis-reference", "Browser APIs — reference & demos", "Which host each wrapper works on, and every browser API with a live demo.", "Browser & devices")
         {
             SearchTitle = "Browser API reference with live C# demos",
-            Description = "Runnable demos for the browser APIs, C# source beside the live result: storage, environment, location, sensors, observers, media, crypto and files.",
+            Description = "Which browser API wrapper works on the server host and on WebAssembly, then runnable demos with C# beside the result: storage, sensors, media, crypto and files.",
         },
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.", "Browser & devices")
         {
@@ -429,11 +429,6 @@ public static class GuideCatalog
         },
 
         // ---- Browser API reference ----
-        new("browser-capabilities", "Capability matrix", "Which browser/device API works on which host.", "Browser API reference")
-        {
-            SearchTitle = "Browser API Support Matrix for C# and .NET",
-            Description = "See which browser and device APIs work from C# on the Server host and on WebAssembly, which need a click-gesture component, and which are WASM-only.",
-        },
         new("background-sync", "IBackgroundSync", "Typed browser API: IBackgroundSync.", "Browser API reference", "apis/background-sync.md")
         {
             SearchTitle = "Background Sync API in C# and .NET (IBackgroundSync)",
@@ -543,6 +538,9 @@ public static class GuideCatalog
     public static IReadOnlyDictionary<string, string> Moved { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["broadcast"] = "subscriptions",
+        // The sharing model folded into the overview, and the capability matrix became the reference's first table.
+        ["browser-apis-sharing"] = "browser-apis",
+        ["browser-capabilities"] = "browser-apis-reference",
         // The data grid and the tree left the kit; a list of rows is the kit guide's table and pager now.
         ["data-grid"] = "ui-kit",
         ["tree"] = "ui-kit",

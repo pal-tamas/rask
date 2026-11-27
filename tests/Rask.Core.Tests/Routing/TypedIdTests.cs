@@ -75,8 +75,8 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_Guid_id_is_new_each_time_and_time_ordered()
     {
-        var first = DriverId.New();
-        var second = DriverId.New();
+        var first = DriverId.Create();
+        var second = DriverId.Create();
 
         Assert.NotEqual(first, second);
         Assert.Equal(7, first.Value.Version);
@@ -89,7 +89,7 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
 
         for (var i = 0; i < ids.Length; i++)
         {
-            ids[i] = DriverId.New();
+            ids[i] = DriverId.Create();
         }
 
         Assert.All(ids.Zip(ids.Skip(1)), pair => Assert.True(pair.First.Value.CompareTo(pair.Second.Value) < 0));
@@ -107,7 +107,7 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
             made[t] = new DriverId[perThread];
             for (var i = 0; i < perThread; i++)
             {
-                made[t][i] = DriverId.New();
+                made[t][i] = DriverId.Create();
             }
         });
 
@@ -120,7 +120,7 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
     {
         var before = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        var id = DriverId.New();
+        var id = DriverId.Create();
 
         Span<byte> bytes = stackalloc byte[16];
         id.Value.TryWriteBytes(bytes, bigEndian: true, out _);

@@ -6,13 +6,18 @@ namespace Company.RaskServer.Features.Shared;
 // Everything a sign-in needs comes from Authenticatable: the email, the password hash, the confirmation and
 // the roles. It is an aggregate like any other, so read it with User.Where(u => u.Id == id) and change it with
 // User.Update(id, u => u.Rename(name)); register, sign in and reset passwords through Rask's IAuth.
-public sealed class User : Authenticatable
+//
+// It is keyed by a UserId, as Current.UserId reads it; Rask stores and carries it as the Guid it holds.
+public sealed class User : Authenticatable<UserId>
 {
     // None until the person gives one: an account an administrator invites is made without it.
     public UserDisplayName? DisplayName { get; private set; }
 
     public void Rename(string displayName) => DisplayName = UserDisplayName.CreateOptional(displayName, nameof(DisplayName));
 }
+
+// A user's id: another table that names a user keeps a UserId, never a bare Guid.
+public readonly partial record struct UserId(Guid Value);
 
 // The name a user is shown by. Its rules are checked wherever one is made — the register form asks the same.
 public sealed partial record UserDisplayName(string Value) : Text(Value, MaxLength: MaxLength, Required: false)

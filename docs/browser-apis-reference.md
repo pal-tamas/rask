@@ -5,6 +5,39 @@ demo showing its C# source beside the live result.
 
 ‹ Back to [Browser APIs](browser-apis.md)
 
+## Where each wrapper works
+
+Every typed wrapper Rask ships, what it wraps, and which host registers it. Inject the interface and the framework
+resolves the implementation for the host; a host simply doesn't register one it can't provide. Each wrapper with a
+page of its own links to it. Everything else the browser ships is MDN's own surface in [`Rask.Web`](web-apis.md), and
+[Browser APIs](browser-apis.md) explains the split.
+
+**Legend** — ✅ injectable service · ⬜ not available. **Shape** is *one-shot* (a request/response call) or
+*subscription* (an `IAsyncDisposable` the browser pushes updates through — see
+[the push pattern](browser-apis.md#subscriptions--the-push-pattern)).
+
+| Service | Wraps | What it does | Shape | Server | WASM |
+| --- | --- | --- | --- | :---: | :---: |
+| [`IIndexedDb`](apis/indexeddb.md) | IndexedDB | `OpenStore(name)` → large async key/value store | one-shot | ✅ | ✅ |
+| [`IWebAuthn`](apis/webauthn.md) | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot | ✅ | ✅ |
+| [`ISignaling`](apis/signaling.md) | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** | ✅ | ✅ |
+| [`IWebRtc`](apis/webrtc.md) | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** | ✅ | ✅ |
+| [`IViewTransitions`](#environment--capabilities) | View Transition API | Animate the live runtime's own DOM commit between routes | one-shot | ✅ | ✅ |
+| [`IBackgroundSync`](apis/background-sync.md) | Background Sync + Periodic Background Sync | Wake the app when connectivity returns, or on a schedule, to drain an offline queue | one-shot | ⬜ | ✅ |
+
+- **Server** is the ASP.NET host (per-session, over WebSocket). An activation-gated browser call can't run from a
+  handler there, but the declarative **gesture components** run it inside the click gesture: `Trigger.Fullscreen`,
+  `Trigger.ScreenOrientation`, `Trigger.EyeDropper`, `Trigger.Install`, `Trigger.MediaCapture` and
+  `Trigger.PictureInPicture` (plus the generic `Trigger.Gesture`) — see the
+  [gesture bridge](browser-apis.md#gesture-bridge--activation-gated-apis-on-the-server-host).
+  `Trigger.MediaCapture`'s `OnStream` hands the stream over as an `IJSObjectReference`; wrap it with
+  `MediaStream.From(stream)` from [`Rask.Web`](web-apis.md#on-an-element-ref) to stop it or show it.
+- **WASM** is the in-browser WebAssembly host, which registers the full set.
+- The wake lock is `await Navigator.WakeLock.Request(WakeLockType.Screen)` and works on both hosts; the custom install
+  button is `Window.OnBeforeInstallPrompt(…)`, whose `Prompt()` needs a click, so it is WASM-only and `Trigger.Install`
+  covers the Server host — both in [`Rask.Web`](web-apis.md#where-a-browser-falls-short). Push subscription,
+  notifications and the app badge are MDN's `PushManager`, `Notification` and `Navigator.SetAppBadge` there too.
+
 ## API reference — live demos
 
 Every demo below runs live and identically on both transports. Each demo shows its C# source beside
@@ -229,6 +262,6 @@ WASM app, call `await Navigator.Share(…)` from [Rask.Web](web-apis.md#what-onl
 element the `data-rask-gesture` attribute and its click runs an activation-gated API in the gesture, so it works
 on Server too, where the imperative service can't be injected. Ships `Trigger.Fullscreen`,
 `Trigger.ScreenOrientation`, `Trigger.EyeDropper`, `Trigger.Install`, `Trigger.MediaCapture`, and
-`Trigger.PictureInPicture`. See [Gesture bridge](browser-apis-sharing.md#gesture-bridge--activation-gated-apis-on-the-server-host).
+`Trigger.PictureInPicture`. See [Gesture bridge](browser-apis.md#gesture-bridge--activation-gated-apis-on-the-server-host).
 
 <!-- demo:browser-gesture-bridge -->

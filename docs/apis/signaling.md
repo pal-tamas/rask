@@ -108,5 +108,5 @@ it is already running.
 - Source: [`ISignaling.cs`](../../src/Rask.Core/Browser/ISignaling.cs) ·
   [`RaskSignalingExtensions.cs`](../../src/Rask.Signaling/RaskSignalingExtensions.cs)
 - [`IWebRtc`](webrtc.md) — what the signaling is for
-- [Capability matrix](../browser-capabilities.md)
+- [Where each wrapper works](../browser-apis-reference.md#where-each-wrapper-works)
 - [Browser APIs — the narrative map](../browser-apis.md)

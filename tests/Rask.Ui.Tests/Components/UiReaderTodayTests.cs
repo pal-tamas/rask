@@ -47,7 +47,7 @@ public sealed partial class UiReaderTodayTests : global::Rask.Core.RaskMarkup
 
     private static ServiceProvider Services()
     {
-        var reader = new Reader(new FrozenClock(LateUtc), Reader.ZoneOf("Europe/Budapest"));
+        var reader = new Reader(new ManualClock(LateUtc), Reader.ZoneOf("Europe/Budapest"));
         return new ServiceCollection().AddSingleton(reader).BuildServiceProvider();
     }
 
@@ -60,10 +60,5 @@ public sealed partial class UiReaderTodayTests : global::Rask.Core.RaskMarkup
             return Span["x"];
         }, services);
         return value!;
-    }
-
-    private sealed class FrozenClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

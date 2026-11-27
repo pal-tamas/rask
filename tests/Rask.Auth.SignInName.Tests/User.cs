@@ -18,7 +18,10 @@ public sealed class User : Authenticatable<string>
     /// <returns>A user with nothing set.</returns>
     public static User Blank() => new();
 
+    /// <summary>The tenant the user belongs to, or none for an administrator: the column the table it moved from keeps.</summary>
+    public Guid? TenantId { get; private set; }
+
     /// <summary>Moves the user into <paramref name="tenant" />.</summary>
     /// <param name="tenant">The tenant.</param>
-    public void JoinTenant(Guid tenant) => RecordTenant(tenant);
+    public void JoinTenant(Guid tenant) => TenantId = tenant;
 }

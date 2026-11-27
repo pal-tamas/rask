@@ -7,7 +7,7 @@ public sealed class ManualClockTests
     [Fact]
     public void A_timer_fires_only_once_the_clock_reaches_it()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
         var fired = 0;
         using var timer = clock.CreateTimer(_ => fired++, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
 
@@ -24,7 +24,7 @@ public sealed class ManualClockTests
     [Fact]
     public void A_timer_a_callback_creates_is_timed_from_then_and_fires_in_the_same_advance()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
         var start = clock.GetUtcNow();
         var firedAt = new List<TimeSpan>();
         ITimer? second = null;
@@ -48,7 +48,7 @@ public sealed class ManualClockTests
     [Fact]
     public void A_disposed_timer_never_fires()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
         var fired = false;
         var timer = clock.CreateTimer(_ => fired = true, null, TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
 
@@ -63,7 +63,7 @@ public sealed class ManualClockTests
     public void Task_Delay_and_a_cancellation_deadline_complete_inside_Advance()
     {
         // The two BCL waits HttpFetchDemo builds on the injected clock.
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
         var delay = Task.Delay(TimeSpan.FromMilliseconds(150), clock, TestContext.Current.CancellationToken);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5), clock);
 

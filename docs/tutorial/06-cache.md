@@ -42,7 +42,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
 
     private static Product Add(ProductName name, UnitPrice price, StockLevel stock)
     {
-        var product = new Product { Id = ProductId.New(), Name = name, Price = price, Stock = stock };
+        var product = new Product { Id = ProductId.Create(), Name = name, Price = price, Stock = stock };
         product.Raise(new CatalogChanged(product.Id));
         return product;
     }

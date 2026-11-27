@@ -36,7 +36,7 @@ public class QueryScopeCancellationTests
     public async Task A_query_polled_after_its_session_ended_asks_for_nothing_more()
     {
         var dispatcher = new CountingDispatcher();
-        var clock = new ManualClock();
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch, holdTimers: true);
         var client = new SessionQueryClient(dispatcher, clock);
         var polled = new QueryOptions { RefetchInterval = TimeSpan.FromMinutes(1) };
         using var query = client.Query(new GetOrders(1), polled);
