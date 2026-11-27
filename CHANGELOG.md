@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **BREAKING — Rask requires C# 15.** A project that pins `<LangVersion>` below 15 (`14`, `13.0`, `ISO-2`, …) stops at
+  build with `RASKLANG001`, naming the setting, instead of failing inside generated source. .NET 11 defaults to C# 15,
+  so an app that leaves `<LangVersion>` unset is unaffected. With it go the below-C# 14 fallbacks: the routes generator
+  always emits the per-page `Url()`/`Go()` extension members (the `Routes.X()` entries stay), and `Route.To<T>()` reads
+  a page's template from the generated route registry alone — the `[Route]` reflection fallback is gone, so a page whose
+  assembly did not run the generator throws rather than being read by reflection.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,

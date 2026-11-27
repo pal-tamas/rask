@@ -174,8 +174,8 @@ event handler, or from a page's lifecycle hook to
 > **These need the page's namespace imported.** They are C# 14 static extension members, which resolve only
 > when their containing namespace is in scope — a fully-qualified `My.Features.HomePage.Go()` with no `using`
 > does not compile. The `using` that lets you name the page type is the same one that brings `Url`/`Go` along,
-> so this only bites when you fully qualify. They also require `LangVersion` 14 or later (the .NET 10
-> default); below that they are not emitted and the older `Routes.SomePage(...)` formatter is what you use.
+> so this only bites when you fully qualify. Rask requires C# 15 (the .NET 11 default), so they are always
+> emitted; a project that pins an older `LangVersion` stops at build with `RASKLANG001`.
 
 `RouteUrl` is a small `readonly record struct` carrying `Path` and an optional `QueryString`. It converts implicitly
 to and from `string`, so you can pass it straight to `NavLink`, `Go.To`, or anywhere a path string is

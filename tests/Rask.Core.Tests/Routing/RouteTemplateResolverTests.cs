@@ -31,15 +31,6 @@ public class RouteTemplateResolverTests
             "/__resolver-test/page",
             RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverPage)));
     }
-
-    [Fact]
-    public void A_cached_template_is_the_same_string_instance()
-    {
-        var first = RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverAnnotatedPage));
-        var second = RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverAnnotatedPage));
-
-        Assert.Same(first, second);
-    }
 }
 
 [Route("/__resolver-test/annotated")]

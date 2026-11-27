@@ -16,6 +16,9 @@
 > requires asked for first, so an incomplete component is a compile error rather than a null. Rask
 > needs no Node or npm: TypeScript, esbuild and Tailwind arrive as native binaries the build verifies.
 
+Rask requires the .NET 11 SDK and C# 15 (the net11.0 default): leave `<LangVersion>` unset — a project pinning one
+below 15 fails the build with `RASKLANG001`.
+
 This file helps AI coding assistants build apps with Rask. Start with [docs/ai-agents.md](docs/ai-agents.md)
 for app-authoring conventions, then the docs below (the repo-root AGENTS.md is for contributors to Rask itself).
 
