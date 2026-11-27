@@ -62,27 +62,31 @@ public sealed partial class UiConfirm : Component
             Part,
             UiConfirmation.Retitled(Heading ?? RaskStrings.Get(RaskString.ConfirmHeading, "Confirm"), Part, MessageId),
             Answer(),
-            Ui.Button.Ghost[Label("no", No ?? RaskStrings.Get(RaskString.ConfirmNo, "No"))],
-            Go()[Label("yes", Yes ?? RaskStrings.Get(RaskString.ConfirmYes, "Yes"))]);
+            NoButton(No ?? RaskStrings.Get(RaskString.ConfirmNo, "No")),
+            Go(Yes ?? RaskStrings.Get(RaskString.ConfirmYes, "Yes")));
 
     // Yes in the dialog's own tone, carrying the other tone's look for a question asked in that one: the runtime
     // puts it on while that question is asked (rask-confirm-dialog.ts), and the dialog's own back after.
-    private UiButton Go()
+    private Component Go(string text)
     {
         var primary = Primary == true;
-        var other = primary ? Ui.Button.Danger : Ui.Button.Primary;
+        // The other tone's classes as a button with words has them, not as an icon's square.
+        var other = (primary ? Ui.Button.Danger : Ui.Button.Primary).Square(false);
         return UiConfirmation.Go(
             primary ? Ui.Button.Primary : Ui.Button.Danger,
             DialogId,
             Part,
-            ("data-rask-confirm-tone", primary ? PrimaryTone : DangerTone),
-            ("data-rask-confirm-other", other.DrawnClass));
+            [("data-rask-confirm-tone", primary ? PrimaryTone : DangerTone), ("data-rask-confirm-other", other.DrawnClass), .. Worded(text)])[text];
     }
+
+    // Flux's Cancel holds its words and nothing around them.
+    private static Component NoButton(string text) =>
+        Ui.Button.Ghost.Data(Part, "no").Attributes(Worded(text))[text];
 
     // A button's label, which a question asked from code may word for itself: the runtime writes it, and puts back
     // the layout's, kept in data-rask-confirm-default — out of the morph's hands, as the heading is.
-    private static Component Label(string name, string text) =>
-        Span.Data(Part, name).Attributes(("data-rask-confirm-default", text), ("data-rask-opaque", null))[text];
+    private static (string Name, string? Value)[] Worded(string text) =>
+        [("data-rask-confirm-default", text), ("data-rask-opaque", null)];
 
     // Shown only for `expect:`, and holding no value of the page's: what is typed in it is never sent.
     private static Component Answer() =>

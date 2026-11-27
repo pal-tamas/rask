@@ -322,19 +322,9 @@ public sealed partial class ParityModal : IFluxCommand
                 Accept("Ui.Confirm's answer field, hidden unless .Confirm(\"…\", expect:) asks: Flux has no prompt");
             }
 
-            // Flux's delete is a submit button, so it carries the spinner of the request it sends (and its label in a
-            // span). Yes sends nothing — the action it lets go shows its own wait — and is never a submit: a layout's form
-            // around the dialog would be sent.
-            var diffs = CompareOpen(theirs["example"], example.Json).Concat(CompareFacts(theirs["facts"], mine["facts"])).Where(diff =>
-            {
-                if (!YesSendsNothing().IsMatch(diff))
-                {
-                    return true;
-                }
-
-                Accept("Ui.Confirm's Yes is no submit button, so it has no spinner and its label is its own text");
-                return false;
-            }).ToList();
+            // Flux's delete is a submit button with the spinner of the request it sends and its label in a span; Yes is
+            // drawn the same (never a submit: a layout's form around the dialog would be sent, and it never waits).
+            var diffs = CompareOpen(theirs["example"], example.Json).Concat(CompareFacts(theirs["facts"], mine["facts"])).ToList();
             Report($"{scheme} Ui.Confirm, open", diffs);
         }
 
@@ -945,9 +935,6 @@ public sealed partial class ParityModal : IFluxCommand
 
     [GeneratedRegex("; focus on [^;]+")]
     private static partial Regex Focus();
-
-    [GeneratedRegex("^dialog > div\\[1\\] > div\\[1\\] > button\\[2\\]: (text \"\" vs \"[^\"]*\"|children <div span> vs <>)$")]
-    private static partial Regex YesSendsNothing();
 
     [GeneratedRegex("-?\\d+(\\.\\d+)?")]
     private static partial Regex Numbers();

@@ -55,6 +55,11 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`Ui.Confirm`'s buttons are built as Flux 2.22's confirmation's (#1189).** No holds its words alone (no `<span>`
+  around them) and carries `data-rask-confirm-dialog="no"`; Yes holds Flux's spinner and its words in a span, never
+  shown — Yes sends nothing (`Loading(false)`), as does `Ui.ConfirmLeave`'s. A question asked from code still words
+  both (the runtime writes No's text and Yes's span). Fixed with it: the other tone's look Yes takes for such a
+  question (`Ui.Confirm.Ask(…)` with a tone) was a 40 px icon square's (`w-10`, no padding), now a worded button's.
 - **`Ui.Pagination`'s spent Previous / Next is a disabled `<button>`, as Flux 2.22's is (#1189).** It was a `<div>`
   (with `aria-disabled` in a counted pager): now `<button type="button" disabled>` in both forms, named like the other
   step ("« Previous" / "Next »") — the simple pager names its steps too now, as Flux's does. A screen reader hears a

@@ -16,7 +16,7 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
 {
     private const string Dialog = "#ui-confirm";
     private const string Yes = Dialog + " [data-rask-confirm-dialog=go]";
-    private const string No = Dialog + " .flex button:not([data-rask-confirm-dialog])";
+    private const string No = Dialog + " [data-rask-confirm-dialog=no]";
     private const string Field = Dialog + " [data-rask-confirm-dialog=field] input";
 
     protected override string BaseUrl => app.BaseUrl;
@@ -118,7 +118,7 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Overlapping period");
         await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("March overlaps a period already saved. Save it anyway?");
         var look = await Page.Locator(Yes).GetAttributeAsync("class");
-        var label = await Page.Locator(Dialog + " [data-rask-confirm-dialog=yes]").TextContentAsync();
+        var label = await Page.Locator(Dialog + " [data-rask-confirm-dialog=go] > span").TextContentAsync();
         // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
         // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
         await Page.Keyboard.PressAsync("Tab");

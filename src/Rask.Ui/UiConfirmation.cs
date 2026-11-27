@@ -36,8 +36,12 @@ internal static class UiConfirmation
     ///     <paramref name="button" /> as the button that says yes, with <paramref name="marks" /> of the caller's beside
     ///     what the runtime looks for. Flux's own: it stands in the row by itself, and closes the dialog.
     /// </summary>
+    /// <remarks>
+    ///     Flux's delete is a button that waits, so it holds the spinner and its words in a span (measured, Flux 2.22):
+    ///     yes is drawn the same and never waits — it sends nothing, the action it lets go shows its own wait.
+    /// </remarks>
     internal static UiButton Go(UiButton button, string id, string part, params (string Name, string? Value)[] marks) =>
-        button.Key("yes").Data(part, "go").Attributes([.. UiModalInvoker.Closes(id), .. marks]);
+        button.Loading(false).Key("yes").Data(part, "go").Attributes([.. UiModalInvoker.Closes(id), .. marks]);
 
     // The question is empty in every render and filled in the browser, so it is kept out of the morph's hands: a
     // render that lands while the dialog is open would otherwise blank it.
