@@ -1158,7 +1158,17 @@ stays an index seek. A moment's day reads the wall calendar in SQL on every prov
 after the zone changed (a test under a zone of its own) is compiled again for the new zone.
 A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
 instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
-comparison of moments for a stretch of time. A moment inside a JSON document keeps the wall clock there.
+comparison of moments for a stretch of time.
+
+**A moment inside a JSON document** (`b.Json(…)`, a `ToJson()` complex or owned type) holds its instant too, with its
+`Z`: `"2026-10-25T00:30:00Z"`. SQL Server and SQLite keep it as that text — SQLite's own JSON writer of a `DateTime`
+drops the `Z` (`"2026-10-25 00:30:00"`), which would make it unreadable from what a document held before — and
+PostgreSQL's `jsonb` held the instant from the start. No migration rewrites a document, so a document may mix both
+forms for a while: a value without `Z` or an offset was written while documents kept the wall clock, and reads as a
+wall-clock time of `Clock.Zone` (the first occurrence of an hour shown twice, as ever); the document holds the instant
+once its row is saved again. A query that compares a moment INSIDE a document in SQL compares the stored text, so
+until every document of the table has been saved once, an older wall-clock value is compared as text with an
+instant: filter and order by a moment column, not a moment in a document.
 
 **A database that kept moments as the wall clock is rewritten by its next migration.** Until Rask stored them as UTC,
 SQL Server and SQLite kept a moment as the wall clock. Each of their moment columns is now marked in the model, the
@@ -1913,8 +1923,9 @@ know, as on PostgreSQL:
 
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
-in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
-clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`, or `OrderedGuid.New()` for a plain `Guid`
+key) sorts by the time it was made, ids of one millisecond by the order they were made, and a clustered key stays
+append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
 `min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte
 (`min(x::text COLLATE "C")::uuid`), which is the same order. SQL Server compares
 a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every

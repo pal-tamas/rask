@@ -59,7 +59,7 @@ public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     {
         var session = new Session
         {
-            Id = Guid.CreateVersion7(),
+            Id = OrderedGuid.New(),
             UserId = userId,
             IpAddress = Truncate(ipAddress, IpAddressLength),
             UserAgent = Truncate(userAgent, UserAgentLength),

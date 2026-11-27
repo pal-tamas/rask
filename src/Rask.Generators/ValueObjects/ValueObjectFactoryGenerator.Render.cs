@@ -26,6 +26,7 @@ public sealed partial class ValueObjectFactoryGenerator
             s.AppendLine("{");
         }
 
+        AppendJsonAttribute(s, value);
         s.Append("partial record ").Append(value.Name);
         if (value.Ordered)
         {
@@ -48,6 +49,7 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendToString(s, value);
         AppendParse(s, value);
         AppendFromWall(s, value);
+        AppendJsonConverter(s, value);
         AppendDraft(s, value);
         s.AppendLine("}");
 

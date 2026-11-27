@@ -145,17 +145,27 @@ internal sealed class WireCodecEmitter
     // The value it holds, bare: "ABC-123", not {"value":"ABC-123"}.
     private void EmitOneValue(WireType type, StringBuilder write, StringBuilder read)
     {
-        var inner = Ensure(type.Inner!);
-
         if (type.IsReferenceType)
         {
             write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
             read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
         }
 
-        write.AppendLine($"        W{inner}(writer, value.{type.Members[0].ClrName}, files);");
+        if (type.Moment)
+        {
+            // The instant, with its Z: the wall clock names the hour it shows twice in autumn only once. Read, a Z (or an
+            // offset) is that instant and a bare time — what a page loaded before the change still sends — a wall-clock
+            // time of Clock.Zone, both of which the moment's constructor takes as they are.
+            write.AppendLine("        writer.WriteStringValue(value.Instant.UtcDateTime);");
+            read.AppendLine("        var held = global::Rask.Wire.WireJson.ReadMoment(ref reader, property);");
+        }
+        else
+        {
+            var inner = Ensure(type.Inner!);
+            write.AppendLine($"        W{inner}(writer, value.{type.Members[0].ClrName}, files);");
+            read.AppendLine($"        var held = {Read(inner, "property")};");
+        }
 
-        read.AppendLine($"        var held = {Read(inner, "property")};");
         EmitBuild(type, type.ValueObject ? $"{type.Fqn}.Create(held)" : $"new {type.Fqn}(held)", read);
     }
 

@@ -8,6 +8,22 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **BREAKING — Rask requires C# 15.** A project that pins `<LangVersion>` below 15 (`14`, `13.0`, `ISO-2`, …) stops at
+  build with `RASKLANG001`, naming the setting, instead of failing inside generated source. .NET 11 defaults to C# 15,
+  so an app that leaves `<LangVersion>` unset is unaffected. With it go the below-C# 14 fallbacks: the routes generator
+  always emits the per-page `Url()`/`Go()` extension members (the `Routes.X()` entries stay), and `Route.To<T>()` reads
+  a page's template from the generated route registry alone — the `[Route]` reflection fallback is gone, so a page whose
+  assembly did not run the generator throws rather than being read by reflection.
+- **`OrderedGuid.New()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `New()` now returns it
+  instead of emitting its own copy, and every key Rask makes is one: the batteries' rows (jobs, outbox, mail, logs,
+  cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
+  `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
+  after the millisecond are random, so two made in one millisecond sorted either way. Rask's clock (`Clock.Now`, so
+  `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
+  so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
+- **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
+  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion naming `OrderId.New()` or `OrderedGuid.New()`.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
@@ -123,6 +139,16 @@ them until tagged releases begin.
   longer carries a `download.bytes` field, and the WASM client drops its base64 decoder. `TestDownloadSink.TryConsume`
   now hands each download on as a token, like the WASM sink; its `Staged` list still holds the bytes for assertions.
   A custom `IDownloadSink` that set `Bytes` keeps them itself and hands on a token.
+- **BREAKING (wire): a `Moment` travels as the UTC instant it holds, not its wall-clock `.Value`.** The generated CQRS
+  codec, the API client and System.Text.Json (each record declared from `Moment` now gets its own generated
+  `[JsonConverter]`, over `Rask.Values.MomentJsonConverter<T>`) write `"2026-10-25T00:30:00Z"`, so the hour the clock
+  shows twice in autumn survives a round trip — a stored job, an outbox message, persisted state, an API body.
+  Compatible for this release: a text without `Z` or an offset — what a browser tab loaded before the deploy still
+  sends — is read as a wall-clock time of `Clock.Zone`, and the object an older System.Text.Json wrote
+  (`{"value":…,"instant":…}`) through its instant. A moment inside a JSON document (`b.Json(…)`, `ToJson()`) now holds
+  its instant too, as text with its `Z` on SQL Server and SQLite, without a migration: an older document's wall-clock
+  value reads as before and holds the instant once its row is saved (`docs/data.md#dates-and-moments-what-each-database-keeps`).
+  `docs/domain.md#moment-and-day`.
 - **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
   `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
   with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.
@@ -146,7 +172,7 @@ them until tagged releases begin.
   generator applies as an `UPDATE` in the app's zone inside the migration's transaction (`AT TIME ZONE` on SQL Server,
   `rask_moment_utc(…)` on SQLite). `GroupBy(f => f.At.Day)` and `f.At.Day == day` now read the day on the app's wall
   calendar in SQL on all three; `f.At.Value.Date`/`.Year`/`.Hour` on such a column — the UTC instant's parts — is
-  refused with the way to say it. A moment inside a JSON document keeps the wall clock. `UseRaskPostgres` refuses a bare
+  refused with the way to say it. `UseRaskPostgres` refuses a bare
   `DateTime` on an aggregate or an entity as the model is built (a `HasConversion` of the app's own, Rask's own types
   and tables outside the domain are left alone). `docs/data.md#dates-and-moments-what-each-database-keeps`.
 - **BREAKING: a table's traits are marker interfaces on the class, read like a sentence.** The trait type arguments of
