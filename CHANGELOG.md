@@ -162,6 +162,11 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`auth.ActInTenant(id)` refuses a tenant the app does not have.** It recorded any id on the session, so an
+  administrator could act in a deleted tenant (every read then threw `MissingTenantException`) or in an id nobody
+  has. With a tenant aggregate (`ITenant`), an id it has no row for is now `AuthError.NotAllowed` ("No tenant has that
+  id."), `400` from `POST /api/auth/tenant`, and the session keeps acting where it was. The row is read as
+  `Current.Tenant` reads it, and only for a user who may choose.
 - **A typed id's `New()` is strictly increasing within the process: two ids made in one millisecond come out in order.**
   Before, the generated `XId.New()` was `Guid.CreateVersion7()`, which fills the 12 bits after the millisecond at random,
   so ids made in the same millisecond sorted in either order — an `ORDER BY Id` (or `Guid.CompareTo`) that was meant

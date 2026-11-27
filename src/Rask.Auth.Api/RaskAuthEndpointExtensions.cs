@@ -152,7 +152,8 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>
     /// Chooses the tenant the caller acts in on this sign-in. <c>204</c>; <c>401</c> for nobody; <c>403</c> for a caller
-    /// who may not choose, or a request another site made; <c>400</c> for a value that names no tenant.
+    /// who may not choose, or a request another site made; <c>400</c> for a value that names no tenant, or a tenant the
+    /// app has no row for.
     /// </summary>
     /// <remarks>
     /// Same-origin only. The required header already keeps cross-site markup out; a browser's <c>Sec-Fetch-Site</c>
@@ -188,7 +189,12 @@ public static class RaskAuthEndpointExtensions
         }
 
         var result = await accounts.ActInTenantAsync(context.User, tenant, cancellationToken).ConfigureAwait(false);
-        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status403Forbidden);
+        if (result.Succeeded)
+        {
+            return Results.NoContent();
+        }
+
+        return Refuse(result, result == TenantChoice.Unknown ? StatusCodes.Status400BadRequest : StatusCodes.Status403Forbidden);
     }
 
     /// <summary>Emails a reset link. Answers the same way whether or not the address has an account.</summary>

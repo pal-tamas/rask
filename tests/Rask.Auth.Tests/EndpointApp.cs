@@ -24,15 +24,20 @@ internal sealed class EndpointApp : IDisposable
     /// <param name="services">Registrations a test adds after the auth battery's.</param>
     /// <param name="endpoints">Endpoints a test maps beside <c>MapRaskAuth</c>.</param>
     /// <param name="auth">Auth options a test sets after the app's own.</param>
+    /// <param name="flowContext">
+    ///     Whether a request runs in the calling test's execution context, so what the test set for its own flow — a
+    ///     tenant row registered with <c>CurrentRows.Use</c> — is what the request reads.
+    /// </param>
     public EndpointApp(
         Action<IServiceCollection>? services = null,
         Action<IEndpointRouteBuilder>? endpoints = null,
-        Action<AuthOptions>? auth = null)
+        Action<AuthOptions>? auth = null,
+        bool flowContext = false)
     {
         _host = new HostBuilder()
             .ConfigureWebHost(web =>
             {
-                web.UseTestServer();
+                web.UseTestServer(o => o.PreserveExecutionContext = flowContext);
                 web.ConfigureServices(registered =>
                 {
                     registered.AddLogging(b => b.ClearProviders());

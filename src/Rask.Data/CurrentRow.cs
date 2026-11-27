@@ -78,16 +78,36 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     ///     Says nothing of a key with no row: the read that asks for it is the one that is told. A failure is the
     ///     caller's to decide about.
     /// </remarks>
-    internal async ValueTask Prime(Guid key, CancellationToken cancellationToken)
+    internal async ValueTask Prime(Guid key, CancellationToken cancellationToken) =>
+        _ = await Exists(key, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    ///     Whether a row keyed <paramref name="key" /> exists: held, or read now and kept. False for a key that cannot be
+    ///     one of this aggregate's — a <see cref="Guid" /> carrying no number, for a numbered aggregate.
+    /// </summary>
+    /// <remarks>A failure to read is the caller's to decide about, as <see cref="Prime" />'s is.</remarks>
+    internal async ValueTask<bool> Exists(Guid key, CancellationToken cancellationToken)
     {
         var database = ReadDb.IdentityFor(null);
+        if (TryHeld(database, key, out _))
+        {
+            return true;
+        }
+
+        if (!Names(key))
+        {
+            return false;
+        }
+
         var generation = Volatile.Read(ref _generation);
         var loaded = await LoadAsync(key, cancellationToken).ConfigureAwait(false);
-
-        if (loaded is not null && Owns(loaded, key))
+        if (loaded is null || !Owns(loaded, key))
         {
-            Store(database, key, loaded, generation);
+            return false;
         }
+
+        Store(database, key, loaded, generation);
+        return true;
     }
 
     /// <summary>Drops every row held: one of them was just saved.</summary>
@@ -120,6 +140,9 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
 
     /// <summary>Whether <paramref name="row" />'s own key is <paramref name="key" />.</summary>
     protected abstract bool Owns(object row, Guid key);
+
+    /// <summary>Whether <paramref name="key" /> can name a row of this aggregate at all, read as the key it is keyed by.</summary>
+    protected virtual bool Names(Guid key) => true;
 
     private bool TryHeld(object database, Guid key, out object row)
     {

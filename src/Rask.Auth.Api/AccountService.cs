@@ -630,6 +630,12 @@ internal sealed partial class AccountService<TUser, TKey>(
             }
         }
 
+        // Asked only of somebody who may choose, so nobody else learns which tenants exist.
+        if (tenant is { } chosen && !await TenantChoice.ExistsAsync(chosen, cancellationToken).ConfigureAwait(false))
+        {
+            return TenantChoice.Unknown;
+        }
+
         return await sessions.ActInTenantAsync(sessionId, tenant, cancellationToken).ConfigureAwait(false)
             ? AuthResult.Success
             : AuthResult.Fail(AuthError.NotAllowed);

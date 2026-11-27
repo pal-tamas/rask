@@ -898,7 +898,8 @@ tenant and a partitioned table refuses a row without one. That shapes three rule
   they are acting in. `await auth.ActInTenant(partnerId)` says it for the whole sign-in: the choice is kept on
   the session row, so the next request, a reconnect and the user's other live pages carry it as the claim, and
   signing out drops it — see [acting in a tenant](multi-tenancy.md#acting-in-a-tenant). Only a user of no
-  tenant who holds `AuthOptions.ActInTenantRole` (`admin`) may; `null` turns it off. `Tenant.Use(id)` scopes
+  tenant who holds `AuthOptions.ActInTenantRole` (`admin`) may; `null` turns it off. A tenant the app's `ITenant`
+  aggregate has no row for is refused (`AuthError.NotAllowed`, `400` from the endpoint). `Tenant.Use(id)` scopes
   one piece of work instead, and reading across every tenant is a deliberate `Tenant.Across()`.
 
 ## An administrator manages accounts

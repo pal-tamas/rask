@@ -521,6 +521,12 @@ and from any other client it is `POST /api/auth/tenant` with `{ "tenant": "…" 
 needs the `X-Rask-Auth` header and is refused (`403`) when the browser says another site sent it
 (`Sec-Fetch-Site` other than `same-origin`).
 
+**Only a tenant the app has.** With a tenant aggregate (the one that says `ITenant`), a choice of an id it has no row
+for — deleted, or never written — is refused with `AuthError.NotAllowed` ("No tenant has that id."), `400` from the
+endpoint, and the sign-in keeps acting where it was. The row is read the way `Current.Tenant` reads it, and only for
+somebody who may choose, so nobody else learns which tenants exist. An app with no tenant aggregate has no rows to ask,
+and any id is taken as before.
+
 **Pages already open follow; they are not ended.** A live page of the same sign-in in another tab asks about its
 session before each event, finds a principal in another tenant, and renders again in it — every read is made
 afresh, as for [a resolver's answer that changed](#from-the-request-a-resolver). What a component holds in its
