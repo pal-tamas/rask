@@ -2,6 +2,9 @@
 override Rask.Web.Types.CanvasToneMapping.Equals(object? obj) -> bool
 override Rask.Web.Types.CanvasToneMapping.GetHashCode() -> int
 override Rask.Web.Types.CanvasToneMapping.ToString() -> string!
+override Rask.Web.Types.InstallParams.Equals(object? obj) -> bool
+override Rask.Web.Types.InstallParams.GetHashCode() -> int
+override Rask.Web.Types.InstallParams.ToString() -> string!
 override Rask.Web.Types.LanguageModelToolDeclaration.Equals(object? obj) -> bool
 override Rask.Web.Types.LanguageModelToolDeclaration.GetHashCode() -> int
 override Rask.Web.Types.LanguageModelToolDeclaration.ToString() -> string!
@@ -1723,12 +1726,14 @@ Rask.Web.Types.FontFace.SetStyle(string! value) -> System.Threading.Tasks.ValueT
 Rask.Web.Types.FontFace.SetUnicodeRange(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetVariationSettings(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetWeight(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FontFace.SetWidth(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SizeAdjust.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.Status.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFaceLoadStatus>
 Rask.Web.Types.FontFace.Style.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.UnicodeRange.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.VariationSettings.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.Weight.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.FontFace.Width.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFaceDescriptors.Width.get -> string?
 Rask.Web.Types.FontFaceDescriptors.Width.init -> void
 Rask.Web.Types.FontFaceLoadStatus
@@ -2454,6 +2459,14 @@ Rask.Web.Types.ImportNodeOptions.SelfOnly.get -> bool?
 Rask.Web.Types.ImportNodeOptions.SelfOnly.init -> void
 Rask.Web.Types.InputDeviceInfo
 Rask.Web.Types.InputDeviceInfo.GetCapabilities() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaTrackCapabilities!>
+Rask.Web.Types.InstallParams
+Rask.Web.Types.InstallParams.<Clone>$() -> Rask.Web.Types.InstallParams!
+Rask.Web.Types.InstallParams.Equals(Rask.Web.Types.InstallParams? other) -> bool
+Rask.Web.Types.InstallParams.InstallParams() -> void
+Rask.Web.Types.InstallParams.Manifest.get -> string!
+Rask.Web.Types.InstallParams.Manifest.init -> void
+Rask.Web.Types.InstallParams.ManifestId.get -> string?
+Rask.Web.Types.InstallParams.ManifestId.init -> void
 Rask.Web.Types.IntersectionObserver
 Rask.Web.Types.IntersectionObserver.Disconnect() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.IntersectionObserver.RootMargin.get -> System.Threading.Tasks.ValueTask<string!>
@@ -6550,6 +6563,8 @@ static Rask.Web.Types.ImageEncodeOptions.operator !=(Rask.Web.Types.ImageEncodeO
 static Rask.Web.Types.ImageEncodeOptions.operator ==(Rask.Web.Types.ImageEncodeOptions? left, Rask.Web.Types.ImageEncodeOptions? right) -> bool
 static Rask.Web.Types.ImportNodeOptions.operator !=(Rask.Web.Types.ImportNodeOptions? left, Rask.Web.Types.ImportNodeOptions? right) -> bool
 static Rask.Web.Types.ImportNodeOptions.operator ==(Rask.Web.Types.ImportNodeOptions? left, Rask.Web.Types.ImportNodeOptions? right) -> bool
+static Rask.Web.Types.InstallParams.operator !=(Rask.Web.Types.InstallParams? left, Rask.Web.Types.InstallParams? right) -> bool
+static Rask.Web.Types.InstallParams.operator ==(Rask.Web.Types.InstallParams? left, Rask.Web.Types.InstallParams? right) -> bool
 static Rask.Web.Types.JsonWebKey.operator !=(Rask.Web.Types.JsonWebKey? left, Rask.Web.Types.JsonWebKey? right) -> bool
 static Rask.Web.Types.JsonWebKey.operator ==(Rask.Web.Types.JsonWebKey? left, Rask.Web.Types.JsonWebKey? right) -> bool
 static Rask.Web.Types.KeySystemTrackConfiguration.operator !=(Rask.Web.Types.KeySystemTrackConfiguration? left, Rask.Web.Types.KeySystemTrackConfiguration? right) -> bool
