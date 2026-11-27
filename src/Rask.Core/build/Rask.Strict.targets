@@ -21,6 +21,8 @@
         database produces only on insert, so it carries 0
       - RASK147 an error (rask-strict.globalconfig): a bare DateTime or DateTimeOffset in the domain, which is a
         Moment or a Day
+      - RASK148 an error (rask-strict.globalconfig): an entity keyed by Guid.CreateVersion7() or Guid.NewGuid(), which
+        ids of one millisecond do not sort by; the typed id's New() or OrderedGuid.New()
       - RASK184-RASK187 warnings (rask-strict.globalconfig): an aggregate throwing InvalidOperationException or
         ArgumentException, an aggregate loaded before the Db.Transaction that changes it, an Update that only runs an
         operation with a generated entry, a raw ExecuteUpdate/ExecuteDelete over an aggregate's rows

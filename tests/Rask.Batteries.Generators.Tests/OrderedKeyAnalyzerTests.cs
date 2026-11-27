@@ -35,12 +35,56 @@ public class OrderedKeyAnalyzerTests
 
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new OrderedKeyAnalyzer(), source);
 
-        Assert.Equal(["Guid.CreateVersion7()", "Guid.NewGuid()", "Guid.CreateVersion7()"], diagnostics.Select(d => d.Flagged()));
+        Assert.Equal(["new OrderId(Guid.CreateVersion7())", "Guid.NewGuid()", "Guid.CreateVersion7()"], diagnostics.Select(d => d.Flagged()));
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
         Assert.Equal(
             "'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'",
             diagnostics[0].GetMessage());
         Assert.EndsWith("use 'OrderedGuid.New()'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_key_stamped_by_a_TimeProvider_is_told_to_keep_it_as_OrderedGuid_s_time_source()
+    {
+        const string source = """
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Note : Aggregate<Guid>
+            {
+                private Note() { }
+                public static Note Write(TimeProvider clock) => new() { Id = Guid.CreateVersion7(clock.GetUtcNow()) };
+                public static Note At(DateTimeOffset at) => new() { Id = Guid.CreateVersion7(at) };
+            }
+            """;
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new OrderedKeyAnalyzer(), source);
+
+        Assert.Equal(2, diagnostics.Count);
+        Assert.EndsWith("use 'OrderedGuid.New(clock)'", diagnostics[0].GetMessage(), StringComparison.Ordinal);
+        Assert.EndsWith("use 'OrderedGuid.New(timeProvider)'", diagnostics[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_app_that_sets_RaskStrict_gets_an_error_for_a_key_that_is_not_ordered()
+    {
+        const string source = """
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Note : Aggregate<Guid>
+            {
+                private Note() { }
+                public static Note Write() => new() { Id = Guid.CreateVersion7() };
+            }
+            """;
+        var strict = StrictConfig.Severity("RASK148");
+
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
+            new OrderedKeyAnalyzer(), source, options => options.WithSpecificDiagnosticOptions([new("RASK148", strict)]));
+
+        Assert.Equal(ReportDiagnostic.Error, strict);
+        Assert.Equal(DiagnosticSeverity.Error, Assert.Single(diagnostics).Severity);
     }
 
     [Fact]

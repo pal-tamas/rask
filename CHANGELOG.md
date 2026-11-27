@@ -17,7 +17,10 @@ them until tagged releases begin.
   `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
   so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
 - **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
-  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion naming `OrderId.New()` or `OrderedGuid.New()`.
+  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion, an error under `<RaskStrict>`. The quick-fix (Fix all
+  included) writes `OrderId.New()` for a typed id that makes its own key, else `OrderedGuid.New()`, and
+  `Guid.CreateVersion7(time.GetUtcNow())` becomes `OrderedGuid.New(time)`. A strict app keyed by
+  `Guid.CreateVersion7()` fails to build until the fix is applied.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
