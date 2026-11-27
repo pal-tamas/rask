@@ -197,8 +197,9 @@ public sealed class SqlServerDbTransactionRaceTests : IAsyncLifetime
     [Fact]
     public async Task A_read_face_reads_its_Guids_as_the_write_side_stores_them()
     {
-        // Offline: the two models alone. TenancyDbContext names none of Rask's model conventions, so it stores its Guids
-        // as they are, and the faces must compare them so — the retry above counted no claim when they did not.
+        // Offline: the two models alone. TenancyDbContext names none of Rask's model conventions, and UseRaskSqlServer
+        // stores its Guids by time all the same; the faces must compare them so, stored once — the retry above counted no
+        // claim when they did not.
         var services = new ServiceCollection();
         services.AddRaskData<TenancyDbContext>();
         services.AddDbContextFactory<TenancyDbContext>(static o => o.UseRaskSqlServerAt(Unused));
@@ -211,8 +212,10 @@ public sealed class SqlServerDbTransactionRaceTests : IAsyncLifetime
         var written = write.Model.FindEntityType(typeof(Member))!.FindProperty(nameof(Member.Owner))!;
         var face = read.Model.GetEntityTypes().Single(static e => e.GetTableName() == "Member").FindProperty(nameof(Member.Owner))!;
 
-        Assert.Null(written.GetValueConverter());
-        Assert.Null(face.GetValueConverter());
+        var id = Guid.CreateVersion7();
+
+        Assert.Equal(SqlServerGuidOrder.ToStore(id), written.GetTypeMapping().Converter?.ConvertToProvider(id));
+        Assert.Equal(SqlServerGuidOrder.ToStore(id), face.GetTypeMapping().Converter?.ConvertToProvider(id));
     }
 
     private const string Unused = "Server=unused;Database=unused";

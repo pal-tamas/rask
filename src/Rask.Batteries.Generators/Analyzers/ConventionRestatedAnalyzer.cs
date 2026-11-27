@@ -12,10 +12,13 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK192 — a line of an entity's configuration that says what Rask's conventions already say: a
+///     RASK192 — a line of an entity's configuration that says what Rask's conventions (or EF Core's) already say: a
 ///     <c>ToTable("fuelings")</c>, <c>HasColumnName("pistol_id")</c>, <c>HasDatabaseName("ix_fuelings_pistol_id")</c>,
 ///     <c>HasName("pk_fuelings")</c>, <c>HasConstraintName("fk_fuelings_pistol_id")</c>, <c>[Table("fuelings")]</c> or
-///     <c>[Column("pistol_id")]</c> that names it exactly as Rask would. Deleting it changes nothing.
+///     <c>[Column("pistol_id")]</c> that names it exactly as Rask would — and an <c>OnDelete</c>, <c>HasMaxLength</c>,
+///     <c>HasPrecision</c>, <c>IsRequired()</c>, <c>HasKey(x =&gt; x.Id)</c>, <c>ValueGeneratedNever()</c>,
+///     <c>IsConcurrencyToken()</c> or <c>HasConversion</c> equal to the default (<c>ConventionRestatedAnalyzer.Defaults.cs</c>).
+///     Deleting it changes nothing.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -23,7 +26,8 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///         <see cref="StoreNames" /> — the source Rask.Data names the model by — and only where the analyzer can be sure
 ///         of what Rask names it: an entity's own table (not a hierarchy's derived type, not an owned type), and a
 ///         constraint over the entity's own columns. A project that changes the pattern — <c>TableNames</c>,
-///         <c>ColumnNames</c> or <c>ConstraintNames</c> anywhere in it — gets no naming report at all.
+///         <c>ColumnNames</c> or <c>ConstraintNames</c> anywhere in it — gets no naming report at all; one that changes the
+///         delete rule (<c>DeleteBehavior(children: …, others: …)</c>) in a way this cannot read gets no <c>OnDelete</c> report.
 ///     </para>
 ///     <para>
 ///         The one rule for every default Rask has: a <see cref="Restated" /> kind each, so the next default this reports
@@ -32,7 +36,7 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
+public sealed partial class ConventionRestatedAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>The diagnostic's id.</summary>
     public const string Id = "RASK192";
@@ -43,12 +47,13 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         Id,
         "The configuration says what Rask's conventions already say",
-        "'{0}' says what Rask names it anyway: {1} — delete it",
+        "'{0}' says what Rask does anyway: {1} — delete it",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Rask names every table, column and constraint itself — delivery_notes, pistol_id, "
-                     + "ix_fuelings_pistol_id. A name stated in Configure, or by [Table]/[Column], that is exactly that name "
+                     + "ix_fuelings_pistol_id — and gives every column its value object's length, every key its generation, "
+                     + "every child its cascade. A line in Configure, or a [Table]/[Column], that says exactly that "
                      + "is a line to keep in step with nothing: delete it, and the model is the same.",
         helpLinkUri: DiagnosticHelp.Link(Id),
         customTags: WellKnownDiagnosticTags.Unnecessary);
@@ -61,6 +66,13 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
         Key,
         Index,
         ForeignKey,
+        DeleteBehavior,
+        Facet,
+        Required,
+        PrimaryKey,
+        KeyGeneration,
+        ConcurrencyToken,
+        Conversion,
     }
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rule);
@@ -71,14 +83,15 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(start =>
         {
-            // A project that restates the pattern names nothing as Rask does: say nothing about it.
-            if (ChangesThePattern(start.Compilation, start.CancellationToken))
-            {
-                return;
-            }
+            // A project that restates the pattern names nothing as Rask does: say nothing about its names.
+            var names = !ChangesThePattern(start.Compilation, start.CancellationToken);
+            var deletes = DeleteRule.Of(start.Compilation, start.CancellationToken);
 
-            start.RegisterOperationAction(AnalyzeCall, OperationKind.Invocation);
-            start.RegisterSymbolAction(AnalyzeAttributes, SymbolKind.NamedType, SymbolKind.Property);
+            start.RegisterOperationAction(c => AnalyzeCall(c, names, deletes), OperationKind.Invocation);
+            if (names)
+            {
+                start.RegisterSymbolAction(AnalyzeAttributes, SymbolKind.NamedType, SymbolKind.Property);
+            }
         });
     }
 
@@ -87,18 +100,35 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
         compilation.SyntaxTrees.Any(tree => tree.GetText(cancellationToken).ToString() is var text &&
             (text.Contains(".TableNames(") || text.Contains(".ColumnNames(") || text.Contains(".ConstraintNames(")));
 
-    private static void AnalyzeCall(OperationAnalysisContext context)
+    private static void AnalyzeCall(OperationAnalysisContext context, bool names, DeleteRule? deletes)
     {
         var call = (IInvocationOperation)context.Operation;
         var method = call.TargetMethod.ReducedFrom ?? call.TargetMethod;
-        if (!Is(method.ContainingNamespace?.ToDisplayString(), EfCore) ||
-            call.Syntax is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access } syntax ||
-            Stated(call) is not { } stated)
+        if (method.ContainingNamespace?.ToDisplayString() is not { } space || !(Is(space, EfCore) || space.StartsWith(EfCore + ".", StringComparison.Ordinal)) ||
+            call.Syntax is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access } syntax)
         {
             return;
         }
 
-        var expected = method.Name switch
+        var found = (names ? Named(call, method.Name) : null) ?? Defaulted(call, method.Name, deletes);
+        if (found is { } restated)
+        {
+            var span = TextSpan.FromBounds(access.OperatorToken.SpanStart, syntax.Span.End);
+            var shown = syntax.SyntaxTree.GetText(context.CancellationToken).ToString(TextSpan.FromBounds(access.Name.SpanStart, syntax.Span.End));
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rule, Location.Create(syntax.SyntaxTree, span), Properties(restated.Kind), shown, restated.Message));
+        }
+    }
+
+    // A name stated exactly as Rask gives it.
+    private static Finding? Named(IInvocationOperation call, string method)
+    {
+        if (Stated(call) is not { } stated)
+        {
+            return null;
+        }
+
+        var expected = method switch
         {
             "ToTable" => Table(call),
             "HasColumnName" => Column(call),
@@ -108,12 +138,9 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
             _ => null,
         };
 
-        if (expected is { } rasks && string.Equals(rasks.Name, stated, StringComparison.Ordinal))
-        {
-            var span = TextSpan.FromBounds(access.OperatorToken.SpanStart, syntax.Span.End);
-            context.ReportDiagnostic(Diagnostic.Create(
-                Rule, Location.Create(syntax.SyntaxTree, span), Properties(rasks.Kind), method.Name + "(\"" + stated + "\")", Said(rasks)));
-        }
+        return expected is { } rasks && string.Equals(rasks.Name, stated, StringComparison.Ordinal)
+            ? new Finding(rasks.Kind, Said(rasks))
+            : null;
     }
 
     private static void AnalyzeAttributes(SymbolAnalysisContext context)
@@ -448,4 +475,7 @@ public sealed class ConventionRestatedAnalyzer : DiagnosticAnalyzer
     private static int ReceiverCount(IInvocationOperation call) => call.TargetMethod.IsExtensionMethod ? 1 : 0;
 
     private sealed record Expected(Restated Kind, string Name);
+
+    // A line found restating a default: what it restates, and how the message says it.
+    private sealed record Finding(Restated Kind, string Message);
 }

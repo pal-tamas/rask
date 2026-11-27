@@ -7,7 +7,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task Support_is_asked_of_both_managers_separately()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskSync.supported", true);
         js.SetResponse("__raskSync.periodicSupported", false);
         var sync = new BackgroundSync(js);
@@ -21,7 +21,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task A_sync_request_passes_the_tag_and_reports_whether_the_browser_took_it()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskSync.request", true);
 
         Assert.True(await new BackgroundSync(js).RequestSync("flush-drafts"));
@@ -33,13 +33,13 @@ public class BackgroundSyncTests
     {
         // No canned response → the helper answers false, which is how "no SW registered", "not supported"
         // and "the browser refused" all surface. None of them is an exception at the call site.
-        Assert.False(await new BackgroundSync(new FakeJsRuntime()).RequestSync("flush-drafts"));
+        Assert.False(await new BackgroundSync(new TestJSRuntime()).RequestSync("flush-drafts"));
     }
 
     [Fact]
     public async Task A_periodic_sync_request_sends_the_interval_in_milliseconds()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskSync.requestPeriodic", true);
 
         Assert.True(await new BackgroundSync(js).RequestPeriodicSync("refresh", TimeSpan.FromHours(12)));
@@ -57,7 +57,7 @@ public class BackgroundSyncTests
     [InlineData(null)]
     public async Task A_sync_request_rejects_a_tag_that_names_nothing(string? tag)
     {
-        var sync = new BackgroundSync(new FakeJsRuntime());
+        var sync = new BackgroundSync(new TestJSRuntime());
 
         await Assert.ThrowsAnyAsync<ArgumentException>(async () => await sync.RequestSync(tag!));
         await Assert.ThrowsAnyAsync<ArgumentException>(
@@ -68,7 +68,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task A_periodic_sync_request_rejects_a_non_positive_interval()
     {
-        var sync = new BackgroundSync(new FakeJsRuntime());
+        var sync = new BackgroundSync(new TestJSRuntime());
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             async () => await sync.RequestPeriodicSync("refresh", TimeSpan.Zero));
@@ -79,9 +79,9 @@ public class BackgroundSyncTests
     [Fact]
     public async Task The_tags_are_empty_rather_than_null_when_the_API_is_absent()
     {
-        // The FakeJsRuntime hands back default(string[]) — null — exactly as an absent helper would. A null
+        // The TestJSRuntime hands back default(string[]) — null — exactly as an absent helper would. A null
         // list here would turn a plain "not supported" into a NullReferenceException inside a foreach.
-        var sync = new BackgroundSync(new FakeJsRuntime());
+        var sync = new BackgroundSync(new TestJSRuntime());
 
         Assert.Empty(await sync.GetPendingTags());
         Assert.Empty(await sync.GetPeriodicTags());
@@ -90,7 +90,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task The_tags_come_back_from_the_helper()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskSync.tags", new[] { "flush-drafts", "upload-photos" });
         js.SetResponse("__raskSync.periodicTags", new[] { "refresh" });
         var sync = new BackgroundSync(js);
@@ -102,7 +102,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task The_periodic_permission_is_read_not_requested()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskSync.periodicPermission", "granted");
 
         Assert.Equal("granted", await new BackgroundSync(js).GetPeriodicPermission());
@@ -114,7 +114,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task Subscribing_arms_the_helper_so_anything_buffered_during_boot_is_released()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
 
         await using var _ = await new BackgroundSync(js).OnSync(_ => Task.CompletedTask);
 
@@ -126,7 +126,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task A_fired_sync_reaches_every_subscriber_with_the_tag_and_kind()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var sync = new BackgroundSync(js);
         var first = new List<BackgroundSyncEvent>();
         var second = new List<BackgroundSyncEvent>();
@@ -154,7 +154,7 @@ public class BackgroundSyncTests
     [Fact]
     public async Task Disposing_a_subscription_stops_that_handler_only()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var sync = new BackgroundSync(js);
         var kept = new List<string>();
         var dropped = new List<string>();

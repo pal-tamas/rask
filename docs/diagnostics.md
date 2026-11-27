@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK193, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK196, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -34,13 +34,15 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK133** | calls the factory's generated entry: `await using var db = …; db.Add(Product.Place(n)); await db.SaveChangesAsync(t);` → `await Product.Place(n, cancellationToken: t);` |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
 | **RASK147** | holds the member as a value object of Rask's — *Hold it as a Moment* (`public DateTime FueledAt` → `public DeliveryFueledAt FueledAt`, with `public sealed partial record DeliveryFueledAt(DateTime Value) : Moment(Value);` written after the type) or *Hold it as a Day* (over a `DateOnly`), the `Day` offered first where the name says a day (`DueDate`, `PayDay`, `DeliveredOn`) |
+| **RASK148** | makes the key with Rask's ordered maker: `new OrderId(Guid.CreateVersion7())` → `OrderId.Create()`, `Guid.NewGuid()` → `Uuid.Create()`, `Guid.CreateVersion7(time.GetUtcNow())` → `Uuid.Create(time)` (Fix all supported) |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
-| **RASK192** | deletes the line that says what Rask names it anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]` — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
+| **RASK192** | deletes the line that says what Rask does anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]`, an `OnDelete`/`HasMaxLength`/`HasPrecision`/`IsRequired()`/`HasKey(x => x.Id)`/`ValueGeneratedNever()`/`IsConcurrencyToken()`/`HasConversion` equal to the default — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
 | **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
+| **RASK196** | declares the reference as one `BelongsTo<X>`: `public VehicleId? VehicleId { get; private set; }` (and a hand-written `Vehicle` navigation beside it) → `public partial BelongsTo<Vehicle>? Vehicle { get; }`, the class made `partial` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -170,7 +172,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK145](#rask145) | Warning (Error under `<RaskStrict>`) | An event reads a key the database has not produced yet |
 | [RASK146](#rask146) | Error | A trait the class cannot carry |
 | [RASK147](#rask147) | Warning (Error under `<RaskStrict>`) | The domain holds a bare `DateTime` |
-| [RASK148](#rask148) | Info | An entity is keyed by a Guid that is not strictly increasing |
+| [RASK148](#rask148) | Info (Error under `<RaskStrict>`) | An entity is keyed by a Guid that is not strictly increasing |
 | [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
@@ -196,6 +198,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
 | [RASK192](#rask192) | Info | The configuration says what Rask's conventions already say |
 | [RASK193](#rask193) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
+| [RASK194](#rask194) | Error | A `BelongsTo` cannot be generated |
+| [RASK195](#rask195) | Error | A `BelongsTo` is loaded with the aggregate that holds it |
+| [RASK196](#rask196) | Info | Another aggregate's id held by hand |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2165,7 +2170,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
 {
     public string Reference { get; private set; } = "";
 
-    public static Order Place(string reference) => new() { Id = OrderedGuid.New(), Reference = reference };   // ✓
+    public static Order Place(string reference) => new() { Id = Uuid.Create(), Reference = reference };   // ✓
 }
 
 var order = new Order();                       // ✗ RASK107
@@ -3506,9 +3511,9 @@ public sealed class Order : Aggregate<int>
 ```
 
 > The event raised in 'Order' reads 'order.Id', which the database produces only on insert: raised before the first
-> save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with New())
+> save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with Create())
 
-**Fix:** key the entity on the client — a typed id over a `Guid`, made with its generated `New()` (a time-ordered
+**Fix:** key the entity on the client — a typed id over a `Guid`, made with its generated `Create()` (a time-ordered
 version-7 `Guid`, so the primary-key index stays append-only), [the default Rask recommends](domain.md#choosing-the-key-a-typed-id-over-a-guid):
 
 ```csharp
@@ -3518,7 +3523,7 @@ public sealed class Order : Aggregate<OrderId>
 {
     public static Order Place(string reference)
     {
-        var order = new Order { Id = OrderId.New(), Reference = reference };
+        var order = new Order { Id = OrderId.Create(), Reference = reference };
         order.Raise(new OrderPlaced(order.Id));      // ✓ the id is the row's from the start
         return order;
     }
@@ -3595,7 +3600,7 @@ entity is also refused as the model is built ([data.md](data.md#dates-and-moment
 
 ## RASK148
 
-**An entity is keyed by a Guid that is not strictly increasing** · Info
+**An entity is keyed by a Guid that is not strictly increasing** · Info (Error under `<RaskStrict>`)
 
 An entity's `Id` is set to `Guid.CreateVersion7()` or `Guid.NewGuid()` — directly, or inside a typed id
 (`new OrderId(Guid.CreateVersion7())`). `Guid.CreateVersion7()` fills the 12 bits after the millisecond at random, so
@@ -3607,17 +3612,19 @@ public static Order Place(string reference) =>
     new() { Id = new OrderId(Guid.CreateVersion7()), Reference = reference };   // ℹ RASK148
 ```
 
-> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'
+> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.Create()'
 
-**Fix:** a typed id's generated `New()`, or `OrderedGuid.New()` for a plain `Guid` key. Both are version-7 `Guid`s
-whose 12 bits after the millisecond count (RFC 9562's method 1), so every id is later than the one before it:
+**Fix:** a typed id's generated `Create()`, or `Uuid.Create()` for a plain `Guid` key (**quick-fix available**, Fix all
+included — `Guid.CreateVersion7(time.GetUtcNow())` becomes `Uuid.Create(time)`; a `CreateVersion7` of any other moment
+gets none). Both are version-7 `Guid`s whose 12 bits after the millisecond count (RFC 9562's method 1), so every id is
+later than the one before it:
 
 ```csharp
-public static Order Place(string reference) => new() { Id = OrderId.New(), Reference = reference };   // ✓
-public static Note Write(string text) => new() { Id = OrderedGuid.New(), Text = text };              // ✓ a Guid key
+public static Order Place(string reference) => new() { Id = OrderId.Create(), Reference = reference };   // ✓
+public static Note Write(string text) => new() { Id = Uuid.Create(), Text = text };              // ✓ a Guid key
 ```
 
-A service handed a `TimeProvider` stamps its ids with it: `OrderedGuid.New(timeProvider)` — a test's fake time then
+A service handed a `TimeProvider` stamps its ids with it: `Uuid.Create(timeProvider)` — a test's fake time then
 stamps them, counting within its millisecond on a sequence of its own.
 
 ## RASK150
@@ -4211,11 +4218,31 @@ It compares `ToTable`, `HasColumnName` (a property, or a value object's member),
 when it is unique), `HasName` (a primary or alternate key), `HasConstraintName` (a foreign key held by the entity
 being configured), and `[Table]`/`[Column]`, each with Rask's own name for it — on an entity's own table (not a
 hierarchy's derived type, not an owned type), against the table the same method names when it names one. A project
-that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no report: there Rask's
-names are not the model's.
+that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no naming report: there
+Rask's names are not the model's.
+
+It reports the other defaults Rask (or EF Core) applies too — each only where the line is provably equal to the
+default, and only where the call can come out without changing the chain (a step that hands back what it was called
+on, or the last step of a statement):
+
+| Restated | Reported when | Left alone when |
+|---|---|---|
+| `OnDelete(…)` | a child's key to its aggregate (`b.HasMany(x => x.Lines).WithOne()`, or `HasOne(…).WithMany(o => o.Lines)` from the child) says the children rule — `Cascade`, or the `children:` of the app's `c.DeleteBehavior(…)`; any other key (`HasOne<T>().WithMany().HasForeignKey(x => x.TId)`) says the `others:` rule, or with none EF Core's own: `Cascade` for a key that cannot be null, `ClientSetNull` for one that can | another behavior; a `DeleteBehavior(…)` whose arguments are not `DeleteBehavior.X` constants (or two that differ); a one-to-one; a principal that holds a collection of the dependent the line does not name; no `HasForeignKey` to read and no `others:` rule; any other step in the chain (`IsRequired`, `HasPrincipalKey`) |
+| `HasMaxLength(n)` / `HasPrecision(p[, s])` | the property holds a `Text`/`Number` value object declaring that `MaxLength` / `Precision` (and `Scale`, `0` when it declares none) | another size; a `[MaxLength]`, `[StringLength]` or `[Precision]` on the property (the column follows it, not the value object); a size that is not a literal |
+| `IsRequired()` | the property cannot be null: a value type that is not `T?`, or a reference type not annotated `?` in a nullable context | `IsRequired(false)`; a `T?` or `string?` property; a generic one |
+| `HasKey(x => x.Id)` | a whole statement, on a Rask entity's own table, whose key is not composite | any other member; a `[Key]`, `[PrimaryKey]` or `[Keyless]` in the hierarchy; a chain going on (`.HasName("…")`) |
+| `ValueGeneratedNever()` | on the `Id` of an entity keyed by a `Guid`, a `string`, or a typed id over one — Rask leaves such a key to the entity | an `int`/`long` key or a typed id over one (Rask makes those identity columns); a default, generator or identity stated in the same method |
+| `IsConcurrencyToken()` | on the `Version` of an aggregate that says `IVersioned` | any other property; an aggregate without `IVersioned` |
+| `HasConversion(v => v.Value, v => new X(v))` | the property is a typed id or a one-value value object (`Text`, `Number`, `Integer`, `Value`) | another conversion; a nullable typed id; a moment, a day or a secret, which Rask stores its own way; a comparer passed with it |
+
+A relationship line — `b.HasOne<Tank>().WithMany().HasForeignKey(x => x.TankId)` — is **not** reported: Rask infers the
+navigation for the [read face](data.md#what-the-read-face-is) only, so in the write model that line is the foreign key
+constraint, and deleting it would drop it.
 
 **Fix:** delete it — the quick fix does, taking the call out of its chain (`.HasColumnName("pistol_id").HasMaxLength(9)`
-→ `.HasMaxLength(9)`) and a statement left saying nothing with it; **Fix all** does every one at once.
+→ `.HasMaxLength(9)`, `.HasMany(x => x.Lines).WithOne().OnDelete(DeleteBehavior.Cascade)` → `.HasMany(x => x.Lines).WithOne()`)
+and a statement left saying nothing with it (`b.HasKey(x => x.Id);`, `b.Property(x => x.Version).IsConcurrencyToken();`);
+**Fix all** does every one at once.
 
 ## RASK193
 
@@ -4251,3 +4278,75 @@ it removes the field, declares the property, and renames the field's uses in the
 an index written, a `List<X>` parameter, `RemoveAll` given a method group — or is assigned anew). Where the children's
 order is the data, add `b.InOrder(r => r.Pistols)` to the aggregate's `Configure` — that one is a migration, a
 `Position` column.
+
+## RASK194
+
+**A `BelongsTo` cannot be generated** · Error
+
+`public partial BelongsTo<Vehicle>? Vehicle { get; }` is completed by Rask with the stored `VehicleId` — of `Vehicle`'s key
+type, nullable exactly when the reference is — and mapped as a relationship that never cascades
+([another aggregate: `BelongsTo`](domain.md#another-aggregate-belongsto)). It is reported, and nothing is generated, when:
+
+- the property is not `partial … { get; }` (a setter, a body, an initializer, or no `partial`), or is static;
+- the class, or a type it is nested in, is not `partial`, or the class is no entity;
+- the target is not an aggregate — a child is reached through its root, or held by its id;
+- the target is the tenant, which `IBelongsTo<Tenant>` keeps;
+- a child refers to the root that holds it, which reaches it already;
+- the entity already has a member named like the key (`VehicleId`) — remove it, the `BelongsTo` generates it;
+- the aggregate has a generated form model (`IHasForm`), which does not carry a reference yet.
+
+```csharp
+public sealed partial class Fueling : Aggregate<FuelingId>
+{
+    public BelongsTo<Vehicle>? Vehicle { get; }            // ✗ RASK194: not partial
+    public partial BelongsTo<Vehicle>? Vehicle { get; }    // ✓ VehicleId generated
+}
+```
+
+**Fix:** declare it as the message says; on an aggregate with a form, keep the id and write it through an operation.
+
+## RASK195
+
+**A `BelongsTo` is loaded with the aggregate that holds it** · Error
+
+A `BelongsTo<T>` is another aggregate's, never loaded, tracked or saved as part of this one: EF Core maps its id and no
+navigation. `Include(f => f.Vehicle)` or `ThenInclude(…)` over one on an EF Core query of the write model, or
+`Entry(f).Reference(f => f.Vehicle)`, would fail when it runs — and would bring the other aggregate into this one's context.
+
+```csharp
+var rows = await db.Fuelings.Include(f => f.Vehicle).ToListAsync();   // ✗ RASK195
+var rows = await Fueling.Include(f => f.Vehicle);                     // ✓ the read face's navigation
+var vehicle = await fueling.Vehicle.Read();                            // ✓ its row, by the id
+```
+
+**Fix:** read the other aggregate from its read face: `X.Include(…)` on the generated query, or the reference's `Read()`.
+
+## RASK196
+
+**Another aggregate's id held by hand** · Info
+
+An entity holds the id of another aggregate as a plain property — `public VehicleId? VehicleId { get; private set; }`,
+perhaps beside a hand-written `Vehicle` navigation — where one `BelongsTo` says the same and reads it too. The aggregate is
+found as the read face finds it: a typed id by its type, a relationship `Configure` writes out by its `HasOne<T>()` (when
+the id ends in the target's last word, so the read face keeps its navigation's name), any other id by its name — exactly,
+or the longest aggregate name it ends in. Not reported for the row's own id, a key part, the tenant's `TenantId`, a child's
+id of the root that holds it, or an entity with a form.
+
+```csharp
+public sealed class Fueling : Aggregate<FuelingId>
+{
+    public VehicleId? VehicleId { get; private set; }      // ℹ RASK196
+}
+
+public sealed partial class Fueling : Aggregate<FuelingId>
+{
+    public partial BelongsTo<Vehicle>? Vehicle { get; }    // ✓ the same VehicleId, generated
+}
+```
+
+**Fix:** declare the reference (**quick-fix available**: it replaces the id with `public partial BelongsTo<X>? X { get; }`
+— optional when the id was nullable — removes a hand-written `X` navigation and makes the class `partial`; it is withheld
+when the id carries attributes, an initializer, a body or a non-private setter, when the navigation is used or has a body,
+or when the class is partial across files). The move is no migration: the column, its index and its foreign key stay; a
+required relationship that cascaded by EF Core's default becomes `NoAction` unless `Configure` says `OnDelete(Cascade)`, and an
+`OnDelete(Restrict)` the hand-written one stated is kept by keeping that `Configure` line.

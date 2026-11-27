@@ -74,7 +74,6 @@ jobs:
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ inputs.base }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
-          # "mode" (no gate sets it today) ties a gate to whole runs ("full") or scoped ones ("scoped").
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
           # The unit gate, in jobs that build the same projects — in a scoped run the ones the change
@@ -177,11 +176,8 @@ jobs:
             | [ .[]
                 | select($set == "all" or .set == $set or ($set == "deps" and .deps == true))
                 | select($only == "" or (.name | test($only)))
-                | select(if $mode == "full"
-                         then (.mode // "") != "scoped"
-                         else (.mode // "") != "full"
-                              and ((.when // "") as $when | $reached | index($when)) != null
-                         end) ]' <<<"$GATES")"
+                | select($mode == "full"
+                         or ((.when // "") as $when | $reached | index($when)) != null) ]' <<<"$GATES")"
           [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
 
           echo "gates: $(jq -r '[.[].name] | join(", ")' <<<"$gates")"

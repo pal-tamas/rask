@@ -40,7 +40,7 @@ public sealed class PushSubscriber : Aggregate<Guid>, IHasTimestamps, IInfrastru
 
     internal static PushSubscriber For(PushSubscription subscription, Guid? userId, DateTime now)
     {
-        var subscriber = new PushSubscriber { Id = OrderedGuid.New() };
+        var subscriber = new PushSubscriber { Id = Uuid.Create() };
         subscriber.Renew(subscription, userId, now);
         return subscriber;
     }

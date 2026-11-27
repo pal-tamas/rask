@@ -33,7 +33,7 @@ public sealed class SubscriptionTests
         await dispatcher.Publish(new OrderPlaced(1), TestContext.Current.CancellationToken);
         await dispatcher.Publish(new OrderPlaced(2), TestContext.Current.CancellationToken);
 
-        await Eventually(() => page.Orders!.Data == new OrderPlaced(2));
+        await WaitFor.True(() => page.Orders!.Data == new OrderPlaced(2));
         Assert.True(page.Orders!.IsLive);
         Assert.False(page.Orders.IsLoading);
     }
@@ -50,7 +50,7 @@ public sealed class SubscriptionTests
             await dispatcher.Publish(new OrderPlaced(number), TestContext.Current.CancellationToken);
         }
 
-        await Eventually(() => page.Orders!.Items.Count == 2 && page.Orders.Items[^1].Number == 3);
+        await WaitFor.True(() => page.Orders!.Items.Count == 2 && page.Orders.Items[^1].Number == 3);
         Assert.Equal([new OrderPlaced(2), new OrderPlaced(3)], page.Orders!.Items);
     }
 
@@ -66,7 +66,7 @@ public sealed class SubscriptionTests
         rendered.Render();
 
         Assert.Same(first, page.Orders);
-        await Eventually(() => dispatcher.SubscriberCount == 1);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 1);
     }
 
     [Fact]
@@ -75,11 +75,11 @@ public sealed class SubscriptionTests
         var (services, dispatcher) = Session();
         var page = new PatchingPage();
         Page.Render(page, services);
-        await Eventually(() => page.Orders!.Data == "first");
+        await WaitFor.True(() => page.Orders!.Data == "first");
 
         await dispatcher.Publish(new OrderPlaced(7), TestContext.Current.CancellationToken);
 
-        await Eventually(() => page.Orders!.Data == "first+7");
+        await WaitFor.True(() => page.Orders!.Data == "first+7");
         Assert.Equal(1, dispatcher.QueryCount);
     }
 
@@ -95,11 +95,11 @@ public sealed class SubscriptionTests
 
         card.Selected = 1;
         rendered.Render();
-        await Eventually(() => dispatcher.SubscriberCount == 1);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 1);
 
         card.Selected = 2;
         rendered.Render();
-        await Eventually(() => dispatcher.SubscriberCount == 1 && card.Orders.IsLive);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 1 && card.Orders.IsLive);
     }
 
     [Fact]
@@ -109,29 +109,29 @@ public sealed class SubscriptionTests
         var page = new StreamPage(Finite);
         Page.Render(page, services);
 
-        await Eventually(() => page.Prices!.IsEnded);
+        await WaitFor.True(() => page.Prices!.IsEnded);
         Assert.Equal(new PriceTicked(2), page.Prices!.Data);
     }
 
     [Fact]
     public async Task A_dropped_stream_reconnects_and_refetches_what_it_patches()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch, holdTimers: true);
         var (services, dispatcher) = Session(clock);
         var drops = new Flaky();
         var page = new StreamPage(drops.OpenAsync) { Patch = true };
         Page.Render(page, services);
-        await Eventually(() => drops.Opened == 1 && page.Orders!.Data == "first");
+        await WaitFor.True(() => drops.Opened == 1 && page.Orders!.Data == "first");
 
         // The reopen waits on the backoff, and the backoff on this clock: the drop holds still while it is read.
         drops.Drop();
-        await Eventually(() => clock.PendingTimers == 1);
+        await WaitFor.True(() => clock.PendingTimers == 1);
 
         Assert.True(page.Prices!.IsReconnecting);
         Assert.IsType<IOException>(page.Prices.Error);
         clock.Advance(Cqrs.CqrsExecutionOptions.Default.SubscriptionReconnectDelay);
-        await Eventually(() => drops.Opened == 2 && page.Prices.IsLive);
-        await Eventually(() => dispatcher.QueryCount == 2);
+        await WaitFor.True(() => drops.Opened == 2 && page.Prices.IsLive);
+        await WaitFor.True(() => dispatcher.QueryCount == 2);
     }
 
     [Fact]
@@ -141,16 +141,16 @@ public sealed class SubscriptionTests
         var streams = new Controllable();
         var page = new StreamPage(streams.OpenAsync) { Input = 1 };
         var rendered = Page.Render(page, services);
-        await Eventually(() => streams.Opened == 1);
+        await WaitFor.True(() => streams.Opened == 1);
 
         // The next order's page, with the previous order's value already handed over by the run it replaced.
         page.Input = 2;
         rendered.Render();
-        await Eventually(() => streams.Opened == 2);
+        await WaitFor.True(() => streams.Opened == 2);
         streams.Yield(1, new PriceTicked(111));
         streams.Yield(2, new PriceTicked(222));
 
-        await Eventually(() => page.Prices!.Data == new PriceTicked(222));
+        await WaitFor.True(() => page.Prices!.Data == new PriceTicked(222));
         await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(new PriceTicked(222), page.Prices!.Data);
     }
@@ -158,19 +158,19 @@ public sealed class SubscriptionTests
     [Fact]
     public async Task A_disposed_transport_is_a_dropped_connection_not_a_refusal()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch, holdTimers: true);
         var (services, _) = Session(clock);
         var attempts = new Attempts();
         var page = new StreamPage((_, ct) => Throwing(new ObjectDisposedException("HttpClient"), attempts, ct));
         Page.Render(page, services);
 
         // Opened, dropped by the disposal, and waiting to reopen — rather than parked on Error, which is what a refusal gets.
-        await Eventually(() => clock.PendingTimers == 1);
+        await WaitFor.True(() => clock.PendingTimers == 1);
         Assert.True(page.Prices!.IsReconnecting);
         Assert.IsType<ObjectDisposedException>(page.Prices.Error);
         clock.Advance(Cqrs.CqrsExecutionOptions.Default.SubscriptionReconnectDelay);
 
-        await Eventually(() => attempts.Count == 2 && page.Prices.IsLive);
+        await WaitFor.True(() => attempts.Count == 2 && page.Prices.IsLive);
         Assert.Null(page.Prices.Error);
     }
 
@@ -186,7 +186,7 @@ public sealed class SubscriptionTests
         });
         Page.Render(page, services);
 
-        await Eventually(() => page.Prices!.IsError);
+        await WaitFor.True(() => page.Prices!.IsError);
         await Task.Delay(700, TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedAccessException>(page.Prices!.Error);
@@ -200,12 +200,12 @@ public sealed class SubscriptionTests
         var show = true;
         OrdersPage? page = null;
         var rendered = Page.Render(() => show ? page ??= new OrdersPage() : null, services);
-        await Eventually(() => dispatcher.SubscriberCount == 1);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 1);
 
         show = false;
         rendered.Render();
 
-        await Eventually(() => dispatcher.SubscriberCount == 0);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 0);
     }
 
     [Fact]
@@ -234,17 +234,6 @@ public sealed class SubscriptionTests
 
         return (services.AddRaskQuery().BuildServiceProvider(), dispatcher);
     }
-
-    private static async Task Eventually(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "the condition never held");
-            await Task.Delay(10);
-        }
-    }
-
     private static async IAsyncEnumerable<PriceTicked> Finite(int symbol, [EnumeratorCancellation] CancellationToken ct)
     {
         yield return new PriceTicked(1);

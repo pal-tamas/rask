@@ -47,7 +47,7 @@ public sealed class BasketLine : Entity<Guid>
 public sealed class AggregateChildrenTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
     public void Dispose() => _sqlite.Dispose();
 

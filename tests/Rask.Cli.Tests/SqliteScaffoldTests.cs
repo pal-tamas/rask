@@ -66,6 +66,6 @@ public sealed class SqliteScaffoldTests
         Assert.NotNull(next);
         Assert.Contains("public readonly partial record struct ProductId(Guid Value);", next, StringComparison.Ordinal);
         Assert.Contains("Product : Aggregate<ProductId>, IHasTimestamps", next, StringComparison.Ordinal);
-        Assert.Contains("ProductId.New()", next, StringComparison.Ordinal);
+        Assert.Contains("ProductId.Create()", next, StringComparison.Ordinal);
     }
 }

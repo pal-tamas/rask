@@ -13,8 +13,10 @@ namespace Rask.Batteries.Generators.Analyzers;
 /// <remarks>
 ///     <c>Guid.CreateVersion7()</c> fills the 12 bits after the millisecond at random, so two rows made in one millisecond
 ///     sort either way, and <c>Guid.NewGuid()</c> is not time-ordered at all: the key's index stops being append-only and
-///     "newest first" by the key is wrong. <c>OrderedGuid.New()</c> — what a typed id's generated <c>New()</c> returns — is
-///     strictly increasing. A suggestion; generated code is not analyzed.
+///     "newest first" by the key is wrong. <c>Uuid.Create()</c> — what a typed id's generated <c>Create()</c> returns — is
+///     strictly increasing. A suggestion by default; an error under <c>&lt;RaskStrict&gt;</c>. Generated code is not analyzed.
+///     The quick-fix writes the typed id's <c>Create()</c>, or <c>Uuid.Create()</c> — <c>Uuid.Create(time)</c> for
+///     <c>Guid.CreateVersion7(time.GetUtcNow())</c>.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class OrderedKeyAnalyzer : DiagnosticAnalyzer
@@ -27,10 +29,10 @@ public sealed class OrderedKeyAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Guid.CreateVersion7() fills the 12 bits after the millisecond at random, so ids made in one "
-                     + "millisecond sort either way, and Guid.NewGuid() is not time-ordered at all. A typed id's New() "
-                     + "(OrderId.New()) and OrderedGuid.New() for a plain Guid key are version-7 Guids that are strictly "
+                     + "millisecond sort either way, and Guid.NewGuid() is not time-ordered at all. A typed id's Create() "
+                     + "(OrderId.Create()) and Uuid.Create() for a plain Guid key are version-7 Guids that are strictly "
                      + "increasing, so the key's index stays append-only and ordering by the key is the order the rows "
-                     + "were made. A suggestion.",
+                     + "were made. A suggestion by default; an error under <RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK148"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask148);
@@ -41,7 +43,7 @@ public sealed class OrderedKeyAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            if (start.Compilation.GetTypeByMetadataName("Rask.OrderedGuid") is null ||
+            if (start.Compilation.GetTypeByMetadataName("Rask.Uuid") is null ||
                 start.Compilation.GetTypeByMetadataName("Rask.Data.Entity`1") is not { } entity)
             {
                 return;
@@ -64,24 +66,60 @@ public sealed class OrderedKeyAnalyzer : DiagnosticAnalyzer
         var idType = property.ContainingType.TypeArguments[0];
 
         var value = Unwrapped(assignment.Value);
-        var wrapped = false;
-        if (value is IObjectCreationOperation { Arguments.Length: 1 } creation &&
-            SymbolEqualityComparer.Default.Equals(creation.Type, idType))
+        var creation = value as IObjectCreationOperation;
+        if (creation is { Arguments.Length: 1 } && SymbolEqualityComparer.Default.Equals(creation.Type, idType))
         {
             value = Unwrapped(creation.Arguments[0].Value);
-            wrapped = true;
+        }
+        else
+        {
+            creation = null;
         }
 
-        if (value is not IInvocationOperation { TargetMethod: { IsStatic: true, Name: "CreateVersion7" or "NewGuid" } made } ||
+        if (value is not IInvocationOperation { TargetMethod: { IsStatic: true, Name: "CreateVersion7" or "NewGuid" } made } call ||
             !string.Equals(made.ContainingType.ToDisplayString(), "System.Guid", System.StringComparison.Ordinal))
         {
             return;
         }
 
-        var replacement = wrapped ? idType.Name + ".New()" : "OrderedGuid.New()";
+        // The node the fix replaces, and what with: a typed id that makes its own key is the id's Create() as a whole; any
+        // other key is the Guid alone, a TimeProvider's now staying its time source.
+        var (at, replacement) = call.Arguments.Length == 0 && creation is not null && TypedIdCreate.Has(idType)
+            ? (creation.Syntax, idType.Name + ".Create()")
+            : (call.Syntax, "Uuid.Create(" + TimeSource(call) + ")");
         var keyed = context.ContainingSymbol.ContainingType?.Name ?? property.ContainingType.Name;
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask148, value.Syntax.GetLocation(), keyed, assignment.Target.Syntax.ToString(), "Guid." + made.Name + "()", replacement));
+            Rask148, at.GetLocation(), keyed, assignment.Target.Syntax.ToString(), "Guid." + made.Name + "()", replacement));
+    }
+
+    // `time.GetUtcNow()` passed to CreateVersion7: `time`, so the id keeps that clock. Any other moment: `timeProvider`,
+    // naming what to pass, as there is nothing the fix could keep.
+    private static string TimeSource(IInvocationOperation call)
+    {
+        if (call.Arguments.Length == 0)
+        {
+            return "";
+        }
+
+        return Unwrapped(call.Arguments[0].Value) is IInvocationOperation
+        {
+            TargetMethod: { Name: "GetUtcNow", Parameters.Length: 0 } getUtcNow, Instance: { } time,
+        } && IsTimeProvider(getUtcNow.ContainingType)
+            ? time.Syntax.ToString()
+            : "timeProvider";
+    }
+
+    private static bool IsTimeProvider(INamedTypeSymbol? type)
+    {
+        for (; type is not null; type = type.BaseType)
+        {
+            if (string.Equals(type.ToDisplayString(), "System.TimeProvider", System.StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IOperation? Unwrapped(IOperation? operation)

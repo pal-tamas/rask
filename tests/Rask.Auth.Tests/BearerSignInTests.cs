@@ -116,7 +116,7 @@ public sealed class BearerSignInTests
     [Fact]
     public async Task The_session_lasts_the_token_s_lifetime_and_using_the_token_does_not_extend_it()
     {
-        var clock = new MutableClock(new DateTimeOffset(2026, 11, 27, 9, 0, 0, TimeSpan.Zero));
+        var clock = new ManualClock(new DateTimeOffset(2026, 11, 27, 9, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.BearerLifetime = TimeSpan.FromHours(1), clock);
         var issue = await BearerSignIn(harness).SignIn(Owner, Password, "203.0.113.7", Cancel);
         var sessionId = await OnlyTokenSessionAsync(harness);
@@ -138,7 +138,7 @@ public sealed class BearerSignInTests
     [Fact]
     public async Task The_sweep_removes_a_token_s_session_a_day_after_it_expires()
     {
-        var clock = new MutableClock(DateTimeOffset.UtcNow);
+        var clock = new ManualClock(DateTimeOffset.UtcNow);
         await using var harness = await ClaimedAsync(o => o.BearerLifetime = TimeSpan.FromHours(1), clock);
         await BearerSignIn(harness).SignIn(Owner, Password, "203.0.113.7", Cancel);
         var sessionId = await OnlyTokenSessionAsync(harness);

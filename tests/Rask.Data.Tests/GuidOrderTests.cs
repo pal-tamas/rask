@@ -46,7 +46,7 @@ public sealed class GuidOrderTests
     [Fact]
     public void Stored_ids_sort_on_SQL_Server_as_NET_sorts_the_ids()
     {
-        var ids = Enumerable.Range(0, 10_000).Select(static _ => BarrelId.New().Value)
+        var ids = Enumerable.Range(0, 10_000).Select(static _ => BarrelId.Create().Value)
             .Concat(Enumerable.Range(0, 2_000).Select(static _ => Guid.NewGuid())).ToList();
         var shuffled = ids.OrderBy(static _ => Random.Shared.Next()).ToList();
 
@@ -60,7 +60,7 @@ public sealed class GuidOrderTests
     [Fact]
     public void New_typed_ids_stored_are_strictly_increasing_on_SQL_Server()
     {
-        var made = Enumerable.Range(0, 10_000).Select(static _ => SqlServerGuidOrder.ToStore(BarrelId.New().Value)).ToList();
+        var made = Enumerable.Range(0, 10_000).Select(static _ => SqlServerGuidOrder.ToStore(BarrelId.Create().Value)).ToList();
 
         var ascending = made.Zip(made.Skip(1)).All(static p => new SqlGuid(p.First).CompareTo(new SqlGuid(p.Second)) < 0);
 

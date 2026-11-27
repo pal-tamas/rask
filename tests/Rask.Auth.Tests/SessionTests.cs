@@ -70,7 +70,7 @@ public sealed class SessionTests
     [Fact]
     public async Task A_session_left_unused_past_its_lifetime_does_not_resume()
     {
-        var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        var clock = new ManualClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
@@ -83,7 +83,7 @@ public sealed class SessionTests
     [Fact]
     public async Task A_session_in_use_slides_its_expiry_forward()
     {
-        var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        var clock = new ManualClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
@@ -117,7 +117,7 @@ public sealed class SessionTests
     {
         // The sweep also runs as the host starts. It used to delete every ended row at once, so one that ran late
         // removed a session a device list was still meant to show as signed out.
-        var clock = new MutableClock(DateTimeOffset.UtcNow);
+        var clock = new ManualClock(DateTimeOffset.UtcNow);
         await using var harness = await ClaimedAsync(clock: clock);
         var owner = (await harness.UserAsync(Owner))!;
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
@@ -189,7 +189,7 @@ public sealed class SessionTests
     [Fact]
     public async Task A_question_nobody_s_action_is_behind_does_not_slide_the_session_and_a_reader_s_does()
     {
-        var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        var clock = new ManualClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
@@ -376,14 +376,4 @@ public sealed class SessionTests
 
         return harness;
     }
-}
-
-/// <summary>A clock a test moves by hand.</summary>
-public sealed class MutableClock(DateTimeOffset start) : TimeProvider
-{
-    private DateTimeOffset _now = start;
-
-    public override DateTimeOffset GetUtcNow() => _now;
-
-    public void Advance(TimeSpan by) => _now += by;
 }

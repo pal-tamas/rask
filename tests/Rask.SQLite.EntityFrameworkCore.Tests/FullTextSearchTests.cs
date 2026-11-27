@@ -1,5 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Rask.Data;
 
@@ -12,6 +15,10 @@ public sealed class FullTextSearchTests : IDisposable
 {
     private const char S = FullText.MatchStart;
     private const char E = FullText.MatchEnd;
+
+    // FullTextSearchDdl's: the table says the index is built under Rask's names.
+    private const string NamesAnnotation = "Rask:FullTextSearch:Names";
+    private const string RaskNames = "snake";
 
     private readonly InMemorySqlite _database = new();
 
@@ -450,6 +457,30 @@ public sealed class FullTextSearchTests : IDisposable
     }
 
     [Fact]
+    public async Task An_index_built_under_the_older_names_is_rebuilt_under_rasks_by_the_next_migration()
+    {
+        await using var db = await SeededAsync();
+        await RenameTriggersAsync(db, "tr_Articles_fts_", "TR_Articles_fts_", ["insert", "delete", "update"], ["Insert", "Delete", "Update"]);
+        var table = db.GetService<IDesignTimeModel>().Model.GetRelationalModel().FindTable("Articles", null)!;
+        var spec = table[FullTextSearchSpec.AnnotationName];
+        var legacy = new AlterTableOperation { Name = "Articles", OldTable = new AlterTableOperation { Name = "Articles" } };
+        legacy[FullTextSearchSpec.AnnotationName] = spec;
+        legacy[NamesAnnotation] = RaskNames;
+        legacy.OldTable[FullTextSearchSpec.AnnotationName] = spec;
+
+        foreach (var command in db.GetService<IMigrationsSqlGenerator>().Generate([legacy], db.GetService<IDesignTimeModel>().Model))
+        {
+            await db.Database.ExecuteSqlRawAsync(command.CommandText, TestContext.Current.CancellationToken);
+        }
+
+        var triggers = await db.Database.SqlQueryRaw<string>("SELECT name AS Value FROM sqlite_master WHERE type = 'trigger' ORDER BY name")
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(RaskNames, table[NamesAnnotation]);
+        Assert.Equal(["tr_Articles_fts_delete", "tr_Articles_fts_insert", "tr_Articles_fts_update"], triggers);
+        Assert.Equal(["All about SQLite", "Databases"], await Titles(db.Articles.Search("sqlite")));
+    }
+
+    [Fact]
     public async Task Strict_tables_and_full_text_search_hold_at_the_same_time()
     {
         await using var db = Create<ArticleContext>(strictTables: true);
@@ -565,6 +596,21 @@ public sealed class FullTextSearchTests : IDisposable
     }
 
     private static Task<List<string>> Titles(IQueryable<Article> query) => query.Select(a => a.Title).ToListAsync();
+
+    // SQLite renames no trigger: each is dropped and created again under the older release's name.
+    private static async Task RenameTriggersAsync(DbContext db, string prefix, string legacyPrefix, string[] suffixes, string[] legacySuffixes)
+    {
+        for (var i = 0; i < suffixes.Length; i++)
+        {
+            var name = prefix + suffixes[i];
+            var sql = await db.Database.SqlQuery<string>($"SELECT sql AS Value FROM sqlite_master WHERE name = {name}")
+                .SingleAsync(TestContext.Current.CancellationToken);
+            var drop = "DROP TRIGGER \"" + name + "\"";
+            var create = sql.Replace("\"" + name + "\"", "\"" + legacyPrefix + legacySuffixes[i] + "\"", StringComparison.Ordinal);
+            await db.Database.ExecuteSqlRawAsync(drop, TestContext.Current.CancellationToken);
+            await db.Database.ExecuteSqlRawAsync(create, TestContext.Current.CancellationToken);
+        }
+    }
 
     private static async Task<string> PlanAsync(DbContext db, string queryString)
     {

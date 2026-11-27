@@ -15,7 +15,8 @@ namespace Rask.Generators.CodeFixes;
 
 /// <summary>
 ///     RASK192 — deletes a line that says what Rask's conventions already say: <c>.ToTable("fuelings")</c>,
-///     <c>.HasColumnName("pistol_id")</c>, <c>.HasDatabaseName("ix_…")</c>, <c>[Table("fuelings")]</c>.
+///     <c>.HasColumnName("pistol_id")</c>, <c>.HasDatabaseName("ix_…")</c>, <c>[Table("fuelings")]</c>, and a default
+///     restated — <c>.OnDelete(DeleteBehavior.Cascade)</c> on a child's key, <c>.IsRequired()</c>, <c>b.HasKey(x =&gt; x.Id);</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

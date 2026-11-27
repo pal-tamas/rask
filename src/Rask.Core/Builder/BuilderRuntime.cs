@@ -408,13 +408,6 @@ public static partial class BuilderRuntime
         slots.RemoveRange(depth, slots.Count - depth);
     }
 
-    /// <summary>A component with nothing to reset — no own props and not an <see cref="Element" />.</summary>
-    public static void ResetNothing(Component target, ulong pending)
-    {
-        _ = target;
-        _ = pending;
-    }
-
     // ---- Entry construction ----------------------------------------------------------------------
     //
     // The bodies live here rather than on Component because the generator emits ONE canonical entry per

@@ -483,7 +483,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                     $"Entity<{idType.Name}> assigns its own id — nothing generates one. " +
                     (ModelBuilderExtensions.IsInteger(idType)
                         ? "Its key is configured ValueGeneratedNever(), so give it one: Create(id, …), or set it where the entity is built."
-                        : "Set it where the entity is created — for a Guid key, OrderedGuid.New() (a typed id: its New()) in the entity's constructor or factory."));
+                        : "Set it where the entity is created — for a Guid key, Uuid.Create() (a typed id: its New()) in the entity's constructor or factory."));
             }
         }
     }

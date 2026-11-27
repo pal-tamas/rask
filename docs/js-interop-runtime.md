@@ -103,13 +103,10 @@ handler's interop call runs synchronously in that gesture's call stack, so it qu
 the click is forwarded over the WebSocket and the interop call runs a round-trip later, after the
 transient activation has expired. The practical effect:
 
-- **Sharing** splits by *when* you fire it. The headless declarative **`Shareable`** (`Rask.Core`) attaches
-  `data-rask-share` to your element and the shared client fires `navigator.share` **inside the click's own
-  call stack**, so the activation is still live — it therefore works on **every** host, Server included. The
-  imperative **`await Navigator.Share(…)`** ([`Rask.Web`](web-apis.md#what-only-webassembly-runs)) lets you
-  share from *code* (a lifecycle hook, after an `await`), which needs the in-process transport to keep the
-  activation — so it compiles only in a **WASM** app (on Server `navigator.share` would reject with
-  "Must be handling a user gesture").
+- **Sharing** splits by *when* you fire it: the headless **`Shareable`** fires `navigator.share` inside the click's own
+  call stack, so it works on **every** host, while the imperative **`await Navigator.Share(…)`** shares from *code*
+  and compiles only in a **WASM** app (on Server `navigator.share` would reject with "Must be handling a user
+  gesture"). See [Sharing](browser-apis.md#sharing--declarative-all-hosts-vs-imperative-in-process).
 - **Fullscreen** and **Picture-in-Picture** need transient activation too. They are `await _stage.RequestFullscreen()`
   and `await _video.RequestPictureInPicture()` on an element ref in [`Rask.Web`](web-apis.md#on-an-element-ref),
   generated into WASM only. On Server, `Trigger.Fullscreen` and `Trigger.PictureInPicture` run them in the click.
@@ -126,7 +123,7 @@ transient activation has expired. The practical effect:
 These are one-shot request/response calls. A *subscription* — `ISignaling`, `IWebRtc`, or a `Rask.Web` event such as
 `Window.OnDeviceMotion` — hands back an `IAsyncDisposable` and the browser **pushes** each change to a C# handler.
 Open it from a lifecycle hook and dispose of it on unmount. See
-[the push pattern](browser-apis-sharing.md#subscriptions--the-push-pattern).
+[the push pattern](browser-apis.md#subscriptions--the-push-pattern).
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).

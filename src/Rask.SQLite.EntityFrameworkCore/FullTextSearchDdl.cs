@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Rask.Data;
+using Rask.Generators.Shared;
 
 namespace Rask.SQLite;
 
@@ -43,11 +44,21 @@ namespace Rask.SQLite;
 /// </remarks>
 internal static class FullTextSearchDdl
 {
-    /// <summary>The FTS5 virtual table behind <paramref name="table"/>.</summary>
-    public static string IndexTable(string table) => $"{table}_fts";
+    /// <summary>
+    /// The table annotation that says the index is built under Rask's names (<c>tr_{table}_fts_insert</c>, each cut to 63
+    /// bytes): a snapshot without it is a database built under the older <c>TR_{Table}_fts_Insert</c>, so its next
+    /// migration alters the table, which drops the old index and triggers and builds them again under these names.
+    /// </summary>
+    public const string NamesAnnotation = "Rask:FullTextSearch:Names";
 
-    /// <summary>The key map behind a table whose key is not a single <c>INTEGER</c> column.</summary>
-    public static string KeyTable(string table) => $"{table}_fts_keys";
+    /// <summary>The value of <see cref="NamesAnnotation"/>: the naming the index is built under.</summary>
+    public const string RaskNames = "snake";
+
+    /// <summary>The FTS5 virtual table behind <paramref name="table"/>: <c>{table}_fts</c>, cut to 63 bytes.</summary>
+    public static string IndexTable(string table) => StoreNames.Fit($"{table}_fts");
+
+    /// <summary>The key map behind a table whose key is not a single <c>INTEGER</c> column: <c>{table}_fts_keys</c>, cut to 63 bytes.</summary>
+    public static string KeyTable(string table) => StoreNames.Fit($"{table}_fts_keys");
 
     /// <summary>The annotation recording which layout an entity's index uses: <see cref="RowidLayout"/> or <see cref="KeyMapLayout"/>.</summary>
     public const string LayoutAnnotation = "Rask:FullTextSearch:Layout";
@@ -224,15 +235,20 @@ internal static class FullTextSearchDdl
         }
     }
 
+    // Under Rask's names and under the ones an older release built (TR_{Table}_fts_Insert, an uncut {Table}_fts): a
+    // database built by either is cleared. SQLite reads a name regardless of case, so the two are one name unless the
+    // table's is long enough to be cut.
     private static void Drop(MigrationCommandListBuilder builder, string table)
     {
-        foreach (var trigger in Triggers(table))
+        foreach (var trigger in Triggers(table).Concat(LegacyTriggers(table)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             Append(builder, $"DROP TRIGGER IF EXISTS {Quote(trigger)};");
         }
 
-        Append(builder, $"DROP TABLE IF EXISTS {Quote(IndexTable(table))};");
-        Append(builder, $"DROP TABLE IF EXISTS {Quote(KeyTable(table))};");
+        foreach (var name in new[] { IndexTable(table), KeyTable(table), $"{table}_fts", $"{table}_fts_keys" }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            Append(builder, $"DROP TABLE IF EXISTS {Quote(name)};");
+        }
     }
 
     private static void Create(
@@ -338,7 +354,12 @@ internal static class FullTextSearchDdl
         string ColumnList,
         string Watched);
 
+    // Rask's names for the three triggers: tr_fuelings_fts_insert, cut to 63 bytes.
     private static string[] Triggers(string table) =>
+        [StoreNames.Fit($"tr_{table}_fts_insert"), StoreNames.Fit($"tr_{table}_fts_delete"), StoreNames.Fit($"tr_{table}_fts_update")];
+
+    // The names an older release gave them, dropped on the way to Rask's.
+    private static string[] LegacyTriggers(string table) =>
         [$"TR_{table}_fts_Insert", $"TR_{table}_fts_Delete", $"TR_{table}_fts_Update"];
 
     private static string Tokenizer(FullTextTokenizer tokenizer) => tokenizer switch

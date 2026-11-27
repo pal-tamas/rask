@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Endpoints;
 
 /// <summary>
 ///     End-to-end: the server host auto-injects the runtime <c>&lt;script&gt;</c> at the end of
-///     <c>&lt;body&gt;</c> on first paint, without the app declaring <c>RaskRuntimeScript()</c>.
+///     <c>&lt;body&gt;</c> on first paint, without the app placing it.
 /// </summary>
 // Runs in the non-parallel "ScopedAssets" collection: A_path_base_prefixes_the_injected_runtime_script_src
 // asserts on the host's pathBase, which the runtime script reads from the process-wide
@@ -62,32 +62,11 @@ public sealed class RuntimeScriptInjectionTests
         Assert.DoesNotContain("data-rask-base", body, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task A_legacy_runtime_script_in_the_tree_still_emits_exactly_one()
-    {
-        using var host = RaskTestHost.Create<LegacyShellApp>();
-
-        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-
-        var marker = "src=\"/rask/rask.js?v=";
-        var first = body.IndexOf(marker, StringComparison.Ordinal);
-        Assert.True(first >= 0);
-        Assert.Equal(-1, body.IndexOf(marker, first + marker.Length, StringComparison.Ordinal));
-    }
-
-    // No RaskRuntimeScript() — the framework injects it.
+    // Nothing in the tree places the runtime script — the framework injects it.
     private sealed class ShellApp(RouteState routeState) : Component
     {
         protected override string? HtmlLang => null;
 
         protected override Component? Render() => Markup.H1[$"path={routeState.Path}"];
-    }
-
-    // Legacy tree that still contains the (now no-op) RaskRuntimeScript().
-    private sealed class LegacyShellApp(RouteState routeState) : Component
-    {
-        protected override string? HtmlLang => null;
-
-        protected override Component? Render() => [Markup.H1[$"path={routeState.Path}"], RaskRuntimeScript];
     }
 }

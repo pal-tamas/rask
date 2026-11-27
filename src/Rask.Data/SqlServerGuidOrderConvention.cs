@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
@@ -25,24 +26,51 @@ namespace Rask.Data;
 ///         carries <see cref="SqlServerGuidOrder.Annotation" />, and the migration that first sees it rewrites the rows an
 ///         existing database holds. Without that differ a database made before would be misread, so nothing changes.
 ///     </para>
+///     <para>
+///         Two hold a model to it, one copy of this file each. Rask.Data's model conventions
+///         (<c>ModelRegistry.ApplyConventions</c>: a <c>RaskDbContext</c>, a read face) add theirs, which keeps a one-value
+///         value object's converter Rask's own. <c>UseRaskSqlServer</c> adds Rask.SqlServer's to every model, so a plain
+///         <c>DbContext</c> holding a battery's tables (<c>AddRaskJobs()</c>, <c>AddRaskLogging()</c>) is stored as
+///         <c>RaskAppDbContext</c> is; that one yields to the first wherever Rask's conventions marked the model
+///         (<see cref="RaskConventionsAnnotation" />), so a model's Guids are stored by one, never twice — and taking
+///         Rask.Data's out of a model built with Rask's conventions leaves it in SQL Server's native layout.
+///     </para>
 /// </remarks>
 /// <param name="typeMappings">The provider's type mappings, or null where the convention is off.</param>
-internal sealed class SqlServerGuidOrderConvention(IRelationalTypeMappingSource? typeMappings) : IModelFinalizingConvention
+/// <param name="store">The converter a property stores through, given the one it has already.</param>
+/// <param name="yieldsToRaskConventions">Whether a model Rask's conventions marked is left to theirs.</param>
+internal sealed class SqlServerGuidOrderConvention(
+    IRelationalTypeMappingSource? typeMappings, Func<ValueConverter?, ValueConverter> store, bool yieldsToRaskConventions)
+    : IModelFinalizingConvention
 {
+    /// <summary>
+    ///     On a model while it is built with Rask.Data's model conventions, and taken off as it is finalized: a name, as
+    ///     the copy in Rask.SqlServer reads it.
+    /// </summary>
+    internal const string RaskConventionsAnnotation = "Rask:ModelConventions";
+
     private const string StoreType = "uniqueidentifier";
 
     /// <summary>The convention for the provider <paramref name="services" /> belong to: off anywhere but SQL Server.</summary>
-    internal static SqlServerGuidOrderConvention For(IServiceProvider services) =>
+    /// <param name="services">EF Core's internal service provider, as a convention is handed it.</param>
+    /// <param name="store">The converter a property stores through, given the one it has already.</param>
+    /// <param name="yieldsToRaskConventions">Whether a model Rask's conventions marked is left to theirs.</param>
+    internal static SqlServerGuidOrderConvention For(
+        IServiceProvider services, Func<ValueConverter?, ValueConverter> store, bool yieldsToRaskConventions = false) =>
         new(string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)
             && RaskMigrationsModelDiffer.IsRegistered(services)
                 ? services.GetService<IRelationalTypeMappingSource>()
-                : null);
+                : null,
+            store,
+            yieldsToRaskConventions);
 
     public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)
     {
         // A read model follows the write model it mirrors: rewriting a face's id the write side stores as it is would
         // compare it with bytes no row holds.
-        if (typeMappings is null || modelBuilder.Metadata.FindAnnotation(SqlServerGuidOrder.WriteSideAnnotation)?.Value is false)
+        if (typeMappings is null
+            || yieldsToRaskConventions && modelBuilder.Metadata.FindAnnotation(RaskConventionsAnnotation) is not null
+            || modelBuilder.Metadata.FindAnnotation(SqlServerGuidOrder.WriteSideAnnotation)?.Value is false)
         {
             return;
         }
@@ -74,7 +102,7 @@ internal sealed class SqlServerGuidOrderConvention(IRelationalTypeMappingSource?
         var generated = property.ValueGenerated;
         var generatedBy = property.GetValueGeneratedConfigurationSource();
 
-        property.SetValueConverter(StoredGuidConverter.After(property.GetValueConverter()));
+        property.SetValueConverter(store(property.GetValueConverter()));
         property.Builder.HasTypeMapping(typeMappings!.FindMapping((IProperty)property));
 
         if (property.ValueGenerated != generated)

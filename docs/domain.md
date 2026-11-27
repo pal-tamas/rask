@@ -47,7 +47,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
     public bool Discontinued { get; private set; }
 
     private static Product Add(ProductName name, UnitPrice price) =>        // a factory: its entry is Product.Add(…)
-        new() { Id = ProductId.New(), Name = name, Price = price };
+        new() { Id = ProductId.Create(), Name = name, Price = price };
 
     public void Reprice(UnitPrice price)                                     // an operation: Product.Reprice(id, version, …)
     {
@@ -637,7 +637,7 @@ gets it too):
 
 | Member | Does |
 |---|---|
-| `VehicleId.New()` | a new version-7 `Guid`, strictly increasing within the process (RFC 9562's counter in `rand_a`: two ids made in one millisecond still come out in order) — an id over a `Guid` only; the others come from the store or the caller |
+| `VehicleId.Create()` | a new version-7 `Guid`, strictly increasing within the process (RFC 9562's counter in `rand_a`: two ids made in one millisecond still come out in order) — an id over a `Guid` only; the others come from the store or the caller |
 | `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
 | `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
 | JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
@@ -674,14 +674,14 @@ public sealed class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned, IHas
 {
     public static Order Place(string reference)
     {
-        var order = new Order { Id = OrderId.New(), Reference = reference };
+        var order = new Order { Id = OrderId.Create(), Reference = reference };
         order.Raise(new OrderPlaced(order.Id));          // the row's id, from the first line
         return order;
     }
 }
 ```
 
-`OrderId.New()` is a version-7 `Guid` (`OrderedGuid.New()`): time-ordered and strictly increasing — the 12 bits after
+`OrderId.Create()` is a version-7 `Guid` (`Uuid.Create()`): time-ordered and strictly increasing — the 12 bits after
 the millisecond count, where `Guid.CreateVersion7()` fills them at random, so two ids made in one millisecond still sort
 in the order they were made (RASK148 points at a key set to `Guid.CreateVersion7()` or `Guid.NewGuid()`). The
 primary-key index stays append-only as an identity's does, and unique without asking the database. That is what makes the id real before the
@@ -700,8 +700,8 @@ Who produces the key follows the value it holds:
 - **Over an `int` or a `long`** the key is the store's identity, exactly as the integer would be: `Vehicle.Create(model)`
   inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
   `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
-- **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
-  `Create(model)` calls `VehicleId.New()` too.
+- **Over a `Guid`** the key is the application's: `VehicleId.Create()` in the factory, and the generated
+  `Create(model)` calls `VehicleId.Create()` too.
 - **Over a `string`** the caller names it: `Create(id, model)`.
 
 **A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
@@ -712,6 +712,109 @@ older tool wrote in upper case still loads. Whether a `Where` still finds it is 
 every text column is `RASK_TEXT`) and on SQL Server's usual `_CI_` collations it does; a column that compares as
 written (SQLite's default `BINARY`, PostgreSQL's `text`) does not, so lower-case such a column once. A column that
 stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
+
+## Relationships: `HasMany` and `BelongsTo`
+
+A relationship says which side of the border the other row is on. Inside the boundary are the aggregate's own parts,
+loaded and saved with it; across it is another aggregate, which this one only names. Rask has one word for each, and
+they read as the Rails and Laravel ones do:
+
+| Rails | Laravel | Rask | The other row |
+|---|---|---|---|
+| `has_many :lines` | `hasMany(Line::class)` | `public HasMany<OrderLine> Lines { get; } = new();` | a **child**, inside the boundary: loaded, saved and deleted with the root ([Children](#children)) |
+| `belongs_to :vehicle` | `belongsTo(Vehicle::class)` | `public partial BelongsTo<Vehicle>? Vehicle { get; }` | **another aggregate**, across it: the row stores its id, and nothing loads, tracks or saves it from here ([below](#another-aggregate-belongsto)) |
+| `belongs_to :vehicle, optional: true` | `->nullable()` foreign key | `BelongsTo<Vehicle>?` — required without the `?` | — |
+| `has_one :address` | `hasOne(Address::class)` | a [value object](#value-objects) (`Address Address`), its columns on the row | a part with no identity of its own |
+| `has_many :through`, `has_and_belongs_to_many` | `belongsToMany(...)` | a link child — `HasMany<DriverVehicle>` on ONE side, its `Sync(ids, …)` ([Children](#children)) | the other side reads it on its read face |
+
+The difference from Rails and Laravel is the border. There, `fueling.vehicle` hands back a live `Vehicle` you can change
+and save along with the fueling; here an aggregate is a consistency boundary, so the other one is **read** — from its read
+face, explicitly — and changed only by its own write. There is no lazy loading behind a property and no graph save across
+aggregates. There is no `HasOne` either: a one-to-one part is a value object, and a child with an identity of its own
+that an aggregate holds exactly one of has not come up in an app yet.
+
+### Another aggregate: `BelongsTo`
+
+Declare the reference, `partial`, on a `partial` entity — an aggregate or one of its children:
+
+```csharp
+public sealed partial class Fueling : Aggregate<FuelingId>, IVersioned
+{
+    public partial BelongsTo<Vehicle>? Vehicle { get; }   // optional: the fueling may name no vehicle
+    public partial BelongsTo<Driver> FilledBy { get; }   // required
+
+    public void Assign(VehicleId vehicle) => VehicleId = vehicle;   // through the id, from the aggregate itself
+}
+```
+
+Rask generates the rest beside it:
+
+```csharp
+// generated
+public VehicleId? VehicleId { get; private set; }     // the stored foreign key, of Vehicle's own key type
+public int FilledById { get; private set; }           // required: not nullable; Driver : Aggregate<int>
+public partial BelongsTo<Vehicle>? Vehicle => VehicleId is { } id ? BelongsTo.Of<Vehicle, VehicleId>(id) : null;
+```
+
+**The key is the reference's name plus `Id`**, of the other aggregate's key type, nullable exactly when the reference is.
+It is assigned like any of the aggregate's state, inside the aggregate: `VehicleId = vehicle` (Rails' `vehicle_id =`). A
+`BelongsTo` has no setter, so there is no object to assign — and nothing to reach the other aggregate's behaviour through.
+
+**Reading the other aggregate is the read face's**, on purpose and out loud:
+
+```csharp
+VehicleRead? vehicle = await fueling.Vehicle.Read();           // its row, by the id — null for none, or one gone or another tenant's
+string? plate = await fueling.Vehicle.Read(v => v.Plate);      // one column of it
+VehicleId? id = fueling.Vehicle?.Id;                            // the id alone, no query — or fueling.VehicleId
+
+// many references, one query: a dictionary by id, with no entry for a null reference
+IReadOnlyDictionary<VehicleId, VehicleRead> vehicles = await fuelings.Select(f => f.Vehicle).Read();
+
+// on a query, the read face's navigation of the same name
+var rows = await Fueling.Include(f => f.Vehicle).ThenInclude(v => v.Owner);
+var plates = await Fueling.Where(f => f.Vehicle!.Plate.StartsWith("AB")).Select(f => f.Vehicle!.Plate);
+```
+
+`Read()` is generated for every aggregate a `BelongsTo` in the same project names. `ThenInclude` continues an `Include`
+on any read face — a reference, a child list (`Order.Include(o => o.Lines).ThenInclude(l => l.Product)`) or the rows that
+point here — and, as in EF Core, only right after the `Include` it continues. On the target the reference works backwards
+like any inferred one: `VehicleRead.Fuelings`, the fuelings whose `VehicleId` is the vehicle's ([the rows that point
+here](data.md#the-rows-that-point-here)).
+
+**Nothing about it is part of this aggregate's load or save.** `Fueling.Find(id)` loads the fueling and its children, not
+the vehicle; a save writes the `VehicleId` column and nothing of the vehicle's. Asking EF Core to load one anyway —
+`db.Fuelings.Include(f => f.Vehicle)` on the write context, a `ThenInclude` onto one, `Entry(f).Reference(f => f.Vehicle)`
+— is [RASK195](diagnostics.md#rask195), an error: EF Core maps the id and no navigation, which is the border.
+
+**It is a foreign key that never cascades.** The relationship is mapped as
+`b.HasOne<Vehicle>().WithMany().HasForeignKey(f => f.VehicleId)` with `OnDelete(DeleteBehavior.NoAction)` — a vehicle a
+fueling still names cannot be deleted, the database says so, and a context holding both never nulls the fueling's id ([what deleting a referenced row
+says](data.md#what-deleting-a-referenced-row-says)). The entity's own `Configure` may still state the relationship, to give
+it another `OnDelete` or a `WhenReferenced` sentence; that is the same relationship, and what it says wins:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Fueling> b) =>
+    b.HasOne<Vehicle>().WithMany().HasForeignKey(f => f.VehicleId)
+     .OnDelete(DeleteBehavior.Restrict, "The vehicle has fuelings and cannot be deleted.");
+```
+
+**Moving to it is no migration.** A hand-written id — `public VehicleId? VehicleId { get; private set; }`, with or without
+a `Vehicle` navigation beside it, with or without the `HasOne<Vehicle>().WithMany().HasForeignKey(…)` that configured it —
+is the same column, the same index and the same constraint as the generated one, so EF Core's migration differ finds
+nothing between them on SQLite, SQL Server and PostgreSQL. Two things do move, and say so: a **required** reference whose
+relationship was left to EF Core's default deletes in cascade, and becomes `NoAction` (state the `OnDelete` in `Configure`
+to keep the cascade, or `Restrict` where that is what the hand-written one said); an id that had no relationship at all gains its foreign key and index. The read face keeps its
+`Vehicle` navigation and its `VehicleId` column as they were. [RASK196](diagnostics.md#rask196) suggests the move where it
+changes nothing — the aggregate an id names is found as the read face finds it: a typed id by its type, a configured
+relationship by its `HasOne<T>()`, any other id by its name — and its quick-fix makes it, dropping a hand-written
+navigation and making the class `partial`.
+
+**What it cannot be**, each [RASK194](diagnostics.md#rask194), an error: a reference that is not `partial … { get; }`,
+on a class that is not `partial` or is no entity; to something that is not an aggregate (a child is reached through its
+root, or by its id), to the tenant (that is [`IBelongsTo<Tenant>`](#choosing-what-a-table-carries)), or — from a child —
+to the root that holds it, which reaches it already; a key name the entity already uses; and on an aggregate with a
+generated [form model](#a-form-model-for-data-shaped-aggregates), which does not carry a reference yet: write the id
+through an operation (`Form.For(Fueling.Assign, id)`) instead.
 
 ## Children
 
@@ -728,7 +831,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
     public HasMany<OrderLine> Lines { get; } = new();
 
     public static Order Place(string reference) =>
-        new() { Id = OrderedGuid.New(), Reference = reference };
+        new() { Id = Uuid.Create(), Reference = reference };
 
     public OrderLine Add(string product, int quantity)   // the aggregate guards its own invariants
     {
@@ -749,7 +852,7 @@ public sealed class OrderLine : Entity<Guid>
     public void SetQuantity(int quantity) => Quantity = quantity;
 
     internal static OrderLine For(string product, int quantity) =>
-        new() { Id = OrderedGuid.New(), Product = product, Quantity = quantity };
+        new() { Id = Uuid.Create(), Product = product, Quantity = quantity };
 }
 ```
 
@@ -1438,7 +1541,7 @@ writes what changed since — it never reads the row again.
   snapshot of what it read. `Save()` compares with that snapshot and writes only the columns you changed — a column
   someone else changed meanwhile keeps their value — with no SELECT, however large the row. Every successful save
   takes a new snapshot, so the next `Save()` reads nothing either.
-- **New is inserted with no read.** An aggregate your code made (`Order.Place(…)`, `new() { Id = OrderedGuid.New() }`)
+- **New is inserted with no read.** An aggregate your code made (`Order.Place(…)`, `new() { Id = Uuid.Create() }`)
   and never saved is an INSERT. So an aggregate built — or deserialised — with the key of an EXISTING row is an
   insert too, refused by the key: `Find` it and change it instead.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
@@ -1601,7 +1704,7 @@ public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersion
     public TrackingNumber? Tracking { get; private set; }
 
     private static Order Place(OrderReference reference) =>                      // the factory: Order.Place(reference)
-        new() { Id = OrderId.New(), Reference = reference, Status = OrderStatus.Placed };
+        new() { Id = OrderId.Create(), Reference = reference, Status = OrderStatus.Placed };
 
     public void Pay()
     {
@@ -1749,13 +1852,13 @@ public sealed class OrderLine : Entity<Guid>
     public int Quantity { get; private set; }
 
     public static OrderLine For(Guid productId, int quantity) =>
-        new() { Id = OrderedGuid.New(), ProductId = productId, Quantity = quantity };
+        new() { Id = Uuid.Create(), ProductId = productId, Quantity = quantity };
 }
 ```
 
 **The entity owns its key.** Rask.Data's key convention leaves an integer key (or a typed id over one) to the database's identity and
 marks every other key never generated, so a `Guid` or a strongly-typed id is assigned where the entity is
-built: `Id = OrderedGuid.New()` (or a typed id's `New()`) in its factory. That is what lets a child with an id of its own be added
+built: `Id = Uuid.Create()` (or a typed id's `Create()`) in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
 the save, by name, rather than inserted with an empty key. A key you configured yourself
 (`ValueGeneratedOnAdd()`, a database default) is left as you set it, and an integer key you marked

@@ -78,5 +78,5 @@ subscription handler, not a chain-set callback, so calling `StateHasChanged()` i
 
 - Source: [`IBackgroundSync.cs`](../../src/Rask.Wasm/Browser/IBackgroundSync.cs)
 - [Mobile & PWA guide](../pwa.md) — the service worker this rides on
-- [Capability matrix](../browser-capabilities.md)
+- [Where each wrapper works](../browser-apis-reference.md#where-each-wrapper-works)
 - [Browser APIs — the narrative map](../browser-apis.md)

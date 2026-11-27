@@ -56,6 +56,15 @@ internal static class OneValueConverters
     public static bool IsOwn(ValueConverter? converter) => converter is IOwn;
 
     /// <summary>
+    ///     <paramref name="first" /> then a <see cref="Guid" /> in the form SQL Server sorts by time: Rask's own converter
+    ///     of a one-value value object stays Rask's own, so its <c>.Value</c> still reads the column.
+    /// </summary>
+    /// <param name="first">The converter the property has already, or null for a bare <see cref="Guid" />.</param>
+    /// <returns>The converter the property stores through.</returns>
+    public static ValueConverter ThenStoredGuid(ValueConverter? first) =>
+        first is IOwn own ? own.StoringThrough(StoredGuidConverter.Plain) : StoredGuidConverter.After(first);
+
+    /// <summary>
     ///     <paramref name="written" />, then <paramref name="stored" /> on the way to the column: Rask's own converter
     ///     stays Rask's own — its <c>.Value</c> still reads the column, through <paramref name="stored" /> — and an
     ///     app's is composed with it.

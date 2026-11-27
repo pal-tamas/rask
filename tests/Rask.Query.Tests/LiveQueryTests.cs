@@ -34,7 +34,7 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Eventually(() => fetches > before);
+        await WaitFor.True(() => fetches > before);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Eventually(() => dispatcher.QueryCountFor<GetLiveOrders>() > before);
+        await WaitFor.True(() => dispatcher.QueryCountFor<GetLiveOrders>() > before);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed class LiveQueryTests
         client.Query(QueryKey.For<Order>("b"), Counting(() => { }), Keep);
         client.Query(new GetLiveOrders(1), Keep);
 
-        await Eventually(() => dispatcher.SubscriberCount == 1);
+        await WaitFor.True(() => dispatcher.SubscriberCount == 1);
         await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(1, dispatcher.SubscriberCount);
     }
@@ -143,14 +143,14 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Eventually(() => a > beforeA && b > beforeB);
+        await WaitFor.True(() => a > beforeA && b > beforeB);
     }
 
     [Fact]
     public async Task A_session_whose_scope_ends_stops_refetching()
     {
         var dispatcher = new CountingDispatcher();
-        var clock = new TestClock(DateTimeOffset.UnixEpoch.AddYears(55));
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch.AddYears(55));
         await using var services = new ServiceCollection()
             .AddSingleton<IDispatcher>(dispatcher)
             .AddSingleton<TimeProvider>(clock)
@@ -177,10 +177,10 @@ public sealed class LiveQueryTests
             return Task.FromResult("value");
         };
 
-    private static (IQueryClient Client, CountingDispatcher Dispatcher, TestClock Clock) Session()
+    private static (IQueryClient Client, CountingDispatcher Dispatcher, ManualClock Clock) Session()
     {
         var dispatcher = new CountingDispatcher();
-        var clock = new TestClock(DateTimeOffset.UnixEpoch.AddYears(55));
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch.AddYears(55));
         var services = new ServiceCollection()
             .AddSingleton<IDispatcher>(dispatcher)
             .AddSingleton<TimeProvider>(clock)
@@ -190,25 +190,15 @@ public sealed class LiveQueryTests
     }
 
     // Published after the listener opened, which is what separates a real change from the replay above.
-    private static Task Changed(CountingDispatcher dispatcher, TestClock clock, Type entity) =>
+    private static Task Changed(CountingDispatcher dispatcher, ManualClock clock, Type entity) =>
         dispatcher.Publish(new DataChanged(entity.FullName!, clock.GetUtcNow() + TimeSpan.FromSeconds(1)));
 
     private static async Task Settled<T>(Query<T> query)
     {
-        await Eventually(() => query.Data is not null);
+        await WaitFor.True(() => query.Data is not null);
 
         // The listener opens on a background task; a publish before it has registered would reach nobody and the
         // test would fail for a reason that has nothing to do with being live.
         await Task.Delay(100);
-    }
-
-    private static async Task Eventually(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "the condition never held");
-            await Task.Delay(10);
-        }
     }
 }

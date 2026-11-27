@@ -94,7 +94,7 @@ internal static class DevToolsGate
 
 /// <summary>Every journey that starts a devtools host, run one at a time: the devtools' probe is process-wide.</summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class DevToolsHostCollection : ICollectionFixture<Site.E2E.Tests.Infrastructure.PlaywrightFixture>
+public sealed class DevToolsHostCollection : ICollectionFixture<PlaywrightFixture>
 {
     public const string Name = "Rask DevTools hosts (process-wide probe)";
 }

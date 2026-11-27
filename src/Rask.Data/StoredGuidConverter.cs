@@ -22,23 +22,19 @@ internal sealed class StoredGuidConverter : ValueConverter<Guid, Guid>
     ///     for a bare <see cref="Guid" />.
     /// </summary>
     /// <remarks>
-    ///     Rask's own converter of a one-value value object stays Rask's own, so its <c>.Value</c> still reads the column
-    ///     (<see cref="OneValueConverters.Then" />).
+    ///     Rask.Data's model conventions keep Rask's own converter of a one-value value object Rask's own on top of this
+    ///     (<c>OneValueConverters.ThenStoredGuid</c>); this file is compiled into Rask.SqlServer too, which has none.
     /// </remarks>
-    public static ValueConverter After(ValueConverter? first)
-    {
-        if (first is null)
-        {
-            return Plain;
-        }
-
-        return OneValueConverters.IsOwn(first) ? OneValueConverters.Then(first, Plain) : first.ComposeWith(Plain);
-    }
+    public static ValueConverter After(ValueConverter? first) => first is null ? Plain : first.ComposeWith(Plain);
 
     /// <summary>
     ///     Whether <paramref name="converter" /> stores in the form already — a read face mirrors its write model's
     ///     converter, and storing twice would scramble the id.
     /// </summary>
+    /// <remarks>
+    ///     Asked by name: Rask.Data's copy of <see cref="SqlServerGuidOrder" /> and Rask.SqlServer's are two types, and the
+    ///     stored form either wrote is the same.
+    /// </remarks>
     public static bool IsIn(ValueConverter? converter) =>
         converter is not null && new StoreCallFinder().Finds(converter.ConvertToProviderExpression);
 
@@ -54,7 +50,7 @@ internal sealed class StoredGuidConverter : ValueConverter<Guid, Guid>
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            _found |= node.Method.DeclaringType == typeof(SqlServerGuidOrder) &&
+            _found |= string.Equals(node.Method.DeclaringType?.FullName, typeof(SqlServerGuidOrder).FullName, StringComparison.Ordinal) &&
                       string.Equals(node.Method.Name, nameof(SqlServerGuidOrder.ToStore), StringComparison.Ordinal);
             return base.VisitMethodCall(node);
         }

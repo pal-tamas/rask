@@ -104,7 +104,7 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     {
         return new OutboxMessage
         {
-            Id = OrderedGuid.New(),
+            Id = Uuid.Create(),
             Type = type,
             Payload = payload,
             Handler = handler,

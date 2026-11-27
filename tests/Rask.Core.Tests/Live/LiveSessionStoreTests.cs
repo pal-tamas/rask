@@ -66,7 +66,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
 
         store.ScheduleRemoval(id, TimeSpan.FromMilliseconds(50));
 
-        await WaitForAsync(() => store.Count == 0, TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => store.Count == 0);
         Assert.Equal(0, store.Count);
     }
 
@@ -83,7 +83,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
 
         Assert.NotNull(fetched);
         Assert.False(store.HasPendingRemoval(session.Id));
-        await WaitForAsync(() => clock.NothingIsCounting, LongEnoughToHang);
+        await WaitFor.True(() => clock.NothingIsCounting);
         Assert.True(clock.NothingIsCounting);
     }
 
@@ -98,12 +98,10 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(5));
 
-        await WaitForAsync(() => clock.OnlyCounts(TimeSpan.FromSeconds(5)), LongEnoughToHang);
+        await WaitFor.True(() => clock.OnlyCounts(TimeSpan.FromSeconds(5)));
         Assert.True(clock.OnlyCounts(TimeSpan.FromSeconds(5)));
         Assert.NotNull(store.Peek(session.Id));
     }
-
-    private static readonly TimeSpan LongEnoughToHang = TimeSpan.FromSeconds(30);
 
     // A clock on which no grace period ever ends: what the store is counting is read off its timers, so
     // a schedule that was replaced is one whose timer was put down, however long the test's thread waited.
@@ -180,7 +178,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(30));
 
-        await WaitForAsync(() => store.Count == 0, TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => store.Count == 0);
         Assert.Equal(0, store.Count);
     }
 
@@ -292,21 +290,6 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
         Assert.Equal(10, admitted.Count(ok => ok));
         Assert.Equal(10, store.Count);
     }
-
-    private static async Task WaitForAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-            {
-                return;
-            }
-
-            await Task.Delay(20);
-        }
-    }
-
     private sealed class AsyncDisposableTracker : Component, IAsyncDisposable
     {
         private readonly TaskCompletionSource _disposed;

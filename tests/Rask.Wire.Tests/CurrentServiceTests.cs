@@ -15,7 +15,7 @@ public sealed class CurrentServiceTests
     [Fact]
     public void In_a_job_s_scope_it_is_that_scope_s_instance()
     {
-        var clock = new FakeClock();
+        var clock = new ManualClock();
         var scope = new OnDemandServicesTests.WaitingApp.Services(clock);
 
         TimeProvider resolved;
@@ -35,10 +35,10 @@ public sealed class CurrentServiceTests
         InvalidOperationException error;
         using (Ambient.Enter(scope))
         {
-            error = Assert.Throws<InvalidOperationException>(Current.Service<FakeClock>);
+            error = Assert.Throws<InvalidOperationException>(Current.Service<ManualClock>);
         }
 
-        Assert.Equal($"No service for type '{typeof(FakeClock)}' has been registered.", error.Message);
+        Assert.Equal($"No service for type '{typeof(ManualClock)}' has been registered.", error.Message);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class CurrentServiceTests
     [Fact]
     public void The_request_in_progress_answers_when_nothing_was_pushed()
     {
-        var request = new OnDemandServicesTests.WaitingApp.Services(new FakeClock());
+        var request = new OnDemandServicesTests.WaitingApp.Services(new ManualClock());
         var previous = Ambient.RequestServices;
         Ambient.RequestServices = () => request;
 
@@ -73,13 +73,13 @@ public sealed class CurrentServiceTests
             Ambient.RequestServices = previous;
         }
 
-        Assert.IsType<FakeClock>(resolved);
+        Assert.IsType<ManualClock>(resolved);
     }
 
     [Fact]
     public void What_was_pushed_answers_before_the_request()
     {
-        var job = new OnDemandServicesTests.WaitingApp.Services(new FakeClock());
+        var job = new OnDemandServicesTests.WaitingApp.Services(new ManualClock());
         var request = new OnDemandServicesTests.WaitingApp.Services(TimeProvider.System);
         var previous = Ambient.RequestServices;
         Ambient.RequestServices = () => request;
@@ -97,8 +97,6 @@ public sealed class CurrentServiceTests
             Ambient.RequestServices = previous;
         }
 
-        Assert.IsType<FakeClock>(resolved);
+        Assert.IsType<ManualClock>(resolved);
     }
-
-    private sealed class FakeClock : TimeProvider;
 }

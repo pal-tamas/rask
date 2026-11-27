@@ -24,7 +24,7 @@ public sealed class QueuedMail : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     /// <summary>The row for <paramref name="email" />, sent from <paramref name="from" /> once <paramref name="runAt" /> comes.</summary>
     internal static QueuedMail For(Mail.Message email, EmailAddress from, Timestamp runAt) => new()
     {
-        Id = OrderedGuid.New(),
+        Id = Uuid.Create(),
         From = MailSerializer.SerializeAddress(from),
         To = JsonSerializer.Serialize(email.ToRecipients, MailSerializer.Options),
         Cc = MailSerializer.ToJsonOrNull(email.CcRecipients),

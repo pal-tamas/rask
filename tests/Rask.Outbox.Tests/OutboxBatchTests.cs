@@ -48,7 +48,7 @@ public sealed class OutboxBatchTests : IDisposable
     private readonly Recorder _recorder = new();
     private readonly ScopeLog _scopes = new();
     private readonly OutboxGate _gate = new();
-    private readonly SteppedClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new();
     private readonly ServiceProvider _provider;
 
     public OutboxBatchTests()
@@ -166,15 +166,5 @@ public sealed class OutboxBatchTests : IDisposable
         await using var db = NewContext();
         db.Orders.Add(order);
         await db.SaveChangesAsync(Ct);
-    }
-
-    // A clock the test moves; its timers are the system's, so the renewal ticks in real time.
-    private sealed class SteppedClock(DateTimeOffset start) : TimeProvider
-    {
-        private long _ticks = start.UtcTicks;
-
-        public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
     }
 }

@@ -87,7 +87,15 @@ internal static class MomentsInUtc
     ///     a table both have, marked in the target and not in the source. A table or column the migration creates holds no
     ///     row to rewrite, and the first migration has no source.
     /// </summary>
-    internal static IEnumerable<SqlOperation> Between(IRelationalModel? source, IRelationalModel target)
+    /// <param name="source">The model the database has, or null for the first migration.</param>
+    /// <param name="target">The model the migration moves to.</param>
+    /// <param name="operations">
+    ///     The migration's other steps: a table or column one of them renames (Rask's <c>fuelings</c> over EF Core's
+    ///     <c>Fuelings</c>) is found under its old name in <paramref name="source" />, and rewritten under its new one —
+    ///     after the renames, since the step goes last.
+    /// </param>
+    internal static IEnumerable<SqlOperation> Between(
+        IRelationalModel? source, IRelationalModel target, IReadOnlyList<MigrationOperation> operations)
     {
         if (source is null)
         {
@@ -96,17 +104,36 @@ internal static class MomentsInUtc
 
         foreach (var table in target.Tables)
         {
-            if (source.FindTable(table.Name, table.Schema) is not { } before)
+            if (Before(source, table, operations) is not { } before)
             {
                 continue;
             }
 
-            foreach (var column in table.Columns.Where(c => Marked(c) && before.FindColumn(c.Name) is { } was && !Marked(was)).Select(static c => c.Name))
+            foreach (var column in table.Columns.Where(c => Marked(c) && Before(before, table, c, operations) is { } was && !Marked(was)).Select(static c => c.Name))
             {
                 yield return Rewriting(table.Name, table.Schema, column);
             }
         }
     }
+
+    // The table the database has: the one the migration renames to this one, or else the one of the same name.
+    private static ITable? Before(IRelationalModel source, ITable table, IReadOnlyList<MigrationOperation> operations) =>
+        operations.OfType<RenameTableOperation>()
+            .Where(r => string.Equals(r.NewName ?? r.Name, table.Name, StringComparison.Ordinal) &&
+                        string.Equals(r.NewSchema ?? r.Schema, table.Schema, StringComparison.Ordinal))
+            .Select(r => source.FindTable(r.Name, r.Schema))
+            .FirstOrDefault(static t => t is not null)
+        ?? source.FindTable(table.Name, table.Schema);
+
+    // The column the database has: the one the migration renames to this one, or else the one of the same name.
+    private static IColumn? Before(ITable before, ITable table, IColumn column, IReadOnlyList<MigrationOperation> operations) =>
+        operations.OfType<RenameColumnOperation>()
+            .Where(r => string.Equals(r.NewName, column.Name, StringComparison.Ordinal) &&
+                        string.Equals(r.Schema, table.Schema, StringComparison.Ordinal) &&
+                        (string.Equals(r.Table, table.Name, StringComparison.Ordinal) || string.Equals(r.Table, before.Name, StringComparison.Ordinal)))
+            .Select(r => before.FindColumn(r.Name))
+            .FirstOrDefault(static c => c is not null)
+        ?? before.FindColumn(column.Name);
 
     // [name], a ] in it doubled: a name of any characters, read back as written.
     private static string Quoted(string name) => "[" + name.Replace("]", "]]", StringComparison.Ordinal) + "]";

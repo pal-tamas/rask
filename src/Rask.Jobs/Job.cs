@@ -184,7 +184,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
         var userId = CurrentUser.Id;
         return new Job
         {
-            Id = OrderedGuid.New(),
+            Id = Uuid.Create(),
             Type = type,
             Payload = payload,
             RunAt = runAt,

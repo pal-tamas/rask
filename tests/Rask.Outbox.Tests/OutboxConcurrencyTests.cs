@@ -81,7 +81,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
             // The saboteur deletes "first" mid-drain, so that row's save throws out of the drain. Without the
             // per-cycle guard that exception faults the BackgroundService — and with the default
             // BackgroundServiceExceptionBehavior.StopHost, takes the whole application down with it.
-            await WaitUntilAsync(async () =>
+            await WaitFor.True(async () =>
             {
                 await using var poll = NewContext();
                 return await poll.Set<OutboxMessage>().CountAsync() == 1;
@@ -89,7 +89,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
 
             // The loop must still be alive: an event raised after the fault is still delivered.
             await SaveAsync(Order.Place("after-the-fault"));
-            await WaitUntilAsync(() => Task.FromResult(_recorder.Events.Any(e => e.Customer == "after-the-fault")));
+            await WaitFor.True(() => _recorder.Events.Any(e => e.Customer == "after-the-fault"));
         }
         finally
         {
@@ -113,19 +113,5 @@ public sealed class OutboxConcurrencyTests : IDisposable
         await using var db = NewContext();
         db.Orders.Add(order);
         await db.SaveChangesAsync();
-    }
-
-    private static async Task WaitUntilAsync(Func<Task<bool>> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-        while (!await condition())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("Condition not met in time.");
-            }
-
-            await Task.Delay(20);
-        }
     }
 }

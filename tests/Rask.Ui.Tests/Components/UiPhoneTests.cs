@@ -19,7 +19,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_number_is_a_tel_input_with_no_value_and_the_value_is_one_hidden_field()
     {
-        var html = Ui.Phone.Value("+12015550123").Country("US").Name("phone").ToHtml().Decoded();
+        var html = Ui.Phone.Value("+12015550123").Country("US").Name("phone").ToHtml().AsText();
 
         Assert.Matches("<input[^>]*type=\"tel\"[^>]*>", html);
         Assert.DoesNotMatch("<input(?=[^>]*type=\"tel\")[^>]*value=", html);
@@ -31,7 +31,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_root_asks_for_the_engine_and_names_the_country_and_the_lists()
     {
-        var html = Ui.Phone.Value("").Country("HU").Countries(["HU", "AT"]).CountryOrder(["AT"]).ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("HU").Countries(["HU", "AT"]).CountryOrder(["AT"]).ToHtml().AsText();
 
         Assert.Contains("data-rask-phone=\"/js/rask-ui-phone.js?v=" + UiPhoneEngine.Version + "\"", html, StringComparison.Ordinal);
         Assert.Contains("data-rask-phone-country=\"hu\"", html, StringComparison.Ordinal);
@@ -43,7 +43,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_button_shows_the_starting_country_and_says_it_in_its_name()
     {
-        var html = Ui.Phone.Value("").Country("HU").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("HU").ToHtml().AsText();
 
         Assert.Contains("aria-label=\"Change country: Hungary (+36)\"", html, StringComparison.Ordinal);
         Assert.Contains("data-country-label=\"Change country\"", html, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Every_flag_the_picker_fills_carries_the_phones_marker()
     {
-        var html = Ui.Phone.Value("").Country("HU").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("HU").ToHtml().AsText();
 
         var marked = Regex.Matches(html, "data-ui-phone-country-flag").Count;
 
@@ -67,7 +67,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void With_no_country_the_button_shows_the_globe_and_its_name_alone()
     {
-        var html = Ui.Phone.Value("").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").ToHtml().AsText();
 
         Assert.Contains("aria-label=\"Change country\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-select-placeholder", html, StringComparison.Ordinal);
@@ -78,7 +78,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_chosen_countrys_row_is_marked_as_an_option_and_as_picked()
     {
-        var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("US").ToHtml().AsText();
 
         var row = Regex.Match(html, "<div(?=[^>]*value=\"us\")[^>]*role=\"option\"[^>]*>").Value;
 
@@ -90,7 +90,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_list_under_the_search_field_holds_its_scroll_and_the_popup_round_it_does_not()
     {
-        var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("US").ToHtml().AsText();
 
         var popup = Regex.Match(html, "<div(?=[^>]*data-ui-options)[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
         var list = Regex.Match(html, "<div(?=[^>]*role=\"listbox\")[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
@@ -104,7 +104,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_list_carries_no_handler_so_opening_and_searching_it_send_nothing()
     {
-        var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();
+        var html = Ui.Phone.Value("").Country("US").ToHtml().AsText();
 
         Assert.DoesNotContain("data-rask-on-", html.Replace("data-rask-on-change", "", StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains("popover=\"auto\"", html, StringComparison.Ordinal);
@@ -117,7 +117,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_read_only_field_says_so_on_its_button_and_its_list_does_not_open()
     {
-        var html = Ui.Phone.Value("+12015550123").Country("US").ReadOnly().ToHtml().Decoded();
+        var html = Ui.Phone.Value("+12015550123").Country("US").ReadOnly().ToHtml().AsText();
 
         Assert.Contains("aria-readonly=\"true\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("popovertarget=", html, StringComparison.Ordinal);
@@ -127,7 +127,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_invalid_field_marks_its_root_and_its_number()
     {
-        var html = Ui.Phone.Value("201").Country("US").Invalid().ToHtml().Decoded();
+        var html = Ui.Phone.Value("201").Country("US").Invalid().ToHtml().AsText();
 
         Assert.Matches("data-ui-phone(?=[^>]*data-invalid)[^>]*aria-invalid=\"true\"|aria-invalid=\"true\"[^>]*data-ui-phone", html);
         Assert.Matches("<input(?=[^>]*type=\"tel\")[^>]*data-invalid", html);
@@ -186,10 +186,4 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
         Assert.Contains("'$(UsingMicrosoftNETSdkWebAssembly)' == 'true'", byDefault, StringComparison.Ordinal);
         Assert.Contains("'$(RaskUiWriteFlags)' == '' AND '@(_RaskUiPhoneKit)' != ''", targets, StringComparison.Ordinal);
     }
-}
-
-internal static class UiPhoneHtml
-{
-    /// <summary>The markup with its character references read: the serializer writes a plus as <c>&amp;#x2B;</c>.</summary>
-    public static string Decoded(this string html) => System.Net.WebUtility.HtmlDecode(html);
 }

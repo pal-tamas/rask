@@ -7,18 +7,6 @@ using Rask.Tests.Shared;
 
 namespace Rask.Logging.Tests;
 
-/// <summary>A hand-rolled fake clock (no external package): the writer's retention checks and every stored
-/// timestamp read it, so tests drive time deterministically while the flush loop ticks on the real (short)
-/// interval.</summary>
-public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-}
-
 /// <summary>Where the harness keeps the log: the two <see cref="ILogs"/> implementations a contract runs against.</summary>
 public enum LogStoreKind
 {
@@ -62,7 +50,7 @@ public sealed class LoggingHarness : IAsyncDisposable
     {
         _database = connectionString is null ? new InMemorySqlite() : null;
         ConnectionString = connectionString ?? _database!.ConnectionString;
-        Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        Clock = new ManualClock(start);
 
         void Options(LogsOptions o)
         {
@@ -101,7 +89,7 @@ public sealed class LoggingHarness : IAsyncDisposable
     /// <summary>The connection string of the harness's database, for a second store or a raw connection to it.</summary>
     public string ConnectionString { get; }
 
-    public FakeTimeProvider Clock { get; }
+    public ManualClock Clock { get; }
 
     public ILogs Store => _provider.GetRequiredService<ILogs>();
 

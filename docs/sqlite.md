@@ -271,7 +271,10 @@ SQLite uses an expression index only for the **same** expression, so the index i
 the filter — and EF spells a top-level value (`'Status'`) differently from a nested one (`'$.Address.City'`); the
 tests pin the query plan of EF's own SQL, not the DDL. Like the rest of this page, it arrives through a migration:
 adding, changing or removing a declaration is a migration of its own, and a migration that rebuilds the table
-rebuilds the index with it. A path that does not lead through a `ToJson()` navigation to a value is an error when
+rebuilds the index with it. The index is named as Rask names one — `ix_`, the table, the column, then the path in
+snake case, its steps joined by `.` (`ix_orders_meta_status`, `ix_orders_meta_address.city`) — and cut to 63 bytes
+like every other name; a table built under the older `IX_Orders_Meta.Status` gets the new name with its next
+migration. A path that does not lead through a `ToJson()` navigation to a value is an error when
 the migration is built, naming the path. SQLite only for now — on another provider `AddRaskData` refuses to boot a
 context that declares one, rather than let the filter scan without saying so.
 

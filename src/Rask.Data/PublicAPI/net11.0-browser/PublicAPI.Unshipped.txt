@@ -117,7 +117,6 @@ Rask.Data.ModelQuery<TEntity>.AsSplitQuery() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.ForUpdate() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.IgnoreQueryFilters() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<TEntity!>!
-Rask.Data.ModelQuery<TEntity>.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Search(string? text) -> Rask.Data.ModelQuery<TEntity!>!
@@ -685,3 +684,20 @@ Rask.Data.NoOverlapBuilder<TEntity>.Where(System.Linq.Expressions.Expression<Sys
 Rask.Data.NoOverlapBuilderExtensions
 static Rask.Data.NoOverlapBuilderExtensions.NoOverlap<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! key, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! range, string! message) -> Rask.Data.NoOverlapBuilder<TEntity!>!
 static Rask.Data.NoOverlapBuilderExtensions.NoOverlap<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! key, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! from, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! to, string! message) -> Rask.Data.NoOverlapBuilder<TEntity!>!
+Rask.Data.BelongsTo
+Rask.Data.BelongsTo<TAggregate>
+Rask.Data.BelongsTo<TAggregate>.Equals(Rask.Data.BelongsTo<TAggregate!>? other) -> bool
+Rask.Data.BelongsTo<TAggregate>.Key.get -> object!
+Rask.Data.ModelQuery<TEntity, TIncluded>
+Rask.Data.ModelQuery<TEntity, TIncluded>.ThenInclude<TNext>(System.Linq.Expressions.Expression<System.Func<TIncluded, TNext>!>! navigation) -> Rask.Data.ModelQuery<TEntity!, TNext>!
+Rask.Data.ModelQuery<TEntity>.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<TEntity!, TProperty>!
+Rask.Data.ModelQueryIncludeExtensions
+override Rask.Data.BelongsTo<TAggregate>.Equals(object? obj) -> bool
+override Rask.Data.BelongsTo<TAggregate>.GetHashCode() -> int
+override Rask.Data.BelongsTo<TAggregate>.ToString() -> string!
+static Rask.Data.BelongsTo.Of<TAggregate, TId>(TId id) -> Rask.Data.BelongsTo<TAggregate!>!
+static Rask.Data.BelongsTo<TAggregate>.operator !=(Rask.Data.BelongsTo<TAggregate!>? left, Rask.Data.BelongsTo<TAggregate!>? right) -> bool
+static Rask.Data.BelongsTo<TAggregate>.operator ==(Rask.Data.BelongsTo<TAggregate!>? left, Rask.Data.BelongsTo<TAggregate!>? right) -> bool
+static Rask.Data.ConventionRegistry.DeclareBelongsTo<TEntity, TAggregate>(string! foreignKey) -> void
+static Rask.Data.ModelQueryIncludeExtensions.ThenInclude<TEntity, TElement, TNext>(this Rask.Data.ModelQuery<TEntity!, System.Collections.Generic.IReadOnlyList<TElement>!>! query, System.Linq.Expressions.Expression<System.Func<TElement, TNext>!>! navigation) -> Rask.Data.ModelQuery<TEntity!, TNext>!
+static Rask.Data.ModelQueryIncludeExtensions.ThenInclude<TEntity, TElement, TNext>(this Rask.Data.ModelQuery<TEntity!, System.Collections.Generic.List<TElement>!>! query, System.Linq.Expressions.Expression<System.Func<TElement, TNext>!>! navigation) -> Rask.Data.ModelQuery<TEntity!, TNext>!

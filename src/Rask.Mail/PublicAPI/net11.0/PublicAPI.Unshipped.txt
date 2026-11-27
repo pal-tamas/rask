@@ -254,7 +254,7 @@ static Rask.Mailing.QueuedMailReadAccess.AsQueryable() -> System.Linq.IQueryable
 static Rask.Mailing.QueuedMailReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
-static Rask.Mailing.QueuedMailReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!, TProperty>!
 static Rask.Mailing.QueuedMailReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
@@ -267,7 +267,7 @@ static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AsQ
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
-static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!, TProperty>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!

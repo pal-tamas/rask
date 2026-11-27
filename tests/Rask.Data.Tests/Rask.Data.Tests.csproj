@@ -65,4 +65,8 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+  </ItemGroup>
+
 </Project>

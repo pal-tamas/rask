@@ -5,7 +5,7 @@ namespace Rask;
 
 /// <summary>
 ///     A new key: a version-7 <see cref="Guid" />, made by Rask before the insert, time-ordered and strictly increasing
-///     — <c>OrderedGuid.New()</c>. What a typed id's generated <c>New()</c> returns, and the key of every row the
+///     — <c>Uuid.Create()</c>. What a typed id's generated <c>Create()</c> returns, and the key of every row the
 ///     batteries write, so a plain <see cref="Guid" /> key is made the same way.
 /// </summary>
 /// <remarks>
@@ -23,9 +23,9 @@ namespace Rask;
 ///         (<c>Rask:GuidOrder</c>) — so the key's index stays append-only and "oldest first" is the key's order.
 ///     </para>
 /// </remarks>
-public static class OrderedGuid
+public static class Uuid
 {
-    // One sequence per time source. Rask's own clock — what New() reads and every battery is handed as its
+    // One sequence per time source. Rask's own clock — what Create() reads and every battery is handed as its
     // TimeProvider — is one sequence for the whole process; a test's own TimeProvider counts on its own, so its ids
     // read its time and nothing another test made can run them ahead.
     private static readonly Sequence AppClock = new();
@@ -33,15 +33,15 @@ public static class OrderedGuid
 
     /// <summary>A new id, later than every one this process made: stamped with <see cref="Clock.Now" />.</summary>
     /// <returns>A version-7 <see cref="Guid" />.</returns>
-    public static Guid New() => AppClock.Next(Clock.Now);
+    public static Guid Create() => AppClock.Next(Clock.Now);
 
     /// <summary>
     ///     A new id stamped with <paramref name="time" />'s now, later than every one made on the same time source — for a
     ///     service handed a <see cref="TimeProvider" />, so a test's fake time stamps its ids.
     /// </summary>
-    /// <param name="time">The time source; Rask's own (<c>Clock.TimeProvider</c>) is the sequence <see cref="New()" /> runs.</param>
+    /// <param name="time">The time source; Rask's own (<c>Clock.TimeProvider</c>) is the sequence <see cref="Create()" /> runs.</param>
     /// <returns>A version-7 <see cref="Guid" />.</returns>
-    public static Guid New(TimeProvider time)
+    public static Guid Create(TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(time);
         var sequence = ReferenceEquals(time, Clock.TimeProvider)

@@ -130,7 +130,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // The capability resolves the id the stream is handed over under, instead of the literal "granted".
         // The trigger takes the stream by it, as a handle, from the page it rendered in; OnResult keeps its
         // original vocabulary — the stream is an addition, not a replacement.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var handle = new FakeJsObject();
         js.SetResponse("__raskMedia.take", handle);
         IJSObjectReference? stream = null;
@@ -156,7 +156,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Media_capture_trigger_with_only_on_result_still_takes_the_stream_and_lets_its_handle_go()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var handle = new FakeJsObject();
         js.SetResponse("__raskMedia.take", handle);
         string? result = null;

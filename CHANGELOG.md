@@ -20,6 +20,33 @@ them until tagged releases begin.
   `.CreatedAt.Day.Month`. A read face shows a stamp as its wall-clock `DateTime`, as it shows any moment. The stamps are
   `[NotMapped]` for EF Core's own conventions: `ApplyRaskConventions` maps them where the class's traits ask, so a context
   that skips it has no stamp columns. `UseRaskPostgres` refuses a bare `DateTime` on Rask's own tables too.
+- **RASK192 reports the other defaults a configuration restates, not only names.** An `OnDelete(…)` equal to Rask's
+  rule (a child's key cascades from its aggregate, or the `children:`/`others:` of the app's `c.DeleteBehavior(…)`, or
+  with none EF Core's `Cascade`/`ClientSetNull` by the key's nullability), a `HasMaxLength`/`HasPrecision` equal to the
+  value object's `MaxLength`/`Precision`/`Scale`, an `IsRequired()` on a property that cannot be null, a
+  `b.HasKey(x => x.Id);`, a `ValueGeneratedNever()` on the `Id` of an entity keyed by a `Guid`, a `string` or a typed id
+  over one, an `IsConcurrencyToken()` on an `IVersioned` aggregate's `Version`, and a
+  `HasConversion(v => v.Value, v => new X(v))` on a typed id or a one-value value object are each a suggestion the quick
+  fix (with Fix all) deletes — only where the line is provably equal to the default, and silent where the app changes
+  the rule (an attribute, another size, a delete rule it cannot read). A project that restates the naming pattern still
+  hears about these. A `HasOne<T>().WithMany().HasForeignKey(…)` is not reported: Rask infers that navigation for the
+  read face only, so in the write model the line is the foreign key. The kinds are tabled in `docs/diagnostics.md#rask192`.
+- **`BelongsTo<T>`: a reference to another aggregate, Rails' `belongs_to` across the border.** `public partial
+  BelongsTo<Vehicle>? Vehicle { get; }` on a partial entity generates the stored `VehicleId` (the vehicle's key type,
+  nullable as the reference is, `private set`) and maps it as `HasOne<Vehicle>().WithMany().HasForeignKey(…)` with
+  `OnDelete(NoAction)` below an explicit one — no navigation, so the vehicle is never loaded, tracked or saved with the
+  fueling. Read it through the read face: `await f.Vehicle.Read()`, `Read(v => v.Plate)`, the batched
+  `fuelings.Select(f => f.Vehicle).Read()` (one query, a dictionary by id), or `Fueling.Include(f => f.Vehicle)`; assign
+  it through the id inside the aggregate. A hand-written id (with or without a navigation or a configured `HasOne`) moves
+  to it with no migration — the differ finds nothing on SQLite, SQL Server and PostgreSQL. RASK194 (error) refuses a
+  declaration Rask cannot complete (not partial, not to an aggregate, to the tenant, a child to its own root, a key name
+  taken, an aggregate with a form); RASK195 (error) an EF Core `Include`/`ThenInclude`/`Reference` over a `BelongsTo`;
+  RASK196 (suggestion, quick-fix) another aggregate's id held by hand. `docs/domain.md#relationships-hasmany-and-belongsto`.
+- **`ThenInclude` on the read face.** `Order.Include(o => o.Lines).ThenInclude(l => l.Product)`,
+  `Fueling.Include(f => f.Vehicle).ThenInclude(v => v.Owner)`: `Include` now returns `ModelQuery<T, TIncluded>`, which
+  `ThenInclude` continues — a reference, a child list or the rows that point here.
+- **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
 - **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
   `b.Property(x => x.PistolId).HasColumnName("pistol_id")`, `HasDatabaseName("ix_fuelings_created_at")`,
   `HasName("pk_fuelings")`, `HasConstraintName("fk_fuelings_pistol_id")`, `[Table("fuelings")]` and `[Column("pistol_id")]`
@@ -38,10 +65,13 @@ them until tagged releases begin.
   cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
   `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
   after the millisecond are random, so two made in one millisecond sorted either way. Rask's clock (`Clock.Now`, so
-  `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
+  `Clock.Fake` too) stamps it; `Uuid.Create(timeProvider)` stamps a service's own time on a sequence of its own,
   so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
 - **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
-  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion naming `OrderId.New()` or `OrderedGuid.New()`.
+  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion, an error under `<RaskStrict>`. The quick-fix (Fix all
+  included) writes `OrderId.Create()` for a typed id that makes its own key, else `Uuid.Create()`, and
+  `Guid.CreateVersion7(time.GetUtcNow())` becomes `Uuid.Create(time)`. A strict app keyed by
+  `Guid.CreateVersion7()` fails to build until the fix is applied.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
@@ -176,6 +206,18 @@ them until tagged releases begin.
   (`OutboxMessageRead`, `QueuedMailRead`, `CacheEntryRead`, `PushSubscriberRead`) show the wall clock, as every
   moment's does; the dashboard's queue and cache rows still show UTC. The interfaces Rask implements keep the platform's
   types: `IDistributedCache`'s `DistributedCacheEntryOptions`, `IMail.Add(…, DateTimeOffset? at, …)`.
+- **BREAKING: typed ids: `New()` → `Create()`; one verb, as .NET's `Guid.CreateVersion7()`.** The generated
+  `OrderId.New()` is now `OrderId.Create()` (a version-7 id from `Uuid.Create()`); a typed id that declares its own
+  parameterless `Create()` keeps it, and a hand-written `Create(Guid)` or other overload sits beside the generated one.
+  Replace `XId.New()` with `XId.Create()` at each call site.
+- **BREAKING (wire): a background job that ended with a warning crosses as `"state": "Warned"`.** It no longer also
+  crosses as `"Done"` with an `"outcome"` beside it for a tab opened before warnings existed; such a tab, if one is
+  still open, reads the unknown state as done, as it reads any state it does not know.
+- **BREAKING: six public members that did nothing are gone.** `RaskRuntimeScript` (a no-op since the runtime
+  `<script>` is injected at `</body>`; drop it from a tree that still names it), `RaskCultureOptions.ApplyToCurrentCulture`
+  (nothing read it: the ambient culture is pinned whenever Rask's culture is on), `AuthOptions.ForgotPasswordPath`
+  (no endpoint or page read it), `RouteAuthorizationGuard.ForbidPath`, `BuilderRuntime.ResetNothing` and
+  `FormData.FileKeys`.
 - **BREAKING (server): the kept-answer layer for an app's own sign-in is removed — `AddSessionRevalidator<T>()`,
   `.Keep(…)`, `.ForgetOnSave<T>()`, `Sessions.Forget(…)` / `ISessions`.** It existed so a host that signed its users in
   itself could stop its revalidator reading its users table on every event. Rask.Auth's sign-in is the way to sign
@@ -408,6 +450,19 @@ them until tagged releases begin.
   accept a package held as a prerelease of the set's version.
 
 ### Documentation
+- **Adopting one existing table under a Rask context, with no new API**: `b.ToTable("Fueling")` in its `Configure`, and
+  `c.ColumnNames(n => n.Table == "Fueling" ? n.AsDeclared : n.SnakeCase)` with
+  `c.ConstraintNames(n => n.Table == "Fueling" ? null : n.Prefixed)` keep EF Core's names on that table and Rask's on
+  every other (`docs/data.md#names-rasks-own-in-postgresqls-style`, pinned by a test).
+- **The browser-API guides are two pages, not four, and the docs say only the current API.** The capability matrix is
+  the first table of `docs/browser-apis-reference.md` ("Where each wrapper works": what each wrapper wraps, its shape,
+  Server and WASM as columns, `IViewTransitions` included), and the sharing model — shared vs WASM-only, `Shareable`,
+  the gesture triggers, the subscription push pattern — is part of `docs/browser-apis.md`. Both old guide URLs still
+  answer (`GuideCatalog.Moved`) with the new page as their canonical. `docs/validation.md` is now the type side (which
+  rule to write, requests, endpoints) and `docs/forms-validation.md` the form side, each linking the other instead of
+  repeating it. The removal notes `llms.txt` carried for APIs gone by 0.24.0 (`Ui.Toaster`, `Ui.FileInput`, `Ui.Shell`,
+  `IOutboxEvent`, `--auth` and the rest) moved to a new [Upgrading Rask](docs/upgrading.md) page; `docs/README.md` lists
+  it and the seven nested pages under `docs/apis/` and `docs/architecture/`.
 - **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
   (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In
   the analyzer's message and in `docs/diagnostics.md#rask177`.
@@ -442,6 +497,26 @@ them until tagged releases begin.
   wall-clock `.Value`, so a moment moved from the first `02:30` of an October night to the second was not seen as a
   change, and a snapshot rebuilt from the wall time came back as the first. It now compares by the instant and keeps the
   (immutable) value itself.
+- **A plain `DbContext` on `UseRaskSqlServer` stores its Guids by time too, as docs/data.md says.** Only a model built
+  with Rask's model conventions (`RaskDbContext`, a read face) got the time-ordered `uniqueidentifier` layout, so a plain
+  context holding a battery's tables (`AddRaskJobs()`, `AddRaskLogging()`) stored version-7 ids raw and SQL Server
+  sorted the job lanes and the log pages by their random tail. `UseRaskSqlServer` now holds every model to it; one built
+  with Rask's conventions is still stored by theirs, once. A context without migrations gets no rewrite of the rows it
+  made before (docs/data.md).
+- **One migration that renames a legacy model to Rask's names and rewrites its moments to UTC does both.** The rewrite
+  matched a column by its name in the snapshot, so `Fuelings.At` becoming `fuelings.at` in the same migration left the
+  wall-clock rows unrewritten. It now finds each table and column under the name the migration renames it from, and
+  runs after the renames, on the new name — SQLite (executed in the tests), SQL Server (`UPDATE [fuelings] SET [at] = …`
+  after the `sp_rename`s) and PostgreSQL (which owes no rewrite) alike.
+- **BREAKING (SQLite) — `HasJsonIndex` and `HasFullTextSearch` name their objects as Rask names everything.** A JSON
+  index is `ix_{table}_{column}_{path}` (the path in snake case, its steps joined by `.`: `ix_orders_meta_address.city`)
+  instead of `IX_Orders_Meta.Address.City`; the full-text triggers are `tr_{table}_fts_insert`/`_delete`/`_update`
+  instead of `TR_{Table}_fts_Insert`; every one, and the `{table}_fts` index and `{table}_fts_keys` map, is cut to 63
+  bytes with a hash of the whole name. A database built under the older names owes one migration (`rask db add`), which
+  drops the old index or triggers and builds them under the new names.
+- **`Rask.Testing`: a `TestJSRuntime.SetResponse(id, null)` reads back as `null`.** The browser answering "nothing"
+  (an absent IndexedDB or storage key) faulted with the type-mismatch error, because `null` is not an instance of
+  any type; it is now handed back for any reference or nullable return type, and still refused for a value type.
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.

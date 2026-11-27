@@ -38,7 +38,7 @@ public sealed class GuidOrderModelTests
         using var context = Ordered();
         var convoy = context.Model.FindEntityType(typeof(Convoy))!;
         var leg = context.Model.FindEntityType(typeof(ConvoyLeg))!;
-        var id = ConvoyId.New();
+        var id = ConvoyId.Create();
 
         object? Stored(IEntityType type, string property, object value) =>
             type.FindProperty(property)!.GetTypeMapping().Converter!.ConvertToProvider(value);

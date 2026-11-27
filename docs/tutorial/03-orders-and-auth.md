@@ -55,7 +55,7 @@ public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersion
 
     private static Order Place(CustomerEmail customer, ShippingAddress shipTo, GiftNote? gift, IReadOnlyList<OrderLineSpec> lines)
     {
-        var order = new Order { Id = OrderId.New(), Customer = customer, ShipTo = shipTo, Gift = gift };
+        var order = new Order { Id = OrderId.Create(), Customer = customer, ShipTo = shipTo, Gift = gift };
         order.Take(lines);
         return order;
     }
@@ -112,7 +112,7 @@ public sealed class OrderLine : Entity<OrderLineId>
 
     internal static OrderLine For(OrderLineSpec spec)
     {
-        var line = new OrderLine { Id = OrderLineId.New() };
+        var line = new OrderLine { Id = OrderLineId.Create() };
         line.Take(spec);
         return line;
     }
@@ -320,7 +320,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
     public Attachment? Photo { get; private set; }
 
     private static Product Add(ProductName name, UnitPrice price, StockLevel stock) =>
-        new() { Id = ProductId.New(), Name = name, Price = price, Stock = stock };
+        new() { Id = ProductId.Create(), Name = name, Price = price, Stock = stock };
 
     public void Change(ProductName name, UnitPrice price, StockLevel stock)
     {

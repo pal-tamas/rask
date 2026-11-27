@@ -733,8 +733,6 @@ Rask.Core.Components.RaskPending_Shareable_Template
 Rask.Core.Components.RaskPending_Shareable_Template.Data(Rask.Core.Browser.ShareData! Data) -> Rask.Core.Components.Shareable!
 Rask.Core.Components.RaskPending_Shareable_Template.Key(object? key) -> Rask.Core.Components.RaskPending_Shareable_Template
 Rask.Core.Components.RaskPending_Shareable_Template.RaskPending_Shareable_Template() -> void
-Rask.Core.Components.RaskRuntimeScript
-Rask.Core.Components.RaskRuntimeScript.RaskRuntimeScript() -> void
 Rask.Core.Components.RaskSeed_EyeDropperTrigger
 Rask.Core.Components.RaskSeed_EyeDropperTrigger.Key(object? key) -> Rask.Core.Components.RaskSeed_EyeDropperTrigger
 Rask.Core.Components.RaskSeed_EyeDropperTrigger.RaskSeed_EyeDropperTrigger() -> void
@@ -4070,8 +4068,6 @@ Rask.Core.Globalization.RaskCulture
 Rask.Core.Globalization.RaskCultureCookie
 Rask.Core.Globalization.RaskCultureNegotiator
 Rask.Core.Globalization.RaskCultureOptions
-Rask.Core.Globalization.RaskCultureOptions.ApplyToCurrentCulture.get -> bool
-Rask.Core.Globalization.RaskCultureOptions.ApplyToCurrentCulture.set -> void
 Rask.Core.Globalization.RaskCultureOptions.CookieMaxAgeDays.get -> int
 Rask.Core.Globalization.RaskCultureOptions.CookieMaxAgeDays.set -> void
 Rask.Core.Globalization.RaskCultureOptions.CookieName.get -> string!
@@ -4388,7 +4384,6 @@ Rask.Core.Live.EditOpKind.UpdateText = 3 -> Rask.Core.Live.EditOpKind
 Rask.Core.Live.FormData
 Rask.Core.Live.FormData.ContainsKey(string! key) -> bool
 Rask.Core.Live.FormData.Count.get -> int
-Rask.Core.Live.FormData.FileKeys.get -> System.Collections.Generic.IEnumerable<string!>!
 Rask.Core.Live.FormData.Files(string! key) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!
 Rask.Core.Live.FormData.FormData(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values) -> void
 Rask.Core.Live.FormData.FormData(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>! files) -> void
@@ -4867,7 +4862,6 @@ RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Url.get
 RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Week.get -> Rask.Core.HTMLInputElement<T>!
 RaskEntriesRask_Core
 const Rask.Core.Authorization.RouteAuthorizationGuard.ChallengePath = "/login" -> string!
-const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" -> string!
 const Rask.Core.BuilderRuntime.OwnPendingBit = 32 -> int
 const Rask.Core.BuilderRuntime.SharedComponentPending = 0 -> ulong
 const Rask.Core.Diagnostics.DevTools.PropsDescriber.MaxLength = 256 -> int
@@ -5100,7 +5094,6 @@ static Rask.Core.BuilderRuntime.ResetComponentEager(Rask.Core.Component! __c0) -
 static Rask.Core.BuilderRuntime.ResetComponentPending(Rask.Core.Component! __c0, ulong __p) -> void
 static Rask.Core.BuilderRuntime.ResetElementEager(Rask.Core.Component! __c0) -> void
 static Rask.Core.BuilderRuntime.ResetElementPending(Rask.Core.Component! __c0, ulong __p) -> void
-static Rask.Core.BuilderRuntime.ResetNothing(Rask.Core.Component! target, ulong pending) -> void
 static Rask.Core.BuilderRuntime.Then<T>(Rask.Core.Validator<T>? earlier, Rask.Core.Validator<T>? later) -> Rask.Core.Validator<T>?
 static Rask.Core.BuilderRuntime.Track<TValue>(Rask.Core.Component! target, TValue oldValue, TValue newValue) -> void
 static Rask.Core.BuilderRuntime.Written(Rask.Core.Component! target, ulong bit) -> void
@@ -7729,7 +7722,6 @@ static Rask.Core.RaskMarkup.ErrorBoundary.get -> Rask.Core.Components.ErrorBound
 static Rask.Core.RaskMarkup.Lazy.get -> Rask.Core.Components.Lazy!
 static Rask.Core.RaskMarkup.NavLink.get -> Rask.Core.Components.NavLink!
 static Rask.Core.RaskMarkup.Outlet.get -> Rask.Core.Routing.Outlet!
-static Rask.Core.RaskMarkup.RaskRuntimeScript.get -> Rask.Core.Components.RaskRuntimeScript!
 static Rask.Core.RaskMarkup.Raw.get -> Rask.Core.Components.Raw!
 static Rask.Core.RaskMarkup.Router.get -> Rask.Core.Routing.Router!
 static Rask.Core.RaskMarkup.Shareable -> Rask.Core.Components.RaskSeed_Shareable
@@ -8225,7 +8217,6 @@ static RaskEntriesRask_Core.ErrorBoundary.get -> Rask.Core.Components.ErrorBound
 static RaskEntriesRask_Core.Lazy.get -> Rask.Core.Components.Lazy!
 static RaskEntriesRask_Core.NavLink.get -> Rask.Core.Components.NavLink!
 static RaskEntriesRask_Core.Outlet.get -> Rask.Core.Routing.Outlet!
-static RaskEntriesRask_Core.RaskRuntimeScript.get -> Rask.Core.Components.RaskRuntimeScript!
 static RaskEntriesRask_Core.Raw.get -> Rask.Core.Components.Raw!
 static RaskEntriesRask_Core.Router.get -> Rask.Core.Routing.Router!
 static RaskEntriesRask_Core.Shareable.get -> Rask.Core.Components.RaskSeed_Shareable
@@ -8305,7 +8296,6 @@ static Rask.Markup.DragDrop.get -> Rask.Core.Components.DragDrop!
 static Rask.Markup.ErrorBoundary.get -> Rask.Core.Components.ErrorBoundary!
 static Rask.Markup.NavLink.get -> Rask.Core.Components.NavLink!
 static Rask.Markup.Outlet.get -> Rask.Core.Routing.Outlet!
-static Rask.Markup.RaskRuntimeScript.get -> Rask.Core.Components.RaskRuntimeScript!
 static Rask.Markup.Raw.get -> Rask.Core.Components.Raw!
 static Rask.Markup.Router.get -> Rask.Core.Routing.Router!
 static Rask.Markup.Shareable.get -> Rask.Core.Components.RaskSeed_Shareable

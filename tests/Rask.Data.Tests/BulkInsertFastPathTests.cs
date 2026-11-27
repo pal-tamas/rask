@@ -11,7 +11,7 @@ namespace Rask.Data.Tests;
 public sealed class BulkInsertFastPathTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero));
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
 
