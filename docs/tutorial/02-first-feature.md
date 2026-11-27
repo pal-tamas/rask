@@ -51,7 +51,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
     public Attachment? Photo { get; private set; }
 
     private static Product Add(ProductName name, UnitPrice price, StockLevel stock) =>
-        new() { Id = ProductId.New(), Name = name, Price = price, Stock = stock };
+        new() { Id = ProductId.Create(), Name = name, Price = price, Stock = stock };
 
     public void Change(ProductName name, UnitPrice price, StockLevel stock)
     {
@@ -68,7 +68,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
 That is the whole feature's business code. Read it from the top.
 
 **A typed id, in one line.** `ProductId` wraps the `Guid` key, so an order line can hold a `ProductId` and the
-compiler will never let you hand it an order's id by mistake. Rask completes it — `ProductId.New()`,
+compiler will never let you hand it an order's id by mistake. Rask completes it — `ProductId.Create()`,
 `ProductId.Parse(…)`, its JSON and its route value — and converts it to its `Guid` column
 ([strongly-typed ids](../domain.md#strongly-typed-ids)).
 

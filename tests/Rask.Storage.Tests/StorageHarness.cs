@@ -12,16 +12,6 @@ public sealed class StorageDbContext(DbContextOptions<StorageDbContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskStorage();
 }
 
-/// <summary>A hand-rolled fake clock (no external package), so the sweep's grace period is driven deterministically.</summary>
-public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-}
-
 /// <summary>Byte shapes the sniffer recognises.</summary>
 internal static class Samples
 {
@@ -74,7 +64,7 @@ public class StorageHarness<TContext> : IAsyncDisposable
 
         ConnectionString = connectionString;
         Root = Path.Combine(Path.GetTempPath(), $"rask-storage-test-{Guid.NewGuid():N}");
-        Clock = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        Clock = new ManualClock(DateTimeOffset.UtcNow);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -101,7 +91,7 @@ public class StorageHarness<TContext> : IAsyncDisposable
     /// <summary>The connection string of the harness's database: what another context or a raw connection opens.</summary>
     public string ConnectionString { get; }
 
-    public FakeTimeProvider Clock { get; }
+    public ManualClock Clock { get; }
 
     public IServiceProvider Services => _provider;
 

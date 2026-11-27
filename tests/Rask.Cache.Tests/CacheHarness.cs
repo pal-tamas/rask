@@ -11,17 +11,6 @@ public sealed class CacheDbContext(DbContextOptions<CacheDbContext> options) : D
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskCache();
 }
 
-/// <summary>A hand-rolled fake clock (no external package): the cache's expiry checks read it, so tests drive
-/// time deterministically.</summary>
-public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-}
-
 /// <summary>Builds a real-SQLite service provider, its database in memory and its own, wired for the cache, with a controllable clock.</summary>
 public sealed class CacheHarness : IAsyncDisposable
 {
@@ -30,7 +19,7 @@ public sealed class CacheHarness : IAsyncDisposable
 
     public CacheHarness(Action<CacheOptions>? configure = null, DateTimeOffset? start = null)
     {
-        Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        Clock = new ManualClock(start);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -47,7 +36,7 @@ public sealed class CacheHarness : IAsyncDisposable
         db.Database.EnsureCreated();
     }
 
-    public FakeTimeProvider Clock { get; }
+    public ManualClock Clock { get; }
 
     public IDistributedCache Distributed => _provider.GetRequiredService<IDistributedCache>();
 

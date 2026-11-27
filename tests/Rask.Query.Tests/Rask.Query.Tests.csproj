@@ -32,6 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
     <!-- The one shared polling wait, by source: its hang ceiling is the suite's, not this project's own number. -->
     <Compile Include="..\Rask.TestSupport\WaitFor.cs" Link="WaitFor.cs"/>
     <Using Include="Rask.TestSupport"/>

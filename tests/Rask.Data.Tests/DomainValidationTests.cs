@@ -8,7 +8,7 @@ namespace Rask.Data.Tests;
 public sealed class DomainValidationTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 11, 23, 9, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 11, 23, 9, 0, 0, TimeSpan.Zero));
 
     public void Dispose() => _sqlite.Dispose();
 

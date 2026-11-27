@@ -15,7 +15,7 @@ namespace Rask.Outbox.Tests;
 public sealed class OutboxRetentionTests : IDisposable
 {
     private readonly InMemorySqlite _db = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
     private ServiceProvider _provider = null!;
 
     [Fact]
@@ -192,13 +192,4 @@ public sealed class OutboxRetentionTests : IDisposable
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Attempts>k__BackingField")]
     private static extern ref int SetAttempts(OutboxMessage message);
-
-    private sealed class FakeClock(DateTimeOffset start) : TimeProvider
-    {
-        private long _ticks = start.UtcTicks;
-
-        public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-    }
 }

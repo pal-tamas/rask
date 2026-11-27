@@ -159,7 +159,8 @@ public sealed class ServerBatteryScaffoldTests
         var files = Generate(flag);
 
         var user = files["Features/Shared/User.cs"];
-        Assert.Contains("public sealed class User : Authenticatable", user, StringComparison.Ordinal);
+        Assert.Contains("public sealed class User : Authenticatable<UserId>", user, StringComparison.Ordinal);
+        Assert.Contains("public readonly partial record struct UserId(Guid Value);", user, StringComparison.Ordinal);
         Assert.DoesNotContain("Microsoft.AspNetCore.Identity", user, StringComparison.Ordinal);
     }
 

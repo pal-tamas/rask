@@ -107,11 +107,3 @@ public sealed class TestDbContext(DbContextOptions<TestDbContext> options) : DbC
         modelBuilder.ApplyRaskConventions();
     }
 }
-
-// A clock the tests advance by hand to assert CreatedAt/UpdatedAt behavior.
-public sealed class FakeClock(DateTimeOffset now) : TimeProvider
-{
-    public DateTimeOffset UtcNow { get; set; } = now;
-
-    public override DateTimeOffset GetUtcNow() => UtcNow;
-}

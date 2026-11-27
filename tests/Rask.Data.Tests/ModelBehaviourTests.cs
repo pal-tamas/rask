@@ -189,7 +189,7 @@ public sealed class ModelBehaviourTests : IDisposable
     [Fact]
     public async Task The_audit_stamps_come_from_the_clock_the_test_supplies()
     {
-        var clock = new FakeClock(new DateTimeOffset(Now, TimeSpan.Zero));
+        var clock = new ManualClock(new DateTimeOffset(Now, TimeSpan.Zero));
         await using var database = await StartDatabaseAsync(clock);
 
         var order = Order.Place("B-3");

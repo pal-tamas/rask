@@ -297,7 +297,7 @@ public sealed class S3BlobBackendTests : IDisposable
         configure?.Invoke(options);
 
         var handler = new RecordingHandler();
-        return (new S3BlobBackend(new HttpClient(handler), options, new FakeTimeProvider(new DateTimeOffset(2026, 8, 8, 12, 0, 0, TimeSpan.Zero))), handler);
+        return (new S3BlobBackend(new HttpClient(handler), options, new ManualClock(new DateTimeOffset(2026, 8, 8, 12, 0, 0, TimeSpan.Zero))), handler);
     }
 
     private static string ListXml(bool truncated, params (string Key, int Size)[] keys) =>

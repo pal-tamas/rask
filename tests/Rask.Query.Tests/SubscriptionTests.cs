@@ -116,7 +116,7 @@ public sealed class SubscriptionTests
     [Fact]
     public async Task A_dropped_stream_reconnects_and_refetches_what_it_patches()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch, holdTimers: true);
         var (services, dispatcher) = Session(clock);
         var drops = new Flaky();
         var page = new StreamPage(drops.OpenAsync) { Patch = true };
@@ -158,7 +158,7 @@ public sealed class SubscriptionTests
     [Fact]
     public async Task A_disposed_transport_is_a_dropped_connection_not_a_refusal()
     {
-        var clock = new ManualClock();
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch, holdTimers: true);
         var (services, _) = Session(clock);
         var attempts = new Attempts();
         var page = new StreamPage((_, ct) => Throwing(new ObjectDisposedException("HttpClient"), attempts, ct));

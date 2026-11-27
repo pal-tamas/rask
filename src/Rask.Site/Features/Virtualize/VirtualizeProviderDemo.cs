@@ -61,9 +61,9 @@ public sealed partial class VirtualizeProviderDemo : Component
         {
             yield return Tr
                 .Style($"height:{ctx.ItemSize}px;")
+                .Key(item.Index)
                 .Data(
                     ("row-index", item.Index.ToString(CultureInfo.InvariantCulture)),
-                    ("rask-key", item.Index.ToString(CultureInfo.InvariantCulture)),
                     ("placeholder", item.IsPlaceholder ? "true" : null))[
                 Td[item.IsPlaceholder ? "—" : item.Value!.Index.ToString(CultureInfo.InvariantCulture)],
                 Td[item.IsPlaceholder ? "—" : item.Value!.Name],
@@ -78,7 +78,7 @@ public sealed partial class VirtualizeProviderDemo : Component
     private static Component Spacer(int height, string key) =>
         Tr
             .Style($"height:{height}px;")
-            .Data("rask-key", key)[
+            .Key(key)[
             Td.ColSpan(4)
         ];
 

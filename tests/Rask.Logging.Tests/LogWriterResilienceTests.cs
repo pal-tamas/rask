@@ -133,7 +133,7 @@ public sealed class LogWriterResilienceTests
     public async Task A_store_that_keeps_failing_is_reported_once_a_minute_and_its_recovery_once()
     {
         var store = new FaultyLogStore { Fail = true };
-        var clock = new FakeTimeProvider(DateTimeOffset.UnixEpoch);
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch);
         var logger = new RecordingLogger();
         using var writer = Build(
             store,

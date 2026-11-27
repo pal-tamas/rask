@@ -679,23 +679,6 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_list_keyed_via_the_Key_property_uses_the_keyed_path_with_a_trusted_remove()
-    {
-        // The first-class Key property emits the same data-rask-key the differ keys on, so a
-        // middle-row delete takes the trusted keyed path exactly like the Data["rask-key"] form.
-        var before = Frames(BuildKeyedRowsViaKeyProp(0, 1, 2, 3, 4));
-        var afterFrames = Frames(BuildKeyedRowsViaKeyProp(0, 1, 3, 4));
-
-        var ops = new List<EditOp>();
-        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
-
-        Assert.True(usedKeyed);
-        var remove = Assert.Single(ops);
-        Assert.Equal(EditOpKind.RemoveSubtree, remove.Kind);
-        Assert.True(remove.Trusted);
-    }
-
-    [Fact]
     public void Deleting_a_middle_keyed_row_emits_a_single_trusted_remove()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3, 4));
@@ -791,11 +774,11 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
         // codec doesn't disagree with the client about which path applied.
         var before = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
+            Li.Key("a")["one"],
             Li["two"]
         ]);
         var afterFrames = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
+            Li.Key("a")["one!"],
             Li["two"]
         ]);
 
@@ -813,12 +796,12 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     public void A_list_with_duplicate_keys_falls_back_to_positional()
     {
         var before = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+            Li.Key("dup")["a"],
+            Li.Key("dup")["b"]
         ]);
         var afterFrames = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+            Li.Key("dup")["a!"],
+            Li.Key("dup")["b"]
         ]);
 
         var ops = new List<EditOp>();
@@ -833,12 +816,12 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     public void A_list_with_duplicate_keys_reports_the_offending_key()
     {
         var before = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+            Li.Key("row-7")["a"],
+            Li.Key("row-7")["b"]
         ]);
         var after = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a!"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+            Li.Key("row-7")["a!"],
+            Li.Key("row-7")["b"]
         ]);
 
         var reported = new List<string>();
@@ -860,12 +843,12 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     public void A_list_with_unique_keys_does_not_report()
     {
         var before = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+            Li.Key("a")["1"],
+            Li.Key("b")["2"]
         ]);
         var after = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["1!"],
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+            Li.Key("a")["1!"],
+            Li.Key("b")["2"]
         ]);
 
         var reported = new List<string>();
@@ -890,10 +873,10 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         // treats this as a fresh node: remove the old, insert the new at the same slot.
         // Both ops carry Trusted so the gate ships them as diff.
         var before = Frames(Ul[
-            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
+            Li.Key("x")["original"]
         ]);
         var (afterFrames, afterHtml) = FramesAndHtml(Ul[
-            Span.Data(new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
+            Span.Key("x")["replaced"]
         ]);
 
         var ops = new List<EditOp>();
@@ -1082,7 +1065,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(keys.Length);
         foreach (var k in keys)
         {
-            rows.Add(Li.Data(new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+            rows.Add(Li.Key(k)[
                 $"Item {k}"
             ]);
         }
@@ -1096,24 +1079,11 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         foreach (var (key, keyed) in rows)
         {
             children.Add(keyed
-                ? Li.Data(new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
+                ? Li.Key(key)[$"Item {key}"]
                 : Li[$"Item {key}"]);
         }
 
         return Ul[children];
-    }
-
-    // Same shape as BuildKeyedRows but keyed via the first-class Key property instead of a
-    // Data["rask-key"] entry — the differ should treat them identically.
-    private static Component BuildKeyedRowsViaKeyProp(params int[] keys)
-    {
-        var rows = new List<Component>(keys.Length);
-        foreach (var k in keys)
-        {
-            rows.Add(Li.Key(k)[$"Item {k}"]);
-        }
-
-        return Ul[rows];
     }
 
     private static Component BuildKeyedRowsWithLabel(params (string Key, string Label)[] rows)
@@ -1121,7 +1091,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         var items = new List<Component>(rows.Length);
         foreach (var (key, label) in rows)
         {
-            items.Add(Li.Data(new Dictionary<string, string?> { ["rask-key"] = key })[label]);
+            items.Add(Li.Key(key)[label]);
         }
 
         return Ul[items];

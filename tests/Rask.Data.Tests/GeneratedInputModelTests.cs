@@ -37,7 +37,7 @@ public sealed class GeneratedInputModelTests : IDisposable
     private static readonly DateTimeOffset Start = new(2026, 4, 1, 9, 0, 0, TimeSpan.Zero);
 
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(Start);
+    private readonly ManualClock _clock = new(Start);
 
     public void Dispose() => _sqlite.Dispose();
 

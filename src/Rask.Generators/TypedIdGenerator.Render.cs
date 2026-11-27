@@ -64,13 +64,13 @@ public sealed partial class TypedIdGenerator
         return sb.ToString();
     }
 
-    // New (a Guid's only), Parse and TryParse: the members an author calls by name.
+    // Create (a Guid's only), Parse and TryParse: the members an author calls by name.
     private static void AppendFactories(StringBuilder sb, TypedId id)
     {
         var name = id.Name;
-        if (id.Value == TypedIdValue.Guid && !id.HasNew)
+        if (id.Value == TypedIdValue.Guid && !id.HasCreate)
         {
-            AppendNew(sb, name);
+            AppendCreate(sb, name);
         }
 
         if (!id.HasParse)

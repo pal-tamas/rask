@@ -37,7 +37,7 @@ An assistant writes every Rask app in one style ([domain modelling](domain.md)),
   or a handler, no `SaveChanges` in app code.
 - **Every property is a value object or a typed id**: `public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 200);`,
   `public readonly partial record struct VehicleId(Guid Value);` — the rule is said once, in the type, made through
-  `Create`, never `new`. A key is a typed id over a `Guid` made in the factory (`VehicleId.New()`, version 7) unless the
+  `Create`, never `new`. A key is a typed id over a `Guid` made in the factory (`VehicleId.Create()`, version 7) unless the
   database must number the table: a store-generated key is `0` until the insert, and an event raised with it is
   [RASK145](diagnostics.md#rask145).
 - **A refusal is `Refuse`** under its field; a rule over the whole aggregate is its `Validate()`.
