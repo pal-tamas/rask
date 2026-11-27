@@ -46,3 +46,8 @@ dotnet_diagnostic.RASK145.severity = error
 # databases. A suggestion everywhere else; a warning under <RaskStrict>, and an error at errors. Migrations, generated
 # code and the call that selects the provider are not reported.
 dotnet_diagnostic.RASK177.severity = warning
+
+# An aggregate's children held by hand (RASK193): a private List<X> behind a read-only view, or a public List<X> /
+# ICollection<X>, where one HasMany<X> says the same and only the aggregate changes it. A suggestion everywhere else;
+# under <RaskStrict> an error — the quick-fix makes the move, and it is no migration.
+dotnet_diagnostic.RASK193.severity = error

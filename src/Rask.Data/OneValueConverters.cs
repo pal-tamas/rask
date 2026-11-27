@@ -51,6 +51,9 @@ internal static class OneValueConverters
     /// </summary>
     public static ValueConverter? StoredAs(ValueConverter? converter) => (converter as IOwn)?.Stored;
 
+    /// <summary>Whether <paramref name="converter" /> is Rask's own converter of a one-value value object.</summary>
+    public static bool IsOwn(ValueConverter? converter) => converter is IOwn;
+
     /// <summary>
     ///     <paramref name="written" />, then <paramref name="stored" /> on the way to the column: Rask's own converter
     ///     stays Rask's own — its <c>.Value</c> still reads the column, through <paramref name="stored" /> — and an

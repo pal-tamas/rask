@@ -167,8 +167,9 @@ public interface IAuth
     /// tenant from its next event, and renders again for it.
     /// </para>
     /// <para>
-    /// Refused with <see cref="AuthError.NotAllowed" /> for a user who belongs to a tenant, and for one without the
-    /// choosing role (<c>AuthOptions.ActInTenantRole</c>, the admin role by default).
+    /// Refused with <see cref="AuthError.NotAllowed" /> for a user who belongs to a tenant, for one without the
+    /// choosing role (<c>AuthOptions.ActInTenantRole</c>, the admin role by default), and for a tenant the app's
+    /// tenant aggregate (the one that says <c>ITenant</c>) has no row for — a deleted one, or an id nobody has.
     /// </para>
     /// <example>
     /// <code>

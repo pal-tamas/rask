@@ -32,11 +32,21 @@ public sealed partial class TypedIdGenerator
         }
 
         sb.Append("readonly partial record struct ").Append(name)
-            .Append(" : global::System.ISpanParsable<").Append(name).AppendLine(">");
+            .Append(" : global::System.ISpanParsable<").Append(name).Append('>');
+        if (IsOrdered(id))
+        {
+            sb.Append(", global::System.IComparable<").Append(name).Append('>');
+        }
+
+        sb.AppendLine();
         sb.AppendLine("{");
 
         AppendFactories(sb, id);
         AppendInterfaceMembers(sb, id);
+        if (IsOrdered(id))
+        {
+            AppendOrder(sb, name);
+        }
 
         if (!id.HasToString)
         {
@@ -108,6 +118,25 @@ public sealed partial class TypedIdGenerator
         AppendTryParseBody(sb, id.Value, "s", span: true);
         sb.AppendLine("    }");
         sb.AppendLine();
+    }
+
+    // A number's or a Guid's order, which every database Rask runs on sorts the column by too (a Guid id's on SQL Server
+    // because Rask stores it time-ordered), so `Where(x => x.Id > last)` pages by the key. A text id has none: the
+    // database orders it by its collation, which no operator here could promise.
+    private static bool IsOrdered(TypedId id) => id.Value != TypedIdValue.String && !id.HasCompareTo;
+
+    private static void AppendOrder(StringBuilder sb, string name)
+    {
+        sb.AppendLine("    /// <summary>The ids in the order of their values: a version-7 id's by the time it was made.</summary>");
+        sb.Append("    public int CompareTo(").Append(name).AppendLine(" other) => Value.CompareTo(other.Value);");
+        sb.AppendLine();
+        foreach (var op in new[] { "<", ">", "<=", ">=" })
+        {
+            sb.AppendLine("    /// <summary>Compares the ids by their values, as a query on the key does.</summary>");
+            sb.Append("    public static bool operator ").Append(op).Append('(').Append(name).Append(" left, ").Append(name)
+                .Append(" right) => left.Value ").Append(op).AppendLine(" right.Value;");
+            sb.AppendLine();
+        }
     }
 
     private static string ParseText(TypedIdValue value) => value switch

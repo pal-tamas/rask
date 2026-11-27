@@ -1,6 +1,6 @@
 namespace Rask.Data;
 
-/// <summary>What a <c>Children.Sync</c> changed.</summary>
+/// <summary>What a <c>HasMany.Sync</c> changed.</summary>
 /// <remarks>
 ///     <code>
 /// if (Chips.Sync(chips, c =&gt; c.Id, Chip.For, (c, s) =&gt; c.Hold(s)) is { Touched.Count: &gt; 0 } sync)

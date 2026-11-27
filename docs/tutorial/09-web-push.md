@@ -158,7 +158,7 @@ public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned, De
 
     public AccountId? Account { get; private set; }
 
-    public Children<OrderLine, OrderLineSpec> Lines { get; } = new();
+    public HasMany<OrderLine> Lines { get; } = new();
 
     private static Order Place(CustomerEmail customer, ShippingAddress shipTo, GiftNote? gift, IReadOnlyList<OrderLineSpec> lines)
     {

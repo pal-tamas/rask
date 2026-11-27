@@ -242,8 +242,8 @@ internal sealed class ServerAuth<TUser, TKey>(
         return outcome.Result;
     }
 
-    // The socket's own request, when the host flows it to handlers; otherwise the throttle keys on the address alone.
-    private string? Client() => http.HttpContext?.Connection.RemoteIpAddress?.ToString();
+    // The socket's own request, when the host flows it to handlers, counted as the endpoints count it (an IPv6 /64 is one).
+    private string? Client() => http.HttpContext is { } context ? AuthClient.Of(context) : null;
 
     // Only consulted when the app configured neither PasskeyOrigins nor PublicOrigin, which is the development case.
     private string? Origin() =>
