@@ -214,7 +214,7 @@ public sealed class Delivery : Aggregate<Guid, Model>
 | `Number` | `decimal Value` | `Min`, `Max`, `Scale` (most decimal places), `Precision` (most digits), `Round` (to the scale instead of refusing) |
 | `Integer` | its own `int` or `long Value` | `Min`, `Max` |
 | `Day` | `DateOnly Value` | `NotBefore`, `NotAfter`, `NotAfterToday` (today is `Clock.Today`) |
-| `Moment` | `DateTime Value`, on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly` |
+| `Moment` | an instant (`.Instant`, UTC), its `DateTime Value` on the wall clock | `NotBefore`, `NotAfter`, `NotAfterNow` (now is `Clock.Wall`); `.Day` is its `DateOnly`, `FromWall(local, zone)` makes one from another zone's clock |
 | `Range` | its own two members | the end not before the start (`Strict`: after it), `Min` and `Max` for both ends; a null end is open |
 | `Value` | its own members | whatever `Rules()` yields — `Problem.At(member, message)` or `Problem.Whole(message)`; with ONE member it is a one-value value object: one column, asked on its field, refused under it |
 
@@ -321,12 +321,14 @@ offered the enum's members, labelled by their `[Display(Name)]`, as for a bare e
 **A test that needs a valid one and does not care which** asks `Test.Make<Vin>()` (Rask.Testing): it reads the rules
 the record hands its base and makes one through `Create` — see [testing](testing.md#a-valid-value-object-testmake).
 
-**A `Moment` is a wall-clock time, never a UTC one.** It holds the moment as the clock on the wall shows it in
-`Clock.Zone` (what `Clock.Wall` reads), with `DateTimeKind.Unspecified` — how a `datetime2` (SQL Server) or `TEXT`
-(SQLite) column keeps it and reads it back. A `DateTime` of `DateTimeKind.Utc` is converted to `Clock.Zone` as it is
-made, and one of `DateTimeKind.Local` from the machine's zone, so `FuelingMoment.Create(Clock.Now.UtcDateTime)` and
-`FuelingMoment.Create(Clock.Wall)` are the same value, and a column of moments never mixes the two. A bound field of
-one draws a `Ui.DayAndTime`, ending now for `NotAfterNow`.
+**A `Moment` is an instant, shown on the app's wall clock.** `.Instant` is the instant it holds (a `DateTimeOffset`
+in UTC — what every database keeps, and what two moments compare and order by); `.Value` is what the clock on the
+wall showed at it in `Clock.Zone` (what `Clock.Wall` reads), with `DateTimeKind.Unspecified`; `.Day` is its day on the
+wall calendar, and `.WallIn(zone)` the time another zone's clocks showed. A `DateTime` of `DateTimeKind.Utc` is the
+instant it names and one of `DateTimeKind.Local` is converted from the machine's zone, so
+`FuelingMoment.Create(Clock.Now.UtcDateTime)` and `FuelingMoment.Create(Clock.Wall)` are the same value. A bound
+field of one draws a `Ui.DayAndTime`, ending now for `NotAfterNow`. See [Moment and Day](#moment-and-day) for the
+wall-clock times that come in from outside.
 
 **A stored value is loaded, never re-checked.** EF Core builds what a row holds without asking the rules — a row
 stored before a rule was tightened still loads, a tracked entity holding one still saves, and a query that fails on
@@ -1626,6 +1628,44 @@ public DateTime OnTheWall(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(utc, 
 
 `DateTime.Now`, `Today`, `UtcNow`, `DateTimeOffset.Now`/`UtcNow` and `.ToLocalTime()` in domain code are
 [RASK140](diagnostics.md#rask140), whose quick-fix writes the `Clock` read of the same type.
+
+#### Moment and Day
+
+There is one way to hold time in the domain: **a `Moment` for an instant** — when something happened, stored as UTC
+on every database — **and a `Day` for a calendar day** — a due date, a birthday, a day a price list starts, with no
+time of day and no zone. An aggregate, an entity, a value object, a domain event or a read model holds no bare
+`DateTime` or `DateTimeOffset`.
+
+```csharp
+public sealed partial record FuelingMoment(DateTime Value) : Moment(Value, NotAfterNow: true);
+public sealed partial record DueDay(DateOnly Value) : Day(Value);
+
+public FuelingMoment FueledAt { get; private set; } = null!;
+public DueDay Due { get; private set; } = null!;
+```
+
+**A wall-clock time from outside becomes a moment where it comes in.** A pump, a tachograph or a CSV that writes its
+local time without an offset is read at the boundary and made an instant there, never kept as it was written:
+
+```csharp
+var at = FuelingMoment.FromWall(reading.LocalTime, pumpZone);   // the pump's own zone
+var here = FuelingMoment.FromWall(row.Time);                    // the app's, Clock.Zone
+```
+
+`FromWall` follows one fixed rule for the two hours a year a wall time is not one instant — the rule SQL Server's
+`AT TIME ZONE` follows, so a conversion done in SQL agrees with the app:
+
+| Wall time | In Europe/Budapest | Becomes |
+|---|---|---|
+| shown twice, when summer time ends | `2026-10-25 02:30` | its **first** occurrence, still in summer time: `00:30Z` |
+| skipped, when summer time begins | `2026-03-29 02:30` | **moved forward** by the jump: `03:30+02:00`, `01:30Z` |
+
+The first occurrence is the earlier instant, so a reading made then is never later than it was. A moment made from
+its instant — a UTC `DateTime`, a text with `Z` or an offset, a row read back — keeps it exactly, either side of the
+change: the two `02:30`s of an October night are two moments, ordered as they happened.
+
+Going back out: `.Value` is the app's wall clock, `.Day` its day, `.Instant` the UTC instant and `.WallIn(zone)` the
+wall clock of another zone — what a device that keeps its own local time is sent.
 
 ### Services stay outside the domain
 

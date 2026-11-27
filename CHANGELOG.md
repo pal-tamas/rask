@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`FuelingMoment.FromWall(local, zone)`: a wall-clock time from outside made a `Moment` by one fixed rule.** A pump
+  or a file that writes its local time without an offset is made an instant where it comes in — `FromWall(local)` reads
+  it on `Clock.Zone`. A time the clock shows twice when summer time ends is its FIRST occurrence (still in summer time),
+  one it skips when summer time begins moves forward by the jump: SQL Server's `AT TIME ZONE` rule, which PostgreSQL's
+  UTC column now follows too (it took the standard-time occurrence). A `Moment` now holds its instant: `.Instant` (UTC
+  `DateTimeOffset`) beside `.Value` (the app's wall clock), `.WallIn(zone)` for another zone's clock; two moments compare,
+  order and are equal by their instant, so the two `02:30`s of an October night made from UTC stay two moments.
+  `docs/domain.md#moment-and-day`.
 - **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
   `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
   and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a

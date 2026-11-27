@@ -47,6 +47,7 @@ public sealed partial class ValueObjectFactoryGenerator
         AppendOrder(s, value);
         AppendToString(s, value);
         AppendParse(s, value);
+        AppendFromWall(s, value);
         AppendDraft(s, value);
         s.AppendLine("}");
 

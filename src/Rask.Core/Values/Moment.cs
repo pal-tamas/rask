@@ -8,17 +8,24 @@ namespace Rask.Values;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The moment is a wall-clock time in <see cref="Clock.Zone" /> — what <see cref="Clock.Wall" /> reads — and
-///         its <see cref="DateTime.Kind" /> is always <see cref="DateTimeKind.Unspecified" />, which is how a
-///         <c>datetime2</c> or SQLite <c>TEXT</c> column keeps it and reads it back. A UTC time is never kept as one:
-///         a <see cref="DateTime" /> of <see cref="DateTimeKind.Utc" /> is converted to <see cref="Clock.Zone" />, and
-///         one of <see cref="DateTimeKind.Local" /> from the machine's zone to it, so <c>Create(Clock.Now.UtcDateTime)</c>
-///         and <c>Create(Clock.Wall)</c> hold the same moment.
+///         A moment is an instant — <see cref="Instant" />, which is what every database keeps, as UTC — shown on the wall
+///         clock of <see cref="Clock.Zone" />: <see cref="Value" /> is what <see cref="Clock.Wall" /> read at it, of
+///         <see cref="DateTimeKind.Unspecified" />. A <see cref="DateTime" /> of <see cref="DateTimeKind.Utc" /> is the
+///         instant it names, one of <see cref="DateTimeKind.Local" /> is converted from the machine's zone, and an
+///         unspecified one is a wall-clock time of <see cref="Clock.Zone" />, so <c>Create(Clock.Now.UtcDateTime)</c> and
+///         <c>Create(Clock.Wall)</c> hold the same moment. A wall-clock time of another zone — a device reporting its own
+///         local time — becomes one through the generated <c>FromWall(local, zone)</c>.
+///     </para>
+///     <para>
+///         A wall time names its instant by one rule, the one SQL Server's <c>AT TIME ZONE</c> follows: one the clock shows
+///         twice when summer time ends is its FIRST occurrence (still in summer time), and one the clock skips when it
+///         begins is moved forward by the jump — <c>02:30</c> is held as <c>03:30</c>. A moment made from its instant
+///         keeps it exactly, either side of the change.
 ///     </para>
 ///     <para>
 ///         The constructor checks the bounds and throws a <see cref="Rask.Cqrs.RaskValidationException" /> when one
 ///         refuses the moment; "now" is <see cref="Clock.Wall" />, so a test that sets the clock moves it. Two values
-///         are equal when they are of the same type and hold the same moment.
+///         are equal when they are of the same type and hold the same instant.
 ///     </para>
 /// </remarks>
 public abstract record Moment : Value
@@ -49,29 +56,40 @@ public abstract record Moment : Value
             DeclaredRules.Note(new MomentRules(NotBefore, NotAfter, NotAfterNow));
         }
 
-        this.Value = OnTheWall(Value);
+        var zone = Clock.Zone;
+        var utc = WallClock.ToUtc(Value, zone);
+        Instant = new DateTimeOffset(utc);
+        this.Value = WallClock.ToWall(utc, zone);
         if (!RowLoading.IsOn)
         {
             Check(Problems(this.Value, NotBefore, NotAfter, NotAfterNow, Message));
         }
     }
 
-    /// <summary>The moment it holds, on the wall clock of <see cref="Clock.Zone" />.</summary>
+    /// <summary>The moment it holds, on the wall clock of <see cref="Clock.Zone" />, of <see cref="DateTimeKind.Unspecified" />.</summary>
     public DateTime Value { get; }
+
+    /// <summary>The instant it holds, in UTC: what a database keeps, and what two moments are compared by.</summary>
+    public DateTimeOffset Instant { get; }
 
     /// <summary>The day of the moment, as the calendar on the wall shows it.</summary>
     public DateOnly Day => DateOnly.FromDateTime(Value);
 
+    /// <summary>
+    ///     The moment on the wall clock of <paramref name="zone" />: what a device that keeps that zone's local time is
+    ///     told, <c>moment.WallIn(pumpZone)</c>.
+    /// </summary>
+    /// <param name="zone">The zone whose clocks show it.</param>
+    /// <returns>The wall-clock time, of <see cref="DateTimeKind.Unspecified" />.</returns>
+    public DateTime WallIn(TimeZoneInfo zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        return WallClock.ToWall(Instant.UtcDateTime, zone);
+    }
+
     /// <summary>The moment it holds, written as ISO 8601, culture-invariant: a value's text, not its display (that is the UI's).</summary>
     /// <returns>The moment as text.</returns>
     public sealed override string ToString() => Value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
-
-    // A wall-clock time stays as given; a UTC or machine-local one is moved onto the app's wall clock. The conversion
-    // hands back Utc or Local where the zone is one of those, so the kind is set after it.
-    private static DateTime OnTheWall(DateTime given) =>
-        given.Kind is DateTimeKind.Unspecified
-            ? given
-            : DateTime.SpecifyKind(TimeZoneInfo.ConvertTime(given, Clock.Zone), DateTimeKind.Unspecified);
 
     private static List<Problem>? Problems(DateTime moment, DateTime? notBefore, DateTime? notAfter, bool notAfterNow, string? message)
     {

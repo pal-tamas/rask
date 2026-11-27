@@ -46,13 +46,13 @@ public sealed partial class ValueObjectFactoryGenerator
         }
 
         var name = value.Name;
-        var held = value.Parameters[0];
+        var (by, type) = OrderedBy(value);
         s.AppendLine();
-        s.Append("    /// <summary>Orders it by the ").Append(held.Name)
+        s.Append("    /// <summary>Orders it by the ").Append(by)
             .AppendLine(" it holds, as the database orders its column; any value is after null.</summary>");
         s.Append("    public int CompareTo(").Append(name).AppendLine("? other) =>");
-        s.Append("        other is null ? 1 : global::System.Collections.Generic.Comparer<").Append(held.Type).Append(">.Default.Compare(")
-            .Append(held.Name).Append(", other.").Append(held.Name).AppendLine(");");
+        s.Append("        other is null ? 1 : global::System.Collections.Generic.Comparer<").Append(type).Append(">.Default.Compare(")
+            .Append(by).Append(", other.").Append(by).AppendLine(");");
         s.AppendLine();
         s.AppendLine("    int global::System.IComparable.CompareTo(object? obj) =>");
         s.AppendLine("        obj switch");
@@ -65,10 +65,17 @@ public sealed partial class ValueObjectFactoryGenerator
         foreach (var (op, test) in Comparisons)
         {
             s.AppendLine();
-            s.Append("    /// <summary>Compares the ").Append(held.Name).AppendLine(" the two hold; null is less than any value.</summary>");
+            s.Append("    /// <summary>Compares the ").Append(by).AppendLine(" the two hold; null is less than any value.</summary>");
             s.Append("    public static bool operator ").Append(op).Append('(').Append(name).Append("? left, ").Append(name)
                 .Append("? right) => global::System.Collections.Generic.Comparer<").Append(name).Append(">.Default.Compare(left, right) ")
                 .Append(test).AppendLine(";");
         }
     }
+
+    // A moment orders by the instant it holds — the column's order, which keeps the hour the clock shows twice in
+    // autumn apart — and any other value by the one it holds.
+    private static (string By, string Type) OrderedBy(ValueObject value) =>
+        string.Equals(value.ValueBase, "Moment", System.StringComparison.Ordinal)
+            ? ("Instant", "global::System.DateTimeOffset")
+            : (value.Parameters[0].Name, value.Parameters[0].Type);
 }
