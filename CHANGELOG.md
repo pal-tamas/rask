@@ -140,6 +140,9 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (wire): a background job that ended with a warning crosses as `"state": "Warned"`.** It no longer also
+  crosses as `"Done"` with an `"outcome"` beside it for a tab opened before warnings existed; such a tab, if one is
+  still open, reads the unknown state as done, as it reads any state it does not know.
 - **BREAKING: six public members that did nothing are gone.** `RaskRuntimeScript` (a no-op since the runtime
   `<script>` is injected at `</body>`; drop it from a tree that still names it), `RaskCultureOptions.ApplyToCurrentCulture`
   (nothing read it: the ambient culture is pinned whenever Rask's culture is on), `AuthOptions.ForgotPasswordPath`
