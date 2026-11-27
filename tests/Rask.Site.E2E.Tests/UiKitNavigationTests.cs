@@ -207,10 +207,12 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
 
         var pager = Page.Locator("[data-testid='ui-pagination-links'] [data-ui-pagination]");
 
-        // Four pages, the first current: 2, 3, 4 and Next are links, and the current page is a marker that is not.
+        // Four pages, the first current: 2, 3, 4 and Next are links, the current page is a marker that is not, and the
+        // spent Previous is a disabled button, as Flux's.
         await Expect(pager.GetByRole(AriaRole.Link)).ToHaveCountAsync(4);
         await Expect(pager.Locator("[aria-current='page']")).ToHaveTextAsync("1");
-        await Expect(pager.Locator("button")).ToHaveCountAsync(0);
+        await Expect(pager.Locator("button:not([disabled])")).ToHaveCountAsync(0);
+        await Expect(pager.Locator("button[disabled][aria-label='« Previous']:visible")).ToHaveCountAsync(1);
 
         var href = await pager.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "2", Exact = true }).GetAttributeAsync("href") ?? "";
         Assert.EndsWith("/ui/pagination/?page=2", href, StringComparison.Ordinal);
@@ -234,15 +236,16 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
-        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(0);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous", Disabled = false })).ToHaveCountAsync(0);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous", Disabled = true })).ToHaveCountAsync(1);
 
         await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "5", Exact = true }).ClickAsync();
 
-        // On the last page it is Next that is no longer a button, and Previous that is one.
+        // On the last page it is Next that is disabled (Flux's spent step: a disabled button), and Previous that is not.
         await Expect(pager).ToContainTextAsync("Showing 21 to 24 of 24 results");
-        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" })).ToHaveCountAsync(0);
-        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(1);
-        await Expect(pager.Locator("[aria-disabled='true'][aria-label='Next »']:visible")).ToHaveCountAsync(1);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next", Disabled = false })).ToHaveCountAsync(0);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous", Disabled = false })).ToHaveCountAsync(1);
+        await Expect(pager.Locator("button[disabled][aria-label='Next »']:visible")).ToHaveCountAsync(1);
     });
 
     [Fact]
@@ -352,18 +355,18 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination-simple'] [data-ui-pagination]");
-        await Expect(pager.GetByRole(AriaRole.Button)).ToHaveCountAsync(1);
+        await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Disabled = false })).ToHaveCountAsync(1);
 
-        // Flux's simple pager names neither arrow, so they are found by place: Previous first, Next last.
+        // Flux 2.22's simple pager names its arrows as the counted one does.
         for (var page = 1; page < 5; page++)
         {
-            await pager.Locator("button:last-child").ClickAsync();
+            await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
         }
 
         // Four presses reach the fifth page, the last one the demo has: Next is spent, Previous is not.
-        await Expect(pager.Locator("button:last-child")).ToHaveCountAsync(0);
-        await Expect(pager.Locator("button:first-child")).ToHaveCountAsync(1);
-        await Expect(pager.Locator("[aria-label], [aria-disabled]")).ToHaveCountAsync(0);
+        await Expect(pager.Locator("button:last-child[disabled]")).ToHaveCountAsync(1);
+        await Expect(pager.Locator("button:first-child:not([disabled])")).ToHaveCountAsync(1);
+        await Expect(pager.Locator("[aria-disabled]")).ToHaveCountAsync(0);
         await Expect(pager).Not.ToContainTextAsync("Showing");
     });
 
