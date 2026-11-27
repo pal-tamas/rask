@@ -16,6 +16,9 @@
 > requires asked for first, so an incomplete component is a compile error rather than a null. Rask
 > needs no Node or npm: TypeScript, esbuild and Tailwind arrive as native binaries the build verifies.
 
+Rask requires the .NET 11 SDK and C# 15 (the net11.0 default): leave `<LangVersion>` unset — a project pinning one
+below 15 fails the build with `RASKLANG001`.
+
 This file helps AI coding assistants build apps with Rask. Start with [docs/ai-agents.md](docs/ai-agents.md)
 for app-authoring conventions, then the docs below (the repo-root AGENTS.md is for contributors to Rask itself).
 
@@ -510,7 +513,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
 - [HTTP & files](docs/http-and-files.md): data & file *transfer* — a DI'd `HttpClient` (constructor-injected, `BaseAddress` at the app origin;
   fetch in `OnMount` with cancel/retry/error handling), the typed file-picker input (`Input.Of<string>().Type(InputType.File).OnFiles(…)` + `IRaskFile` metadata;
   multipart on Server, JS chunked reads on WASM), and `Download.File` (event-handler-only;
-  served from `/_rask/download/…` on Server, base64 to JS on WASM).
+  served from `/_rask/download/…` on Server, a token the client pulls from .NET on WASM).
 - [Data access](docs/data-access.md): what sits under the domain — a context per read and per write (never injected into a component), `AddRaskData<TContext>((sp, o) => o.UseRaskSqlite(sp))` for an app with its own context, loading in the lifecycle through the read face, vertical slices with no service layer, lazy loading off, decimal on SQLite (invariant collation).
 - [Splitting a total](docs/domain.md#splitting-a-total-allocationsplit): `Allocation.Split(total, parts, step: 0.01m)` / `Allocation.Split(total, weights, step, remainder: Remainder.ToFirst|ToLast|ToLargest)` (namespace `Rask.Values`, `Rask` package; pure, deterministic, no DB) — shares that are whole numbers of `step`, each within one step of its exact part, whose SUM IS THE TOTAL EXACTLY (`Split(100m, 3, step: 0.01m)` = `[33.34, 33.33, 33.33]`); zero weight gets zero and no remainder; a total off the step's grid keeps its last fraction on the first remainder taker; negative totals give negative shares.
 - [SQLite production pragmas](docs/sqlite.md): the `Rask.SQLite` package (in `Rask.Server`, on by default) — applies a production SQLite pragma set (journal_mode=WAL, synchronous=NORMAL, foreign_keys=ON, busy_timeout=5000, cache_size=2000 pages, mmap_size=128MiB, journal_size_limit=64MiB;

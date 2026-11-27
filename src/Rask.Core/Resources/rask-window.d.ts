@@ -401,16 +401,14 @@ interface RaskFrameReply {
     /** A development fault the app survived, riding the payload rather than a frame of its own. */
     devError?: unknown;
     /**
-     * A file the app asked the browser to save. Bytes arrive one of three ways: a token the client
-     * pulls from .NET (no base64 inflation), inline base64, or an already-decoded array.
+     * A file the app asked the browser to save: the Server host sends a URL the browser fetches, the
+     * WASM host a token the client pulls the bytes from .NET with.
      */
     download?: {
         filename?: string;
         /** The Server host streams the file from a URL rather than carrying its bytes. */
         url?: string;
         token?: string;
-        base64?: string;
-        bytes?: number[];
         contentType?: string;
     };
     /** A navigation the render performed, so the client can update history and scroll. */

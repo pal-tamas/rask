@@ -2611,6 +2611,7 @@ and no quick-fix.
 
 | Code | What happened | Fix |
 | --- | --- | --- |
+| `RASKLANG001` | The project pins a `<LangVersion>` below C# 15 (`14`, `13.0`, `ISO-2`, …). Rask's generated code — the per-page `Url()`/`Go()` extension members among it — needs C# 15. | Remove `<LangVersion>` (.NET 11 defaults to C# 15) or set it to `15`, `latest` or `preview`. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net11.0-browser`. |

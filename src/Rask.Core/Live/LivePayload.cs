@@ -927,10 +927,6 @@ public static class LivePayload
                 // JSExport. Keeps the per-render JSON payload tight regardless of file size.
                 writer.WriteString("token", download.Token);
             }
-            else if (download.Bytes is not null)
-            {
-                writer.WriteBase64String("bytes", download.Bytes);
-            }
 
             writer.WriteEndObject();
         }

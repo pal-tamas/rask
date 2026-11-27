@@ -14,6 +14,12 @@ them until tagged releases begin.
   are reported as a suggestion, faded as unneeded, and the quick fix (with Fix all) deletes them — the call out of its
   chain, and a statement left saying nothing with it. A project that restates the pattern (`TableNames`, `ColumnNames`,
   `ConstraintNames`) gets no report.
+- **BREAKING — Rask requires C# 15.** A project that pins `<LangVersion>` below 15 (`14`, `13.0`, `ISO-2`, …) stops at
+  build with `RASKLANG001`, naming the setting, instead of failing inside generated source. .NET 11 defaults to C# 15,
+  so an app that leaves `<LangVersion>` unset is unaffected. With it go the below-C# 14 fallbacks: the routes generator
+  always emits the per-page `Url()`/`Go()` extension members (the `Routes.X()` entries stay), and `Route.To<T>()` reads
+  a page's template from the generated route registry alone — the `[Route]` reflection fallback is gone, so a page whose
+  assembly did not run the generator throws rather than being read by reflection.
 - **`OrderedGuid.New()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
   the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `New()` now returns it
   instead of emitting its own copy, and every key Rask makes is one: the batteries' rows (jobs, outbox, mail, logs,
@@ -155,6 +161,11 @@ them until tagged releases begin.
   Raw SQL that names the old tables or columns changes with them. To keep EF Core's names for now:
   `c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`
   ([Names](docs/data.md#names-rasks-own-in-postgresqls-style), [the next migration renames](docs/data.md#rasks-names-the-next-migration-renames)).
+- **BREAKING: a download reaches the browser by URL (Server) or token (WASM) only — the base64-inline path is gone.**
+  `PendingDownload` loses its `Bytes` member (`new PendingDownload(name, type, url, token)`), the render payload no
+  longer carries a `download.bytes` field, and the WASM client drops its base64 decoder. `TestDownloadSink.TryConsume`
+  now hands each download on as a token, like the WASM sink; its `Staged` list still holds the bytes for assertions.
+  A custom `IDownloadSink` that set `Bytes` keeps them itself and hands on a token.
 - **BREAKING (wire): a `Moment` travels as the UTC instant it holds, not its wall-clock `.Value`.** The generated CQRS
   codec, the API client and System.Text.Json (each record declared from `Moment` now gets its own generated
   `[JsonConverter]`, over `Rask.Values.MomentJsonConverter<T>`) write `"2026-10-25T00:30:00Z"`, so the hour the clock
