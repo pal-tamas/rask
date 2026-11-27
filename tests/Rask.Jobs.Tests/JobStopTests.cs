@@ -187,7 +187,7 @@ public sealed class JobStopTests
         await h.Processed(id);
 
         var done = await h.Queue.Stop(id, Ct);
-        var missing = await h.Queue.Stop(id + 1000, Ct);
+        var missing = await h.Queue.Stop(Guid.CreateVersion7(), Ct);
 
         Assert.False(done);
         Assert.False(missing);

@@ -241,7 +241,7 @@ public sealed class LogsPageTests
         /// </summary>
         public Task AppendAsync(string message, LogLevel level = LogLevel.Information) =>
             _dashboard!.Get<ILogs>().Append([
-                new LogRecord(0, DateTimeOffset.UtcNow, level, "Test", 0, message, null)
+                new LogRecord(Guid.Empty, DateTimeOffset.UtcNow, level, "Test", 0, message, null)
             ]);
 
         public async ValueTask DisposeAsync()

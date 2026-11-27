@@ -95,6 +95,21 @@ public sealed class JobLaneTests
     }
 
     [Fact]
+    public async Task Jobs_due_at_the_same_instant_run_in_the_order_they_were_enqueued_now_that_Rask_makes_their_keys()
+    {
+        await using var h = new JobsHarness();
+        var tags = Enumerable.Range(0, 40).Select(static i => $"fifo-{i:D2}").ToList();
+        foreach (var tag in tags)
+        {
+            await h.Queue.Enqueue(new RecordJob(tag), TestContext.Current.CancellationToken).InLane("fifo");
+        }
+
+        await h.RunUntilAsync(() => h.Recorder.Values.Count == tags.Count);
+
+        Assert.Equal(tags, h.Recorder.Values);
+    }
+
+    [Fact]
     public async Task A_long_job_holds_up_its_own_lane_and_no_other()
     {
         await using var h = new JobsHarness();

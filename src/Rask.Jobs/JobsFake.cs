@@ -11,7 +11,6 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
     private readonly List<EnqueuedJob> _enqueued = [];
     private readonly IJobs? _previous;
     private readonly Lock _gate = new();
-    private long _ids;
 
     internal JobsFake()
     {
@@ -186,7 +185,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
     }
 
     // Nothing runs on its own here, so nothing can be stopped.
-    Task<bool> IJobs.Stop(long id, CancellationToken cancellationToken) => Task.FromResult(false);
+    Task<bool> IJobs.Stop(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
 
     // The fake holds no rows, so every lane asked for is idle.
     Task<IReadOnlyDictionary<string, JobLane>> IJobs.Lanes(IEnumerable<string> lanes, CancellationToken cancellationToken)
@@ -212,12 +211,12 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
 
     // A job its enqueuer watches runs as a run of its own, so Jobs.Report reaches it; what it says is published in order once
     // its handler returns — running first, its reports, then how it ended. A job nobody watches just runs.
-    private async Task Noticed(EnqueuedJob job, Func<Task> handle, CancellationToken cancellationToken)
+    private static async Task Noticed(EnqueuedJob job, Func<Task> handle, CancellationToken cancellationToken)
     {
         var watched = job.Notice is not null && job.User is not null;
         var said = new List<WorkReported>();
         var run = new JobRun(
-            Interlocked.Increment(ref _ids), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
+            OrderedGuid.New(), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
             TimeProvider.System, cancellationToken)
         {
             Shared = job.Shared,

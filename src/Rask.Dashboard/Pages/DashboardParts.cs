@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Rask.Dashboard.Pages;
 
 /// <summary>
-/// The two formatters every panel repeats. Purely string-producing — it builds no markup at all, so it
+/// The formatters every panel repeats. Purely string-producing — it builds no markup at all, so it
 /// needs nothing from the component surface; the panel states it used to carry are components below.
 /// </summary>
 internal static class DashboardParts
@@ -32,6 +32,12 @@ internal static class DashboardParts
     };
 
     public static string Duration(TimeSpan span) => Humanize(span);
+
+    /// <summary>
+    /// A row's id as a list shows it: its last eight hex digits — the random end of a version-7 id, which tells rows
+    /// apart where its time-ordered start does not. The whole id is in the cell's Title and in the row's details.
+    /// </summary>
+    public static string ShortId(Guid id) => "#" + id.ToString("N", CultureInfo.InvariantCulture)[^8..];
 
     /// <summary>
     /// The last page there is, counted from zero, for <paramref name="total" /> rows in pages of

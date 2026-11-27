@@ -477,7 +477,7 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         return JobStopWait.Until(() => Task.FromResult(processor.Looks >= seen + 2));
     }
 
-    private async Task<long> Enqueue(IJobs jobs, IJob job, string lane, TimeSpan? delay = null)
+    private async Task<Guid> Enqueue(IJobs jobs, IJob job, string lane, TimeSpan? delay = null)
     {
         if (delay is { } wait)
         {
@@ -490,10 +490,10 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
 
         // Each test runs alone on tables of its own, so the newest row is the one just written.
         await using var db = NewContext();
-        return await db.Set<Job>().MaxAsync(j => j.Id, Ct);
+        return await db.Set<Job>().OrderByDescending(j => j.Id).Select(j => j.Id).FirstAsync(Ct);
     }
 
-    private async Task<long> InsertBeforeUpgrade(IJob job, string? lane, Action<UpdateSettersBuilder<Job>>? state = null)
+    private async Task<Guid> InsertBeforeUpgrade(IJob job, string? lane, Action<UpdateSettersBuilder<Job>>? state = null)
     {
         var (type, payload) = JobSerializerRegistry.Serialize(job);
         var row = Job.For(type, payload, _clock.GetUtcNow().UtcDateTime - Minute, lane);
@@ -508,19 +508,19 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         return row.Id;
     }
 
-    private async Task Update(long id, Action<UpdateSettersBuilder<Job>> set)
+    private async Task Update(Guid id, Action<UpdateSettersBuilder<Job>> set)
     {
         await using var db = NewContext();
         await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(set, Ct);
     }
 
-    private async Task<Job?> Row(long id)
+    private async Task<Job?> Row(Guid id)
     {
         await using var db = NewContext();
         return await db.Set<Job>().AsNoTracking().SingleOrDefaultAsync(j => j.Id == id, Ct);
     }
 
-    private async Task<List<Job>> Rows(params long[] ids)
+    private async Task<List<Job>> Rows(params Guid[] ids)
     {
         var rows = new List<Job>();
         foreach (var id in ids)
@@ -531,7 +531,7 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         return rows;
     }
 
-    private async Task<Job> Processed(long id)
+    private async Task<Job> Processed(Guid id)
     {
         await JobStopWait.Until(async () => (await Row(id))?.ProcessedAt is not null);
         return (await Row(id))!;

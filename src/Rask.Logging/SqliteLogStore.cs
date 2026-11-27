@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Rask.Batteries;
 using Rask.SQLite;
 
 namespace Rask.Logging;
@@ -148,9 +149,10 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                 {
                     while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
+                        var at = ParseTimestamp(reader.GetString(1));
                         entries.Add(new LogRecord(
-                            reader.GetInt64(0),
-                            ParseTimestamp(reader.GetString(1)),
+                            OrderedGuid.Of(at, reader.GetInt64(0)),
+                            at,
                             (LogLevel)reader.GetInt32(2),
                             reader.GetString(3),
                             reader.GetInt32(4),
@@ -301,6 +303,11 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
     /// Creates the table and its indexes, once per store. Gated rather than raced: the writer and a
     /// dashboard reader can both be the first to touch the file.
     /// </summary>
+    /// <remarks>
+    /// The one store-numbered key Rask keeps, on purpose: this file is the host's own, written by this process alone,
+    /// and the full-text index needs an integer rowid that VACUUM never renumbers. A record's Guid is derived from it
+    /// (<c>OrderedGuid.Of</c>), so both stores hand out the same kind of id.
+    /// </remarks>
     private async Task EnsureSchemaAsync(CancellationToken cancellationToken)
     {
         if (_schemaReady)

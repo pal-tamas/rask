@@ -24,14 +24,14 @@ public sealed class DurableEvent
     /// <param name="messageId">The outbox row's id.</param>
     /// <param name="attempt">Which attempt this is, from 1.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public DurableEvent(long messageId, int attempt)
+    public DurableEvent(Guid messageId, int attempt)
     {
         MessageId = messageId;
         Attempt = attempt;
     }
 
-    /// <summary>The outbox row's id: the same on every attempt of this event for this handler.</summary>
-    public long MessageId { get; }
+    /// <summary>The outbox row's id, a version-7 Guid Rask made when the event was stored: the same on every attempt of this event for this handler.</summary>
+    public Guid MessageId { get; }
 
     /// <summary>Which attempt this is, from 1.</summary>
     public int Attempt { get; }

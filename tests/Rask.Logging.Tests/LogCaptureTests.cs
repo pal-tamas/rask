@@ -24,7 +24,7 @@ public sealed class LogCaptureTests
         Assert.Equal("Order 42 placed", entry.Message);
         Assert.Null(entry.Exception);
         Assert.Equal(harness.Clock.GetUtcNow(), entry.Timestamp);
-        Assert.True(entry.Id > 0, "the store assigns a real id on insert");
+        Assert.NotEqual(Guid.Empty, entry.Id); // the store gives it one as it writes it
     }
 
     [Fact]

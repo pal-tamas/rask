@@ -74,8 +74,8 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
                 return total == 0 ? LogPage.Empty(page, pageSize) : new LogPage([], total, page, pageSize);
             }
 
-            // Ordered by Id, not Timestamp: the id is monotonic per insert, so entries logged in the same clock tick
-            // keep a stable order, and a stable order is the only way a page boundary neither drops nor repeats a row.
+            // Ordered by Id, not Timestamp: the id is a version-7 Guid Rask makes as it writes the batch, strictly increasing
+            // on the host that wrote it, so entries logged in the same clock tick keep a stable order, and a stable order is the only way a page boundary neither drops nor repeats a row.
             var rows = await matching
                 .OrderByDescending(e => e.Id)
                 .Skip((int)offset)
@@ -139,7 +139,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
                 var threshold = await entries
                     .OrderByDescending(e => e.Id)
                     .Skip(maxRows)
-                    .Select(e => (long?)e.Id)
+                    .Select(e => (Guid?)e.Id)
                     .FirstOrDefaultAsync(cancellationToken)
                     .ConfigureAwait(false);
 

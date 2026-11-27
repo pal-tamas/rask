@@ -73,9 +73,9 @@ internal sealed class RaskLoggerProvider(
                 return;
             }
 
-            // Id 0 — the store assigns the real one on insert.
+            // No id yet: the store gives it one as it writes the entry.
             _channel.Write(new LogRecord(
-                0,
+                Guid.Empty,
                 _timeProvider.GetUtcNow(),
                 logLevel,
                 _category,

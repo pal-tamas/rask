@@ -80,8 +80,8 @@ public sealed class MissingLeaseColumnTests
                     UserId TEXT NULL,
                     TenantId TEXT NULL,
                     Lane TEXT NULL);
-                INSERT INTO Job (Type, Payload, RunAt, Attempts, CreatedAt, UpdatedAt)
-                VALUES ('x', 'null','2025-01-01 00:00:00', 0, '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+                INSERT INTO Job (Id, Type, Payload, RunAt, Attempts, CreatedAt, UpdatedAt)
+                VALUES ('019AC4F0-5A00-7000-8000-000000000001', 'x', 'null','2025-01-01 00:00:00', 0, '2025-01-01 00:00:00', '2025-01-01 00:00:00');
                 """, cancellationToken: TestContext.Current.CancellationToken);
         }
 

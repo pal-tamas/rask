@@ -16,6 +16,11 @@ internal sealed class DemoWorkBoard(TimeProvider clock) : IWorkBoard
     private const int Rows = 5_000;
     private const int RowsPerSecond = 160;
 
+    // Fixed, so the first paint is the same every time.
+    private static readonly Guid Import = new("019ac4f0-5a00-7000-8000-000000000003");
+    private static readonly Guid Export = new("019ac4f0-5a00-7000-8000-000000000002");
+    private static readonly Guid Report = new("019ac4f0-5a00-7000-8000-000000000001");
+
     private DateTime? _opened;
 
     /// <inheritdoc />
@@ -28,13 +33,13 @@ internal sealed class DemoWorkBoard(TimeProvider clock) : IWorkBoard
         var opened = _opened ??= now;
         var kept = Math.Min(Rows, 1_200 + (int)((now - opened).TotalSeconds * RowsPerSecond));
         var import = kept < Rows
-            ? new WorkReported(3, "Import of prices.csv", $"{kept:N0} rows kept", kept, Rows, WorkState.Running, opened)
-            : new WorkReported(3, "Import of prices.csv", $"{Rows:N0} rows kept", Rows, Rows, WorkState.Done, opened.AddSeconds(24));
+            ? new WorkReported(Import, "Import of prices.csv", $"{kept:N0} rows kept", kept, Rows, WorkState.Running, opened)
+            : new WorkReported(Import, "Import of prices.csv", $"{Rows:N0} rows kept", Rows, Rows, WorkState.Done, opened.AddSeconds(24));
         IReadOnlyList<WorkReported> work =
         [
             import,
-            new(2, "Export of March invoices", null, 310, 900, WorkState.Failed, opened.AddMinutes(-4)),
-            new(1, "Monthly fuel report", "12 pages", null, null, WorkState.Done, opened.AddMinutes(-9)),
+            new(Export, "Export of March invoices", null, 310, 900, WorkState.Failed, opened.AddMinutes(-4)),
+            new(Report, "Monthly fuel report", "12 pages", null, null, WorkState.Done, opened.AddMinutes(-9)),
         ];
         return Task.FromResult(work);
     }

@@ -33,7 +33,7 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright, ITestOutputHe
         var work = new WorkServer();
         work.Rows(
             Import(1200, WorkState.Running, Ana),
-            new WorkReported(5, "Bo's export", null, 1, 9, WorkState.Running, DateTime.UtcNow.AddMinutes(-1)) { Owner = Bo });
+            new WorkReported(Id(5), "Bo's export", null, 1, 9, WorkState.Running, DateTime.UtcNow.AddMinutes(-1)) { Owner = Bo });
         await using var host = await SignInHost.StartAsync(work: work);
         await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = width, Height = height } });
         var page = await context.NewPageAsync();
@@ -49,8 +49,8 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright, ITestOutputHe
         await Expect(list).Not.ToContainTextAsync("Bo's export");
 
         await PublishUntil(host, Import(3000, WorkState.Running, Ana), () => bar.GetAttributeAsync("aria-valuenow"), "3000");
-        await WorkServer.Publish(host, new WorkReported(9, "Bo's import", null, 1, 2, WorkState.Running, DateTime.UtcNow) { Owner = Bo });
-        await WorkServer.Publish(host, new WorkReported(8, "Monthly fuel report", null, null, null, WorkState.Running, DateTime.UtcNow) { Owner = Ana });
+        await WorkServer.Publish(host, new WorkReported(Id(9), "Bo's import", null, 1, 2, WorkState.Running, DateTime.UtcNow) { Owner = Bo });
+        await WorkServer.Publish(host, new WorkReported(Id(8), "Monthly fuel report", null, null, null, WorkState.Running, DateTime.UtcNow) { Owner = Ana });
         await Expect(count).ToHaveTextAsync("2", Settled);
         await Expect(list).Not.ToContainTextAsync("Bo's import");
         await WorkServer.Publish(host, Import(5000, WorkState.Done, Ana));
@@ -86,4 +86,7 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright, ITestOutputHe
             Assert.True(DateTime.UtcNow < until, $"the page never showed {shown}");
         }
     }
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }

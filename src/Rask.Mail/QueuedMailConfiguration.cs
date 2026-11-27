@@ -18,6 +18,9 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
+        // Made by Rask before the insert (QueuedMail.For), never by the store: a version-7 Guid, so "oldest first" stays the order
+        // the rows were written in, and no identity column or sequence is left for a deploy to fight over.
+        builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.From).IsRequired();
         builder.Property(x => x.To).IsRequired();
         builder.Property(x => x.Subject).IsRequired();

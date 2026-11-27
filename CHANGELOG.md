@@ -105,6 +105,22 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
+  and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
+  is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.
+  The key is strictly increasing on the host that made it (the same monotonic `New()` a typed id gets) and time-ordered
+  across hosts — on SQL Server stored time-ordered too — so the queues still take the oldest first and two jobs due at
+  the same instant still run in the order they were enqueued. Every id the batteries hand out is now a `Guid`:
+  `Jobs.Stop(Guid)`, `LaneJob.Id`, `WorkReported.Id` (a string on the work wire), `DurableEvent.MessageId`,
+  `LogRecord.Id`, the dashboard's `QueueRow.Id` and `IQueueActions.Retry/Delete(Guid)`; the dashboard lists a row by
+  the last eight hex digits of its id and shows the whole id in its details. **Upgrading is one migration per app**
+  (`rask db add RaskGuidKeys`): Rask's differ rebuilds each of these tables instead of altering its key, as an
+  exclusive migration (`rask deploy` stops the old version, then starts the new one). It refuses to run while a job,
+  an outbox message or a mail is still pending — dead letters included: retry or delete them, let the queues drain,
+  then migrate. Processed jobs and sent mail are kept, each given the deterministic id of its `CreatedAt` and old
+  number; processed outbox rows and the stored log are history and are not carried over. A SQLite file log store
+  (`AddRaskLogging()` without a context) keeps its own integer rowid — its full-text index needs one — and derives each
+  entry's `Guid` from it. docs/data.md, docs/jobs.md, docs/outbox.md, docs/mail.md, docs/logging.md.
 - **BREAKING — on SQL Server every `uniqueidentifier` is stored time-ordered: `ORDER BY Id` is the order of creation
   on all three databases.** SQL Server compares a `uniqueidentifier`'s bytes in its own order, so a version-7 key sorted
   by its random tail there — paging, `Min`/`Max` and a clustered index's appends all differed from PostgreSQL and

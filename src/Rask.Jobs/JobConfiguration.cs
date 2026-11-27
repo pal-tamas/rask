@@ -18,6 +18,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
+        // Made by Rask before the insert (Job.For), never by the store: a version-7 Guid, so the run-order tiebreak below
+        // stays the order the jobs were enqueued in, and no identity column or sequence is left for a deploy to fight over.
+        builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Payload).IsRequired();
 

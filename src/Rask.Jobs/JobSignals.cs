@@ -10,8 +10,8 @@ namespace Rask.Background;
 /// </summary>
 internal sealed class JobSignals
 {
-    private readonly ConcurrentDictionary<long, TaskCompletionSource> _finished = new();
-    private readonly ConcurrentDictionary<long, JobRun> _runs = new();
+    private readonly ConcurrentDictionary<Guid, TaskCompletionSource> _finished = new();
+    private readonly ConcurrentDictionary<Guid, JobRun> _runs = new();
     private TaskCompletionSource _wake = NewLatch();
 
     /// <summary>Completes on the next <see cref="Wake"/>. Taken before a poll, so a wake during it is not missed.</summary>
@@ -21,13 +21,13 @@ internal sealed class JobSignals
     public void Wake() => Interlocked.Exchange(ref _wake, NewLatch()).TrySetResult();
 
     /// <summary>Completes when this process has saved the outcome of job <paramref name="id"/>.</summary>
-    public Task Finished(long id) => _finished.GetOrAdd(id, static _ => NewLatch()).Task;
+    public Task Finished(Guid id) => _finished.GetOrAdd(id, static _ => NewLatch()).Task;
 
     /// <summary>Stops listening for job <paramref name="id"/>: its caller has its answer, or gave up waiting.</summary>
-    public void Forget(long id) => _finished.TryRemove(id, out _);
+    public void Forget(Guid id) => _finished.TryRemove(id, out _);
 
     /// <summary>Says the outcome of job <paramref name="id"/> is saved, to a caller in this process awaiting it.</summary>
-    public void Saved(long id)
+    public void Saved(Guid id)
     {
         if (_finished.TryRemove(id, out var latch))
         {
@@ -41,11 +41,11 @@ internal sealed class JobSignals
     public void Began(JobRun run) => _runs[run.Id] = run;
 
     /// <summary>Job <paramref name="id" />'s outcome is saved, or left to whoever ended it: it is no longer this host's.</summary>
-    public void Over(long id) => _runs.TryRemove(id, out _);
+    public void Over(Guid id) => _runs.TryRemove(id, out _);
 
     /// <summary>
     ///     Job <paramref name="id" /> as this host runs it, or null when it runs nowhere here: what a stop asked on this host
     ///     cancels at once, and what tells a lane's view that work whose row is still claimed has ended here.
     /// </summary>
-    public JobRun? Run(long id) => _runs.GetValueOrDefault(id);
+    public JobRun? Run(Guid id) => _runs.GetValueOrDefault(id);
 }

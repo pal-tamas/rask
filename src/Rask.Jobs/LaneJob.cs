@@ -12,7 +12,7 @@ namespace Rask.Background;
 /// <param name="Done">How much of <paramref name="Of" /> it has done, when it reported a count (<c>Jobs.Report(done, of)</c>).</param>
 /// <param name="Of">How much it has to do, when it reported a count.</param>
 public sealed record LaneJob(
-    long Id,
+    Guid Id,
     IJob? Job,
     string Type,
     DateTime Due,

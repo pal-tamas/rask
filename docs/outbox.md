@@ -166,6 +166,13 @@ Two changes arrive together.
 A later release added a `UserId` column, the user a handler runs for. Add it with
 `rask db add AddOutboxUser && rask db update`; the processor logs that line until you do.
 
+**The key became a `Guid` Rask makes before the insert** (version 7, so the drain still takes the oldest first), and
+`DurableEvent.Current.MessageId` with it. The next migration (`rask db add RaskGuidKeys && rask db update`) rebuilds
+the `OutboxMessage` table as an [exclusive migration](deployment.md): `rask deploy` stops the old version first. It
+refuses to run while a message is pending, dead letters included — let the outbox drain, retry or delete what the
+dashboard shows failed, then deploy. Processed rows are history and are not carried over, so no idempotency key a
+partner has already seen is ever handed out again. See [docs/data.md](data.md#rebuilding-a-store-numbered-key-as-a-guid).
+
 ## How it works
 
 - **`OutboxInterceptor`**: in `SavingChanges`, writes an `OutboxMessage` row for each durable handler of each event

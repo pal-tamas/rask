@@ -45,7 +45,7 @@ public sealed partial class JobProcessor<TContext>(
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> _running = new();
 
     // The jobs in a handler right now, by id: what a stopping instance says it is waiting for, and what the watch looks at.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, JobRun> _inFlight = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, JobRun> _inFlight = new();
 
     private readonly JobWatch<TContext> _watch = new(contextFactory, timeProvider, logger);
 
@@ -148,7 +148,7 @@ public sealed partial class JobProcessor<TContext>(
     }
 
     // Ids of what may be claimed now: the default lane's due jobs, and the first due job of each other lane.
-    private async Task<List<long>> DueIdsAsync(TContext db, DateTime now, bool includeDefault, CancellationToken cancellationToken)
+    private async Task<List<Guid>> DueIdsAsync(TContext db, DateTime now, bool includeDefault, CancellationToken cancellationToken)
     {
         // A named lane with a job in flight (here or on another instance) is busy: nothing of it is claimed
         // until that job has let go of its lease.
@@ -167,7 +167,7 @@ public sealed partial class JobProcessor<TContext>(
         // Jobs without a lane are a batch, one after the other, as they always were - and a batch of this
         // instance at a time. Other instances take their own: without a lane nothing is held back.
         var ids = !includeDefault
-            ? new List<long>()
+            ? new List<Guid>()
             : await Due(db, now)
                 .Where(j => j.Lane == null)
                 .Select(j => j.Id)
@@ -1128,7 +1128,7 @@ public sealed partial class JobProcessor<TContext>(
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}) is a dead letter: its host stopped while it ran its last attempt ({Attempts}), and its lease ran out.")]
-    private static partial void JobAbandoned(ILogger logger, long id, string type, int attempts);
+    private static partial void JobAbandoned(ILogger logger, Guid id, string type, int attempts);
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
@@ -1263,47 +1263,47 @@ public sealed partial class JobProcessor<TContext>(
         EventName = "JobStopped",
         Level = LogLevel.Information,
         Message = "Job {Id} ({Type}, lane {Lane}) was stopped on request.")]
-    private static partial void JobStopped(ILogger logger, long id, string type, string? lane);
+    private static partial void JobStopped(ILogger logger, Guid id, string type, string? lane);
 
     [LoggerMessage(
         EventName = "JobStoppedAtLimit",
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}, lane {Lane}) was stopped at its time limit {Limit}; started {Started:u}, last progress {Progress:u}.")]
     private static partial void JobStoppedAtLimit(
-        ILogger logger, long id, string type, string? lane, TimeSpan? limit, DateTime started, DateTime progress);
+        ILogger logger, Guid id, string type, string? lane, TimeSpan? limit, DateTime started, DateTime progress);
 
     [LoggerMessage(
         EventName = "JobStoppedIdle",
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}, lane {Lane}) reported no progress for {Idle} and was stopped; last progress {Progress:u}.")]
-    private static partial void JobStoppedIdle(ILogger logger, long id, string type, string? lane, TimeSpan? idle, DateTime progress);
+    private static partial void JobStoppedIdle(ILogger logger, Guid id, string type, string? lane, TimeSpan? idle, DateTime progress);
 
     [LoggerMessage(
         EventName = "JobDoneElsewhere",
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}, lane {Lane}) was marked done or deleted outside the processor; stopped.")]
-    private static partial void JobDoneElsewhere(ILogger logger, long id, string type, string? lane);
+    private static partial void JobDoneElsewhere(ILogger logger, Guid id, string type, string? lane);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job {Id} has an unregistered type '{Type}'.")]
-    private static partial void UnregisteredType(ILogger logger, long id, string type);
+    private static partial void UnregisteredType(ILogger logger, Guid id, string type);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Job {Id} ({Type}) was cancelled by shutdown before it finished; it will run again on restart, "
             + "so its handler must be idempotent. Give it longer with a bigger stop budget (stopTimeout in .rask/deploy.json).")]
-    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type);
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, Guid id, string type);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job {Id} failed (attempt {Attempts}).")]
-    private static partial void JobFailed(ILogger logger, Exception exception, long id, int attempts);
+    private static partial void JobFailed(ILogger logger, Exception exception, Guid id, int attempts);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
             + "Increase JobsOptions.LeaseDuration past the time this job takes.")]
-    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+    private static partial void LeaseLost(ILogger logger, Exception exception, Guid id, Guid instance);
 
     private static void CancelQuietly(CancellationTokenSource source)
     {

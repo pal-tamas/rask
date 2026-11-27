@@ -49,17 +49,17 @@ Rask.Logging.LogRecord
 Rask.Logging.LogRecord.<Clone>$() -> Rask.Logging.LogRecord!
 Rask.Logging.LogRecord.Category.get -> string!
 Rask.Logging.LogRecord.Category.init -> void
-Rask.Logging.LogRecord.Deconstruct(out long Id, out System.DateTimeOffset Timestamp, out Microsoft.Extensions.Logging.LogLevel Level, out string! Category, out int EventId, out string! Message, out string? Exception, out System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes) -> void
+Rask.Logging.LogRecord.Deconstruct(out System.Guid Id, out System.DateTimeOffset Timestamp, out Microsoft.Extensions.Logging.LogLevel Level, out string! Category, out int EventId, out string! Message, out string? Exception, out System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes) -> void
 Rask.Logging.LogRecord.Equals(Rask.Logging.LogRecord? other) -> bool
 Rask.Logging.LogRecord.EventId.get -> int
 Rask.Logging.LogRecord.EventId.init -> void
 Rask.Logging.LogRecord.Exception.get -> string?
 Rask.Logging.LogRecord.Exception.init -> void
-Rask.Logging.LogRecord.Id.get -> long
+Rask.Logging.LogRecord.Id.get -> System.Guid
 Rask.Logging.LogRecord.Id.init -> void
 Rask.Logging.LogRecord.Level.get -> Microsoft.Extensions.Logging.LogLevel
 Rask.Logging.LogRecord.Level.init -> void
-Rask.Logging.LogRecord.LogRecord(long Id, System.DateTimeOffset Timestamp, Microsoft.Extensions.Logging.LogLevel Level, string! Category, int EventId, string! Message, string? Exception, System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes = null) -> void
+Rask.Logging.LogRecord.LogRecord(System.Guid Id, System.DateTimeOffset Timestamp, Microsoft.Extensions.Logging.LogLevel Level, string! Category, int EventId, string! Message, string? Exception, System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes = null) -> void
 Rask.Logging.LogRecord.Message.get -> string!
 Rask.Logging.LogRecord.Message.init -> void
 Rask.Logging.LogRecord.Scopes.get -> System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>?
