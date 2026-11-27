@@ -174,9 +174,13 @@ internal static partial class ProjectGenerator
         // migration has actually been created, and prints the manual step when it was skipped or failed.
         if (batteries.Data)
         {
+            // Keyed by a typed id over a Guid, the default docs/domain.md recommends: the id is the row's from the
+            // first line (ProductId.New(), a version-7 Guid), so an event raised in a factory never carries 0 (RASK145).
             steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
-            steps.Append("configuration class, no registration:\n");
-            steps.Append("\n  public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>\n");
+            steps.Append("configuration class, no registration. Key it by a typed id over a Guid, which\n");
+            steps.Append("ProductId.New() makes (time-ordered, version 7) before the row is ever saved:\n");
+            steps.Append("\n  public readonly partial record struct ProductId(Guid Value);\n");
+            steps.Append("\n  public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable>\n");
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");

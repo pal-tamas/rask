@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK144, RASK150, RASK165, RASK170–RASK191, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK145, RASK150, RASK165, RASK170–RASK191, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -164,6 +164,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK142](#rask142) | Info | Database work run side by side inside a transaction |
 | [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
 | [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
+| [RASK145](#rask145) | Warning (Error under `<RaskStrict>`) | An event reads a key the database has not produced yet |
 | [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
@@ -3439,6 +3440,60 @@ public sealed class SignUp
 ```
 
 **Fix:** name the property with `nameof(…)`, which the compiler checks.
+
+## RASK145
+
+**An event reads a key the database has not produced yet** · Warning (Error under `<RaskStrict>`)
+
+`Raise(new OrderPlaced(Id))` takes the value `Id` holds when it runs. An integer key — `Aggregate<int>`, `Entity<long>`,
+a typed id over an `int` or a `long` — is the database's identity: EF Core keeps a temporary value in its own entry
+until the insert, so the entity's `Id` is still `0`, and the event the handlers are handed after the commit carries `0`
+for good. A key the entity makes itself is there from the start.
+
+Reported where the entity is certainly new, so an operation on a stored aggregate, whose `Id` is its row's, never is:
+
+- `Id` (or `this.Id`) read in the aggregate's **constructor**;
+- `x.Id` of a **local the same method made** — `var x = new T(…)`, `T x = new() { … }`, or a static factory of `T`
+  (`var line = OrderLine.For(…)`): the aggregate a factory builds, or a child an operation adds.
+
+The key is the database's when it is an integer the entity's own `Configure` does not mark
+`b.Property(x => x.Id).ValueGeneratedNever()`, or any key it marks `ValueGeneratedOnAdd()`. An instance method a factory
+calls (`order.Open()` raising with `Id`) is not followed, since it runs on stored aggregates too.
+
+```csharp
+public sealed class Order : Aggregate<int>
+{
+    public static Order Place(string reference)
+    {
+        var order = new Order { Reference = reference };
+        order.Raise(new OrderPlaced(order.Id));      // ⚠ RASK145 — order.Id is 0 until the insert
+        return order;
+    }
+}
+```
+
+> The event raised in 'Order' reads 'order.Id', which the database produces only on insert: raised before the first
+> save, it carries 0 — give 'Order' a client-generated key (a typed id over a Guid, made with New())
+
+**Fix:** key the entity on the client — a typed id over a `Guid`, made with its generated `New()` (a time-ordered
+version-7 `Guid`, so the primary-key index stays append-only), [the default Rask recommends](domain.md#choosing-the-key-a-typed-id-over-a-guid):
+
+```csharp
+public readonly partial record struct OrderId(Guid Value);
+
+public sealed class Order : Aggregate<OrderId>
+{
+    public static Order Place(string reference)
+    {
+        var order = new Order { Id = OrderId.New(), Reference = reference };
+        order.Raise(new OrderPlaced(order.Id));      // ✓ the id is the row's from the start
+        return order;
+    }
+}
+```
+
+A table that must stay numbered by the database (an existing schema) raises the event from an operation that runs once
+the row is stored, or names the row by something the code already holds.
 
 ## RASK150
 

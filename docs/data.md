@@ -603,6 +603,11 @@ public sealed class Product : Aggregate<ProductId>
 }
 ```
 
+**The key.** An entity is keyed by the `Id` it inherits. A `Guid`, or a typed id over one, is the application's —
+made in the factory with `XId.New()`, a time-ordered version-7 `Guid`, and Rask's recommended default
+([choosing the key](domain.md#choosing-the-key-a-typed-id-over-a-guid)); an `int` or a `long`, or a typed id over one,
+is the database's identity, produced on insert, unless `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()`.
+
 It runs **last** — after Rask's conventions — so it can extend them or overrule them, replacing the
 soft-delete query filter or dropping the concurrency token. It is optional; an entity without one is
 mapped by convention. An index declared here is kept exactly as written — on a
