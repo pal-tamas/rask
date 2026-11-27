@@ -43,7 +43,4 @@ internal static class UiDatetimePickerValue
 
     /// <summary>Minutes since midnight, as the browser counts a time.</summary>
     internal static int Minutes(TimeOnly time) => (time.Hour * 60) + time.Minute;
-
-    /// <summary>A moment without its seconds: the picker is precise to the minute.</summary>
-    internal static DateTime ToMinute(DateTime moment) => new(moment.Year, moment.Month, moment.Day, moment.Hour, moment.Minute, 0, moment.Kind);
 }

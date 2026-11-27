@@ -541,7 +541,7 @@ internal static class DomEmitter
             var svg = string.Equals(Str(tag, "namespace"), "svg", StringComparison.Ordinal);
             if (svg && (htmlTags.Contains(tagName) || SvgPrefixed.Contains(tagName)))
             {
-                sb.Append(", Entry = \"Svg").Append(Pascal(tagName)).Append('"');
+                sb.Append(", Entry = \"Svg").Append(DomRefEmitter.Pascal(tagName)).Append('"');
             }
             else if (!svg && EntryAliases.TryGetValue(tagName, out var entry))
             {
@@ -570,7 +570,7 @@ internal static class DomEmitter
 
         if (idl is null)
         {
-            return string.Concat(attr.Split('-').Select(Pascal));
+            return string.Concat(attr.Split('-').Select(DomRefEmitter.Pascal));
         }
 
         if (PropertyAliases.TryGetValue(idl, out var alias))
@@ -586,7 +586,7 @@ internal static class DomEmitter
             idl = StripSuffix(StripSuffix(idl, "Elements"), "Element");
         }
 
-        return Pascal(idl);
+        return DomRefEmitter.Pascal(idl);
     }
 
     private static string StripSuffix(string name, string suffix) =>
@@ -752,8 +752,6 @@ internal static class DomEmitter
         "safari" or "safari_ios" => "Safari",
         _ => id,
     };
-
-    internal static string Pascal(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
 
     private static string Local(string prop) => "@" + char.ToLowerInvariant(prop[0]) + prop.Substring(1);
 

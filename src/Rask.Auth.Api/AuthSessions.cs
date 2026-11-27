@@ -125,7 +125,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         try
         {
             var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
-            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
+            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= Session.TouchInterval)
             {
                 var expiresAt = slide && options.SlidingExpiration ? now + options.ExpireTimeSpan : found.ExpiresAt;
                 await TouchAsync(db, sessionId, now, expiresAt, cancellationToken).ConfigureAwait(false);

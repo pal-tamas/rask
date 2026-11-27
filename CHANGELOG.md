@@ -140,6 +140,12 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
+  is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
+  and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,
+  which now derives from it and adds `STRICT` tables (`StrictTables = true`) — the strict generator on its own, without
+  the rest of Rask's DDL, no longer exists. Only code that names either type (a `ReplaceService`, an `IsType` in a
+  test) changes.
 - **BREAKING — Rask names the model in PostgreSQL's style on every database.** Before: a Rask context kept EF Core's
   names (`Fuelings` after the `DbSet`, `PistolId`, `IX_Fuelings_PistolId`, `FK_Fuelings_Pistols_PistolId`), and Rask's
   own tables theirs (`RaskAuthSession`, `RaskLog`, `Jobs`). Now every `RaskDbContext`/`RaskAppDbContext` names a table
