@@ -118,6 +118,10 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (core): `.Key(...)` is the only keyed identity; a `Data["rask-key"]` entry is no longer written.** It used
+  to stand in for a key when no `Key` was set, and RASK022 accepted it. Now the `rask-key` name in a `Data` bag is
+  reserved and dropped at render, and RASK022 reports a list keyed that way: chain `.Key(item.Id)` instead (it still
+  renders `data-rask-key`, so E2E selectors on that attribute keep working).
 - **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
   `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
   with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.
