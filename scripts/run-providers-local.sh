@@ -5,11 +5,12 @@
 # per provider: collations, row and named locks, sequences, the DDL the conventions write, decimal scale, constraint
 # violations, the jobs claim, session settings, bulk insert, and migrations' provider SQL.
 #
-# The servers are the suite's own: Testcontainers starts one SQL Server and one PostgreSQL per run, on first use, and
-# stops them at the end (tests/Rask.Providers.E2E.Tests/ProviderServer.cs). In CI (CI / GITHUB_ACTIONS set) that just
-# happens; on a dev machine the server facts report SKIPPED unless RASK_PROVIDERS_LOCAL=1 says Docker may be used, so
-# this runs the SQLite legs alone there by default. There is no hand-started server to point a leg at: a container or
-# nothing. SQL Server's image is amd64-only (it segfaults under emulation on Apple Silicon).
+# The servers are the suite's own: Testcontainers starts one SQL Server and two PostgreSQL servers (the newest and the
+# floor) per run, on first use, and stops them at the end (tests/Rask.Providers.E2E.Tests/ProviderServer.cs). In CI
+# (CI / GITHUB_ACTIONS set) that just happens; on a dev machine the server facts report SKIPPED unless
+# RASK_PROVIDERS_LOCAL=1 says Docker may be used, so this runs the SQLite legs alone there by default. There is no
+# hand-started server to point a leg at: a container or nothing. SQL Server's image is amd64-only (it segfaults under
+# emulation on Apple Silicon).
 #
 # Run by CI on every push that reaches the data stack (.github/workflows/gates.yml, "providers") and in the daily
 # full run; registered in scripts/run-all-gates.sh.
@@ -29,26 +30,45 @@ root="$(git rev-parse --show-toplevel)"
 . "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
 
-# Two processes, not one: EF Core refuses a process its twenty-first internal service provider
+# Three processes, not one: EF Core refuses a process its twenty-first internal service provider
 # (ManyServiceProvidersCreatedWarning), each distinct options shape is one, and SQLite, PostgreSQL and SQL Server
 # together are past twenty. So the SQL Server tests (a SqlServer class, or a sql_server fact) run in a process of their
-# own that may use only SQL Server, and everything else in one that may use only PostgreSQL (RASK_PROVIDERS_SERVERS).
-# Serial, because the second process would fight the first over obj/ — it runs --no-build on the first's output.
+# own that may use only SQL Server, and everything else in one that may use only PostgreSQL (RASK_PROVIDERS_SERVERS) —
+# twice: on the newest PostgreSQL, and on the oldest Rask supports (RASK_PROVIDERS_POSTGRES=floor, docs/data.md).
+# The first builds; the other two run --no-build on its output side by side, each against its own container, their
+# output kept apart in a log each and printed once both are done.
 # The split is by NAME, so a fact that is not SQL Server's never says "sql_server" (not even "postgresql_server").
 suite=tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj
 sql_server_tests="FullyQualifiedName~SqlServer|FullyQualifiedName~sql_server"
 other_tests="FullyQualifiedName!~SqlServer&FullyQualifiedName!~sql_server"
 
-echo "==> Provider tests: SQLite, PostgreSQL"
-RASK_PROVIDERS_SERVERS=postgres dotnet test "$suite" -c Release --filter "$other_tests" \
+echo "==> Provider tests: SQLite, PostgreSQL (newest)"
+RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=newest dotnet test "$suite" -c Release --filter "$other_tests" \
   --logger "console;verbosity=normal"
 
-echo "==> Provider tests: SQL Server"
+logs="$(mktemp -d -t rask-providers.XXXXXX)"
+trap 'rm -rf "$logs"' EXIT
+RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=floor dotnet test "$suite" -c Release --no-build \
+  --filter "$other_tests" --logger "console;verbosity=normal" >"$logs/floor" 2>&1 &
+floor=$!
 RASK_PROVIDERS_SERVERS=sqlserver dotnet test "$suite" -c Release --no-build --filter "$sql_server_tests" \
-  --logger "console;verbosity=normal"
+  --logger "console;verbosity=normal" >"$logs/sqlserver" 2>&1 &
+sqlserver=$!
+
+failed=0
+wait "$floor" || failed=1
+echo "==> Provider tests: SQLite, PostgreSQL (floor)"
+cat "$logs/floor"
+wait "$sqlserver" || failed=1
+echo "==> Provider tests: SQL Server"
+cat "$logs/sqlserver"
+if [ "$failed" = 1 ]; then
+  echo "run-providers-local: a provider leg failed (see above)." >&2
+  exit 1
+fi
 
 if [ -n "${CI:-}${GITHUB_ACTIONS:-}" ] || [ "${RASK_PROVIDERS_LOCAL:-}" = "1" ]; then
-  echo "==> Provider gate passed (SQLite, PostgreSQL and SQL Server where this host runs it)."
+  echo "==> Provider gate passed (SQLite, the newest PostgreSQL and its floor, and SQL Server where this host runs it)."
 else
   echo "==> SQLite legs passed. The SQL Server and PostgreSQL legs were SKIPPED: they run in CI on Testcontainers;"
   echo "    set RASK_PROVIDERS_LOCAL=1 to run them here (needs Docker)."

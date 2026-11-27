@@ -1790,6 +1790,11 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
 included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
 
+**Supported servers: PostgreSQL 18 and 19.** 18 is the floor: it is the first whose `LIKE` takes a nondeterministic
+collation, which a case-insensitive [`OrderTextBy`](#app-wide-model-rules-one-iraskmodel) and `x.Loosely()` rely on,
+so a migration that creates one on an older server stops at that statement and says so. The provider suite runs on the newest 19.x and on
+the newest 18.x on every change that reaches the data stack.
+
 > **A package of its own, at Rask's version.** `Rask.Postgres` ships stable, at the same version as every other Rask
 > package, on Npgsql's stable EF Core 11 provider. It stays out of `Rask.Server`, which finds it by name, so only a
 > Postgres app restores Npgsql. The provider asks for EF Core `[11.0.0, 12.0.0)`, the line the rest of Rask is on, so
