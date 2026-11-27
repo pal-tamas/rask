@@ -280,6 +280,13 @@ public sealed class BrowserAuth(
 
         using (response)
         {
+            // An endpoint the server did not map — registration closed, passkeys off — is a door this app does not
+            // have, not a wrong password.
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return AuthResult.Fail(AuthError.NotAllowed);
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 return Translate(

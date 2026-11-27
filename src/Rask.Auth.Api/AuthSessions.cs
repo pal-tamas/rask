@@ -28,11 +28,19 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
     // The key named by its name, so the one query below serves a Guid key without a cast inside it.
     private const string KeyProperty = nameof(Authenticatable.Id);
 
-    public async Task<Guid> StartAsync(
-        Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default)
+    public Task<Guid> StartAsync(
+        Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default) =>
+        StartAsync(userId, ipAddress, userAgent, persistent, options.ExpireTimeSpan, cancellationToken);
+
+    public Task<Guid> StartForTokenAsync(
+        Guid userId, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default) =>
+        StartAsync(userId, ipAddress, userAgent, persistent: false, options.BearerLifetime, cancellationToken);
+
+    private async Task<Guid> StartAsync(
+        Guid userId, string? ipAddress, string? userAgent, bool persistent, TimeSpan lifetime, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        var session = Session.Start(userId, ipAddress, userAgent, persistent, now, options.ExpireTimeSpan);
+        var session = Session.Start(userId, ipAddress, userAgent, persistent, now, lifetime);
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -88,12 +96,17 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
     private readonly ConditionalWeakTable<ClaimsPrincipal, Issued> _issued = [];
 
     public async Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
-        await ReadAsync(sessionId, used: true, cancellationToken).ConfigureAwait(false) is { } row ? Issue(row, sessionId) : null;
+        await ReadAsync(sessionId, used: true, slide: true, cancellationToken).ConfigureAwait(false) is { } row ? Issue(row, sessionId) : null;
+
+    public async Task<ClaimsPrincipal?> ResumeForTokenAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
+        await ReadAsync(sessionId, used: true, slide: false, cancellationToken).ConfigureAwait(false) is { } row
+            ? Issue(row, sessionId)
+            : null;
 
     public async ValueTask<ClaimsPrincipal?> RevalidateAsync(
         Guid sessionId, ClaimsPrincipal held, bool used, CancellationToken cancellationToken = default)
     {
-        if (await ReadAsync(sessionId, used, cancellationToken).ConfigureAwait(false) is not { } row)
+        if (await ReadAsync(sessionId, used, slide: true, cancellationToken).ConfigureAwait(false) is not { } row)
         {
             return null;
         }
@@ -103,7 +116,8 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
 
     // The session's row and its user's, or null when the session has ended, expired, or its user is gone.
     // used: a request or a reader's action is behind the read, so the session is seen and its expiry slides.
-    private async Task<Row?> ReadAsync(Guid sessionId, bool used, CancellationToken cancellationToken)
+    // slide: whether a use moves the expiry, as a cookie's does; a bearer token's session ends when the token does.
+    private async Task<Row?> ReadAsync(Guid sessionId, bool used, bool slide, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var db = _readers.TryTake(out var kept) ? kept : await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -113,7 +127,8 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
             var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
             if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
             {
-                await TouchAsync(db, sessionId, now, found.ExpiresAt, cancellationToken).ConfigureAwait(false);
+                var expiresAt = slide && options.SlidingExpiration ? now + options.ExpireTimeSpan : found.ExpiresAt;
+                await TouchAsync(db, sessionId, now, expiresAt, cancellationToken).ConfigureAwait(false);
             }
 
             sound = true;
@@ -132,15 +147,13 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
     }
 
     // At most once a minute: a write per request would make every page view a database write.
-    private Task<int> TouchAsync(TContext db, Guid sessionId, DateTime now, DateTime expires, CancellationToken cancellationToken)
-    {
-        var expiresAt = options.SlidingExpiration ? now + options.ExpireTimeSpan : expires;
-        return db.Set<Session>()
+    private static Task<int> TouchAsync(
+        TContext db, Guid sessionId, DateTime now, DateTime expiresAt, CancellationToken cancellationToken) =>
+        db.Set<Session>()
             .Where(s => s.Id == sessionId)
             .ExecuteUpdateAsync(
                 set => set.SetProperty(s => s.LastSeenAt, now).SetProperty(s => s.ExpiresAt, expiresAt),
                 cancellationToken);
-    }
 
     // The contexts these reads run on are kept and used again: building one allocated three times what the read
     // itself does, and a read tracks nothing, so one that finished cleanly holds nothing of the call before. One

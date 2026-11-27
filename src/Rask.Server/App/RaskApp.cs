@@ -218,7 +218,7 @@ public sealed partial class RaskApp
     {
         if (AppCommand.Names(_args))
         {
-            System.Environment.ExitCode = AppCommand.RunAsync(app.Services, _args, Console.Error, CancellationToken.None)
+            System.Environment.ExitCode = AppCommand.RunAsync(app.Services, _args, Console.Out, Console.Error, CancellationToken.None)
                 .GetAwaiter().GetResult();
             return;
         }

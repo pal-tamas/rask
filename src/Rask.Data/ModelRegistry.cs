@@ -120,6 +120,10 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services =>
             new GuidIdTextConvention(services.GetService<IRelationalTypeMappingSource>()));
 
+        // On SQL Server every uniqueidentifier is stored so it sorts as .NET, PostgreSQL and SQLite sort it: by time.
+        // After the text convention above, which takes the columns that are text out of its way.
+        configurationBuilder.Conventions.Add(static services => SqlServerGuidOrderConvention.For(services));
+
         // Computed(…), Default(…) and an index's Where(…) become the provider's own SQL there too.
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new DatabaseDefaultConvention(ModelSql.For(services)));

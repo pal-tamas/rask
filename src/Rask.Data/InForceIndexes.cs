@@ -49,7 +49,7 @@ internal static class InForceIndexes
                       ReferenceEquals(k.PrincipalEntityType, parent) && k.PrincipalToDependent is { IsCollection: true })
                   ?? throw new InvalidOperationException(
                       $"'{parent.ClrType.Name}' keeps one '{childType.Name}' in force, but holds no collection of them. " +
-                      $"Hold them on it — IReadOnlyList<{childType.Name}> or Children<{childType.Name}, …>.");
+                      $"Hold them on it — IReadOnlyList<{childType.Name}> or HasMany<{childType.Name}>.");
 
         // Named, so it stands beside the foreign key's own index rather than replacing it with one over some rows only.
         var index = modelBuilder.Entity(child.ClrType).HasIndex(
