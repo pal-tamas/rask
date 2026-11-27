@@ -34,12 +34,18 @@ public sealed class GuidTenant<TShape> : Aggregate<Guid>
 /// </summary>
 internal sealed class BeforeTypedIds(DbContextOptions<BeforeTypedIds> options) : RaskDbContext(options)
 {
+    /// <summary>The tables Rask names <see cref="Tenant" /> and <see cref="User" />: snake case, plural.</summary>
+    internal const string Tenants = "tenants";
+
+    /// <inheritdoc cref="Tenants" />
+    internal const string Users = "users";
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // The app's own tables first, so the Rask conventions the base applies reach them as they reach the app's
         // generated ones; then the account tables, after the base, as RaskApp's context maps them.
-        modelBuilder.Entity<GuidTenant<BeforeTypedIds>>().ToTable(nameof(Tenant));
-        modelBuilder.Entity<GuidUser<BeforeTypedIds>>().ToTable(nameof(User));
+        modelBuilder.Entity<GuidTenant<BeforeTypedIds>>().ToTable(Tenants);
+        modelBuilder.Entity<GuidUser<BeforeTypedIds>>().ToTable(Users);
         base.OnModelCreating(modelBuilder);
         modelBuilder.Ignore<User>();
         modelBuilder.Ignore<Tenant>();
@@ -72,8 +78,8 @@ public sealed class TypedIdMigrationTests
             after.GetService<IDesignTimeModel>().Model.GetRelationalModel());
 
         var added = Assert.IsType<AddForeignKeyOperation>(Assert.Single(operations));
-        Assert.Equal((nameof(User), nameof(Tenant)), (added.Table, added.PrincipalTable));
-        Assert.Equal([Columns.TenantId], added.Columns);
+        Assert.Equal((BeforeTypedIds.Users, BeforeTypedIds.Tenants), (added.Table, added.PrincipalTable));
+        Assert.Equal(["tenant_id"], added.Columns);
     }
 
     // SQL Server, where a Guid is a uniqueidentifier and text is not: the provider that would show a key that changed type.

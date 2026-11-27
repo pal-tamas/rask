@@ -228,7 +228,7 @@ serializes a `User`'s public properties can ever carry it. Add the columns your 
 passkey's `UserId`, the events, `Accounts.Remove(user.Id.Value)` — and stores the id as that `Guid`, so moving a users
 table from `Authenticatable` (a bare `Guid`) to `Authenticatable<UserId>` changes no column. On SQLite, where a `Guid`
 is text, a typed id is [written lower-case](domain.md#choosing-the-key-a-typed-id-over-a-guid) and EF Core's own `Guid`
-upper-case: lower-case the users' `Id` once (`UPDATE "User" SET "Id" = lower("Id")`) unless the column compares without
+upper-case: lower-case the users' `Id` once (`UPDATE users SET id = lower(id)`) unless the column compares without
 regard to case. `Authenticatable` and `Authenticatable<string>` still work; any other key stops the host starting.
 
 **It is an [aggregate](data.md) like any other.** `Authenticatable<TKey>` derives from

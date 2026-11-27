@@ -80,8 +80,19 @@ internal sealed class TypedHarness : IAsyncDisposable
     /// <returns>The binding.</returns>
     public IDisposable BindReadFaces()
     {
+        // The write side first: the read model mirrors its names (snake case, plural) off the write model.
+        var write = Db.Use(NewContext);
         var options = new DbContextOptionsBuilder<RaskReadDbContext>().UseSqlite(_database.ConnectionString).Options;
-        return ReadDb.Use(() => new RaskReadDbContext(options));
+        return new Both(write, ReadDb.Use(() => new RaskReadDbContext(options)));
+    }
+
+    private sealed class Both(IDisposable write, IDisposable read) : IDisposable
+    {
+        public void Dispose()
+        {
+            read.Dispose();
+            write.Dispose();
+        }
     }
 
     public TypedDb NewContext() => _provider.GetRequiredService<IDbContextFactory<TypedDb>>().CreateDbContext();
