@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`IBearerSignIn.SignIn(name, password, client)`: an app keeps its own login contract and Rask issues the token.**
+  A partner's `POST /api/auth` answering a plain-text token is now `await bearer.SignIn(body.Username, body.Password,
+  AuthClient.Of(http)) is { Token: { } token } ? Results.Text(token) : Results.Unauthorized()` — with the login
+  endpoint's throttle per name and client, its constant-cost miss, the renewal of a carried-over bcrypt hash and a
+  `Session` row the token names, so signing out everywhere or a reset ends it. The answer is a `BearerIssue(Result,
+  Token, ExpiresAt)`. A session started this way lasts `BearerLifetime` rather than `ExpireTimeSpan`, and no bearer
+  request extends a session any more, so periodic partner sign-ins leave short rows the sweep removes. `AuthClient.Of(
+  HttpContext)` is the client Rask's endpoints throttle on; a component sign-in on the Server host now counts an IPv6
+  caller by its /64 too, as the endpoints already did.
+- **`AuthOptions.Registration = Registration.Closed`: sign-up is shut, an administrator hands accounts out.**
+  `MapRaskAuth` mapped `POST /api/auth/register` always, so anybody could register once the first account existed.
+  Closed, the endpoint is not mapped (it answers what any unknown path does), `IAuth.Register` answers
+  `AuthError.NotAllowed` and makes no account, and `IAccounts.Create` keeps working. A fresh instance is still claimed
+  once with its first-run token, so a deployment is never left without an administrator. `Open` stays the default.
+  A WebAssembly client reads a 404 from any auth endpoint as `NotAllowed` rather than a wrong password.
 - **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
   `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
   and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a
@@ -163,6 +178,11 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`auth.ActInTenant(id)` refuses a tenant the app does not have.** It recorded any id on the session, so an
+  administrator could act in a deleted tenant (every read then threw `MissingTenantException`) or in an id nobody
+  has. With a tenant aggregate (`ITenant`), an id it has no row for is now `AuthError.NotAllowed` ("No tenant has that
+  id."), `400` from `POST /api/auth/tenant`, and the session keeps acting where it was. The row is read as
+  `Current.Tenant` reads it, and only for a user who may choose.
 - **A typed id's `New()` is strictly increasing within the process: two ids made in one millisecond come out in order.**
   Before, the generated `XId.New()` was `Guid.CreateVersion7()`, which fills the 12 bits after the millisecond at random,
   so ids made in the same millisecond sorted in either order — an `ORDER BY Id` (or `Guid.CompareTo`) that was meant

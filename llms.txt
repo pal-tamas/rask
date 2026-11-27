@@ -305,6 +305,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   the HTTP fallback adopts the principal each post carries.
   A WebAssembly tab does the same with its user provider: it calls `IUserProvider.Refresh()` at those moments (shared `rask-auth-watch.ts`), holds what the reader does meanwhile, and on "nobody where there was somebody" goes to `/login?returnUrl=…` from any page, no message; a 401 from the page's own origin through the host's HttpClient asks at once.
   Bearer JWTs carry `sid` and are rejected once the session ends.
+  An app's OWN login contract (a partner's `POST /api/auth` answering the token as text) issues Rask's token with `await bearer.SignIn(name, password, AuthClient.Of(http))` (`IBearerSignIn` → `BearerIssue(Result, Token, ExpiresAt)`): the login endpoint's throttle, constant-cost miss and bcrypt→PBKDF2 renewal; its session lasts `BearerLifetime` and bearer use never extends a session. Needs `Bearer` on.
   List devices with `Session.Where(s => s.UserId == me)` — Rask.Auth.Api declares Session/Passkey and builds with `<RaskReadFacesOnly>true</RaskReadFacesOnly>`, which emits the READ FACES ONLY: no form model, no `Create(model)` (nothing should mint a passkey from a form) and NO registry contribution, since the registry is applied by a [ModuleInitializer] and would map auth tables into every app — `c.Auth.Off()` included — and a second time for one calling AddRaskAuth;
   `ClaimsPrincipal.UserId()` → Guid? and `.SessionId()` → Guid?.
   Remember me reaches the Server relay (`IAuthSignIn.SignIn(principal, returnUrl, scheme, persistent)`).
@@ -345,6 +346,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   **THE FIRST ACCOUNT TO REGISTER BECOMES `admin`**, the rest `user`, `/_rask` gated on it;
   single winner via a constant-PK row (RaskAuthInstanceClaim, AdminUserId Guid);
   the FIRST registration alone needs the one-time token from the startup log (`o.RequireFirstRunToken = false` drops it).
+  `o.Registration = Registration.Closed` shuts sign-up: `/api/auth/register` is NOT mapped, `IAuth.Register` → `AuthError.NotAllowed`, `IAccounts.Create` still works, and an UNCLAIMED instance is still claimed once with the first-run token.
   Confirmation and reset go out through the MAIL battery (IMail resolved at send time;
   no mail battery → told, not silently dropped).
   `RequireConfirmedEmail` OFF by default;

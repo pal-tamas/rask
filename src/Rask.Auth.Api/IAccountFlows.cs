@@ -38,7 +38,8 @@ internal interface IAccountFlows
     /// <summary>
     /// Records the tenant the signed-in <paramref name="principal" /> acts in on its session, or clears it with
     /// <see langword="null" />. Refused (<see cref="AuthError.NotAllowed" />) for nobody, for a user who belongs to a
-    /// tenant, and for one without <see cref="AuthOptions.ActInTenantRole" />.
+    /// tenant, for one without <see cref="AuthOptions.ActInTenantRole" />, and — as <see cref="TenantChoice.Unknown" /> —
+    /// for a tenant the app's tenant aggregate has no row for.
     /// </summary>
     Task<AuthResult> ActInTenantAsync(ClaimsPrincipal principal, Guid? tenant, CancellationToken cancellationToken = default);
 

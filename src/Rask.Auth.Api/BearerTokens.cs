@@ -34,10 +34,13 @@ internal static class BearerTokens
     /// </summary>
     internal const int MinimumKeyBytes = 32;
 
-    internal static string Issue(ClaimsPrincipal principal, AuthOptions options, TimeProvider clock)
+    internal static string Issue(ClaimsPrincipal principal, AuthOptions options, TimeProvider clock) =>
+        Issue(principal, options, clock.GetUtcNow().UtcDateTime);
+
+    /// <summary>A token issued at <paramref name="now" />, so a caller that also says when it expires names the same moment.</summary>
+    internal static string Issue(ClaimsPrincipal principal, AuthOptions options, DateTime now)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.BearerSigningKey!));
-        var now = clock.GetUtcNow().UtcDateTime;
 
         var token = new JwtSecurityToken(
             options.BearerIssuer,

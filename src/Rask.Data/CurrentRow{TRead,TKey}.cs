@@ -68,6 +68,26 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
             : EqualityComparer<TKey>.Default.Equals(held, KeyOf(key));
     }
 
+    /// <inheritdoc />
+    protected override bool Names(Guid key)
+    {
+        // A numbered aggregate's key is a number carried inside the Guid; any other Guid is not one of its keys.
+        if (!_key.IsNumber)
+        {
+            return true;
+        }
+
+        try
+        {
+            _ = KeyOf(key);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     private IDisposable? AcrossForTheUser() => Kind is CurrentRowKind.User ? Tenant.Across() : null;
 
     private TKey KeyOf(Guid key) => _key.Of(key, Kind, Aggregate.Name);

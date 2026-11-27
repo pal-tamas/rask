@@ -84,11 +84,25 @@ Cookies are the default and the right answer for anything running in a page. A n
 opts in:
 
 ```csharp
-builder.Services.AddRaskAuth<AppDbContext>(o => o.Bearer = new BearerOptions { SigningKey = key });
+builder.Services.AddRaskAuth<AppDbContext>(o =>
+{
+    o.Bearer = true;
+    o.BearerSigningKey = key;   // from configuration: Rask__Auth__BearerSigningKey, at least 32 bytes
+});
 ```
 
 Then send `X-Rask-Auth-Mode: bearer` alongside `X-Rask-Auth` and a sign-in answers with a token in
 the body — never a cookie, never a header, so nothing stores it on the caller's behalf.
+
+An app with a login contract of its own keeps it and lets Rask issue the token, with the login
+endpoint's throttling and hash renewal:
+
+```csharp
+app.MapPost("/api/auth", async (PartnerLogin body, HttpContext http, IBearerSignIn bearer) =>
+    await bearer.SignIn(body.Username, body.Password, AuthClient.Of(http)) is { Token: { } token }
+        ? Results.Text(token)
+        : Results.Unauthorized());
+```
 
 ## Email
 

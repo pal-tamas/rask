@@ -93,6 +93,18 @@ public sealed class BrowserAuthRecoveryTests
     }
 
     [Fact]
+    public async Task Registering_where_the_server_maps_no_register_endpoint_is_not_allowed()
+    {
+        var handler = new StubHandler(HttpStatusCode.NotFound);
+        var auth = Auth(handler, out _);
+
+        var result = await auth.Register("new@example.com", "Password1longer");
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(AuthError.NotAllowed, result.Error);
+    }
+
+    [Fact]
     public async Task An_app_with_no_mail_battery_is_reported_as_such()
     {
         var handler = new StubHandler(
