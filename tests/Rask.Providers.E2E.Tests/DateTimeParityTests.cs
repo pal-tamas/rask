@@ -302,10 +302,12 @@ public sealed class PostgresDateTimeParityTests : DateTimeParityTests
         await using var db = NewContext();
         var budapest = new DateTimeOffset(2026, 3, 4, 10, 0, 0, TimeSpan.FromHours(1));
 
-        var refused = await Assert.ThrowsAsync<ArgumentException>(
+        // Npgsql 11 refuses the parameter as it binds it: an InvalidCastException naming the parameter, its
+        // ArgumentException (the offset) inside — Npgsql 10 threw that ArgumentException alone.
+        var refused = await Assert.ThrowsAsync<InvalidCastException>(
             () => db.TimedRows.Where(r => r.Stamp == budapest).ToListAsync(Ct));
 
-        Assert.Contains("only offset 0 (UTC) is supported", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("only offset 0 (UTC) is supported", Assert.IsType<ArgumentException>(refused.InnerException).Message, StringComparison.Ordinal);
     }
 
     private protected override DateTimeParityDbContext NewContext() =>

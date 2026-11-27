@@ -1,9 +1,14 @@
+// EF1001: SqlServerCompiledQueryCacheKeyGenerator is the provider's own compiled-query cache key generator, in its Internal
+// namespace; the zone is added to the key it makes (ZonedQueryCacheKeys), which needs it by its type.
+#pragma warning disable EF1001
+
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
@@ -36,6 +41,7 @@ internal sealed class RaskSqlServerOptionsExtension(SqlServerOptions options) : 
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqlServerDurationTranslatorPlugin))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqlServerMigrationsSqlGenerator))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(SqlServerMomentDayTranslator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ZonedQueryCacheKeys<SqlServerCompiledQueryCacheKeyGenerator>))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
@@ -54,6 +60,9 @@ internal sealed class RaskSqlServerOptionsExtension(SqlServerOptions options) : 
         // Added, not tried, as the differ is: the provider registers its own generator, and the last registration wins.
         services.AddScoped<IMigrationsSqlGenerator, RaskSqlServerMigrationsSqlGenerator>();
 
+        // A moment's day is written with the zone in its SQL (SqlServerMomentDayTranslator), so the zone is a part of
+        // every compiled query's cache key: a query run again under another zone is compiled again for it.
+        ZonedQueryCacheKeys.Register<SqlServerCompiledQueryCacheKeyGenerator>(services);
 
         // An optional value object whose members are all optional is held in its row's columns (OptionalComplexValues).
         // Added, not tried: the provider registers its own validator, and the last registration wins.

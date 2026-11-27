@@ -59,6 +59,8 @@
     <Compile Include="..\Rask.Data\NoOverlapSql.cs" Link="Shared\NoOverlapSql.cs"/>
     <!-- The rewrite of a column of moments from the wall clock to UTC, which the differ adds and the generator writes. -->
     <Compile Include="..\Rask.Data\MomentsInUtc.cs" Link="Shared\MomentsInUtc.cs"/>
+    <!-- The zone in every compiled query's cache key, as a moment's day writes it into the SQL. -->
+    <Compile Include="..\Rask.Data\ZonedQueryCacheKeys.cs" Link="Shared\ZonedQueryCacheKeys.cs"/>
     <!-- end - start between two dates in a query, which SQL Server's own provider does not translate. -->
     <Compile Include="..\Rask.Data\QueryDuration.cs" Link="Shared\QueryDuration.cs"/>
     <Compile Include="..\Rask.Data\DurationTranslation.cs" Link="Shared\DurationTranslation.cs"/>

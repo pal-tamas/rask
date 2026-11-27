@@ -145,6 +145,10 @@ them until tagged releases begin.
   Raw SQL that names the old tables or columns changes with them. To keep EF Core's names for now:
   `c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`
   ([Names](docs/data.md#names-rasks-own-in-postgresqls-style), [the next migration renames](docs/data.md#rasks-names-the-next-migration-renames)).
+- **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
+  `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
+  with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.
+  The `images` follower moves the newest pin across majors and the floor within its own (docs/data.md#postgresql).
 - **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
   last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
   version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived
@@ -331,6 +335,23 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
+  and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
+  which orders as `uuid` and .NET's `Guid.CompareTo` do.
+- **SQL Server: `b.NoOverlap(…)` over a text key of no length creates its index.** An `nvarchar(max)` key column
+  cannot key an index there; it is now carried in the index (`INCLUDE`), and the trigger's locked read still holds the
+  rule.
+- **SQL Server: a read face compares its Guids as its write side stores them.** A write context that does not apply
+  Rask's model conventions (`ModelRegistry.ApplyConventions`) keeps its `uniqueidentifier`s as they are, but its read
+  faces stored theirs time-ordered — so `Member.Count(m => m.Owner == id)` counted no row the write side had saved, and
+  a `Serializable` claim retried after a deadlock took the pistol a second time. A read model now follows the write
+  model it mirrors.
+- **`b.InOrder(…)` survives a trimmed publish** (IL2091): its `TChild` carries `HasMany<TChild>`'s annotation.
+- **A moment's day in a query follows the zone as the query runs, on SQL Server and PostgreSQL.** `f.At.Day` writes
+  `Clock.Zone` into the SQL (`AT TIME ZONE N'…'`, `timezone('…', …)`), and EF reused the SQL compiled for the first
+  zone a query ran under: a test under a zone of its own, or an app that named its zone after a first query, read the
+  old zone's day. The zone is now a part of every compiled query's cache key, so the query is compiled again for a new
+  zone (and once, as before, for an app that keeps one). SQLite already read the zone per row.
 - **RASK089 no longer fires on a typed id whose name merely ends in an aggregate.** A `StockMove.FromVirtualTankId`
   of type `VirtualTankId` was matched to the aggregate `Tank` by its name's suffix and reported as the wrong key
   type. A typed id that is exactly one entity's key now settles the reference by its type, whatever the property is
