@@ -29,7 +29,7 @@ public sealed class SqlServerTenantPlanTests
 
         Assert.NotNull(db.Model.FindEntityType(typeof(Ledger))!.FindProperty(Columns.TenantId));
         Assert.Contains("[l].[TenantId] = @", sql, StringComparison.Ordinal);
-        Assert.Contains($"= '{tenant}';", sql, StringComparison.Ordinal);
+        Assert.Contains($"= '{Stored(tenant)}';", sql, StringComparison.Ordinal);
         Assert.DoesNotContain(" OR ", sql, StringComparison.Ordinal);
     }
 
@@ -68,8 +68,8 @@ public sealed class SqlServerTenantPlanTests
         for (var i = 0; i < order.Length; i++)
         {
             var other = order[i] == acme ? globex : acme;
-            Assert.Contains($"'{order[i]}'", sql[i], StringComparison.Ordinal);
-            Assert.DoesNotContain($"'{other}'", sql[i], StringComparison.Ordinal);
+            Assert.Contains($"'{Stored(order[i])}'", sql[i], StringComparison.Ordinal);
+            Assert.DoesNotContain($"'{Stored(other)}'", sql[i], StringComparison.Ordinal);
         }
     }
 
@@ -89,8 +89,8 @@ public sealed class SqlServerTenantPlanTests
 
         for (var i = 0; i < tenants.Count; i++)
         {
-            Assert.All(results[i], sql => Assert.Contains($"'{tenants[i]}'", sql, StringComparison.Ordinal));
-            Assert.All(results[i], sql => Assert.Single(tenants, t => sql.Contains($"'{t}'", StringComparison.Ordinal)));
+            Assert.All(results[i], sql => Assert.Contains($"'{Stored(tenants[i])}'", sql, StringComparison.Ordinal));
+            Assert.All(results[i], sql => Assert.Single(tenants, t => sql.Contains($"'{Stored(t)}'", StringComparison.Ordinal)));
         }
     }
 
@@ -146,6 +146,9 @@ public sealed class SqlServerTenantPlanTests
         Assert.Contains("\"TenantId\" = @", sql, StringComparison.Ordinal);
         Assert.DoesNotContain($"'{tenant}'", sql[sql.IndexOf("WHERE", StringComparison.Ordinal)..], StringComparison.Ordinal);
     }
+
+    // The tenant as the parameter carries it: UseRaskSqlServer stores every uniqueidentifier by time (docs/data.md).
+    private static Guid Stored(Guid tenant) => SqlServerGuidOrder.ToStore(tenant);
 
     private static TenancyDbContext SqlServerContext() =>
         new(new DbContextOptionsBuilder<TenancyDbContext>().UseRaskSqlServerAt(Offline).Options);
