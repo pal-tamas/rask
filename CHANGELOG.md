@@ -118,6 +118,11 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: a download reaches the browser by URL (Server) or token (WASM) only — the base64-inline path is gone.**
+  `PendingDownload` loses its `Bytes` member (`new PendingDownload(name, type, url, token)`), the render payload no
+  longer carries a `download.bytes` field, and the WASM client drops its base64 decoder. `TestDownloadSink.TryConsume`
+  now hands each download on as a token, like the WASM sink; its `Staged` list still holds the bytes for assertions.
+  A custom `IDownloadSink` that set `Bytes` keeps them itself and hands on a token.
 - **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
   `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
   with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.

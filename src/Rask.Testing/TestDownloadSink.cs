@@ -13,8 +13,9 @@ namespace Rask.Testing;
 ///     </para>
 ///     <para>
 ///         <see cref="Staged" /> is the assertion surface: it keeps every download in order, so a test can
-///         check the file name, the content type and the bytes. <c>TryConsume</c> hands them back the way
-///         a real sink does, so a component that stages and then consumes behaves the same here.
+///         check the file name, the content type and the bytes. <c>TryConsume</c> hands each one on as a
+///         token, the way the WASM sink does, so a component that stages and then consumes behaves the
+///         same here.
 ///     </para>
 ///     <code>
 ///     var downloads = new TestDownloadSink();
@@ -99,7 +100,8 @@ public sealed class TestDownloadSink : IDownloadSink
         lock (_gate)
         {
             _staged.Add(new StagedDownload(fileName, bytes, contentType));
-            _pending.Enqueue(new PendingDownload(fileName, contentType, Url: null, bytes));
+            // The WASM host's token shape: the bytes stay here, in Staged, and only a token is handed on.
+            _pending.Enqueue(new PendingDownload(fileName, contentType, Url: null, Token: Guid.NewGuid().ToString("N")));
         }
     }
 }
