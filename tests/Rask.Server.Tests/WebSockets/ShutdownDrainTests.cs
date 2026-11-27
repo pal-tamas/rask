@@ -106,7 +106,7 @@ public class ShutdownDrainTests
 
         var session = host.Store.Get(sessionId)!;
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        await WaitForAsync(() => session.PendingHandlers > 0, LiveFrames.HangCeiling);
+        await WaitFor.True(() => session.PendingHandlers > 0);
 
         var stop = host.StopAsync();
 
@@ -156,7 +156,7 @@ public class ShutdownDrainTests
             await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
             var session = host.Store.Get(sessionId)!;
-            await WaitForAsync(() => session.PendingHandlers > 0, LiveFrames.HangCeiling);
+            await WaitFor.True(() => session.PendingHandlers > 0);
 
             var started = Environment.TickCount64;
             await host.StopAsync();
@@ -352,7 +352,7 @@ public class ShutdownDrainTests
     {
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
         var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
-        await WaitForAsync(() => host.Store.ConnectedCount > 0, LiveFrames.HangCeiling);
+        await WaitFor.True(() => host.Store.ConnectedCount > 0);
         return connection;
     }
 
@@ -361,18 +361,7 @@ public class ShutdownDrainTests
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await WaitForAsync(() => host.Store.ConnectedCount > 0, LiveFrames.HangCeiling);
+        await WaitFor.True(() => host.Store.ConnectedCount > 0);
         return ws;
-    }
-
-    private static async Task WaitForAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (!condition() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10);
-        }
-
-        Assert.True(condition(), "condition was not met within the timeout");
     }
 }

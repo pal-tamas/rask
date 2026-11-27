@@ -237,7 +237,7 @@ public sealed class DurableHandlerTests : IDisposable
         try
         {
             await Save(provider, new Shipped(Guid.NewGuid()));
-            await WaitUntil(() => _log.Ran.Contains("receipt") && _log.Ran.Contains("charge"), TimeSpan.FromSeconds(10));
+            await WaitFor.True(() => _log.Ran.Contains("receipt") && _log.Ran.Contains("charge"));
         }
         finally
         {
@@ -304,19 +304,5 @@ public sealed class DurableHandlerTests : IDisposable
     {
         await using var db = await provider.GetRequiredService<IDbContextFactory<OutboxDbContext>>().CreateDbContextAsync();
         return await db.Set<OutboxMessage>().AsNoTracking().ToListAsync();
-    }
-
-    private static async Task WaitUntil(Func<bool> condition, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("Condition not met in time.");
-            }
-
-            await Task.Delay(25);
-        }
     }
 }

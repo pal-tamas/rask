@@ -47,18 +47,6 @@ public sealed class HibernationJourneyTests(PlaywrightFixture playwright, ITestO
             document.dispatchEvent(new Event("visibilitychange"));
         }
         """;
-
-    // What the server holds is not on the page, so it is polled — for as long as a page assertion would wait.
-    private static async Task Until(Func<bool> condition, string what)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "never happened: " + what);
-            await Task.Delay(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
-        }
-    }
-
     private static Task<LiveServerHost> StartAsync() =>
         LiveServerHost.StartAsync<HibernatingCounterPage>(
             blockWebSockets: false, services: s => s.AddSingleton(AtOnce));
@@ -87,7 +75,7 @@ public sealed class HibernationJourneyTests(PlaywrightFixture playwright, ITestO
         var firstSession = await page.GetAttributeAsync("[data-rask-root]", "data-rask-root");
 
         await page.EvaluateAsync(Hide);
-        await Until(() => store.Count == 0, "the server lets the hidden tab's session go");
+        await WaitFor.True(() => store.Count == 0, "the server lets the hidden tab's session go");
         var whileAway = await page.TextContentAsync("#count");
         var overlayWhileAway = await page.EvaluateAsync<bool>(
             "() => !!document.querySelector('.rask-overlay[data-show]')");
@@ -122,7 +110,7 @@ public sealed class HibernationJourneyTests(PlaywrightFixture playwright, ITestO
         var session = store.Snapshot().Single();
 
         await page.EvaluateAsync(Hide);
-        await Until(
+        await WaitFor.True(
             () => session.Hibernation.AskedAt != 0 && !session.Hibernation.Offered, "the tab is asked and says not now");
         await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
         var held = store.Count;

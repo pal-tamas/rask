@@ -24,14 +24,14 @@ public sealed class LogWriterResilienceTests
 
         // Wait for the write to actually fail. Only one attempt happens: the batch left the buffer before
         // the store threw, so the following cycles find nothing to flush.
-        await WaitUntilAsync(() => store.Attempts >= 1);
+        await WaitFor.True(() => store.Attempts >= 1);
 
         // The store starts working again and the next tick writes normally, without anything having
         // restarted the writer. The entry buffered while it was broken is gone — a failed batch is already
         // out of the buffer, and it is counted as dropped rather than replayed.
         store.Fail = false;
         channel.Write(Entry("after recovery"));
-        await WaitUntilAsync(() => store.Appended.Count > 0);
+        await WaitFor.True(() => store.Appended.Count > 0);
 
         await writer.StopAsync(CancellationToken.None);
 
@@ -152,7 +152,7 @@ public sealed class LogWriterResilienceTests
             // A cycle with nothing to flush still sweeps retention, and this store serves that fine — as a disk that
             // takes deletes but not inserts would. A sweep is not a write, so it must neither announce a recovery
             // nor start the run over (which would report the very next failure as a first one).
-            await WaitUntilAsync(() => store.Purges >= 1);
+            await WaitFor.True(() => store.Purges >= 1);
             Assert.Equal(0, logger.Count(LogLevel.Information));
 
             await FailAtLeastAsync(store, channel, attempts: store.Attempts + 3);
@@ -165,7 +165,7 @@ public sealed class LogWriterResilienceTests
 
             store.Fail = false;
             channel.Write(Entry("after recovery"));
-            await WaitUntilAsync(() => logger.Count(LogLevel.Information) == 1);
+            await WaitFor.True(() => logger.Count(LogLevel.Information) == 1);
         }
         finally
         {
@@ -243,21 +243,6 @@ public sealed class LogWriterResilienceTests
 
     private static LogRecord Entry(string message) =>
         new(Guid.Empty, DateTimeOffset.UnixEpoch, LogLevel.Information, "Test", 0, message, null);
-
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("Condition not met in time.");
-            }
-
-            await Task.Delay(20);
-        }
-    }
-
     /// <summary>A store that can be told to fail, to hang, or to work.</summary>
     private sealed class FaultyLogStore : ILogs
     {

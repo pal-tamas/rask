@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Rask.Printing.Tests;
 
 public sealed class ChromiumLifecycleTests
@@ -13,7 +11,7 @@ public sealed class ChromiumLifecycleTests
         await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Első</p>")), TestContext.Current.CancellationToken);
         var crashed = printer.Browser!;
         crashed.Kill();
-        await Until(() => crashed.IsGone);
+        await WaitFor.True(() => crashed.IsGone, ExitWait);
 
         var pdf = await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Második</p>")), TestContext.Current.CancellationToken);
 
@@ -67,17 +65,7 @@ public sealed class ChromiumLifecycleTests
 
         await browser.Connection.DisposeAsync();
 
-        await Until(() => browser.HasExited);
+        await WaitFor.True(() => browser.HasExited, ExitWait);
         await browser.DisposeAsync();
-    }
-
-    private static async Task Until(Func<bool> condition)
-    {
-        var clock = Stopwatch.StartNew();
-        while (!condition())
-        {
-            Assert.True(clock.Elapsed < ExitWait, $"Still waiting after {ExitWait.TotalSeconds} seconds.");
-            await Task.Delay(50, TestContext.Current.CancellationToken);
-        }
     }
 }

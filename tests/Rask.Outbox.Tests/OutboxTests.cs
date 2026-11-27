@@ -182,13 +182,12 @@ public sealed class OutboxTests : IDisposable
             // fills the recorder) and only then persists ProcessedAt — so waiting on the recorder and then
             // asserting on ProcessedAt races that save, and loses whenever the write is slow. Waiting on
             // ProcessedAt implies the publish already happened, so it covers both assertions below.
-            await WaitUntilAsync(
+            await WaitFor.True(
                 async () =>
                 {
                     await using var poll = NewContext();
                     return await poll.Set<OutboxMessage>().AnyAsync(m => m.ProcessedAt != null);
-                },
-                TimeSpan.FromSeconds(10));
+                });
         }
         finally
         {
@@ -213,13 +212,12 @@ public sealed class OutboxTests : IDisposable
         await processor.StartAsync(CancellationToken.None);
         try
         {
-            await WaitUntilAsync(
+            await WaitFor.True(
                 async () =>
                 {
                     await using var poll = NewContext();
                     return await poll.Set<OutboxMessage>().AnyAsync(m => m.ProcessedAt != null);
-                },
-                TimeSpan.FromSeconds(10));
+                });
         }
         finally
         {
@@ -237,23 +235,6 @@ public sealed class OutboxTests : IDisposable
         Assert.DoesNotContain('@', message.Type); // stored as the runtime name, unescaped
         Assert.Contains(_keywordRecorder.Events, e => e.N == 7); // the handler really ran
     }
-
-    // The condition is async so it can poll the database — the only place the drain's completion is
-    // observable — rather than an in-process side effect that runs earlier.
-    private static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (!await condition())
-        {
-            if (DateTime.UtcNow > deadline)
-            {
-                throw new TimeoutException("Condition not met in time.");
-            }
-
-            await Task.Delay(25);
-        }
-    }
-
     public void Dispose()
     {
         _provider.Dispose();
