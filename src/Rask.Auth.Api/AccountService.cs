@@ -54,6 +54,7 @@ internal sealed partial class AccountService<TUser, TKey>(
     private const string RegisterPurpose = "register";
     private const string ResetPurpose = "reset";
     private const string PasskeyThrottlePurpose = "passkey";
+    private const string RegistrationClosed = "This app does not take sign-ups: an administrator creates accounts.";
 
     public Task<AccountOutcome> RegisterAsync(
         string email,
@@ -82,17 +83,9 @@ internal sealed partial class AccountService<TUser, TKey>(
             return Fail(AuthError.TooManyAttempts);
         }
 
-        // The gate applies only while the instance is unclaimed. Asking the database rather than the in-memory token means
-        // a restart cannot re-open the window on an app that already has accounts. The token is compared FIRST: the winner of
-        // the claim clears it only after the claim is saved, so a token that stopped matching mid-race is always followed by a
-        // claimed instance — asked the other way round, a racer could see "unclaimed", then a cleared token, and be refused (#1143).
-        if (options.FirstUserIsAdmin
-            && options.RequireFirstRunToken
-            && !firstRun.Matches(firstRunToken)
-            && !await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false))
+        if (await RefusalAsync(firstRunToken, attempt, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            attempt.Fail();
-            return Fail(AuthError.FirstRunTokenRequired);
+            return refused;
         }
 
         if (AccountChecks.NameProblem<TUser, TKey>(email) is { } badName)
@@ -121,7 +114,13 @@ internal sealed partial class AccountService<TUser, TKey>(
             return await TakenAsync(normalized, attempt, cancellationToken).ConfigureAwait(false);
         }
 
-        await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
+        if (!await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false)
+            && options.Registration == Registration.Closed)
+        {
+            // Two claims of an unclaimed, closed instance raced and this one lost: it was let in only to claim it.
+            await ForgetAsync(user, cancellationToken).ConfigureAwait(false);
+            return Fail(AuthError.NotAllowed, RegistrationClosed);
+        }
 
         return await WelcomeAsync(user, normalized, cancellationToken).ConfigureAwait(false);
     }
@@ -214,7 +213,54 @@ internal sealed partial class AccountService<TUser, TKey>(
         return true;
     }
 
-    private async Task GrantRoleAsync(TUser user, CancellationToken cancellationToken)
+    // Who may register at all, before anything about the name or the password is said: nobody into a closed app but its
+    // first-run claimant, and nobody into an unclaimed one without its token.
+    private async Task<AccountOutcome?> RefusalAsync(
+        string? firstRunToken, AuthThrottle.Attempt attempt, CancellationToken cancellationToken)
+    {
+        if (await IsClosedToAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return Fail(AuthError.NotAllowed, RegistrationClosed);
+        }
+
+        // The gate applies only while the instance is unclaimed. Asking the database rather than the in-memory token means
+        // a restart cannot re-open the window on an app that already has accounts. The token is compared FIRST: the winner of
+        // the claim clears it only after the claim is saved, so a token that stopped matching mid-race is always followed by a
+        // claimed instance — asked the other way round, a racer could see "unclaimed", then a cleared token, and be refused (#1143).
+        if (options.FirstUserIsAdmin
+            && options.RequireFirstRunToken
+            && !firstRun.Matches(firstRunToken)
+            && !await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false))
+        {
+            attempt.Fail();
+            return Fail(AuthError.FirstRunTokenRequired);
+        }
+
+        return null;
+    }
+
+    // Closed registration still takes the one claim of an instance nobody has claimed, so a fresh deployment can make its
+    // administrator.
+    private async Task<bool> IsClosedToAsync(CancellationToken cancellationToken) =>
+        options.Registration == Registration.Closed
+        && (!options.FirstUserIsAdmin || await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false));
+
+    // Removes, for good, an account that should never have been made: no session and no role points at it yet.
+    private async Task ForgetAsync(TUser user, CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            await db.Set<TUser>()
+                .IgnoreQueryFilters()
+                .Where(AccountKey<TKey>.Is<TUser>(user.AccountId))
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    // Whether this account won the claim, and so is the administrator.
+    private async Task<bool> GrantRoleAsync(TUser user, CancellationToken cancellationToken)
     {
         // Winning the claim is what makes this account the administrator, and only one caller can win it — the row's primary
         // key is a constant. A loser is not an error: it is the second person to register, and they get the ordinary role.
@@ -233,6 +279,8 @@ internal sealed partial class AccountService<TUser, TKey>(
         {
             firstRun.Clear();
         }
+
+        return isAdmin;
     }
 
     public async Task<AccountOutcome> ValidateAsync(
@@ -878,7 +926,7 @@ internal sealed partial class AccountService<TUser, TKey>(
 
     private string? PasswordProblem(string password) => AccountChecks.PasswordProblem(password, options, hasher);
 
-    private static AccountOutcome Fail(AuthError error) => new(AuthResult.Fail(error), null);
+    private static AccountOutcome Fail(AuthError error, string? message = null) => new(AuthResult.Fail(error, message), null);
 
     [LoggerMessage(Level = LogLevel.Error, Message =
         "Sign-in for an address held by more than one tenant was refused. Rask cannot tell which " +

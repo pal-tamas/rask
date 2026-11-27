@@ -41,7 +41,13 @@ public static class RaskAuthEndpointExtensions
             // fetch and echo. The required header below is the same defence without the round-trip.
             .DisableAntiforgery();
 
-        group.MapPost(AuthApi.Register, RegisterAsync);
+        // Not mapped at all when registration is closed, rather than mapped to refuse: an unmapped path answers exactly
+        // what every other unknown one does, so nothing says a sign-up exists here and is shut.
+        if (options.Registration == Registration.Open)
+        {
+            group.MapPost(AuthApi.Register, RegisterAsync);
+        }
+
         group.MapPost(AuthApi.Login, LoginAsync);
         // Cast to Delegate deliberately (ASP0016). LogoutAsync takes only an HttpContext, which is
         // exactly RequestDelegate's shape, so without the cast ASP.NET binds it as one and throws the

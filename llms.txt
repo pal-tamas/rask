@@ -345,6 +345,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   **THE FIRST ACCOUNT TO REGISTER BECOMES `admin`**, the rest `user`, `/_rask` gated on it;
   single winner via a constant-PK row (RaskAuthInstanceClaim, AdminUserId Guid);
   the FIRST registration alone needs the one-time token from the startup log (`o.RequireFirstRunToken = false` drops it).
+  `o.Registration = Registration.Closed` shuts sign-up: `/api/auth/register` is NOT mapped, `IAuth.Register` → `AuthError.NotAllowed`, `IAccounts.Create` still works, and an UNCLAIMED instance is still claimed once with the first-run token.
   Confirmation and reset go out through the MAIL battery (IMail resolved at send time;
   no mail battery → told, not silently dropped).
   `RequireConfirmedEmail` OFF by default;

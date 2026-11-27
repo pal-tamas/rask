@@ -808,6 +808,25 @@ Every registration after that is an ordinary open one. Both behaviours are optio
 predictable rather than reading it from the log, set `Rask:Auth:FirstRunToken` (in the environment,
 `Rask__Auth__FirstRunToken`).
 
+### Closed registration
+
+An app whose accounts an administrator hands out closes sign-up in one line:
+
+```csharp
+// Before: the app had to unmap /api/auth/register itself, or anybody could register once the first account existed.
+// After:
+app.Configure(c => c.Auth.Configure(o => o.Registration = Registration.Closed));   // or Rask:Auth:Registration=Closed
+```
+
+- **`POST /api/auth/register` is not mapped**, so it answers exactly what any unknown path does — nothing says a
+  sign-up exists here and is shut. A WebAssembly client's `IAuth.Register` reads that as `AuthError.NotAllowed`.
+- **`IAuth.Register` answers `AuthError.NotAllowed`** before it looks at the name or the password, and makes no
+  account. [`Accounts.Create`](#an-administrator-manages-accounts) keeps working: that is how accounts are made now.
+- **The first-run claim still works, once.** An instance with no accounts yet is claimed through `IAuth.Register` with
+  its first-run token — the scaffolded `/register` page on the Server host — so a fresh deployment is never left
+  without an administrator. From then on every registration is refused. With `FirstUserIsAdmin` off there is no claim,
+  and nobody registers at all.
+
 **The Server cookie handshake.** A WebSocket can't write a `Set-Cookie`, so sign-in is a four-step relay:
 `IAuthSignIn.SignIn(principal)` (in an event handler) → the framework issues a single-use,
 session-bound ticket → the browser `POST`s it to `/_rask/auth/redeem` → the endpoint calls

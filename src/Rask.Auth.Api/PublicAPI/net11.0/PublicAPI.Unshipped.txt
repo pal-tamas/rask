@@ -451,3 +451,8 @@ static Rask.Auth.SessionReadAccess.Across(string! reason) -> Rask.Data.ModelQuer
 static Rask.Auth.SessionReadAccess.ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Across(string! reason) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ForUpdate() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+Rask.Auth.AuthOptions.Registration.get -> Rask.Auth.Registration
+Rask.Auth.AuthOptions.Registration.set -> void
+Rask.Auth.Registration
+Rask.Auth.Registration.Closed = 1 -> Rask.Auth.Registration
+Rask.Auth.Registration.Open = 0 -> Rask.Auth.Registration

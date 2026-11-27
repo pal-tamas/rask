@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`AuthOptions.Registration = Registration.Closed`: sign-up is shut, an administrator hands accounts out.**
+  `MapRaskAuth` mapped `POST /api/auth/register` always, so anybody could register once the first account existed.
+  Closed, the endpoint is not mapped (it answers what any unknown path does), `IAuth.Register` answers
+  `AuthError.NotAllowed` and makes no account, and `IAccounts.Create` keeps working. A fresh instance is still claimed
+  once with its first-run token, so a deployment is never left without an administrator. `Open` stays the default.
+  A WebAssembly client reads a 404 from any auth endpoint as `NotAllowed` rather than a wrong password.
 - **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
   `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
   and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a
