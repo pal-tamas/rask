@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -19,6 +20,7 @@ public sealed class RecurringJobStateConfiguration : IEntityTypeConfiguration<Re
         builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        ValueObjectColumn.Map(builder.Property(x => x.LastEnqueuedAt), static (Timestamp t) => t.Value);
         // The name is still what identifies a recurring job, and still what makes two instances racing to
         // create the row resolve to one winner — as a unique index rather than as the primary key.
         builder.HasIndex(x => x.Name).IsUnique();
