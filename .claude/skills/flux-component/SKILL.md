@@ -948,7 +948,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   overflow by under 2 px once held — a `flex flex-col gap-4`
   popover absorbs up to 15 px that way and hangs that far past the edge on Flux, so it does here. Flux's
   inline `max-height` is STICKY between two opens of one panel (it measures the held height the second time);
-  the kit starts every open fresh — not reproduced. The tooltip is on the hook too (`Ui.TooltipContent` writes
+  the kit starts every open fresh — not reproduced. Its INSET is sticky too, and that IS reproduced (2026-11-27,
+  `flux probe-place` on the popover page): a panel is measured where it last landed — squeezed there if that was by
+  an edge — and, the first time, where it hangs; then placed again each time its width changes until it keeps one
+  (`landed` in rask-place.ts). `Measure.Open` stands a Rask example on the viewport row its Flux twin stood at, to the
+  fraction (`data-parity-origin`, `PageScripts.StandWhereTheTwinStood`): Flux's docs page leaves an example 0.44 px
+  lower, which is what turns the datetime picker's 420 px range popup over its trigger. The tooltip is on the hook too (`Ui.TooltipContent` writes
   the attribute; its anchor is the first element of the `data-rask-tooltip` / `data-rask-toggle` that names
   it, or its `popovertarget` button): its `position-area` rules agreed with Flux at nine ordinary places and
   differed where a tooltip came within 5 px of an edge (Flux keeps the side and holds the height; the rules

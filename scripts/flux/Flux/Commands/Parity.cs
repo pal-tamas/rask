@@ -42,6 +42,8 @@ public sealed class Parity : IFluxCommand
             const ordinal = seen[section] = (seen[section] ?? -1) + 1;
             const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
             for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+            // Where Flux's twin stood in the viewport as it was opened (Measure.Open puts this one there to the pixel).
+            if (theirs?.origin) wrapper.dataset.parityOrigin = String(theirs.origin[1]);
             if (theirs && framed) {
               for (const key of FRAME) wrapper.style[key] = theirs.nodes[0].style[key];
               wrapper.style.width = `${theirs.size[0]}px`;
