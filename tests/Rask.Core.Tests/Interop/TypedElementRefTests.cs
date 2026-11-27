@@ -13,7 +13,7 @@ public partial class TypedElementRefTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task An_operation_calls_the_element_member_of_its_MDN_name()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var dialog = new ElementRef<HTMLDialogElement>();
         _ = Dialog.Ref(dialog);
 
@@ -29,7 +29,7 @@ public partial class TypedElementRefTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task An_attribute_is_an_awaitable_read_of_the_live_element()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskEl.get", true);
         var dialog = new ElementRef<HTMLDialogElement>();
         _ = Dialog.Ref(dialog);
@@ -47,7 +47,7 @@ public partial class TypedElementRefTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_state_the_render_does_not_own_is_written_through_a_setter()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var video = new ElementRef<HTMLVideoElement>();
         _ = Video.Ref(video);
 
@@ -62,7 +62,7 @@ public partial class TypedElementRefTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_typed_ref_carries_the_members_of_its_interfaces_bases()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var dialog = new ElementRef<HTMLDialogElement>();
         _ = Dialog.Ref(dialog);
 

@@ -308,7 +308,7 @@ public sealed class ContextWriteAnalyzer : DiagnosticAnalyzer
             write.Parent is not IExpressionStatementOperation { Syntax: StatementSyntax written } ||
             written.Parent is not BlockSyntax block ||
             write.Arguments.Length != 1 ||
-            Unwrapped(write.Arguments[0].Value) is not IInvocationOperation { Instance: null, Syntax: InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } } factory ||
+            write.Arguments[0].Value.WithoutImplicitConversion() is not IInvocationOperation { Instance: null, Syntax: InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } } factory ||
             !SymbolEqualityComparer.Default.Equals(factory.TargetMethod.ContainingType, aggregate) ||
             !SymbolEqualityComparer.Default.Equals(factory.TargetMethod.ReturnType, aggregate) ||
             EntryOf(aggregate, factory.TargetMethod) is null ||
@@ -358,9 +358,6 @@ public sealed class ContextWriteAnalyzer : DiagnosticAnalyzer
             IPropertyReferenceOperation { Instance: ILocalReferenceOperation { Local: var local } } when DerivesFrom(local.Type, known.DbContext) => local,
             _ => null,
         };
-
-    private static IOperation Unwrapped(IOperation value) =>
-        value is IConversionOperation { IsImplicit: true, Operand: var operand } ? operand : value;
 
     private sealed record KnownTypes(INamedTypeSymbol DbContext, INamedTypeSymbol DbSet, INamedTypeSymbol? Migration, INamedTypeSymbol? ModelSnapshot);
 }

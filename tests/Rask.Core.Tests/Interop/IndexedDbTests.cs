@@ -7,7 +7,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Asking_whether_IndexedDB_is_supported_calls_the_helper()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskIdb.isSupported", true);
 
         Assert.True(await new IndexedDb(js).IsSupported());
@@ -16,7 +16,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Opening_a_store_opens_the_named_database()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
 
         var store = await new IndexedDb(js).OpenStore("cache");
 
@@ -27,7 +27,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Setting_passes_the_store_key_and_value()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var store = await new IndexedDb(js).OpenStore("cache");
 
         await store.Set("greeting", "hello");
@@ -38,7 +38,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Getting_passes_the_store_and_key_and_gives_the_value()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskIdb.get", "hello");
         var store = await new IndexedDb(js).OpenStore("cache");
 
@@ -53,7 +53,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Setting_bytes_sends_base64_to_the_binary_helper()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var store = await new IndexedDb(js).OpenStore("files");
 
         await store.SetBytes("db", Sample);
@@ -66,7 +66,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Getting_bytes_decodes_base64()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskIdb.getBytes", Convert.ToBase64String(Sample));
         var store = await new IndexedDb(js).OpenStore("files");
 
@@ -80,7 +80,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Getting_bytes_for_an_absent_key_gives_null()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskIdb.getBytes", (string?)null);
         var store = await new IndexedDb(js).OpenStore("files");
 
@@ -90,7 +90,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Setting_an_empty_byte_array_round_trips_as_empty_not_null()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var store = await new IndexedDb(js).OpenStore("files");
 
         await store.SetBytes("empty", []);
@@ -128,7 +128,7 @@ public class IndexedDbTests
     [Fact]
     public async Task The_byte_methods_throw_for_null_args()
     {
-        var store = await new IndexedDb(new FakeJsRuntime()).OpenStore("files");
+        var store = await new IndexedDb(new TestJSRuntime()).OpenStore("files");
 
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytes(null!, []));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetBytes("k", null!));
@@ -166,7 +166,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Listing_keys_gives_the_key_array()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskIdb.keys", new[] { "a", "b" });
         var store = await new IndexedDb(js).OpenStore("cache");
 
@@ -177,7 +177,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Delete_and_clear_call_their_helpers()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var store = await new IndexedDb(js).OpenStore("cache");
 
         await store.Delete("greeting");
@@ -190,7 +190,7 @@ public class IndexedDbTests
     [Fact]
     public async Task Null_args_throw()
     {
-        var db = new IndexedDb(new FakeJsRuntime());
+        var db = new IndexedDb(new TestJSRuntime());
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await db.OpenStore(null!));
         var store = await db.OpenStore("cache");
 

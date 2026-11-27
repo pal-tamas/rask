@@ -19,7 +19,7 @@ public sealed partial class HandlerRefusalFramesTests
 
         var frames = await list.Click("delete");
 
-        var told = Told(frames);
+        var told = LiveFrames.Told(frames);
         Assert.Contains(RefusedDeleteApp.Sentence, told, StringComparison.Ordinal);
         Assert.Contains("data-variant=\"danger\"", told, StringComparison.Ordinal);
         Assert.Contains("attempts=1", told, StringComparison.Ordinal);
@@ -35,7 +35,7 @@ public sealed partial class HandlerRefusalFramesTests
 
         var frames = await list.Click("delete");
 
-        Assert.Contains("attempts=2", Told(frames), StringComparison.Ordinal);
+        Assert.Contains("attempts=2", LiveFrames.Told(frames), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed partial class HandlerRefusalFramesTests
 
         var (frames, logged) = await Logged(() => list.Click("fail"));
 
-        var told = Told(frames);
+        var told = LiveFrames.Told(frames);
         Assert.Contains("That did not work. Please try again. The problem has been recorded.", told, StringComparison.Ordinal);
         Assert.Contains("data-variant=\"danger\"", told, StringComparison.Ordinal);
         Assert.Contains("attempts=1", told, StringComparison.Ordinal);
@@ -67,7 +67,7 @@ public sealed partial class HandlerRefusalFramesTests
 
         var frames = await list.Click("fail");
 
-        Assert.Contains("attempts=2", Told(frames), StringComparison.Ordinal);
+        Assert.Contains("attempts=2", LiveFrames.Told(frames), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed partial class HandlerRefusalFramesTests
 
         var frames = await list.Click("fail");
 
-        var told = Told(frames);
+        var told = LiveFrames.Told(frames);
         Assert.Contains("\"devError\"", told, StringComparison.Ordinal);
         Assert.Contains("\"kind\":\"handler\"", told, StringComparison.Ordinal);
         Assert.Matches(
@@ -105,17 +105,6 @@ public sealed partial class HandlerRefusalFramesTests
 
     [GeneratedRegex("quote this reference: ([A-Z0-9]{8})", RegexOptions.CultureInvariant, 1000)]
     private static partial Regex Reference();
-
-    // The markup of a frame as the browser reads it: out of its JSON string, and out of its character references.
-    private static string Decoded(string frame) => System.Net.WebUtility.HtmlDecode(Regex.Unescape(frame));
-
-    // Everything the click was answered with, read as one: each frame a diff, never the whole page.
-    private static string Told(List<string> frames)
-    {
-        Assert.NotEmpty(frames);
-        Assert.All(frames, static frame => Assert.StartsWith("{\"kind\":\"diff\"", frame, StringComparison.Ordinal));
-        return string.Join('\n', frames.Select(Decoded));
-    }
 
     private static async Task<OpenList> Open(string environment)
     {

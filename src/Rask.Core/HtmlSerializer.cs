@@ -664,7 +664,7 @@ internal static class HtmlSerializer
 
     // The <body> element is framework-managed for the live runtime <script>:
     // resolve the host-registered IRaskRuntimeScript and emit its tag as the
-    // last body child, so the user no longer hand-places RaskRuntimeScript().
+    // last body child, so nothing in the tree has to place it.
     // Serialized inline (not via a post-process sentinel) so the script is
     // present and byte-stable on EVERY render — server live-updates re-serialize
     // and re-extract <body> without re-running RenderAsLiveRoot's post-processing,

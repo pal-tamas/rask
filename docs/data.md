@@ -478,7 +478,7 @@ public sealed class Product : Aggregate<Guid>
 
 | Member | What it answers |
 |---|---|
-| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, or your user's own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
+| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, your user's typed id (`UserId?`, as `rask new` writes it), or its own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
 | `Current.Claim(type)` | the value of the principal's first `type` claim (`string?`), or `null` when it has none or nobody is signed in |
@@ -494,7 +494,7 @@ job row records `UserId` and the runner re-enters it. Anywhere else (a hosted se
 `null`, and the `Required…` forms throw rather than let an anonymous write through looking like a signed-in one.
 
 **The user's own row is `Current.User`.** Say which aggregate is your user — Rask.Auth's `Authenticatable` says it
-already, so a `User : Authenticatable` needs nothing — and the build generates `Current.User` (its read face,
+already, so a `User : Authenticatable<UserId>` needs nothing — and the build generates `Current.User` (its read face,
 `UserRead?`) and `Current.RequiredUser`:
 
 ```csharp
@@ -604,7 +604,7 @@ public sealed class Product : Aggregate<ProductId>
 ```
 
 **The key.** An entity is keyed by the `Id` it inherits. A `Guid`, or a typed id over one, is the application's —
-made in the factory with `XId.New()`, a time-ordered version-7 `Guid`, and Rask's recommended default
+made in the factory with `XId.Create()`, a time-ordered version-7 `Guid`, and Rask's recommended default
 ([choosing the key](domain.md#choosing-the-key-a-typed-id-over-a-guid)); an `int` or a `long`, or a typed id over one,
 is the database's identity, produced on insert, unless `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()`.
 
@@ -2013,7 +2013,7 @@ know, as on PostgreSQL:
 
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
-in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`, or `OrderedGuid.New()` for a plain `Guid`
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.Create()`, or `Uuid.Create()` for a plain `Guid`
 key) sorts by the time it was made, ids of one millisecond by the order they were made, and a clustered key stays
 append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
 `min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte

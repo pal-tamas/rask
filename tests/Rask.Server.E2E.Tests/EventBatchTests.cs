@@ -44,7 +44,7 @@ public sealed class EventBatchTests(PlaywrightFixture playwright) : IClassFixtur
         await page.WaitForFunctionAsync("() => window.plottedAt > 0");
         var plottedAt = await page.EvaluateAsync<double>("() => window.plottedAt");
         // The ack follows the render, so once it is here every frame the batch caused has been counted.
-        await WaitForAsync(() => received.Any(IsAck));
+        await WaitFor.True(() => received.Any(IsAck));
 
         var events = sent.Where(frame => !IsOfType(frame, "hello")).ToArray();
         var renders = received.Where(frame => !IsAck(frame)).ToArray();
@@ -54,18 +54,6 @@ public sealed class EventBatchTests(PlaywrightFixture playwright) : IClassFixtur
         Assert.Single(renders);
         Assert.Empty(session.PageErrors);
     }
-
-    private static async Task WaitForAsync(Func<bool> met)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-        while (!met() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
-
-        Assert.True(met());
-    }
-
     private static bool IsAck(string frame) => IsOfType(frame, "ack");
 
     private static bool IsOfType(string frame, string type)

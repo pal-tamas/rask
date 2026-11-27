@@ -27,9 +27,6 @@ namespace Rask.Generators.Shared;
 /// </remarks>
 internal static class ReadModelShape
 {
-    /// <summary>The suffix a read face takes after its entity's name.</summary>
-    public const string ReadSuffix = ReadFaceName.Suffix;
-
     private const string NotMappedAttribute = "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute";
 
     /// <summary>Whether a read face is generated for <paramref name="symbol" />.</summary>

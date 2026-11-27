@@ -7,11 +7,10 @@ namespace Rask.Core.Authorization;
 
 public static class RouteAuthorizationGuard
 {
-    // Client-side guard redirect targets for an in-app nav to a protected route. (The initial HTTP GET
-    // challenge/forbid goes through the configured auth scheme's own LoginPath/AccessDeniedPath instead.)
-    // Shared by the server (RaskEndpointExtensions) and WASM (WasmLiveSession) guards so the two can't drift.
+    // The client-side guard's sign-in target for an in-app nav to a protected route. (The initial HTTP GET
+    // challenge goes through the configured auth scheme's own LoginPath instead.) Shared by the server
+    // (RaskEndpointExtensions) and WASM (WasmLiveSession) guards so the two can't drift.
     public const string ChallengePath = "/login";
-    public const string ForbidPath = "/forbidden";
 
     public static async Task<RouteAuthorizationResult> Evaluate(
         IServiceProvider services,

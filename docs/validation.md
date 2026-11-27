@@ -1,19 +1,14 @@
 # Validation
 
-Validation is built in. In a form, write the rule beside the field:
+Validation is built in, and it has two sides. **This page is the type side**: a rule that must hold wherever a
+value travels — in a form, on a dispatched request, in a posted HTTP body — lives on the type: a value object's own
+rule, `[Required]` and its relatives, an `AbstractValidator<T>`, an `IRequestValidator<T>`. It runs with nothing
+declared, and this page says which one to write, where each runs, and what a caller gets back when one fails.
 
-```csharp
-Input.Bind(() => _model.Email)
-    .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."])
-```
-
-That is the whole of it for a form — a rule on a field, a rule on the form for what spans fields,
-either of them `async`, the simple ones kept in a value object. See
-[forms — validation](forms-validation.md).
-
-A rule that must also hold where no form is — on a dispatched request, on a posted HTTP body — lives on
-the type instead: `[Required]` and its relatives, or an `AbstractValidator<T>`. Those are also
-supported in a form, and they run with nothing declared.
+**The form side** — `.Validate(…)` beside one input or across a form's fields, either of them `async`, when the rules
+run, the indicator while one is pending and the message under its field — is
+[forms — validation](forms-validation.md). The rules this page describes are shown there by the same form, with
+nothing written on it.
 
 > Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md) — nothing to install. The
 > automatic validators are **on**; an app that writes its rules inline and wants only those says so:
@@ -74,9 +69,12 @@ generator finds every `AbstractValidator<T>` at compile time and emits a `[Modul
 is no assembly scan, which is what lets a WebAssembly app use it and still publish trimmed.
 
 A validator with constructor dependencies is resolved from the scope, so the uniqueness-check
-validator — the usual reason to reach for FluentValidation — needs no extra wiring. It is built when
+validator — the usual reason to reach for FluentValidation — needs no extra wiring
+([a validator that needs services](forms-validation.md#a-validator-that-needs-services)). It is built when
 validation runs, not when the form renders, so a rule edited and hot-reloaded takes effect on the next
-validation rather than the next page load.
+validation rather than the next page load. How a form shows each source's messages — the field's display name, the
+reader's language, a validator scoped to the one field that changed — is
+[forms — validation](forms-validation.md#also-supported-dataannotations).
 
 ### Two things to know
 
@@ -92,7 +90,8 @@ RaskValidators.Register(typeof(Order), _ => new OrderValidator());
 **A discovered validator makes the form validate asynchronously.** FluentValidation runs async, so a
 model with a validator is checked through the awaitable `EditContext.Validate()` / `ValidateField(field)` —
 the only ones there are: every rule, synchronous or asynchronous, runs through them, so writing an
-`AbstractValidator<T>` changes nothing at the call site.
+`AbstractValidator<T>` changes nothing at the call site
+([async validators and the validating indicator](forms-validation.md#async-validators-and-the-validating-indicator)).
 
 ## Requests
 

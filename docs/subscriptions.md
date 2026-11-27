@@ -28,7 +28,7 @@ public sealed partial class Order : Aggregate<Guid>, IVersioned
 
     private static Order Place(CustomerName customer, Amount total)
     {
-        var order = new Order { Id = OrderedGuid.New(), Customer = customer, Total = total };
+        var order = new Order { Id = Uuid.Create(), Customer = customer, Total = total };
         order.Raise(new OrderPlaced(order.Id, customer.Value, total.Value));
         return order;
     }

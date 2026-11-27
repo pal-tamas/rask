@@ -14,10 +14,8 @@ namespace Rask.Background;
 ///         the server, and a failure is <see cref="WorkState.Failed" /> without a word of the error it threw.
 ///     </para>
 ///     <para>
-///         Both ends are tolerant across a deploy. <see cref="WorkState.Warned" /> crosses as <c>"state": "Done"</c> with
-///         <c>"outcome": "Warned"</c> beside it, so a browser tab opened before it existed reads an end it knows; and this reader
-///         skips a field it does not know and reads a state it does not know as <see cref="WorkState.Done" />, so the next
-///         state added breaks no tab either.
+///         The reader is tolerant across a deploy: it skips a field it does not know and reads a state it does not know as
+///         <see cref="WorkState.Done" />, so a state added later breaks no tab opened before it.
 ///     </para>
 /// </remarks>
 internal static class OwnWorkJson
@@ -81,14 +79,7 @@ internal static class OwnWorkJson
         writer.WriteString("progress", work.Progress);
         WriteCount(writer, "done", work.Done);
         WriteCount(writer, "of", work.Of);
-        // A state a reader from before it knows nothing of crosses as the one it can read — Warned as Done — and itself
-        // beside it, so a tab opened before the deploy that added it shows the work ended rather than failing to read it.
-        var legacy = work.State is WorkState.Warned ? WorkState.Done : work.State;
-        writer.WriteString("state", legacy.ToString());
-        if (legacy != work.State)
-        {
-            writer.WriteString("outcome", work.State.ToString());
-        }
+        writer.WriteString("state", work.State.ToString());
 
         if (work.Batch is { } batch)
         {
@@ -138,7 +129,7 @@ internal static class OwnWorkJson
             work.TryGetProperty("progress", out var progress) ? Text(progress) : null,
             Count(work, "done"),
             Count(work, "of"),
-            State(work.TryGetProperty("outcome", out var outcome) ? Text(outcome) : Text(Required(work, "state"))),
+            State(Text(Required(work, "state"))),
             Required(work, "at").GetDateTime().ToUniversalTime())
         {
             Batch = work.TryGetProperty("batch", out var batch) && batch.ValueKind == JsonValueKind.String ? batch.GetGuid() : null,

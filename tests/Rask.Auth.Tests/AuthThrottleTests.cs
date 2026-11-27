@@ -8,7 +8,7 @@ public sealed class AuthThrottleTests
     [Fact]
     public void A_held_client_is_free_once_its_oldest_failure_leaves_the_window_and_one_more_failure_holds_it_again()
     {
-        var clock = new MutableClock(Start);
+        var clock = new ManualClock(Start);
         var throttle = new AuthThrottle(clock) { Limit = 2, Window = TimeSpan.FromMinutes(1) };
         throttle.Begin("k").Fail();
         clock.Advance(TimeSpan.FromSeconds(30));
@@ -28,7 +28,7 @@ public sealed class AuthThrottleTests
     [Fact]
     public void A_spray_of_distinct_keys_keeps_the_throttle_at_its_bound_letting_go_of_the_stalest_first()
     {
-        var clock = new MutableClock(Start);
+        var clock = new ManualClock(Start);
         var throttle = new AuthThrottle(clock) { Limit = 1, Window = TimeSpan.FromHours(1), MostKeys = 100 };
 
         for (var i = 0; i < 150; i++)

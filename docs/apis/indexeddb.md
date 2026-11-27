@@ -31,5 +31,5 @@ The two pairs are **not interchangeable**: read a key with the same kind of acce
 ## See also
 
 - Source: [`IIndexedDb.cs`](../../src/Rask.Core/Browser/IIndexedDb.cs)
-- [Capability matrix](../browser-capabilities.md)
+- [Where each wrapper works](../browser-apis-reference.md#where-each-wrapper-works)
 - [Browser APIs — the narrative map](../browser-apis.md)

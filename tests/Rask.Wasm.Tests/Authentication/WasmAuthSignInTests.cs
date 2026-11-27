@@ -27,7 +27,7 @@ public class WasmAuthSignInTests
     {
         var state = new RouteState();
         var nav = new Navigator(state);
-        var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider(), new FakeJsRuntime());
+        var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider(), new TestJSRuntime());
 
         using (nav.EnterHandler())
         {
@@ -40,7 +40,7 @@ public class WasmAuthSignInTests
     [Fact]
     public async Task Signing_out_hands_the_browsers_push_subscription_back_before_the_cookie_goes()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("__raskPush.endpoint", "https://push.example/abc");
         var handler = new PathRecorder();
         var auth = new WasmAuthSignIn(new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") }, new StubUserProvider(), js);
@@ -59,7 +59,7 @@ public class WasmAuthSignInTests
     {
         var handler = new PathRecorder();
         var auth = new WasmAuthSignIn(
-            new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") }, new StubUserProvider(), new FakeJsRuntime());
+            new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") }, new StubUserProvider(), new TestJSRuntime());
 
         using (new Navigator(new RouteState()).EnterHandler())
         {
@@ -87,7 +87,7 @@ public class WasmAuthSignInTests
     public async Task Signing_out_empties_the_offline_cache()
     {
         // #1184: what the service worker kept, it kept for whoever was signed in.
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider(), js);
 
         using (new Navigator(new RouteState()).EnterHandler())
@@ -101,7 +101,7 @@ public class WasmAuthSignInTests
     [Fact]
     public async Task Signing_out_still_navigates_when_the_page_has_no_cache_helper()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetException("__raskOffline.clear", new JSException("__raskOffline is not defined"));
         var state = new RouteState();
         var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider(), js);
@@ -117,7 +117,7 @@ public class WasmAuthSignInTests
     [Fact]
     public async Task Signing_out_empties_the_offline_cache_even_when_the_server_cannot_be_reached()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var auth = new WasmAuthSignIn(new HttpClient(new UnreachableHandler()) { BaseAddress = new Uri("http://localhost/") }, new StubUserProvider(), js);
 
         using (new Navigator(new RouteState()).EnterHandler())

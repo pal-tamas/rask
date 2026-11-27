@@ -47,7 +47,7 @@ public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVer
     public bool Discontinued { get; private set; }
 
     private static Product Add(ProductName name, UnitPrice price) =>        // a factory: its entry is Product.Add(…)
-        new() { Id = ProductId.New(), Name = name, Price = price };
+        new() { Id = ProductId.Create(), Name = name, Price = price };
 
     public void Reprice(UnitPrice price)                                     // an operation: Product.Reprice(id, version, …)
     {
@@ -121,7 +121,7 @@ and one with no id yet (an integer key before its insert) is equal only to itsel
 
 | You declare | What it is | What it gets |
 | --- | --- | --- |
-| `Aggregate<TId, …>` | A consistency boundary: the thing you load, change and save as one | Its table, the static writes, its read face, domain events — and the [traits](#choosing-what-a-table-carries) it names: timestamps, `Version`, a form model, a `Delete` |
+| `Aggregate<TId>`, plus the trait interfaces it names | A consistency boundary: the thing you load, change and save as one | Its table, the static writes, its read face, domain events — and the [traits](#choosing-what-a-table-carries) it names: timestamps, `Version`, a form model, a `Delete` |
 | `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
 | a `record`, a `record struct`, or a class on `ValueObject` it holds | A value object: `Money`, `Address`, `Email` | Columns on the owner's row ([below](#value-objects)) |
 
@@ -637,7 +637,7 @@ gets it too):
 
 | Member | Does |
 |---|---|
-| `VehicleId.New()` | a new version-7 `Guid`, strictly increasing within the process (RFC 9562's counter in `rand_a`: two ids made in one millisecond still come out in order) — an id over a `Guid` only; the others come from the store or the caller |
+| `VehicleId.Create()` | a new version-7 `Guid`, strictly increasing within the process (RFC 9562's counter in `rand_a`: two ids made in one millisecond still come out in order) — an id over a `Guid` only; the others come from the store or the caller |
 | `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
 | `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
 | JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |
@@ -674,14 +674,14 @@ public sealed class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned, IHas
 {
     public static Order Place(string reference)
     {
-        var order = new Order { Id = OrderId.New(), Reference = reference };
+        var order = new Order { Id = OrderId.Create(), Reference = reference };
         order.Raise(new OrderPlaced(order.Id));          // the row's id, from the first line
         return order;
     }
 }
 ```
 
-`OrderId.New()` is a version-7 `Guid` (`OrderedGuid.New()`): time-ordered and strictly increasing — the 12 bits after
+`OrderId.Create()` is a version-7 `Guid` (`Uuid.Create()`): time-ordered and strictly increasing — the 12 bits after
 the millisecond count, where `Guid.CreateVersion7()` fills them at random, so two ids made in one millisecond still sort
 in the order they were made (RASK148 points at a key set to `Guid.CreateVersion7()` or `Guid.NewGuid()`). The
 primary-key index stays append-only as an identity's does, and unique without asking the database. That is what makes the id real before the
@@ -700,8 +700,8 @@ Who produces the key follows the value it holds:
 - **Over an `int` or a `long`** the key is the store's identity, exactly as the integer would be: `Vehicle.Create(model)`
   inserts it and reads the number back, and there is no `Create(id, model)`. An application-numbered table says
   `b.Property(x => x.Id).ValueGeneratedNever()` in its `Configure`, as for an integer key.
-- **Over a `Guid`** the key is the application's: `VehicleId.New()` in the factory, and the generated
-  `Create(model)` calls `VehicleId.New()` too.
+- **Over a `Guid`** the key is the application's: `VehicleId.Create()` in the factory, and the generated
+  `Create(model)` calls `VehicleId.Create()` too.
 - **Over a `string`** the caller names it: `Create(id, model)`.
 
 **A `Guid` id in a text column is written lower case.** Where the column holds text — every `Guid` on SQLite, or an
@@ -728,7 +728,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
     public HasMany<OrderLine> Lines { get; } = new();
 
     public static Order Place(string reference) =>
-        new() { Id = OrderedGuid.New(), Reference = reference };
+        new() { Id = Uuid.Create(), Reference = reference };
 
     public OrderLine Add(string product, int quantity)   // the aggregate guards its own invariants
     {
@@ -749,7 +749,7 @@ public sealed class OrderLine : Entity<Guid>
     public void SetQuantity(int quantity) => Quantity = quantity;
 
     internal static OrderLine For(string product, int quantity) =>
-        new() { Id = OrderedGuid.New(), Product = product, Quantity = quantity };
+        new() { Id = Uuid.Create(), Product = product, Quantity = quantity };
 }
 ```
 
@@ -1438,7 +1438,7 @@ writes what changed since — it never reads the row again.
   snapshot of what it read. `Save()` compares with that snapshot and writes only the columns you changed — a column
   someone else changed meanwhile keeps their value — with no SELECT, however large the row. Every successful save
   takes a new snapshot, so the next `Save()` reads nothing either.
-- **New is inserted with no read.** An aggregate your code made (`Order.Place(…)`, `new() { Id = OrderedGuid.New() }`)
+- **New is inserted with no read.** An aggregate your code made (`Order.Place(…)`, `new() { Id = Uuid.Create() }`)
   and never saved is an INSERT. So an aggregate built — or deserialised — with the key of an EXISTING row is an
   insert too, refused by the key: `Find` it and change it instead.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
@@ -1601,7 +1601,7 @@ public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersion
     public TrackingNumber? Tracking { get; private set; }
 
     private static Order Place(OrderReference reference) =>                      // the factory: Order.Place(reference)
-        new() { Id = OrderId.New(), Reference = reference, Status = OrderStatus.Placed };
+        new() { Id = OrderId.Create(), Reference = reference, Status = OrderStatus.Placed };
 
     public void Pay()
     {
@@ -1744,13 +1744,13 @@ public sealed class OrderLine : Entity<Guid>
     public int Quantity { get; private set; }
 
     public static OrderLine For(Guid productId, int quantity) =>
-        new() { Id = OrderedGuid.New(), ProductId = productId, Quantity = quantity };
+        new() { Id = Uuid.Create(), ProductId = productId, Quantity = quantity };
 }
 ```
 
 **The entity owns its key.** Rask.Data's key convention leaves an integer key (or a typed id over one) to the database's identity and
 marks every other key never generated, so a `Guid` or a strongly-typed id is assigned where the entity is
-built: `Id = OrderedGuid.New()` (or a typed id's `New()`) in its factory. That is what lets a child with an id of its own be added
+built: `Id = Uuid.Create()` (or a typed id's `Create()`) in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
 the save, by name, rather than inserted with an empty key. A key you configured yourself
 (`ValueGeneratedOnAdd()`, a database default) is left as you set it, and an integer key you marked

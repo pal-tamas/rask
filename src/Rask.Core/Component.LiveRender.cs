@@ -397,7 +397,7 @@ public abstract partial class Component
     // This mirrors what the DOM-handler path already does verbatim (TryInvokeHandlerAsync: "Set BEFORE
     // running so intermediate renders inside an async handler already see the owner as dirty"). The two paths
     // disagreeing is the bug: an async Button(OnClickAsync:) could paint mid-flight but the identical
-    // BsDataGrid(OnSortChangeAsync:) could not.
+    // async sort callback on a grid could not.
     //
     // Deliberately not StateHasChanged(): that would also RequestRender, firing an extra render before
     // the user's code has run. Only the flag is wanted — the render is already coming.

@@ -37,6 +37,11 @@
   <ItemGroup>
     <!-- The debugger files no Release publish may carry; the CLI E2E asks the same of a scaffold's publish. -->
     <Compile Include="..\Shared.TestFiles\DebuggerFreePublish.cs" Link="DebuggerFreePublish.cs"/>
+    <!-- One browser and one port probe for every E2E suite, linked from the shared folders the other suites link too. -->
+    <Compile Include="..\Shared.Playwright\PlaywrightFixture.cs" Link="PlaywrightFixture.cs"/>
+    <Compile Include="..\Shared.TestFiles\LoopbackPort.cs" Link="LoopbackPort.cs"/>
+    <Using Include="Rask.Tests.Playwright"/>
+    <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
   <!--

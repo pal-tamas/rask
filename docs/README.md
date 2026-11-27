@@ -38,17 +38,20 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`ElementRef<T>`), typed browser APIs, asset delivery. |
 | [JS interop — runtime](js-interop-runtime.md) | Calling JavaScript through `IJSRuntime`, typed element refs, and wrapping a third-party library with TypeScript types. |
 | [Web APIs from MDN](web-apis.md) | Every web API the browser ships, generated from MDN into C# (`Rask.Web`): `await Navigator.Clipboard.WriteText("hi")`, one round trip per await, kept objects as handles. |
-| [Browser APIs](browser-apis.md) | The map of the typed Web-API wrappers and where `Rask.Web` takes over — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
-| [Browser APIs — sharing model](browser-apis-sharing.md) | Which APIs run on which host, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#. |
-| [Browser APIs — reference & demos](browser-apis-reference.md) | A runnable demo per API with the C# beside the result: storage, environment, location, sensors, observers, media, crypto and files. |
-| [Capability matrix](browser-capabilities.md) | Where each typed wrapper works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
+| [Browser APIs](browser-apis.md) | The map of the typed Web-API wrappers and where `Rask.Web` takes over — shared vs WASM-only, declarative Web Share and gesture triggers on the server, the inject-from-ctor and push/`[JSInvokable]` subscription patterns. |
+| [Browser APIs — reference & demos](browser-apis-reference.md) | Where each typed wrapper works (Server / WASM), then a runnable demo per API with the C# beside the result: storage, environment, location, sensors, observers, media, crypto and files. |
+| [`IBackgroundSync`](apis/background-sync.md) | Ask the browser to wake a WASM app when connectivity returns, or on a recurring schedule. |
+| [`IIndexedDb`](apis/indexeddb.md) | A large async key/value store for strings and bytes, on both hosts. |
+| [`ISignaling`](apis/signaling.md) | The relay two peers trade an offer, an answer and their ICE candidates over (`AddRaskSignaling()` + `MapRaskSignaling()`). |
+| [`IWebAuthn`](apis/webauthn.md) | Register and sign in with passkeys. |
+| [`IWebRtc`](apis/webrtc.md) | Peer-to-peer data channels between two browsers, with batched delivery. |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (MDN's `PushManager`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
 | [Forms & validation](forms.md) | Two-way binding, `Form.Model(m)`/`EditContext`, inline `.Validate(…)` rules, radio & checkbox groups. |
 | [Forms — validation](forms-validation.md) | Inline `.Validate(…)` on a field or the form, sync or async, with the rules kept in a value object; DataAnnotations and FluentValidation as alternatives; the validating indicator and first-error-wins. |
 | [Forms — advanced](forms-advanced.md) | Nested models and collections, radio and checkbox groups, form state kept across a redeploy. |
-| [Validation](validation.md) | Inline `.Validate(…)` rules in a form; `[Required]` and `AbstractValidator<T>` are also supported and run in a form and on every dispatched request, with nothing declared. The off switch, validators that need services, and what a rejected request looks like on the wire. |
+| [Validation](validation.md) | The type side: which rule to write, and `[Required]`, `AbstractValidator<T>` and `IRequestValidator<T>` running in a form, on every dispatched request and at an HTTP endpoint, with nothing declared (the form side is [Forms — validation](forms-validation.md)). The off switch, validators that need services, and what a rejected request looks like on the wire. |
 | [Live pages](render-modes.md) | How a Server page reaches the browser: every page live with a session of its own, waiting for async data before the first byte, cache headers, and setting a status or redirecting on load. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnUpdated` / `OnFirstRender` / `OnRendered` / `OnUnmount` — one hook per moment, cancellation, common gotchas. |
 | [Authentication](authentication.md) | Accounts on your own `User`: sessions you can list and end, PBKDF2 or bcrypt, `Authorize`, route guards, OIDC (Keycloak / Auth0 / Cognito / Duende). |
@@ -60,6 +63,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Testing](testing.md) | Unit-testing components with `Rask.Testing`, driving event handlers, when to reach for E2E. |
 | [DevTools](devtools.md) | The in-page panel of a Debug build: every frame the page and the app exchange, and the component tree nested as on the page with each component's props (sensitive ones redacted at build time). On only in Development on this machine; nothing of it ships. |
 | [Migrating from Blazor](migration-from-blazor.md) | Concept mapping, behavioural gotchas, and what stays the same. |
+| [Upgrading Rask](upgrading.md) | What each release removed — CLI flags, CQRS and data types, `Ui.*` steps — and what replaces it. |
 | [Building with AI assistants](ai-agents.md) | `llms.txt` and the published guide set that let AI tools scaffold and extend Rask apps. |
 
 ## The full-stack batteries (the back half)
@@ -123,6 +127,8 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | Doc | What it covers |
 |-----|----------------|
 | [Live rendering & the diff codec](architecture/live-rendering.md) | How the render walk, frame stream, edit-op diff, keyed reconciliation, and the two transports (Server WS / WASM JSImport) work. |
+| [Live rendering — the render walk & diff codec](architecture/live-rendering-codec.md) | How the render produces a frame stream alongside HTML, and how the diff codec turns two frame streams into a minimal edit-op list. |
+| [Live rendering — cache, head & dispatch](architecture/live-rendering-runtime.md) | The per-session diff baseline, head/query-only navigations, handler ordering, and slow-connection affordances. |
 
 ---
 

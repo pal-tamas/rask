@@ -32,9 +32,6 @@ internal sealed class ModelValueObject(
     /// <summary>The properties in constructor-parameter order, or null when it is rebuilt by object initializer.</summary>
     public IReadOnlyList<IPropertySymbol>? ConstructorOrder { get; } = constructorOrder;
 
-    /// <summary>Whether the value object is rebuilt through a constructor naming every property.</summary>
-    public bool ByConstructor => ConstructorOrder is not null;
-
     /// <summary>Its properties, in declaration order.</summary>
     public IReadOnlyList<ModelValueObjectMember> Members { get; } = members;
 

@@ -27,7 +27,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     public async Task A_provider_that_reads_the_same_user_again_answers_the_same_and_ends_nothing()
     {
         var users = new Users(Person("ana")) { Next = Person("ana") };
-        var watch = new WasmUserWatch(users, new FakeJsRuntime());
+        var watch = new WasmUserWatch(users, new TestJSRuntime());
 
         var answer = await watch.Ask();
 
@@ -39,7 +39,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     public async Task A_provider_that_reads_nobody_where_there_was_somebody_ends_the_sign_in_and_empties_the_offline_cache()
     {
         var users = new Users(Person("ana")) { Next = Nobody() };
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var watch = new WasmUserWatch(users, js);
         var told = 0;
         watch.SignInEnded += (_, _) => told++;
@@ -56,7 +56,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     public async Task A_provider_that_reads_another_user_answers_not_the_same_and_ends_nothing()
     {
         var users = new Users(Person("ana")) { Next = Person("bob") };
-        var watch = new WasmUserWatch(users, new FakeJsRuntime());
+        var watch = new WasmUserWatch(users, new TestJSRuntime());
 
         var answer = await watch.Ask();
 
@@ -68,7 +68,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     public async Task A_provider_that_cannot_be_reached_gives_no_answer_and_ends_nothing()
     {
         var users = new Users(Person("ana")) { Fails = true };
-        var watch = new WasmUserWatch(users, new FakeJsRuntime());
+        var watch = new WasmUserWatch(users, new TestJSRuntime());
 
         var answer = await watch.Ask();
 
@@ -79,7 +79,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     [Fact]
     public async Task The_anonymous_default_has_nobody_to_watch_and_is_never_asked()
     {
-        var watch = new WasmUserWatch(new AnonymousUserProvider(), new FakeJsRuntime());
+        var watch = new WasmUserWatch(new AnonymousUserProvider(), new TestJSRuntime());
 
         var answer = await watch.Ask();
 
@@ -90,7 +90,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
     public async Task Two_questions_at_once_ask_the_provider_once()
     {
         var users = new Users(Person("ana")) { Next = Person("ana"), Gate = new TaskCompletionSource() };
-        var watch = new WasmUserWatch(users, new FakeJsRuntime());
+        var watch = new WasmUserWatch(users, new TestJSRuntime());
 
         var first = watch.Ask();
         var second = watch.Ask();
@@ -224,7 +224,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
         var (session, services) = WasmSessionHarness.NewSession<UserWatchApp>(
             configure: s => s.AddLogging().AddAuthorizationCore()
                 .AddSingleton<IUserProvider>(users)
-                .AddSingleton<IJSRuntime>(new FakeJsRuntime())
+                .AddSingleton<IJSRuntime>(new TestJSRuntime())
                 .AddSingleton<WasmUserWatch>(),
             diffMode: DiffMode);
         var route = services.GetRequiredService<RouteState>();
@@ -236,7 +236,7 @@ public sealed class UserWatchTests() : ResettingTestBase(LiveDiffMode.DisabledFu
 
     private static (HttpClient Http, WasmUserWatch Watch) Client(Users users, HttpStatusCode status)
     {
-        var watch = new WasmUserWatch(users, new FakeJsRuntime());
+        var watch = new WasmUserWatch(users, new TestJSRuntime());
         var services = new ServiceCollection().AddSingleton(watch).BuildServiceProvider();
         var http = new HttpClient(new SignInRefusals(services, Origin) { InnerHandler = new Answers(status) })
         {

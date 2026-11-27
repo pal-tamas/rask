@@ -24,7 +24,7 @@ public sealed class AggregateSaveTests : IDisposable
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
 
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(Start);
+    private readonly ManualClock _clock = new(Start);
     private readonly SqlCommandLog _log = new();
 
     public void Dispose() => _sqlite.Dispose();

@@ -639,7 +639,7 @@ public sealed partial class ComponentFactoryGenerator
     ///     value.
     ///     <para>
     ///         Every OTHER property that happens to pin a type argument stays a setter as well as a step.
-    ///         They are not alternatives: <c>BsDataGrid.Data(rows).Columns(cols)</c> sets both, and
+    ///         They are not alternatives: a grid's <c>.Data(rows).Columns(cols)</c> sets both, and
     ///         withdrawing the second because it could have opened the chain made it unreachable
     ///         (CS1955 — the property is invoked, because no setter exists). Requiredness is not enforced
     ///         by withholding the setter; it is enforced by the component not existing until the step is

@@ -73,7 +73,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
                 })
         };
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
 
         // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
@@ -106,7 +106,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // HttpRequestException) must surface the error banner once retries are exhausted —
         // never leave the page spinning forever.
         var (http, handler) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
 
         var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
 
@@ -136,7 +136,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // it was waiting for rather than "A task was canceled."
         var handler = new NeverSettles();
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
-        var clock = new ManualClock();
+        var clock = new ManualClock(holdTimers: true);
 
         var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(

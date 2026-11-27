@@ -65,6 +65,28 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
+    public async Task A_null_SetResponse_reads_back_as_null_for_a_reference_type()
+    {
+        var js = new TestJSRuntime();
+        js.SetResponse("storage.get", null);
+
+        var read = await js.InvokeAsync<string?>("storage.get", []);
+
+        Assert.Null(read);
+    }
+
+    [Fact]
+    public async Task A_null_SetResponse_for_a_value_type_still_says_the_types_differ()
+    {
+        var js = new TestJSRuntime();
+        js.SetResponse("count.get", null);
+
+        var read = async () => await js.InvokeAsync<long>("count.get", []);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(read);
+    }
+
+    [Fact]
     public async Task SetException_faults_the_call()
     {
         var js = new TestJSRuntime();

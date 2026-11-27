@@ -105,7 +105,7 @@ public sealed class HostModeIsPerHostTests
         var submit = new { id = MarkupAssert.RequireAttr(html, "data-rask-on-submit"), type = "submit", form = new { Name = "other" } };
         await ws.SendTypedThenAsync(MarkupAssert.RequireAttr(html, "data-rask-on-change"), "other", submit);
         var frames = await ws.SettledAsync();
-        return string.Join('\n', frames.Select(static f => System.Net.WebUtility.HtmlDecode(Regex.Unescape(f))));
+        return string.Join('\n', frames.Select(LiveFrames.Decoded));
     }
 
     // The throwing button pressed, and the payload that answered it.

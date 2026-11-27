@@ -19,7 +19,7 @@ public class ScopedScriptTests
     [Fact]
     public async Task A_call_goes_through_the_session_runtime_under_the_exports_identifier()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         js.SetResponse("Rask.Probe.width", 42.0);
         var probe = new Probe();
         using var scope = DispatchServicesScope.Push(Services(js));
@@ -70,7 +70,7 @@ public class ScopedScriptTests
     {
         // RaskScopedCallback is callable from any socket, and on the Server host the registry is shared by every
         // session — so another session posting this id must not reach the callback.
-        var mine = new FakeJsRuntime();
+        var mine = new TestJSRuntime();
         var probe = new Probe();
         var calls = 0;
         ScopedScript.ScriptCallback marker;
@@ -79,7 +79,7 @@ public class ScopedScriptTests
             marker = (ScopedScript.ScriptCallback)ScopedScript.Callback(probe, new Callback(() => calls++));
         }
 
-        using (JsCaller.Enter(new FakeJsRuntime()))
+        using (JsCaller.Enter(new TestJSRuntime()))
         {
             await ScopedScript.Invoke(marker.Id, JsonDocument.Parse("[]").RootElement);
         }
@@ -109,7 +109,7 @@ public class ScopedScriptTests
     [Fact]
     public async Task A_call_made_from_OnUnmount_still_reaches_the_script()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var probe = new Probe();
         using var scope = DispatchServicesScope.Push(Services(js));
 

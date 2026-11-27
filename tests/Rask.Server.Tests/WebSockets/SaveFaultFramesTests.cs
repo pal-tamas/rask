@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -21,7 +20,7 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
         var frames = await form.Save(name);
 
-        var toast = Told(frames);
+        var toast = LiveFrames.Told(frames);
         Assert.Contains(SaveFailed, toast, StringComparison.Ordinal);
         Assert.DoesNotContain("Exception", toast, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", toast, StringComparison.Ordinal);
@@ -35,7 +34,7 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
         var frames = await form.Save("tenant");
 
-        var toast = Told(frames);
+        var toast = LiveFrames.Told(frames);
         Assert.Contains($"{SaveFailed} MissingTenantException: No tenant is selected for partner 4114", toast, StringComparison.Ordinal);
     }
 
@@ -48,21 +47,10 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
         var frames = await form.Save("rule");
 
-        var toast = Told(frames);
+        var toast = LiveFrames.Told(frames);
         Assert.Contains(SaveFaultApp.Sentence, toast, StringComparison.Ordinal);
         Assert.DoesNotContain(SaveFailed, toast, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidationException", toast, StringComparison.Ordinal);
-    }
-
-    // The markup of a frame as the browser reads it: out of its JSON string, and out of its character references.
-    private static string Decoded(string frame) => System.Net.WebUtility.HtmlDecode(Regex.Unescape(frame));
-
-    // Everything the save was answered with, read as one: each frame a diff, never the whole page.
-    private static string Told(List<string> frames)
-    {
-        Assert.NotEmpty(frames);
-        Assert.All(frames, static frame => Assert.StartsWith("{\"kind\":\"diff\"", frame, StringComparison.Ordinal));
-        return string.Join('\n', frames.Select(Decoded));
     }
 
     private async Task<OpenForm> Open(string environment)

@@ -185,8 +185,6 @@
   - `:where()` around every selector, so each rule has ZERO specificity: the kit's rules and every utility
     still win, just as they do over a real preflight.
   - In `base`, which the order statement of the importing sheet ranks below everything else.
-  - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
-    a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
 
   UiStylesheetTests asserts that no html/body rule and no universal reset exists without `[data-rask-ui-document]` in it.
 */

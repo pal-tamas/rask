@@ -261,16 +261,16 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     // HeadAssetRegistry.EmitMountedAssets pathway directly.
 
     [Fact]
-    public void Applying_preserves_a_user_supplied_data_rask_key()
+    public void Applying_preserves_a_user_supplied_key()
     {
-        // If a user explicitly placed a data-rask-key on a head asset, the framework
-        // must not inject a second one — the user is opting into bespoke morph
-        // identity (e.g. for a hand-managed link they want morphed in-place).
+        // If a user explicitly keyed a head asset, the framework must not inject a second
+        // data-rask-key — the user is opting into bespoke morph identity (e.g. for a
+        // hand-managed link they want morphed in-place).
         var registry = new HeadAssetRegistry();
         registry.Add(Link
             .Rel("stylesheet")
             .Href("/x.css")
-            .Data(new Dictionary<string, string?> { ["rask-key"] = "user-link" }));
+            .Key("user-link"));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);

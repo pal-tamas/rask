@@ -43,6 +43,7 @@
 
   <ItemGroup>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Compile Include="..\Shared.TestFiles\LoopbackPort.cs" Link="LoopbackPort.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
@@ -60,6 +61,11 @@
     <RaskTestReads Include="..\..\docs\installation.md" />
     <RaskTestReads Include="..\..\src\Rask.Tailwind\**" />
     <RaskTestReads Include="..\..\src\Rask.Tailwind.Tasks\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
   </ItemGroup>
 
 </Project>

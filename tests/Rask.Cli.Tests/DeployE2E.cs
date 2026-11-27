@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 
 namespace Rask.Cli.Tests;
 
@@ -40,16 +38,6 @@ internal static class DeployE2E
             timeout: CliBuildE2E.LongStepTimeout,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         return (result.ExitCode, result.Output);
-    }
-
-    /// <summary>A TCP port nothing is listening on, for the fake VPS's published sshd.</summary>
-    internal static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
     }
 }
 
