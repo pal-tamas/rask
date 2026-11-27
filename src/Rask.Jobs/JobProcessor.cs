@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -990,7 +991,7 @@ public sealed partial class JobProcessor<TContext>(
                 }
             }
 
-            var (dueBefore, next) = schedule.Tick(state?.LastEnqueuedAt, now, options.TimeZone);
+            var (dueBefore, next) = schedule.Tick(state?.LastEnqueuedAt?.Instant.UtcDateTime, now, options.TimeZone);
 
             // Claim the tick with a compare-and-swap on *due-ness*, so exactly one instance enqueues it.
             // Without this, two instances both read the same state, both see it due, and both enqueue —
@@ -1013,7 +1014,9 @@ public sealed partial class JobProcessor<TContext>(
             (db, definition, dueBefore, next, now),
             static async (_, state, token) =>
             {
-                var (db, definition, dueBefore, next, now) = state;
+                var (db, definition, due, then, now) = state;
+                var dueBefore = Timestamp.Create(due);
+                var next = Timestamp.Create(then);
                 db.ChangeTracker.Clear();
                 var transaction = await db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
                 await using var transactionScope = transaction.ConfigureAwait(false);
@@ -1043,7 +1046,7 @@ public sealed partial class JobProcessor<TContext>(
     private static async Task<bool> TryCreateStateAsync(
         TContext db, string name, DateTime? lastEnqueuedAt, CancellationToken cancellationToken)
     {
-        var state = RecurringJobState.For(name, lastEnqueuedAt);
+        var state = RecurringJobState.For(name, Timestamp.CreateOptional(lastEnqueuedAt));
         db.Set<RecurringJobState>().Add(state);
         try
         {

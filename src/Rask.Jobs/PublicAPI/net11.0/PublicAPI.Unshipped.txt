@@ -186,7 +186,7 @@ Rask.Background.RecurringJob.Named(string! name) -> Rask.Background.RecurringJob
 Rask.Background.RecurringJob.Schedule.get -> Rask.Background.Schedule?
 Rask.Background.RecurringJob.Weekly.get -> Rask.Background.WeeklyJob
 Rask.Background.RecurringJobState
-Rask.Background.RecurringJobState.LastEnqueuedAt.get -> System.DateTime?
+Rask.Background.RecurringJobState.LastEnqueuedAt.get -> Rask.Values.Timestamp?
 Rask.Background.RecurringJobState.Name.get -> string!
 Rask.Background.RecurringJobStateConfiguration
 Rask.Background.RecurringJobStateConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.RecurringJobState!>! builder) -> void

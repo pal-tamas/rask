@@ -60,7 +60,8 @@ internal sealed class UtcMomentConvention(bool rewritesWallClock) : IModelFinali
 
             var instant = OneValueConverters.StoringInstant(converter) ?? converter.ComposeWith(WallClockInUtc.Converter);
             ((IMutableProperty)property).SetValueConverter(instant);
-            if (rewritesWallClock)
+            // A timestamp Rask writes was always the UTC instant: its column has nothing to rewrite.
+            if (rewritesWallClock && held != typeof(Timestamp))
             {
                 property.Builder.HasAnnotation(MomentsInUtc.Annotation, true);
             }
