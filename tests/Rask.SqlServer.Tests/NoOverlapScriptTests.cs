@@ -30,6 +30,30 @@ public sealed class DeskBookingContext(DbContextOptions<DeskBookingContext> opti
     }
 }
 
+/// <summary>A locker lent by the day, keyed by a site named in a text of no length: nvarchar(max).</summary>
+public sealed class LockerLoan
+{
+    public int Id { get; set; }
+
+    public string Site { get; set; } = "";
+
+    public int LockerNo { get; set; }
+
+    public DateOnly From { get; set; }
+
+    public DateOnly? To { get; set; }
+}
+
+public sealed class LockerLoanContext(DbContextOptions<LockerLoanContext> options) : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<LockerLoan>()
+            .NoOverlap(l => new { l.Site, l.LockerNo }, l => l.From, l => l.To, "The locker is lent then.");
+    }
+}
+
 /// <summary><c>b.NoOverlap(…)</c> on SQL Server, as the schema script writes it: an index and a trigger.</summary>
 public sealed class NoOverlapScriptTests
 {
@@ -48,6 +72,18 @@ public sealed class NoOverlapScriptTests
     }
 
     [Fact]
+    public void A_key_of_a_max_type_is_carried_by_the_index_not_keyed_by_it()
+    {
+        using var context = new LockerLoanContext(Options<LockerLoanContext>());
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("[Site] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE INDEX [IX_LockerLoan_Site_LockerNo_From] ON [LockerLoan] ([LockerNo], [From]) INCLUDE ([Site]);", script, StringComparison.Ordinal);
+        Assert.Contains("AS x ON x.[Site] = n.[Site] AND x.[LockerNo] = n.[LockerNo]", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_model_tells_EF_Core_the_table_has_a_trigger()
     {
         using var context = new DeskBookingContext(Options());
@@ -57,8 +93,11 @@ public sealed class NoOverlapScriptTests
         Assert.Equal(["TR_DeskBooking_DeskId_StartsAt"], entity.GetDeclaredTriggers().Select(static t => t.ModelName));
     }
 
-    private static DbContextOptions<DeskBookingContext> Options() =>
-        new DbContextOptionsBuilder<DeskBookingContext>()
+    private static DbContextOptions<DeskBookingContext> Options() => Options<DeskBookingContext>();
+
+    private static DbContextOptions<TContext> Options<TContext>()
+        where TContext : DbContext =>
+        new DbContextOptionsBuilder<TContext>()
             .UseRaskSqlServer(ConfigurationServices.With(new() { ["Rask:ConnectionStrings:App"] = "Server=unused;Database=unused" }))
             .Options;
 }
