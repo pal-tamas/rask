@@ -24,6 +24,8 @@ internal sealed class PostgresTextCollationOptionsExtension : IDbContextOptionsE
 
     public string SearchCollation => PostgresSearchCollation.Name;
 
+    public string KeyCollation => "C";
+
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
     public void ApplyServices(IServiceCollection services)
