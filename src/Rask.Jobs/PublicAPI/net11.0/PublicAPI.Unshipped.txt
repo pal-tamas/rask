@@ -45,20 +45,21 @@ Rask.Background.IJobs.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, 
 Rask.Background.IJobs.AddUnlessWaiting(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Background.Job
 Rask.Background.Job.Attempts.get -> int
+Rask.Background.Job.ClaimedUntil.get -> Rask.Values.Timestamp?
 Rask.Background.Job.ClaimToken.get -> System.Guid?
-Rask.Background.Job.ClaimedUntil.get -> System.DateTime?
-Rask.Background.Job.Completed(System.DateTime at) -> void
+Rask.Background.Job.Completed(Rask.Values.Timestamp! at) -> void
 Rask.Background.Job.Done.get -> int?
 Rask.Background.Job.Error.get -> string?
-Rask.Background.Job.Failed(string! error, System.DateTime retryAt) -> void
+Rask.Background.Job.Failed(string! error, Rask.Values.Timestamp! retryAt) -> void
 Rask.Background.Job.Lane.get -> string?
 Rask.Background.Job.Notice.get -> string?
 Rask.Background.Job.Of.get -> int?
 Rask.Background.Job.Payload.get -> string!
-Rask.Background.Job.ProcessedAt.get -> System.DateTime?
+Rask.Background.Job.ProcessedAt.get -> Rask.Values.Timestamp?
 Rask.Background.Job.Progress.get -> string?
 Rask.Background.Job.Release() -> void
-Rask.Background.Job.RunAt.get -> System.DateTime
+Rask.Background.Job.RunAt.get -> Rask.Values.Timestamp!
+Rask.Background.Job.StartedAt.get -> Rask.Values.Timestamp?
 Rask.Background.Job.TenantId.get -> System.Guid?
 Rask.Background.Job.Type.get -> string!
 Rask.Background.Job.UserId.get -> System.Guid?
@@ -158,14 +159,16 @@ Rask.Background.JobsOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Background.JobsOptions.ShutdownGracePeriod.set -> void
 Rask.Background.JobsOptions.TimeZone.get -> System.TimeZoneInfo!
 Rask.Background.JobsOptions.TimeZone.set -> void
-Rask.Background.LaneJob.Deconstruct(out System.Guid Id, out Rask.Background.IJob? Job, out string! Type, out System.DateTime Due, out System.DateTime? Started, out int Attempts, out bool Stopping, out string? Progress, out int? Done, out int? Of) -> void
+Rask.Background.LaneJob.Deconstruct(out System.Guid Id, out Rask.Background.IJob? Job, out string! Type, out Rask.Values.Timestamp! Due, out Rask.Values.Timestamp? Started, out int Attempts, out bool Stopping, out string? Progress, out int? Done, out int? Of) -> void
 Rask.Background.LaneJob.Done.get -> int?
 Rask.Background.LaneJob.Done.init -> void
-Rask.Background.LaneJob.LaneJob(System.Guid Id, Rask.Background.IJob? Job, string! Type, System.DateTime Due, System.DateTime? Started, int Attempts, bool Stopping, string? Progress = null, int? Done = null, int? Of = null) -> void
+Rask.Background.LaneJob.Due.get -> Rask.Values.Timestamp!
+Rask.Background.LaneJob.LaneJob(System.Guid Id, Rask.Background.IJob? Job, string! Type, Rask.Values.Timestamp! Due, Rask.Values.Timestamp? Started, int Attempts, bool Stopping, string? Progress = null, int? Done = null, int? Of = null) -> void
 Rask.Background.LaneJob.Of.get -> int?
 Rask.Background.LaneJob.Of.init -> void
 Rask.Background.LaneJob.Progress.get -> string?
 Rask.Background.LaneJob.Progress.init -> void
+Rask.Background.LaneJob.Started.get -> Rask.Values.Timestamp?
 Rask.Background.MonthlyDayJob
 Rask.Background.MonthlyDayJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
 Rask.Background.MonthlyDayJob.At(int hour, int minute = 0) -> Rask.Background.RecurringJob!
@@ -243,7 +246,7 @@ static Rask.Background.EnqueuedJobCounting.At<TJob>(this Rask.Batteries.Counting
 static Rask.Background.EnqueuedJobCounting.In<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 static Rask.Background.EnqueuedJobCounting.InLane<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, string! lane) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 static Rask.Background.EnqueuedJobCounting.Matching<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-static Rask.Background.Job.For(string! type, string! payload, System.DateTime runAt, string? lane = null) -> Rask.Background.Job!
+static Rask.Background.Job.For(string! type, string! payload, Rask.Values.Timestamp! runAt, string? lane = null) -> Rask.Background.Job!
 static Rask.Background.JobReadAccess.Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.JobReadAccess.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.JobReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.JobRead!>!
@@ -414,7 +417,6 @@ static Rask.Background.JobsExtensions.Run(this Rask.Background.IJobs! jobs, Rask
 static Rask.Background.JobsExtensions.Run<TResult>(this Rask.Background.IJobs! jobs, Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>
 Rask.Background.IJobs.Lanes(System.Collections.Generic.IEnumerable<string!>! lanes, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, Rask.Background.JobLane!>!>!
 Rask.Background.IJobs.Stop(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-Rask.Background.Job.StartedAt.get -> System.DateTime?
 Rask.Background.Job.Stopped.get -> Rask.Background.JobStop?
 Rask.Background.JobBacklog<TContext>.Lanes(System.Collections.Generic.IEnumerable<string!>! lanes, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, Rask.Background.JobLane!>!>!
 Rask.Background.JobBacklog<TContext>.Stop(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -460,14 +462,12 @@ Rask.Background.LaneJob
 Rask.Background.LaneJob.<Clone>$() -> Rask.Background.LaneJob!
 Rask.Background.LaneJob.Attempts.get -> int
 Rask.Background.LaneJob.Attempts.init -> void
-Rask.Background.LaneJob.Due.get -> System.DateTime
 Rask.Background.LaneJob.Due.init -> void
 Rask.Background.LaneJob.Equals(Rask.Background.LaneJob? other) -> bool
 Rask.Background.LaneJob.Id.get -> System.Guid
 Rask.Background.LaneJob.Id.init -> void
 Rask.Background.LaneJob.Job.get -> Rask.Background.IJob?
 Rask.Background.LaneJob.Job.init -> void
-Rask.Background.LaneJob.Started.get -> System.DateTime?
 Rask.Background.LaneJob.Started.init -> void
 Rask.Background.LaneJob.Stopping.get -> bool
 Rask.Background.LaneJob.Stopping.init -> void

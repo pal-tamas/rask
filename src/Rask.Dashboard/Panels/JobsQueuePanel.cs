@@ -1,7 +1,9 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Background;
+using Rask.Values;
 
 namespace Rask.Dashboard.Panels;
 
@@ -29,23 +31,56 @@ internal sealed class JobsQueuePanel<TContext>(
 
     protected override bool ShowsRunning => true;
 
+    // The row's timestamps, as the UTC instants the shared row shape holds (read after the query, in the projection).
     protected override Expression<Func<Job, QueueRow>> Projection => j => new QueueRow(
-        j.Id, j.Type, j.Payload, j.CreatedAt, j.RunAt, j.ProcessedAt, j.Attempts, j.Error, j.Payload)
+        j.Id, j.Type, j.Payload, j.CreatedAt, Utc(j.RunAt), UtcOrNull(j.ProcessedAt), j.Attempts, j.Error, j.Payload)
     {
         Lane = j.Lane,
-        StartedAt = j.StartedAt,
-        ClaimedUntil = j.ClaimedUntil,
+        StartedAt = UtcOrNull(j.StartedAt),
+        ClaimedUntil = UtcOrNull(j.ClaimedUntil),
         Stopped = j.Stopped,
     };
 
-    // Running is what the processor's own lane check calls busy: claimed, unexpired, unprocessed.
-    protected override IQueryable<Job> OnlyRunning(IQueryable<Job> rows, DateTime now) =>
-        rows.Where(j => j.ProcessedAt == null && j.ClaimedUntil != null && j.ClaimedUntil > now);
+    protected override Expression<Func<Job, bool>> Outstanding => j => j.ProcessedAt == null;
 
-    protected override IQueryable<Job> WithoutRunning(IQueryable<Job> rows, DateTime now) =>
-        rows.Where(j => j.ProcessedAt != null || j.ClaimedUntil == null || j.ClaimedUntil <= now);
+    protected override Expression<Func<Job, bool>> ProcessedBefore(DateTime cutoff)
+    {
+        var before = Timestamp.Create(cutoff);
+        return j => j.ProcessedAt != null && j.ProcessedAt < before;
+    }
+
+    protected override Expression<Func<Job, bool>> DueBy(DateTime now)
+    {
+        var at = Timestamp.Create(now);
+        return j => j.RunAt <= at;
+    }
+
+    protected override IOrderedQueryable<Job> InRunOrder(IQueryable<Job> rows) => rows.OrderBy(j => j.RunAt).ThenBy(j => j.Id);
+
+    protected override void Reschedule(UpdateSettersBuilder<Job> setters, DateTime now)
+    {
+        ArgumentNullException.ThrowIfNull(setters);
+        setters.SetProperty(j => j.RunAt, Timestamp.Create(now));
+    }
+
+    // Running is what the processor's own lane check calls busy: claimed, unexpired, unprocessed.
+    protected override IQueryable<Job> OnlyRunning(IQueryable<Job> rows, DateTime now)
+    {
+        var at = Timestamp.Create(now);
+        return rows.Where(j => j.ProcessedAt == null && j.ClaimedUntil != null && j.ClaimedUntil > at);
+    }
+
+    protected override IQueryable<Job> WithoutRunning(IQueryable<Job> rows, DateTime now)
+    {
+        var at = Timestamp.Create(now);
+        return rows.Where(j => j.ProcessedAt != null || j.ClaimedUntil == null || j.ClaimedUntil <= at);
+    }
 
     // Through the queue itself, so the host running the job cancels it at once when it is this one.
     public Task<bool> Stop(Guid id, CancellationToken cancellationToken) =>
         services.GetRequiredService<IJobs>().Stop(id, cancellationToken);
+
+    private static DateTime Utc(Timestamp timestamp) => timestamp.Instant.UtcDateTime;
+
+    private static DateTime? UtcOrNull(Timestamp? timestamp) => timestamp?.Instant.UtcDateTime;
 }

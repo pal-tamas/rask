@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -138,7 +139,7 @@ public sealed class JobLeaseTests
         b.Clock.Advance(TimeSpan.FromMinutes(6));
         Assert.Single(await ClaimAsync(b)); // b takes it over
 
-        mine[0].Completed(a.Clock.GetUtcNow().UtcDateTime);
+        mine[0].Completed(Timestamp.At(a.Clock.GetUtcNow()));
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => slow.SaveChangesAsync(TestContext.Current.CancellationToken));
     }

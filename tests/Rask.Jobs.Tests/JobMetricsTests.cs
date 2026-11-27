@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -100,7 +101,7 @@ public sealed class JobMetricsTests
         await using (var db = h.NewContext())
         {
             var now = h.Clock.GetUtcNow().UtcDateTime;
-            db.Set<Job>().Add(Job.For("Nothing.Registered.Here", "{}", now));
+            db.Set<Job>().Add(Job.For("Nothing.Registered.Here", "{}", Timestamp.Create(now)));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

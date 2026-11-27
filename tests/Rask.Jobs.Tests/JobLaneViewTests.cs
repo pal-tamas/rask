@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -54,8 +55,8 @@ public sealed class JobLaneViewTests
         var now = h.Clock.GetUtcNow().UtcDateTime;
         await Update(h, running, s => s
             .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-            .SetProperty(j => j.ClaimedUntil, now.AddMinutes(5))
-            .SetProperty(j => j.StartedAt, now)
+            .SetProperty(j => j.ClaimedUntil, Timestamp.Create(now.AddMinutes(5)))
+            .SetProperty(j => j.StartedAt, Timestamp.Create(now))
             .SetProperty(j => j.Attempts, 1));
 
         var lane = await h.Queue.Lanes(["pump-1"], Ct);
@@ -64,11 +65,11 @@ public sealed class JobLaneViewTests
         Assert.Equal(running, pump.Running!.Id);
         Assert.Equal(new ParkJob("running"), pump.Running.Job);
         Assert.Equal("Rask.Background.Tests.ParkJob", pump.Running.Type);
-        Assert.Equal(now, pump.Running.Started);
+        Assert.Equal(Timestamp.Create(now), pump.Running.Started);
         Assert.Equal(1, pump.Running.Attempts);
         Assert.False(pump.Running.Stopping);
         Assert.Equal(["next", "after-next", "later"], pump.Waiting.Select(w => ((ParkJob)w.Job!).Tag));
-        Assert.Equal(now.AddMinutes(2), pump.Waiting[2].Due);
+        Assert.Equal(Timestamp.Create(now.AddMinutes(2)), pump.Waiting[2].Due);
         Assert.False(pump.IsIdle);
     }
 
@@ -79,13 +80,13 @@ public sealed class JobLaneViewTests
         await h.Queue.Enqueue(new ParkJob("retry"), Ct).InLane("pump-1");
         var id = await h.IdOf("retry");
         var due = h.Clock.GetUtcNow().UtcDateTime.AddSeconds(40);
-        await Update(h, id, s => s.SetProperty(j => j.Attempts, 2).SetProperty(j => j.RunAt, due).SetProperty(j => j.Error, "boom"));
+        await Update(h, id, s => s.SetProperty(j => j.Attempts, 2).SetProperty(j => j.RunAt, Timestamp.Create(due)).SetProperty(j => j.Error, "boom"));
 
         var lane = (await h.Queue.Lanes(["pump-1"], Ct))["pump-1"];
 
         Assert.Null(lane.Running);
         var waiting = Assert.Single(lane.Waiting);
-        Assert.Equal(due, waiting.Due);
+        Assert.Equal(Timestamp.Create(due), waiting.Due);
         Assert.Equal(2, waiting.Attempts);
     }
 
@@ -99,9 +100,9 @@ public sealed class JobLaneViewTests
         await h.Queue.Enqueue(new ParkJob("last-try"), Ct).InLane("pump-2");
         var now = h.Clock.GetUtcNow().UtcDateTime;
         await Update(h, await h.IdOf("dead"), s => s.SetProperty(j => j.Attempts, 3));
-        await Update(h, await h.IdOf("done"), s => s.SetProperty(j => j.ProcessedAt, now));
-        await Update(h, await h.IdOf("stopped"), s => s.SetProperty(j => j.ProcessedAt, now).SetProperty(j => j.Stopped, JobStop.Asked));
-        await Update(h, await h.IdOf("last-try"), s => s.SetProperty(j => j.Attempts, 3).SetProperty(j => j.ClaimedUntil, now.AddMinutes(5)));
+        await Update(h, await h.IdOf("done"), s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(now)));
+        await Update(h, await h.IdOf("stopped"), s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(now)).SetProperty(j => j.Stopped, JobStop.Asked));
+        await Update(h, await h.IdOf("last-try"), s => s.SetProperty(j => j.Attempts, 3).SetProperty(j => j.ClaimedUntil, Timestamp.Create(now.AddMinutes(5))));
 
         var lanes = await h.Queue.Lanes(["pump-1", "pump-2"], Ct);
 
@@ -116,7 +117,7 @@ public sealed class JobLaneViewTests
         await h.Queue.Enqueue(new ParkJob("a"), Ct).InLane("pump-1");
         var id = await h.IdOf("a");
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        await Update(h, id, s => s.SetProperty(j => j.ClaimedUntil, now.AddMinutes(5)).SetProperty(j => j.Stopped, JobStop.Asked));
+        await Update(h, id, s => s.SetProperty(j => j.ClaimedUntil, Timestamp.Create(now.AddMinutes(5))).SetProperty(j => j.Stopped, JobStop.Asked));
 
         var lane = (await h.Queue.Lanes(["pump-1"], Ct))["pump-1"];
 
@@ -147,7 +148,7 @@ public sealed class JobLaneViewTests
         await h.Queue.Enqueue(new ParkJob("a"), Ct).InLane("pump-1");
         var id = await h.IdOf("a");
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        await Update(h, id, s => s.SetProperty(j => j.ClaimedUntil, now.AddMinutes(5)));
+        await Update(h, id, s => s.SetProperty(j => j.ClaimedUntil, Timestamp.Create(now.AddMinutes(5))));
         await using (var db = h.NewContext())
         {
             var job = await db.Set<Job>().SingleAsync(j => j.Id == id, Ct);

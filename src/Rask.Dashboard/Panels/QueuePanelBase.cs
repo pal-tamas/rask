@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Rask.Dashboard.Panels;
 
@@ -50,6 +51,43 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
 
     /// <summary>The rows NOT in a handler at <paramref name="now"/>, so a running row is counted once. All of them, by default.</summary>
     protected virtual IQueryable<TEntity> WithoutRunning(IQueryable<TEntity> rows, DateTime now) => rows;
+
+    /// <summary>
+    ///     The rows not yet processed: <c>ProcessedAt</c> is null. Read by name as a bare <see cref="DateTime" /> column, by
+    ///     default; a queue whose columns hold another type says it in its own types.
+    /// </summary>
+    protected virtual Expression<Func<TEntity, bool>> Outstanding => e => EF.Property<DateTime?>(e, "ProcessedAt") == null;
+
+    /// <summary>The rows processed before <paramref name="cutoff"/> (UTC).</summary>
+    /// <param name="cutoff">The instant, in UTC.</param>
+    protected virtual Expression<Func<TEntity, bool>> ProcessedBefore(DateTime cutoff) =>
+        e => EF.Property<DateTime?>(e, "ProcessedAt") != null && EF.Property<DateTime?>(e, "ProcessedAt") < cutoff;
+
+    /// <summary>The rows whose <see cref="RunAtProperty" /> has come by <paramref name="now"/> (UTC).</summary>
+    /// <param name="now">The instant, in UTC.</param>
+    protected virtual Expression<Func<TEntity, bool>> DueBy(DateTime now)
+    {
+        var runAt = RunAtProperty;
+        return e => EF.Property<DateTime>(e, runAt) <= now;
+    }
+
+    /// <summary>The rows in the order the processor takes them: by <see cref="RunAtProperty" />, then by key.</summary>
+    /// <param name="rows">The rows.</param>
+    protected virtual IOrderedQueryable<TEntity> InRunOrder(IQueryable<TEntity> rows)
+    {
+        var runAt = RunAtProperty;
+        return rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<Guid>(e, "Id"));
+    }
+
+    /// <summary>Moves <see cref="RunAtProperty" /> to <paramref name="now"/> (UTC), for a retry that reschedules.</summary>
+    /// <param name="setters">The retry's update.</param>
+    /// <param name="now">The instant, in UTC.</param>
+    protected virtual void Reschedule(UpdateSettersBuilder<TEntity> setters, DateTime now)
+    {
+        ArgumentNullException.ThrowIfNull(setters);
+        var runAt = RunAtProperty;
+        setters.SetProperty(e => EF.Property<DateTime>(e, runAt), now);
+    }
 
     /// <summary>
     /// Registered AND mapped. Both halves matter: a package reference without
@@ -116,14 +154,14 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         }
 
         var cutoff = timeProvider.GetUtcNow().UtcDateTime - olderThan;
+        var processedBefore = ProcessedBefore(cutoff);
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
 
         // ProcessedAt IS NOT NULL is the whole guard: outstanding work and dead letters are both
         // untouched, whatever cutoff the caller passes.
         return await db.Set<TEntity>()
-            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null
-                        && EF.Property<DateTime?>(e, "ProcessedAt") < cutoff)
+            .Where(processedBefore)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -141,7 +179,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         // Outstanding only. Deleting a processed row would erase the record of work that actually
         // happened, which is the one thing an operator can never undo.
         return await db.Set<TEntity>()
-            .Where(e => EF.Property<Guid>(e, "Id") == id && EF.Property<DateTime?>(e, "ProcessedAt") == null)
+            .Where(e => EF.Property<Guid>(e, "Id") == id)
+            .Where(Outstanding)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -159,14 +198,14 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var max = MaxAttempts;
-        var runAt = RunAtProperty;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
         // Not a row whose last attempt is running: its Attempts already reads as given up, and resetting it would run it again.
         return await WithoutRunning(db.Set<TEntity>(), now)
             .Where(scope)
-            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)
+            .Where(Outstanding)
+            .Where(e => EF.Property<int>(e, "Attempts") >= max)
             .ExecuteUpdateAsync(
                 s =>
                 {
@@ -174,7 +213,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
                         .SetProperty(e => EF.Property<string?>(e, "Error"), (string?)null);
                     if (RetryReschedules)
                     {
-                        s.SetProperty(e => EF.Property<DateTime>(e, runAt), now);
+                        Reschedule(s, now);
                     }
                 },
                 cancellationToken)
@@ -194,38 +233,34 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     // (ProcessedAt == null && Attempts < MaxAttempts && RunAt <= now) — a row they will never take again.
     private IQueryable<TEntity> Filter(IQueryable<TEntity> rows, QueueFilter filter, DateTime now)
     {
-        var runAt = RunAtProperty;
         var max = MaxAttempts;
 
         // A running row is its own slice: not due (it has started), and not a dead letter while its last attempt runs.
         return filter switch
         {
             QueueFilter.Running => OnlyRunning(rows, now),
-            QueueFilter.Due => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") < max
-                && EF.Property<DateTime>(e, runAt) <= now),
-            QueueFilter.Delayed => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") < max
-                && EF.Property<DateTime>(e, runAt) > now),
-            QueueFilter.Failed => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") >= max),
-            QueueFilter.Processed => rows.Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null),
-            _ => rows.Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null),
+            QueueFilter.Due => WithoutRunning(rows, now).Where(Outstanding)
+                .Where(e => EF.Property<int>(e, "Attempts") < max)
+                .Where(DueBy(now)),
+            QueueFilter.Delayed => WithoutRunning(rows, now).Where(Outstanding)
+                .Where(e => EF.Property<int>(e, "Attempts") < max)
+                .Where(Not(DueBy(now))),
+            QueueFilter.Failed => WithoutRunning(rows, now).Where(Outstanding)
+                .Where(e => EF.Property<int>(e, "Attempts") >= max),
+            QueueFilter.Processed => rows.Where(Not(Outstanding)),
+            _ => rows.Where(Outstanding),
         };
     }
 
     // Outstanding work reads best in the order the processor will actually take it; finished and
     // given-up work reads best newest-first, because that's where you look after something broke.
-    private IQueryable<TEntity> Order(IQueryable<TEntity> rows, QueueFilter filter)
-    {
-        var runAt = RunAtProperty;
-        return filter is QueueFilter.Processed or QueueFilter.Failed
+    private IQueryable<TEntity> Order(IQueryable<TEntity> rows, QueueFilter filter) =>
+        filter is QueueFilter.Processed or QueueFilter.Failed
             ? rows.OrderByDescending(e => EF.Property<Guid>(e, "Id"))
-            : rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<Guid>(e, "Id"));
-    }
+            : InRunOrder(rows);
+
+    private static Expression<Func<TEntity, bool>> Not(Expression<Func<TEntity, bool>> predicate) =>
+        Expression.Lambda<Func<TEntity, bool>>(Expression.Not(predicate.Body), predicate.Parameters);
 
     // EF builds the model once per app and caches it, so this is a dictionary lookup after the first call —
     // cached per panel instance anyway to keep it off the render path.

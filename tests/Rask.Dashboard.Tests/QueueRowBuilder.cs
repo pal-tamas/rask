@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Rask.Background;
+using Rask.Values;
 
 namespace Rask.Dashboard.Tests;
 
@@ -23,16 +24,16 @@ internal static class QueueRowBuilder
     internal static Job Job(
         DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null)
     {
-        var job = Rask.Background.Job.For("Some.Job", "{}", runAt);
+        var job = Rask.Background.Job.For("Some.Job", "{}", Timestamp.Create(runAt));
 
         if (error is not null)
         {
-            job.Failed(error, runAt);
+            job.Failed(error, Timestamp.Create(runAt));
         }
 
         if (processedAt is { } completed)
         {
-            job.Completed(completed);
+            job.Completed(Timestamp.Create(completed));
         }
 
         Attempts(job) = attempts;
@@ -54,11 +55,11 @@ internal static class QueueRowBuilder
     /// <param name="stopped">The stop asked of it, if one was.</param>
     internal static Job Running(DateTime startedAt, DateTime claimedUntil, string? lane = null, int attempts = 1, JobStop? stopped = null)
     {
-        var job = Rask.Background.Job.For("Some.Job", "{}", startedAt, lane);
+        var job = Rask.Background.Job.For("Some.Job", "{}", Timestamp.Create(startedAt), lane);
         Attempts(job) = attempts;
         ClaimToken(job) = Guid.NewGuid();
-        ClaimedUntil(job) = claimedUntil;
-        StartedAt(job) = startedAt;
+        ClaimedUntil(job) = Timestamp.Create(claimedUntil);
+        StartedAt(job) = Timestamp.Create(startedAt);
         Stopped(job) = stopped;
         return job;
     }
@@ -80,10 +81,10 @@ internal static class QueueRowBuilder
     private static extern ref Guid? ClaimToken(Job job);
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ClaimedUntil>k__BackingField")]
-    private static extern ref DateTime? ClaimedUntil(Job job);
+    private static extern ref Timestamp? ClaimedUntil(Job job);
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<StartedAt>k__BackingField")]
-    private static extern ref DateTime? StartedAt(Job job);
+    private static extern ref Timestamp? StartedAt(Job job);
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Stopped>k__BackingField")]
     private static extern ref JobStop? Stopped(Job job);

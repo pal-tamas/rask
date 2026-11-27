@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -21,7 +22,7 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
             return new Dictionary<string, JobLane>(StringComparer.Ordinal);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(timeProvider.GetUtcNow());
         var max = options.MaxAttempts;
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
@@ -44,7 +45,7 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
         return Fold(names, rows, now);
     }
 
-    private Dictionary<string, JobLane> Fold(List<string> names, List<Row> rows, DateTime now)
+    private Dictionary<string, JobLane> Fold(List<string> names, List<Row> rows, Timestamp now)
     {
         var running = new Dictionary<string, LaneJob>(StringComparer.Ordinal);
         var waiting = names.ToDictionary(name => name, _ => new List<LaneJob>(), StringComparer.Ordinal);
@@ -92,6 +93,6 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
     }
 
     private sealed record Row(
-        Guid Id, string Lane, string Type, string Payload, DateTime RunAt, DateTime? StartedAt, int Attempts, DateTime? ClaimedUntil,
+        Guid Id, string Lane, string Type, string Payload, Timestamp RunAt, Timestamp? StartedAt, int Attempts, Timestamp? ClaimedUntil,
         JobStop? Stopped, WorkReport Report);
 }

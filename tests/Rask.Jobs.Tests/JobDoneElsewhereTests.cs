@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -55,14 +56,14 @@ public sealed class JobDoneElsewhereTests
 
             await using (var db = h.NewContext())
             {
-                await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(s => s.SetProperty(j => j.ProcessedAt, theirs), Ct);
+                await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(theirs)), Ct);
             }
 
             await h.Recorded("a:stopped:DoneElsewhere");
             await h.WatchedAsync();
             var row = await h.Row(id);
 
-            Assert.Equal(theirs, row!.ProcessedAt);
+            Assert.Equal(Timestamp.Create(theirs), row!.ProcessedAt);
             Assert.Null(row.Stopped);
             Assert.Null(row.Error);
         }

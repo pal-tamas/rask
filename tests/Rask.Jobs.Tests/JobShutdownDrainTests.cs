@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -113,16 +114,16 @@ public sealed class JobShutdownDrainTests
         await h.Queue.Enqueue(new GateJob(), TestContext.Current.CancellationToken);
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
-        var firstLease = (await h.SingleJobAsync()).ClaimedUntil!.Value;
+        var firstLease = (await h.SingleJobAsync()).ClaimedUntil!.Instant;
 
         for (var step = 0; step < 4; step++)
         {
             h.Clock.Advance(TimeSpan.FromMilliseconds(150));
             var now = h.Clock.GetUtcNow().UtcDateTime;
-            await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).ClaimedUntil >= now.AddMilliseconds(300));
+            await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).ClaimedUntil >= Timestamp.Create(now.AddMilliseconds(300)));
         }
 
-        var renewed = (await h.SingleJobAsync()).ClaimedUntil!.Value;
+        var renewed = (await h.SingleJobAsync()).ClaimedUntil!.Instant;
         h.Gate.Release.SetResult();
         await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).ProcessedAt is not null);
         await h.Processor.StopAsync(CancellationToken.None);

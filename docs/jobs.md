@@ -519,6 +519,11 @@ runs, the processor logs exactly that command.
 context of your own — `Job.Where(j => j.ProcessedAt == null).Count()` for the backlog. The
 [dashboard](dashboard.md) shows the same table, with retry.
 
+A job's times — `RunAt`, `ProcessedAt`, `ClaimedUntil`, `StartedAt`, and a recurring job's `LastEnqueuedAt` — are
+`Timestamp`s, Rask's own [moment](domain.md#moment-and-day): each column holds the UTC instant, on every provider and
+on a plain `DbContext` too, so the two `02:30`s of an October night stay two times. A query compares them as
+timestamps — `Set<Job>().Where(j => j.RunAt <= Timestamp.At(Clock.Now))` — and `.Instant` reads the UTC instant back.
+
 ## Shutdown
 
 On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops claiming **new** jobs at once,

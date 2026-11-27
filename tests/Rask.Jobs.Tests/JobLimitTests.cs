@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -333,7 +334,7 @@ public sealed class JobLimitTests
                 await using (var db = h.NewContext())
                 {
                     var now = h.Clock.GetUtcNow().UtcDateTime;
-                    await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(s => s.SetProperty(j => j.ProcessedAt, now), Ct);
+                    await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(now)), Ct);
                 }
 
                 break;

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -13,7 +14,7 @@ internal sealed class JobStops<TContext>(IDbContextFactory<TContext> contextFact
 {
     public async Task<bool> Stop(Guid id, CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(timeProvider.GetUtcNow());
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -23,7 +24,7 @@ internal sealed class JobSweep<TContext>(IDbContextFactory<TContext> contextFact
     /// <summary>Sweeps once: the rows it ended, read after the write, for the caller to log and say.</summary>
     public async Task<IReadOnlyList<Job>> Sweep(CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(timeProvider.GetUtcNow());
         var maxAttempts = options.MaxAttempts;
         var token = Guid.NewGuid();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -40,7 +41,7 @@ internal sealed class JobSweep<TContext>(IDbContextFactory<TContext> contextFact
             .ExecuteUpdateAsync(
                 s => s
                     .SetProperty(j => j.ClaimToken, token)
-                    .SetProperty(j => j.ClaimedUntil, (DateTime?)null)
+                    .SetProperty(j => j.ClaimedUntil, (Timestamp?)null)
                     .SetProperty(j => j.Error, Abandoned),
                 cancellationToken)
             .ConfigureAwait(false);

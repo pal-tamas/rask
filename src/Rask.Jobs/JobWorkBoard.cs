@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -40,7 +41,7 @@ internal sealed class JobWorkBoard<TContext>(
         var user = viewer.User;
         var tenant = viewer.Tenant;
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var since = now - Recently;
+        var since = Timestamp.Create(now - Recently);
         var max = options.MaxAttempts;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -66,7 +67,7 @@ internal sealed class JobWorkBoard<TContext>(
     {
         var state = JobWork.StateOf(job, max, now);
         var at = job.ProcessedAt ?? job.StartedAt ?? job.RunAt;
-        var work = JobWork.Of(job, state, at);
+        var work = JobWork.Of(job, state, at.Instant.UtcDateTime);
         return state == WorkState.Running && options.Signals.Run(job.Id) is { HasEnded: false } here && here.Latest != default
             ? work with { Progress = here.Latest.Progress, Done = here.Latest.Done, Of = here.Latest.Of }
             : work;

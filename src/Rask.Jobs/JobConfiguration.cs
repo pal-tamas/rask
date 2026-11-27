@@ -20,6 +20,7 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         ConfigureKey(builder);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Payload).IsRequired();
+        ConfigureMoments(builder);
 
         // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
         // that states none, and would otherwise cut these off.
@@ -61,9 +62,18 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
 
         // Why a job was stopped, as its number: nullable, so a host from before Jobs.Stop inserts rows that were never asked to.
         builder.Property(x => x.Stopped);
-        builder.Property(x => x.StartedAt);
 
         ConfigureWork(builder);
+    }
+
+    // Its moments are Rask's own timestamps, each one column holding the UTC instant (TimestampColumn): mapped here, or
+    // EF Core would take a Timestamp for an entity of its own.
+    private static void ConfigureMoments(EntityTypeBuilder<Job> builder)
+    {
+        TimestampColumn.Map(builder.Property(x => x.RunAt));
+        TimestampColumn.Map(builder.Property(x => x.ProcessedAt));
+        TimestampColumn.Map(builder.Property(x => x.ClaimedUntil));
+        TimestampColumn.Map(builder.Property(x => x.StartedAt));
     }
 
     private static void ConfigureKey(EntityTypeBuilder<Job> builder)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -275,7 +276,7 @@ public sealed class JobStopTests
         {
             var past = h.Clock.GetUtcNow().UtcDateTime.AddMinutes(-1);
             await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(
-                s => s.SetProperty(j => j.Stopped, JobStop.Asked).SetProperty(j => j.ClaimedUntil, past), Ct);
+                s => s.SetProperty(j => j.Stopped, JobStop.Asked).SetProperty(j => j.ClaimedUntil, Timestamp.Create(past)), Ct);
         }
 
         await h.Processor.StartAsync(CancellationToken.None);

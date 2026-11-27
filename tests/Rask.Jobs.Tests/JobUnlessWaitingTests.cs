@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Background.Tests;
 
@@ -138,12 +139,12 @@ public sealed class JobUnlessWaitingTests
         var now = h.Clock.GetUtcNow().UtcDateTime;
         await using (var db = h.NewContext())
         {
-            db.Set<Job>().Add(Job.Waiting(type, payload, now, "pump-7"));
+            db.Set<Job>().Add(Job.Waiting(type, payload, Timestamp.Create(now), "pump-7"));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var other = h.NewContext();
-        other.Set<Job>().Add(Job.Waiting(type, payload, now, "pump-7"));
+        other.Set<Job>().Add(Job.Waiting(type, payload, Timestamp.Create(now), "pump-7"));
 
         await Assert.ThrowsAsync<DbUpdateException>(() => other.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
@@ -193,7 +194,7 @@ public sealed class JobUnlessWaitingTests
         await using (var db = h.NewContext())
         {
             await db.Set<Job>().ExecuteUpdateAsync(
-                s => s.SetProperty(j => j.ProcessedAt, DateTime.UtcNow), TestContext.Current.CancellationToken);
+                s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(DateTime.UtcNow)), TestContext.Current.CancellationToken);
         }
 
         var again = await h.Queue.Enqueue(new RecordJob("ask"), TestContext.Current.CancellationToken).InLane("pump-7").UnlessWaiting();
@@ -232,7 +233,7 @@ public sealed class JobUnlessWaitingTests
         await db.Set<Job>().ExecuteUpdateAsync(
             s => s
                 .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-                .SetProperty(j => j.ClaimedUntil, until)
+                .SetProperty(j => j.ClaimedUntil, Timestamp.Create(until))
                 .SetProperty(j => j.Attempts, j => j.Attempts + 1),
             TestContext.Current.CancellationToken);
     }
@@ -245,12 +246,12 @@ public sealed class JobUnlessWaitingTests
         await using (var db = h.NewContext())
         {
             // The other host's insert landed between this host's check and its own insert.
-            db.Set<Job>().Add(Job.Waiting(type, payload, h.Clock.GetUtcNow().UtcDateTime, "pump-7"));
+            db.Set<Job>().Add(Job.Waiting(type, payload, Timestamp.At(h.Clock.GetUtcNow()), "pump-7"));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var written = await ((JobBacklog<JobsDbContext>)h.Queue).Insert(
-            new RecordJob("ask"), h.Clock.GetUtcNow().UtcDateTime, "pump-7", TestContext.Current.CancellationToken);
+            new RecordJob("ask"), Timestamp.At(h.Clock.GetUtcNow()), "pump-7", TestContext.Current.CancellationToken);
 
         Assert.False(written);
         Assert.Equal(1, await h.CountJobsAsync());
