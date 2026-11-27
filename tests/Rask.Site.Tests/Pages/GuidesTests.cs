@@ -57,11 +57,11 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_climbing_link_to_a_guide_is_rewritten_to_its_SPA_route() =>
-        // docs/apis/*.md link the capability matrix as "../browser-capabilities.md". Reading every "../" as
-        // the repo root sent all 51 of those to a GitHub URL with no file behind it — a dead link on every
+        // docs/apis/*.md link the capability table as "../browser-apis-reference.md". Reading every "../" as
+        // the repo root sent all of those to a GitHub URL with no file behind it — a dead link on every
         // browser-API page, and the one internal link a crawler would follow between them sent off-site.
-        Assert.Contains($"href=\"{Rask.Site.Routes.GuidePage("browser-capabilities")}/\" data-rask-nav",
-            Markdown.Source("[matrix](../browser-capabilities.md)").SourcePath("apis/geolocation.md").ToHtml());
+        Assert.Contains($"href=\"{Rask.Site.Routes.GuidePage("browser-apis-reference")}/\" data-rask-nav",
+            Markdown.Source("[table](../browser-apis-reference.md)").SourcePath("apis/geolocation.md").ToHtml());
 
     [Fact]
     public void A_repository_link_is_rewritten_to_the_file_on_GitHub_resolved_from_its_own_folder()

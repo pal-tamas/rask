@@ -7,6 +7,9 @@ own rule, the aggregate's `Validate()`, an operation's `Refuse` and a unique ind
 that writes nothing — a search box, a filter, a sign-in — says its rules: `.Validate(…)` on an input, or on the form
 for a rule that spans fields. DataAnnotations and FluentValidation are [also supported](#also-supported-dataannotations).
 
+This is the **form side**. Which rule to write, and where a rule on a type runs beyond the form — a dispatched request,
+an HTTP endpoint — and what a caller gets back when it fails, is the type side: [validation](validation.md).
+
 ‹ Back to [Forms & validation](forms.md)
 
 ## Inline validation
@@ -798,13 +801,11 @@ A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
 
 ## Also supported: FluentValidation
 
-Writing the validator is the registration. A generator finds every `AbstractValidator<T>` in your app
-at compile time, and a `HTMLFormElement<T>` asks for the one that validates its model — so there is nothing to
-declare in the form and nothing to wire in `Program.cs`. It is wrapped as an `IAsyncFieldValidator`,
-so async `MustAsync` rules work exactly like synchronous ones.
-
-There is no assembly scan anywhere in this: registration is emitted as a `[ModuleInitializer]`, which
-is what lets a WebAssembly app use FluentValidation and still publish trimmed.
+Writing the validator is the registration — found at compile time, with no assembly scan, so a WebAssembly app
+publishes trimmed ([how it is discovered](validation.md#also-supported-rules-on-the-type), and what to do for a
+validator in a class library). A `HTMLFormElement<T>` asks for the one that validates its model, so there is nothing
+to declare in the form. It is wrapped as an `IAsyncFieldValidator`, so async `MustAsync` rules work exactly like
+synchronous ones.
 
 ```csharp
 public sealed class OrderValidator : AbstractValidator<OrderModel>
@@ -969,11 +970,10 @@ app.Configure(c => c.Validation.Off());       // the same switch, from a RaskApp
 Form.Model(_model).AutoValidate(false)[ … ]   // this form only
 ```
 
-Inline `.Validate(…)` rules keep running: the switch only stops what was never written in the app. A rule
-a property's type carries and a rule the store owns were written — on the type, on the index — so they
-keep running too.
-It is one switch for the app, so it also stops the same two passes on a
-[dispatched request](validation.md#requests). The global off wins — a form cannot opt back in.
+Inline `.Validate(…)` rules keep running: the switch only stops what was never written in the app, and a rule a
+property's type carries or the store owns keeps running too ([what the switch leaves on](validation.md)). It is one
+switch for the app, so it also stops the same two passes on a [dispatched request](validation.md#requests). The
+global off wins — a form cannot opt back in.
 
 ---
 

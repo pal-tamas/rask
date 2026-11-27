@@ -389,6 +389,15 @@ them until tagged releases begin.
   accept a package held as a prerelease of the set's version.
 
 ### Documentation
+- **The browser-API guides are two pages, not four, and the docs say only the current API.** The capability matrix is
+  the first table of `docs/browser-apis-reference.md` ("Where each wrapper works": what each wrapper wraps, its shape,
+  Server and WASM as columns, `IViewTransitions` included), and the sharing model — shared vs WASM-only, `Shareable`,
+  the gesture triggers, the subscription push pattern — is part of `docs/browser-apis.md`. Both old guide URLs still
+  answer (`GuideCatalog.Moved`) with the new page as their canonical. `docs/validation.md` is now the type side (which
+  rule to write, requests, endpoints) and `docs/forms-validation.md` the form side, each linking the other instead of
+  repeating it. The removal notes `llms.txt` carried for APIs gone by 0.24.0 (`Ui.Toaster`, `Ui.FileInput`, `Ui.Shell`,
+  `IOutboxEvent`, `--auth` and the rest) moved to a new [Upgrading Rask](docs/upgrading.md) page; `docs/README.md` lists
+  it and the seven nested pages under `docs/apis/` and `docs/architecture/`.
 - **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
   (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In
   the analyzer's message and in `docs/diagnostics.md#rask177`.
