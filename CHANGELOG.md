@@ -69,6 +69,9 @@ them until tagged releases begin.
 - **A calendar's weekday row is Flux 2.22's (#1189).** Each heading of `Ui.Calendar` — and of the date and datetime
   pickers' calendars — holds the day's short name itself, centred by its own flex row (`justify-center`), where it
   wrapped it in a `<div>`. Nothing moves on the page.
+- **`Ui.Editor`'s engine takes `prosemirror-view` 1.44.0** (was 1.43.0; Tiptap stays 3.35.0, `prosemirror-model` still
+  held at 1.25.1). `ui-editor.js` grows by 857 bytes (451,899 -> 452,756), which the tiptap follower leaves to the
+  owner; approved, landed by hand (#1263).
 - **`Rask.Postgres` ships stable, at the version of every other package, on Npgsql's stable EF Core 11 provider.**
   `Npgsql.EntityFrameworkCore.PostgreSQL` moves from 11.0.0-rc.3 to 11.0.0, which asks for EF Core [11.0.0, 12.0.0),
   the line the rest of Rask is on. The November hold is lifted: no `x.y.z-rc.1` suffix on a stable tag, no NU1608 for a

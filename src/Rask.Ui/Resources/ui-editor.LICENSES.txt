@@ -879,7 +879,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ==============================================================================
-prosemirror-view 1.43.0 — MIT
+prosemirror-view 1.44.0 — MIT
 ==============================================================================
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
 
