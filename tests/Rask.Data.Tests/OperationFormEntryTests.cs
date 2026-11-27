@@ -4,7 +4,7 @@ using Rask.Wire;
 
 namespace Rask.Data.Tests;
 
-// The generated Form.For of an operation that takes rows for its Children<,> and value objects of several values: read
+// The generated Form.For of an operation that takes rows for its HasMany and value objects of several values: read
 // from what is stored, each row and each member a field, refused under its place, and saved through the entry.
 public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDisposable
 {

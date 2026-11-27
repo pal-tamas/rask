@@ -170,6 +170,22 @@ public sealed class AuthOptions
     public bool FirstUserIsAdmin { get; set; } = true;
 
     /// <summary>
+    /// Whether visitors may create their own account. <see cref="Auth.Registration.Open" /> by default.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Auth.Registration.Closed" /> is for an app whose accounts an administrator hands out: the register
+    /// endpoint is not mapped and <c>IAuth.Register</c> refuses with <c>AuthError.NotAllowed</c>, while
+    /// <c>IAccounts.Create</c> keeps working. An instance with no accounts can still be claimed once, with the first-run
+    /// token, so a fresh deployment is not left without an administrator.
+    /// <example>
+    /// <code>
+    /// app.Configure(c => c.Auth.Configure(o => o.Registration = Registration.Closed));
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public Registration Registration { get; set; } = Registration.Open;
+
+    /// <summary>
     /// The role that may choose a tenant to act in (<c>IAuth.ActInTenant</c>). <see cref="RaskRoles.Admin" /> by
     /// default; <see langword="null" /> turns choosing off.
     /// </summary>
