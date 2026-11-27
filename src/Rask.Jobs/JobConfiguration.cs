@@ -14,6 +14,7 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
 
         // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
         KeptNames.Keep(builder.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(builder);
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);

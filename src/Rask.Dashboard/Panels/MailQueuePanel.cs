@@ -31,5 +31,5 @@ internal sealed class MailQueuePanel<TContext>(
     protected override string RunAtProperty => nameof(QueuedMail.RunAt);
 
     protected override Expression<Func<QueuedMail, QueueRow>> Projection => m => new QueueRow(
-        m.Id, m.Subject, m.To, m.CreatedAt, m.RunAt, m.ProcessedAt, m.Attempts, m.Error, m.To);
+        m.Id, m.Subject, m.To, m.CreatedAt.Instant.UtcDateTime, m.RunAt, m.ProcessedAt, m.Attempts, m.Error, m.To);
 }

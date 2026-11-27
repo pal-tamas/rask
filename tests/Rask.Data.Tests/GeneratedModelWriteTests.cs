@@ -226,7 +226,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         var stored = await Widget.IgnoreQueryFilters().First(w => w.Id == widget.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
-        Assert.Equal(Start.AddHours(1).UtcDateTime, stored.DeletedAt);
+        Assert.Equal(Start.AddHours(1).UtcDateTime, stored.DeletedAt!.Instant.UtcDateTime);
         Assert.Equal(1, stored.Version);
     }
 

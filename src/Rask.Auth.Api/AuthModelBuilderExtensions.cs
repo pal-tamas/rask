@@ -106,6 +106,7 @@ public static class AuthModelBuilderExtensions
     private static void MapSession(EntityTypeBuilder<Session> b)
     {
         KeptNames.Keep(b.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(b);
         b.ToTable("RaskAuthSession");
         b.HasIndex(s => s.UserId);
         b.Property(s => s.IpAddress).HasMaxLength(Session.IpAddressLength);
@@ -117,6 +118,7 @@ public static class AuthModelBuilderExtensions
     private static void MapPasskey(EntityTypeBuilder<Passkey> b)
     {
         KeptNames.Keep(b.Metadata.ClrType);
+        ValueObjectColumn.MapStamps(b);
         b.ToTable("RaskAuthPasskey");
         b.HasIndex(p => p.UserId);
 

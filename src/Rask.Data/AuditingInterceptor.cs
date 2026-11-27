@@ -367,7 +367,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         var property = entry.Property(column);
 
-        if (onlyWhenUnset && property.CurrentValue is Moment or DateTime { Ticks: > 0 })
+        if (onlyWhenUnset && IsStamped(property.CurrentValue))
         {
             return;
         }
@@ -375,6 +375,14 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         property.CurrentValue = TimestampColumn.Of(property.Metadata.ClrType, now);
     }
 
+
+    // A stamp already written: a Timestamp past 0001-01-01, or a DateTime a class declared that is not its default.
+    private static bool IsStamped(object? value) => value switch
+    {
+        Timestamp stamp => !TimestampColumn.IsUnset(stamp),
+        DateTime time => time.Ticks > 0,
+        _ => false,
+    };
 
     /// <summary>
     /// Marks the root of every changed child as changed too, so the aggregate is the unit of concurrency.

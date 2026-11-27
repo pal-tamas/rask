@@ -61,7 +61,7 @@ internal sealed class CachePanel<TContext>(
             .OrderBy(e => e.ExpiresAt)
             .Skip(skip)
             .Take(take)
-            .Select(e => new CacheKeyRow(e.Key, e.Value.Length, e.CreatedAt, e.ExpiresAt, e.SlidingSeconds))
+            .Select(e => new CacheKeyRow(e.Key, e.Value.Length, e.CreatedAt.Instant.UtcDateTime, e.ExpiresAt, e.SlidingSeconds))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

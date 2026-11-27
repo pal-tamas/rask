@@ -66,7 +66,7 @@ internal sealed class StoragePanel<TContext>(
             .OrderByDescending(f => f.CreatedAt)
             .Skip(skip)
             .Take(take)
-            .Select(f => new StoredFileRow(f.Id, f.Name, f.ContentType, f.Size, f.Provider, f.Public, f.CreatedAt))
+            .Select(f => new StoredFileRow(f.Id, f.Name, f.ContentType, f.Size, f.Provider, f.Public, f.CreatedAt.Instant.UtcDateTime))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

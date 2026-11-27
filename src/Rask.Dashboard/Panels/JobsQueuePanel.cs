@@ -33,7 +33,7 @@ internal sealed class JobsQueuePanel<TContext>(
 
     // The row's timestamps, as the UTC instants the shared row shape holds (read after the query, in the projection).
     protected override Expression<Func<Job, QueueRow>> Projection => j => new QueueRow(
-        j.Id, j.Type, j.Payload, j.CreatedAt, Utc(j.RunAt), UtcOrNull(j.ProcessedAt), j.Attempts, j.Error, j.Payload)
+        j.Id, j.Type, j.Payload, Utc(j.CreatedAt), Utc(j.RunAt), UtcOrNull(j.ProcessedAt), j.Attempts, j.Error, j.Payload)
     {
         Lane = j.Lane,
         StartedAt = UtcOrNull(j.StartedAt),

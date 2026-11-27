@@ -14,6 +14,17 @@ namespace Rask.Data;
 /// </remarks>
 internal static class TimestampColumn
 {
+    /// <summary>
+    ///     A stamp nothing wrote yet: <c>0001-01-01T00:00:00Z</c>, what an unstamped <c>DateTime</c> stamp held before —
+    ///     a context without Rask's interceptors still saves a row, as it always did, rather than a NULL its column refuses.
+    /// </summary>
+    internal static readonly Timestamp Unset = Timestamp.Create(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc));
+
+    /// <summary>Whether <paramref name="stamp" /> was never written: null, or <see cref="Unset" />'s instant.</summary>
+    /// <param name="stamp">The stamp.</param>
+    /// <returns>True when nothing stamped it.</returns>
+    internal static bool IsUnset(Timestamp? stamp) => stamp is null || stamp.Instant.UtcTicks == 0;
+
     /// <summary>Maps <paramref name="column" /> on <paramref name="builder" />'s entity.</summary>
     /// <param name="builder">The entity's builder.</param>
     /// <param name="column">The stamp's column, one of <see cref="Columns" />.</param>

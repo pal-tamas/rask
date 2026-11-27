@@ -73,21 +73,6 @@ public static class ValueObjectColumn
     }
 
     /// <summary>
-    ///     Stores <paramref name="property" />, a <see cref="Rask.Values.Timestamp" />, as the UTC instant it holds — on
-    ///     every context, not only one whose provider adds Rask's moment convention: a plain <c>DbContext</c> would
-    ///     otherwise store the wall clock, and read the hour October shows twice back as its first. What Rask's own tables
-    ///     map their times with; an app's moments are mapped by its generated model.
-    /// </summary>
-    /// <param name="property">The timestamp's property.</param>
-    /// <returns>The same builder.</returns>
-    public static PropertyBuilder MapTimestamp(PropertyBuilder property)
-    {
-        Map(property, static (Rask.Values.Timestamp t) => t.Value);
-        property.Metadata.SetValueConverter(OneValueConverters.StoringInstant(property.Metadata.GetValueConverter()!));
-        return property;
-    }
-
-    /// <summary>
     ///     Stores <paramref name="property" /> — held inside another value object — as the one value
     ///     <paramref name="value" /> reads from it.
     /// </summary>
@@ -141,6 +126,52 @@ public static class ValueObjectColumn
 
         ((IConventionProperty)property.Metadata).Builder.HasColumnName(column);
         return property;
+    }
+
+    /// <summary>
+    ///     Stores <paramref name="property" />, a <see cref="Rask.Values.Timestamp" />, as the UTC instant it holds — on
+    ///     every context, not only one whose provider adds Rask's moment convention: a plain <c>DbContext</c> would
+    ///     otherwise store the wall clock, and read the hour October shows twice back as its first. What Rask's own tables
+    ///     map their times with; an app's moments are mapped by its generated model.
+    /// </summary>
+    /// <param name="property">The timestamp's property.</param>
+    /// <returns>The same builder.</returns>
+    public static PropertyBuilder MapTimestamp(PropertyBuilder property)
+    {
+        Map(property, static (Rask.Values.Timestamp t) => t.Value);
+        property.Metadata.SetValueConverter(OneValueConverters.StoringInstant(property.Metadata.GetValueConverter()!));
+        return property;
+    }
+
+    /// <summary>
+    ///     Maps the stamps <paramref name="builder" />'s class says it has — <c>CreatedAt</c> for
+    ///     <see cref="IHasCreatedAt" />, <c>UpdatedAt</c> for <see cref="IHasUpdatedAt" />, <c>DeletedAt</c> for
+    ///     <see cref="ISoftDeletes" /> — as <see cref="Rask.Values.Timestamp" /> columns, whether or not the context calls
+    ///     <c>ApplyRaskConventions</c>: what a table of Rask's own, which any context may map, calls from its configuration.
+    /// </summary>
+    /// <param name="builder">The entity's builder.</param>
+    /// <returns>The same builder.</returns>
+    public static EntityTypeBuilder MapStamps(EntityTypeBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var type = builder.Metadata.ClrType;
+        if (typeof(IHasCreatedAt).IsAssignableFrom(type))
+        {
+            TimestampColumn.Map(builder, Columns.CreatedAt);
+        }
+
+        if (typeof(IHasUpdatedAt).IsAssignableFrom(type))
+        {
+            TimestampColumn.Map(builder, Columns.UpdatedAt);
+        }
+
+        if (typeof(ISoftDeletes).IsAssignableFrom(type))
+        {
+            TimestampColumn.Map(builder, Columns.DeletedAt);
+        }
+
+        return builder;
     }
 
     // The length, precision and scale a value object declared from a base record states, read when the app was

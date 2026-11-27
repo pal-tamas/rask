@@ -93,7 +93,7 @@ public sealed class SoftRemovedTests : IDisposable
         database.Context.ChangeTracker.Clear();
         var kept = await database.Context.Set<Stall>().IgnoreQueryFilters()
             .SingleAsync(b => b.Name == "north", TestContext.Current.CancellationToken);
-        Assert.Equal(_clock.UtcNow.UtcDateTime, database.Context.Entry(kept).Property<DateTime?>(Columns.DeletedAt).CurrentValue);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, database.Context.Entry(kept).Property<Rask.Values.Timestamp?>(Columns.DeletedAt).CurrentValue!.Instant.UtcDateTime);
         Assert.Equal(2, await database.Context.Set<StallMark>().CountAsync(TestContext.Current.CancellationToken));
     }
 

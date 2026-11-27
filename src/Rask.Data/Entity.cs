@@ -46,21 +46,23 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
 
     /// <summary>
     ///     When the row was inserted — a <see cref="Timestamp" />, stored as the UTC instant. Stamped by the framework on
-    ///     insert; a column only where the class says <see cref="IHasCreatedAt" />, and null where it does not.
+    ///     insert; a column only where the class says <see cref="IHasCreatedAt" />. Until something stamps it, it holds
+    ///     <c>0001-01-01T00:00:00Z</c>, as an unstamped <c>DateTime</c> did.
     /// </summary>
     /// <remarks>
     ///     Not mapped by EF Core's own conventions: <c>ApplyRaskConventions</c> maps it where the trait asks for it, so a
     ///     context that does not call it has no such column, rather than a moment it cannot store.
     /// </remarks>
     [NotMapped]
-    public Timestamp CreatedAt { get; private set; } = null!;
+    public Timestamp CreatedAt { get; private set; } = TimestampColumn.Unset;
 
     /// <summary>
     ///     When the row last changed — a <see cref="Timestamp" />, stored as the UTC instant. Stamped by the framework on
-    ///     every insert and update; a column only where the class says <see cref="IHasUpdatedAt" />, and null where it does not.
+    ///     every insert and update; a column only where the class says <see cref="IHasUpdatedAt" />, and
+    ///     <c>0001-01-01T00:00:00Z</c> until something stamps it.
     /// </summary>
     [NotMapped]
-    public Timestamp UpdatedAt { get; private set; } = null!;
+    public Timestamp UpdatedAt { get; private set; } = TimestampColumn.Unset;
 
     private bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default!);
 
@@ -114,7 +116,11 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
     protected void Stamp(Timestamp at)
     {
         ArgumentNullException.ThrowIfNull(at);
-        CreatedAt ??= at;
+        if (TimestampColumn.IsUnset(CreatedAt))
+        {
+            CreatedAt = at;
+        }
+
         UpdatedAt = at;
     }
 }

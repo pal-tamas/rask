@@ -147,7 +147,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
         context.Leases.Add(lease);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        context.Entry(lease).Property(Columns.DeletedAt).CurrentValue = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Entry(lease).Property(Columns.DeletedAt).CurrentValue = Rask.Values.Timestamp.Create(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Leases.Add(Lease.For(2, 1, 100, 200));
