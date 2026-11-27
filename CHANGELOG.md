@@ -105,6 +105,10 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
+  `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
+  with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.
+  The `images` follower moves the newest pin across majors and the floor within its own (docs/data.md#postgresql).
 - **BREAKING: `b.NoOverlap(…)` replaces `HasNonOverlappingRange`, and holds on PostgreSQL and SQL Server too.**
   `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld).Where(x => x.DriverId != null)` (a
   `Range` value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken)`: two rows with
