@@ -792,6 +792,19 @@ internal static partial class UiApi
         new("Ui.ChartLegendIndicator", typeof(UiChartLegendIndicator), "flux:chart.legend.indicator", "The legend entry's dot; its class gives the colour.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> Item { get; } =
+    [
+        new("Ui.ItemGroup", typeof(UiItemGroup), "flux:item.group", "Items drawn as one bordered surface with a rule between each.", []),
+        new("Ui.Item", typeof(UiItem), "flux:item", "One row: media, a heading and subheading, actions. Alone, it draws the surface itself.", []),
+        new("Ui.ItemMedia", typeof(UiItemMedia), "flux:item.media", "What leads the row: an avatar, an icon. Several sit side by side.", []),
+        new("Ui.ItemHeading", typeof(UiItemHeading), "flux:item.heading", "The row's title.",
+        [
+            new("Level", typeof(int?), "The heading level to render, such as 3 for an h3. A div when unset."),
+        ]),
+        new("Ui.ItemSubheading", typeof(UiItemSubheading), "flux:item.subheading", "Supporting text, tucked under the heading.", []),
+        new("Ui.ItemActions", typeof(UiItemActions), "flux:item.actions", "Buttons, a switch or a value at the end of the row.", []),
+    ];
+
     public static IReadOnlyList<UiApiPart> Kanban { get; } =
     [
         new("Ui.Kanban", typeof(UiKanban), "flux:kanban", "The row the columns stand in, 16px apart. It draws a board and moves nothing.", []),
@@ -1015,7 +1028,7 @@ internal static partial class UiApi
         {
             Header, Sidebar, AppFrame, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
-            FormButtons, FormTabs, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            FormButtons, FormTabs, Heading, Icon, Input, Item, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();

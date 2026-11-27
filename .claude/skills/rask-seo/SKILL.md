@@ -26,6 +26,7 @@ own ("blazor", "react"). Map every new page to one:
 | accessible C# UI components, keyboard menus / modal / sidebar layout for ASP.NET Core or WebAssembly | `ui-kit` |
 | table columns jump when paging or sorting, fixed column widths with Tailwind `table-fixed`, truncate a table cell with an ellipsis, sortable paged data table in C# | `/ui/table/` (Behaviour: Columns that stay put) |
 | chart component in C# without a JavaScript library, SVG line / bar / pie chart for ASP.NET Core or WebAssembly | `/ui/chart/` |
+| settings page rows, account details or a list of people with an action per row, item list component in C# | `/ui/item/` |
 | kanban board, timeline, carousel, accordion, avatar or country flag component in C# | `/ui/kanban/`, `/ui/timeline/`, `/ui/carousel/`, `/ui/accordion/`, `/ui/avatar/`, `/ui/flag/` |
 | tabs component in C#, segmented control, pagination / pager for a list or table in ASP.NET Core, page number in the query string | `/ui/tabs/`, `/ui/pagination/` |
 | navbar, sidebar navigation list, breadcrumbs, brand logo or profile menu button in C# | `/ui/navbar/`, `/ui/navlist/`, `/ui/breadcrumbs/`, `/ui/brand/`, `/ui/profile/` |

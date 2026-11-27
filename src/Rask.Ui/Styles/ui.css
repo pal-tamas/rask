@@ -777,7 +777,9 @@
     display: none;
   }
 
-  [data-ui-menu]:has(> [data-ui-menu-item-has-icon], > [role="group"] > [data-ui-menu-item-has-icon]) {
+  /* A row's icon indents its siblings, and a menu group's row the rows around it; a radio or checkbox group's
+     ticks do not (measured on fluxui.dev/components/item: a plain row under a role's radios keeps no room). */
+  [data-ui-menu]:has(> [data-ui-menu-item-has-icon], > [data-ui-menu-group] > [data-ui-menu-item-has-icon]) {
     & > * > [data-indent],
     & > [role="group"] > * > [data-indent],
     & > [data-ui-menu-submenu] > [role="menuitem"] > [data-indent] {
