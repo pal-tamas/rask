@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -53,10 +54,10 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps, I
     internal string PasswordHash { get; private set; } = "";
 
     /// <summary>When the address was confirmed, or <see langword="null" /> while it has not been.</summary>
-    public DateTime? EmailConfirmedAt { get; private set; }
+    public Timestamp? EmailConfirmedAt { get; private set; }
 
     /// <summary>When the password last changed, or <see langword="null" /> when it never has since registering.</summary>
-    public DateTime? PasswordChangedAt { get; private set; }
+    public Timestamp? PasswordChangedAt { get; private set; }
 
     /// <summary>The roles this user holds, such as <c>admin</c>. The principal carries each one.</summary>
     public IReadOnlyList<string> Roles { get; private set; } = [];
@@ -152,7 +153,7 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps, I
         Raise(new UserRegistered(AccountId, Email));
     }
 
-    internal void ChangePasswordHash(string passwordHash, DateTime now)
+    internal void ChangePasswordHash(string passwordHash, Timestamp now)
     {
         PasswordHash = passwordHash;
         PasswordChangedAt = now;
@@ -161,7 +162,7 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps, I
     // A rehash on sign-in is the same password under stronger parameters, so it is not a password change.
     internal void Rehash(string passwordHash) => PasswordHash = passwordHash;
 
-    internal void ConfirmEmail(DateTime now)
+    internal void ConfirmEmail(Timestamp now)
     {
         if (EmailConfirmedAt is null)
         {
@@ -170,7 +171,7 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps, I
         }
     }
 
-    internal void ResetPassword(string passwordHash, DateTime now)
+    internal void ResetPassword(string passwordHash, Timestamp now)
     {
         ChangePasswordHash(passwordHash, now);
         Raise(new PasswordReset(AccountId));

@@ -1,6 +1,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -90,7 +91,7 @@ public sealed class PasskeyVerifierTests
                 authenticator.SignIn(RelyingPartyId, Origin, Challenge, passkey.UserId), Ceremony(), passkey, out _);
 
             Assert.NotNull(verified);
-            passkey.Used(verified.Value.SignCount, DateTime.UtcNow);
+            passkey.Used(verified.Value.SignCount, Timestamp.Now);
         }
     }
 
@@ -100,7 +101,7 @@ public sealed class PasskeyVerifierTests
     {
         using var authenticator = new TestAuthenticator { SignCount = 7 };
         var passkey = Registered(authenticator);
-        passkey.Used(7, DateTime.UtcNow);
+        passkey.Used(7, Timestamp.Now);
 
         Assert.Null(PasskeyVerifier.VerifyAssertion(
             authenticator.SignIn(RelyingPartyId, Origin, Challenge, passkey.UserId), Ceremony(), passkey, out var failure));
@@ -350,6 +351,6 @@ public sealed class PasskeyVerifierTests
             verified.Value.SignCount,
             verified.Value.BackedUp,
             "internal",
-            DateTime.UtcNow);
+            Timestamp.Now);
     }
 }

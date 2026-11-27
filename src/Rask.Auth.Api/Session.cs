@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -29,10 +30,10 @@ public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     public string? UserAgent { get; private set; }
 
     /// <summary>When this device was last seen, to the minute.</summary>
-    public DateTime LastSeenAt { get; private set; }
+    public Timestamp LastSeenAt { get; private set; } = null!;
 
     /// <summary>When the session ends unless it is used again first.</summary>
-    public DateTime ExpiresAt { get; private set; }
+    public Timestamp ExpiresAt { get; private set; } = null!;
 
     /// <summary>Whether the sign-in asked to be remembered, so the cookie outlives the browser.</summary>
     public bool Persistent { get; private set; }
@@ -55,7 +56,7 @@ public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     internal const int IpAddressLength = 64;
 
     internal static Session Start(
-        Guid userId, string? ipAddress, string? userAgent, bool persistent, DateTime now, TimeSpan lifetime)
+        Guid userId, string? ipAddress, string? userAgent, bool persistent, Timestamp now, TimeSpan lifetime)
     {
         var session = new Session
         {
@@ -65,38 +66,23 @@ public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
             UserAgent = Truncate(userAgent, UserAgentLength),
             Persistent = persistent,
             LastSeenAt = now,
-            ExpiresAt = now + lifetime,
+            ExpiresAt = Timestamp.At(now.Instant + lifetime),
         };
 
         session.Raise(new SignedIn(userId, session.Id));
         return session;
     }
 
-    internal bool IsActive(DateTime now) => ExpiresAt > now;
-
-    // Written at most once a minute, so an active page does not turn every request into a write.
-    internal bool NeedsTouch(DateTime now) => now - LastSeenAt >= TimeSpan.FromMinutes(1);
-
-    internal void Touch(DateTime now, TimeSpan lifetime, bool sliding)
-    {
-        LastSeenAt = now;
-
-        if (sliding)
-        {
-            ExpiresAt = now + lifetime;
-        }
-    }
-
     internal void ActIn(Guid? tenant) => ActingInTenant = tenant;
 
-    internal void End(DateTime now)
+    internal void End(Timestamp now)
     {
         ExpiresAt = now;
         Raise(new SignedOut(UserId, Id));
     }
 
     /// <summary>Ends every session of <paramref name="userId" /> but <paramref name="except" /> on <paramref name="db" />, for its next save.</summary>
-    internal static async Task<int> EndAll(DbContext db, Guid userId, Guid? except, DateTime now, CancellationToken cancellationToken)
+    internal static async Task<int> EndAll(DbContext db, Guid userId, Guid? except, Timestamp now, CancellationToken cancellationToken)
     {
         var sessions = await db.Set<Session>()
             .Where(s => s.UserId == userId && s.Id != except)

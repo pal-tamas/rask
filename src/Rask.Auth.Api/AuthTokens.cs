@@ -103,7 +103,7 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
     private static string ConfirmFingerprint<TKey>(Authenticatable<TKey> user)
         where TKey : notnull =>
         user.EmailConfirmedAt is { } confirmed
-            ? Fingerprint(user.Email + "|" + confirmed.Ticks.ToString(CultureInfo.InvariantCulture))
+            ? Fingerprint(user.Email + "|" + confirmed.Instant.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture))
             : UnconfirmedFingerprint(user.Email);
 
     private static string UnconfirmedFingerprint(string email) => Fingerprint(email + "|-");

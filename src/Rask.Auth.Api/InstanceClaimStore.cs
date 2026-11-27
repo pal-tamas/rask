@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -29,7 +30,7 @@ internal sealed class InstanceClaimStore<TContext>(
             {
                 Id = AuthInstanceClaim.SingletonId,
                 AdminUserId = userId,
-                ClaimedUtc = clock.GetUtcNow().UtcDateTime,
+                ClaimedUtc = Timestamp.At(clock.GetUtcNow()),
             });
 
             try

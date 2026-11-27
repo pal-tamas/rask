@@ -4,12 +4,14 @@ Rask.Auth.AuthEmailBodies.AuthEmailBodies() -> void
 Rask.Auth.AuthEmailBodies.AlreadyRegistered(string! link, string! subject) -> string!
 Rask.Auth.AuthEmailBodies.Confirm(string! link, string! subject) -> string!
 Rask.Auth.AuthEmailBodies.Reset(string! link, string! subject, System.TimeSpan lifetime) -> string!
+Rask.Auth.Authenticatable<TKey>.EmailConfirmedAt.get -> Rask.Values.Timestamp?
+Rask.Auth.Authenticatable<TKey>.PasswordChangedAt.get -> Rask.Values.Timestamp?
 Rask.Auth.AuthHost
 Rask.Auth.AuthInstanceClaim
 Rask.Auth.AuthInstanceClaim.AdminUserId.get -> System.Guid
 Rask.Auth.AuthInstanceClaim.AdminUserId.set -> void
 Rask.Auth.AuthInstanceClaim.AuthInstanceClaim() -> void
-Rask.Auth.AuthInstanceClaim.ClaimedUtc.get -> System.DateTime
+Rask.Auth.AuthInstanceClaim.ClaimedUtc.get -> Rask.Values.Timestamp!
 Rask.Auth.AuthInstanceClaim.ClaimedUtc.set -> void
 Rask.Auth.AuthInstanceClaim.Id.get -> int
 Rask.Auth.AuthInstanceClaim.Id.set -> void
@@ -87,11 +89,9 @@ Rask.Auth.AuthUser
 Rask.Auth.Authenticatable
 Rask.Auth.Authenticatable.Authenticatable() -> void
 Rask.Auth.Authenticatable<TKey>.Email.get -> string!
-Rask.Auth.Authenticatable<TKey>.EmailConfirmedAt.get -> System.DateTime?
 Rask.Auth.Authenticatable<TKey>.GrantRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.IsEmailConfirmed.get -> bool
 Rask.Auth.Authenticatable<TKey>.IsInRole(string! role) -> bool
-Rask.Auth.Authenticatable<TKey>.PasswordChangedAt.get -> System.DateTime?
 Rask.Auth.Authenticatable<TKey>.RecordTenant(System.Guid? tenant) -> void
 Rask.Auth.Authenticatable<TKey>.RevokeRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -119,7 +119,7 @@ Rask.Auth.IAuthHostServices.Register<TUser, TKey>(Microsoft.Extensions.Dependenc
 Rask.Auth.Passkey
 Rask.Auth.Passkey.BackedUp.get -> bool
 Rask.Auth.Passkey.CredentialId.get -> byte[]!
-Rask.Auth.Passkey.LastUsedAt.get -> System.DateTime?
+Rask.Auth.Passkey.LastUsedAt.get -> Rask.Values.Timestamp?
 Rask.Auth.Passkey.Name.get -> string!
 Rask.Auth.Passkey.Passkey() -> void
 Rask.Auth.Passkey.Transports.get -> string?
@@ -185,9 +185,9 @@ Rask.Auth.RaskAuthEndpointExtensions
 Rask.Auth.RaskAuthServiceCollectionExtensions
 Rask.Auth.RaskRoles
 Rask.Auth.Session
-Rask.Auth.Session.ExpiresAt.get -> System.DateTime
+Rask.Auth.Session.ExpiresAt.get -> Rask.Values.Timestamp!
 Rask.Auth.Session.IpAddress.get -> string?
-Rask.Auth.Session.LastSeenAt.get -> System.DateTime
+Rask.Auth.Session.LastSeenAt.get -> Rask.Values.Timestamp!
 Rask.Auth.Session.Persistent.get -> bool
 Rask.Auth.Session.Session() -> void
 Rask.Auth.Session.UserAgent.get -> string?

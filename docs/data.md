@@ -1975,8 +1975,10 @@ battery marks such a table, and **the migration you add after upgrading rebuilds
 | `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
 | `RaskLog` | never | none | old log lines are history; read what you need first |
 
-The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
-full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+The SQLite **file** log store (`logs.db`) is not part of any migration, and it is keyed by a `Guid` too: a
+`WITHOUT ROWID` table whose primary key is the version-7 `Guid` made before the insert, with a `Sequence` column beside
+it that the full-text index addresses the row by. A `logs.db` from an earlier release is rebuilt into that shape when it
+is opened, every entry kept under the id it was shown with before ([docs/logging.md](logging.md)).
 
 The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
 [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,

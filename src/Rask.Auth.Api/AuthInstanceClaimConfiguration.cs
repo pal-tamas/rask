@@ -21,5 +21,6 @@ public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<Au
         // registration insert a new row, which is exactly the guarantee this table exists to provide.
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
+        TimestampColumn.Map(builder.Property(x => x.ClaimedUtc));
     }
 }
