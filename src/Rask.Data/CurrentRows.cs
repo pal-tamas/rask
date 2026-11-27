@@ -58,6 +58,38 @@ public static class CurrentRows
         _registeredTenant = new CurrentRow<TRead, TKey>(CurrentRowKind.Tenant, typeof(TAggregate), byKey, keyOf);
     }
 
+    /// <summary>
+    ///     Names the app's tenant aggregate keyed by a typed id, and how its read face is found by key. Generated code
+    ///     calls this.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate that says <see cref="ITenant" />.</typeparam>
+    /// <typeparam name="TRead">Its read face.</typeparam>
+    /// <typeparam name="TKey">Its key: a typed id — <c>TenantId(Guid Value)</c>.</typeparam>
+    /// <typeparam name="TValue">What the id holds: a <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" />.</typeparam>
+    /// <param name="byKey">The read face's row keyed by a value: <c>key =&gt; row =&gt; row.Id == key</c>.</param>
+    /// <param name="keyOf">A read face's key: <c>row =&gt; row.Id</c>.</param>
+    /// <param name="wrap">The id holding a value: <c>value =&gt; new TenantId(value)</c>.</param>
+    /// <param name="unwrap">The value an id holds: <c>id =&gt; id.Value</c>.</param>
+    /// <remarks>
+    ///     The id is also a type a <c>PerTenant</c> table may keep its tenant in — <c>TenantId? TenantId</c>, or
+    ///     <c>PerTenant&lt;TenantId&gt;</c> — filtered by and stamped with the tenant in flight.
+    /// </remarks>
+    public static void UseTenant<TAggregate, [DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey, TValue>(
+        Func<TKey, Expression<Func<TRead, bool>>> byKey, Func<TRead, TKey> keyOf, Func<TValue, TKey> wrap, Func<TKey, TValue> unwrap)
+        where TAggregate : IAggregate, ITenant
+        where TRead : class, IReadModel
+        where TKey : struct
+        where TValue : struct
+    {
+        ArgumentNullException.ThrowIfNull(byKey);
+        ArgumentNullException.ThrowIfNull(keyOf);
+        ArgumentNullException.ThrowIfNull(wrap);
+        ArgumentNullException.ThrowIfNull(unwrap);
+        TenantColumn.Know(new TypedTenantColumn<TKey, TValue>(wrap, unwrap));
+        _registeredTenant = new CurrentRow<TRead, TKey>(
+            CurrentRowKind.Tenant, typeof(TAggregate), byKey, keyOf, new TypedCurrentRowKey<TKey, TValue>(wrap));
+    }
+
     /// <summary>Names the app's user aggregate and how its read face is found by key. Generated code calls this.</summary>
     /// <typeparam name="TAggregate">The aggregate that says <see cref="IUser" />.</typeparam>
     /// <typeparam name="TRead">Its read face.</typeparam>
@@ -72,6 +104,33 @@ public static class CurrentRows
         ArgumentNullException.ThrowIfNull(byKey);
         ArgumentNullException.ThrowIfNull(keyOf);
         _registeredUser = new CurrentRow<TRead, TKey>(CurrentRowKind.User, typeof(TAggregate), byKey, keyOf);
+    }
+
+    /// <summary>
+    ///     Names the app's user aggregate keyed by a typed id, and how its read face is found by key. Generated code
+    ///     calls this.
+    /// </summary>
+    /// <typeparam name="TAggregate">The aggregate that says <see cref="IUser" />.</typeparam>
+    /// <typeparam name="TRead">Its read face.</typeparam>
+    /// <typeparam name="TKey">Its key: a typed id — <c>UserId(int Value)</c>.</typeparam>
+    /// <typeparam name="TValue">What the id holds: a <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" />.</typeparam>
+    /// <param name="byKey">The read face's row keyed by a value: <c>key =&gt; row =&gt; row.Id == key</c>.</param>
+    /// <param name="keyOf">A read face's key: <c>row =&gt; row.Id</c>.</param>
+    /// <param name="wrap">The id holding a value: <c>value =&gt; new UserId(value)</c>.</param>
+    /// <param name="unwrap">The value an id holds: <c>id =&gt; id.Value</c>.</param>
+    public static void UseUser<TAggregate, [DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey, TValue>(
+        Func<TKey, Expression<Func<TRead, bool>>> byKey, Func<TRead, TKey> keyOf, Func<TValue, TKey> wrap, Func<TKey, TValue> unwrap)
+        where TAggregate : IAggregate, IUser
+        where TRead : class, IReadModel
+        where TKey : struct
+        where TValue : struct
+    {
+        ArgumentNullException.ThrowIfNull(byKey);
+        ArgumentNullException.ThrowIfNull(keyOf);
+        ArgumentNullException.ThrowIfNull(wrap);
+        ArgumentNullException.ThrowIfNull(unwrap);
+        _registeredUser = new CurrentRow<TRead, TKey>(
+            CurrentRowKind.User, typeof(TAggregate), byKey, keyOf, new TypedCurrentRowKey<TKey, TValue>(wrap));
     }
 
     /// <summary>The tenant's row, or <see langword="null" /> when the work belongs to no tenant. <c>Current.Tenant</c>.</summary>

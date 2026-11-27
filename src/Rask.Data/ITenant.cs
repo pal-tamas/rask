@@ -15,8 +15,11 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         One aggregate per app says it, and its key is a <see cref="Guid" />, an <see cref="int" />, a
-///         <see cref="long" /> or a <see cref="string" /> holding a <see cref="Guid" /> — the one its
-///         <see cref="PerTenant" /> tables keep in <c>TenantId</c>. The build refuses anything else.
+///         <see cref="long" />, a <see cref="string" /> holding a <see cref="Guid" />, or a typed id over a
+///         <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" /> (<c>Aggregate&lt;TenantId&gt;</c>) —
+///         the one its <see cref="PerTenant" /> tables keep in <c>TenantId</c>, so a typed tenant's tables keep a
+///         <c>TenantId?</c> (or name <c>PerTenant&lt;TenantId&gt;</c>). The build refuses anything else. A typed
+///         tenant reads <c>Current.TenantId</c> as its id and opens with <c>Tenant.Use(tenantId)</c>.
 ///     </para>
 ///     <para>
 ///         The row is read through a cache the framework fills as each request, live event and background job

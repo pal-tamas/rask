@@ -796,7 +796,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Deletable` a generated `X.Delete(id)` that removes the row;
   `SoftDelete` DeletedAt + the query filter, Delete stamps it (implies Deletable);
   NEITHER Deletable nor SoftDelete = NO `Delete` generated at all (an invoice, a ledger entry, an order that is cancelled not deleted — calling it is a compile error);
-  `PerTenant` / `PerTenant<int>` / `PerTenant<long>` the tenant filter + stamp (the root's read face carries a read-only `TenantId` in that type, so `Tenant.Across()` reads can say whose row it is);
+  `PerTenant` / `PerTenant<int>` / `PerTenant<long>` / `PerTenant<TenantId>` (a typed tenant's own id; then every table keeps it, RASK114 otherwise) the tenant filter + stamp (the root's read face carries a read-only `TenantId` in that type, so `Tenant.Across()` reads can say whose row it is);
   `Broadcast` a save announced process-wide.
   The CRUD aggregate `rask new` scaffolds is `Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`;
   behaviour-rich `Invoice : Aggregate<Guid, Timestamps, Versioned>`;

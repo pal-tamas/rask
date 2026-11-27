@@ -337,6 +337,126 @@ public class CurrentRowsGeneratorTests
         Assert.False(run.HasGeneratedSource("__RaskCurrentUser"));
     }
 
+    [Theory]
+    [InlineData("System.Guid", "global::System.Guid", "System.Guid.CreateVersion7()")]
+    [InlineData("int", "int", "42")]
+    [InlineData("long", "long", "42L")]
+    public void A_tenant_keyed_by_a_typed_id_reads_Current_TenantId_as_that_id_and_opens_with_it(
+        string value, string carried, string literal)
+    {
+        var source = $$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public readonly partial record struct TenantId({{value}} Value);
+
+                public sealed class Tenant : Aggregate<TenantId>, ITenant { }
+                public sealed class Invoice : Aggregate<int, PerTenant<TenantId>> { }
+                public sealed class Payment : Aggregate<int, PerTenant> { public TenantId? TenantId { get; private set; } }
+
+                public static class Reads
+                {
+                    public static TenantId? Id() => Rask.Current.TenantId;
+                    public static TenantId Required() => Rask.Current.RequiredTenantId;
+                    public static TenantRead? Row() => Rask.Current.Tenant;
+                    public static System.IDisposable In() => Rask.Data.Tenant.Use(new TenantId({{literal}}));
+                }
+            }
+            """;
+
+        var run = Run(source);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        var id = run.GeneratedSource("__RaskCurrentTenantId");
+        Assert.Contains($"public static global::Shop.TenantId? TenantId => global::Rask.Data.CurrentRows.TenantId<{carried}>() is {{ }} v ? new global::Shop.TenantId(v) : null;", id, StringComparison.Ordinal);
+        Assert.Contains($"public static global::Shop.TenantId RequiredTenantId => new(global::Rask.Data.CurrentRows.RequiredTenantId<{carried}>());", id, StringComparison.Ordinal);
+        Assert.Contains("public static global::System.IDisposable Use(global::Shop.TenantId tenant) => global::Rask.Data.Tenant.Use(tenant.Value);", id, StringComparison.Ordinal);
+        Assert.Contains($"CurrentRows.UseTenant<global::Shop.Tenant, global::Shop.TenantRead, global::Shop.TenantId, {carried}>(",
+            run.GeneratedSource("__RaskCurrentTenant.g"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("int", "int")]
+    [InlineData("System.Guid", "global::System.Guid")]
+    public void A_user_keyed_by_a_typed_id_reads_Current_UserId_as_that_id(string value, string carried)
+    {
+        var source = $$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public readonly partial record struct UserId({{value}} Value);
+
+                public sealed class User : Aggregate<UserId>, IUser { }
+
+                public static class Reads
+                {
+                    public static UserId? Id() => Rask.Current.UserId;
+                    public static UserId Required() => Rask.Current.RequiredUserId;
+                    public static System.IDisposable AsUser(UserId id) => Rask.Current.UseUser(id);
+                    public static System.IDisposable AsNobody() => Rask.Current.UseUser(null);
+                    public static System.IDisposable AsGuid() => Rask.Current.UseUser(System.Guid.NewGuid());
+                }
+            }
+            """;
+
+        var run = Run(source);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        var id = run.GeneratedSource("__RaskCurrentUserId");
+        Assert.Contains($"public static global::Shop.UserId? UserId => global::Rask.Data.CurrentRows.UserId<{carried}>() is {{ }} v ? new global::Shop.UserId(v) : null;", id, StringComparison.Ordinal);
+        Assert.Contains($"UseUser(global::Shop.UserId? userId) => global::Rask.Data.CurrentRows.WorkFor<{carried}>(userId?.Value);", id, StringComparison.Ordinal);
+        Assert.Contains($"CurrentRows.UseUser<global::Shop.User, global::Shop.UserRead, global::Shop.UserId, {carried}>(",
+            run.GeneratedSource("__RaskCurrentUser.g"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("PerTenant", "public System.Guid? TenantId { get; private set; }", "keeps its tenant as Guid")]
+    [InlineData("PerTenant", "", "keeps its tenant as Guid")]
+    [InlineData("PerTenant<int>", "", "keeps its tenant as int")]
+    public void A_typed_tenant_whose_table_keeps_another_column_is_RASK114_naming_the_tenants_key(
+        string trait, string column, string kept)
+    {
+        var run = Run($$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public readonly partial record struct TenantId(System.Guid Value);
+
+                public sealed class Tenant : Aggregate<TenantId>, ITenant { }
+                public sealed class Invoice : Aggregate<int, {{trait}}> { {{column}} }
+            }
+            """);
+
+        var error = Assert.Single(run.Diagnostics, d => d.Id == "RASK114");
+        var message = error.GetMessage(System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Contains($"'Invoice' {kept}", message, StringComparison.Ordinal);
+        Assert.Contains("give the tables the tenant's key: TenantId? TenantId, or PerTenant<TenantId>", message, StringComparison.Ordinal);
+        Assert.False(run.HasGeneratedSource("__RaskCurrentTenant"));
+    }
+
+    [Fact]
+    public void A_typed_id_over_a_string_is_RASK114_naming_the_keys_that_are()
+    {
+        var run = Run("""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public readonly partial record struct TenantId(string Value);
+
+                public sealed class Tenant : Aggregate<TenantId>, ITenant { }
+            }
+            """);
+
+        var error = Assert.Single(run.Diagnostics, d => d.Id == "RASK114");
+        Assert.Contains("or a typed id over Guid, int or long, on an aggregate", error.GetMessage(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
     private static GeneratorRun Run(string source) =>
         GeneratorHarness.Run(
             source,

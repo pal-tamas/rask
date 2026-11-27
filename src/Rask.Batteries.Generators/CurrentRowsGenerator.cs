@@ -13,8 +13,8 @@ namespace Rask.Batteries.Generators;
 /// Finds the aggregate that says <c>Rask.Data.ITenant</c> and the one that says <c>Rask.Data.IUser</c>, and emits
 /// <c>Current.Tenant</c> / <c>Current.RequiredTenant</c> and <c>Current.User</c> / <c>Current.RequiredUser</c>,
 /// typed as each one's read face — and, from the same key, <c>Current.TenantId</c> / <c>Current.RequiredTenantId</c>
-/// for every tenant key and <c>Current.UserId</c> / <c>Current.RequiredUserId</c> / <c>Current.UseUser</c> for an int or
-/// long user key.
+/// for every tenant key and <c>Current.UserId</c> / <c>Current.RequiredUserId</c> / <c>Current.UseUser</c> for an int,
+/// long or typed-id user key — and <c>Tenant.Use(tenantId)</c> for a tenant keyed by a typed id.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,7 +24,8 @@ namespace Rask.Batteries.Generators;
 /// </para>
 /// <para>
 /// The tenant's key must be the one its <c>PerTenant</c> tables keep in <c>TenantId</c>: a <c>Guid</c> (or a
-/// <c>string</c> holding one) for a <c>Guid</c> column, the same number type for a number. A project with
+/// <c>string</c> holding one) for a <c>Guid</c> column, the same number type for a number, the same typed id for a
+/// typed-id column (<c>TenantId? TenantId</c>, or <c>PerTenant&lt;TenantId&gt;</c>). A project with
 /// <c>PerTenant</c> tables and no <c>ITenant</c> is told how to say it.
 /// </para>
 /// </remarks>
@@ -56,9 +57,9 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         true,
         description: "The framework carries the current tenant and user as a Guid, and reads the row back by the key "
-                     + "that Guid stands for: a Guid, a string holding one, or the int or long it carries. The tenant's "
-                     + "key must also be the one its PerTenant tables keep, or a filter and the row would name "
-                     + "different tenants.",
+                     + "that Guid stands for: a Guid, a string holding one, the int or long it carries, or a typed id "
+                     + "holding a Guid, an int or a long. The tenant's key must also be the one its PerTenant tables "
+                     + "keep, or a filter and the row would name different tenants.",
         helpLinkUri: DiagnosticHelp.Link("RASK114"));
 
     private static readonly DiagnosticDescriptor Rask115 = new(
@@ -106,12 +107,14 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         }
 
         AggregateShape.TryGetIdType(symbol, out var idType);
+        var (key, keyValue) = KeyOf(symbol, idType);
 
         return new Found(
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             symbol.Name,
             marker,
-            KeyOf(symbol, idType),
+            key,
+            keyValue,
             idType?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "no key",
             ReadFaceName.Fqn(symbol),
             symbol.DeclaredAccessibility == Accessibility.Public,
@@ -127,22 +130,34 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
             .Select(static face => face.Name)
             .FirstOrDefault();
 
-    // The key, when it is one the current row can be read back by: a single Guid, string, int or long on an aggregate.
-    private static string? KeyOf(INamedTypeSymbol symbol, ITypeSymbol? idType)
+    // The key, when it is one the current row can be read back by: a single Guid, string, int or long on an aggregate,
+    // or a typed id holding a Guid, an int or a long — then with the value it holds, which is what the framework carries.
+    private static (string? Key, string? Value) KeyOf(INamedTypeSymbol symbol, ITypeSymbol? idType)
     {
         if (idType is null || !AggregateShape.IsAggregate(symbol) || CompositeKeyShape.HasCompositeKey(symbol))
         {
-            return null;
+            return (null, null);
         }
 
+        var fullyQualified = idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         return idType.SpecialType switch
         {
-            SpecialType.System_String => "string",
-            SpecialType.System_Int32 => "int",
-            SpecialType.System_Int64 => "long",
-            _ => idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is GuidType ? GuidType : null,
+            SpecialType.System_String => ("string", null),
+            SpecialType.System_Int32 => ("int", null),
+            SpecialType.System_Int64 => ("long", null),
+            _ when fullyQualified is GuidType => (GuidType, null),
+            _ => TypedValueOf(idType) is { } value ? (fullyQualified, value) : (null, null),
         };
     }
+
+    // What a typed id over a Guid, an int or a long holds, as the type the generated code names; null for any other.
+    private static string? TypedValueOf(ITypeSymbol type) => TypedIdShape.Of(type) switch
+    {
+        TypedIdValue.Guid => GuidType,
+        TypedIdValue.Int32 => "int",
+        TypedIdValue.Int64 => "long",
+        _ => null,
+    };
 
     // The type a PerTenant root keeps its tenant in: the TenantId it declares, else PerTenant<TKey>'s, else Guid —
     // as the runtime's TenantColumn decides it. Written as the key type that agrees with it.
@@ -155,19 +170,30 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
                 var column = declared.Type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
                     ? nullable.TypeArguments[0]
                     : declared.Type;
-                return ColumnName(column.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                return ColumnName(column);
             }
         }
 
-        return ColumnName(AggregateShape.TenantKeyOf(symbol) ?? GuidType);
+        return AggregateShape.TenantKeyTypeOf(symbol) is { } key ? ColumnName(key) : GuidType;
     }
 
-    private static string ColumnName(string fullyQualified) => fullyQualified switch
+    // A typed id keeps its own name, so only a tenant keyed by that same id agrees with it; anything else is the key
+    // type that agrees with it.
+    private static string ColumnName(ITypeSymbol column)
     {
-        "int" or "global::System.Int32" => "int",
-        "long" or "global::System.Int64" => "long",
-        _ => GuidType,
-    };
+        var fullyQualified = column.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        if (TypedValueOf(column) is not null)
+        {
+            return fullyQualified;
+        }
+
+        return fullyQualified switch
+        {
+            "int" or "global::System.Int32" => "int",
+            "long" or "global::System.Int64" => "long",
+            _ => GuidType,
+        };
+    }
 
     private static void Emit(SourceProductionContext context, ImmutableArray<Found> all)
     {
@@ -198,7 +224,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         if (One(context, distinct, UserMarker, "user", "User") is { } user && Usable(context, user, []))
         {
             context.AddSource("__RaskCurrentUser.g.cs", SourceText.From(Source(user, "User", "UseUser"), Encoding.UTF8));
-            if (user.Key is "int" or "long")
+            if (user.Key is "int" or "long" || user.KeyValue is not null)
             {
                 context.AddSource("__RaskCurrentUserId.g.cs", SourceText.From(UserIdSource(user), Encoding.UTF8));
             }
@@ -227,24 +253,29 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
             context.ReportDiagnostic(Diagnostic.Create(
                 Rask114, marked.Location?.ToLocation(), marked.Name, marked.Marker,
                 $"it is keyed by {marked.KeyName}; the current {(marked.Marker is TenantMarker ? "tenant" : "user")} is read back "
-                + "by a single key of Guid, string (holding a Guid), int or long, on an aggregate"));
+                + "by a single key of Guid, string (holding a Guid), int, long, or a typed id over Guid, int or long, "
+                + "on an aggregate"));
             return false;
         }
 
-        var agreeing = key is "int" or "long" ? key : GuidType;
+        var agreeing = marked.KeyValue is not null || key is "int" or "long" ? key : GuidType;
         if (tables.FirstOrDefault(t => !string.Equals(t.TenantColumn, agreeing, StringComparison.Ordinal)) is { } other)
         {
+            var fix = marked.KeyValue is not null
+                ? $"give the tables the tenant's key: {marked.KeyName}? TenantId, or PerTenant<{marked.KeyName}>"
+                : "give the tenant the key its tables keep, or the tables the tenant's";
             context.ReportDiagnostic(Diagnostic.Create(
                 Rask114, marked.Location?.ToLocation(), marked.Name, marked.Marker,
-                $"its key is {marked.KeyName} and '{other.Name}' keeps its tenant as {Keyword(other.TenantColumn!)}; give the "
-                + "tenant the key its tables keep, or the tables the tenant's"));
+                $"its key is {marked.KeyName} and '{other.Name}' keeps its tenant as {Keyword(other.TenantColumn!)}; {fix}"));
             return false;
         }
 
         return true;
     }
 
-    private static string Keyword(string type) => type is GuidType ? "Guid" : type;
+    // As the sentence names a type: Guid, a number keyword, or a typed id's own name.
+    private static string Keyword(string type) =>
+        type is GuidType ? "Guid" : type.Substring(type.LastIndexOf('.') + 1);
 
     private static string Source(Found marked, string member, string use)
     {
@@ -280,9 +311,23 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         source.AppendLine();
         source.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         source.Append("    internal static void Register() => global::Rask.Data.CurrentRows.").Append(use).Append('<')
-            .Append(marked.FullyQualifiedName).Append(", ").Append(read).Append(", ").Append(marked.Key).AppendLine(">(");
-        source.AppendLine("        static key => row => row.Id == key,");
-        source.AppendLine("        static row => row.Id);");
+            .Append(marked.FullyQualifiedName).Append(", ").Append(read).Append(", ").Append(marked.Key);
+        if (marked.KeyValue is { } value)
+        {
+            // A typed id: the framework carries the value it holds, and the last two lambdas cross between them.
+            source.Append(", ").Append(value).AppendLine(">(");
+            source.AppendLine("        static key => row => row.Id == key,");
+            source.AppendLine("        static row => row.Id,");
+            source.Append("        static value => new ").Append(marked.Key).AppendLine("(value),");
+            source.AppendLine("        static key => key.Value);");
+        }
+        else
+        {
+            source.AppendLine(">(");
+            source.AppendLine("        static key => row => row.Id == key,");
+            source.AppendLine("        static row => row.Id);");
+        }
+
         source.AppendLine("}");
 
         return source.ToString();
@@ -295,21 +340,24 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
     private static string UserIdSource(Found user)
     {
         var key = user.Key!;
+        var carried = user.KeyValue ?? key;
         var source = Header(user, "RaskCurrentUserId", "Current.UserId");
         source.AppendLine("    extension(global::Rask.Current)");
         source.AppendLine("    {");
         source.AppendLine("        /// <summary>The id of the user the work in flight is for, or <see langword=\"null\" /> when it is for nobody.</summary>");
         source.AppendLine("        /// <remarks>An explicit <c>Current.UseUser</c> first — a background job runs for the user its row recorded — then the signed-in principal's <c>NameIdentifier</c> claim, which holds the number written out.</remarks>");
-        source.Append("        public static ").Append(key).Append("? UserId => global::Rask.Data.CurrentRows.UserId<").Append(key).AppendLine(">();");
+        source.Append("        public static ").Append(key).Append("? UserId => global::Rask.Data.CurrentRows.UserId<").Append(carried).Append(">()")
+            .Append(Wrapped(user)).AppendLine(";");
         source.AppendLine();
         source.AppendLine("        /// <summary>The id of the user the work in flight is for, or a thrown exception when there is none.</summary>");
-        source.Append("        public static ").Append(key).Append(" RequiredUserId => global::Rask.Data.CurrentRows.RequiredUserId<").Append(key).AppendLine(">();");
+        source.Append("        public static ").Append(key).Append(" RequiredUserId => ")
+            .Append(RequiredOf(user, "global::Rask.Data.CurrentRows.RequiredUserId<" + carried + ">()")).AppendLine(";");
         source.AppendLine();
         source.AppendLine("        /// <summary>Makes <paramref name=\"userId\" /> the current user until the returned scope is disposed.</summary>");
         source.AppendLine("        /// <param name=\"userId\">The user to work for, or <see langword=\"null\" /> to work for nobody.</param>");
         source.AppendLine("        /// <returns>A scope that restores the previous user.</returns>");
         source.Append("        public static global::System.IDisposable UseUser(").Append(key).Append("? userId) => global::Rask.Data.CurrentRows.WorkFor<")
-            .Append(key).AppendLine(">(userId);");
+            .Append(carried).Append(">(userId").Append(user.KeyValue is null ? string.Empty : "?.Value").AppendLine(");");
         source.AppendLine("    }");
         source.AppendLine("}");
         return source.ToString();
@@ -320,9 +368,9 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
     private static string TenantIdSource(Found tenant)
     {
         var key = tenant.Key!;
-        var carried = key is "string" ? GuidType : key;
-        var text = key is "string" ? "?.ToString(\"D\")" : string.Empty;
-        var requiredText = key is "string" ? ".ToString(\"D\")" : string.Empty;
+        var carried = tenant.KeyValue ?? (key is "string" ? GuidType : key);
+        var text = key is "string" ? "?.ToString(\"D\")" : Wrapped(tenant);
+        var required = "global::Rask.Data.CurrentRows.RequiredTenantId<" + carried + ">()" + (key is "string" ? ".ToString(\"D\")" : string.Empty);
         var source = Header(tenant, "RaskCurrentTenantId", "Current.TenantId");
         source.AppendLine("    extension(global::Rask.Current)");
         source.AppendLine("    {");
@@ -330,12 +378,33 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         source.Append("        public static ").Append(key).Append("? TenantId => global::Rask.Data.CurrentRows.TenantId<").Append(carried).Append(">()").Append(text).AppendLine(";");
         source.AppendLine();
         source.AppendLine("        /// <summary>The id of the tenant the work in flight belongs to, or a thrown exception when it belongs to none, or <c>Tenant.Across()</c> is open.</summary>");
-        source.Append("        public static ").Append(key).Append(" RequiredTenantId => global::Rask.Data.CurrentRows.RequiredTenantId<").Append(carried).Append(">()")
-            .Append(requiredText).AppendLine(";");
+        source.Append("        public static ").Append(key).Append(" RequiredTenantId => ").Append(RequiredOf(tenant, required)).AppendLine(";");
         source.AppendLine("    }");
+
+        if (tenant.KeyValue is not null)
+        {
+            source.AppendLine();
+            source.AppendLine("    extension(global::Rask.Data.Tenant)");
+            source.AppendLine("    {");
+            source.AppendLine("        /// <summary>Makes <paramref name=\"tenant\" /> the tenant until the returned scope is disposed.</summary>");
+            source.AppendLine("        /// <param name=\"tenant\">The tenant to work in.</param>");
+            source.AppendLine("        /// <returns>A scope that restores the previous tenant.</returns>");
+            source.Append("        public static global::System.IDisposable Use(").Append(key)
+                .AppendLine(" tenant) => global::Rask.Data.Tenant.Use(tenant.Value);");
+            source.AppendLine("    }");
+        }
+
         source.AppendLine("}");
         return source.ToString();
     }
+
+    // A typed id read back from the value the framework carries: ` is { } v ? new TenantId(v) : null`, else nothing.
+    private static string Wrapped(Found marked) =>
+        marked.KeyValue is null ? string.Empty : " is { } v ? new " + marked.Key + "(v) : null";
+
+    // A typed id's required read, wrapped: `new(read)`.
+    private static string RequiredOf(Found marked, string read) =>
+        marked.KeyValue is null ? read : "new(" + read + ")";
 
     private static StringBuilder Header(Found marked, string className, string what)
     {
@@ -356,6 +425,7 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         string Name,
         string? Marker,
         string? Key,
+        string? KeyValue,
         string KeyName,
         string ReadFace,
         bool IsPublic,

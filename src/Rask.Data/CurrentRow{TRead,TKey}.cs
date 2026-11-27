@@ -11,7 +11,7 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         The key is the aggregate's own type, and the framework carries it as a <see cref="Guid" />
-///         (<see cref="CurrentKey" />).
+///         (<see cref="CurrentKey" />) — a typed id through the value it holds (<see cref="TypedCurrentRowKey{TKey,TValue}" />).
 ///     </para>
 ///     <para>
 ///         The user's row is read across tenants: it is looked up by the signed-in user's own key, which names one
@@ -23,11 +23,14 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
     CurrentRowKind kind,
     Type aggregate,
     Func<TKey, Expression<Func<TRead, bool>>> byKey,
-    Func<TRead, TKey> keyOf) : CurrentRow(kind, aggregate)
+    Func<TRead, TKey> keyOf,
+    CurrentRowKey<TKey>? key = null) : CurrentRow(kind, aggregate)
     where TRead : class, IReadModel
 {
+    private readonly CurrentRowKey<TKey> _key = key ?? CurrentRowKey<TKey>.Plain;
+
     /// <inheritdoc />
-    internal override bool IsNumbered => CurrentKey.IsNumber<TKey>();
+    internal override bool IsNumbered => _key.IsNumber;
 
     /// <inheritdoc />
     protected override object? Load(Guid key)
@@ -67,5 +70,5 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
 
     private IDisposable? AcrossForTheUser() => Kind is CurrentRowKind.User ? Tenant.Across() : null;
 
-    private TKey KeyOf(Guid key) => CurrentKey.Of<TKey>(key, Kind, Aggregate.Name);
+    private TKey KeyOf(Guid key) => _key.Of(key, Kind, Aggregate.Name);
 }

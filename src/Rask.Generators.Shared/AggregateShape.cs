@@ -108,10 +108,14 @@ internal static class AggregateShape
     ///     for plain <c>PerTenant</c> or none.
     /// </summary>
     public static string? TenantKeyOf(INamedTypeSymbol symbol) =>
+        TenantKeyTypeOf(symbol)?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    /// <summary>The key type <c>PerTenant&lt;TKey&gt;</c> names, or null for plain <c>PerTenant</c> or none.</summary>
+    public static ITypeSymbol? TenantKeyTypeOf(INamedTypeSymbol symbol) =>
         TraitArguments(symbol)
             .OfType<INamedTypeSymbol>()
             .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
-            .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            .Select(static t => t.TypeArguments[0])
             .FirstOrDefault();
 
     /// <summary>

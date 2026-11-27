@@ -19,7 +19,9 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         One aggregate per app says it, keyed like the tenant: a <see cref="Guid" />, an <see cref="int" />, a
-///         <see cref="long" /> or a <see cref="string" /> holding a <see cref="Guid" />.
+///         <see cref="long" />, a <see cref="string" /> holding a <see cref="Guid" />, or a typed id over a
+///         <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" /> — which <c>Current.UserId</c> and
+///         <c>Current.UseUser</c> then take and return.
 ///     </para>
 /// </remarks>
 public interface IUser;

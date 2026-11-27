@@ -104,7 +104,8 @@ public sealed partial class RoutesGenerator
                 return null;
             }
 
-            if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
+            if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint) &&
+                !IsTypeCompatible(prop.TypedIdValueTypeName, p.Constraint))
             {
                 report(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
                     prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
@@ -456,7 +457,10 @@ public sealed partial class RoutesGenerator
 
     private static string PathParamTypeFqn(RoutePropInfo prop, string? constraint, bool optional)
     {
-        if (constraint is null)
+        // No constraint, or one the property met through the typed id it is (`{id:guid}` for a DriverId): the
+        // property's own type, so the factory and Url() take the typed id.
+        if (constraint is null ||
+            (!IsTypeCompatible(prop.UnderlyingTypeName, constraint) && IsTypeCompatible(prop.TypedIdValueTypeName, constraint)))
         {
             if (!optional)
             {
@@ -476,11 +480,17 @@ public sealed partial class RoutesGenerator
         }
     }
 
-    private static bool IsTypeCompatible(string underlyingTypeName, string? constraint)
+    // Null for the type is no type at all — a property that is not a typed id — and never compatible.
+    private static bool IsTypeCompatible(string? underlyingTypeName, string? constraint)
     {
         if (constraint is null)
         {
             return true;
+        }
+
+        if (underlyingTypeName is null)
+        {
+            return false;
         }
 
         switch (constraint)

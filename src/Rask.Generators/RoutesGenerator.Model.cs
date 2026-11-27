@@ -225,7 +225,27 @@ public sealed partial class RoutesGenerator
             underlyingTypeFqn,
             needsAotRegistration,
             new LocationInfo(loc),
-            isList);
+            isList,
+            TypedIdValueTypeNameOf(GetUnderlying(prop.Type)));
+    }
+
+    // What a typed id over a Guid, an int or a long holds, as a route constraint names it — so `{id:guid}` binds a
+    // DriverId(Guid Value) — or null for any other type. One compiled into a referenced assembly counts too.
+    private static string? TypedIdValueTypeNameOf(ITypeSymbol type)
+    {
+        var value = TypedIdShape.Of(type);
+        if (value == TypedIdValue.None)
+        {
+            value = TypedIdShape.OfReferenced(type);
+        }
+
+        return value switch
+        {
+            TypedIdValue.Guid => "global::System.Guid",
+            TypedIdValue.Int32 => "int",
+            TypedIdValue.Int64 => "long",
+            _ => null,
+        };
     }
 
     // A property's [QueryParam] / [RouteParam], each with the explicit name it gives, if any.
