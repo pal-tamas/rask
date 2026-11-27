@@ -192,7 +192,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
             && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
             && InheritsFrom(method.ReturnType as INamedTypeSymbol, component))
         {
-            // Already keyed — a Key: argument, or a Data argument carrying rask-key (back-compat).
+            // Already keyed — a Key: argument.
             name = method.Name;
             location = NameLocation(invocation);
             built = method.ReturnType;
@@ -201,10 +201,10 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 
         if (BuilderEntry.TryReadChain(node, model, cancellationToken, out var entry, out built, out var steps))
         {
-            // Key names the identity; a Data step carrying rask-key is the VirtualizePage-style equivalent.
+            // Key names the identity.
             name = entry.Identifier.ValueText;
             location = entry.GetLocation();
-            return !(steps.Contains("Key") || steps.Contains("Data") && node.ToString().Contains("rask-key"));
+            return !steps.Contains("Key");
         }
 
         return false;
@@ -223,24 +223,9 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool HasKeyArgument(InvocationExpressionSyntax invocation)
-    {
-        foreach (var arg in invocation.ArgumentList.Arguments)
-        {
-            if (string.Equals(arg.NameColon?.Name.Identifier.ValueText, "Key", StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            // A Data: argument that mentions rask-key keeps VirtualizePage-style keying quiet.
-            if (arg.ToString().IndexOf("rask-key", StringComparison.Ordinal) >= 0)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasKeyArgument(InvocationExpressionSyntax invocation) =>
+        invocation.ArgumentList.Arguments.Any(static arg =>
+            string.Equals(arg.NameColon?.Name.Identifier.ValueText, "Key", StringComparison.Ordinal));
 
     // Climb past the children indexer (`[...]`), parens, and `(Component)` casts to reach the
     // expression that actually flows into the surrounding list/projection context.

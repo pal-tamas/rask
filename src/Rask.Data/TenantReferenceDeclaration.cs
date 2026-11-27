@@ -74,13 +74,13 @@ internal static class TenantReferenceDeclaration
         return new TenantReference("", tenant.GetSchema(), table, column);
     }
 
-    // A table of the tenant's rows: partitioned, mapped to a table of its own, and not the tenant itself.
+    // A table of the tenant's rows: mapped to a table of its own, and not the tenant itself. Partitioned, or the one
+    // that says IBelongsTo<Tenant> without being partitioned — Rask.Auth's accounts, whose tenant is optional.
     private static bool KeepsTheTenant(IConventionEntityType entityType, Type tenant) =>
         entityType.ClrType != tenant
         && entityType.BaseType is null
         && !entityType.IsOwned()
-        && entityType.GetTableName() is not null
-        && ConventionRegistry.IsPerTenant(entityType.ClrType);
+        && entityType.GetTableName() is not null;
 
     private static string? Column(IConventionEntityType entityType) =>
         entityType.GetTableName() is { } table && entityType.FindProperty(Columns.TenantId) is { } property

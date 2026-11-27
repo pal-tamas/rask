@@ -148,6 +148,36 @@ them until tagged releases begin.
   (nothing read it: the ambient culture is pinned whenever Rask's culture is on), `AuthOptions.ForgotPasswordPath`
   (no endpoint or page read it), `RouteAuthorizationGuard.ForbidPath`, `BuilderRuntime.ResetNothing` and
   `FormData.FileKeys`.
+- **BREAKING (server): the kept-answer layer for an app's own sign-in is removed — `AddSessionRevalidator<T>()`,
+  `.Keep(…)`, `.ForgetOnSave<T>()`, `Sessions.Forget(…)` / `ISessions`.** It existed so a host that signed its users in
+  itself could stop its revalidator reading its users table on every event. Rask.Auth's sign-in is the way to sign
+  users in now (bcrypt hashes carried over, `[SignInName]`, typed ids, `IBearerSignIn` for a partner's own token
+  endpoint), and its revalidator reads the session's row every time on purpose, so nothing in Rask keeps an answer.
+  A host with a sign-in Rask does not own (an external identity provider) still registers its own
+  `ISessionRevalidator` with `AddSingleton`, asked at every event. Upgrade: move the sign-in onto Rask.Auth
+  (`docs/authentication.md`), or register the revalidator with `services.AddSingleton<ISessionRevalidator, T>()`
+  and drop the `Keep`/`ForgetOnSave`/`Sessions.Forget` calls.
+- **BREAKING (auth): an account is `User : Authenticatable<UserId>, IBelongsTo<Tenant>` — keyed by a typed id over a
+  `Guid`, its tenant its own typed column.** `Authenticatable<TKey>` takes a typed id over a `Guid`
+  (`readonly partial record struct UserId(Guid Value)`) beside `Guid` and `string`: `User.Id`, `Current.UserId` and
+  `Current.UseUser` are the `UserId`, while Rask carries and stores the `Guid` it holds — the `NameIdentifier` claim (its
+  text), `Session.UserId`, `Passkey.UserId`, the events — so moving a users table from `Guid` to a `UserId` over one
+  changes no column (a differ test proves it on SQL Server; on SQLite, where the typed id is written lower-case, lower-case
+  the old upper-case keys once). The generated `AuthUser.Use<User, UserId>(wrap, unwrap)`
+  names the id; a typed id over a number stops the host as any other key does. **`Authenticatable.TenantId` (`Guid?`)
+  and `RecordTenant` are removed:** the user declares its tenant as every table does — `IBelongsTo<Tenant>` and, to
+  read and set it, `public TenantId? TenantId { get; private set; }` — which on an account types the optional column
+  and adds the foreign key to the tenant (a migration), and never filters or stamps (an administrator has none);
+  without `IBelongsTo` the column stays the `Guid?` it was, declared by a user that sets it. `TenantKey` (the unique
+  index's folded copy) holds the tenant as the carried `Guid` for any tenant key, and the principal is built from it.
+  `rask new` scaffolds `User : Authenticatable<UserId>`. Upgrade: `public void JoinTenant(Guid t) => RecordTenant(t);`
+  becomes a `TenantId` property set by your own method. A typed-id account's session resume is the one join a `Guid`
+  key's is (`ON s.UserId = u.Id`, no `CAST`) where the store keeps a `Guid` natively, and two reads on SQLite.
+  `docs/authentication.md#your-user`, `#accounts-and-tenants`.
+- **BREAKING (core): `.Key(...)` is the only keyed identity; a `Data["rask-key"]` entry is no longer written.** It used
+  to stand in for a key when no `Key` was set, and RASK022 accepted it. Now the `rask-key` name in a `Data` bag is
+  reserved and dropped at render, and RASK022 reports a list keyed that way: chain `.Key(item.Id)` instead (it still
+  renders `data-rask-key`, so E2E selectors on that attribute keep working).
 - **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
   is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
   and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,

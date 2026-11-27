@@ -97,7 +97,7 @@ internal static partial class TableSortFilter
             }
 
             row = Tr
-                .Data(new Dictionary<string, string?> { ["rask-key"] = id.ToString() })[
+                .Key(id)[
                 Td[$"{id}"],
                 Td[$"Item {id}"],
                 Td[$"${(id * 7) + 13}"],

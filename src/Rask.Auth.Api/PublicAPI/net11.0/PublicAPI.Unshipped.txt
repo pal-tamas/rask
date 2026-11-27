@@ -90,10 +90,8 @@ Rask.Auth.Authenticatable<TKey>.GrantRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.IsEmailConfirmed.get -> bool
 Rask.Auth.Authenticatable<TKey>.IsInRole(string! role) -> bool
 Rask.Auth.Authenticatable<TKey>.PasswordChangedAt.get -> System.DateTime?
-Rask.Auth.Authenticatable<TKey>.RecordTenant(System.Guid? tenant) -> void
 Rask.Auth.Authenticatable<TKey>.RevokeRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Rask.Auth.Authenticatable<TKey>.TenantId.get -> System.Guid?
 Rask.Auth.EmailConfirmed
 Rask.Auth.EmailConfirmed.<Clone>$() -> Rask.Auth.EmailConfirmed!
 Rask.Auth.EmailConfirmed.Deconstruct(out System.Guid UserId, out string! Email) -> void
@@ -474,3 +472,4 @@ override Rask.Auth.BearerIssue.ToString() -> string!
 static Rask.Auth.BearerIssue.operator !=(Rask.Auth.BearerIssue? left, Rask.Auth.BearerIssue? right) -> bool
 static Rask.Auth.BearerIssue.operator ==(Rask.Auth.BearerIssue? left, Rask.Auth.BearerIssue? right) -> bool
 Rask.Auth.BearerIssue.<Clone>$() -> Rask.Auth.BearerIssue!
+static Rask.Auth.AuthUser.Use<TUser, TKey>(System.Func<System.Guid, TKey>! wrap, System.Func<TKey, System.Guid>! unwrap) -> void

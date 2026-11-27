@@ -114,10 +114,6 @@ Every `Add*` takes `Action<TOptions>? configure = null`. A required configure de
 method cannot express its own default, which means there isn't one — and a package with no working
 default is a package that fails on first use.
 
-An `Add*` whose settings are durations and types rather than knobs returns its steps instead — rule 12 —
-and has no delegate at all: `AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()`. The
-rule still holds, because every step is optional and the bare call has a working default.
-
 **`AddRaskWebPush` is where the rule stops**, and the reasoning is worth stating. Sending needs a VAPID
 key pair, which cannot have a default: a generated one would silently break every existing subscription
 on restart. Its delegate is optional like every other, and the pair is read from `Rask:Push`; the sender
@@ -213,7 +209,6 @@ What the rules above settled, so a new package has one place to look rather than
 | Text order | `TextOrder` (static) | `Current`, `In("hu")`; `c.OrderTextBy(collation)` in the model, `x.Name.InTextOrder()` in a query, `x.Name.Loosely()` for a search case and accents aside |
 | Named lock across hosts | `Db` (static) | `Lock(name)`; `.For(30.Seconds)` — no step waits as long as it takes |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
-| Kept session answers | `Sessions` (static) / `ISessions` | `Forget(user)`, `Forget(userId)` |
 | Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |
 | Is the battery running | every static | `IsOn` |
 | Battery settings | `JobsOptions`, `LogsOptions`, `PushOptions`, `OpsOptions`… | `Retention`, `SweepInterval`, `PollInterval`, `ShutdownGracePeriod`, `DefaultLifetime` |

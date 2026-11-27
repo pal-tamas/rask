@@ -14,7 +14,8 @@
   imported below. This sheet lands in documents it does not own, and a reset arriving from a library
   restyles pages that never asked for it: the console learned that the hard way, when a reset landed on
   the host application's own pages for as long as an operator had it open. The one exception is keyed to
-  the console frame: the reset in ui.css applies only under `.rask-ops`, the class UiShell writes.
+  a document drawn with this kit alone: the reset in ui.css applies only under `[data-rask-ui-document]`,
+  the attribute such a document writes on its <html> (UiStylesheet.DocumentAttribute).
 
   LAYERED, and this is not cosmetic. Unlayered CSS beats layered CSS in every browser, whatever the source
   order, so the two imports say layer() — without it this sheet's `.hidden` outranks every utility of a

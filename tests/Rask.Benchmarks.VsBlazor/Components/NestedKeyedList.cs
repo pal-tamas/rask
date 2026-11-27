@@ -29,14 +29,14 @@ internal static partial class NestedKeyedList
             {
                 rows.Add(Li
                     .Class("line")
-                    .Data(new Dictionary<string, string?> { ["rask-key"] = $"{cardKey}.{r}" })[
+                    .Key($"{cardKey}.{r}")[
                     Span[$"Card {cardKey} · row {r}"]
                 ]);
             }
 
             cards.Add(Div
                 .Class("panel")
-                .Data(new Dictionary<string, string?> { ["rask-key"] = cardKey.ToString() })[
+                .Key(cardKey)[
                 H3[$"Card {cardKey}"],
                 Ul[rows]
             ]);
@@ -106,14 +106,14 @@ internal static partial class NestedKeyedList
                 {
                     rows.Add(Li
                         .Class("line")
-                        .Data(new Dictionary<string, string?> { ["rask-key"] = $"{k}.{r}" })[
+                        .Key($"{k}.{r}")[
                         Span[$"Card {k} · row {r}"]
                     ]);
                 }
 
                 _cardsByKey[k] = Div
                     .Class("panel")
-                    .Data(new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+                    .Key(k)[
                     H3[$"Card {k}"],
                     Ul[rows]
                 ];

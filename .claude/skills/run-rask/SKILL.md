@@ -367,7 +367,7 @@ which is what it is here to look at and does not move when the scaffold's home p
 - `The console did not render at /_rask — landed on …` → either the account is not an administrator
   (only the first registration is; start from a fresh app via `ops-app.sh`), or the console's shell
   markup moved and `ConsoleShell`/`ConsoleNav` in `dashboard-driver.cs` need re-deriving from
-  `DashboardLayout` / `UiShell`.
+  `DashboardLayout` (its `Ui.Sidebar` layout).
 - `Sign-in never completed: no 200 from /_rask/auth/redeem …` → the message carries the auth page's own
   reason when there is one ("that email is already taken", "must be at least 8 characters").
 - `A first-run token was passed but /register shows no #first-run-token field` → the app is already

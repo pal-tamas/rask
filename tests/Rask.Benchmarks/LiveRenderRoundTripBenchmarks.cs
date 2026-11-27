@@ -121,7 +121,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
             var idx = order[i];
             rows.Add(Div
                 .Class("line")
-                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                .Key(idx)[
                 Span[$"Item {idx}"]
             ]);
         }
