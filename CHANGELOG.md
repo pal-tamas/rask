@@ -121,6 +121,20 @@ them until tagged releases begin.
   number; processed outbox rows and the stored log are history and are not carried over. A SQLite file log store
   (`AddRaskLogging()` without a context) keeps its own integer rowid — its full-text index needs one — and derives each
   entry's `Guid` from it. docs/data.md, docs/jobs.md, docs/outbox.md, docs/mail.md, docs/logging.md.
+- **BREAKING: `b.NoOverlap(…)` replaces `HasNonOverlappingRange`, and holds on PostgreSQL and SQL Server too.**
+  `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld).Where(x => x.DriverId != null)` (a
+  `Range` value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken)`: two rows with
+  the same key may not cover the same moment. PostgreSQL's semantics on all three providers — half-open, a null end
+  open, a null key part and an empty range conflicting with nothing, the key under the app's text order, only the rows
+  the `Where(…)` keeps, a soft-deleted row freeing its range — and several rules per entity. PostgreSQL holds it as an
+  `EXCLUDE USING gist` constraint (`btree_gist`, created by the migration), SQL Server as an index and an
+  `AFTER INSERT, UPDATE` trigger checking under `UPDLOCK, HOLDLOCK`, SQLite as `AFTER` triggers; a refusal — the save's
+  own check first, the database's last word — is a `RaskValidationException` with the rule's message under the range's
+  field, as an `IsUnique("…")` duplicate is, and two saves at the same moment never both get through. Migrations add,
+  change and drop it. `HasNonOverlappingRange`, `RangeExclusionSpec`, `RangeOverlapException` and
+  `RaskSqliteRangeExclusionInterceptor` are gone: write `b.NoOverlap(partitionBy, lo, hi, "message")` (a rule needs a
+  key) and catch `RaskValidationException`. A plain `DbContext` (not a `RaskDbContext`) declaring one calls
+  `ModelRegistry.ApplyConventions(configurationBuilder)`.
 - **`Db.Lock` and numbering take a 64-bit lock on PostgreSQL.** `pg_advisory_lock(hashtextextended(name, 0))` (and
   `pg_advisory_xact_lock` for numbering) instead of the 32-bit `hashtext`, whose keys collide at a few tens of
   thousands of names. The key a name locks changes, so an instance of the previous version and one of this version do

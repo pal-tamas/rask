@@ -92,10 +92,10 @@ The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
 
 ## Non-overlapping ranges
 
-`UseRaskSqlite` also enforces `Rask.Data`'s `HasNonOverlappingRange(...)`: migrations emit an index plus a
-`BEFORE INSERT`/`BEFORE UPDATE` trigger pair, re-emitted after the table rebuilds SQLite needs for most
-`ALTER`s (which would otherwise drop them). A violating save throws `RangeOverlapException` naming the
-table. Both are inert until an entity declares a rule. `Rask.Data`'s `AddRaskData<TContext>()` refuses to
+`UseRaskSqlite` also enforces `Rask.Data`'s `NoOverlap(...)`: migrations emit an index plus an
+`AFTER INSERT`/`AFTER UPDATE` trigger pair per rule, re-emitted after the table rebuilds SQLite needs for most
+`ALTER`s (which would otherwise drop them). A violating save is refused with the rule's message under the range's
+field. Both are inert until an entity declares a rule. `Rask.Data`'s `AddRaskData<TContext>()` refuses to
 boot a context that declares a rule its provider would ignore; `UseRaskSqlite` is what satisfies it, and a
 plain `UseSqlite` does not.
 

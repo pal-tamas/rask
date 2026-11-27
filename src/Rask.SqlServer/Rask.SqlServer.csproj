@@ -51,6 +51,9 @@
     <!-- An optional value object whose members are all optional, held in its row's columns (RaskSqlServerModelValidator). -->
     <Compile Include="..\Rask.Data\OptionalComplexValues.cs" Link="Shared\OptionalComplexValues.cs"/>
     <Compile Include="..\Rask.Data\TenantReference.cs" Link="Shared\TenantReference.cs"/>
+    <!-- The triggers b.NoOverlap(…) is held by, which the differ adds to a migration. -->
+    <Compile Include="..\Rask.Data\NoOverlapRule.cs" Link="Shared\NoOverlapRule.cs"/>
+    <Compile Include="..\Rask.Data\NoOverlapSql.cs" Link="Shared\NoOverlapSql.cs"/>
     <!-- end - start between two dates in a query, which SQL Server's own provider does not translate. -->
     <Compile Include="..\Rask.Data\QueryDuration.cs" Link="Shared\QueryDuration.cs"/>
     <Compile Include="..\Rask.Data\DurationTranslation.cs" Link="Shared\DurationTranslation.cs"/>

@@ -99,7 +99,7 @@ public static class RaskSqliteDbContextOptionsExtensions
         // replacements: registering a strict generator and a range-exclusion generator separately would keep
         // only whichever was replaced last, silently dropping the other feature. Which one is wanted depends
         // on the flag, so the combination has a type of its own. Range-exclusion DDL is inert unless an
-        // entity declares HasNonOverlappingRange — the generator finds no spec to emit.
+        // entity declares NoOverlap — the generator finds no rule to emit.
         if (options.StrictTables)
         {
             optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictRangeExclusionSqlGenerator>();
@@ -128,8 +128,6 @@ public static class RaskSqliteDbContextOptionsExtensions
         SqliteColumnOptionsExtension.Add(optionsBuilder);
 
         return optionsBuilder
-            // Inert too: it only reacts to the error the range-exclusion triggers raise.
-            .AddInterceptors(new RaskSqliteRangeExclusionInterceptor())
             .UseSqlite(connectionString, sqlite =>
             {
                 if (retry.Enabled)

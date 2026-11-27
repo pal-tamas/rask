@@ -752,7 +752,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Rask's batteries (jobs/mail/outbox/cache leased claims, bulk insert) and multi-tenancy need nothing.
   FULL-TEXT SEARCH works here too: Rask.Data's HasFullTextSearch/Search/FullText.Highlight/Snippet become a STORED GENERATED tsvector column + GIN index (no triggers;
   PostgreSQL keeps it current), `@@ to_tsquery` ranked by ts_rank_cd, ts_headline highlights (docs/full-text-search.md#postgresql).
-  HasJsonIndex and HasNonOverlappingRange are SQLite-only and refused at boot here.
+  HasJsonIndex is SQLite-only and refused at boot here; NoOverlap is an EXCLUDE USING gist constraint (btree_gist).
   Litestream/snapshots do not apply (they copy a file).
   Real-server proof: tests/Rask.Providers.E2E.Tests via scripts/run-providers-local.sh (in CI on Testcontainers; locally the server legs skip unless RASK_PROVIDERS_LOCAL=1).
 - [SQL Server](docs/data.md#sql-server): the `Rask.SqlServer` package (in `Rask.Server`;
@@ -1082,19 +1082,11 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   SQL SERVER, or a plain UseSqlite WITHOUT UseRaskFullTextSearch(): AddRaskData<TContext> REFUSES TO BOOT a context declaring an index.
   JSON PATH INDEX: `builder.HasJsonIndex(o => o.Meta.Status)` on a ToJson() owned type adds an expression index spelled EXACTLY as EF writes the filter (top-level `'Status'` vs nested `'$.Address.City'`), through migrations — SQLite-only for now, refused at boot elsewhere.
   Guide: docs/full-text-search.md.
-  NON-OVERLAPPING RANGES: `modelBuilder.Entity<Booking>().HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId)` declares that two rows may not cover the same point of a half-open [lo, hi) range — the booking/lease/price-period rule.
-  SQLite has NO exclusion constraint and a UNIQUE index only stops IDENTICAL rows (100-200 and 150-250 both pass), so the rule is carried as provider-agnostic model metadata (a RangeExclusionSpec annotation naming PROPERTIES, resolved to columns by the provider so HasColumnName is honoured) and Rask.SQLite.EntityFrameworkCore's UseRaskSqlite emits an index + a BEFORE INSERT/BEFORE UPDATE trigger pair that RAISE(ABORT)s.
-  HALF-OPEN is load-bearing: 100-200 and 200-300 are NEIGHBOURS, not a conflict;
-  pair with a lo<hi check constraint since the rule assumes well-formed ranges.
-  partitionBy scopes it (x => x.RoomId, or x => new { x.Sku, x.Region });
-  omit for table-wide.
-  ignoreSoftDeleted defaults to TRUE for a `SoftDelete` aggregate so a deleted row frees its slot, and to false for everything else (a hard-delete aggregate has no DeletedAt column);
-  ignoreSoftDeleted: true on such an entity throws ArgumentException.
-  A violating save throws RangeOverlapException naming the table, translated from SQLITE_CONSTRAINT_TRIGGER (1811) by an interceptor, instead of a raw code buried in DbUpdateException.
-  Enforcement is IN THE DATABASE, so raw SQL/other processes are bound too — and a check-then-insert in app code would race.
-  THE DDL IS RE-EMITTED AT THE END OF EVERY MIGRATION THAT TOUCHES THE TABLE, drop-then-create: SQLite cannot ALTER most things in place, so EF rebuilds the table (ef_temp_* -> copy -> DROP TABLE -> rename) and the DROP takes the triggers with it — attaching the DDL to CreateTable would silently retire the constraint on the next schema change.
-  Arrives via migrations only: an existing table gains it from the next migration, EnsureCreated does not get it.
-  A PROVIDER THAT DOES NOT EMIT THAT DDL (a plain UseSqlite, or any other provider) WOULD SILENTLY ACCEPT OVERLAPS, so AddRaskData<TContext> registers a boot check (IHostedService, reads the model + the context's IMigrationsSqlGenerator, no connection) that REFUSES TO START naming the entity, the provider and UseRaskSqlite.
+  NON-OVERLAPPING RANGES: `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, "message").Where(x => x.DriverId != null)` (a Range value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, "message")` — two rows with the same key may not cover the same moment; several rules per entity.
+  Semantics are PostgreSQL's on all three providers: HALF-OPEN [from, to) (neighbours are no conflict, an empty range overlaps nothing), a NULL end is OPEN, a NULL key part never conflicts, the key compares under the app's text order (OrderTextBy), only the rows the Where(…) keeps count, and a soft-deleting aggregate's deleted rows free their range.
+  PostgreSQL: `CREATE EXTENSION IF NOT EXISTS btree_gist` + `EXCLUDE USING gist (key WITH =, tstzrange(from, to, '[)') WITH &&) WHERE (…)` (23P01). SQL Server: index + AFTER INSERT, UPDATE trigger checking under UPDLOCK, HOLDLOCK, THROW 51101 (EF told via HasTrigger). SQLite: AFTER INSERT/UPDATE triggers RAISE(ABORT, 'rask no overlap: …'), re-emitted at the end of every migration touching the table (SQLite rebuilds tables). Each rule is EX_{table}_{key columns}_{start column}.
+  The save checks first (DeclaredRuleCheckInterceptor) and the database has the last word; either way the refusal is a RaskValidationException with the rule's message under the range's field (like IsUnique("…")). Concurrent overlapping saves never both succeed.
+  PostgreSQL/SQL Server DDL comes from RaskMigrationsModelDiffer as migration SQL; SQLite's from its migrations generator. A plain UseSqlite/UseSqlServer/UseNpgsql would ignore it, so AddRaskData<TContext> REFUSES TO BOOT. Needs Rask's conventions (every RaskDbContext; a plain DbContext calls ModelRegistry.ApplyConventions). Replaces HasNonOverlappingRange/RangeOverlapException (removed).
   The SkipChangeTracking writer spells table/column/parameter names through EF Core's ISqlGenerationHelper (MySQL rejects hard-coded "…" identifiers) and awaits each row on client-server providers, staying synchronous only on SQLite.
   Depends on Microsoft.EntityFrameworkCore + Rask.Cqrs;
   runs on the server and, over Rask.SQLite.Browser, in a WebAssembly app.

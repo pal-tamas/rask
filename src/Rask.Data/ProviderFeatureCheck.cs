@@ -10,7 +10,7 @@ namespace Rask.Data;
 
 /// <summary>
 /// Model metadata the context's provider would silently ignore — a
-/// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/> rule or a
+/// <c>NoOverlap(…)</c> rule or a
 /// <see cref="FullTextSearchBuilderExtensions.HasFullTextSearch{TEntity}"/> index — reported at boot.
 /// </summary>
 /// <remarks>
@@ -48,13 +48,12 @@ internal sealed class ProviderFeatureCheck<[DynamicallyAccessedMembers(DataTrimm
         var generator = db.GetInfrastructure().GetService(typeof(IMigrationsSqlGenerator));
         var provider = db.Database.ProviderName ?? "this provider";
 
-        if (generator is not IRangeExclusionEnforcer && Declaring(db.Model, RangeExclusionSpec.AnnotationName) is { Count: > 0 } ranges)
+        if (!HoldsNoOverlap(db, generator) && Declaring(db.Model, NoOverlapRule.Annotation) is { Count: > 0 } ranges)
         {
             throw new InvalidOperationException(
-                $"{Subject(ranges)} HasNonOverlappingRange, but {provider} does not enforce it, so overlapping rows "
-                + $"would be accepted without an error. Configure {typeof(TContext).Name} with "
-                + "UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore, whose migrations emit the "
-                + "constraint, or remove the rule.");
+                $"{Subject(ranges)} NoOverlap, but {provider} does not enforce it, so overlapping rows "
+                + $"would be accepted without an error. Configure {typeof(TContext).Name} with UseRaskSqlite, "
+                + "UseRaskSqlServer or UseRaskPostgres, whose migrations write the rule, or remove it.");
         }
 
         if (generator is not IFullTextSearchEnforcer && Declaring(db.Model, FullTextSearchSpec.AnnotationName) is { Count: > 0 } searches)
@@ -82,6 +81,13 @@ internal sealed class ProviderFeatureCheck<[DynamicallyAccessedMembers(DataTrimm
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // SQLite's migrations generator writes the triggers itself; PostgreSQL's and SQL Server's rules are statements Rask's
+    // migrations differ adds — so through UseRaskPostgres or UseRaskSqlServer, not a plain UseNpgsql or UseSqlServer.
+    private static bool HoldsNoOverlap(DbContext db, object? generator) =>
+        generator is INoOverlapEnforcer ||
+        (db.Database.ProviderName is ProviderNames.Postgres or ProviderNames.SqlServer &&
+         db.GetInfrastructure().GetService(typeof(IMigrationsModelDiffer)) is RaskMigrationsModelDiffer);
 
     private static List<string> Declaring(IModel model, string annotation) =>
         model.GetEntityTypes()

@@ -7,5 +7,5 @@ namespace Rask.Data;
 /// <see cref="FullTextSearchBuilderExtensions.HasFullTextSearch{TEntity}"/> declares, and whose queries
 /// translate <see cref="FullTextQueryableExtensions.Search{TEntity}"/>.
 /// </summary>
-/// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer"/>.</remarks>
+/// <remarks>Internal for the same reason as <see cref="INoOverlapEnforcer"/>.</remarks>
 internal interface IFullTextSearchEnforcer;
