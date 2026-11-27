@@ -35,7 +35,7 @@ public sealed class CacheEntry : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     {
         var entry = new CacheEntry
         {
-            Id = Guid.CreateVersion7(),
+            Id = OrderedGuid.New(),
             Key = key,
             Value = value,
             ExpiresAt = expiresAt,

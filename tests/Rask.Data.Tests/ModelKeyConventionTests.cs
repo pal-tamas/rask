@@ -11,7 +11,7 @@ public sealed class Voucher : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
 
     public string Code { get; private set; } = "";
 
-    public static Voucher Issue(string code) => new() { Id = Guid.CreateVersion7(), Code = code };
+    public static Voucher Issue(string code) => new() { Id = OrderedGuid.New(), Code = code };
 
     public static Voucher WithoutId(string code) => new() { Code = code };
 }
@@ -34,7 +34,7 @@ public sealed class ModelKeyConventionTests : IDisposable
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
         Assert.Contains("'Voucher'", error.Message, StringComparison.Ordinal);
-        Assert.Contains("Guid.CreateVersion7()", error.Message, StringComparison.Ordinal);
+        Assert.Contains("OrderedGuid.New()", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
