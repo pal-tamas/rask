@@ -635,7 +635,7 @@ gets it too):
 
 | Member | Does |
 |---|---|
-| `VehicleId.New()` | a new version-7 `Guid` — an id over a `Guid` only; the others come from the store or the caller |
+| `VehicleId.New()` | a new version-7 `Guid`, strictly increasing within the process (RFC 9562's counter in `rand_a`: two ids made in one millisecond still come out in order) — an id over a `Guid` only; the others come from the store or the caller |
 | `VehicleId.Parse(s)`, `VehicleId.TryParse(s, out id)` | the id `s` spells; `IParsable<T>` and `ISpanParsable<T>` too. An id over a `string` refuses `""` (whitespace is kept: it may be a real key) |
 | `id.ToString()` | the value alone — `42`, `3e18ad13-…` (lower case), `ABC-123` — not `VehicleId { Value = 42 }` |
 | JSON | the value alone: `{"Vehicle":42}`, and a `Dictionary<VehicleId, …>` is keyed by it; a number sent as text is read too |

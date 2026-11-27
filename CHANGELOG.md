@@ -136,6 +136,13 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A typed id's `New()` is strictly increasing within the process: two ids made in one millisecond come out in order.**
+  Before, the generated `XId.New()` was `Guid.CreateVersion7()`, which fills the 12 bits after the millisecond at random,
+  so ids made in the same millisecond sorted in either order — an `ORDER BY Id` (or `Guid.CompareTo`) that was meant
+  to be the order of creation was not, and a key index took them out of order. It now keeps RFC 9562's counter
+  (method 1) in `rand_a`, per id type, lock-free: a new millisecond starts it at 0, a busy one adds 1, and a full one
+  (4096 ids) or a clock that stepped back runs the stamp ahead rather than repeating or going back. The 62 random bits
+  of `rand_b` stay, so ids of two processes never meet. Nothing to change at a call site.
 - **`LockedBy(…, LockRead.ForUpdate)` holds under a retrying execution strategy.** Rask.SqlServer and Rask.Postgres
   turn `EnableRetryOnFailure` on by default, and on such a context the save opened no transaction (EF Core refuses one
   it did not start), so the parent was read without its row lock and a child save could slip past a concurrent close —
