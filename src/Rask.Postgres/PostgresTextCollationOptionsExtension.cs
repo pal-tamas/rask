@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
 
 namespace Rask.Postgres;
@@ -10,8 +12,9 @@ namespace Rask.Postgres;
 ///     <c>OrderTextBy</c> names — a nondeterministic ICU collation, <see cref="Name" /> — so its text columns may use it.
 /// </summary>
 /// <remarks>
-///     It registers no service: <see cref="RaskPostgresMigrationsSqlGenerator" /> writes the <c>CREATE COLLATION</c> before
-///     the first table that needs it. A plain <c>UseNpgsql</c> has neither, and orders by the language's ICU collation alone.
+///     <see cref="RaskPostgresMigrationsSqlGenerator" /> writes the <c>CREATE COLLATION</c> before the first table that
+///     needs it, and <see cref="PostgresTextTranslatorPlugin" /> writes the string operations PostgreSQL refuses on it. A plain <c>UseNpgsql</c> has neither, and
+///     orders by the language's ICU collation alone.
 /// </remarks>
 internal sealed class PostgresTextCollationOptionsExtension : IDbContextOptionsExtension, ITextCollationEnforcer
 {
@@ -26,9 +29,9 @@ internal sealed class PostgresTextCollationOptionsExtension : IDbContextOptionsE
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
-    public void ApplyServices(IServiceCollection services)
-    {
-    }
+    // The string operations PostgreSQL refuses on such a column, written in a form it runs.
+    public void ApplyServices(IServiceCollection services) =>
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IMethodCallTranslatorPlugin, PostgresTextTranslatorPlugin>());
 
     public void Validate(IDbContextOptions options)
     {
