@@ -35,35 +35,42 @@ cd "$root"
 # together are past twenty. So the SQL Server tests (a SqlServer class, or a sql_server fact) run in a process of their
 # own that may use only SQL Server, and everything else in one that may use only PostgreSQL (RASK_PROVIDERS_SERVERS) —
 # twice: on the newest PostgreSQL, and on the oldest Rask supports (RASK_PROVIDERS_POSTGRES=floor, docs/data.md).
-# The first builds; the other two run --no-build on its output side by side, each against its own container, their
-# output kept apart in a log each and printed once both are done.
+# The suite is built once; the three legs then run --no-build on that output side by side, each against its own
+# container, each into a log of its own printed once all are done. A failing leg never stops another: every server's
+# conformance is reported on every run, and the gate fails at the end if any leg did.
 # The split is by NAME, so a fact that is not SQL Server's never says "sql_server" (not even "postgresql_server").
 suite=tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj
 sql_server_tests="FullyQualifiedName~SqlServer|FullyQualifiedName~sql_server"
 other_tests="FullyQualifiedName!~SqlServer&FullyQualifiedName!~sql_server"
 
-echo "==> Provider tests: SQLite, PostgreSQL (newest)"
-RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=newest dotnet test "$suite" -c Release --filter "$other_tests" \
-  --logger "console;verbosity=normal"
+echo "==> Building the provider suite"
+dotnet build "$suite" -c Release
 
 logs="$(mktemp -d -t rask-providers.XXXXXX)"
 trap 'rm -rf "$logs"' EXIT
-RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=floor dotnet test "$suite" -c Release --no-build \
-  --filter "$other_tests" --logger "console;verbosity=normal" >"$logs/floor" 2>&1 &
-floor=$!
-RASK_PROVIDERS_SERVERS=sqlserver dotnet test "$suite" -c Release --no-build --filter "$sql_server_tests" \
-  --logger "console;verbosity=normal" >"$logs/sqlserver" 2>&1 &
-sqlserver=$!
+pids=()
+names=()
+# `leg NAME FILTER VAR=VALUE…` starts one process of the suite in the background, its output in $logs/NAME.
+leg() {
+  local name="$1" filter="$2"
+  shift 2
+  env "$@" dotnet test "$suite" -c Release --no-build --filter "$filter" --logger "console;verbosity=normal" \
+    >"$logs/$name" 2>&1 &
+  pids+=("$!")
+  names+=("$name")
+}
+leg "SQLite, PostgreSQL (newest)" "$other_tests" RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=newest
+leg "SQLite, PostgreSQL (floor)" "$other_tests" RASK_PROVIDERS_SERVERS=postgres RASK_PROVIDERS_POSTGRES=floor
+leg "SQL Server" "$sql_server_tests" RASK_PROVIDERS_SERVERS=sqlserver
 
-failed=0
-wait "$floor" || failed=1
-echo "==> Provider tests: SQLite, PostgreSQL (floor)"
-cat "$logs/floor"
-wait "$sqlserver" || failed=1
-echo "==> Provider tests: SQL Server"
-cat "$logs/sqlserver"
-if [ "$failed" = 1 ]; then
-  echo "run-providers-local: a provider leg failed (see above)." >&2
+failed=()
+for i in "${!pids[@]}"; do
+  wait "${pids[$i]}" || failed+=("${names[$i]}")
+  echo "==> Provider tests: ${names[$i]}"
+  cat "$logs/${names[$i]}"
+done
+if [ "${#failed[@]}" -gt 0 ]; then
+  printf 'run-providers-local: failed: %s\n' "${failed[@]}" >&2
   exit 1
 fi
 
