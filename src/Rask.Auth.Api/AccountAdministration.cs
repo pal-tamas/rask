@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -149,7 +150,7 @@ internal sealed class AccountAdministration<TUser, TKey>(
                 return AuthResult.Fail(AuthError.WeakPassword, problem);
             }
 
-            var now = clock.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(clock.GetUtcNow());
             user.ChangePasswordHash(hasher.Hash(password), now);
 
             // In the same save as the password, so there is no moment in which the new password is set and a sign-in
@@ -171,7 +172,7 @@ internal sealed class AccountAdministration<TUser, TKey>(
         {
             var user = await ManagedAsync(db, id, cancellationToken).ConfigureAwait(false);
             var accountId = user.AccountId;
-            var now = clock.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(clock.GetUtcNow());
 
             // Every way in goes with the account: an ended session is not resumed, and is swept with the others a day
             // later (SessionSweep); a passkey row would otherwise outlive the account it signs in to.
@@ -254,7 +255,7 @@ internal sealed class AccountAdministration<TUser, TKey>(
     }
 
     // Ends them as signing out does, staged on the caller's context so they are saved with what ended them.
-    private static async Task EndSessionsAsync(DbContext db, Guid accountId, DateTime now, CancellationToken cancellationToken)
+    private static async Task EndSessionsAsync(DbContext db, Guid accountId, Timestamp now, CancellationToken cancellationToken)
     {
         foreach (var session in await db.Set<Session>()
                      .Where(s => s.UserId == accountId)

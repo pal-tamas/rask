@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -168,7 +169,7 @@ public sealed class AuthEndpointTests
         await using (var confirming = app.NewContext())
         {
             // Only a confirmed address may add a passkey; the emailed link is not what this test is about.
-            (await confirming.Set<TestUser>().SingleAsync(u => u.Email == "owner@example.com", cancellationToken: TestContext.Current.CancellationToken)).ConfirmEmail(DateTime.UtcNow);
+            (await confirming.Set<TestUser>().SingleAsync(u => u.Email == "owner@example.com", cancellationToken: TestContext.Current.CancellationToken)).ConfirmEmail(Timestamp.Now);
             await confirming.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Rask.Hosting.Shared;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -523,7 +524,7 @@ internal sealed partial class AccountService<TUser, TKey>(
                 return AuthResult.Fail(AuthError.WeakPassword, problem);
             }
 
-            var now = clock.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(clock.GetUtcNow());
             user.ResetPassword(hasher.Hash(password), now);
 
             // A completed reset is also a confirmation: holding this token proves what the confirmation link proves, that
@@ -584,7 +585,7 @@ internal sealed partial class AccountService<TUser, TKey>(
                 return AuthResult.Fail(AuthError.InvalidToken);
             }
 
-            user.ConfirmEmail(clock.GetUtcNow().UtcDateTime);
+            user.ConfirmEmail(Timestamp.At(clock.GetUtcNow()));
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return AuthResult.Success;
@@ -775,7 +776,7 @@ internal sealed partial class AccountService<TUser, TKey>(
                 verified.SignCount,
                 verified.BackedUp,
                 JoinTransports(request.Transports),
-                clock.GetUtcNow().UtcDateTime);
+                Timestamp.At(clock.GetUtcNow()));
 
             db.Add(passkey);
 
@@ -897,7 +898,7 @@ internal sealed partial class AccountService<TUser, TKey>(
                 return Fail(AuthError.EmailNotConfirmed);
             }
 
-            passkey.Used(verified.SignCount, clock.GetUtcNow().UtcDateTime);
+            passkey.Used(verified.SignCount, Timestamp.At(clock.GetUtcNow()));
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user, AccountName<TUser, TKey>.Of(db.Model, user)));

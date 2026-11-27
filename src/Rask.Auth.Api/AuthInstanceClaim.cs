@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -39,6 +40,6 @@ public sealed class AuthInstanceClaim : IInfrastructure
     /// <summary>The id of the account that claimed this instance and holds the admin role.</summary>
     public Guid AdminUserId { get; set; }
 
-    /// <summary>When it was claimed (UTC).</summary>
-    public DateTime ClaimedUtc { get; set; }
+    /// <summary>When it was claimed.</summary>
+    public Timestamp ClaimedUtc { get; set; } = null!;
 }

@@ -206,10 +206,40 @@ public sealed class SessionTests
         Assert.Equal(started + TimeSpan.FromMinutes(30), afterAnAction);
     }
 
-    private static async Task<DateTime> ExpiresAsync(AuthHarness harness, Guid sessionId)
+    // 2026-10-25 in Budapest: the clock goes back from 03:00 to 02:00, so 00:30Z and 01:30Z both read 02:30 on the
+    // wall. A session started at each keeps its own instant through the database, and stores it as the UTC it always did.
+    [Fact]
+    public async Task Sessions_started_in_the_repeated_autumn_hour_keep_their_own_instants()
+    {
+        using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
+        var first = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero);
+        var clock = new MutableClock(first);
+        await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
+        var owner = (await harness.UserAsync(Owner))!;
+
+        var before = await Sessions(harness).StartAsync(owner.Id, null, "before", false, TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromHours(1));
+        var after = await Sessions(harness).StartAsync(owner.Id, null, "after", false, TestContext.Current.CancellationToken);
+        await using var db = harness.NewContext();
+        var rows = await db.Set<Session>().Where(s => s.Id == before || s.Id == after).ToListAsync(TestContext.Current.CancellationToken);
+        var earlier = rows.Single(s => s.Id == before);
+        var later = rows.Single(s => s.Id == after);
+        var stored = await db.Database
+            .SqlQueryRaw<string>("SELECT \"LastSeenAt\" AS \"Value\" FROM \"RaskAuthSession\" ORDER BY \"LastSeenAt\"")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((first, first.AddHours(1)), (earlier.LastSeenAt.Instant, later.LastSeenAt.Instant));
+        Assert.Equal((first.AddHours(1), first.AddHours(2)), (earlier.ExpiresAt.Instant, later.ExpiresAt.Instant));
+        Assert.Equal(earlier.LastSeenAt.Value, later.LastSeenAt.Value);
+        Assert.True(later.LastSeenAt > earlier.LastSeenAt);
+        Assert.Equal(["2026-10-25 00:30:00", "2026-10-25 01:30:00"], stored);
+    }
+
+    private static async Task<DateTimeOffset> ExpiresAsync(AuthHarness harness, Guid sessionId)
     {
         await using var db = harness.NewContext();
-        return await db.Set<Session>().Where(s => s.Id == sessionId).Select(s => s.ExpiresAt).SingleAsync(TestContext.Current.CancellationToken);
+        var expires = await db.Set<Session>().Where(s => s.Id == sessionId).Select(s => s.ExpiresAt).SingleAsync(TestContext.Current.CancellationToken);
+        return expires.Instant;
     }
 
     private static async Task<bool> RowExistsAsync(AuthHarness harness, Guid sessionId)

@@ -124,13 +124,13 @@ public sealed class BearerSignInTests
 
         clock.Advance(TimeSpan.FromMinutes(40));
         var used = await sessions.ResumeForTokenAsync(sessionId, Cancel);
-        var expiresAfterUse = (await SessionAsync(harness, sessionId)).ExpiresAt;
+        var expiresAfterUse = (await SessionAsync(harness, sessionId)).ExpiresAt.Instant;
         clock.Advance(TimeSpan.FromMinutes(21));
         var lapsed = await sessions.ResumeForTokenAsync(sessionId, Cancel);
 
         Assert.Equal(new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.Zero), issue.ExpiresAt);
         Assert.NotNull(used);
-        Assert.Equal(new DateTime(2026, 11, 27, 10, 0, 0, DateTimeKind.Utc), expiresAfterUse);
+        Assert.Equal(new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.Zero), expiresAfterUse);
         Assert.False((await SessionAsync(harness, sessionId)).Persistent);
         Assert.Null(lapsed);
     }

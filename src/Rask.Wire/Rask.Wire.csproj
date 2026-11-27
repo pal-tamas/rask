@@ -47,6 +47,7 @@
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
     <InternalsVisibleTo Include="Rask.Postgres.Tests"/>
     <InternalsVisibleTo Include="Rask.SqlServer.Tests"/>
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
   </ItemGroup>
 
 </Project>

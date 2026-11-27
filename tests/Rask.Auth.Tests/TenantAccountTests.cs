@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -159,7 +160,7 @@ public sealed class TenantAccountTests
         entry.Property(nameof(Authenticatable.Email)).CurrentValue = Authenticatable.NormalizeEmail(email);
         entry.Property("PasswordHash").CurrentValue =
             password is null ? "x" : new PasswordHasher().Hash(password);
-        entry.Property(nameof(Authenticatable.EmailConfirmedAt)).CurrentValue = DateTime.UtcNow;
+        entry.Property(nameof(Authenticatable.EmailConfirmedAt)).CurrentValue = Timestamp.Now;
 
         if (tenant is { } id)
         {

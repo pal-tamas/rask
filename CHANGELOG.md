@@ -118,6 +118,11 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (auth): Rask.Auth's stored times are `Timestamp`s.** `Session.LastSeenAt`/`ExpiresAt`, `Passkey.LastUsedAt`,
+  `Authenticatable.EmailConfirmedAt`/`PasswordChangedAt` and `AuthInstanceClaim.ClaimedUtc` were `DateTime`/`DateTime?`
+  and are now `Timestamp`/`Timestamp?` (`Rask.Values`): read `.Instant` for the UTC instant, `.Value` for the wall clock
+  of `Clock.Zone`. The columns still hold the UTC instant they always did, so no migration rewrites them; the read faces
+  (`SessionRead.LastSeenAt`, `PasskeyRead.LastUsedAt`) stay `DateTime`, now the wall clock rather than UTC.
 - **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
   last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
   version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived

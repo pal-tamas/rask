@@ -1,4 +1,5 @@
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -34,7 +35,7 @@ public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     public bool BackedUp { get; private set; }
 
     /// <summary>When it last signed in, or <see langword="null" /> while it never has.</summary>
-    public DateTime? LastUsedAt { get; private set; }
+    public Timestamp? LastUsedAt { get; private set; }
 
     /// <summary>The COSE algorithm the key signs with: -7 (ES256) or -257 (RS256).</summary>
     internal int Algorithm { get; private set; }
@@ -73,7 +74,7 @@ public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
         uint signCount,
         bool backedUp,
         string? transports,
-        DateTime now)
+        Timestamp now)
     {
         var passkey = new Passkey
         {
@@ -93,7 +94,7 @@ public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
         return passkey;
     }
 
-    internal void Used(uint signCount, DateTime now)
+    internal void Used(uint signCount, Timestamp now)
     {
         // Only ever forward: a counter that went backwards is refused before this is called.
         if (signCount > SignCount)

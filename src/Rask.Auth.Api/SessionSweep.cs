@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -36,14 +37,16 @@ internal sealed partial class SessionSweep<TContext>(
     /// <summary>One pass. The grace holds for an ended session too: its row is soft-deleted, not gone.</summary>
     internal async Task SweepAsync(CancellationToken cancellationToken)
     {
-        var cutoff = clock.GetUtcNow().UtcDateTime - Grace;
+        var cutoff = clock.GetUtcNow() - Grace;
+        var ended = cutoff.UtcDateTime;
+        var expired = Timestamp.At(cutoff);
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
             await db.Set<Session>()
                 .IgnoreQueryFilters()
-                .Where(s => s.DeletedAt < cutoff || s.ExpiresAt < cutoff)
+                .Where(s => s.DeletedAt < ended || s.ExpiresAt < expired)
                 .ExecuteDeleteAsync(cancellationToken)
                 .ConfigureAwait(false);
         }

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Values;
 
 namespace Rask.Auth;
 
@@ -39,7 +40,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
     private async Task<Guid> StartAsync(
         Guid userId, string? ipAddress, string? userAgent, bool persistent, TimeSpan lifetime, CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(clock.GetUtcNow());
         var session = Session.Start(userId, ipAddress, userAgent, persistent, now, lifetime);
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -119,20 +120,20 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
     // slide: whether a use moves the expiry, as a cookie's does; a bearer token's session ends when the token does.
     private async Task<Row?> ReadAsync(Guid sessionId, bool used, bool slide, CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow().UtcDateTime;
+        var now = clock.GetUtcNow();
         var db = _readers.TryTake(out var kept) ? kept : await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         var sound = false;
         try
         {
             var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
-            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
+            if (used && found is not null && found.ExpiresAt.Instant > now && now - found.LastSeenAt.Instant >= TimeSpan.FromMinutes(1))
             {
-                var expiresAt = slide && options.SlidingExpiration ? now + options.ExpireTimeSpan : found.ExpiresAt;
-                await TouchAsync(db, sessionId, now, expiresAt, cancellationToken).ConfigureAwait(false);
+                var expiresAt = slide && options.SlidingExpiration ? Timestamp.At(now + options.ExpireTimeSpan) : found.ExpiresAt;
+                await TouchAsync(db, sessionId, Timestamp.At(now), expiresAt, cancellationToken).ConfigureAwait(false);
             }
 
             sound = true;
-            if (found is null || found.ExpiresAt <= now)
+            if (found is null || found.ExpiresAt.Instant <= now)
             {
                 return null;
             }
@@ -148,7 +149,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
 
     // At most once a minute: a write per request would make every page view a database write.
     private static Task<int> TouchAsync(
-        TContext db, Guid sessionId, DateTime now, DateTime expiresAt, CancellationToken cancellationToken) =>
+        TContext db, Guid sessionId, Timestamp now, Timestamp expiresAt, CancellationToken cancellationToken) =>
         db.Set<Session>()
             .Where(s => s.Id == sessionId)
             .ExecuteUpdateAsync(
@@ -201,7 +202,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
 
     public async Task<bool> ActInTenantAsync(Guid sessionId, Guid? tenant, CancellationToken cancellationToken = default)
     {
-        var now = clock.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(clock.GetUtcNow());
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
@@ -232,7 +233,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
                 return;
             }
 
-            session.End(clock.GetUtcNow().UtcDateTime);
+            session.End(Timestamp.At(clock.GetUtcNow()));
             db.Remove(session);
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -243,14 +244,14 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            var ended = await Session.EndAll(db, userId, except, clock.GetUtcNow().UtcDateTime, cancellationToken)
+            var ended = await Session.EndAll(db, userId, except, Timestamp.At(clock.GetUtcNow()), cancellationToken)
                 .ConfigureAwait(false);
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return ended;
         }
     }
 
-    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant)
+    private sealed record Row(TUser User, Timestamp ExpiresAt, Timestamp LastSeenAt, Guid? ActingInTenant)
     {
         // What the user signs in with, for an account that signs in by name; its address otherwise, which needs no copy.
         public string? Name { get; init; }
@@ -258,7 +259,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         public string SignInName => Name ?? User.Email;
     }
 
-    private sealed record SessionRow(Guid UserId, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant);
+    private sealed record SessionRow(Guid UserId, Timestamp ExpiresAt, Timestamp LastSeenAt, Guid? ActingInTenant);
 
     // Everything of a user's row that reaches their principal.
     private sealed record Issued(

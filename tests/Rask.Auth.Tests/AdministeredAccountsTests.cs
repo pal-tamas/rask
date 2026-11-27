@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -85,7 +86,7 @@ public sealed class AdministeredAccountsTests
         var id = (await harness.UserAsync("kovacs@example.com"))!.Id;
         await using (var db = harness.NewContext())
         {
-            db.Add(Passkey.Register(id, "Phone", [1, 2, 3], [4, 5, 6], -7, 0, backedUp: false, null, DateTime.UtcNow));
+            db.Add(Passkey.Register(id, "Phone", [1, 2, 3], [4, 5, 6], -7, 0, backedUp: false, null, Timestamp.Now));
             await db.SaveChangesAsync(Cancel);
         }
 
@@ -130,7 +131,7 @@ public sealed class AdministeredAccountsTests
     {
         await using var db = harness.NewContext();
         var user = await db.Set<TestUser>().SingleAsync(u => u.Id == id, Cancel);
-        user.ConfirmEmail(DateTime.UtcNow);
+        user.ConfirmEmail(Timestamp.Now);
         await db.SaveChangesAsync(Cancel);
     }
 

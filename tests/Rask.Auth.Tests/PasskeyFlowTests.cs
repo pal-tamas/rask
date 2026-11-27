@@ -2,6 +2,7 @@ using System.Buffers.Text;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Values;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -393,7 +394,7 @@ public sealed class PasskeyFlowTests
         // Only a confirmed address may add a passkey, so the owner proves theirs first.
         await using var db = harness.NewContext();
         var user = await db.Set<TestUser>().SingleAsync(u => u.Email == Owner);
-        user.ConfirmEmail(DateTime.UtcNow);
+        user.ConfirmEmail(Timestamp.Now);
         await db.SaveChangesAsync();
 
         return harness;

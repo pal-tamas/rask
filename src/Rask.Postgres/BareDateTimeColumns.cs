@@ -14,7 +14,7 @@ namespace Rask.Postgres;
 /// </summary>
 /// <remarks>
 ///     A property the app gave a converter of its own (<c>HasConversion(…)</c>) says how it is stored, and is left alone;
-///     so is one Rask's own types declare (an entity's <c>CreatedAt</c>, a passkey's <c>LastUsedAt</c> — a namespace
+///     so is one Rask's own types declare (an entity's <c>CreatedAt</c> — a namespace
 ///     <c>Rask</c> or <c>Rask.*</c>, which Rask stamps in UTC itself), and a table that is no aggregate or entity of the
 ///     domain — a row an import stages.
 /// </remarks>
