@@ -55,6 +55,11 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **A panel near the viewport's edge turns as Flux 2.22's does (#1189).** Every panel placed by `data-rask-place`
+  (menus, context menus, popovers, select / autocomplete / pillbox lists, date / time pickers, tooltips) now counts
+  the 5 px it keeps from the edge in what fits: one that would end 3 px from the edge turns to the other alignment
+  or the other side of its trigger, whole, where it was kept and slid there, or held a few pixels shorter. A context
+  menu taller than the room is held to the room and scrolls, where it ran past the edge. `rask-place.ts`.
 - **`Ui.Confirm`'s buttons are built as Flux 2.22's confirmation's (#1189).** No holds its words alone (no `<span>`
   around them) and carries `data-rask-confirm-dialog="no"`; Yes holds Flux's spinner and its words in a span, never
   shown — Yes sends nothing (`Loading(false)`), as does `Ui.ConfirmLeave`'s. A question asked from code still words

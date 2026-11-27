@@ -7,9 +7,10 @@
 // the trigger held at every edge of a phone and of a desktop:
 //
 //   1. FLIP. The side asked for, then the same side aligned the other way, then the opposite side, then that
-//      aligned the other way: the first that fits the viewport — edge to edge, no padding — is taken. When none
-//      does: the one whose side fits and overflows least along it, and failing that the one that overflows
-//      least in all (the roomier side).
+//      aligned the other way: the first that fits the viewport 5 px inside its edges is taken (Flux 2.22: a panel
+//      that would end 3 px from the edge is turned, where 2.21 turned only one that passed it). When none does:
+//      the one whose side fits and overflows least along it, and failing that the one that overflows least in
+//      all (the roomier side).
 //   2. SHIFT. Along the trigger's edge the panel is slid back to stay 5 px inside the viewport; one wider than
 //      the viewport keeps its start edge at 5.
 //   3. SIZE. A panel taller than what is left, 5 px from the edge, is given that as its max-height and scrolls
@@ -27,9 +28,8 @@
 // THE ANCHOR is the one the panel already names: the last element whose style says `anchor-name` with the
 // panel's `position-anchor`. A panel whose style names none is placed against what shows it: the first
 // element of the data-rask-tooltip or data-rask-toggle that names its id, or its `popovertarget` button. And
-// one nothing names sits at the pointer (--rask-context-x / -y, which the context-menu opener sets) — flipped
-// and slid but never held to a height: Flux's context menu is not, and one taller than the viewport runs past
-// it there too.
+// one nothing names sits at the pointer (--rask-context-x / -y, which the context-menu opener sets) — flipped,
+// slid and held to a height as any other (Flux 2.22 holds its context menu too).
 //
 // WHAT IT WRITES is one rule per open panel in a stylesheet of its own, keyed on data-rask-placed, which it
 // holds against the morph: the panel's style attribute stays the render's, a strict Content-Security-Policy
@@ -93,9 +93,10 @@ function corner(side: string, align: string, a: Box, w: number, h: number, gap: 
     return up ? [along, across] : [across, along];
 }
 
-// How far a box reaches past each edge of the viewport; negative is room to spare.
+// How far a box reaches past each edge of the viewport less the 5 px a panel keeps from it; negative is room
+// to spare.
 function past(x: number, y: number, w: number, h: number, vw: number, vh: number): {[side: string]: number} {
-    return {top: -y, bottom: y + h - vh, left: -x, right: x + w - vw};
+    return {top: EDGE - y, bottom: y + h - (vh - EDGE), left: EDGE - x, right: x + w - (vw - EDGE)};
 }
 
 // Step 1: which side and alignment the panel takes.
@@ -380,7 +381,7 @@ if (page) {
             if (!p.a) {
                 return "";
             }
-            const to = landing(p.place, p.a, p.size.w, p.size.h, vw, vh, p.rtl, free || !p.anchored);
+            const to = landing(p.place, p.a, p.size.w, p.size.h, vw, vh, p.rtl, free);
             p.cap = to.cap;
             return rule(p.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap === null ? null : to.cap - p.frame);
         };

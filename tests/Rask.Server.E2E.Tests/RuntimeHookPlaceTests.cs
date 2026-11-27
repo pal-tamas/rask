@@ -14,7 +14,7 @@ namespace Rask.Server.E2E.Tests;
 /// <remarks>
 ///     Measured on Flux UI's live popover, dropdown, context, select and picker pages on 2026-10-13, at
 ///     1920 × 1080 and 390 × 844, with each trigger held at every edge: the side asked for, then the other
-///     alignment, then the opposite side — the first that fits the viewport edge to edge — then the panel slid
+///     alignment, then the opposite side — the first that fits 5 px inside the viewport's edges (Flux 2.22) — then the panel slid
 ///     back to stay 5 px inside the edge it runs along, and a panel taller than what is left held to that and
 ///     scrolling inside. Every Flux panel was placed in the frame it opened in. The numbers of each family are
 ///     held to Flux's pages by <c>scripts/flux/Flux</c>'s placement checks; this is the hook itself, in a 1000 × 700 viewport,
@@ -70,17 +70,17 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
-    public async Task A_panel_that_would_pass_the_right_edge_turns_to_its_triggers_end_and_one_within_five_pixels_is_slid_back()
+    public async Task A_panel_that_would_pass_the_right_edge_or_come_within_five_pixels_of_it_turns_to_its_triggers_end()
     {
         await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright);
         await session.HooksLoadedAsync();
 
         var turned = await OpenedAsync(session, "right");
         await session.Page.Keyboard.PressAsync("Escape");
-        var slid = await OpenedAsync(session, "near");
+        var near = await OpenedAsync(session, "near");
 
         Assert.Equal("790,345,200,100", turned);
-        Assert.Equal("795,345,200,100", slid);
+        Assert.Equal("718,345,200,100", near);
     }
 
     [Fact]
