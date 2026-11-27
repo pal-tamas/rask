@@ -131,20 +131,20 @@ anything it cannot map faithfully throws and names the reason.
 
 ## Non-overlapping ranges
 
-A booking, a lease, a price valid for a period: two rows must not cover the same point. SQLite has no
-`EXCLUDE` constraint and a `UNIQUE` index only stops *identical* rows, so declare the rule on the model
-instead:
+A chip held by a driver, a room booked by the hour: two rows with the same key must not cover the same moment.
+A `UNIQUE` index only stops *identical* rows, so declare the rule on the model instead:
 
 ```csharp
-modelBuilder.Entity<Booking>()
-    .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, "A chip is held by one driver at a time.")
+ .Where(x => x.DriverId != null);
+b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, "The room is booked then.");
 ```
 
-Ranges are half-open (`[lo, hi)`), so `100-200` and `200-300` are neighbours rather than a conflict. With
-`Rask.SQLite.EntityFrameworkCore`'s `UseRaskSqlite(...)`, migrations emit the triggers that enforce it and a
-violating save throws `RangeOverlapException`. Enforcement lives in the database, so raw SQL is bound by it
-too. On a provider that emits no such DDL — a plain `UseSqlite`, or any other — the rule would be silently
-ignored, so `AddRaskData<TContext>()` refuses to boot instead, naming the entity and the call that enforces it.
+Ranges are half-open (`[from, to)`), a null end is open, a null key part and an empty range conflict with nothing.
+PostgreSQL holds it as an exclusion constraint, SQL Server and SQLite as triggers — all written by the migrations of
+`UseRaskPostgres`, `UseRaskSqlServer` and `UseRaskSqlite` — and a violating save is refused with the rule's message
+under the range's field, as an `IsUnique("…")` duplicate is. On a provider that writes no such DDL the rule would be
+silently ignored, so `AddRaskData<TContext>()` refuses to boot instead.
 
 ## Full-text search
 

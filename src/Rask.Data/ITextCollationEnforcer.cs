@@ -6,7 +6,7 @@ namespace Rask.Data;
 ///     registered on every connection, PostgreSQL's created by its migrations — so the model may give its text columns
 ///     that collation.
 /// </summary>
-/// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer" />.</remarks>
+/// <remarks>Internal for the same reason as <see cref="INoOverlapEnforcer" />.</remarks>
 internal interface ITextCollationEnforcer
 {
     /// <summary>The name the collation is registered under on each connection, as the schema and the SQL write it.</summary>

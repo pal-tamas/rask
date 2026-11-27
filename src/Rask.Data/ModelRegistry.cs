@@ -128,6 +128,7 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new DatabaseDefaultConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new FilteredIndexConvention(ModelSql.For(services)));
+        configurationBuilder.Conventions.Add(static services => new NoOverlapConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new SequenceConvention(ModelSql.For(services)));
 
         foreach (var contribution in Contributions.Values)

@@ -87,7 +87,7 @@ internal static class JsonIndexDdl
         }
 
         var dropped = operations.OfType<DropTableOperation>().Select(o => o.Name).ToHashSet(StringComparer.Ordinal);
-        var touched = operations.Select(RangeExclusionDdl.TableOf).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var touched = operations.Select(NoOverlapDdl.TableOf).OfType<string>().ToHashSet(StringComparer.Ordinal);
 
         foreach (var entityType in model.GetEntityTypes())
         {
