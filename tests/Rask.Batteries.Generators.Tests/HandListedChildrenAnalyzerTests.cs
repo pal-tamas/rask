@@ -3,7 +3,7 @@ using Rask.Batteries.Generators.Analyzers;
 
 namespace Rask.Batteries.Generators.Tests;
 
-/// <summary>RASK192: an aggregate's children held by hand, where one HasMany&lt;X&gt; says the same.</summary>
+/// <summary>RASK193: an aggregate's children held by hand, where one HasMany&lt;X&gt; says the same.</summary>
 public class HandListedChildrenAnalyzerTests
 {
     private static Task<IReadOnlyList<Diagnostic>> Run(string members, string owner = "Aggregate<Guid>") =>
@@ -26,12 +26,12 @@ public class HandListedChildrenAnalyzerTests
     [InlineData("private readonly List<Pistol> _pistols = []; public IEnumerable<Pistol> Pistols { get { return _pistols; } }")]
     [InlineData("public List<Pistol> Pistols { get; private set; } = [];")]
     [InlineData("public ICollection<Pistol> Pistols { get; } = new List<Pistol>();")]
-    public async Task A_child_list_held_by_hand_on_an_aggregate_is_RASK192(string members)
+    public async Task A_child_list_held_by_hand_on_an_aggregate_is_RASK193(string members)
     {
         var diagnostics = await Run(members);
 
         var diagnostic = Assert.Single(diagnostics);
-        Assert.Equal("RASK192", diagnostic.Id);
+        Assert.Equal("RASK193", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
         Assert.Contains("'Rack.Pistols' holds its 'Pistol' children by hand — declare 'public HasMany<Pistol> Pistols { get; } = new();'",
             diagnostic.GetMessage(), StringComparison.Ordinal);
@@ -42,7 +42,7 @@ public class HandListedChildrenAnalyzerTests
     [InlineData("private readonly List<Gallery> _galleries = []; public IReadOnlyList<Gallery> Galleries => _galleries;")]
     [InlineData("public IReadOnlyList<Pistol> Pistols { get; } = [];")]
     [InlineData("private readonly List<string> _names = []; public IReadOnlyList<string> Names => _names;")]
-    public async Task A_HasMany_a_list_of_other_aggregates_and_lists_of_no_children_are_not_RASK192(string members)
+    public async Task A_HasMany_a_list_of_other_aggregates_and_lists_of_no_children_are_not_RASK193(string members)
     {
         var diagnostics = await Run(members);
 
@@ -50,7 +50,7 @@ public class HandListedChildrenAnalyzerTests
     }
 
     [Fact]
-    public async Task A_child_entity_holding_a_list_of_its_own_is_not_RASK192()
+    public async Task A_child_entity_holding_a_list_of_its_own_is_not_RASK193()
     {
         var diagnostics = await Run("private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;", "Entity<Guid>");
 
@@ -60,7 +60,7 @@ public class HandListedChildrenAnalyzerTests
     [Fact]
     public async Task An_app_that_sets_RaskStrict_is_refused_a_child_list_held_by_hand()
     {
-        var strict = StrictConfig.Severity("RASK192");
+        var strict = StrictConfig.Severity("RASK193");
 
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
             new HandListedChildrenAnalyzer(),
@@ -75,7 +75,7 @@ public class HandListedChildrenAnalyzerTests
                 public List<Pistol> Pistols { get; private set; } = [];
             }
             """,
-            options => options.WithSpecificDiagnosticOptions([new("RASK192", strict)]));
+            options => options.WithSpecificDiagnosticOptions([new("RASK193", strict)]));
 
         Assert.Equal(ReportDiagnostic.Error, strict);
         Assert.Equal(DiagnosticSeverity.Error, Assert.Single(diagnostics).Severity);

@@ -94,7 +94,7 @@ them until tagged releases begin.
   `b.InOrder(s => s.Parts)` — an app that used `Children<,>` and relies on the order adds that line (its `Position`
   column stays as it was); one that does not drops the column in its next migration. RASK180 now covers every mutator
   (`Add`, `Remove`, `RemoveAll`, `Clear`, `Sync`) and a cast to `ICollection<T>` outside the aggregate. New
-  **RASK192** (a suggestion; an error under `<RaskStrict>`) reports a child list exposed by hand — a `List<X>` field
+  **RASK193** (a suggestion; an error under `<RaskStrict>`) reports a child list exposed by hand — a `List<X>` field
   behind a read-only view, or a public `List<X>`/`ICollection<X>` — with a quick-fix that rewrites it to `HasMany<X>`
   and `_xs.Add(x)` to `Xs.Add(x)`.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel

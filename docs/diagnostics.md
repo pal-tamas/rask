@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK145, RASK150, RASK165, RASK170–RASK192, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK145, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -38,7 +38,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
-| **RASK192** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
+| **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -189,7 +189,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
 | [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
-| [RASK192](#rask192) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
+| [RASK193](#rask193) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -4080,7 +4080,7 @@ public sealed class Fueling : Aggregate<int>              // ✗ RASK191: it is 
 
 **Fix:** declare the aggregate `partial` (and at namespace level, not generic).
 
-## RASK192
+## RASK193
 
 **A child list exposed by hand** · Info (Error under `<RaskStrict>`) · quick-fix
 
@@ -4097,7 +4097,7 @@ neither is an entity's own list of its own children.
 public sealed class Rack : Aggregate<RackId>
 {
     private readonly List<Pistol> _pistols = [];
-    public IReadOnlyList<Pistol> Pistols => _pistols;        // ℹ RASK192
+    public IReadOnlyList<Pistol> Pistols => _pistols;        // ℹ RASK193
     public void Hang(Pistol p) => _pistols.Add(p);
 }
 

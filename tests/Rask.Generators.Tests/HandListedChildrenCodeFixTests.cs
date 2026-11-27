@@ -3,7 +3,7 @@ using Rask.Generators.CodeFixes;
 
 namespace Rask.Generators.Tests;
 
-/// <summary>The RASK192 quick-fix: an aggregate's children held by hand become one HasMany&lt;X&gt;.</summary>
+/// <summary>The RASK193 quick-fix: an aggregate's children held by hand become one HasMany&lt;X&gt;.</summary>
 public class HandListedChildrenCodeFixTests
 {
     private static string Source(string members) => $$"""
@@ -24,11 +24,11 @@ public class HandListedChildrenCodeFixTests
 
     private static Task<string> Fix(string source) =>
         CodeFixHarness.ApplyAnalyzerFixAsync(
-            new HandListedChildrenAnalyzer(), new HandListedChildrenCodeFixProvider(), "RASK192", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
+            new HandListedChildrenAnalyzer(), new HandListedChildrenCodeFixProvider(), "RASK193", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
 
     private static Task<bool> Offered(string source) =>
         CodeFixHarness.IsAnalyzerFixOfferedAsync(
-            new HandListedChildrenAnalyzer(), new HandListedChildrenCodeFixProvider(), "RASK192", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
+            new HandListedChildrenAnalyzer(), new HandListedChildrenCodeFixProvider(), "RASK193", source, "Rask.Data", "Rask.Cqrs", "Rask.Wire");
 
     [Fact]
     public async Task The_fix_turns_a_private_list_and_its_view_into_one_HasMany_and_its_uses_into_the_propertys()

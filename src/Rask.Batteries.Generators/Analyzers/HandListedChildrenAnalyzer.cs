@@ -10,7 +10,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK192 — an aggregate holds a list of its children by hand: a private <c>List&lt;X&gt;</c> behind an
+///     RASK193 — an aggregate holds a list of its children by hand: a private <c>List&lt;X&gt;</c> behind an
 ///     <c>IReadOnlyList&lt;X&gt;</c> (or <c>IReadOnlyCollection&lt;X&gt;</c>, <c>IEnumerable&lt;X&gt;</c>) view, or a
 ///     public <c>List&lt;X&gt;</c> / <c>ICollection&lt;X&gt;</c> — where one <c>HasMany&lt;X&gt;</c> says the same.
 /// </summary>
@@ -33,7 +33,7 @@ public sealed class HandListedChildrenAnalyzer : DiagnosticAnalyzer
     public const string FieldProperty = "Field";
 
     private static readonly DiagnosticDescriptor Rask192 = new(
-        "RASK192",
+        "RASK193",
         "A child list exposed by hand",
         "'{0}.{1}' holds its '{2}' children by hand — declare 'public HasMany<{2}> {1} {{ get; }} = new();', which only "
         + "'{0}' changes",
@@ -43,7 +43,7 @@ public sealed class HandListedChildrenAnalyzer : DiagnosticAnalyzer
         description: "A private List<X> field with a read-only view of it, or a public List<X> or ICollection<X>, is the "
                      + "aggregate's children written by hand. Declare them as one HasMany<X>: everyone reads it, only the "
                      + "aggregate changes it (RASK180), and EF Core maps it as it mapped the list — no migration.",
-        helpLinkUri: DiagnosticHelp.Link("RASK192"));
+        helpLinkUri: DiagnosticHelp.Link("RASK193"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask192);
 

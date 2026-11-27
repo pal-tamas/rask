@@ -756,7 +756,7 @@ one let go is deleted, all in the aggregate's save, and `Find` loads them with t
 
 Moving from the hand-written pair — `private readonly List<OrderLine> _lines = [];` and
 `public IReadOnlyList<OrderLine> Lines => _lines;` — is **no migration**: the navigation keeps its name and the child
-its foreign key (`OrderId`), and the schema EF Core creates is the same to the byte. [RASK192](diagnostics.md#rask192)
+its foreign key (`OrderId`), and the schema EF Core creates is the same to the byte. [RASK193](diagnostics.md#rask193)
 suggests the move (an error under `<RaskStrict>`) and its quick-fix makes it, `_lines.Add(line)` becoming
 `Lines.Add(line)`. A read-only auto-property refilled whole — `IReadOnlyList<OrderLine> Lines { get; private set; } = [];`
 with `Lines = [.. Lines, line]` — still works too: Rask hands EF Core a collection it can add to as it loads or saves.

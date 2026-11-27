@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.Simplification;
 
 namespace Rask.Generators.CodeFixes;
 
-// Quick-fix for RASK192 (a child list exposed by hand). Rewrites the aggregate's children into one HasMany of them: a
+// Quick-fix for RASK193 (a child list exposed by hand). Rewrites the aggregate's children into one HasMany of them: a
 // private List of Pistol named _pistols with a read-only view named Pistols becomes one HasMany property named
 // Pistols, initialized empty, the field goes, and every use of the field in the aggregate names the property instead
 // (AddRange is called as Add). A public List or ICollection property becomes the same HasMany property, its AddRange
@@ -31,17 +31,17 @@ namespace Rask.Generators.CodeFixes;
 public sealed class HandListedChildrenCodeFixProvider : RaskCodeFixProvider<PropertyDeclarationSyntax>
 {
     // Finds the field again once ReplaceNodes has produced a new tree.
-    private static readonly SyntaxAnnotation FieldMarker = new("RASK192_Field");
+    private static readonly SyntaxAnnotation FieldMarker = new("RASK193_Field");
 
     // The List<T> members HasMany<T> answers to by the same name, and AddRange, which it answers to as Add.
     private static readonly ImmutableHashSet<string> Kept =
         ImmutableHashSet.Create(StringComparer.Ordinal, "Add", "AddRange", "Remove", "RemoveAll", "Clear", "Count");
 
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK192"];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK193"];
 
     protected override string Title => "Declare the children as one HasMany<T>";
 
-    protected override string EquivalenceKey => "RASK192_HasMany";
+    protected override string EquivalenceKey => "RASK193_HasMany";
 
     protected override async Task<bool> CanFixAsync(CodeFixContext context, PropertyDeclarationSyntax node) =>
         await PlanAsync(context.Document, node, context.CancellationToken).ConfigureAwait(false) is not null;
