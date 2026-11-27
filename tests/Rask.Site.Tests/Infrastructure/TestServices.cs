@@ -54,7 +54,7 @@ internal static class TestServices
             sp.GetService<IDownloadSink>()));
 
         sc.AddSingleton(http ?? FakeHttp.ServingSiteFiles());
-        sc.AddSingleton<IJSRuntime>(js ?? new FakeJsRuntime());
+        sc.AddSingleton<IJSRuntime>(js ?? new TestJSRuntime());
         sc.AddSingleton(downloadSink ?? new CapturingDownloadSink());
         sc.AddSingleton(bannedWords ?? new BannedWordService());
         return sc.BuildServiceProvider();

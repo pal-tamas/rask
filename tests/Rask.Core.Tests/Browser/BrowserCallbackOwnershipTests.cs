@@ -13,7 +13,7 @@ public class BrowserCallbackOwnershipTests
     [Fact]
     public async Task A_watch_answers_only_the_session_that_registered_it()
     {
-        var mine = new FakeJsRuntime();
+        var mine = new TestJSRuntime();
         string? seen = null;
         var id = SignalingInterop.Register(mine, new SignalingHandlers
         {
@@ -24,7 +24,7 @@ public class BrowserCallbackOwnershipTests
             },
         });
 
-        using (JsCaller.Enter(new FakeJsRuntime()))
+        using (JsCaller.Enter(new TestJSRuntime()))
         {
             await SignalingInterop.Message(id, "signal", "peer-1", "hello");
         }
@@ -50,7 +50,7 @@ public class BrowserCallbackOwnershipTests
             return Task.CompletedTask;
         });
 
-        using (JsCaller.Enter(new FakeJsRuntime()))
+        using (JsCaller.Enter(new TestJSRuntime()))
         {
             await GestureResultInterop.Result(id, "accepted");
         }
