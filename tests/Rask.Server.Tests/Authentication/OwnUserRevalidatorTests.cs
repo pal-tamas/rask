@@ -7,8 +7,8 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.Authentication;
 
 /// <summary>
-///     <c>AddSessionRevalidator&lt;T&gt;()</c> on a live page: the app's one method says who its own user acts as now,
-///     and every event of the page acts for the user as the store has them.
+///     An <see cref="ISessionRevalidator" /> of the app's own on a live page: its one method says who its own user acts as
+///     now, and every event of the page acts for the user as the store has them.
 /// </summary>
 public sealed class OwnUserRevalidatorTests
 {
@@ -19,7 +19,7 @@ public sealed class OwnUserRevalidatorTests
         using var host = M2SignedInPage.CreateHost(services =>
         {
             services.AddSingleton(accounts);
-            services.AddSessionRevalidator<AccountCheck>();
+            services.AddSingleton<ISessionRevalidator, AccountCheck>();
         });
         var counter = host.Server.Services.GetRequiredService<M2Counter>();
         var (ws, sessionId, handlerId) = await M2SignedInPage.AttachAsync(host);
@@ -35,65 +35,33 @@ public sealed class OwnUserRevalidatorTests
     }
 
     [Fact]
-    public async Task A_role_given_in_the_store_is_held_at_the_first_event_after_the_kept_user_runs_out()
+    public async Task A_role_given_in_the_store_is_held_at_the_next_event()
     {
         var accounts = new Accounts();
         using var host = M2SignedInPage.CreateHost(services =>
         {
             services.AddSingleton(accounts);
-            services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds);
+            services.AddSingleton<ISessionRevalidator, AccountCheck>();
         });
-        var clock = (StoppedClock)host.Server.Services.GetRequiredService<TimeProvider>();
         var (ws, sessionId, handlerId) = await M2SignedInPage.AttachAsync(host);
         using var socket = ws;
 
         accounts.Alice = accounts.Alice with { Role = "editor" };
-        clock.Advance(6.Seconds);
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         await ws.SettledAsync();
 
         Assert.True(UserOf(host, sessionId).IsInRole("editor"));
     }
 
-    [Fact]
-    public async Task Events_within_the_kept_time_do_not_read_the_store_again()
-    {
-        var accounts = new Accounts();
-        using var host = M2SignedInPage.CreateHost(services =>
-        {
-            services.AddSingleton(accounts);
-            services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds);
-        });
-        var counter = host.Server.Services.GetRequiredService<M2Counter>();
-        var (ws, _, handlerId) = await M2SignedInPage.AttachAsync(host);
-        using var socket = ws;
-        var loadsAtAttach = accounts.Loads;
-
-        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-        await WaitFor.True(() => counter.Count == 2, "both handlers run");
-
-        Assert.Equal(1, loadsAtAttach);
-        Assert.Equal(1, accounts.Loads);
-    }
-
     private static ClaimsPrincipal UserOf(RaskTestHost host, string sessionId) =>
         host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>().Current;
 
-    /// <summary>What the app's store holds about alice, and how many times it was read.</summary>
+    /// <summary>What the app's store holds about alice.</summary>
     internal sealed class Accounts
     {
-        private int _loads;
-
         public Account Alice { get; set; } = new(Disabled: false, Role: null);
 
-        public int Loads => Volatile.Read(ref _loads);
-
-        public Account? Find(string userId)
-        {
-            Interlocked.Increment(ref _loads);
-            return userId == "alice" ? Alice : null;
-        }
+        public Account? Find(string userId) => userId == "alice" ? Alice : null;
     }
 
     internal sealed record Account(bool Disabled, string? Role);

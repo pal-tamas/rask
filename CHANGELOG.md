@@ -118,6 +118,15 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (server): the kept-answer layer for an app's own sign-in is removed — `AddSessionRevalidator<T>()`,
+  `.Keep(…)`, `.ForgetOnSave<T>()`, `Sessions.Forget(…)` / `ISessions`.** It existed so a host that signed its users in
+  itself could stop its revalidator reading its users table on every event. Rask.Auth's sign-in is the way to sign
+  users in now (bcrypt hashes carried over, `[SignInName]`, typed ids, `IBearerSignIn` for a partner's own token
+  endpoint), and its revalidator reads the session's row every time on purpose, so nothing in Rask keeps an answer.
+  A host with a sign-in Rask does not own (an external identity provider) still registers its own
+  `ISessionRevalidator` with `AddSingleton`, asked at every event. Upgrade: move the sign-in onto Rask.Auth
+  (`docs/authentication.md`), or register the revalidator with `services.AddSingleton<ISessionRevalidator, T>()`
+  and drop the `Keep`/`ForgetOnSave`/`Sessions.Forget` calls.
 - **BREAKING (auth): an account is `User : Authenticatable<UserId>, IBelongsTo<Tenant>` — keyed by a typed id over a
   `Guid`, its tenant its own typed column.** `Authenticatable<TKey>` takes a typed id over a `Guid`
   (`readonly partial record struct UserId(Guid Value)`) beside `Guid` and `string`: `User.Id`, `Current.UserId` and
