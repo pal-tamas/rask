@@ -142,6 +142,23 @@ public abstract class ParityTests<TContext>(ProviderLeg leg) : IAsyncLifetime
     /// <summary>A new context on the leg, as a request of its own would open it.</summary>
     private protected abstract TContext Open();
 
+    /// <summary>
+    ///     Runs <paramref name="work" /> with Db's surface (the writes on a type, <c>Db.Transaction</c>) pointed at this
+    ///     leg, as a host points it.
+    /// </summary>
+    private protected async Task<T> OnTheSurface<T>(Func<Task<T>> work)
+    {
+        Db.Configure(Open);
+        try
+        {
+            return await work();
+        }
+        finally
+        {
+            Db.Reset();
+        }
+    }
+
     /// <summary>Skips the fact when the leg's server is not there.</summary>
     private protected void RequireServer() => Assert.SkipUnless(leg.Available, leg.SkipReason);
 }

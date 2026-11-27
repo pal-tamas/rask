@@ -73,8 +73,10 @@ internal static class AggregateSave
     /// </summary>
     internal static void RememberSaved(DbContext context)
     {
-        if (!Staged.TryGetValue(context, out var staged))
+        if (!Staged.TryGetValue(context, out var staged) || staged.Exists(a => IsUnaccepted(context, a)))
         {
+            // Saved with its changes not accepted yet — an attempt of SaveUnit's under a retrying strategy, which may
+            // still roll back: SaveUnit asks again once it committed and accepted them.
             return;
         }
 
@@ -88,6 +90,9 @@ internal static class AggregateSave
             }
         }
     }
+
+    private static bool IsUnaccepted(DbContext context, object aggregate) =>
+        context.Entry(aggregate).State is EntityState.Added or EntityState.Modified or EntityState.Deleted;
 
     /// <summary>Saves through a context of its own, and remembers what was written for the next save.</summary>
     internal static async Task SaveAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(

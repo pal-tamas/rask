@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Rask.Data.Tests;
 
@@ -11,6 +12,7 @@ public sealed class LockedByTests : IDisposable
     private readonly InMemorySqlite _sqlite = new();
     // One instance for every test: a new interceptor per context is a new EF Core service provider each time.
     private static readonly LockReads Reads = new();
+    private static readonly ClaimInsertFault Fault = new();
 
     public void Dispose() => _sqlite.Dispose();
 
@@ -163,6 +165,40 @@ public sealed class LockedByTests : IDisposable
     }
 
     [Fact]
+    public async Task A_lock_read_for_update_under_a_retrying_strategy_runs_inside_the_saves_transaction()
+    {
+        await using var database = await StartRetryingDatabaseAsync();
+        var open = await PeriodAsync(database, "April", close: false);
+        var claim = TallyClaim.Unfiled();
+        claim.FileIn(open.Id);
+        Reads.Seen.Clear();
+
+        await GeneratedModelWrites.Save(claim, cancellationToken: Token);
+
+        var read = Assert.Single(Reads.Seen, r => r.Sql.StartsWith("-- " + ForUpdateSql.Tag, StringComparison.Ordinal));
+        Assert.True(read.InTransaction);
+        Assert.Equal(open.Id, (await database.Load<TallyClaim>(claim.Id, Token))!.Period);
+    }
+
+    [Fact]
+    public async Task A_transient_failure_under_a_retrying_strategy_retries_the_lock_read_and_the_write_together()
+    {
+        await using var database = await StartRetryingDatabaseAsync();
+        var open = await PeriodAsync(database, "May", close: false);
+        var claim = TallyClaim.Unfiled();
+        claim.FileIn(open.Id);
+        Reads.Seen.Clear();
+        Fault.FailNextInsert = true;
+
+        await GeneratedModelWrites.Save(claim, cancellationToken: Token);
+
+        var reads = Reads.Seen.Where(r => r.Sql.StartsWith("-- " + ForUpdateSql.Tag, StringComparison.Ordinal)).ToList();
+        Assert.Equal(2, reads.Count);
+        Assert.All(reads, r => Assert.True(r.InTransaction));
+        Assert.Equal(open.Id, Assert.Single(await database.Context.Set<TallyClaim>().AsNoTracking().ToListAsync(Token)).Period);
+    }
+
+    [Fact]
     public async Task A_refused_save_rolls_back_the_transaction_its_lock_opened()
     {
         await using var database = await StartDatabaseAsync();
@@ -259,6 +295,52 @@ public sealed class LockedByTests : IDisposable
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite(_sqlite.ConnectionString).AddInterceptors(Reads));
+
+    // As Rask.SqlServer and Rask.Postgres configure a context by default: an execution strategy that retries.
+    private Task<TestDatabase> StartRetryingDatabaseAsync() =>
+        TestDatabase.Start(o => o
+            .UseSqlite(_sqlite.ConnectionString, sqlite => sqlite.ExecutionStrategy(static d => new RetryingStrategy(d)))
+            .AddInterceptors(Reads, Fault));
+
+    // Retries the one failure a test throws, at once.
+    private sealed class RetryingStrategy(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 2, maxRetryDelay: TimeSpan.FromMilliseconds(1))
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is TransientFault;
+    }
+
+    private sealed class TransientFault() : Exception("A transient failure the strategy retries.");
+
+    // Fails the next insert of a claim once, as a dropped connection would.
+    private sealed class ClaimInsertFault : DbCommandInterceptor
+    {
+        public bool FailNextInsert { get; set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Fail(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            Fail(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void Fail(DbCommand command)
+        {
+            if (FailNextInsert && command.CommandText.Contains("INSERT INTO \"TallyClaim", StringComparison.Ordinal))
+            {
+                FailNextInsert = false;
+                throw new TransientFault();
+            }
+        }
+    }
 
     // Each read the contexts run: its SQL as executed, and whether it ran inside a transaction.
     private sealed class LockReads : DbCommandInterceptor

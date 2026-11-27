@@ -1491,8 +1491,11 @@ of the save:
 - **`LockRead.ForUpdate`** reads the parents with an update lock held to the end of the save — `UPDLOCK, HOLDLOCK` on
   SQL Server, `FOR UPDATE` on PostgreSQL, nothing on SQLite, whose one writer serializes the save already — so a
   "Close period" cannot slip in between the check and the write. The save runs in a transaction of its own when its
-  caller opened none (inside `Db.Transaction`, it is that one). A context whose execution strategy retries cannot
-  take one: wrap such a save in `Db.Transaction` for the lock to hold.
+  caller opened none (inside `Db.Transaction`, it is that one). On a context whose execution strategy retries — Rask.SqlServer's
+  and Rask.Postgres's by default — Rask's own writes (`order.Save()`, `X.Create`, `X.Update`, `X.Delete`, an operation's
+  entry, an import) run the save inside the strategy with that transaction, so the locked read and the write commit
+  together and a transient failure retries them together. A `SaveChanges` of your own on such a context opens none:
+  put it in `Db.Transaction` for the lock to hold.
 
 The parents are read past every query filter, so a soft-deleted closed period still holds its notes. A parent the
 same save closes is judged as the database has it, before this save.

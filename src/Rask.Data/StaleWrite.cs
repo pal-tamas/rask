@@ -30,12 +30,15 @@ internal static class StaleWrite
     internal static RaskValidationException Refusal(Exception? cause = null) =>
         new([new FieldFailure(Sentence(), [])], cause);
 
-    /// <summary>Saves <paramref name="context" />, refusing a stale save with the sentence instead of EF's exception.</summary>
+    /// <summary>
+    ///     Saves <paramref name="context" /> as one unit (<see cref="SaveUnit" />), refusing a stale save with the sentence
+    ///     instead of EF's exception.
+    /// </summary>
     internal static async Task SaveAsync(DbContext context, CancellationToken cancellationToken)
     {
         try
         {
-            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await SaveUnit.SaveAsync(context, cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateConcurrencyException stale)
         {

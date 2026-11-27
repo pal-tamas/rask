@@ -105,6 +105,32 @@ public abstract class ParentLockParityTests(ProviderLeg leg) : ParityTests<Ledge
         Assert.Equal(1, await closing.Set<LedgerClaim>().CountAsync(Ct));
     }
 
+    [Fact]
+    public async Task A_claim_saved_through_its_write_reads_its_month_and_saves()
+    {
+        RequireServer();
+        var month = await MonthAsync("June", close: false);
+
+        await OnTheSurface(() => GeneratedModelWrites.Save(LedgerClaim.Into(month), cancellationToken: Ct));
+
+        await using var db = Open();
+        Assert.Equal(month, Assert.Single(await db.Set<LedgerClaim>().ToListAsync(Ct)).Month);
+    }
+
+    [Fact]
+    public async Task A_claim_saved_through_its_write_into_a_closed_month_is_refused_and_nothing_is_written()
+    {
+        RequireServer();
+        var month = await MonthAsync("July", close: true);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => OnTheSurface(() => GeneratedModelWrites.Save(LedgerClaim.Into(month), cancellationToken: Ct)));
+
+        Assert.Equal("July is closed.", Assert.Single(refused.Errors["Month"]));
+        await using var db = Open();
+        Assert.Equal(0, await db.Set<LedgerClaim>().CountAsync(Ct));
+    }
+
     private protected override LedgerDbContext Open() => Leg.Open<LedgerDbContext>(o => new LedgerDbContext(o));
 
     private async Task<int> MonthAsync(string name, bool close)

@@ -12,7 +12,9 @@ namespace Rask.Data;
 /// <remarks>
 ///     Opened only when the caller has none: a transaction of the caller's (or the <c>Db.Transaction</c> the context joins
 ///     at its first use) already holds the save. A context whose execution strategy retries is the exception — EF Core
-///     refuses a transaction it did not start there — so on such a context the reads run just before the save, outside it.
+///     refuses a transaction it did not start there — so Rask's own writes save such a context as one unit inside the
+///     strategy (<see cref="SaveUnit" />), whose transaction this finds; only a caller's own <c>SaveChanges</c> on one,
+///     outside <c>Db.Transaction</c>, still runs the reads just before the save, outside a transaction.
 /// </remarks>
 internal static class SaveTransaction
 {

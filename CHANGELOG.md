@@ -112,6 +112,15 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`LockedBy(…, LockRead.ForUpdate)` holds under a retrying execution strategy.** Rask.SqlServer and Rask.Postgres
+  turn `EnableRetryOnFailure` on by default, and on such a context the save opened no transaction (EF Core refuses one
+  it did not start), so the parent was read without its row lock and a child save could slip past a concurrent close —
+  and a declared rule's check, a numbering's lock and its follow-ups ran outside the write's transaction the same way.
+  Rask's own writes (`order.Save()`, `X.Create`/`Update`/`Delete`, an operation's entry, `Import`, `UpdateEach`) now
+  save such a context inside `strategy.ExecuteAsync` with a transaction of their own, EF Core's pattern: the locked
+  read, the checks and the write share one transaction, and a transient failure retries the whole unit, taking back
+  what the failed attempt stamped. `Db.Transaction` and `UpdateWhere`/`DeleteWhere` already ran inside the strategy. A
+  `SaveChanges` of your own on a retrying context still opens none: put it in `Db.Transaction` (`docs/domain.md`).
 - **An MDN link with an `&` in it no longer breaks the build of the generated DOM.** MDN's new `headingoffset` /
   `headingreset` globals link whatwg's `#heading-levels-&-offsets`, which the emitters wrote verbatim into a
   `<see href>` — CS1570 in `HTMLElement.g.cs`, so the `mdn` follower could not land (#1259). Every spec and MDN link
