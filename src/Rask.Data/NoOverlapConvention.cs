@@ -62,7 +62,7 @@ internal sealed class NoOverlapConvention(ModelSql? sql) : IModelFinalizingConve
         var store = StoreObjectIdentifier.Table(table, entityType.GetSchema());
         string Column(IConventionProperty property) => property.GetColumnName(store) ?? property.GetColumnName();
 
-        var stem = $"EX_{table}_{string.Join('_', keys.Select(Column))}_{Column(from)}";
+        var stem = $"xc_{table}_{string.Join('_', keys.Select(Column))}_{Column(from)}";
         var name = Limited(stem, limit);
         var n = 1;
         while (earlier.Exists(r => string.Equals(r.Name, name, StringComparison.Ordinal)))

@@ -57,9 +57,9 @@ internal static class StoreKeyRebuildOperations
         foreach (var table in target.Tables)
         {
             if (StoreKeyRebuild.Of(table) is not { } rebuild ||
-                source.FindTable(table.Name, table.Schema) is not { } before ||
+                Before(result, source, table) is not { } before ||
                 KeyOf(table) is not { } key || KeyOf(before) is not { } was ||
-                !string.Equals(key.Name, was.Name, StringComparison.Ordinal) ||
+                !string.Equals(PropertyOf(key), PropertyOf(was), StringComparison.Ordinal) ||
                 !IsInteger(was.ProviderClrType) || !IsGuid(key) ||
                 Recreates(result, table))
             {
@@ -83,9 +83,13 @@ internal static class StoreKeyRebuildOperations
         StoreKeyRebuildSql sql,
         (bool Source, bool Target) guidOrderOn)
     {
+        // A table the same migration renames (Rask's names over EF Core's) is renamed first, its columns with it, and
+        // rebuilt under its new names.
+        var renames = operations.Where(o => IsRename(o, table, before)).ToList();
+        var renamed = renames.Count > 0;
         var kept = table.Columns
             .Where(c => c.ComputedColumnSql is null && !string.Equals(c.Name, key, StringComparison.Ordinal) &&
-                        before.FindColumn(c.Name) is not null)
+                        (before.FindColumn(c.Name) is not null || (renamed && before.Columns.Any(b => string.Equals(PropertyOf(b), PropertyOf(c), StringComparison.Ordinal)))))
             .ToList();
         var columns = kept.Select(static c => c.Name).ToList();
         var guids = kept.Where(static c => string.Equals(c.StoreType, UniqueIdentifier, StringComparison.OrdinalIgnoreCase))
@@ -104,15 +108,15 @@ internal static class StoreKeyRebuildOperations
         var first = new List<string> { sql.Marker };
         if (rebuild.Pending is { } pending)
         {
-            first.Add(sql.Guard(ColumnOf(before, pending)));
+            first.Add(sql.Guard(ColumnOf(renamed ? table : before, pending)));
         }
 
         if (rebuild.KeepBy is { } keepBy)
         {
-            first.Add(sql.SetAside(key, ColumnOf(before, keepBy), guidOrderOn.Target, columns, Read));
+            first.Add(sql.SetAside(key, ColumnOf(renamed ? table : before, keepBy), guidOrderOn.Target, columns, Read));
         }
 
-        var rebuilt = new List<MigrationOperation>
+        var rebuilt = new List<MigrationOperation>(renames)
         {
             new SqlOperation { Sql = string.Join("\n", first) },
             new DropTableOperation { Name = table.Name, Schema = table.Schema },
@@ -125,11 +129,29 @@ internal static class StoreKeyRebuildOperations
 
         rebuilt.AddRange(creation.Where(o => o is InsertDataOperation && Touches(o, table)));
 
-        var at = operations.ToList().FindIndex(o => Touches(o, table));
-        var rest = operations.Where(o => !Touches(o, table)).ToList();
+        var at = operations.ToList().FindIndex(o => Touches(o, table) || renames.Contains(o));
+        var rest = operations.Where(o => !Touches(o, table) && !renames.Contains(o)).ToList();
         rest.InsertRange(at < 0 ? rest.Count : at, rebuilt);
         return rest;
     }
+
+    // The table the database has: the same name, or the one the migration renames to it.
+    private static ITable? Before(IReadOnlyList<MigrationOperation> operations, IRelationalModel source, ITable table) =>
+        source.FindTable(table.Name, table.Schema) ??
+        operations.OfType<RenameTableOperation>()
+            .Where(r => string.Equals(r.NewName ?? r.Name, table.Name, StringComparison.Ordinal) && string.Equals(r.NewSchema, table.Schema, StringComparison.Ordinal))
+            .Select(r => source.FindTable(r.Name, r.Schema))
+            .FirstOrDefault(static t => t is not null);
+
+    // A rename of the table or of one of its columns, which runs before the rebuild.
+    private static bool IsRename(MigrationOperation operation, ITable table, ITable before) => operation switch
+    {
+        RenameTableOperation r => Same(r.NewName ?? r.Name, r.NewSchema, table) && !string.Equals(before.Name, table.Name, StringComparison.Ordinal),
+        RenameColumnOperation c => Same(c.Table, c.Schema, table) || Same(c.Table, c.Schema, before),
+        _ => false,
+    };
+
+    private static string? PropertyOf(IColumnBase column) => column.PropertyMappings.Select(static m => m.Property.Name).FirstOrDefault() ?? column.Name;
 
     // The single key column of a table, or null for a composite or keyless one.
     private static IColumn? KeyOf(ITable table) =>
@@ -163,6 +185,6 @@ internal static class StoreKeyRebuildOperations
         _ => false,
     };
 
-    private static bool Same(string name, string? schema, ITable table) =>
+    private static bool Same(string name, string? schema, ITableBase table) =>
         string.Equals(name, table.Name, StringComparison.Ordinal) && string.Equals(schema, table.Schema, StringComparison.Ordinal);
 }

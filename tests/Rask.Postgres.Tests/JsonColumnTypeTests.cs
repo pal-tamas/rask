@@ -36,7 +36,7 @@ public sealed class JsonColumnTypeTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Files\" jsonb NOT NULL", script, StringComparison.Ordinal);
-        Assert.Contains("\"Labels\" text[] NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("files jsonb NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("labels text[] NOT NULL", script, StringComparison.Ordinal);
     }
 }

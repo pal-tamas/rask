@@ -28,7 +28,7 @@ public sealed class TenantFilterShapeTests : IDisposable
         }
 
         var where = sql[sql.IndexOf("WHERE", StringComparison.Ordinal)..];
-        Assert.Contains("\"TenantId\" = @", where, StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", where, StringComparison.Ordinal);
         Assert.DoesNotContain(" OR ", where, StringComparison.Ordinal);
     }
 
@@ -47,7 +47,7 @@ public sealed class TenantFilterShapeTests : IDisposable
             names = await database.Context.Set<Destination>().Select(d => d.Name).ToListAsync(TestContext.Current.CancellationToken);
         }
 
-        Assert.DoesNotContain("\"TenantId\" =", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"tenant_id\" =", sql, StringComparison.Ordinal);
         Assert.Equal(["Budapest", "Vienna"], names.Order());
     }
 
@@ -86,7 +86,7 @@ public sealed class TenantFilterShapeTests : IDisposable
         await SaveAsync(Acme, "Budapest");
 
         var stored = await database.Context.Database
-            .SqlQuery<int?>($"SELECT TenantId AS Value FROM Destinations")
+            .SqlQuery<int?>($"SELECT tenant_id AS Value FROM Destinations")
             .ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equal([Acme], stored);
     }

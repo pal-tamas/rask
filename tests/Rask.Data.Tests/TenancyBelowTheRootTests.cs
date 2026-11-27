@@ -80,8 +80,8 @@ public sealed class TenancyBelowTheRootTests : IDisposable
         Assert.Null(parcel.FindProperty(Columns.TenantId));
         Assert.Null(database.Context.Model.FindEntityType(typeof(Drop))!.FindProperty(Columns.TenantId));
         Assert.Equal(2, sql.Split("EXISTS").Length - 1);
-        Assert.Contains("FROM \"Drop\"", sql, StringComparison.Ordinal);
-        Assert.Contains("FROM \"Tour\"", sql, StringComparison.Ordinal);
+        Assert.Contains("FROM \"drops\"", sql, StringComparison.Ordinal);
+        Assert.Contains("FROM \"tours\"", sql, StringComparison.Ordinal);
     }
 
     [Fact]

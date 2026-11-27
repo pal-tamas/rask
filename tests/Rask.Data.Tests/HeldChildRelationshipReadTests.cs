@@ -114,18 +114,18 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
-            CREATE TABLE "Countries" ("Id" INTEGER NOT NULL PRIMARY KEY);
-            CREATE TABLE "RefundProductCategories" ("Id" INTEGER NOT NULL PRIMARY KEY, "Name" TEXT NOT NULL);
+            CREATE TABLE "Countries" ("id" INTEGER NOT NULL PRIMARY KEY);
+            CREATE TABLE "RefundProductCategories" ("id" INTEGER NOT NULL PRIMARY KEY, "name" TEXT NOT NULL);
             CREATE TABLE "RefundProductCategoryCountries" (
-                "RefundProductCategoryId" INTEGER NOT NULL, "CountryId" INTEGER NOT NULL,
-                PRIMARY KEY ("RefundProductCategoryId", "CountryId"));
+                "refund_product_category_id" INTEGER NOT NULL, "country_id" INTEGER NOT NULL,
+                PRIMARY KEY ("refund_product_category_id", "country_id"));
             CREATE TABLE "RefundProductCategoryCountryRates" (
-                "RefundProductCategoryId" INTEGER NOT NULL, "CountryId" INTEGER NOT NULL, "Year" INTEGER NOT NULL,
-                "Percent" TEXT NOT NULL, PRIMARY KEY ("RefundProductCategoryId", "CountryId", "Year"));
-            CREATE TABLE "RebateCategories" ("Id" INTEGER NOT NULL PRIMARY KEY);
+                "refund_product_category_id" INTEGER NOT NULL, "country_id" INTEGER NOT NULL, "year" INTEGER NOT NULL,
+                "percent" TEXT NOT NULL, PRIMARY KEY ("refund_product_category_id", "country_id", "year"));
+            CREATE TABLE "RebateCategories" ("id" INTEGER NOT NULL PRIMARY KEY);
             CREATE TABLE "RebateCategoryCountries" (
-                "RebateCategoryId" INTEGER NOT NULL, "CountryId" INTEGER NOT NULL,
-                PRIMARY KEY ("RebateCategoryId", "CountryId"));
+                "rebate_category_id" INTEGER NOT NULL, "country_id" INTEGER NOT NULL,
+                PRIMARY KEY ("rebate_category_id", "country_id"));
             INSERT INTO "Countries" VALUES (19), (23);
             INSERT INTO "RefundProductCategories" VALUES (1, 'Diesel'), (2, 'Petrol');
             INSERT INTO "RefundProductCategoryCountries" VALUES (1, 19), (1, 23), (2, 23);

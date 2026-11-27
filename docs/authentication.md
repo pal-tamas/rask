@@ -324,7 +324,7 @@ await auth.SignIn(username, password);
   configured one at the user's next sign-in. Map the old column onto the hash in the user's own `Configure`:
   `builder.Property<string>("PasswordHash").HasColumnName("password");`.
 - **The schema changes**: the user gains Rask.Auth's columns (`Email`, `EmailConfirmedAt`, `PasswordChangedAt`,
-  `Roles`, `TenantId`, `TenantKey`, the stamps) and the `RaskAuthSession` / `RaskAuthPasskey` tables. Make the step
+  `Roles`, `TenantId`, `TenantKey`, the stamps) and the `auth_sessions` / `auth_passkeys` tables. Make the step
   with `rask db add AddRaskAuth` and look it over before it runs.
 - **Sessions start fresh.** Rask does not take over an old session table or cookie: on the day you switch, everyone
   signs in once more, and the old tables can go in a later migration.

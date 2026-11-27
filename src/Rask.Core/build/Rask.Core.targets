@@ -520,6 +520,30 @@
   </Target>
 
   <!--
+    Rask requires C# 15. The generated source uses its features (the per-page Url()/Go() helpers are static
+    extension members), and generated code compiles with the CONSUMER's language version — below it the
+    failure is a parse-error cascade (CS1001/CS1513/CS1519) inside generated files, which says nothing useful.
+    So a project that pins an older version stops here, naming the setting.
+
+    Only an explicit number (`14`, `13.0`, `7.3`) or an ISO version is too old: unset, `default`, `latest`,
+    `latestMajor` and `preview` all resolve to C# 15 or later on the .NET 11 SDK that a net11.0 project needs.
+    Only a .NETCoreApp project is checked: Rask ships for net11.0 alone, and the SDK pins LangVersion 7.3 on a
+    netstandard2.0 build-task or analyzer project, which never compiles generated Rask source.
+  -->
+  <Target Name="_RaskRequireCSharp15" BeforeTargets="CoreCompile"
+          Condition=" '$(Language)' == 'C#' And '$(TargetFrameworkIdentifier)' == '.NETCoreApp' ">
+    <PropertyGroup>
+      <_RaskLangVersion>$(LangVersion.Trim().ToLowerInvariant())</_RaskLangVersion>
+      <_RaskLangMajor Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(_RaskLangVersion)', '^\d+(\.\d+)?$'))">$([System.Text.RegularExpressions.Regex]::Match('$(_RaskLangVersion)', '^\d+').Value)</_RaskLangMajor>
+      <_RaskLangTooOld Condition="$(_RaskLangVersion.StartsWith('iso-'))">true</_RaskLangTooOld>
+      <_RaskLangTooOld Condition=" '$(_RaskLangMajor)' != '' And $(_RaskLangMajor) &lt; 15 ">true</_RaskLangTooOld>
+    </PropertyGroup>
+    <Error Condition=" '$(_RaskLangTooOld)' == 'true' "
+           Code="RASKLANG001"
+           Text="Rask requires C# 15, and $(MSBuildProjectName) sets &lt;LangVersion&gt;$(LangVersion)&lt;/LangVersion&gt;. Remove it (.NET 11 defaults to C# 15) or set it to 15, latest or preview."/>
+  </Target>
+
+  <!--
     ONE copy of the Rask analyzer payload, however many host packages are referenced.
 
     Rask.Server and Rask.Wasm each pack analyzers/dotnet/cs/Rask.Generators.dll (see

@@ -67,9 +67,9 @@ public sealed class JsonColumnTypeTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Files] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
-        Assert.Contains("[Stops] nvarchar(max)", script, StringComparison.Ordinal);
-        Assert.Contains("[Tags] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("[files] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("[stops] nvarchar(max)", script, StringComparison.Ordinal);
+        Assert.Contains("[tags] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
         Assert.DoesNotContain(" json", script, StringComparison.Ordinal);
     }
 
@@ -80,7 +80,7 @@ public sealed class JsonColumnTypeTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Pinned] nvarchar(4000) NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("[pinned] nvarchar(4000) NOT NULL", script, StringComparison.Ordinal);
     }
 
     [Theory]

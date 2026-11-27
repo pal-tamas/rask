@@ -28,9 +28,9 @@ public sealed class RecurringJobState : Aggregate<Guid>, IHasTimestamps, IInfras
     /// <summary>Starts the bookkeeping for <paramref name="name" />, never yet enqueued.</summary>
     /// <param name="name">The recurring job's registered name.</param>
     public static RecurringJobState For(string name) =>
-        new() { Id = Guid.CreateVersion7(), Name = name };
+        new() { Id = OrderedGuid.New(), Name = name };
 
     // Started as if it had just run at lastEnqueuedAt: a new schedule then waits for its next occurrence.
     internal static RecurringJobState For(string name, DateTime? lastEnqueuedAt) =>
-        new() { Id = Guid.CreateVersion7(), Name = name, LastEnqueuedAt = lastEnqueuedAt };
+        new() { Id = OrderedGuid.New(), Name = name, LastEnqueuedAt = lastEnqueuedAt };
 }

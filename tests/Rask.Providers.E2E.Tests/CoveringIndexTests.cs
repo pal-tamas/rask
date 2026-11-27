@@ -45,10 +45,10 @@ public sealed class SqliteCoveringIndexTests
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var definitions = await db.Database
-            .SqlQueryRaw<string>("SELECT sql AS Value FROM sqlite_master WHERE type = 'index' AND name = 'IX_Remittance_PayeeId'")
+            .SqlQueryRaw<string>("SELECT sql AS Value FROM sqlite_master WHERE type = 'index' AND name = 'ix_Remittance_payee_id'")
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("CREATE INDEX \"IX_Remittance_PayeeId\" ON \"Remittance\" (\"PayeeId\")", Assert.Single(definitions));
+        Assert.Equal("CREATE INDEX \"ix_Remittance_payee_id\" ON \"Remittance\" (\"payee_id\")", Assert.Single(definitions));
     }
 }
 
@@ -66,11 +66,11 @@ public sealed class PostgresCoveringIndexTests
 
         var definition = await db.Database
             .SqlQueryRaw<string>(
-                "SELECT indexdef AS \"Value\" FROM pg_indexes WHERE schemaname = {0} AND indexname = 'IX_Remittance_PayeeId'",
+                "SELECT indexdef AS \"Value\" FROM pg_indexes WHERE schemaname = {0} AND indexname = 'ix_Remittance_payee_id'",
                 CoveredDbContext.Schema)
             .SingleAsync(TestContext.Current.CancellationToken);
 
-        Assert.EndsWith("USING btree (\"PayeeId\") INCLUDE (\"Amount\", \"Note\")", definition, StringComparison.Ordinal);
+        Assert.EndsWith("USING btree (payee_id) INCLUDE (amount, note)", definition, StringComparison.Ordinal);
         await Postgres.DropSchemaAsync(db, CoveredDbContext.Schema);
     }
 }
@@ -95,12 +95,12 @@ public sealed class SqlServerCoveringIndexTests
                 FROM sys.index_columns ic
                 JOIN sys.indexes i ON i.object_id = ic.object_id AND i.index_id = ic.index_id
                 JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
-                WHERE ic.object_id = OBJECT_ID('covering.Remittance') AND i.name = 'IX_Remittance_PayeeId'
+                WHERE ic.object_id = OBJECT_ID('covering.Remittance') AND i.name = 'ix_Remittance_payee_id'
                 ORDER BY ic.key_ordinal DESC, c.name
                 """)
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["PayeeId:0", "Amount:1", "Note:1"], columns);
+        Assert.Equal(["payee_id:0", "amount:1", "note:1"], columns);
         await db.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 }
@@ -163,7 +163,7 @@ public sealed class ComplexCoveringIndexScriptTests
 
         var script = db.Database.GenerateCreateScript();
 
-        Assert.Contains("ON [Haulage] ([Lane]) INCLUDE ([EndKm], [StartKm]);", script, StringComparison.Ordinal);
+        Assert.Contains("ON [Haulage] ([lane]) INCLUDE ([EndKm], [StartKm]);", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class ComplexCoveringIndexScriptTests
 
         var script = db.Database.GenerateCreateScript();
 
-        Assert.Contains("ON \"Haulage\" (\"Lane\") INCLUDE (\"EndKm\", \"StartKm\");", script, StringComparison.Ordinal);
+        Assert.Contains("ON \"Haulage\" (lane) INCLUDE (\"EndKm\", \"StartKm\");", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -185,6 +185,6 @@ public sealed class ComplexCoveringIndexScriptTests
 
         var script = db.Database.GenerateCreateScript();
 
-        Assert.Contains("ON [Haulage] ([Lane]) INCLUDE ([EndKm]);", script, StringComparison.Ordinal);
+        Assert.Contains("ON [Haulage] ([lane]) INCLUDE ([EndKm]);", script, StringComparison.Ordinal);
     }
 }

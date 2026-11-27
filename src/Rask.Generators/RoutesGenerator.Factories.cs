@@ -9,7 +9,7 @@ namespace Rask.Generators;
 
 public sealed partial class RoutesGenerator
 {
-    private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder? extSb,
+    private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder extSb,
         Candidate c, Dictionary<string, Candidate> byFqn, string helperFqn)
     {
         if (ResolveRoute(spc.ReportDiagnostic, c, byFqn) is not { } route)
@@ -154,7 +154,7 @@ public sealed partial class RoutesGenerator
             "        => throw new global::System.InvalidOperationException(\"Route source generation failed; see diagnostics.\");");
     }
 
-    private static void EmitFactoryBody(StringBuilder sb, StringBuilder? extSb, Candidate c,
+    private static void EmitFactoryBody(StringBuilder sb, StringBuilder extSb, Candidate c,
         List<ITemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps,
         string helperFqn)
     {
@@ -191,10 +191,7 @@ public sealed partial class RoutesGenerator
 
         sb.AppendLine("    }");
 
-        if (extSb is not null)
-        {
-            EmitNavigationExtension(extSb, c, orderedPath, queryProps, helperFqn);
-        }
+        EmitNavigationExtension(extSb, c, orderedPath, queryProps, helperFqn);
     }
 
     private static void AppendFactoryParameters(
@@ -342,7 +339,7 @@ public sealed partial class RoutesGenerator
 
     /// <summary>
     ///     Emits the per-page <c>SomePage.Url(...)</c> / <c>SomePage.Go(...)</c> pair as a C# 14 static
-    ///     extension block. Both mirror the legacy <c>Routes.SomePage(...)</c> signature exactly — the same
+    ///     extension block. Both mirror the <c>Routes.SomePage(...)</c> signature exactly — the same
     ///     path params (required before optional) then the query params — and <c>Url</c> forwards to it, so
     ///     the URL-building logic has exactly one implementation.
     ///     <para>

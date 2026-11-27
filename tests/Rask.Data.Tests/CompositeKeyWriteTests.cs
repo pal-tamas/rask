@@ -79,13 +79,13 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
 
         var writes = Writes();
         Assert.Equal(3, writes.Count);
-        Assert.Single(writes, static w => w.StartsWith("UPDATE \"DeliveryNoteTransactions\" SET \"Quantity\" = @p", StringComparison.Ordinal)
-                                          && w.Contains("WHERE \"DeliveryNoteId\" = @p", StringComparison.Ordinal)
-                                          && w.Contains("AND \"TransactionId\" = @p", StringComparison.Ordinal));
-        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"DeliveryNoteTransactions\" (\"DeliveryNoteId\", \"TransactionId\", \"Quantity\")", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("UPDATE \"DeliveryNoteTransactions\" SET \"quantity\" = @p", StringComparison.Ordinal)
+                                          && w.Contains("WHERE \"delivery_note_id\" = @p", StringComparison.Ordinal)
+                                          && w.Contains("AND \"transaction_id\" = @p", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"DeliveryNoteTransactions\" (\"delivery_note_id\", \"transaction_id\", \"quantity\")", StringComparison.Ordinal));
         Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"DeliveryNoteTransactions\"", StringComparison.Ordinal)
-                                          && w.Contains("WHERE \"DeliveryNoteId\" = @p", StringComparison.Ordinal)
-                                          && w.Contains("AND \"TransactionId\" = @p", StringComparison.Ordinal));
+                                          && w.Contains("WHERE \"delivery_note_id\" = @p", StringComparison.Ordinal)
+                                          && w.Contains("AND \"transaction_id\" = @p", StringComparison.Ordinal));
         Assert.Equal([(10, 12.5m), (11, 4m), (12, 1m)], await FuellingsAsync(Acme, note.Id));
     }
 
@@ -160,7 +160,7 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
 
         var writes = Writes();
         Assert.Equal(3, writes.Count);
-        Assert.Single(writes, static w => w.StartsWith("UPDATE \"DeliveryNoteTransactions\" SET \"Quantity\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("UPDATE \"DeliveryNoteTransactions\" SET \"quantity\"", StringComparison.Ordinal));
         Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"DeliveryNoteTransactions\"", StringComparison.Ordinal));
         Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"DeliveryNoteTransactions\"", StringComparison.Ordinal));
         Assert.Equal([(10, 12.5m), (11, 4m), (12, 1m)], await FuellingsAsync(Acme, issued.Id));
@@ -179,12 +179,12 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
         }
 
         var writes = Writes();
-        Assert.Single(writes, static w => w.StartsWith("UPDATE \"ReportColumn\" SET \"Order\"", StringComparison.Ordinal));
-        Assert.Equal(2, writes.Count(static w => w.StartsWith("INSERT INTO \"ReportGroupTotal\"", StringComparison.Ordinal)));
-        Assert.Equal(2, writes.Count(static w => w.StartsWith("DELETE FROM \"ReportGroupTotal\"", StringComparison.Ordinal)));
-        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"ReportColumn\"", StringComparison.Ordinal));
-        Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"ReportColumn\"", StringComparison.Ordinal));
-        Assert.DoesNotContain(writes, static w => w.Contains("\"ReportSite\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("UPDATE \"report_columns\" SET \"order\"", StringComparison.Ordinal));
+        Assert.Equal(2, writes.Count(static w => w.StartsWith("INSERT INTO \"report_group_totals\"", StringComparison.Ordinal)));
+        Assert.Equal(2, writes.Count(static w => w.StartsWith("DELETE FROM \"report_group_totals\"", StringComparison.Ordinal)));
+        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"report_columns\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"report_columns\"", StringComparison.Ordinal));
+        Assert.DoesNotContain(writes, static w => w.Contains("\"report_sites\"", StringComparison.Ordinal));
         Assert.Equal(
             ["1:0:True:101,102", "2:5:False:", "4:3:True:100"],
             await LayoutAsync(Acme, report.Id));
