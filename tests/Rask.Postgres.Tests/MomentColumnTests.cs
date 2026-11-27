@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Rask.Data;
 using Rask.Values;
 
-// The fixtures sit outside the Rask namespaces on purpose: Rask's own types are the framework's and are left alone.
+// The fixtures are an app's: a delivery's moment, and the bare DateTime the model build refuses on PostgreSQL.
 namespace Shop.Deliveries
 {
     /// <summary>A delivery's moment, as an app declares one.</summary>

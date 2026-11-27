@@ -92,8 +92,6 @@ Rask.Auth.Authenticatable<TKey>.Email.get -> string!
 Rask.Auth.Authenticatable<TKey>.GrantRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.IsEmailConfirmed.get -> bool
 Rask.Auth.Authenticatable<TKey>.IsInRole(string! role) -> bool
-Rask.Auth.Authenticatable<TKey>.RecordTenant(System.Guid? tenant) -> void
-Rask.Auth.Authenticatable<TKey>.PasswordChangedAt.get -> System.DateTime?
 Rask.Auth.Authenticatable<TKey>.RevokeRole(string! role) -> void
 Rask.Auth.Authenticatable<TKey>.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Auth.EmailConfirmed

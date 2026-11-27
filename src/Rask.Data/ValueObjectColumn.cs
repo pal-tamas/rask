@@ -215,7 +215,7 @@ public static class ValueObjectColumn
         var comparer = typeof(Rask.Values.Moment).IsAssignableFrom(typeof(TValueObject))
             ? new ValueComparer<TValueObject>(
                 static (a, b) => Equals(a, b),
-                static v => v == null ? 0 : ((Rask.Values.Moment)(object)v).Instant.GetHashCode(),
+                static v => InstantHash(v),
                 static v => v)
             : new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
@@ -224,6 +224,9 @@ public static class ValueObjectColumn
 
         return (OneValueConverters.Create(value, build), comparer);
     }
+
+    private static int InstantHash<TValueObject>(TValueObject value) =>
+        value is Rask.Values.Moment moment ? moment.Instant.GetHashCode() : 0;
 
     // A value object that checks its rules as it is made (Rask.Values.Value) is rebuilt from its column inside a loading
     // scope, so a row stored before a rule was tightened still loads, and a snapshot of it still copies. An expression

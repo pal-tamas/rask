@@ -26,117 +26,151 @@ partial class BeforeTimestampsSqlServerModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Background.Job", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("attempts");
 
                 b.Property<bool>("Awaited")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("bit")
-                    .HasDefaultValue(false);
+                    .HasColumnName("awaited")
+                    .HasDefaultValue(false, "df_jobs_awaited");
 
                 b.Property<Guid?>("Batch")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("batch");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Detail")
                     .HasMaxLength(1024)
-                    .HasColumnType("nvarchar(1024)");
+                    .HasColumnType("nvarchar(1024)")
+                    .HasColumnName("detail");
 
                 b.Property<int?>("Done")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("done");
 
                 b.Property<string>("Error")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("error");
 
                 b.Property<string>("Lane")
                     .HasMaxLength(256)
-                    .HasColumnType("nvarchar(256)");
+                    .HasColumnType("nvarchar(256)")
+                    .HasColumnName("lane");
 
                 b.Property<string>("Notice")
                     .HasMaxLength(256)
-                    .HasColumnType("nvarchar(256)");
+                    .HasColumnType("nvarchar(256)")
+                    .HasColumnName("notice");
 
                 b.Property<int?>("Of")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("of");
 
                 b.Property<int?>("Outcome")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("outcome");
 
                 b.Property<string>("Payload")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("payload");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("processed_at");
 
                 b.Property<string>("Progress")
                     .HasMaxLength(1024)
-                    .HasColumnType("nvarchar(1024)");
+                    .HasColumnType("nvarchar(1024)")
+                    .HasColumnName("progress");
 
                 b.Property<string>("Result")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("result");
 
                 b.Property<DateTime>("RunAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("run_at");
 
                 b.Property<bool>("Shared")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("bit")
-                    .HasDefaultValue(false);
+                    .HasColumnName("shared")
+                    .HasDefaultValue(false, "df_jobs_shared");
 
                 b.Property<DateTime?>("StartedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("started_at");
 
                 b.Property<int?>("Stopped")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("stopped");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("Type")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("nvarchar(512)");
+                    .HasColumnType("nvarchar(512)")
+                    .HasColumnName("type");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
                 b.Property<string>("UserClaims")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("user_claims");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("user_id");
 
                 b.Property<string>("WaitingKey")
                     .HasMaxLength(64)
-                    .HasColumnType("nvarchar(64)");
+                    .HasColumnType("nvarchar(64)")
+                    .HasColumnName("waiting_key");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_jobs");
 
                 b.HasIndex("WaitingKey")
                     .IsUnique()
-                    .HasFilter("[WaitingKey] IS NOT NULL");
+                    .HasDatabaseName("uq_jobs_waiting_key")
+                    .HasFilter("[waiting_key] IS NOT NULL");
 
-                b.HasIndex("Lane", "ProcessedAt");
+                b.HasIndex("Lane", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_lane_processed_at");
 
-                b.HasIndex("TenantId", "ProcessedAt");
+                b.HasIndex("TenantId", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_tenant_id_processed_at");
 
-                b.HasIndex("UserId", "ProcessedAt");
+                b.HasIndex("UserId", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_user_id_processed_at");
 
-                b.HasIndex("ProcessedAt", "RunAt", "Id");
+                b.HasIndex("ProcessedAt", "RunAt", "Id")
+                    .HasDatabaseName("ix_jobs_processed_at_run_at_id");
 
-                b.ToTable("Job");
+                b.ToTable("jobs");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|CreatedAt");
             });
@@ -145,118 +179,140 @@ partial class BeforeTimestampsSqlServerModelSnapshot : ModelSnapshot
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<DateTime?>("LastEnqueuedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("last_enqueued_at");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(200)
-                    .HasColumnType("nvarchar(200)");
+                    .HasColumnType("nvarchar(200)")
+                    .HasColumnName("name");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_recurring_job_states");
 
                 b.HasIndex("Name")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_recurring_job_states_name");
 
-                b.ToTable("RecurringJobState");
+                b.ToTable("recurring_job_states");
             });
 
         modelBuilder.Entity("Rask.Caching.CacheEntry", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<DateTime?>("AbsoluteExpiration")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("absolute_expiration");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<DateTime>("ExpiresAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("expires_at");
 
                 b.Property<string>("Key")
                     .IsRequired()
                     .HasMaxLength(450)
-                    .HasColumnType("nvarchar(450)");
+                    .HasColumnType("nvarchar(450)")
+                    .HasColumnName("key");
 
                 b.Property<double?>("SlidingSeconds")
-                    .HasColumnType("float");
+                    .HasColumnType("float")
+                    .HasColumnName("sliding_seconds");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
                 b.Property<byte[]>("Value")
                     .IsRequired()
-                    .HasColumnType("varbinary(max)");
+                    .HasColumnType("varbinary(max)")
+                    .HasColumnName("value");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_cache_entries");
 
-                b.HasIndex("ExpiresAt");
+                b.HasIndex("ExpiresAt")
+                    .HasDatabaseName("ix_cache_entries_expires_at");
 
                 b.HasIndex("Key")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_cache_entries_key");
 
-                b.ToTable("CacheEntry");
+                b.ToTable("cache_entries");
             });
 
         modelBuilder.Entity("Rask.Logging.LogEntry", b =>
             {
                 b.Property<Guid>("Id")
                     .HasColumnType("uniqueidentifier")
-                    .HasColumnName("Id");
+                    .HasColumnName("id");
 
                 b.Property<string>("Category")
                     .IsRequired()
                     .HasMaxLength(512)
                     .HasColumnType("nvarchar(512)")
-                    .HasColumnName("Category");
+                    .HasColumnName("category");
 
                 b.Property<int>("EventId")
                     .HasColumnType("int")
-                    .HasColumnName("EventId");
+                    .HasColumnName("event_id");
 
                 b.Property<string>("Exception")
                     .HasColumnType("nvarchar(max)")
-                    .HasColumnName("Exception");
+                    .HasColumnName("exception");
 
                 b.Property<int>("Level")
                     .HasColumnType("int")
-                    .HasColumnName("Level");
+                    .HasColumnName("level");
 
                 b.Property<string>("Message")
                     .IsRequired()
                     .HasColumnType("nvarchar(max)")
-                    .HasColumnName("Message");
+                    .HasColumnName("message");
 
                 b.Property<string>("Scopes")
                     .HasColumnType("nvarchar(max)")
-                    .HasColumnName("Scopes");
+                    .HasColumnName("scopes");
 
                 b.Property<DateTime>("Timestamp")
                     .HasColumnType("datetime2")
-                    .HasColumnName("Timestamp");
+                    .HasColumnName("timestamp");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_log_entries");
 
-                b.HasIndex("Timestamp");
+                b.HasIndex("Timestamp")
+                    .HasDatabaseName("ix_log_entries_timestamp");
 
                 b.HasIndex("Category", "Id")
-                    .IsDescending(false, true);
+                    .IsDescending(false, true)
+                    .HasDatabaseName("ix_log_entries_category_id");
 
                 b.HasIndex("Level", "Id")
-                    .IsDescending(false, true);
+                    .IsDescending(false, true)
+                    .HasDatabaseName("ix_log_entries_level_id");
 
-                b.ToTable("RaskLog");
+                b.ToTable("log_entries");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "|");
             });
@@ -264,74 +320,96 @@ partial class BeforeTimestampsSqlServerModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Mailing.QueuedMail", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<string>("Attachments")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("attachments");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("attempts");
 
                 b.Property<string>("Bcc")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("bcc");
 
                 b.Property<string>("Cc")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("cc");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Error")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("error");
 
                 b.Property<string>("From")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("from");
 
                 b.Property<string>("HtmlBody")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("html_body");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("processed_at");
 
                 b.Property<string>("ReplyTo")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("reply_to");
 
                 b.Property<DateTime>("RunAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("run_at");
 
                 b.Property<string>("Subject")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("subject");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("TextBody")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("text_body");
 
                 b.Property<string>("To")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("to");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_queued_mails");
 
-                b.HasIndex("ProcessedAt", "RunAt", "Id");
+                b.HasIndex("ProcessedAt", "RunAt", "Id")
+                    .HasDatabaseName("ix_queued_mails_processed_at_run_at_id");
 
-                b.ToTable("QueuedMail");
+                b.ToTable("queued_mails");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|CreatedAt");
             });
@@ -339,57 +417,73 @@ partial class BeforeTimestampsSqlServerModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Outbox.OutboxMessage", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("int");
+                    .HasColumnType("int")
+                    .HasColumnName("attempts");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Error")
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("error");
 
                 b.Property<string>("Handler")
                     .HasMaxLength(1024)
-                    .HasColumnType("nvarchar(1024)");
+                    .HasColumnType("nvarchar(1024)")
+                    .HasColumnName("handler");
 
                 b.Property<DateTime>("OccurredAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("occurred_at");
 
                 b.Property<string>("Payload")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("payload");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("processed_at");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("Type")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("nvarchar(512)");
+                    .HasColumnType("nvarchar(512)")
+                    .HasColumnName("type");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_outbox_messages");
 
-                b.HasIndex("ProcessedAt", "Id");
+                b.HasIndex("ProcessedAt", "Id")
+                    .HasDatabaseName("ix_outbox_messages_processed_at_id");
 
-                b.ToTable("OutboxMessage");
+                b.ToTable("outbox_messages");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|");
             });
@@ -398,113 +492,141 @@ partial class BeforeTimestampsSqlServerModelSnapshot : ModelSnapshot
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<string>("ContentType")
                     .IsRequired()
                     .HasMaxLength(127)
-                    .HasColumnType("nvarchar(127)");
+                    .HasColumnType("nvarchar(127)")
+                    .HasColumnName("content_type");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Key")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("nvarchar(512)");
+                    .HasColumnType("nvarchar(512)")
+                    .HasColumnName("key");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(255)
-                    .HasColumnType("nvarchar(255)");
+                    .HasColumnType("nvarchar(255)")
+                    .HasColumnName("name");
 
                 b.Property<string>("Provider")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("nvarchar(16)");
+                    .HasColumnType("nvarchar(16)")
+                    .HasColumnName("provider");
 
                 b.Property<bool>("Public")
-                    .HasColumnType("bit");
+                    .HasColumnType("bit")
+                    .HasColumnName("public");
 
                 b.Property<string>("Sha256")
                     .IsRequired()
                     .HasMaxLength(64)
-                    .HasColumnType("nvarchar(64)");
+                    .HasColumnType("nvarchar(64)")
+                    .HasColumnName("sha256");
 
                 b.Property<long>("Size")
-                    .HasColumnType("bigint");
+                    .HasColumnType("bigint")
+                    .HasColumnName("size");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("tenant_id");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_stored_files");
 
-                b.HasIndex("CreatedAt");
+                b.HasIndex("CreatedAt")
+                    .HasDatabaseName("ix_stored_files_created_at");
 
-                b.ToTable("StoredFile");
+                b.ToTable("stored_files");
             });
 
         modelBuilder.Entity("Rask.Storage.StoredFileBytes", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<byte[]>("Bytes")
                     .IsRequired()
-                    .HasColumnType("varbinary(max)");
+                    .HasColumnType("varbinary(max)")
+                    .HasColumnName("bytes");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_stored_file_bytes");
 
-                b.ToTable("StoredFileBytes");
+                b.ToTable("stored_file_bytes");
             });
 
         modelBuilder.Entity("Rask.WebPush.PushSubscriber", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("id");
 
                 b.Property<string>("Auth")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("nvarchar(512)");
+                    .HasColumnType("nvarchar(512)")
+                    .HasColumnName("auth");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Endpoint")
                     .IsRequired()
                     .HasMaxLength(2048)
-                    .HasColumnType("nvarchar(2048)");
+                    .HasColumnType("nvarchar(2048)")
+                    .HasColumnName("endpoint");
 
                 b.Property<DateTime?>("ExpiresAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("expires_at");
 
                 b.Property<string>("P256dh")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("nvarchar(512)");
+                    .HasColumnType("nvarchar(512)")
+                    .HasColumnName("p256dh");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("tenant_id");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("datetime2");
+                    .HasColumnType("datetime2")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("uniqueidentifier");
+                    .HasColumnType("uniqueidentifier")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_push_subscribers");
 
                 b.HasIndex("Endpoint")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_push_subscribers_endpoint");
 
-                b.HasIndex("UserId");
+                b.HasIndex("UserId")
+                    .HasDatabaseName("ix_push_subscribers_user_id");
 
-                b.ToTable("PushSubscriber");
+                b.ToTable("push_subscribers");
             });
 #pragma warning restore 612, 618
     }

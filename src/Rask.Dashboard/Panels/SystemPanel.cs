@@ -78,7 +78,7 @@ internal sealed class SystemPanel<TContext>(
             .ConfigureAwait(false);
 
         return [.. _jobOptions.RecurringJobs.Select(r =>
-            new RecurringJobRow(r.Name, r.Schedule?.ToString() ?? "", state.GetValueOrDefault(r.Name)?.Instant.UtcDateTime))];
+            new RecurringJobRow(r.Name, r.Schedule?.ToString() ?? "", state.GetValueOrDefault(r.Name)))];
     }
 
     public Task<BackupReplicationInfo?> Replication(CancellationToken cancellationToken) =>

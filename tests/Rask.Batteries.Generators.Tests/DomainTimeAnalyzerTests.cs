@@ -42,7 +42,7 @@ public class DomainTimeAnalyzerTests
 
         var flagged = diagnostics.Select(d => d.Flagged()).ToList();
 
-        Assert.Equal(["_seen", "Stamped", "DueDate", "Logged", "From", "To", "At"], flagged);
+        Assert.Equal(["_seen", "Stamped", "DueDate", "Logged", "DeletedAt", "From", "To", "At"], flagged);
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Warning, d.Severity));
         Assert.Contains("'Stamped' in 'Delivery' is a bare DateTime", diagnostics[1].GetMessage(), StringComparison.Ordinal);
         Assert.Contains("'Logged' in 'Delivery' is a bare DateTimeOffset", diagnostics[3].GetMessage(), StringComparison.Ordinal);
@@ -73,12 +73,12 @@ public class DomainTimeAnalyzerTests
     }
 
     [Fact]
-    public async Task Rasks_own_types_are_the_frameworks_and_are_not_reported()
+    public async Task No_name_and_no_namespace_is_exempt_so_Rasks_own_types_are_reported_too()
     {
         var source = Domain.Replace("namespace Shop;", "namespace Rask.Jobs;", StringComparison.Ordinal);
 
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new DomainTimeAnalyzer(), source);
 
-        Assert.Empty(diagnostics);
+        Assert.Equal(["_seen", "Stamped", "DueDate", "Logged", "DeletedAt", "From", "To", "At"], diagnostics.Select(d => d.Flagged()));
     }
 }

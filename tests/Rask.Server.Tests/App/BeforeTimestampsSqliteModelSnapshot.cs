@@ -20,242 +20,311 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Auth.AuthInstanceClaim", b =>
             {
                 b.Property<int>("Id")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("id");
 
                 b.Property<Guid>("AdminUserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("admin_user_id");
 
                 b.Property<DateTime>("ClaimedUtc")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claimed_utc");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_auth_instance_claims");
 
-                b.ToTable("RaskAuthInstanceClaim");
+                b.ToTable("auth_instance_claims");
             });
 
         modelBuilder.Entity("Rask.Auth.Passkey", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<int>("Algorithm")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("algorithm");
 
                 b.Property<bool>("BackedUp")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("backed_up");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<byte[]>("CredentialId")
                     .IsRequired()
                     .HasMaxLength(1023)
-                    .HasColumnType("BLOB");
+                    .HasColumnType("BLOB")
+                    .HasColumnName("credential_id");
 
                 b.Property<DateTime?>("DeletedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("deleted_at");
 
                 b.Property<DateTime?>("LastUsedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("last_used_at");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(100)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("name");
 
                 b.Property<byte[]>("PublicKey")
                     .IsRequired()
                     .HasMaxLength(2048)
-                    .HasColumnType("BLOB");
+                    .HasColumnType("BLOB")
+                    .HasColumnName("public_key");
 
                 b.Property<uint>("SignCount")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("sign_count");
 
                 b.Property<string>("Transports")
                     .HasMaxLength(128)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("transports");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
                 b.Property<int>("Version")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("version");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_auth_passkeys");
 
                 b.HasIndex("CredentialId")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_auth_passkeys_credential_id");
 
-                b.HasIndex("UserId");
+                b.HasIndex("UserId")
+                    .HasDatabaseName("ix_auth_passkeys_user_id");
 
-                b.ToTable("RaskAuthPasskey");
+                b.ToTable("auth_passkeys");
             });
 
         modelBuilder.Entity("Rask.Auth.Session", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<Guid?>("ActingInTenant")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("acting_in_tenant");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<DateTime?>("DeletedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("deleted_at");
 
                 b.Property<DateTime>("ExpiresAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("expires_at");
 
                 b.Property<string>("IpAddress")
                     .HasMaxLength(64)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("ip_address");
 
                 b.Property<DateTime>("LastSeenAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("last_seen_at");
 
                 b.Property<bool>("Persistent")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("persistent");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<string>("UserAgent")
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_agent");
 
                 b.Property<Guid>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
                 b.Property<int>("Version")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("version");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_auth_sessions");
 
-                b.HasIndex("UserId");
+                b.HasIndex("UserId")
+                    .HasDatabaseName("ix_auth_sessions_user_id");
 
-                b.ToTable("RaskAuthSession");
+                b.ToTable("auth_sessions");
             });
 
         modelBuilder.Entity("Rask.Background.Job", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("attempts");
 
                 b.Property<bool>("Awaited")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("INTEGER")
-                    .HasDefaultValue(false);
+                    .HasDefaultValue(false)
+                    .HasColumnName("awaited");
 
                 b.Property<Guid?>("Batch")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("batch");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Detail")
                     .HasMaxLength(1024)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("detail");
 
                 b.Property<int?>("Done")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("done");
 
                 b.Property<string>("Error")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("error");
 
                 b.Property<string>("Lane")
                     .HasMaxLength(256)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("lane");
 
                 b.Property<string>("Notice")
                     .HasMaxLength(256)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("notice");
 
                 b.Property<int?>("Of")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("of");
 
                 b.Property<int?>("Outcome")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("outcome");
 
                 b.Property<string>("Payload")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("payload");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("processed_at");
 
                 b.Property<string>("Progress")
                     .HasMaxLength(1024)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("progress");
 
                 b.Property<string>("Result")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("result");
 
                 b.Property<DateTime>("RunAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("run_at");
 
                 b.Property<bool>("Shared")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("INTEGER")
-                    .HasDefaultValue(false);
+                    .HasDefaultValue(false)
+                    .HasColumnName("shared");
 
                 b.Property<DateTime?>("StartedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("started_at");
 
                 b.Property<int?>("Stopped")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("stopped");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("Type")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("type");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<string>("UserClaims")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_claims");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
                 b.Property<string>("WaitingKey")
                     .HasMaxLength(64)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("waiting_key");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_jobs");
 
                 b.HasIndex("WaitingKey")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_jobs_waiting_key");
 
-                b.HasIndex("Lane", "ProcessedAt");
+                b.HasIndex("Lane", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_lane_processed_at");
 
-                b.HasIndex("TenantId", "ProcessedAt");
+                b.HasIndex("TenantId", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_tenant_id_processed_at");
 
-                b.HasIndex("UserId", "ProcessedAt");
+                b.HasIndex("UserId", "ProcessedAt")
+                    .HasDatabaseName("ix_jobs_user_id_processed_at");
 
-                b.HasIndex("ProcessedAt", "RunAt", "Id");
+                b.HasIndex("ProcessedAt", "RunAt", "Id")
+                    .HasDatabaseName("ix_jobs_processed_at_run_at_id");
 
-                b.ToTable("Job");
+                b.ToTable("jobs");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|CreatedAt");
             });
@@ -264,141 +333,181 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<DateTime?>("LastEnqueuedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("last_enqueued_at");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(200)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("name");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_recurring_job_states");
 
                 b.HasIndex("Name")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_recurring_job_states_name");
 
-                b.ToTable("RecurringJobState");
+                b.ToTable("recurring_job_states");
             });
 
         modelBuilder.Entity("Rask.Caching.CacheEntry", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<DateTime?>("AbsoluteExpiration")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("absolute_expiration");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<DateTime>("ExpiresAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("expires_at");
 
                 b.Property<string>("Key")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("key");
 
                 b.Property<double?>("SlidingSeconds")
-                    .HasColumnType("REAL");
+                    .HasColumnType("REAL")
+                    .HasColumnName("sliding_seconds");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<byte[]>("Value")
                     .IsRequired()
-                    .HasColumnType("BLOB");
+                    .HasColumnType("BLOB")
+                    .HasColumnName("value");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_cache_entries");
 
-                b.HasIndex("ExpiresAt");
+                b.HasIndex("ExpiresAt")
+                    .HasDatabaseName("ix_cache_entries_expires_at");
 
                 b.HasIndex("Key")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_cache_entries_key");
 
-                b.ToTable("CacheEntry");
+                b.ToTable("cache_entries");
             });
 
         modelBuilder.Entity("Rask.Mailing.QueuedMail", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<string>("Attachments")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("attachments");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("attempts");
 
                 b.Property<string>("Bcc")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("bcc");
 
                 b.Property<string>("Cc")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("cc");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Error")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("error");
 
                 b.Property<string>("From")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("from");
 
                 b.Property<string>("HtmlBody")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("html_body");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("processed_at");
 
                 b.Property<string>("ReplyTo")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("reply_to");
 
                 b.Property<DateTime>("RunAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("run_at");
 
                 b.Property<string>("Subject")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("subject");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("TextBody")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("text_body");
 
                 b.Property<string>("To")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("to");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_queued_mails");
 
-                b.HasIndex("ProcessedAt", "RunAt", "Id");
+                b.HasIndex("ProcessedAt", "RunAt", "Id")
+                    .HasDatabaseName("ix_queued_mails_processed_at_run_at_id");
 
-                b.ToTable("QueuedMail");
+                b.ToTable("queued_mails");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|CreatedAt");
             });
@@ -406,57 +515,73 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Outbox.OutboxMessage", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<int>("Attempts")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("attempts");
 
                 b.Property<Guid?>("ClaimToken")
                     .IsConcurrencyToken()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claim_token");
 
                 b.Property<DateTime?>("ClaimedUntil")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("claimed_until");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Error")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("error");
 
                 b.Property<string>("Handler")
                     .HasMaxLength(1024)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("handler");
 
                 b.Property<DateTime>("OccurredAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("occurred_at");
 
                 b.Property<string>("Payload")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("payload");
 
                 b.Property<DateTime?>("ProcessedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("processed_at");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("tenant_id");
 
                 b.Property<string>("Type")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("type");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_outbox_messages");
 
-                b.HasIndex("ProcessedAt", "Id");
+                b.HasIndex("ProcessedAt", "Id")
+                    .HasDatabaseName("ix_outbox_messages_processed_at_id");
 
-                b.ToTable("OutboxMessage");
+                b.ToTable("outbox_messages");
 
                 b.HasAnnotation("Rask:StoreKeyRebuild", "ProcessedAt|");
             });
@@ -465,20 +590,25 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Id");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(255)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Name");
 
                 b.Property<int?>("TenantId")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("TenantId");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_Berths");
 
                 b.HasIndex("Name", "TenantId")
                     .IsUnique()
+                    .HasDatabaseName("IX_Berths_Name_TenantId")
                     .HasAnnotation("Rask:ViolationMessage", "Ilyen néven már létezik kikötőhely.");
 
                 b.ToTable("Berths");
@@ -487,38 +617,47 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Server.Tests.App.Bollard", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<string>("Name")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("name");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_bollards");
 
-                b.ToTable("Bollard");
+                b.ToTable("bollards");
             });
 
         modelBuilder.Entity("Rask.Server.Tests.App.Crane", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Id");
 
                 b.Property<string>("Pier")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Pier");
 
                 b.Property<string>("Slot")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Slot");
 
                 b.Property<int?>("TenantId")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("TenantId");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_Cranes");
 
                 b.HasIndex("Pier", "Slot", "TenantId")
                     .IsUnique()
+                    .HasDatabaseName("IX_Cranes_Pier_Slot_TenantId")
                     .HasAnnotation("Rask:ViolationMessage", "Ezen a rakparton már áll daru ezen a helyen.");
 
                 b.ToTable("Cranes");
@@ -527,34 +666,42 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Server.Tests.App.Mooring", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<string>("Name")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("name");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_moorings");
 
-                b.ToTable("Mooring");
+                b.ToTable("moorings");
             });
 
         modelBuilder.Entity("Rask.Server.Tests.App.Terminal", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Id");
 
                 b.Property<string>("Name")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Name");
 
                 b.Property<int?>("TenantId")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("TenantId");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_Terminals");
 
                 b.HasIndex("Name", "TenantId")
                     .IsUnique()
+                    .HasDatabaseName("IX_Terminals_Name_TenantId")
                     .HasAnnotation("Rask:ViolationMessage", "A terminal with this name already exists.");
 
                 b.ToTable("Terminals");
@@ -563,69 +710,87 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Rask.Server.Tests.App.TestUser", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Email")
                     .IsRequired()
                     .HasMaxLength(256)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("email");
 
                 b.Property<DateTime?>("EmailConfirmedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("email_confirmed_at");
 
                 b.Property<DateTime?>("PasswordChangedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("password_changed_at");
 
                 b.Property<string>("PasswordHash")
                     .IsRequired()
                     .HasMaxLength(256)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("password_hash");
 
                 b.PrimitiveCollection<string>("Roles")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("roles");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("tenant_id");
 
                 b.Property<Guid>("TenantKey")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("TenantKey");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<int>("Version")
                     .IsConcurrencyToken()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("version");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_test_users");
 
                 b.HasIndex("TenantKey", "Email")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_test_users_TenantKey_email");
 
-                b.ToTable("TestUser");
+                b.ToTable("test_users");
             });
 
         modelBuilder.Entity("Rask.Server.Tests.App.Trailer", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Id");
 
                 b.Property<int?>("Axles")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Axles");
 
                 b.Property<string>("Plate")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Plate");
 
                 b.Property<int>("Weight")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Weight");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_Trailers");
 
                 b.ToTable("Trailers");
             });
@@ -634,19 +799,24 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("Id");
 
                 b.Property<string>("Name")
                     .IsRequired()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("Name");
 
                 b.Property<int?>("TenantId")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("TenantId");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_Wharves");
 
                 b.HasIndex("Name", "TenantId")
                     .IsUnique()
+                    .HasDatabaseName("IX_Wharves_Name_TenantId")
                     .HasFilter("[TenantId] IS NOT NULL")
                     .HasAnnotation("Rask:ViolationMessage", "Ilyen néven már létezik rakpart.");
 
@@ -657,113 +827,141 @@ partial class BeforeTimestampsSqliteModelSnapshot : ModelSnapshot
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<string>("ContentType")
                     .IsRequired()
                     .HasMaxLength(127)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("content_type");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Key")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("key");
 
                 b.Property<string>("Name")
                     .IsRequired()
                     .HasMaxLength(255)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("name");
 
                 b.Property<string>("Provider")
                     .IsRequired()
                     .HasMaxLength(16)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("provider");
 
                 b.Property<bool>("Public")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("public");
 
                 b.Property<string>("Sha256")
                     .IsRequired()
                     .HasMaxLength(64)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("sha256");
 
                 b.Property<long>("Size")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("size");
 
                 b.Property<int?>("TenantId")
-                    .HasColumnType("INTEGER");
+                    .HasColumnType("INTEGER")
+                    .HasColumnName("tenant_id");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_stored_files");
 
-                b.HasIndex("CreatedAt");
+                b.HasIndex("CreatedAt")
+                    .HasDatabaseName("ix_stored_files_created_at");
 
-                b.ToTable("StoredFile");
+                b.ToTable("stored_files");
             });
 
         modelBuilder.Entity("Rask.Storage.StoredFileBytes", b =>
             {
                 b.Property<Guid>("Id")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<byte[]>("Bytes")
                     .IsRequired()
-                    .HasColumnType("BLOB");
+                    .HasColumnType("BLOB")
+                    .HasColumnName("bytes");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_stored_file_bytes");
 
-                b.ToTable("StoredFileBytes");
+                b.ToTable("stored_file_bytes");
             });
 
         modelBuilder.Entity("Rask.WebPush.PushSubscriber", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("id");
 
                 b.Property<string>("Auth")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("auth");
 
                 b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("created_at");
 
                 b.Property<string>("Endpoint")
                     .IsRequired()
                     .HasMaxLength(2048)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("endpoint");
 
                 b.Property<DateTime?>("ExpiresAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("expires_at");
 
                 b.Property<string>("P256dh")
                     .IsRequired()
                     .HasMaxLength(512)
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("p256dh");
 
                 b.Property<Guid?>("TenantId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("tenant_id");
 
                 b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("updated_at");
 
                 b.Property<Guid?>("UserId")
-                    .HasColumnType("TEXT");
+                    .HasColumnType("TEXT")
+                    .HasColumnName("user_id");
 
-                b.HasKey("Id");
+                b.HasKey("Id")
+                    .HasName("pk_push_subscribers");
 
                 b.HasIndex("Endpoint")
-                    .IsUnique();
+                    .IsUnique()
+                    .HasDatabaseName("uq_push_subscribers_endpoint");
 
-                b.HasIndex("UserId");
+                b.HasIndex("UserId")
+                    .HasDatabaseName("ix_push_subscribers_user_id");
 
-                b.ToTable("PushSubscriber");
+                b.ToTable("push_subscribers");
             });
 #pragma warning restore 612, 618
     }

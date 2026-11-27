@@ -57,7 +57,7 @@ public sealed class PushSubscriber : Aggregate<Guid>, IHasTimestamps, IInfrastru
 
         // This battery can be pointed at any DbContext, Rask interceptors or not, so the row records its own
         // time and tenant rather than hoping something else will.
-        Stamp(now);
+        Stamp(Timestamp.Create(now));
         TenantId = Tenant.Key;
     }
 }
