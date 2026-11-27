@@ -559,7 +559,7 @@ breaks the replay of whoever holds the old one.
 
 ## 4. Replace what it supersedes
 One commit per component, the solution building throughout:
-- delete the component(s) it replaces and their `UiClassNames` entries and tests;
+- delete the component(s) it replaces and their tests;
 - convert every call site — `src/Rask.Site`, `src/Rask.Dashboard`, `src/Rask.DevTools`,
   `src/Rask.Site.DataDemo`, `src/Rask.Templates`, `tests/**`, `docs/**`, `README.md`, `llms.txt`;
 - showcase — REQUIRED, two agents skipped it: the component's demo on the site shows every Flux example
@@ -786,17 +786,13 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (`UiCalendarModes`, `UiDatePickerModes`) handing back the typed twin's seed, so a wrong pairing does not
   compile; `Mode(value)` and the bare `Multiple()` are checked against the bound type at render. The twins are
   reachable as entries too — `Ui.CalendarMultiple`, `Ui.CalendarRange`, `Ui.DatePickerRange` — because the
-  generator cannot hide one: to remove when it can. Since 2026-10-15 the whole calendar is `rask-calendar.ts` (hook table):
-  the paragraphs below about C# handlers, `UiCalendarState`, `RenameAsync` and the probe's field describe what it
-  replaced. Every hook is wired and was driven on the published site
+  generator cannot hide one: to remove when it can. Since 2026-10-15 the whole calendar is `rask-calendar.ts`
+  (hook table), not C# handlers. Every hook is wired and was driven on the published site
   against Flux's pages (`UiKitPickersTests`): the grid's keys and focus, the typed segments (the whole
   trigger is the `data-rask-toggle`; the runtime leaves a press in a field to the field), the roving presets
   (tab stop = the checked preset, or the FIRST while Custom is the checked one, with `data-active`, as Flux
   marks it), `data-rask-lock` on both popups, `data-rask-listbox-button` on the time button, arrows opening the
-  closed date button (`data-rask-contain-keys="ArrowUp ArrowDown"` + `data-rask-popover-open`). A paging key
-  names NO focus target for its one render and the control renders once more from `OnRendered`
-  (`UiCalendarState.RenameAsync`) so the tab stop is named again — without that an arrow pressed after
-  tabbing back in moved the mark and left the focus behind. Kept, not Flux's: the popup `<dialog>` carries
+  closed date button (`data-rask-contain-keys="ArrowUp ArrowDown"` + `data-rask-popover-open`). Kept, not Flux's: the popup `<dialog>` carries
   `autofocus`, so an open date picker has the focus on the dialog where Flux leaves it on `<body>` (a
   `<dialog popover>` would otherwise hand it to its first control). Unmeasured, no example on Flux's pages:
   calendar sizes `Lg` / `Xxl`, every date-picker size but the default, `with-inputs`, `clearable` on the date
@@ -858,8 +854,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   which `rask-place.ts` reads the anchor from) and `max-sm:[--rask-place:none]` stands the placement hook down:
   a panel whose `--rask-place` computes to `none` is the stylesheet's. C# has to know the width for two things
   only — a pick is held, and the months past the first are not drawn (the arrows must not walk into a hidden
-  month) — and hears it through `UiCalendarGrid`'s probe, a 1px box that is 2px under `sm`, measured by the
-  existing `data-rask-measure` hook into `UiCalendarState.Narrow` (drawn only where it changes something: several
+  month) — and `rask-calendar.ts` hears it through `UiCalendarGrid`'s probe, a 1px box that is 2px under `sm`
+  (`data-rask-calendar-part="narrow"`, drawn only where it changes something: several
   months, or a picker's popup; `Extra` in `ParityComparer` knows it as `data-ui-calendar-narrow`). Until the page
   has heard — a static parity page never does — the stylesheet folds the other months (`max-sm:hidden`), and
   `PageScripts.Collect` does not collect a `[data-month]` that is itself `display: none`. The colour picker's sheet asks the
@@ -1254,22 +1250,6 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
 the `__fluxRest` calls. After resolving, `git diff HEAD -- scripts/flux tests/Rask.Ui.Tests/Flux/FluxParity.cs
 tests/Rask.Ui.Tests/Flux/FluxParityPages.cs tests/Rask.Ui.Tests/Flux/flux.lock.json` must be empty apart from
 what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
-
-- Calendar and date picker take Flux's `mode` as the step that OPENS them: `Ui.Calendar.Range` / `.Multiple` and
-  `Ui.DatePicker.Range` are C# extension properties on the generated seed (`UiCalendarModes`, `UiDatePickerModes`)
-  handing back the typed twin's own seed, so a wrong pairing does not compile; the twins are no longer joined by
-  `[RaskChainEntry]`, which leaves `Ui.CalendarMultiple`, `Ui.CalendarRange` and `Ui.DatePickerRange` reachable as
-  entries too (the generator has no way to hide one — to remove when it has). `Mode(value)` and the bare
-  `Multiple()` are checked against the bound type at render.
-- Calendar, date picker, time picker — waiting for a runtime hook each, none faked: containing the arrow, page
-  and Space keys inside `[role=grid]` (the page scrolls under the calendar today); scrolling an expanded
-  combobox's `aria-activedescendant` into view as the cursor moves (the time list); auto-advance, arrow
-  increments and per-keystroke normalising in the typed date and time fields; arrow keys in the date picker's
-  preset radio group; a press inside a typed segment not opening the popup. The calendar's focus move after an
-  arrow key is `ElementRef.Focus()` from `OnRendered` (`UiCalendarFocus`) and is not yet proven in a browser.
-  Not measurable on Flux's public pages, so extrapolated or `NotTranslated`: calendar sizes `Lg`/`Xxl`, every
-  date-picker size but the default, `with-inputs`, `clearable` on the date picker, the shown confirmation footer.
-  The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
 
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
