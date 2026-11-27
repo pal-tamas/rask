@@ -67,7 +67,7 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright, ITestOutputHe
     }
 
     private static WorkReported Import(int kept, WorkState state, Guid owner) =>
-        new(7, "Import of prices.csv", $"{kept:N0} rows kept", kept, 5000, state, DateTime.UtcNow) { Owner = owner };
+        new(Id(7), "Import of prices.csv", $"{kept:N0} rows kept", kept, 5000, state, DateTime.UtcNow) { Owner = owner };
 
     // The page opens its watch on the server after its first paint: what is published before that is not heard, so the
     // first report goes out again until the bar shows it — and from then on the watch is open.
