@@ -93,7 +93,7 @@ A `Moment` value object is an instant, and `UseRaskPostgres` stores it as that i
 SQL Server and SQLite store it too — and reads it back exactly, the hour the clock shows twice in autumn included. A
 query's `f.At.Day` reads the day on the app's wall calendar (`timezone('Europe/Budapest', column)::date`). A bare
 `DateTime` on an aggregate or an entity is refused as the model is built, since Npgsql would refuse a wall-clock one only
-when the row is saved: hold an instant as a `Moment` and a calendar day as a `Day` (RASK146), or say how the column is
+when the row is saved: hold an instant as a `Moment` and a calendar day as a `Day` (RASK147), or say how the column is
 stored with `HasConversion(…)`.
 
 ## What stays behind

@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     The foreign key from a <c>PerTenant</c> table's <c>TenantId</c> to the tenant's own key, which
-///     <c>c.TenantReferences&lt;Partner&gt;()</c> declares: its name and the column it points at.
+///     The foreign key from a table's <c>TenantId</c> to the tenant's own key, declared for every table that
+///     <c>IBelongsTo&lt;Tenant&gt;</c> the aggregate that says <c>ITenant</c>: its name and the column it points at.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -23,12 +23,6 @@ internal sealed record TenantReference(string Name, string? PrincipalSchema, str
 {
     /// <summary>The entity type annotation that carries a declared reference.</summary>
     internal const string Annotation = "Rask:TenantReference";
-
-    /// <summary>
-    ///     The model annotation <c>TenantReferences&lt;T&gt;()</c> sets as the model is initialized: the tenant entity
-    ///     type's name, read by whichever of it and <c>ConstraintNames</c> finalizes the model first. Gone once finalized.
-    /// </summary>
-    internal const string TenantAnnotation = "Rask:TenantReferencesTo";
 
     private const string Arrow = " -> ";
 

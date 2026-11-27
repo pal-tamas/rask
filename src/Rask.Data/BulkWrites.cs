@@ -39,7 +39,7 @@ public static class BulkWrites
         /// <returns>How many rows were deleted.</returns>
         /// <exception cref="RaskValidationException">A row's parent is locked (<c>LockedBy</c>), or another row still refers to one.</exception>
         /// <exception cref="InvalidOperationException">
-        ///     The aggregate names neither Deletable nor SoftDelete, or it — or a child it holds — declares a rule a statement
+        ///     The aggregate says neither IDeletable nor ISoftDeletes, or it — or a child it holds — declares a rule a statement
         ///     cannot ask (<c>ValidateDelete()</c>, a child's <c>LockedBy</c>): delete those one by one through <c>X.Delete(id)</c>.
         /// </exception>
 #pragma warning disable CA1000 // the aggregate's own static is the DX

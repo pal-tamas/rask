@@ -42,7 +42,7 @@ public class ValueObjectFactoryGeneratorTests
         """;
 
     private const string Holder = """
-        public sealed class Delivery : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Delivery : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Delivery() { }
             public DriverName Driver { get; private set; } = DriverName.Create("x");
@@ -196,7 +196,7 @@ public class ValueObjectFactoryGeneratorTests
             using Rask.Values;
             namespace Shop;
 
-            public sealed class Reminder : Aggregate<System.Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Reminder : Aggregate<System.Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Reminder() { }
                 public SentAt Sent { get; private set; } = SentAt.Create(new System.DateTime(2026, 1, 1));
@@ -675,7 +675,7 @@ public class ValueObjectFactoryGeneratorTests
         public enum Kind { A, B }
         public readonly record struct CustomerId(Guid Value);
         public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 100);
-        public sealed class Delivery : Aggregate<Guid, Timestamps, Versioned>
+        public sealed class Delivery : Aggregate<Guid>, IHasTimestamps, IVersioned
         {
             private Delivery() { }
             public string Note { get; private set; } = "";

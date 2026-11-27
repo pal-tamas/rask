@@ -14,7 +14,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace Rask.Generators.CodeFixes;
 
 /// <summary>
-///     RASK146 — a bare <c>DateTime</c> in the domain becomes a value object of Rask's: <c>public DateTime FueledAt</c> on
+///     RASK147 — a bare <c>DateTime</c> in the domain becomes a value object of Rask's: <c>public DateTime FueledAt</c> on
 ///     <c>Delivery</c> becomes <c>public DeliveryFueledAt FueledAt</c>, with
 ///     <c>public sealed partial record DeliveryFueledAt(DateTime Value) : Moment(Value);</c> written after the type — or a
 ///     <c>Day</c> over a <c>DateOnly</c>. Both are offered; the <c>Day</c> first where the name says a day
@@ -32,7 +32,7 @@ public sealed class DomainTimeCodeFixProvider : CodeFixProvider
 {
     private const string ReadsAsDay = "ReadsAsDay";
 
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK146"];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK147"];
 
     public override FixAllProvider? GetFixAllProvider() => null;
 
@@ -55,8 +55,8 @@ public sealed class DomainTimeCodeFixProvider : CodeFixProvider
             return;
         }
 
-        var moment = Action("Hold it as a Moment (an instant, stored as UTC)", "RASK146_Moment", "DateTime", "Moment");
-        var day = Action("Hold it as a Day (a calendar day)", "RASK146_Day", "DateOnly", "Day");
+        var moment = Action("Hold it as a Moment (an instant, stored as UTC)", "RASK147_Moment", "DateTime", "Moment");
+        var day = Action("Hold it as a Day (a calendar day)", "RASK147_Day", "DateOnly", "Day");
         var dayFirst = diagnostic.Properties.ContainsKey(ReadsAsDay);
         context.RegisterCodeFix(dayFirst ? day : moment, diagnostic);
         context.RegisterCodeFix(dayFirst ? moment : day, diagnostic);

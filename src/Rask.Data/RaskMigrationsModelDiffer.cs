@@ -19,7 +19,7 @@ namespace Rask.Data;
 
 /// <summary>
 ///     EF Core's migration differ, with an empty ARRAY — not an object — as the default of a JSON collection column that
-///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys <c>TenantReferences&lt;T&gt;()</c> declares.
+///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys from a tenant's tables to the tenant (<c>IBelongsTo&lt;Tenant&gt;</c>).
 /// </summary>
 /// <remarks>
 ///     <para>

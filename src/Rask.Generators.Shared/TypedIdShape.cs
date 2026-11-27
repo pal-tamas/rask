@@ -103,6 +103,9 @@ internal static class TypedIdShape
             : TypedIdValue.None;
     }
 
+    /// <summary>Whether <paramref name="type" /> is a typed id, declared in this compilation or compiled into a referenced one.</summary>
+    public static bool Is(ITypeSymbol? type) => Of(type) != TypedIdValue.None || OfReferenced(type) != TypedIdValue.None;
+
     private static bool IsSpanParsableOf(INamedTypeSymbol face, INamedTypeSymbol self) =>
         face is { Name: "ISpanParsable", TypeArguments.Length: 1, ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } &&
         SymbolEqualityComparer.Default.Equals(face.TypeArguments[0], self);

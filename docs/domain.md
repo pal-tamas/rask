@@ -40,7 +40,7 @@ public readonly partial record struct ProductId(Guid Value);                    
 public sealed partial record ProductName(string Value) : Text(Value, MaxLength: 200);    // a value object: one line
 public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Scale: 2);
 
-public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable
 {
     public ProductName Name { get; private set; } = null!;
     public UnitPrice Price { get; private set; } = null!;
@@ -125,16 +125,16 @@ and one with no id yet (an integer key before its insert) is equal only to itsel
 | `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
 | a `record`, a `record struct`, or a class on `ValueObject` it holds | A value object: `Money`, `Address`, `Email` | Columns on the owner's row ([below](#value-objects)) |
 
-`Aggregate<TId>` derives from `Entity<TId>`, and the framework's columns are the ones its base names. They are
+`Aggregate<TId>` derives from `Entity<TId>`, and the framework's columns are the ones the class says. They are
 real properties with private setters, so a screen can show them and a query can sort by them, while only the
 framework writes them:
 
 | Property | Declared on | Effect |
 |-----------|--------|--------|
 | `Id` | `Entity<TId>` | The key. A `Guid` (or a typed id over one) is assigned in the factory — [the default](#choosing-the-key-a-typed-id-over-a-guid); an integer (or a typed id over one) is the store's identity. A `[Key]` on another member is [RASK143](diagnostics.md#rask143). |
-| `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`Timestamps`](#choosing-what-a-table-carries)** (or `Created` / `Updated` for one). Stamped (UTC) on insert and on every update. |
-| `Version` | `Aggregate<TId>` | **With [`Versioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
-| `DeletedAt` | `Aggregate<TId>` | **With [`SoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
+| `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`IHasTimestamps`](#choosing-what-a-table-carries)** (or `IHasCreatedAt` / `IHasUpdatedAt` for one). Stamped (UTC) on insert and on every update. |
+| `Version` | `Aggregate<TId>` | **With [`IVersioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
+| `DeletedAt` | `Aggregate<TId>` | **With [`ISoftDeletes`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
 
 ```csharp
 var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10);
@@ -193,7 +193,7 @@ public sealed partial record Opening(DateOnly? Date, decimal? Quantity) : Value
     }
 }
 
-public sealed class Delivery : Aggregate<Guid, Model>
+public sealed class Delivery : Aggregate<Guid>, IHasForm
 {
     private Delivery() { }
 
@@ -473,7 +473,7 @@ object the way its column does, as `Email` above does.
 public sealed record Money(decimal Amount, string Currency);
 public sealed record Email(string Value);
 
-public sealed class Customer : Aggregate<Guid, Model>
+public sealed class Customer : Aggregate<Guid>, IHasForm
 {
     public Money CreditLimit { get; private set; } = new(0m, "EUR");   // CreditLimit_Amount, CreditLimit_Currency
     public Email Email { get; private set; } = new("");                 // one column: Email
@@ -670,7 +670,7 @@ the value it holds, like any other one-value value object.
 ```csharp
 public readonly partial record struct OrderId(Guid Value);
 
-public sealed class Order : Aggregate<OrderId, Timestamps, Versioned, Model>
+public sealed class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned, IHasForm
 {
     public static Order Place(string reference)
     {
@@ -717,7 +717,7 @@ An aggregate holds its parts. Declare them as `Entity<TId>` and hold them in one
 configured, and no EF `HasMany(…)` call, no foreign key and no key generation is written anywhere:
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     private Order() { }                                  // EF materialization
 
@@ -805,7 +805,7 @@ what a rule over old rows asks so a row stored before the rule was tightened is 
 type — a `SupplyPartId?`, not its `Guid`. **A key given twice throws**: two rows naming one part, or a key of another
 type, are refused with an `ArgumentException` before any part is touched — de-duplicate the rows first if they can
 repeat (`parts.DistinctBy(p => p.Id)`), deliberately, since which of two rows wins is the caller's decision. The
-generated form model (`Model`) does not carry a `HasMany` collection yet: an aggregate that declares one writes
+generated form model (`IHasForm`) does not carry a `HasMany` collection yet: an aggregate that declares one writes
 through its own methods and `Save()`, and the form over such a method is `Form.For(Supply.Change, id)` — a row per
 part, refused under its place ([a form over an operation](forms.md#a-form-over-an-operation)).
 
@@ -841,7 +841,7 @@ var heavy = await OrderLine.Where(l => l.Quantity > 10 && l.Order.Reference.Star
 ```
 
 **A change to any part is a change to the whole.** A line's quantity moving stamps the order's `UpdatedAt` and
-bumps its `Version` (it names `Timestamps` and `Versioned`), so the version a caller read stops being current — which is what makes the aggregate, and
+bumps its `Version` (it says `IHasTimestamps` and `IVersioned`), so the version a caller read stops being current — which is what makes the aggregate, and
 not the row, the unit of concurrency:
 
 ```csharp
@@ -878,7 +878,7 @@ and severing a child would set that key to `NULL` and leave the row in the table
 navigation, unreachable through the aggregate, and impossible to delete through it either.
 
 Deleting the aggregate follows the same rule: `Order.Delete(id)` removes the order and its lines with it.
-An order that names [`SoftDelete`](#choosing-what-a-table-carries) instead of `Deletable` is different, and deliberately
+An order that says [`ISoftDeletes`](#choosing-what-a-table-carries) instead of `IDeletable` is different, and deliberately
 so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
 order comes back.
 
@@ -908,10 +908,10 @@ await db.SaveChangesAsync(ct);   // ✗ 'OrderLine' was changed on its own … l
 **Timestamps are the aggregate's**, like its tenant. A child has no `CreatedAt` or `UpdatedAt` — not in its
 table, not on `OrderLineRead`, never stamped — and the root's `UpdatedAt` moves whenever any of its children is
 added, changed or removed, so it means "anything in this order changed". A child whose table does carry them
-names the trait, and keeps them — a timestamp is the only trait an `Entity` takes:
+says the trait, and keeps them — the timestamps and `ISoftDeletes` are the only traits an `Entity` says:
 
 ```csharp
-public sealed class OrderLine : Entity<Guid, Timestamps>   // this child table has CreatedAt and UpdatedAt
+public sealed class OrderLine : Entity<Guid>, IHasTimestamps   // this child table has CreatedAt and UpdatedAt
 {
 }
 ```
@@ -922,7 +922,7 @@ A child that is the meeting of two aggregates (which transactions fuelled which 
 not by an `Id` of its own. Declare the key as a tuple of the **types** it joins, and make the class `partial`:
 
 ```csharp
-public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model: a form does not carry it yet, see below
+public sealed class DeliveryNote : Aggregate<int>, IBelongsTo<Tenant>   // no IHasForm: a form does not carry it yet, see below
 {
     private readonly List<DeliveryNoteTransaction> _fuellings = [];
 
@@ -1020,12 +1020,12 @@ taken, and a key of several columns on an aggregate **root** are [RASK106](diagn
 
 #### Link tables and child rows on the form
 
-An aggregate whose base names `Model` carries these rows on its form too, in one of two shapes, and saves them in
+An aggregate that says `IHasForm` carries these rows on its form too, in one of two shapes, and saves them in
 the aggregate's one save. A table an existing app made — a company, the activities it does, and the columns of its
 report:
 
 ```csharp
-public sealed class Company : Aggregate<int, Model, PerTenant<int>>
+public sealed class Company : Aggregate<int>, IHasForm, IBelongsTo<Tenant>   // Tenant : Aggregate<int>, ITenant
 {
     private readonly List<CompanyActivity> _activities = [];
     private readonly List<CompanyColumn> _columns = [];
@@ -1084,7 +1084,7 @@ them ([Localization](localization.md)).
 
 **What a form still cannot carry is [RASK106](diagnostics.md#rask106):** rows that hold rows of their own (a
 `ReportColumn` holding `Totals`), a row with no parameterless constructor to add one with, and a key with no part for
-the aggregate that holds it. Leave `Model` off the holder's base and fill those through a method of the aggregate.
+the aggregate that holds it. Leave `IHasForm` off the holder and fill those through a method of the aggregate.
 
 ### Collections of values
 
@@ -1092,7 +1092,7 @@ A collection whose elements are **values** rather than entities is one column, n
 way as a child — a private field and a read-only view — and nothing else is configured:
 
 ```csharp
-public sealed class Trip : Aggregate<Guid, Model>
+public sealed class Trip : Aggregate<Guid>, IHasForm
 {
     private readonly List<string> _tags = [];
     private readonly List<Stop> _stops = [];
@@ -1190,7 +1190,7 @@ elements, and anything holding the list can change it under the value object's f
 collection expression makes one, and a new list replaces it:
 
 ```csharp
-public sealed class Tenant : Aggregate<TenantId, Versioned>
+public sealed class Tenant : Aggregate<TenantId>, IVersioned
 {
     public ValueList<CategoryCode> Codes { get; private set; } = [];     // a JSON column, as IReadOnlyList<T> is
 
@@ -1293,7 +1293,7 @@ A `partial` aggregate's public methods are its **operations**, and each gets a s
 runs it as one write — the load, the method and the save in one `Db.Transaction`:
 
 ```csharp
-public sealed partial class Supply : Aggregate<SupplyId, Versioned, PerTenant>
+public sealed partial class Supply : Aggregate<SupplyId>, IVersioned, IBelongsTo<Tenant>
 {
     public void Change(SupplyDetails details, IReadOnlyList<SupplyPartSpec> parts) { … }   // an operation
     public void SetOpening(Opening opening) { … }                                           // an operation
@@ -1323,7 +1323,7 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   asks its roles, builds the aggregate, saves it (its rules asked) in one `Db.Transaction` and hands back its id. A
   factory left public would win every call over its entry, so it gets none ([RASK173](diagnostics.md#rask173)). Its
   roles are named with `nameof`, since its method group holds the entry too: `b.Operation(nameof(Register), roles: …)`.
-- **A delete of its own.** A `partial` aggregate that can be deleted (`Deletable`, `SoftDelete`) gets
+- **A delete of its own.** A `partial` aggregate that can be deleted (`IDeletable`, `ISoftDeletes`) gets
   `await Supply.Delete(id, version)`: the roles of `b.Operation(nameof(Delete), roles: …)` asked, then the aggregate
   loaded at that version and deleted in one `Db.Transaction`, its `ValidateDelete()` asked by the delete; a hidden
   `Supply.DryRunDelete(id, version)` tries it with nothing deleted, and `Supply.MayDelete` says who may. Called with
@@ -1336,7 +1336,7 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   `ForbiddenException` before anything is read; then `Find(id, version)` (a save since is refused as the form's
   whole-form failure), the method, and `Save()`, which asks the aggregate's [rules](#what-every-save-asks). A refusal
   anywhere — a stale version, a rule, a `Refuse.When(…)` in the method — rolls the whole operation back and reaches
-  the caller as the `RaskValidationException` a form shows. An aggregate with no `Versioned` takes no `version`.
+  the caller as the `RaskValidationException` a form shows. An aggregate that is not `IVersioned` takes no `version`.
 - **Tried, not done: `Supply.DryRunChange(id, version, …)`** (hidden; a factory's is `DryRunRegister(…)`) runs the
   operation on a fresh copy of the aggregate and asks the rules a save would — the changed properties' attributes,
   `Validate()`, a `Refuse` in the method, a stale version — and hands back every `FieldFailure` under the field it
@@ -1363,7 +1363,7 @@ if (Supply.MaySetOpening) { … }                             // generated: may 
   stale-version refusal as `Find(id, version)`), and refuses a lock outside a `Db.Transaction`, which would hold
   nothing.
 - **A job or an event handler, which read no version:** `await Supply.Change(id, details, parts)` — the same entry
-  without the `version`, generated beside it for a `Versioned` aggregate — loads the aggregate as it now stands and
+  without the `version`, generated beside it for an `IVersioned` aggregate — loads the aggregate as it now stands and
   runs the operation on that, its roles and rules asked as ever. It is the system actor's call (a rematch, an
   ingest), never a form's: a person changes what they read. An operation whose first parameter takes a number
   (`Book(int seats)`) gets none, since `Supply.Book(id, 3)` would read both ways — pass the version it loaded.
@@ -1439,9 +1439,9 @@ writes what changed since — it never reads the row again.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
   updated.
 - **Changed underneath is refused, never written over.** The `Version` compared is the one `Find` read, so on a
-  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is refused with the
+  `IVersioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is refused with the
   whole-form `RaskValidationException` above. So is a save whose row, or a changed child's, has been deleted outright: nothing is
-  silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
+  silently re-inserted. An aggregate with no `Version` that says `ISoftDeletes` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
 - **The domain is asked first** — the changed properties' attributes, `Validate()`, `ValidateDelete()` — and a save
   it refuses is a `RaskValidationException` with nothing written, stamped or versioned
@@ -1453,7 +1453,7 @@ writes what changed since — it never reads the row again.
   taken when that context's `SaveChangesAsync` succeeds.
 - **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
   file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
-  read first: an aggregate that names `SoftDelete` is stamped, any other has its row and its children removed. The
+  read first: an aggregate that says `ISoftDeletes` is stamped, any other has its row and its children removed. The
   `Version` read is compared, so a row changed or deleted since is the same whole-form refusal (an unversioned
   soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
   `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
@@ -1471,7 +1471,7 @@ Every save — `Save()`, `Update(id, apply)`, `Create(model)`, `Delete`, a `db:`
 domain before anything is written. A rule is written once, on the aggregate, and holds however the row is changed:
 
 ```csharp
-public sealed class Voyage : Aggregate<Guid, Versioned, Deletable>
+public sealed class Voyage : Aggregate<Guid>, IVersioned, IDeletable
 {
     private readonly List<Leg> _legs = [];
 
@@ -1589,7 +1589,7 @@ public readonly partial record struct OrderId(Guid Value);
 public sealed partial record OrderReference(string Value) : Text(Value, MaxLength: 40, Upper: true);
 public sealed partial record TrackingNumber(string Value) : Text(Value, MaxLength: 60, Trim: true);
 
-public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned>   // no Model, no Deletable: operations only
+public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned   // no IHasForm, no IDeletable: operations only
 {
     public OrderReference Reference { get; private set; } = null!;
     public OrderStatus Status { get; private set; }
@@ -1632,10 +1632,10 @@ and changing it, the same rules run through [`Find` and `Save`](#find-change-sav
   nothing outside the aggregate sets `Status` without going through `Ship`. Each entry is one unit of work: the
   aggregate is loaded with its children, the method runs, the version is checked, and any events it
   [raises](#keeping-state-inside-the-aggregate) are saved in the same transaction.
-- **No `Model` closes the form-model path.** A generated form model writes each field onto the private setters
+- **No `IHasForm` closes the form-model path.** A generated form model writes each field onto the private setters
   directly, which is right for a category and wrong here: a posted form could set `Status` without going through
   `Ship`. The forms of an aggregate like this are its operations' ([a form over an operation](forms.md#a-form-over-an-operation)).
-- **No `Deletable` means no `Delete`.** `Order.Delete(id)` is then a compile error. Retiring an order is `Cancel`,
+- **No `IDeletable` means no `Delete`.** `Order.Delete(id)` is then a compile error. Retiring an order is `Cancel`,
   which keeps the row, its history and everything that refers to it.
 
 ### Time in the domain
@@ -1760,7 +1760,7 @@ decides nothing — a change to another aggregate is that aggregate's own operat
 **The handler is on the aggregate it changes**, one line, with no class and no registration:
 
 ```csharp
-public sealed partial class StockItem : Aggregate<StockItemId, Versioned>
+public sealed partial class StockItem : Aggregate<StockItemId>, IVersioned
 {
     public void Reserve(Quantity quantity) { /* its own rules */ }
 
@@ -1790,14 +1790,14 @@ its fuelings are matched again. The generated delete (`Driver.Delete(id, version
 `.Delete(Driver.Delete)`) has no operation body to `Raise` in, so the aggregate says it in one private hook:
 
 ```csharp
-public sealed partial class Driver : Aggregate<int, Versioned>
+public sealed partial class Driver : Aggregate<int>, IVersioned
 {
     private void OnDelete() => Raise(new DriverChipsChanged([.. Chips.Select(c => c.Code)]));
 }
 ```
 
 - **Every save that deletes the aggregate calls it** — the generated delete, a dialog's delete, `db.Remove(x)` and a
-  save — after its `ValidateDelete()` has passed and before a `SoftDelete` aggregate's removal becomes an update. What it
+  save — after its `ValidateDelete()` has passed and before an `ISoftDeletes` aggregate's removal becomes an update. What it
   raises goes out exactly as an operation's events do: a durable handler's outbox row in the delete's own transaction,
   the in-memory handlers after the commit, nothing on a rollback.
 - **Once per aggregate**: a save that fails keeps the events it raised, and its retry carries them without asking again.
@@ -1808,9 +1808,9 @@ public sealed partial class Driver : Aggregate<int, Versioned>
 ## A form model for data-shaped aggregates
 
 Some aggregates have no steps — a category, a setting, a destination whose only rule is "the fields are valid".
-Such an aggregate may name the `Model` trait, and Rask generates a form model beside it and the writes that take it.
+Such an aggregate may say `IHasForm`, and Rask generates a form model beside it and the writes that take it.
 Its rules are still the aggregate's own — its value objects, its `Validate()`, its unique indexes — and the save asks
-them exactly as it asks an operation's. Where the aggregate has steps, leave `Model` off and bind a form to each
+them exactly as it asks an operation's. Where the aggregate has steps, leave `IHasForm` off and bind a form to each
 operation instead ([a form over an operation](forms.md#a-form-over-an-operation)).
 
 ### Writing: create, update, delete
@@ -1839,7 +1839,7 @@ update just names the row first:
   the create that takes no key, which would insert the row under `0`:
 
   ```csharp
-  public sealed class Destination : Aggregate<int, Model>
+  public sealed class Destination : Aggregate<int>, IHasForm
   {
       public string Name { get; private set; } = "";
 
@@ -1861,14 +1861,14 @@ update just names the row first:
 - **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
   `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
-- **`Product.Delete(id)`** loads the row and **removes** it — generated for an aggregate that names `Deletable`.
-  One that names `SoftDelete` keeps the row instead: `DeletedAt` is stamped and every read stops seeing it. One
-  that names neither has no `Delete`. A row that is still referenced is refused by the database —
+- **`Product.Delete(id)`** loads the row and **removes** it — generated for an aggregate that says `IDeletable`.
+  One that says `ISoftDeletes` keeps the row instead: `DeletedAt` is stamped and every read stops seeing it. One
+  that says neither has no `Delete`. A row that is still referenced is refused by the database —
   [with the sentence you declared](data.md#what-deleting-a-referenced-row-says); a soft delete never asks it.
 
 Each write is one unit of work for one aggregate, and each goes through EF Core's change tracker, so the
 interceptors run exactly as for a hand-written save: `CreatedAt`/`UpdatedAt` are stamped and `Version` is bumped
-where the aggregate names them, a delete becomes a stamp *for an aggregate that names `SoftDelete`*, and the aggregate's domain events are
+where the aggregate says them, a delete becomes a stamp *for an aggregate that says `ISoftDeletes`*, and the aggregate's domain events are
 published after the commit.
 
 - **The id is always yours.** The model carries none; the row is addressed by the `id` you pass, never by anything
@@ -1876,7 +1876,7 @@ published after the commit.
 - **Values that do not come from the form** go in an optional lambda, which runs after the model's values are
   written, so it has the last word: `Product.Create(model, p => p.AssignTo(user.Id))`. With private setters
   the lambda calls the aggregate's methods, and so the rules in those methods run.
-- **A stale edit is refused** on a `Versioned` aggregate. `Update(id, model)` checks the `Version` the model carries and
+- **A stale edit is refused** on an `IVersioned` aggregate. `Update(id, model)` checks the `Version` the model carries and
   refuses the save when someone saved since — a `RaskValidationException` about the whole form, "Someone else changed
   this in the meantime. Reload it and try again." (`RaskString.ValidationChangedSince`, translated by the kit's
   catalog), which a form shows at its top with nothing to catch; EF's `DbUpdateConcurrencyException` is its
@@ -1898,7 +1898,7 @@ constructor with arguments still gets `Update` and `Delete`, and the build says 
 
 ### A create and an edit form
 
-A form edits something mutable and an aggregate is not, so an aggregate that names `Model` gets a **form model
+A form edits something mutable and an aggregate is not, so an aggregate that says `IHasForm` gets a **form model
 generated beside it**: `ProductModel` for `Product`. Forms always bind the model, never the aggregate. It is a plain class with a
 settable copy of every mapped property, and:
 
@@ -1978,55 +1978,61 @@ each links to its edit page.
 
 ### Choosing what a table carries
 
-A table carries only what its base names. The type arguments after the key are **traits**, in any order, and an
-aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Version`, no form model and no generated
-`Delete`: its own columns, its read face, `X.Update(id, x => …)`, and [`Find` and `Save`](#find-change-save).
+A table carries only what the class says. Each trait is a marker interface beside the base, read like a sentence —
+`Company : Aggregate<CompanyId>, IBelongsTo<Tenant>, ISoftDeletes, IHasForm` — in any order, with nothing to
+implement: the build reads it. An aggregate that says none — `Aggregate<Guid>` — has no timestamps, no `Version`, no
+form model and no generated `Delete`: its own columns, its read face, `X.Update(id, x => …)`, and
+[`Find` and `Save`](#find-change-save).
 
-| trait | what the table gets |
+| the class says | what the table gets |
 |---|---|
-| `Timestamps` — or `Created` / `Updated` for one | `CreatedAt` and `UpdatedAt`, stamped on save |
-| `Versioned` | a `Version` concurrency token: a save from a stale copy is refused |
-| `Model` — or `CreateModel` / `UpdateModel` for half | the form model, `X.Create(model)` and `X.Update(id, model)` — [below](#turning-the-form-surface-off) |
-| `Deletable` | a generated `X.Delete(id)` that removes the row |
-| `SoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `Deletable`) |
-| `PerTenant` — or `PerTenant<int>` / `PerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
-| `Broadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
-| `PerTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought). One read past the tenant is `X.Across("why")` ([one read across tenants](multi-tenancy.md#one-read-across-tenants-xacrossreason)) |
-| `OneInForce<TChild>` | at most one of its `TChild` children in force, held by a partial unique index — [below](#history-and-the-one-in-force) |
+| `IHasTimestamps` — or `IHasCreatedAt` / `IHasUpdatedAt` for one | `CreatedAt` and `UpdatedAt`, stamped on save |
+| `IVersioned` | a `Version` concurrency token: a save from a stale copy is refused |
+| `IHasForm` — or `IHasCreateForm` / `IHasUpdateForm` for half | the form model, `X.Create(model)` and `X.Update(id, model)` — [below](#turning-the-form-surface-off) |
+| `IDeletable` | a generated `X.Delete(id)` that removes the row |
+| `ISoftDeletes` | `DeletedAt` and a filter; on a root the generated `Delete` stamps it instead (no `IDeletable` beside it), on a child its aggregate's removal does — [below](#history-and-the-one-in-force) |
+| `IBelongsTo<Tenant>` | a `TenantId` in the tenant's key type, a filter, a stamp and a foreign key to the tenant — see [Multi-tenancy](multi-tenancy.md) |
+| `IBroadcasts` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
+| `IBelongsToTenantThrough<T>` | no column: the tenant of the `T` it points at — see [Multi-tenancy](multi-tenancy.md#an-aggregate-that-belongs-to-another-ones-tenant-ibelongstotenantthrought). One read past the tenant is `X.Across("why")` ([one read across tenants](multi-tenancy.md#one-read-across-tenants-xacrossreason)) |
+| `IInfrastructure` | plumbing beside the domain — a queue, a cache, a session — never counted as [a second aggregate](#one-aggregate-per-transaction-manyaggregates) |
 
-With neither `Deletable` nor `SoftDelete` there is no `Delete` at all — calling it is a compile error, which is
-what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
+`IBelongsTo<Tenant>` names the app's tenant aggregate, the one that says `ITenant`, and the table keeps the tenant in
+that aggregate's key: a `Guid?` for a `Guid` (or `string`) tenant, an `int?` or a `long?` for a numbered one, the
+typed id for a typed one. With neither `IDeletable` nor `ISoftDeletes` there is no `Delete` at all — calling it is a
+compile error, which is what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }    // what rask new scaffolds
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete> { }     // keep the row when deleted
-public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned> { }   // behaviour-rich: no model, no Delete
-public sealed class Reading : Aggregate<Guid, Created> { }                 // append-only: no UpdatedAt, no Version
+public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }    // what rask new scaffolds
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes { }     // keep the row when deleted
+public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned { }   // behaviour-rich: no model, no Delete
+public sealed class Reading : Aggregate<Guid>, IHasCreatedAt { }                 // append-only: no UpdatedAt, no Version
 ```
 
 What the table does not carry, the generated types do not either. A `Reading` like the one above has no
 `Version`, and its read face has `CreatedAt` and nothing else of the framework's:
 `Reading.OrderBy(r => r.UpdatedAt)` is a compile error, not a query that fails. `DeletedAt` is on a read face
-only for an aggregate that names `SoftDelete`.
+only for a table that says `ISoftDeletes`.
 
-A child `Entity` takes only a timestamp trait and `SoftRemoved` — `OrderLine : Entity<Guid, Timestamps>`,
-`VirtualTank : Entity<VirtualTankId, Timestamps, SoftRemoved>`. Tenancy, the version, the delete and the form model are
-the aggregate's, so naming one on an entity is a compile error (CS0311).
+A child `Entity` says only the timestamps and `ISoftDeletes` — `OrderLine : Entity<Guid>, IHasTimestamps`,
+`VirtualTank : Entity<VirtualTankId>, IHasTimestamps, ISoftDeletes`. Tenancy, the version, the delete and the form
+model are the aggregate's. A trait the class cannot carry is [RASK146](diagnostics.md#rask146), an error: an
+aggregate's trait on a child, `IBelongsTo<T>` beside `IBelongsToTenantThrough<T>`, `IDeletable` beside
+`ISoftDeletes`, or `IBelongsTo<T>` of an aggregate other than the one that says `ITenant`.
 
 #### History and the one in force
 
-**`SoftRemoved`** keeps a child its aggregate lets go of. Removed from the collection — by `Sync`, `Remove`, a
-list's own — its row stays, stamped with `DeletedAt`, together with what it holds: whatever points at it (a fueling
-at a virtual tank) still does, and a unique index over it still counts it, so the name it held stays taken. The
-aggregate's load and the child's read face no longer see it; `IgnoreQueryFilters()` lists it again. An aggregate root
-names `SoftDelete` instead, and a root that names `SoftRemoved` is refused when the model is built.
+**`ISoftDeletes` on a child** keeps a child its aggregate lets go of. Removed from the collection — by `Sync`,
+`Remove`, a list's own — its row stays, stamped with `DeletedAt`, together with what it holds: whatever points at it
+(a fueling at a virtual tank) still does, and a unique index over it still counts it, so the name it held stays taken.
+The aggregate's load and the child's read face no longer see it; `IgnoreQueryFilters()` lists it again. The same
+interface on an aggregate root is its soft delete: the meaning comes from where it stands.
 
-**`OneInForce<TChild>`** keeps the history of a child and at most one of it in force — a return's filings, a
-period's closings. The child says when one is, in its own `Configure`; the aggregate puts the next one in force and
-ends the last in one step:
+**One in force** keeps the history of a child and at most one of it in force — a return's filings, a period's
+closings. The child says when one is, in its own `Configure`, and the aggregate that holds it says nothing; it puts
+the next one in force and ends the last in one step:
 
 ```csharp
-public sealed class Period : Aggregate<PeriodId, Versioned, OneInForce<PeriodFiling>>
+public sealed class Period : Aggregate<PeriodId>, IVersioned
 {
     private readonly List<PeriodFiling> _filings = [];
     public IReadOnlyList<PeriodFiling> Filings => _filings;
@@ -2043,11 +2049,11 @@ public sealed class PeriodFiling : Entity<PeriodFilingId>
 }
 ```
 
-The rule is a unique index on the child's key to its aggregate over the rows in force only — filtered on SQL
-Server, partial on PostgreSQL and SQLite — so of two saves that each file one, one commits and the other is refused
-with a `RaskValidationException` under the new child's row (`Filings[1].PeriodId`) carrying the message; never a
-check-then-insert. `InForce()`, `Put(…)` and `End(…)`
-ask the same condition in memory, and `InForce()` throws if it ever finds two.
+The rule is a unique index on the child's key to the aggregate whose collection holds it, over the rows in force only
+— filtered on SQL Server, partial on PostgreSQL and SQLite — so of two saves that each file one, one commits and the
+other is refused with a `RaskValidationException` under the new child's row (`Filings[1].PeriodId`) carrying the
+message; never a check-then-insert. `InForce()`, `Put(…)` and `End(…)` ask the same condition in memory, and
+`InForce()` throws if it ever finds two.
 
 ### Announcing a save
 
@@ -2055,10 +2061,10 @@ A save already refreshes the screen of the session that made it — that is `IDa
 needs no declaration. What it deliberately does not do is reach anyone else's screen, because another session's cache
 is not this save's to touch.
 
-`Broadcast` is that other half:
+`IBroadcasts` is that other half:
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Broadcast> { }
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IBroadcasts { }
 ```
 
 The save is now announced to the whole process once it commits, and every query that reads orders refetches — a
@@ -2086,7 +2092,7 @@ it can actually be expressed.
 
 #### Why the scaffold checks the version and soft-deletes nothing
 
-Both are opt-in, and `rask new` names `Versioned` and `Deletable`. They look symmetrical and are not.
+Both are opt-in, and `rask new` says `IVersioned` and `IDeletable`. They look symmetrical and are not.
 
 Soft delete used to be the default and is not any more, because it costs an ordinary application more than the
 recovery is worth. A stamped row still occupies its UNIQUE constraints, so deleting the account `a@b.com` and
@@ -2101,7 +2107,7 @@ absorbs: a stale save is a `RaskValidationException` about the whole form, which
 
 #### An entity that knows its own time
 
-`CreatedAt` and `UpdatedAt` — on a table that names `Timestamps` — are normally the framework's, stamped by
+`CreatedAt` and `UpdatedAt` — on a table that says `IHasTimestamps` — are normally the framework's, stamped by
 Rask's auditing interceptor on save. An
 entity in a package that does **not** own the `DbContext` cannot rely on that, and a column nobody stamped
 reads as `0001-01-01` — which is not obviously wrong anywhere it is used. Rask's own file store found this the
@@ -2114,10 +2120,10 @@ end up at `0001-01-01`.
 ### Turning the form surface off
 
 Not every aggregate should be creatable from a form. A passkey is minted by a WebAuthn ceremony; a session
-is started by signing in. The form surface is a trait, so an aggregate that leaves `Model` off has none:
+is started by signing in. The form surface is a trait, so an aggregate that leaves `IHasForm` off has none:
 
 ```csharp
-public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
+public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
 {
     public string Name { get; private set; } = "";
 
@@ -2125,11 +2131,11 @@ public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
 }
 ```
 
-| The base names | What is generated |
+| The class says | What is generated |
 |---|---|
-| `Model` | `PasskeyModel`, `Create(model)`, `Update(id, model)`, `Model(id)`, `ToModel()` |
-| `CreateModel` | `PasskeyModel`, `Create(model)`, `Model(id)`, `ToModel()` |
-| `UpdateModel` | `PasskeyModel`, `Update(id, model)`, `Model(id)`, `ToModel()` |
+| `IHasForm` | `PasskeyModel`, `Create(model)`, `Update(id, model)`, `Model(id)`, `ToModel()` |
+| `IHasCreateForm` | `PasskeyModel`, `Create(model)`, `Model(id)`, `ToModel()` |
+| `IHasUpdateForm` | `PasskeyModel`, `Update(id, model)`, `Model(id)`, `ToModel()` |
 | none of them | no `PasskeyModel` at all, and nothing that takes one |
 
 **It reaches the form surface and nothing else.** These take no model, so they are there either way:
@@ -2137,7 +2143,7 @@ public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
 ```csharp
 var passkey = Passkey.For(me, "laptop"); await passkey.Save();   // its factory, then Save — takes no model
 await Passkey.Update(id, p => p.Rename("desktop"));       // behaviour
-await Passkey.Delete(id);                                 // never took a model (there under Deletable or SoftDelete)
+await Passkey.Delete(id);                                 // never took a model (there under IDeletable or ISoftDeletes)
 await Passkey.Where(p => p.UserId == me);   // the read face is not negotiable
 ```
 
@@ -2145,7 +2151,7 @@ The read face stays because querying works through read models: an aggregate tha
 would be an aggregate nothing can read.
 
 A **child** takes its root's answer: its model exists to be an element of the root's list, so an `Entity` cannot
-name `Model` at all — the compiler refuses it.
+say `IHasForm` at all — [RASK146](diagnostics.md#rask146) refuses it.
 
 ### How a form save writes
 
@@ -2247,7 +2253,7 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 
 ### What the model carries
 
-- **Every mapped property** of the aggregate, nullable, and its `Version` when it names `Versioned`.
+- **Every mapped property** of the aggregate, nullable, and its `Version` when it says `IVersioned`.
 - **Not** the `Id`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, the domain events, navigations, collections or computed
   properties. Computed is read off the member: no setter, no backing field, and — for a collection — a getter that
   makes something of a list the aggregate already stores rather than handing it out. `OpenLines => _lines.Where(…)`
@@ -2256,6 +2262,10 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 - **A value object as a model of its own:** `Money Price` on `Product` is a nested `MoneyModel? Price` on `ProductModel`, filled by `new ProductModel()` and `ToModel()`, so a
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.
+- **Another row's typed id as the typed id:** `CompanyId Company` (`readonly partial record struct CompanyId(int Value)`)
+  is `CompanyId? Company` on the model, never the `int?` it holds, so `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c
+  => c.Name))` binds it with nothing in between, a query string parses it through its own `IParsable`, and the save hands
+  it to the aggregate as it is. A list of them (`List<TagId>`) stays a list of them. A non-nullable one is still required.
 - **Children keyed by several columns:** a link table as a list of ids (`List<int> ActivityIds`), a row with fields of
   its own as a list of rows (`List<CompanyColumnModel> Columns`) — see
   [Link tables and child rows on the form](#link-tables-and-child-rows-on-the-form).
@@ -2423,7 +2433,7 @@ migrations and tests. A change that seems to need two aggregates is decided in t
    ```csharp
    public sealed record OrderPlaced(OrderId Order, StockItemId Stock, Quantity Quantity) : IEvent;
 
-   public sealed partial class Order : Aggregate<OrderId, Versioned>
+   public sealed partial class Order : Aggregate<OrderId>, IVersioned
    {
        public StockItemId Stock { get; private set; }
        public Quantity Quantity { get; private set; } = null!;
@@ -2431,7 +2441,7 @@ migrations and tests. A change that seems to need two aggregates is decided in t
        public void Confirm() => Raise(new OrderPlaced(Id, Stock, Quantity));   // what happened, said once
    }
 
-   public sealed partial class StockItem : Aggregate<StockItemId, Versioned>
+   public sealed partial class StockItem : Aggregate<StockItemId>, IVersioned
    {
        public void Reserve(Quantity quantity) { /* its own rules */ }
 
@@ -2493,7 +2503,7 @@ builder.Services.AddRaskData(o => o.OneAggregatePerTransaction = AggregatePolicy
 - **What counts** is what the transaction's saves wrote, each aggregate once: a child counts as its aggregate (a
   changed `SupplyPart` is its `Supply`), the same aggregate saved twice is one, and two rows of one type are two.
   Rask's own tables — outbox, jobs, mail, sessions, passkeys, stored files, cache, push subscribers — are no aggregate
-  of the app's and never count; mark an app table of the same kind `b.Infrastructure()` in its `Configure`. A
+  of the app's and never count; an app table of the same kind says `IInfrastructure` on its class. A
   [set write](data-writes.md#writes-over-many-rows) (`X.UpdateWhere`, `X.DeleteWhere`) counts once, as `Pairing (set)`,
   whatever rows it touched; a batch of `X.UpdateEach` or `X.Import` states its own reason — each row is an aggregate of
   its own — and is let through. A raw `ExecuteUpdate` and a `BulkInsert` are not saves and are not counted

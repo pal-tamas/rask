@@ -6,7 +6,7 @@ public readonly partial record struct CaravanId(Guid Value);
 
 // F-18 on an operation: one that writes a second aggregate says why in Configure, and one that must not be raced
 // locks its row, or its wagons, before its entry loads it (OperationLockTests).
-public sealed partial class Caravan : Aggregate<CaravanId, Versioned>
+public sealed partial class Caravan : Aggregate<CaravanId>, IVersioned
 {
     private readonly List<CaravanWagon> _wagons = [];
 

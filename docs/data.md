@@ -188,7 +188,7 @@ apply only to an id nothing is configured on. (Laravel's `belongsTo(Category::cl
 `belongs_to :x, class_name:, foreign_key:` work the same way.)
 
 ```csharp
-public sealed class Product : Aggregate<int, PerTenant>
+public sealed class Product : Aggregate<int>, IBelongsTo<Tenant>
 {
     public int? ProductCategoryId { get; private set; }
     public int? ForeignTaxProductCategoryId { get; private set; }
@@ -234,7 +234,7 @@ Every navigation the read face infers also works backwards: the **target** gets 
 at it. A distribution moves fuel from one fueling to another, and holds nothing but their ids:
 
 ```csharp
-public sealed class Distribution : Aggregate<string, Deletable>
+public sealed class Distribution : Aggregate<string>, IDeletable
 {
     public string FromFuelingId { get; private set; } = "";
     public string ToFuelingId { get; private set; } = "";
@@ -271,7 +271,7 @@ behind it, and an aggregate holds ids, not navigations.
 
 The collection is an `IReadOnlyList<DistributionRead>`, and it exists exactly when the navigation it mirrors does,
 inferred by the same rules. **Its rows go through their own filters**: a soft-deleted distribution is not in it, and
-when the referencing aggregate is `PerTenant`, only the current tenant's rows are, even if the target is shared by
+when the referencing aggregate says `IBelongsTo<Tenant>`, only the current tenant's rows are, even if the target is shared by
 every tenant. The target keeps its own filters too, so another tenant's fueling and the rows pointing at it never
 appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
 would both claim with no words of their own to tell them apart gets no collection and a
@@ -373,7 +373,7 @@ A filter several pages share — Rails' `scope :in_stock`, Laravel's `#[Scope]` 
 that returns the query, unrun. `Product.Where(…)` returns a `ModelQuery<ProductRead>`, so that is the type:
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     public string Name { get; private set; } = "";
     public int Stock { get; private set; }
@@ -521,7 +521,7 @@ the key on the aggregate that says `IUser` is the declaration, and the build gen
 number.
 
 ```csharp
-public sealed class User : Aggregate<int, PerTenant<int>>, IUser { … }
+public sealed class User : Aggregate<int>, IBelongsTo<Tenant>, IUser { … }
 ```
 
 | Member | With `User : Aggregate<int>, IUser` |
@@ -548,7 +548,7 @@ travels inside it by the same fixed rule as a [numbered tenant](multi-tenancy.md
 An app whose users are `Guid`s keeps its `Guid?` `Current.UserId`, and reads a numeric claim as nobody.
 
 `Current.User` reads the user's row across tenants: it is found by the user's own key, so an administrator working
-in another tenant (`Tenant.Use(other)`) is still themselves, even when the users table is `PerTenant`.
+in another tenant (`Tenant.Use(other)`) is still themselves, even when the users table says `IBelongsTo<Tenant>`.
 
 The generated members live in the global namespace, which C# searches before the namespaces a file imports — so
 they win over Rask.Data's `Guid?` one wherever `using Rask.Data;` sits at the top of the file, the placement every
@@ -559,7 +559,7 @@ Rask template enforces. A `using` written *inside* a namespace is searched first
 One trait partitions a table by tenant. Opt-in, so a table that does not name it is one table for everybody:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant> { }
+public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IBelongsTo<Tenant> { }
 
 var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // this tenant's
 ```
@@ -568,7 +568,7 @@ That gives the table a `TenantId` column and a query filter no read can compose 
 [what you write](multi-tenancy.md#an-index-is-what-you-write): name `TenantId` in one that is unique per tenant,
 leave it out of one that is unique across every tenant, like a sign-in name. The column is a shadow one; an aggregate that reads its tenant declares
 `public Guid? TenantId { get; private set; }` — or `int?` / `long?` where tenants are numbered, and the declared
-type is then the column's; `PerTenant<int>` / `PerTenant<long>` gives a numbered shadow column without declaring
+type is then the column's; a table of an `int` or `long` tenant gets a numbered shadow column without declaring
 one, and a declared `TenantId` must match it. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant`
 claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), asked once by a request
 and [at every event by a live page](multi-tenancy.md#from-the-request-a-resolver), so the read above
@@ -957,7 +957,7 @@ refuse — a legacy schema's `0` for a `HardwareNumber(int Value) : Integer(Valu
 clock, in UTC**: `SYSUTCDATETIME()` on SQL Server (`TODATETIMEOFFSET(…, 0)` for a `DateTimeOffset`), `now()` on
 PostgreSQL, `strftime('%Y-%m-%d %H:%M:%f', 'now')` on SQLite — the text a `DateTime` is stored as there. It is the
 moment the database writes the row, on the database server; `Clock.Fake` does not move it. A row Rask writes takes
-its moment from the entity, which reads `Clock.Now` — an aggregate's `Timestamps` are stamped that way.
+its moment from the entity, which reads `Clock.Now` — an aggregate's `IHasTimestamps` are stamped that way.
 
 `Default(x => x.SentAt, () => Clock.Wall)` is **the database's wall clock**, for a `DateTime` column (or a value object
 over one, `WallMoment(DateTime Value)`) that keeps moments as the clock showed them: `CURRENT_TIMESTAMP` on SQL Server
@@ -1080,10 +1080,10 @@ Which sentence, in this order:
   exists the constraint's name in the database has to be the one in the model
   (`FK_{Dependent}_{Principal}_{Column}`, or `HasConstraintName("…")`) for the relationship's sentence to be
   found; under any other name the entity's `WhenReferenced` answers.
-- **A soft delete is never refused.** An aggregate that names `SoftDelete` keeps its row, so
+- **A soft delete is never refused.** An aggregate that says `ISoftDeletes` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
 - **The other side — a key that points at no row of the tenant in flight — is refused before the database is
-  asked**, for a `PerTenant` row: a field error under the key, in the relationship's `WhenMissing("…")`, else the
+  asked**, for a row that says `IBelongsTo<Tenant>`: a field error under the key, in the relationship's `WhenMissing("…")`, else the
   referenced entity's `b.WhenMissing("…")`, else the catalog's `ValidationNotFound`
   ([multi-tenancy.md](multi-tenancy.md#a-reference-names-a-row-of-the-same-tenant)).
 
@@ -1176,7 +1176,7 @@ moments as UTC from the start and owes nothing.
 
 **A bare `DateTime` on an aggregate or an entity is refused on PostgreSQL** as the model is built: Npgsql would refuse a
 wall-clock one only when the row is saved, long after the model was written. Hold an instant as a `Moment` and a
-calendar day as a `Day` ([RASK146](diagnostics.md#rask146) points at each one); a column that must stay a `DateTime`
+calendar day as a `Day` ([RASK147](diagnostics.md#rask147) points at each one); a column that must stay a `DateTime`
 says how it is stored with `HasConversion(…)`. Rask's own `CreatedAt`/`UpdatedAt`, and a table that is no entity of
 the domain, are left as Npgsql maps them.
 
@@ -1252,7 +1252,7 @@ not each name's. All or none: when one is not granted, the ones already taken ar
 
 ## Optimistic concurrency
 
-A `Versioned` aggregate's `Version` is an EF Core concurrency token, bumped on every save that changes the
+An `IVersioned` aggregate's `Version` is an EF Core concurrency token, bumped on every save that changes the
 aggregate or any of its children. The writes check it for you, against the version the caller **read** — a freshly
 loaded row's version is whatever the database holds now, which would make every check pass:
 
@@ -1394,7 +1394,7 @@ its domain with aggregates over the tables it has, with **no migration**. A bare
 the framework's, so the work is naming only the traits the table really has, on the entity that maps it.
 
 ```csharp
-public sealed class Destination : Aggregate<int, PerTenant<int>>   // filtered and stamped by TenantId — nothing else
+public sealed class Destination : Aggregate<int>, IBelongsTo<Tenant>   // filtered and stamped by TenantId — nothing else
 {
     public int? TenantId { get; private set; }                // the column's own type: int?, long? or Guid?
     public string Name   { get; private set; } = "";
@@ -1413,12 +1413,12 @@ public sealed class Destination : Aggregate<int, PerTenant<int>>   // filtered a
 
 | What Rask can map | What an existing table usually has | How to say so |
 |---|---|---|
-| `CreatedAt` and `UpdatedAt` | neither, or one | name nothing, or `Created` / `Updated` for the one it has — on the root; a [child](domain.md#children) names it on `Entity<TId, …>` |
-| a `Version` concurrency token | none | name nothing — a write then takes no version, and the last writer wins |
-| a delete | a hard one | `Deletable`; `SoftDelete` only for a table with a `DeletedAt` column; neither, and there is no `Delete` |
+| `CreatedAt` and `UpdatedAt` | neither, or one | say nothing, or `IHasCreatedAt` / `IHasUpdatedAt` for the one it has — on the root; a [child](domain.md#children) says it on its own class |
+| a `Version` concurrency token | none | say nothing — a write then takes no version, and the last writer wins |
+| a delete | a hard one | `IDeletable`; `ISoftDeletes` only for a table with a `DeletedAt` column; neither, and there is no `Delete` |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
 | an integer key the database numbers | a key the application numbers | `b.Property(d => d.Id).ValueGeneratedNever()` in `Configure` — the aggregate then takes its key in [`Create(id, model)`](domain.md#writing-create-update-delete) |
-| a `Guid?` tenant column | an `int` one | `PerTenant<int>`, and declare `public int? TenantId { get; private set; }` to read it — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
+| a `Guid?` tenant column | an `int` one | an `int` tenant (`Tenant : Aggregate<int>, ITenant`), `IBelongsTo<Tenant>`, and declare `public int? TenantId { get; private set; }` to read it — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
 | — | `TenantId` in a per-tenant index | write it into the index: it is [left exactly as written](multi-tenancy.md#an-index-is-what-you-write) |
 
 Column names, lengths, precision, conversions and relationships are ordinary EF Core in the same `Configure`.
@@ -1492,8 +1492,8 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 - **`ProjectionInterceptor`** — next: raises each [declared projection](domain.md#declared-projections-projects)'s event onto
   the rows the save changed, before soft-delete rewrites a removal and before the outbox and the publish read the events.
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
-  increments each `Versioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
-- **`SoftDeleteInterceptor`** — for an aggregate that names `SoftDelete`, rewrites a `Deleted`
+  increments each `IVersioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
+- **`SoftDeleteInterceptor`** — for an aggregate that says `ISoftDeletes`, rewrites a `Deleted`
   entry to `Modified` + sets `DeletedAt`. Your handler just calls `db.Remove(entity)`; to restore, load with
   `IgnoreQueryFilters()` and clear `DeletedAt`. Every other entity's delete removes the row.
 - **`DomainEventInterceptor`**: after the change commits, publishes each entity's `DomainEvents`

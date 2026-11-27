@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK146 — the domain holds a bare <c>DateTime</c> or <c>DateTimeOffset</c>: a stored property or a field of an
+///     RASK147 — the domain holds a bare <c>DateTime</c> or <c>DateTimeOffset</c>: a stored property or a field of an
 ///     aggregate, an entity, a value object, a domain event (an <c>IEvent</c>) or a read model (an <c>IReadModel</c>).
 /// </summary>
 /// <remarks>
@@ -33,7 +33,7 @@ public sealed class DomainTimeAnalyzer : DiagnosticAnalyzer
     public const string ReadsAsDay = "ReadsAsDay";
 
     private static readonly DiagnosticDescriptor Rask146 = new(
-        "RASK146",
+        "RASK147",
         "The domain holds a bare DateTime",
         "'{0}' in '{1}' is a bare {2} — hold an instant as a Moment and a calendar day as a Day",
         DiagnosticHelp.Category,
@@ -44,7 +44,7 @@ public sealed class DomainTimeAnalyzer : DiagnosticAnalyzer
                      + "DateTimeOffset says neither which it is nor which clock it was read on, and PostgreSQL refuses a "
                      + "DateTime that is not UTC only when the row is saved. A wall-clock time from outside becomes a "
                      + "Moment where it comes in, with FromWall(local, zone). A warning; an error under <RaskStrict>.",
-        helpLinkUri: DiagnosticHelp.Link("RASK146"));
+        helpLinkUri: DiagnosticHelp.Link("RASK147"));
 
     // The framework's own stamps on every entity, which Rask writes: never the app's to wrap (as RASK130 leaves them).
     private static readonly ImmutableHashSet<string> FrameworkMembers =

@@ -53,7 +53,7 @@ public sealed class PrimitiveStatePropertyAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            // A DateTime or DateTimeOffset is RASK146's where the app has Moment and Day to hold it: one report, one fix.
+            // A DateTime or DateTimeOffset is RASK147's where the app has Moment and Day to hold it: one report, one fix.
             var timeIsRask146 = start.Compilation.GetTypeByMetadataName("Rask.Values.Moment") is not null;
             start.RegisterSymbolAction(symbol => Analyze(symbol, timeIsRask146), SymbolKind.Property);
         });

@@ -3,7 +3,7 @@ using Rask.Batteries.Generators.Analyzers;
 
 namespace Rask.Batteries.Generators.Tests;
 
-/// <summary>RASK146: a bare DateTime or DateTimeOffset held by the domain, which is a Moment or a Day.</summary>
+/// <summary>RASK147: a bare DateTime or DateTimeOffset held by the domain, which is a Moment or a Day.</summary>
 public class DomainTimeAnalyzerTests
 {
     private const string Domain = """
@@ -36,7 +36,7 @@ public class DomainTimeAnalyzerTests
         """;
 
     [Fact]
-    public async Task Each_bare_time_the_domain_holds_is_a_RASK146_warning()
+    public async Task Each_bare_time_the_domain_holds_is_a_RASK147_warning()
     {
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new DomainTimeAnalyzer(), Domain);
 
@@ -63,10 +63,10 @@ public class DomainTimeAnalyzerTests
     [Fact]
     public async Task An_app_that_sets_RaskStrict_gets_a_bare_time_in_the_domain_as_an_error()
     {
-        var strict = StrictConfig.Severity("RASK146");
+        var strict = StrictConfig.Severity("RASK147");
 
         var diagnostics = await ModelStateAnalyzerHarness.RunAsync(
-            new DomainTimeAnalyzer(), Domain, options => options.WithSpecificDiagnosticOptions([new("RASK146", strict)]));
+            new DomainTimeAnalyzer(), Domain, options => options.WithSpecificDiagnosticOptions([new("RASK147", strict)]));
 
         Assert.Equal(ReportDiagnostic.Error, strict);
         Assert.All(diagnostics, d => Assert.Equal(DiagnosticSeverity.Error, d.Severity));

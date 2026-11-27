@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A hangar whose stalls are let go of, never deleted: what a stall recorded stays, and its name stays taken.</summary>
-public sealed class Hangar : Aggregate<Guid, Versioned>
+public sealed class Hangar : Aggregate<Guid>, IVersioned
 {
     private readonly List<Stall> _stalls = [];
 
@@ -26,8 +26,8 @@ public sealed class Hangar : Aggregate<Guid, Versioned>
     public void Close(string stall) => _stalls.RemoveAll(b => b.Name == stall);
 }
 
-/// <summary>A child that names SoftRemoved.</summary>
-public sealed class Stall : Entity<Guid, SoftRemoved>
+/// <summary>A child that says ISoftDeletes.</summary>
+public sealed class Stall : Entity<Guid>, ISoftDeletes
 {
     public const string Taken = "A stall with this name already exists.";
 
@@ -60,7 +60,7 @@ public sealed class StallMark : Entity<Guid>
 }
 
 /// <summary>
-/// F-30: a child that names <see cref="SoftRemoved" /> is kept, stamped, when its aggregate lets go of it — hidden from
+/// F-30: a child that names <see cref="ISoftDeletes" /> is kept, stamped, when its aggregate lets go of it — hidden from
 /// the aggregate's load and from its read face, listed again by IgnoreQueryFilters, its unique name still taken.
 /// </summary>
 public sealed class SoftRemovedTests : IDisposable

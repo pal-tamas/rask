@@ -38,7 +38,7 @@ public sealed partial record UnitPrice(decimal Value) : Number(Value, Min: 0, Ma
 
 public sealed partial record StockLevel(long Value) : Integer(Value, Min: 0);
 
-public sealed partial class Product : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+public sealed partial class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable
 {
     public ProductName Name { get; private set; } = null!;
 
@@ -84,11 +84,11 @@ precision and the form's input its `maxlength`, `min` and `step`. Rask generates
 app loads, changes and saves as one. Deriving from it is all the mapping there is — no `DbSet`, no configuration
 class, no registration. The key comes first, and every name after it is a **trait** the table opts into:
 
-- **`Timestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
-- **`Versioned`** adds `Version`, a concurrency token bumped on every save. It is what stops two people editing the
+- **`IHasTimestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
+- **`IVersioned`** adds `Version`, a concurrency token bumped on every save. It is what stops two people editing the
   same product from silently overwriting each other — section 5 proves it.
-- **`Deletable`** generates `Product.Delete(id, version)`. An aggregate whose deleted rows must stay recoverable names
-  `SoftDelete` instead ([choosing what a table carries](../domain.md#choosing-what-a-table-carries)).
+- **`IDeletable`** generates `Product.Delete(id, version)`. An aggregate whose deleted rows must stay recoverable names
+  `ISoftDeletes` instead ([choosing what a table carries](../domain.md#choosing-what-a-table-carries)).
 
 **A factory and three operations.** The class is `partial`, and that is what lets Rask write beside it:
 

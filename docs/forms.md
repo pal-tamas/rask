@@ -781,7 +781,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
 ### Binding a data model
 
 The form that changes an aggregate is the [form over its operation](#a-form-over-an-operation). An aggregate with no
-steps of its own — a category, a setting — may name the `Model` trait instead, and gets a form model generated beside
+steps of its own — a category, a setting — may say the `IHasForm` trait instead, and gets a form model generated beside
 it: `CategoryModel` beside `Category`, every mapped property settable, its value objects' rules and unique indexes
 asked by the form with nothing declared here:
 
@@ -950,7 +950,7 @@ midnight —
 `min`/`max` and a step of its scale, a day a `Ui.DatePicker` (ending today when it may not be after it), a moment
 a `Ui.DayAndTime`, a `bool` a `Ui.Checkbox`, an enum a `Ui.Select` over its members in their order (an empty
 choice first for a nullable one), and a range two controls under one label, each end with its own message.
-Another row's id is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
+Another row's id — a generated model holds a typed id as itself, `CompanyId?`, not the number inside it — is a select over the rows you give, in the shapes `Ui.Select.Choices` takes —
 `.Choices(Vehicle.Find)`, or a read face's rows, `.Choices(Vehicle.Choices(v => v.Plate))` — searched and paged in the database, the picked row named whatever page it is on ([ui-kit.md](ui-kit.md)); without them rendering throws and says so. `[Editable(false)]` makes a text or
 number input read-only and any other control disabled. Each `Label`, `Description`, `Placeholder` or `Badge`
 step wins over the attribute; `Live` reaches every control, `Blur` and `Debounce` the text ones.
@@ -1022,7 +1022,7 @@ An operation of a `partial` aggregate ([an operation, run as one write](domain.m
 form of its own, its fields its parameters — no model class to write, no rule to repeat:
 
 ```csharp
-public sealed partial class Note : Aggregate<Guid, Versioned>
+public sealed partial class Note : Aggregate<Guid>, IVersioned
 {
     public string Title { get; private set; } = "";
 

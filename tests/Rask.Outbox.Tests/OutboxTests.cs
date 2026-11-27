@@ -7,7 +7,7 @@ using Rask.Tests.Shared;
 namespace Rask.Outbox.Tests;
 
 // An entity that raises an outbox event on creation.
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     private Order() { }
 

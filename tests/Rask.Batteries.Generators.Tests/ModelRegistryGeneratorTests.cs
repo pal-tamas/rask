@@ -18,8 +18,8 @@ public class ModelRegistryGeneratorTests
         var run = Run("""
             using System;
             using Rask.Data;
-            namespace Shop.Catalog { public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { } }
-            namespace Shop.Archive { public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { } }
+            namespace Shop.Catalog { public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { } }
+            namespace Shop.Archive { public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { } }
             """);
 
         // RASK090 at each declaration: both would be db.Products. The mapping is unaffected — only the
@@ -65,7 +65,7 @@ public class ModelRegistryGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<OrderLine> _lines = [];
                 public IReadOnlyCollection<OrderLine> Lines => _lines;
@@ -89,7 +89,7 @@ public class ModelRegistryGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            internal sealed class Ledger : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
+            internal sealed class Ledger : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
             """);
 
         Assert.Empty(run.Diagnostics);
@@ -110,7 +110,7 @@ public class ModelRegistryGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class SaveChange : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
+            public sealed class SaveChange : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
             """);
 
         // db.SaveChanges would compile and silently mean DbContext.SaveChanges — a member on the type itself
@@ -126,8 +126,8 @@ public class ModelRegistryGeneratorTests
         var run = Run("""
             using System;
             using Rask.Data;
-            namespace Shop.Catalog { public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { } }
-            namespace Shop.Archive { public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { } }
+            namespace Shop.Catalog { public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { } }
+            namespace Shop.Archive { public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { } }
             """);
 
         // Reported at BOTH declarations: an author looking at either one has to see why db.Products is missing.
@@ -146,7 +146,7 @@ public class ModelRegistryGeneratorTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public void Configure(EntityTypeBuilder<Product> builder) { }
             }
@@ -165,7 +165,7 @@ public class ModelRegistryGeneratorTests
             using Rask.Data;
             namespace Shop;
             public readonly record struct PairId(Guid Left, Guid Right);
-            public sealed class Pair : Aggregate<PairId, Timestamps, Versioned, Model, Deletable> { }
+            public sealed class Pair : Aggregate<PairId>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics);
@@ -188,7 +188,7 @@ public class ModelRegistryGeneratorTests
                 public decimal Amount { get; private set; }
                 public Currency Currency { get; private set; } = null!;
             }
-            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid, global::Rask.Data.Timestamps, global::Rask.Data.Versioned, global::Rask.Data.Model, global::Rask.Data.Deletable>
+            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid>, global::Rask.Data.IHasTimestamps, global::Rask.Data.IVersioned, global::Rask.Data.IHasForm, global::Rask.Data.IDeletable
             {
                 private Customer() { }
                 public Money Limit { get; private set; } = null!;
@@ -213,11 +213,12 @@ public class ModelRegistryGeneratorTests
         var run = Run("""
             using Rask.Data;
             namespace Shop;
-            public sealed class Kiosk : Aggregate<int, Created, PerTenant<int>>
+            public sealed class Kiosk : Aggregate<int>, IHasCreatedAt, IBelongsTo<IntTenant>
             {
                 private Kiosk() { }
                 public string Name { get; private set; } = "";
             }
+            public sealed class IntTenant : Rask.Data.Aggregate<int> { }
             """);
 
         var conventions = run.GeneratedSource("__RaskConventions");
@@ -228,21 +229,20 @@ public class ModelRegistryGeneratorTests
     }
 
     [Fact]
-    public void A_timestamp_is_the_only_trait_an_entity_that_is_not_an_aggregate_can_name()
+    public void An_entity_that_is_not_an_aggregate_says_its_timestamps_and_its_soft_delete_as_a_child()
     {
         var run = Run("""
             using Rask.Data;
             namespace Shop;
-            public sealed class Ledger : Entity<long, Timestamps> { private Ledger() { } }
-            public sealed class Bin : Entity<long, SoftDelete> { private Bin() { } }
+            public sealed class Ledger : Entity<long>, IHasTimestamps { private Ledger() { } }
+            public sealed class Bin : Entity<long>, ISoftDeletes { private Bin() { } }
             """);
 
-        var errors = run.Compilation.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Select(static d => d.Id)
-            .ToList();
+        var conventions = run.GeneratedSource("__RaskConventions");
 
-        Assert.Equal(["CS0311"], errors);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Declare(typeof(global::Shop.Ledger), (global::Rask.Data.TraitSet)3);", conventions, StringComparison.Ordinal);
+        Assert.Contains("Declare(typeof(global::Shop.Bin), (global::Rask.Data.TraitSet)512);", conventions, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class ModelRegistryGeneratorTests
                 public Label Label { get; private set; } = null!;
                 public string Carrier { get; private set; } = "";
             }
-            public sealed class Parcel : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Parcel : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Parcel() { }
                 public Sku Sku { get; private set; } = new("");
@@ -288,7 +288,7 @@ public class ModelRegistryGeneratorTests
             namespace Shop;
             public sealed record Email(string Value);
             public sealed record Money(decimal Amount, string Currency);
-            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid, global::Rask.Data.Timestamps, global::Rask.Data.Versioned, global::Rask.Data.Model, global::Rask.Data.Deletable>
+            public sealed class Customer : global::Rask.Data.Aggregate<global::System.Guid>, global::Rask.Data.IHasTimestamps, global::Rask.Data.IVersioned, global::Rask.Data.IHasForm, global::Rask.Data.IDeletable
             {
                 private Customer() { }
                 public Email Contact { get; private set; } = null!;

@@ -22,9 +22,9 @@ namespace Shop.Deliveries
     {
         public int Id { get; set; }
 
-#pragma warning disable RASK146 // the bare DateTime the model build refuses on PostgreSQL is what is under test
+#pragma warning disable RASK147 // the bare DateTime the model build refuses on PostgreSQL is what is under test
         public DateTime ShippedAt { get; set; }
-#pragma warning restore RASK146
+#pragma warning restore RASK147
     }
 
     /// <summary>A table that is no entity of the domain: a row an import stages.</summary>

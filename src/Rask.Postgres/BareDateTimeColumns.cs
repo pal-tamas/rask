@@ -44,7 +44,7 @@ internal static class BareDateTimeColumns
                     $"{type.DisplayName()}.{property.Name} is a bare DateTime, which PostgreSQL stores only as UTC: Npgsql refuses "
                     + "a wall-clock time when the row is saved. Hold an instant as a Moment "
                     + "(`public sealed partial record FueledAt(DateTime Value) : Moment(Value);`, stored as UTC on every database) "
-                    + "and a calendar day as a Day (`... (DateOnly Value) : Day(Value);`) — RASK146 points at each one. "
+                    + "and a calendar day as a Day (`... (DateOnly Value) : Day(Value);`) — RASK147 points at each one. "
                     + "A column that must stay a DateTime says how it is stored with HasConversion(…).");
             }
         }

@@ -20,7 +20,7 @@ years of stored rows. The order below is the one that kept every step small and 
 | 1. [Provider-neutral code](#1-provider-neutral-code) | SQL and provider APIs out of the app | no |
 | 2. [Tests on SQLite in memory](#2-tests-on-sqlite-in-memory) | the test fixture | no |
 | 3. [Value objects and typed ids](#3-value-objects-and-typed-ids) | property types, rules out of forms and services | no — same columns |
-| 4. [`Versioned`](#4-versioned) | a `Version` column on every edited aggregate | one migration |
+| 4. [`IVersioned`](#4-iversioned) | a `Version` column on every edited aggregate | one migration |
 | 5. [Operations instead of services](#5-operations-instead-of-services) | services dissolve into aggregate methods | no |
 | 6. [Forms over the operations](#6-forms-over-the-operations) | hand form classes go | no |
 | 7. [Events instead of cross-aggregate writes](#7-events-instead-of-cross-aggregate-writes) | the remaining two-aggregate saves | no |
@@ -136,7 +136,7 @@ public readonly partial record struct SupplierId(int Value);
 public sealed partial record SupplierName(string Value) : Text(Value, MaxLength: 200);
 public sealed partial record Discount(decimal Value) : Number(Value, Min: 0, Max: 100, Scale: 2);
 
-public sealed partial class Supplier : Aggregate<SupplierId, Timestamps>
+public sealed partial class Supplier : Aggregate<SupplierId>, IHasTimestamps
 {
     public SupplierName Name { get; private set; } = null!;
     public Discount Discount { get; private set; } = null!;
@@ -162,9 +162,9 @@ the new `MaxLength` is a decision per value object: keep the old length on the v
 that property changes, so a stored value a tightened rule would refuse opens and is put right when next edited.
 Before a unique index over such rows goes in, [step 8](#8-stored-data-indexes-data-steps) checks them.
 
-## 4. `Versioned`
+## 4. `IVersioned`
 
-Every aggregate a person edits names `Versioned`, so two people saving one record cannot silently overwrite each
+Every aggregate a person edits names `IVersioned`, so two people saving one record cannot silently overwrite each
 other. It is one migration — `Version int NOT NULL DEFAULT 0` on each table — and from then on every operation's
 entry takes the version the form was read at, and a stale one is refused at the top of the form. An aggregate only
 the system writes (an ingest, a log) can leave it off; its entries take no version.
@@ -188,7 +188,7 @@ public sealed class SupplierService(IDbContextFactory<AppDbContext> contexts)
 }
 
 // After: the method is the write
-public sealed partial class Supplier : Aggregate<SupplierId, Timestamps, Versioned>
+public sealed partial class Supplier : Aggregate<SupplierId>, IHasTimestamps, IVersioned
 {
     public SupplierName Name { get; private set; } = null!;
     public bool Blocked { get; private set; }
