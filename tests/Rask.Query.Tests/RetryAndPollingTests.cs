@@ -17,7 +17,7 @@ public class RetryAndPollingTests
     private static (SessionQueryClient Client, CountingDispatcher Dispatcher) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        return (new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
+        return (new SessionQueryClient(dispatcher, new ManualClock(DateTimeOffset.UnixEpoch)), dispatcher);
     }
 
     private static async Task Settle<T>(Query<T> query)
@@ -171,7 +171,7 @@ public class RetryAndPollingTests
     {
         var visibility = new PageVisibility();
         var dispatcher = new CountingDispatcher();
-        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), visibility: visibility);
+        var client = new SessionQueryClient(dispatcher, new ManualClock(DateTimeOffset.UnixEpoch), visibility: visibility);
         using var query = client.Query(new GetOrders(1), new QueryOptions
         {
             StaleTime = TimeSpan.FromHours(1),
@@ -193,7 +193,7 @@ public class RetryAndPollingTests
     {
         var visibility = new PageVisibility();
         var dispatcher = new CountingDispatcher();
-        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), visibility: visibility);
+        var client = new SessionQueryClient(dispatcher, new ManualClock(DateTimeOffset.UnixEpoch), visibility: visibility);
         visibility.Set(hidden: true);
         using var query = client.Query(new GetOrders(1), new QueryOptions
         {

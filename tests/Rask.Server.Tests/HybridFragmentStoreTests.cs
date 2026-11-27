@@ -8,7 +8,7 @@ namespace Rask.Server.Tests;
 // Cached fragments in the app's own HybridCache: what it cannot express (sliding expiry) carried in the stored value.
 public sealed class HybridFragmentStoreTests
 {
-    private readonly FakeTime _time = new();
+    private readonly ManualClock _time = new();
     private readonly DictionaryHybridCache _cache = new();
 
     [Fact]
@@ -91,15 +91,6 @@ public sealed class HybridFragmentStoreTests
 
         Assert.IsType<HybridFragmentStore>(hybrid);
         Assert.IsType<MemoryFragmentStore>(memory);
-    }
-
-    private sealed class FakeTime : TimeProvider
-    {
-        private DateTimeOffset _now = new(2026, 11, 11, 12, 0, 0, TimeSpan.Zero);
-
-        public override DateTimeOffset GetUtcNow() => _now;
-
-        public void Advance(TimeSpan by) => _now += by;
     }
 
     // Enough of a HybridCache to see what the store asks of it: values by key, their expiration and tags.

@@ -150,7 +150,7 @@ public sealed class LiveQueryTests
     public async Task A_session_whose_scope_ends_stops_refetching()
     {
         var dispatcher = new CountingDispatcher();
-        var clock = new TestClock(DateTimeOffset.UnixEpoch.AddYears(55));
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch.AddYears(55));
         await using var services = new ServiceCollection()
             .AddSingleton<IDispatcher>(dispatcher)
             .AddSingleton<TimeProvider>(clock)
@@ -177,10 +177,10 @@ public sealed class LiveQueryTests
             return Task.FromResult("value");
         };
 
-    private static (IQueryClient Client, CountingDispatcher Dispatcher, TestClock Clock) Session()
+    private static (IQueryClient Client, CountingDispatcher Dispatcher, ManualClock Clock) Session()
     {
         var dispatcher = new CountingDispatcher();
-        var clock = new TestClock(DateTimeOffset.UnixEpoch.AddYears(55));
+        var clock = new ManualClock(DateTimeOffset.UnixEpoch.AddYears(55));
         var services = new ServiceCollection()
             .AddSingleton<IDispatcher>(dispatcher)
             .AddSingleton<TimeProvider>(clock)
@@ -190,7 +190,7 @@ public sealed class LiveQueryTests
     }
 
     // Published after the listener opened, which is what separates a real change from the replay above.
-    private static Task Changed(CountingDispatcher dispatcher, TestClock clock, Type entity) =>
+    private static Task Changed(CountingDispatcher dispatcher, ManualClock clock, Type entity) =>
         dispatcher.Publish(new DataChanged(entity.FullName!, clock.GetUtcNow() + TimeSpan.FromSeconds(1)));
 
     private static async Task Settled<T>(Query<T> query)

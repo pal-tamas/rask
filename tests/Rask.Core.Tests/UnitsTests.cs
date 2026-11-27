@@ -67,7 +67,7 @@ public sealed class UnitsTests
     {
         var now = new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
 
-        using (AmbientClock.Use(new FixedClock(now)))
+        using (AmbientClock.Use(new ManualClock(now)))
         {
             Assert.Equal(now.AddDays(-3), 3.Days.Ago);
             Assert.Equal(now.AddHours(2), 2.Hours.FromNow);
@@ -88,14 +88,9 @@ public sealed class UnitsTests
 
         Task<DateTimeOffset> ReadUnder(DateTimeOffset at) => Task.Run(() =>
         {
-            using var _ = AmbientClock.Use(new FixedClock(at));
+            using var _ = AmbientClock.Use(new ManualClock(at));
             gate.SignalAndWait();   // both clocks are set before either is read
             return 0.Seconds.FromNow;
         });
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

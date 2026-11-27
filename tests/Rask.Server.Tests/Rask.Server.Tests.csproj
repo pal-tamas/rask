@@ -79,4 +79,9 @@
     <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\inter-latin-ext.woff2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>
