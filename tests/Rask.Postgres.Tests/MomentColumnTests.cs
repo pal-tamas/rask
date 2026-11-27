@@ -82,6 +82,8 @@ namespace Rask.Postgres.Tests
 
         private static readonly TimeZoneInfo Budapest = TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest");
 
+        private static readonly TimeZoneInfo NewYork = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+
         [Fact]
         public void A_moment_s_day_is_read_on_the_app_s_wall_calendar()
         {
@@ -91,6 +93,19 @@ namespace Rask.Postgres.Tests
             var sql = context.Deliveries.Where(d => d.At.Day == new DateOnly(2026, 10, 25)).ToQueryString();
 
             Assert.Contains("timezone('Europe/Budapest', d.\"At\")::date", sql, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void The_same_query_run_again_under_another_zone_reads_that_zone_s_day()
+        {
+            using var context = new DeliveryContext(On<DeliveryContext>());
+            var day = new DateOnly(2026, 10, 25);
+
+            var inBudapest = InZone(Budapest, () => context.Deliveries.Where(d => d.At.Day == day).ToQueryString());
+            var inNewYork = InZone(NewYork, () => context.Deliveries.Where(d => d.At.Day == day).ToQueryString());
+
+            Assert.Contains("timezone('Europe/Budapest', d.\"At\")::date", inBudapest, StringComparison.Ordinal);
+            Assert.Contains("timezone('America/New_York', d.\"At\")::date", inNewYork, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -115,6 +130,12 @@ namespace Rask.Postgres.Tests
 
             Assert.NotNull(shipment);
             Assert.NotNull(row);
+        }
+
+        private static string InZone(TimeZoneInfo zone, Func<string> query)
+        {
+            using var ambient = AmbientClock.UseZone(zone);
+            return query();
         }
 
         private static DbContextOptions<TContext> On<TContext>()
