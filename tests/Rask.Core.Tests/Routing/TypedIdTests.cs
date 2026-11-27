@@ -83,6 +83,53 @@ public partial class TypedIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Ten_thousand_Guid_ids_made_in_a_tight_loop_strictly_increase()
+    {
+        var ids = new DriverId[10_000];
+
+        for (var i = 0; i < ids.Length; i++)
+        {
+            ids[i] = DriverId.New();
+        }
+
+        Assert.All(ids.Zip(ids.Skip(1)), pair => Assert.True(pair.First.Value.CompareTo(pair.Second.Value) < 0));
+        Assert.All(ids, id => Assert.Equal((7, 0b10), (id.Value.Version, id.Value.Variant >> 2)));
+    }
+
+    [Fact]
+    public void Guid_ids_made_on_many_threads_at_once_are_all_distinct_and_each_threads_increase()
+    {
+        const int perThread = 2_000;
+        var made = new DriverId[Environment.ProcessorCount][];
+
+        Parallel.For(0, made.Length, t =>
+        {
+            made[t] = new DriverId[perThread];
+            for (var i = 0; i < perThread; i++)
+            {
+                made[t][i] = DriverId.New();
+            }
+        });
+
+        Assert.Equal(made.Length * perThread, made.SelectMany(static ids => ids).Distinct().Count());
+        Assert.All(made, ids => Assert.All(ids.Zip(ids.Skip(1)), pair => Assert.True(pair.First.Value.CompareTo(pair.Second.Value) < 0)));
+    }
+
+    [Fact]
+    public void A_Guid_id_carries_the_current_Unix_millisecond_in_its_first_six_bytes()
+    {
+        var before = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var id = DriverId.New();
+
+        Span<byte> bytes = stackalloc byte[16];
+        id.Value.TryWriteBytes(bytes, bigEndian: true, out _);
+        var stamp = (long)(System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(bytes) >> 16);
+        // A busy millisecond (4096 ids) borrows the next one, so a test that just made thousands may run a little ahead.
+        Assert.InRange(stamp, before, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 100);
+    }
+
+    [Fact]
     public void An_id_travels_as_its_value_in_JSON()
     {
         var shift = new Shift(new TruckId(42), new DriverId(Known), new PlateId("ABC-123"), new TrailerId(9));

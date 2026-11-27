@@ -31,8 +31,7 @@ public class TypedIdGeneratorTests
 
         var run = GeneratorDriverFixture.Run([("Ids.cs", src)], new TypedIdGenerator());
 
-        Assert.Contains("public static DriverId New() => new(global::System.Guid.CreateVersion7());",
-            run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
+        Assert.Contains("public static DriverId New()", run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
         Assert.DoesNotContain(" New()", run.GeneratedSource("Fleet.VehicleId.TypedId.g.cs"));
     }
 

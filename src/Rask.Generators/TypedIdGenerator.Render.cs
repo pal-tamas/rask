@@ -60,9 +60,7 @@ public sealed partial class TypedIdGenerator
         var name = id.Name;
         if (id.Value == TypedIdValue.Guid && !id.HasNew)
         {
-            sb.AppendLine("    /// <summary>A new id: a version-7 <see cref=\"global::System.Guid\" />, time-ordered, so the key's index stays append-only.</summary>");
-            sb.Append("    public static ").Append(name).AppendLine(" New() => new(global::System.Guid.CreateVersion7());");
-            sb.AppendLine();
+            AppendNew(sb, name);
         }
 
         if (!id.HasParse)
