@@ -21,6 +21,6 @@ ceremony yourself.
 ## See also
 
 - Source: [`IWebAuthn.cs`](../../src/Rask.Core/Browser/IWebAuthn.cs)
-- [Capability matrix](../browser-capabilities.md)
+- [Where each wrapper works](../browser-apis-reference.md#where-each-wrapper-works)
 - [Browser APIs — the narrative map](../browser-apis.md)
 - [Passkeys, end to end](../authentication.md#passkeys)

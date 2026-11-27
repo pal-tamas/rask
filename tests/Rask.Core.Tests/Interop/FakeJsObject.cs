@@ -2,7 +2,7 @@ using Microsoft.JSInterop;
 
 namespace Rask.Core.Tests.Interop;
 
-// A handle to an object the browser holds (a MediaStream a trigger or a peer handed over), as FakeJsRuntime answers
+// A handle to an object the browser holds (a MediaStream a trigger or a peer handed over), as TestJSRuntime answers
 // one: it remembers being disposed of, and nothing else.
 internal sealed class FakeJsObject : IJSObjectReference
 {

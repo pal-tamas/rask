@@ -443,7 +443,7 @@ click itself.
   own members through a [typed element ref](js-interop-runtime.md#element-refs) (`await _dialog.ShowModal()`).
 - **What needs a live object the C# side cannot name** — a member that takes a `Document` or a text node, a callback
   that hands back a live object (an `IdleDeadline` to ask the time left of), or one whose result the browser reads — is
-  not generated; the remaining [typed browser API wrappers](browser-apis.md) (`IIndexedDb`, `IWebAuthn`,
+  not generated; the remaining [typed browser API wrappers](browser-apis-reference.md#where-each-wrapper-works) (`IIndexedDb`, `IWebAuthn`,
   `IViewTransitions`, `IWebRtc`, `ISignaling`, `IBackgroundSync`) and your own scoped TypeScript cover those today.
 - **Names it shares with the rest of Rask.** Where a global is named like a Rask type, Rask's keeps the bare name:
   `EditContext` is the form's, `FormData` a submit's, and `DataTransfer`, `EventTarget` and `Touch` Rask's event

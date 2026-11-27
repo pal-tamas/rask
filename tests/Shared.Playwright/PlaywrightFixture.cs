@@ -1,6 +1,6 @@
 using Microsoft.Playwright;
 
-namespace Rask.Site.E2E.Tests.Infrastructure;
+namespace Rask.Tests.Playwright;
 
 /// <summary>
 ///     One headless Chromium, installed and launched on the FIRST read of <see cref="Browser" /> or

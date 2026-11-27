@@ -64,6 +64,13 @@ public sealed class TestJSRuntime : IJSRuntime
             return ValueTask.FromResult(typed);
         }
 
+        // A configured null is the browser answering "nothing" (an absent key), which any reference or
+        // nullable type can hold — `null is TValue` is false, so it needs saying apart from a mismatch.
+        if (canned is null && default(TValue) is null)
+        {
+            return ValueTask.FromResult<TValue>(default!);
+        }
+
         // Configured, but not with a TValue. This used to fall into the same `default!` path as
         // unconfigured, which made the two indistinguishable — SetResponse("getCount", 1) against a
         // component calling InvokeAsync<long> returned 0, and the test read as "the component ignored

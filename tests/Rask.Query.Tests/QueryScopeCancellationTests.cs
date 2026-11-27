@@ -40,9 +40,9 @@ public class QueryScopeCancellationTests
         var client = new SessionQueryClient(dispatcher, clock);
         var polled = new QueryOptions { RefetchInterval = TimeSpan.FromMinutes(1) };
         using var query = client.Query(new GetOrders(1), polled);
-        await Until(() => dispatcher.QueryCount == 1 && clock.PendingTimers == 1);
+        await WaitFor.True(() => dispatcher.QueryCount == 1 && clock.PendingTimers == 1);
         clock.Advance(TimeSpan.FromMinutes(1));
-        await Until(() => dispatcher.QueryCount == 2 && clock.PendingTimers == 1);
+        await WaitFor.True(() => dispatcher.QueryCount == 2 && clock.PendingTimers == 1);
 
         client.Stop();
         clock.Advance(TimeSpan.FromMinutes(5));
@@ -64,7 +64,7 @@ public class QueryScopeCancellationTests
         holder.Hide(a: true, b: true);
 
         rendered.DoesNotShow("a:");
-        await Until(() => dispatcher.Cancelled == 1);
+        await WaitFor.True(() => dispatcher.Cancelled == 1);
         Assert.Null(holder.Orders!.Entry.Error);
         Assert.Null(holder.Orders.Entry.InFlight);
     }
@@ -96,16 +96,6 @@ public class QueryScopeCancellationTests
             .BuildServiceProvider();
         return (services, dispatcher);
     }
-
-    private static async Task Until(Func<bool> condition)
-    {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!condition())
-        {
-            await Task.Delay(5, timeout.Token);
-        }
-    }
-
     /// <summary>Asks for the orders without reading them, for two children that do.</summary>
     private sealed class Holder : Component
     {

@@ -8,7 +8,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Rendering_emits_the_title_source_result_and_notes()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var host = new LiveHost(
             () => CodeSample
                 .Files(["ElementRefDemo.cs"])
@@ -31,7 +31,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_sample_without_a_title_or_notes_omits_the_header()
     {
-        var js = new FakeJsRuntime();
+        var js = new TestJSRuntime();
         var host = new LiveHost(
             () => CodeSample.Files(["ElementRefDemo.ts"]),
             TestServices.Default(js: js));
@@ -49,7 +49,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     {
         var host = new LiveHost(
             () => CodeSample.Files(["ElementRefDemo.cs"]),
-            TestServices.Default(js: new FakeJsRuntime()));
+            TestServices.Default(js: new TestJSRuntime()));
 
         var html = host.RenderAsLiveRoot();
 
@@ -67,7 +67,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     {
         var host = new LiveHost(
             () => CodeSample.Files(["ElementRefDemo.cs", "ElementRefDemo.ts"]),
-            TestServices.Default(js: new FakeJsRuntime()));
+            TestServices.Default(js: new TestJSRuntime()));
 
         var html = host.RenderAsLiveRoot();
 

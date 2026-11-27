@@ -52,9 +52,9 @@
     <!-- The loopback-port reservation and the browser fixture, source-linked rather than
          copied: both carry hard-won detail (an OS-assigned port can still be taken between
          reserving and binding it) that a second copy would lose the first time it drifted. -->
-    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\LoopbackPort.cs" Link="LoopbackPort.cs"/>
-    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="PlaywrightFixture.cs"/>
-    <Using Include="Rask.Site.E2E.Tests.Infrastructure"/>
+    <Compile Include="..\Shared.TestFiles\LoopbackPort.cs" Link="LoopbackPort.cs"/>
+    <Compile Include="..\Shared.Playwright\PlaywrightFixture.cs" Link="PlaywrightFixture.cs"/>
+    <Using Include="Rask.Tests.Playwright"/>
     <Using Include="Rask.TestFiles"/>
     <!-- The linked files declare namespace Rask.Cli.Tests; the tests here are Rask.Templates.E2E.Tests. -->
     <Using Include="Rask.Cli.Tests"/>
