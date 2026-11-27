@@ -18,7 +18,7 @@ public sealed partial class GuardedHandlerFramesTests
 
         var frames = await page.Post(button);
 
-        var told = string.Join('\n', frames.Select(static frame => System.Net.WebUtility.HtmlDecode(Regex.Unescape(frame))));
+        var told = string.Join('\n', frames.Select(LiveFrames.Decoded));
         Assert.Contains("You do not have permission to do that.", told, StringComparison.Ordinal);
         Assert.Contains("data-variant=\"danger\"", told, StringComparison.Ordinal);
         Assert.DoesNotContain("removed=1", told, StringComparison.Ordinal);

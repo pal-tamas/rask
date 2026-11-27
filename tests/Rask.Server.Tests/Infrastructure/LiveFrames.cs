@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit.Sdk;
 
 namespace Rask.Server.Tests.Infrastructure;
@@ -112,6 +114,17 @@ internal static class LiveFrames
                && history.TryGetProperty("url", out var url)
             ? url.GetString()
             : null;
+    }
+
+    /// <summary>The markup of a frame as the browser reads it: out of its JSON string, and out of its character references.</summary>
+    public static string Decoded(string frame) => WebUtility.HtmlDecode(Regex.Unescape(frame));
+
+    /// <summary>Everything an action was answered with, read as one: each frame a diff, never the whole page.</summary>
+    public static string Told(List<string> frames)
+    {
+        Assert.NotEmpty(frames);
+        Assert.All(frames, static frame => Assert.StartsWith("{\"kind\":\"diff\"", frame, StringComparison.Ordinal));
+        return string.Join('\n', frames.Select(Decoded));
     }
 
     private static bool IsAckOf(string frame, long seq)
