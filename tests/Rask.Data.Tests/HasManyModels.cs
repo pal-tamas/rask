@@ -37,6 +37,10 @@ public sealed class Cargo : Aggregate<Guid>
 
     public bool Unload(CargoPart part) => Parts.Remove(part);
 
+    /// <summary>A change keyed by the spec's id as text: a key of another type than the parts' ids.</summary>
+    public SyncResult<CargoPart> ChangeByText(IReadOnlyList<CargoPartSpec> parts) =>
+        Parts.Sync(parts, s => s.Id?.ToString(), CargoPart.For, (_, _) => { });
+
     public void StowAll(params CargoPartSpec[] parts) => Parts.Add(parts.Select(CargoPart.For));
 
     public int UnloadLighterThan(decimal tonnes) => Parts.RemoveAll(p => p.Tonnes < tonnes);

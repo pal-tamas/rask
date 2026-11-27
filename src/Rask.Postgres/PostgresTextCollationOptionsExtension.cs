@@ -27,6 +27,8 @@ internal sealed class PostgresTextCollationOptionsExtension : IDbContextOptionsE
 
     public string SearchCollation => PostgresSearchCollation.Name;
 
+    public string KeyCollation => "C";
+
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
     // The string operations PostgreSQL refuses on such a column, written in a form it runs.
