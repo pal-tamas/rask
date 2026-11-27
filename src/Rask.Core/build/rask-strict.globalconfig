@@ -35,6 +35,11 @@ dotnet_diagnostic.RASK186.severity = warning
 dotnet_diagnostic.RASK187.severity = warning
 dotnet_diagnostic.RASK133.severity = warning
 
+# An event raised in an aggregate's constructor, or about an entity the same method just made, that reads a key the
+# database produces only on insert (RASK145): the event carries 0 for good. A warning everywhere else; under <RaskStrict>
+# an error, since the handlers that run after the commit are handed the wrong row.
+dotnet_diagnostic.RASK145.severity = error
+
 # Code written for one database (RASK177): a provider's or its driver's API, EF.Functions, raw SQL (FromSql*,
 # ExecuteSql*, SqlQuery*), SQL in the model (HasColumnType, UseCollation, HasDefaultValueSql, HasComputedColumnSql,
 # HasFilter, ToSqlQuery). The app's tests run on SQLite in memory; Rask proves only what it translates on all three

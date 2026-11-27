@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK145: an event that reads a key the database has not produced yet; client-generated keys are the default.**
+  `Raise(new OrderPlaced(Id))` in a factory takes `Id` before the insert, and an `int`/`long` identity (or a typed id
+  over one) is still `0` there — EF Core keeps the temporary key in its own entry — so the handlers got `0` for good.
+  The build now reports it (a warning; an error under `<RaskStrict>`) where the entity is certainly new: `Id` read in
+  the aggregate's constructor, or `x.Id` of a local the same method made with `new` or a static factory of its type (a
+  factory's aggregate, an operation's new child), when its key is an integer not marked `ValueGeneratedNever()` or any
+  key marked `ValueGeneratedOnAdd()`. `docs/domain.md` now says the default key is a typed id over a `Guid` made in the
+  factory (`OrderId.New()`, version 7, generated for every such id), and `rask new`'s first-entity example uses one.
 - **`Ui.Item`, Flux UI v2.22's item: a row with a heading, a line of text and a control at the end (#1189).**
   `Ui.ItemGroup[Ui.Item[Ui.ItemMedia[avatar], Ui.ItemHeading["Two-factor authentication"], Ui.ItemSubheading["…"],
   Ui.ItemActions[Ui.Switch…]]]` draws settings rows, account details and lists of people on one bordered surface with a
@@ -126,6 +134,15 @@ them until tagged releases begin.
   (method 1) in `rand_a`, per id type, lock-free: a new millisecond starts it at 0, a busy one adds 1, and a full one
   (4096 ids) or a clock that stepped back runs the stamp ahead rather than repeating or going back. The 62 random bits
   of `rand_b` stay, so ids of two processes never meet. Nothing to change at a call site.
+- **`LockedBy(…, LockRead.ForUpdate)` holds under a retrying execution strategy.** Rask.SqlServer and Rask.Postgres
+  turn `EnableRetryOnFailure` on by default, and on such a context the save opened no transaction (EF Core refuses one
+  it did not start), so the parent was read without its row lock and a child save could slip past a concurrent close —
+  and a declared rule's check, a numbering's lock and its follow-ups ran outside the write's transaction the same way.
+  Rask's own writes (`order.Save()`, `X.Create`/`Update`/`Delete`, an operation's entry, `Import`, `UpdateEach`) now
+  save such a context inside `strategy.ExecuteAsync` with a transaction of their own, EF Core's pattern: the locked
+  read, the checks and the write share one transaction, and a transient failure retries the whole unit, taking back
+  what the failed attempt stamped. `Db.Transaction` and `UpdateWhere`/`DeleteWhere` already ran inside the strategy. A
+  `SaveChanges` of your own on a retrying context still opens none: put it in `Db.Transaction` (`docs/domain.md`).
 - **An inset `Ui.Button` with words is pulled out by its own padding, as Flux's.** `.Inset(Ui.Inset.Right)` on a
   small ghost button with a trailing chevron hung 6px past its edge where Flux's hangs 8px (its `pe-2`), and a button
   of words 12px; measured on Flux's demos, a side's inset is the padding on that side and a square's the room around its

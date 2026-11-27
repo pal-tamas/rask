@@ -142,20 +142,6 @@ public abstract class SlipParityTests(ProviderLeg leg) : ParityTests<SlipDbConte
 {
     private protected override SlipDbContext Open() => Leg.Open<SlipDbContext>(o => new SlipDbContext(o));
 
-    // The writes on the type reach the database through Db's surface, pointed at this leg for the call.
-    private protected async Task<T> OnTheSurface<T>(Func<Task<T>> work)
-    {
-        Db.Configure(Open);
-        try
-        {
-            return await work();
-        }
-        finally
-        {
-            Db.Reset();
-        }
-    }
-
     private protected async Task<int> MonthAsync(string name, bool close)
     {
         await using var db = Open();
