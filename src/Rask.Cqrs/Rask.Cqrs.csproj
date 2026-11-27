@@ -53,8 +53,6 @@
     <InternalsVisibleTo Include="Rask.Ui"/>
     <InternalsVisibleTo Include="Rask.Ui.Tests"/>
     <InternalsVisibleTo Include="Rask.Site"/>
-    <!-- The site's publish compiles it again as its prerender twin. -->
-    <InternalsVisibleTo Include="Rask.Site.Prerender"/>
     <InternalsVisibleTo Include="Rask.Site.Tests"/>
     <InternalsVisibleTo Include="Rask.Server.E2E.Tests"/>
     <!-- The browser half's bell, served by a host in the WASM journeys (#1348). -->

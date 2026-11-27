@@ -112,9 +112,6 @@ internal static class UiListboxLook
     /// <summary>The heading over a group of rows.</summary>
     internal const string GroupHeading = "data-hidden:hidden px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-300 select-none";
 
-    /// <summary>The line between two groups.</summary>
-    internal const string GroupSeparator = "-mx-[.3125rem] my-[.3125rem] h-px border-0 bg-zinc-800/5 dark:bg-white/10";
-
     /// <summary>
     ///     The keys an open list answers, for <c>data-rask-contain-keys</c> on the text field they are typed into:
     ///     the browser does nothing of its own with them there.

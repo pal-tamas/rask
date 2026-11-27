@@ -21,7 +21,7 @@ namespace Rask.Auth;
 ///         Contributed from a module initializer rather than from an <c>AddRaskAuth</c> of its own.
 ///         Two same-named extension methods in one namespace would be ambiguous the moment both
 ///         packages are referenced, and two registration paths are two orders that can drift — the
-///         hazard <c>AddRask</c> already documents (RASK056). There is one <c>AddRaskAuth</c>, and it
+///         hazard <c>AddRask</c> already documents (RASK060). There is one <c>AddRaskAuth</c>, and it
 ///         asks here whether a host has anything to add.
 ///     </para>
 /// </remarks>

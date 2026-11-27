@@ -43,9 +43,6 @@ internal abstract class DevHostPlatform(IProcessRunner process, IConsole console
     /// </summary>
     public abstract string? PortChange { get; }
 
-    /// <summary>Whether writing the hosts file needs elevation on this platform. It does everywhere so far.</summary>
-    public virtual bool HostsNeedsPrivilege => true;
-
     /// <summary>
     ///     True when the authority with this fingerprint is already trusted. Compared by fingerprint
     ///     rather than by name so a stale authority from an earlier install — same subject, different

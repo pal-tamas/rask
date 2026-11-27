@@ -118,6 +118,12 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
+  is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
+  and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,
+  which now derives from it and adds `STRICT` tables (`StrictTables = true`) — the strict generator on its own, without
+  the rest of Rask's DDL, no longer exists. Only code that names either type (a `ReplaceService`, an `IsType` in a
+  test) changes.
 - **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
   `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
   with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.

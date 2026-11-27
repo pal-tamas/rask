@@ -61,8 +61,8 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// </remarks>
     // ReplaceService<,> activates its implementation through EF Core's internal container by reflection, and EF does
     // not annotate it for the trimmer — so the constructors are kept here, or a trimmed app fails at the first query.
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictRangeExclusionSqlGenerator))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictMigrationsSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteMigrationsSqlGenerator))]
     public static DbContextOptionsBuilder UseRaskSqlite(
         this DbContextOptionsBuilder optionsBuilder,
         IServiceProvider services,
@@ -88,8 +88,8 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, IServiceProvider, Action{SqliteOptions}?)"/> over a connection
     /// string and settings already in hand — validated, and with the database's directory there.
     /// </summary>
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictRangeExclusionSqlGenerator))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictMigrationsSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteMigrationsSqlGenerator))]
     internal static DbContextOptionsBuilder UseRaskSqlite(
         DbContextOptionsBuilder optionsBuilder, string connectionString, SqliteOptions options)
     {
@@ -102,11 +102,11 @@ public static class RaskSqliteDbContextOptionsExtensions
         // entity declares NoOverlap — the generator finds no rule to emit.
         if (options.StrictTables)
         {
-            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictRangeExclusionSqlGenerator>();
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictMigrationsSqlGenerator>();
         }
         else
         {
-            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteMigrationsSqlGenerator>();
         }
 
         // Full-text search, inert unless an entity declares HasFullTextSearch. The generator above already emits its
@@ -188,7 +188,7 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// call's choice, strict tables included, and calling it twice is harmless.
     /// </para>
     /// </remarks>
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteMigrationsSqlGenerator))]
     public static DbContextOptionsBuilder UseRaskFullTextSearch(this DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
@@ -197,7 +197,7 @@ public static class RaskSqliteDbContextOptionsExtensions
         var generator = replaced?.FirstOrDefault(r => r.Key.Item1 == typeof(IMigrationsSqlGenerator)).Value;
         if (generator is null || !typeof(IFullTextSearchEnforcer).IsAssignableFrom(generator))
         {
-            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteMigrationsSqlGenerator>();
         }
 
         AddFullTextSearchModelAndQuery(optionsBuilder);
