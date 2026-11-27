@@ -34,7 +34,7 @@ internal sealed class JobRun
     }
 
     /// <summary>A run of a job that has no row of its own — what the test fake runs.</summary>
-    public JobRun(long id, string type, string? lane, string? notice, Guid? owner, Guid? tenant, TimeProvider clock, CancellationToken host)
+    public JobRun(Guid id, string type, string? lane, string? notice, Guid? owner, Guid? tenant, TimeProvider clock, CancellationToken host)
     {
         Id = id;
         Type = type;
@@ -49,7 +49,7 @@ internal sealed class JobRun
         _lastProgress = Started.Ticks;
     }
 
-    public long Id { get; }
+    public Guid Id { get; }
 
     public string Type { get; }
 

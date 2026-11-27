@@ -30,7 +30,7 @@ public sealed partial record ContactPassword(string Value) : Password(Value, Min
 public sealed partial record ChosenPassword(string Value) : Password(Value, MinLength: 12, New: true);
 
 /// <summary>A contact: one of each kind of text but the password, which is never stored.</summary>
-public sealed class Addressee : Aggregate<int, Model>
+public sealed class Addressee : Aggregate<int>, IHasForm
 {
     private Addressee() { }
 

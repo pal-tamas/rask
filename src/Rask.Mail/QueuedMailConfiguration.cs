@@ -18,6 +18,11 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
+        // Made by Rask before the insert (QueuedMail.For), never by the store: a version-7 Guid, so "oldest first" stays the order
+        // the rows were written in, and no identity column or sequence is left for a deploy to fight over.
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        // A table from before that is rebuilt by its next migration: refused while a mail waits, the sent ones kept (docs/data.md).
+        builder.RebuildsStoreKey(nameof(QueuedMail.ProcessedAt), nameof(QueuedMail.CreatedAt));
         builder.Property(x => x.From).IsRequired();
         builder.Property(x => x.To).IsRequired();
         builder.Property(x => x.Subject).IsRequired();
@@ -36,7 +41,7 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         // Fences the completion write — see Job.ClaimToken for why.
         builder.Property(x => x.ClaimToken).IsConcurrencyToken();
 
-        // Mapped EXPLICITLY, and the table is deliberately not PerTenant. A partitioned table takes a
+        // Mapped EXPLICITLY, and the table is deliberately not IBelongsTo<Tenant>. A partitioned table takes a
         // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
         // see everybody's work. So the tenant is data on the row, not a partition of the table, and
         // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.

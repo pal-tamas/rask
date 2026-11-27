@@ -105,7 +105,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         var store = harness.Store;
         var now = harness.Clock.GetUtcNow();
         var records = Enumerable.Range(0, 2500)
-            .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
+            .Select(i => new LogRecord(Guid.Empty, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
             .ToList();
         await store.Append(records, TestContext.Current.CancellationToken);
 
@@ -125,7 +125,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         var store = harness.Store;
         var now = harness.Clock.GetUtcNow();
         await store.Append(Enumerable.Range(0, 2500)
-            .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
+            .Select(i => new LogRecord(Guid.Empty, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
             .ToList(), TestContext.Current.CancellationToken);
 
         var removed = await store.Trim(TestContext.Current.CancellationToken).KeepingNewest(100);

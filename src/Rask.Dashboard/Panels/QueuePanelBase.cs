@@ -102,8 +102,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         return (rows, total);
     }
 
-    public Task<int> Retry(long id, CancellationToken cancellationToken) =>
-        RetryWhereAsync(e => EF.Property<long>(e, "Id") == id, cancellationToken);
+    public Task<int> Retry(Guid id, CancellationToken cancellationToken) =>
+        RetryWhereAsync(e => EF.Property<Guid>(e, "Id") == id, cancellationToken);
 
     public Task<int> RetryAll(CancellationToken cancellationToken) =>
         RetryWhereAsync(_ => true, cancellationToken);
@@ -128,7 +128,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             .ConfigureAwait(false);
     }
 
-    public async Task<int> Delete(long id, CancellationToken cancellationToken)
+    public async Task<int> Delete(Guid id, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -141,7 +141,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         // Outstanding only. Deleting a processed row would erase the record of work that actually
         // happened, which is the one thing an operator can never undo.
         return await db.Set<TEntity>()
-            .Where(e => EF.Property<long>(e, "Id") == id && EF.Property<DateTime?>(e, "ProcessedAt") == null)
+            .Where(e => EF.Property<Guid>(e, "Id") == id && EF.Property<DateTime?>(e, "ProcessedAt") == null)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -223,8 +223,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     {
         var runAt = RunAtProperty;
         return filter is QueueFilter.Processed or QueueFilter.Failed
-            ? rows.OrderByDescending(e => EF.Property<long>(e, "Id"))
-            : rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<long>(e, "Id"));
+            ? rows.OrderByDescending(e => EF.Property<Guid>(e, "Id"))
+            : rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<Guid>(e, "Id"));
     }
 
     // EF builds the model once per app and caches it, so this is a dictionary lookup after the first call —

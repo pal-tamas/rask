@@ -1,3 +1,4 @@
+using Rask.Batteries;
 using Rask.Data;
 
 namespace Rask.Outbox;
@@ -8,17 +9,17 @@ namespace Rask.Outbox;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Names neither <see cref="SoftDelete"/> nor <see cref="Versioned"/>, deliberately. Soft delete would bring a
+/// Names neither <see cref="ISoftDeletes"/> nor <see cref="IVersioned"/>, deliberately. Soft delete would bring a
 /// global "not deleted" query filter, which would hide rows from the drain query and turn the dashboard's purge —
 /// an <c>ExecuteDelete</c> — into a stamp that leaves them in the table forever. A <c>Version</c> would be a
 /// second concurrency token beside <see cref="ClaimToken"/>, and the processor advances state with
 /// <c>ExecuteUpdate</c>, which never maintains one.
 /// </para>
 /// <para>
-/// Nothing creates one of these from a form, so no form model is generated: its base names no <c>Model</c>.
+/// Nothing creates one of these from a form, so no form model is generated: it says no <c>IHasForm</c>.
 /// </para>
 /// </remarks>
-public sealed class OutboxMessage : Aggregate<long, Updated>
+public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastructure
 {
     private OutboxMessage()
     {
@@ -102,6 +103,7 @@ public sealed class OutboxMessage : Aggregate<long, Updated>
     {
         return new OutboxMessage
         {
+            Id = OrderedGuid.New(),
             Type = type,
             Payload = payload,
             Handler = handler,

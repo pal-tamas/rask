@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     A child of a <see cref="PerTenant" /> aggregate: it belongs to a tenant through its parent, and its filter
+///     A child of a <see cref="IBelongsTo{TTenant}" /> aggregate: it belongs to a tenant through its parent, and its filter
 ///     asks the parent (#1251).
 /// </summary>
 /// <remarks>
@@ -61,7 +61,7 @@ internal static class TenantParents
         [.. KeysOf(child, IsPartitioned).Cast<IForeignKey>()];
 
     /// <summary>
-    ///     The relationships from an aggregate that names <see cref="PerTenantThrough{TParent}" /> to
+    ///     The relationships from an aggregate that names <see cref="IBelongsToTenantThrough{TParent}" /> to
     ///     <paramref name="parent" /> — on the write model the parent's type, on a read face the parent's face.
     /// </summary>
     internal static List<IReadOnlyForeignKey> KeysTo(IReadOnlyEntityType entity, Type parent) =>

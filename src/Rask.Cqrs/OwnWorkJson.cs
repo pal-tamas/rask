@@ -76,7 +76,7 @@ internal static class OwnWorkJson
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(work);
         writer.WriteStartObject();
-        writer.WriteNumber("id", work.Id);
+        writer.WriteString("id", work.Id);
         writer.WriteString("title", work.Title);
         writer.WriteString("progress", work.Progress);
         WriteCount(writer, "done", work.Done);
@@ -123,11 +123,17 @@ internal static class OwnWorkJson
         return Work(document.RootElement);
     }
 
+    // A job's id is a Guid on the wire; a number is a board from before Rask made its own keys, read as malformed.
+    private static Guid IdOf(JsonElement id) =>
+        id.ValueKind == JsonValueKind.String && id.TryGetGuid(out var value)
+            ? value
+            : throw new JsonException("The work's id is not a Guid.");
+
     private static WorkReported Work(JsonElement element)
     {
         var work = Object(element);
         return new WorkReported(
-            Required(work, "id").GetInt64(),
+            IdOf(Required(work, "id")),
             Text(Required(work, "title")) ?? "",
             work.TryGetProperty("progress", out var progress) ? Text(progress) : null,
             Count(work, "done"),

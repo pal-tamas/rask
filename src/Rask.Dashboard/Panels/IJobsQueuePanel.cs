@@ -10,5 +10,5 @@ internal interface IJobsQueuePanel : IQueuePanel
     /// Stops job <paramref name="id"/> (<c>Jobs.Stop</c>): a running job is cancelled and ends stopped, a waiting one never
     /// runs. False when it had already ended.
     /// </summary>
-    Task<bool> Stop(long id, CancellationToken cancellationToken);
+    Task<bool> Stop(Guid id, CancellationToken cancellationToken);
 }

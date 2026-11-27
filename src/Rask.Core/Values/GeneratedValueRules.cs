@@ -111,6 +111,16 @@ public static class GeneratedValueRules
     /// <returns>Whether <paramref name="text" /> is a moment.</returns>
     public static bool TryParseMoment(string? text, string? format, out DateTime moment) => WallText.TryMoment(text, format, out moment);
 
+    /// <summary>
+    ///     The instant <paramref name="local" /> names on the clocks of <paramref name="zone" />, by the one rule a
+    ///     <see cref="Moment" /> follows (a repeated hour is its first occurrence, a skipped one moves forward): what a
+    ///     <see cref="Moment" />'s <c>FromWall</c> makes it from.
+    /// </summary>
+    /// <param name="local">The wall-clock time; one of <see cref="DateTimeKind.Utc" /> or <see cref="DateTimeKind.Local" /> is the instant it names.</param>
+    /// <param name="zone">The zone whose clocks show it; null for <see cref="Clock.Zone" />.</param>
+    /// <returns>The instant, of <see cref="DateTimeKind.Utc" />.</returns>
+    public static DateTime MomentFromWall(DateTime local, TimeZoneInfo? zone) => WallClock.ToUtc(local, zone ?? Clock.Zone);
+
     /// <summary>The day <paramref name="text" /> writes — a moment's day on the wall calendar, for a moment: what a <see cref="Day" />'s <c>Parse</c> reads.</summary>
     /// <param name="text">The day (or a moment) as text: ISO 8601, or as <paramref name="format" /> writes it.</param>
     /// <param name="format">The exact format it is written in, culture-invariant; null for ISO 8601.</param>

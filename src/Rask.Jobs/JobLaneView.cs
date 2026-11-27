@@ -92,6 +92,6 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
     }
 
     private sealed record Row(
-        long Id, string Lane, string Type, string Payload, DateTime RunAt, DateTime? StartedAt, int Attempts, DateTime? ClaimedUntil,
+        Guid Id, string Lane, string Type, string Payload, DateTime RunAt, DateTime? StartedAt, int Attempts, DateTime? ClaimedUntil,
         JobStop? Stopped, WorkReport Report);
 }

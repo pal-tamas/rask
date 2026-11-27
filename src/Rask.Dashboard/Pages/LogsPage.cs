@@ -407,9 +407,9 @@ public sealed partial class LogsPage(
         }
     }
 
-    /// <summary>One row on screen, from either surface.</summary>
+    /// <summary>One row on screen, from either surface: keyed by the live tail's sequence number, or the stored entry's id.</summary>
     private sealed record LogRow(
-        long Key,
+        object Key,
         DateTimeOffset Timestamp,
         LogLevel Level,
         string Category,

@@ -30,13 +30,13 @@ public class FieldShapeGeneratorTests
         public readonly record struct DepotId(Guid Value);
         public enum Fuel { Diesel, [Display(Name = "Petrol (95)")] Petrol }
 
-        public sealed class Depot : Aggregate<DepotId, Model>
+        public sealed class Depot : Aggregate<DepotId>, IHasForm
         {
             private Depot() { }
             public string Name { get; private set; } = "";
         }
 
-        public sealed class Trip : Aggregate<Guid, Model>
+        public sealed class Trip : Aggregate<Guid>, IHasForm
         {
             private Trip() { }
             public DriverName Driver { get; private set; } = DriverName.Create("Ada");

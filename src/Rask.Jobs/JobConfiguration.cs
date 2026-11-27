@@ -17,7 +17,7 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
-        builder.HasKey(x => x.Id);
+        ConfigureKey(builder);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Payload).IsRequired();
 
@@ -38,7 +38,7 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // outcome of whichever instance now owns the row.
         builder.Property(x => x.ClaimToken).IsConcurrencyToken();
 
-        // Mapped EXPLICITLY, and the table is deliberately not PerTenant. A partitioned table takes a
+        // Mapped EXPLICITLY, and the table is deliberately not IBelongsTo<Tenant>. A partitioned table takes a
         // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
         // see everybody's work. So the tenant is data on the row, not a partition of the table, and
         // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
@@ -64,6 +64,17 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(x => x.StartedAt);
 
         ConfigureWork(builder);
+    }
+
+    private static void ConfigureKey(EntityTypeBuilder<Job> builder)
+    {
+        builder.HasKey(x => x.Id);
+        // Made by Rask before the insert (Job.For), never by the store: a version-7 Guid, so the run-order tiebreak below
+        // stays the order the jobs were enqueued in, and no identity column or sequence is left for a deploy to fight over.
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        // A table from before that, numbered by the store, is rebuilt by its next migration: refused while a job waits, the
+        // processed ones kept under ids made from when they were enqueued (docs/data.md).
+        builder.RebuildsStoreKey(nameof(Job.ProcessedAt), nameof(Job.CreatedAt));
     }
 
     // What its enqueuer watches and who else does, how far along it is and how it ended — every column added since #1293.

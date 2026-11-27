@@ -5,7 +5,7 @@ namespace Rask.Data;
 
 /// <summary>
 ///     A <c>TenantId</c> column kept as the tenant's own typed id — <c>TenantId? TenantId</c>, or
-///     <c>PerTenant&lt;TenantId&gt;</c> — that <see cref="TenantColumn" /> filters by and stamps.
+///     a shadow column of it under <c>IBelongsTo&lt;Tenant&gt;</c> — that <see cref="TenantColumn" /> filters by and stamps.
 /// </summary>
 /// <remarks>
 ///     Closed over the id and the value it holds where the tenant is registered

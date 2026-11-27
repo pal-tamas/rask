@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Data.Tests;
 
 /// <summary>One parent of a boarding pass: a pass is held by a ferryman OR a ferry, never both.</summary>
-public sealed class Ferryman : Aggregate<string, Versioned, Model, Deletable>
+public sealed class Ferryman : Aggregate<string>, IVersioned, IHasForm, IDeletable
 {
     private readonly List<BoardingPass> _passes = [];
 
@@ -25,7 +25,7 @@ public sealed class Ferryman : Aggregate<string, Versioned, Model, Deletable>
 }
 
 /// <summary>The other parent of a boarding pass. Its key sorts first, so it is the first parent key of the pass.</summary>
-public sealed class Ferry : Aggregate<string, Model, Deletable>
+public sealed class Ferry : Aggregate<string>, IHasForm, IDeletable
 {
     private readonly List<BoardingPass> _passes = [];
 

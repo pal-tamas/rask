@@ -25,7 +25,7 @@ Rask.Outbox.OutboxMessageRead.ClaimedUntil.get -> System.DateTime?
 Rask.Outbox.OutboxMessageRead.ClaimedUntil.init -> void
 Rask.Outbox.OutboxMessageRead.Error.get -> string?
 Rask.Outbox.OutboxMessageRead.Error.init -> void
-Rask.Outbox.OutboxMessageRead.Id.get -> long
+Rask.Outbox.OutboxMessageRead.Id.get -> System.Guid
 Rask.Outbox.OutboxMessageRead.Id.init -> void
 Rask.Outbox.OutboxMessageRead.OccurredAt.get -> System.DateTime
 Rask.Outbox.OutboxMessageRead.OccurredAt.init -> void

@@ -82,6 +82,12 @@ still applies. A model that never mapped the table fails the boot with the line 
 
 On SQLite, keep the file store: there every writer shares one lock, and a file of its own is the point.
 
+The table is keyed by a version-7 `Guid` the writer makes for each entry, never a number the database hands out. A
+`RaskLog` table from before that is rebuilt by the app's next migration (`rask db add RaskGuidKeys && rask db
+update`), an [exclusive one](deployment.md): the old entries are history and are not carried over, so read what you
+need from them first. The file store keeps its own integer rowid — its full-text index needs one that never changes —
+and derives each entry's `Guid` from it. See [docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
+
 An app built with `RaskApp` gets this without writing it: when `Rask:Database:Provider` is `postgres` or
 `sqlserver`, the log store moves into the application database and `RaskAppDbContext` maps the table. On SQLite it
 stays in `logs.db`. A context of the app's own maps the table itself with `modelBuilder.AddRaskLogging()`, and is told
@@ -190,7 +196,7 @@ public sealed partial class IncidentPage : Component
 }
 ```
 
-Each `LogRecord` carries its `Scopes` as key/value pairs. The scope filter matches the stored key and value
+Each `LogRecord` carries an `Id` — a version-7 `Guid`, the stable key of a list row — and its `Scopes` as key/value pairs. The scope filter matches the stored key and value
 exactly rather than searching the row as text: it looks for the JSON-encoded `"key":"value"` pair, so a request id
 cannot match an entry that merely mentioned it in a message, and `r2` does not match `r22`. Keys and values may hold
 spaces, quotes or accents. On SQL Server the comparison follows the database's collation, which ignores case by

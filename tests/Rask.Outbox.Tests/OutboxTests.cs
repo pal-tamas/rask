@@ -7,7 +7,7 @@ using Rask.Tests.Shared;
 namespace Rask.Outbox.Tests;
 
 // An entity that raises an outbox event on creation.
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     private Order() { }
 
@@ -73,7 +73,7 @@ public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> fact
             .FirstOrDefaultAsync(Current.Cancellation)
             .ConfigureAwait(false);
 
-        if (doomed != 0)
+        if (doomed != Guid.Empty)
         {
             await db.Set<OutboxMessage>()
                 .Where(m => m.Id == doomed)

@@ -187,7 +187,10 @@ public sealed partial class UiWorkBatchTests : global::Rask.Core.RaskMarkup
     }
 
     private static WorkReported Work(
-        long id, string title, WorkState state, Guid? batch = null, string? detail = null, int? done = null, int? of = null,
+        int id, string title, WorkState state, Guid? batch = null, string? detail = null, int? done = null, int? of = null,
         DateTime? at = null, bool? mine = null) =>
-        new(id, title, null, done, of, state, at ?? Before) { Batch = batch, Detail = detail, Mine = mine };
+        new(Id(id), title, null, done, of, state, at ?? Before) { Batch = batch, Detail = detail, Mine = mine };
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }

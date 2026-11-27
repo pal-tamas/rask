@@ -18,7 +18,7 @@ namespace Rask;
 [Rask.Core.RaskMarkup]
 internal sealed partial class UiWorkAnnouncer
 {
-    private readonly HashSet<long> _running = [];
+    private readonly HashSet<Guid> _running = [];
     private readonly HashSet<Guid> _openBatches = [];
 
     /// <summary>Whether a batch's end raises a toast: the bell's does; a list in the page, beside a bell, says it in words only.</summary>

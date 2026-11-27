@@ -20311,6 +20311,7 @@ static Rask.Values.GeneratedValueRules.Missing(string! member) -> Rask.Values.Pr
 static Rask.Values.GeneratedValueRules.Refused(System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems, string? field) -> Rask.Cqrs.RaskValidationException!
 static Rask.Values.GeneratedValueRules.Required() -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Values.GeneratedValueRules.ParseDay(string! text, string? format) -> System.DateOnly
+static Rask.Values.GeneratedValueRules.MomentFromWall(System.DateTime local, System.TimeZoneInfo? zone) -> System.DateTime
 static Rask.Values.GeneratedValueRules.ParseMoment(string! text, string? format) -> System.DateTime
 static Rask.Values.GeneratedValueRules.TryParseDay(string? text, string? format, out System.DateOnly day) -> bool
 static Rask.Values.GeneratedValueRules.TryParseMoment(string? text, string? format, out System.DateTime moment) -> bool
@@ -20341,6 +20342,8 @@ Rask.Values.ValueLoading.ValueLoading() -> void
 static Rask.Values.GeneratedValueRules.Loading() -> Rask.Values.ValueLoading
 Rask.Values.Moment
 Rask.Values.Moment.Day.get -> System.DateOnly
+Rask.Values.Moment.Instant.get -> System.DateTimeOffset
+Rask.Values.Moment.WallIn(System.TimeZoneInfo! zone) -> System.DateTime
 Rask.Values.Moment.Moment(Rask.Values.Moment! original) -> void
 Rask.Values.Moment.Moment(System.DateTime Value, System.DateTime? NotBefore = null, System.DateTime? NotAfter = null, bool NotAfterNow = false, string? Message = null) -> void
 Rask.Values.Moment.Value.get -> System.DateTime

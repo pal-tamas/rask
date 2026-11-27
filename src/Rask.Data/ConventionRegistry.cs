@@ -5,8 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace Rask.Data;
 
 /// <summary>
-///     The traits each entity type's base names, as the generator read them — a child of a
-///     <see cref="PerTenant" /> root is registered partitioned too: tenancy is the aggregate's.
+///     The traits each entity type says, as the generator read them — a child of a root that
+///     <see cref="IBelongsTo{TTenant}" /> is registered partitioned too: tenancy is the aggregate's.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -30,11 +30,11 @@ public static class ConventionRegistry
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
     private static readonly ConcurrentDictionary<Type, List<ChildField>> DeclaredChildFields = new();
     private static readonly ConcurrentDictionary<Type, Type> DeclaredTenantParents = new();
-    private static readonly ConcurrentDictionary<Type, List<Type>> DeclaredInForce = new();
+    private static readonly ConcurrentDictionary<Type, Type> DeclaredTenants = new();
 
     /// <summary>Records the traits <paramref name="entity" /> named. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
-    /// <param name="traits">What its base names, and its root's tenancy for a child.</param>
+    /// <param name="traits">What it says, and its root's tenancy for a child.</param>
     public static void Declare(Type entity, TraitSet traits)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -42,11 +42,24 @@ public static class ConventionRegistry
     }
 
     /// <summary>
-    ///     Records the key type of <c>PerTenant&lt;TKey&gt;</c>, for an aggregate that does not declare its
-    ///     <c>TenantId</c>. Called by generated code.
+    ///     Records the tenant aggregate <c>IBelongsTo&lt;TTenant&gt;</c> names: the table whose key the entity's
+    ///     <c>TenantId</c> refers to. Called by generated code.
     /// </summary>
     /// <param name="entity">The entity type.</param>
-    /// <param name="key"><see cref="Guid" />, <see cref="int" /> or <see cref="long" />.</param>
+    /// <param name="tenant">The tenant aggregate.</param>
+    public static void DeclareTenant(Type entity, Type tenant)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(tenant);
+        DeclaredTenants[entity] = tenant;
+    }
+
+    /// <summary>
+    ///     Records the key type of the tenant <c>IBelongsTo&lt;TTenant&gt;</c> names, when it is not a <see cref="Guid" />,
+    ///     for an aggregate that does not declare its <c>TenantId</c>. Called by generated code.
+    /// </summary>
+    /// <param name="entity">The entity type.</param>
+    /// <param name="key"><see cref="int" />, <see cref="long" />, or the tenant's typed id.</param>
     public static void DeclareTenantKey(Type entity, Type key)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -104,7 +117,7 @@ public static class ConventionRegistry
     }
 
     /// <summary>
-    ///     Records the aggregate <c>PerTenantThrough&lt;TParent&gt;</c> named: <paramref name="entity" /> belongs to the
+    ///     Records the aggregate <c>IBelongsToTenantThrough&lt;TParent&gt;</c> names: <paramref name="entity" /> belongs to the
     ///     tenant of the <paramref name="parent" /> it points at. Called by generated code.
     /// </summary>
     /// <param name="entity">The aggregate that keeps no tenant of its own.</param>
@@ -117,39 +130,9 @@ public static class ConventionRegistry
         DeclaredTenantParents[entity] = parent;
     }
 
-    /// <summary>
-    ///     Records a <c>OneInForce&lt;TChild&gt;</c> the aggregate named: of its <paramref name="child" /> rows at most
-    ///     one is in force. Called by generated code.
-    /// </summary>
-    /// <param name="aggregate">The aggregate holding the children.</param>
-    /// <param name="child">The child of which one is in force.</param>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public static void DeclareInForce(Type aggregate, Type child)
-    {
-        ArgumentNullException.ThrowIfNull(aggregate);
-        ArgumentNullException.ThrowIfNull(child);
-
-        var children = DeclaredInForce.GetOrAdd(aggregate, static _ => []);
-        lock (children)
-        {
-            if (!children.Contains(child))
-            {
-                children.Add(child);
-            }
-        }
-    }
-
-    /// <summary>The aggregate <c>PerTenantThrough&lt;TParent&gt;</c> named for <paramref name="entity" />, or null.</summary>
+    /// <summary>The aggregate <c>IBelongsToTenantThrough&lt;TParent&gt;</c> names for <paramref name="entity" />, or null.</summary>
     /// <param name="entity">The entity type.</param>
     internal static Type? TenantParentOf(Type entity) => DeclaredTenantParents.GetValueOrDefault(entity);
-
-    /// <summary>The children of which <paramref name="aggregate" /> keeps one in force, or none.</summary>
-    /// <param name="aggregate">The aggregate type.</param>
-    internal static IReadOnlyList<Type> InForceChildrenOf(Type aggregate) =>
-        DeclaredInForce.TryGetValue(aggregate, out var children) ? children : [];
-
-    /// <summary>Every aggregate that keeps one child in force.</summary>
-    internal static IEnumerable<Type> InForceAggregates => DeclaredInForce.Keys;
 
     /// <summary>Whether <paramref name="entity" /> named <paramref name="trait" />. Nothing is named unless it was.</summary>
     /// <param name="entity">The entity type.</param>
@@ -161,7 +144,7 @@ public static class ConventionRegistry
     /// <param name="entity">The entity type.</param>
     internal static bool IsPerTenant(Type entity) => Has(entity, TraitSet.PerTenant);
 
-    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="Deletable" /> or <see cref="SoftDelete" />.</summary>
+    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="IDeletable" /> or <see cref="ISoftDeletes" />.</summary>
     /// <param name="entity">The entity type.</param>
     internal static bool IsDeletable(Type entity) =>
         Has(entity, TraitSet.Deletable) || Has(entity, TraitSet.SoftDelete);
@@ -169,7 +152,11 @@ public static class ConventionRegistry
     /// <summary>Whether any entity at all is partitioned by tenant.</summary>
     internal static bool AnyTenantScoped => DeclaredTraits.Values.Any(static t => (t & TraitSet.PerTenant) != TraitSet.None);
 
-    /// <summary>The key type <c>PerTenant&lt;TKey&gt;</c> named, or null for plain <see cref="PerTenant" />.</summary>
+    /// <summary>The tenant aggregate <c>IBelongsTo&lt;TTenant&gt;</c> names, or null.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static Type? TenantOf(Type entity) => DeclaredTenants.GetValueOrDefault(entity);
+
+    /// <summary>The key type of the tenant <c>IBelongsTo&lt;TTenant&gt;</c> names, or null for a tenant kept as a <see cref="Guid" />.</summary>
     /// <param name="entity">The entity type.</param>
     internal static Type? TenantKeyFor(Type entity) => DeclaredTenantKeys.GetValueOrDefault(entity);
 

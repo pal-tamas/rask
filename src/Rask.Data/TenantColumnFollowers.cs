@@ -12,7 +12,7 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         The property stays a <c>Guid?</c>, the type the framework carries a tenant in. When every tenant-scoped table
-///         in the model keeps a number (<c>PerTenant&lt;int&gt;</c>, a declared <c>int? TenantId</c>, or a typed id holding
+///         in the model keeps a number (<c>IBelongsTo</c> a tenant keyed by an <c>int</c>, a declared <c>int? TenantId</c>, or a typed id holding
 ///         one), the column
 ///         becomes that number, converted by the <see cref="TenantNumber" /> rule. Any other model — no tenant-scoped
 ///         table, <c>Guid?</c> ones, or tables of more than one type — keeps the <c>Guid?</c> column untouched.

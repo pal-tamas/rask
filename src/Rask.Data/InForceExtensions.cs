@@ -1,7 +1,7 @@
 namespace Rask.Data;
 
 /// <summary>
-///     The one child in force of a <see cref="OneInForce{TChild}" /> aggregate: <c>Filings.InForce()</c>,
+///     The one child in force of those an aggregate holds: <c>Filings.InForce()</c>,
 ///     <c>Filings.Put(next, end: f =&gt; f.Unfile(by, at))</c>, <c>Filings.End(f =&gt; f.Unfile(by, at))</c>.
 /// </summary>
 /// <remarks>

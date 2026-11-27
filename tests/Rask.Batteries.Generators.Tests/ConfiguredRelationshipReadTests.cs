@@ -20,7 +20,7 @@ public class ConfiguredRelationshipReadTests
                 private ProductCategory() { }
                 public string Name { get; private set; } = "";
             }
-            public sealed class Product : Aggregate<int, PerTenant>
+            public sealed class Product : Aggregate<int>, IBelongsTo<GuidTenant>
             {
                 private Product() { }
                 public int? TenantId { get; private set; }
@@ -38,6 +38,7 @@ public class ConfiguredRelationshipReadTests
                 public string Name { get; private set; } = "";
             }
         }
+        public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
         """;
 
     private const string Providers = """
@@ -49,7 +50,7 @@ public class ConfiguredRelationshipReadTests
         {
             private Country() { }
         }
-        public sealed class Provider : Aggregate<int, PerTenant>
+        public sealed class Provider : Aggregate<int>, IBelongsTo<GuidTenant>
         {
             private Provider() { }
             public int? TenantId { get; private set; }
@@ -62,6 +63,7 @@ public class ConfiguredRelationshipReadTests
             public static void Configure(EntityTypeBuilder<ProviderCountry> b) =>
                 b.HasOne<Provider>().WithMany().HasForeignKey(c => c.TransactionTypeId);
         }
+        public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
         """;
 
     private static GeneratorRun Run(string source) =>

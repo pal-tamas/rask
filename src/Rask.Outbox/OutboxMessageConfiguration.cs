@@ -17,6 +17,12 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Ignore(x => x.Version);
         builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
+        // Made by Rask before the insert (OutboxMessage.For), never by the store: a version-7 Guid, so "oldest first" stays the order
+        // the rows were written in, and no identity column or sequence is left for a deploy to fight over.
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        // A table from before that is rebuilt by its next migration: refused while a message waits; the processed ones are
+        // history and are not carried over, so no MessageId a partner has seen is handed out again (docs/data.md).
+        builder.RebuildsStoreKey(nameof(OutboxMessage.ProcessedAt), keepBy: null);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Handler).HasMaxLength(1024);
         builder.Property(x => x.Payload).IsRequired();
@@ -35,7 +41,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         // Fences the completion write — see Job.ClaimToken for why.
         builder.Property(x => x.ClaimToken).IsConcurrencyToken();
 
-        // Mapped EXPLICITLY, and the table is deliberately not PerTenant. A partitioned table takes a
+        // Mapped EXPLICITLY, and the table is deliberately not IBelongsTo<Tenant>. A partitioned table takes a
         // query filter, and a filter here would hide other tenants' rows from the drain — the processor has
         // to see everybody's work. So the tenant is data on the row, not a partition of the table, and
         // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.

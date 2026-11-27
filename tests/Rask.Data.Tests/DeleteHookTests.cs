@@ -5,7 +5,7 @@ namespace Rask.Data.Tests;
 public sealed record HaulerRemoved(Guid Id, IReadOnlyList<string> Chips) : IEvent;
 
 /// <summary>A hauler whose delete tells who held its chips: its <c>OnDelete()</c> raises the event.</summary>
-public sealed partial class Hauler : Aggregate<Guid, SoftDelete>
+public sealed partial class Hauler : Aggregate<Guid>, ISoftDeletes
 {
     private Hauler() { } // EF materialization
 

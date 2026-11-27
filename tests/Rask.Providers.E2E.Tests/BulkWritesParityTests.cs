@@ -16,7 +16,7 @@ public sealed class SlipMonth : Aggregate<int>
 }
 
 /// <summary>A slip with a label of its own, filed into a month: what the writes over many rows are held to.</summary>
-public sealed class Slip : Aggregate<int, Timestamps, Versioned, Deletable>
+public sealed class Slip : Aggregate<int>, IHasTimestamps, IVersioned, IDeletable
 {
     public const string LabelTaken = "That label is taken.";
 

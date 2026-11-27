@@ -19,7 +19,7 @@ namespace Rask.Data;
 
 /// <summary>
 ///     EF Core's migration differ, with an empty ARRAY — not an object — as the default of a JSON collection column that
-///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys <c>TenantReferences&lt;T&gt;()</c> declares.
+///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys from a tenant's tables to the tenant (<c>IBelongsTo&lt;Tenant&gt;</c>).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -32,6 +32,14 @@ namespace Rask.Data;
 ///         A <see cref="TenantReference" /> is no foreign key of the model, so EF Core's differ never sees it: it is added
 ///         here from the annotations of the two models — inside the <c>CREATE TABLE</c> on SQLite, which makes a foreign
 ///         key only with its table, and after every other operation elsewhere, once the tenant's table is there too.
+///     </para>
+///     <para>
+///         A column of moments the target stores as UTC and the source kept as the wall clock gets its rewrite step
+///         (<see cref="MomentsInUtc" />), after every other operation.
+///     </para>
+///     <para>
+///         A table a battery marks with <see cref="StoreKeyRebuild" /> whose key turns from a store-numbered integer into
+///         a Guid is rebuilt rather than altered (<see cref="StoreKeyRebuildOperations" />).
 ///     </para>
 /// </remarks>
 internal sealed class RaskMigrationsModelDiffer(
@@ -88,8 +96,17 @@ internal sealed class RaskMigrationsModelDiffer(
         }
 
         operations = WithTenantReferences(operations, source, target);
+        operations = StoreKeyRebuildOperations.Apply(
+            operations,
+            source,
+            target,
+            () => base.GetDifferences(null, target),
+            databaseProvider.Name,
+            sqlGenerationHelper,
+            (IsStoredByTime(source), IsStoredByTime(target)));
         operations = WithGuidOrder(operations, source, target);
         operations = WithNoOverlapRules(operations, source, target);
+        operations = [.. operations, .. MomentsInUtc.Between(source, target)];
 
         foreach (var operation in operations)
         {
@@ -111,11 +128,13 @@ internal sealed class RaskMigrationsModelDiffer(
     /// <remarks>
     ///     A model that starts or stops storing its ids in time order is a change a migration must make, though no column
     ///     changes: an app started on it without one stops at <c>HasPendingModelChanges</c> instead of misreading the rows.
+    ///     So is a column of moments to rewrite from the wall clock to UTC (<see cref="MomentsInUtc" />).
     /// </remarks>
     public override bool HasDifferences(IRelationalModel? source, IRelationalModel? target) =>
         base.HasDifferences(source, target) ||
         (source is not null && target is not null && IsOrderedByTime(source) != IsOrderedByTime(target) &&
-         string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal));
+         string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal)) ||
+        (target is not null && MomentsInUtc.Between(source, target).Any());
 
     // The tenant references the target declares and the source did not, added; the ones it no longer declares, dropped.
     private List<MigrationOperation> WithTenantReferences(
@@ -186,6 +205,10 @@ internal sealed class RaskMigrationsModelDiffer(
         var seeds = operations.ToList().FindIndex(static o => o is InsertDataOperation or UpdateDataOperation or DeleteDataOperation);
         return seeds < 0 ? [.. operations, rewrite] : [.. operations.Take(seeds), rewrite, .. operations.Skip(seeds)];
     }
+
+    // Whether SQL Server holds the model's Guids in the time-ordered stored form.
+    private bool IsStoredByTime(IRelationalModel? model) =>
+        IsOrderedByTime(model) && string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal);
 
     private static bool IsOrderedByTime(IRelationalModel? model) =>
         string.Equals(model?.Model.FindAnnotation(SqlServerGuidOrder.Annotation)?.Value as string, SqlServerGuidOrder.ByTime, StringComparison.Ordinal);

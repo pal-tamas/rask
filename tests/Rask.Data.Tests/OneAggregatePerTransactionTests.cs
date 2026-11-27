@@ -34,16 +34,14 @@ public sealed class CellarRack : Entity<int>
     internal static CellarRack Of(string grain) => new() { Grain = grain };
 }
 
-// Plumbing the app keeps beside its aggregates: marked, so a transaction writing one is still about one aggregate.
-public sealed class CellarNote : Aggregate<Guid>
+// Plumbing the app keeps beside its aggregates: it says so, and a transaction writing one is still about one aggregate.
+public sealed class CellarNote : Aggregate<Guid>, IInfrastructure
 {
     private CellarNote() { }
 
     public string Text { get; private set; } = "";
 
     public static CellarNote Of(string text) => new() { Id = Guid.NewGuid(), Text = text };
-
-    public static void Configure(EntityTypeBuilder<CellarNote> builder) => builder.Infrastructure();
 }
 
 /// <summary>

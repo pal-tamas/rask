@@ -26,6 +26,9 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
+    // EF Core's services builder activates the translator by reflection without a trimming annotation.
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentDayTranslator))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
@@ -36,6 +39,10 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
 
         // Min and Max of a uuid, which PostgreSQL has no aggregate for.
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IAggregateMethodCallTranslatorPlugin, PostgresUuidAggregatePlugin>());
+
+        // A moment's day on the wall calendar, read in a query off its UTC column (MomentDayTranslator).
+        services.TryAddScoped<IMomentDays, PostgresMomentDays>();
+        new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
 
         // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);

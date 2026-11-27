@@ -324,7 +324,7 @@ internal static class GeneratedModelShape
 
         // The one framework column a form carries: the aggregate's Version, read into the model and sent back so a
         // stale save is refused. CreatedAt, UpdatedAt and DeletedAt are the framework's and never on the model.
-        // An aggregate that does not name Versioned has no Version column, so its model
+        // An aggregate that does not say IVersioned has no Version column, so its model
         // carries none and a save compares none.
         if (AggregateShape.HasVersion(entity) && VersionProperty(entity) is { } version)
         {
@@ -735,7 +735,9 @@ internal static class GeneratedModelShape
 
         public ModelValueObject? Of(ITypeSymbol type, int depth, ImmutableHashSet<string> seen)
         {
-            if (depth >= MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(type) is not { } named)
+            // A typed id (`readonly partial record struct CompanyId(int Value)`) is no value object here: the model carries
+            // it AS the id, so a select picks a CompanyId from the read face's choices and the write needs no unwrap.
+            if (depth >= MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(type) is not { } named || TypedIdShape.Is(named))
             {
                 return null;
             }

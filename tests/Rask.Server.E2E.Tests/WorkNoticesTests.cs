@@ -25,7 +25,7 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright) : IClassFixtu
     public async Task The_bar_moves_with_the_row_and_the_bell_count_goes_once_the_ended_job_is_seen(int width, int height)
     {
         var board = new ScriptedWorkBoard();
-        board.Set(new WorkReported(7, "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, DateTime.UtcNow));
+        board.Set(new WorkReported(Id(7), "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, DateTime.UtcNow));
         await using var session = await HookSession.OpenAsync<WorkNoticesPage>(
             playwright, new() { ViewportSize = new() { Width = width, Height = height } },
             services: services => services.AddRaskCqrs().AddRaskQuery().AddSingleton<IWorkBoard>(board));
@@ -34,9 +34,9 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright) : IClassFixtu
         await Expect(bar).ToHaveAttributeAsync("aria-valuenow", "1200");
         await Expect(page.Locator("[data-ui-work-count]")).ToHaveTextAsync("1");
 
-        board.Set(new WorkReported(7, "Import of prices.csv", "3,000 rows kept", 3000, 5000, WorkState.Running, DateTime.UtcNow));
+        board.Set(new WorkReported(Id(7), "Import of prices.csv", "3,000 rows kept", 3000, 5000, WorkState.Running, DateTime.UtcNow));
         await Expect(bar).ToHaveAttributeAsync("aria-valuenow", "3000");
-        board.Set(new WorkReported(7, "Import of prices.csv", "5,000 rows kept", 5000, 5000, WorkState.Done, DateTime.UtcNow));
+        board.Set(new WorkReported(Id(7), "Import of prices.csv", "5,000 rows kept", 5000, 5000, WorkState.Done, DateTime.UtcNow));
         await Expect(page.Locator("[data-ui-work-list-of] [data-ui-work=done]")).ToBeVisibleAsync();
         await Expect(page.Locator("[data-ui-work-list-of] [data-ui-work-said]")).ToHaveTextAsync("Import of prices.csv is done.");
         await Expect(page.Locator("[data-ui-work-count]")).ToHaveTextAsync("1");
@@ -60,6 +60,9 @@ public sealed class WorkNoticesTests(PlaywrightFixture playwright) : IClassFixtu
 
         public Task<IReadOnlyList<WorkReported>> Mine(string? lane, CancellationToken cancellationToken) => Task.FromResult(_work);
     }
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }
 
 /// <summary>An app's header with the bell, and the same work listed in the page.</summary>
