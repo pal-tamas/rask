@@ -19,11 +19,14 @@
 //      column of flex items takes up to fifteen pixels that way (measured on its first popover, which hangs
 //      past the 5 px, and past the edge, by that much). One whose list scrolls inside it keeps the height.
 //
-// THE SIZE it is placed at is the one it has where it HANGS — at the side and alignment it asks for — not the one it
-// has where nothing squeezes it: a panel opened by the right edge is laid out in the room left there, narrowed to
-// its min-width, and flipped and slid at that width (Flux's 288 px popover lands 192 px wide beside a trigger at the
-// right edge of a page that keeps a scrollbar's gutter). Where it lands it is measured again and placed again until
-// it keeps its width; one that grows there takes its full width at once, as the room only widens as it slides back.
+// THE SIZE it is placed at is the one it has where it STANDS, not the one it has where nothing squeezes it: where it
+// last landed — Flux's script leaves a panel's inset on it when it closes, and measures it there the next time it
+// opens, whatever has moved since — and, the first time, where it HANGS at the side and alignment it asks for. A
+// panel by the right edge is laid out in the room left there, narrowed to its min-width, and flipped and slid at
+// that width (measured on fluxui.dev's popover, 2.22: opened first beside a trigger at the right edge it lands 192 px
+// wide; opened 135 px further in it lands 288 px wide, turned to its trigger's end — unless it was last open by the
+// edge, when it is measured 192 px wide there, fits unturned, and grows to the 276 px the room leaves it). Where it
+// lands it is measured again and placed again until it keeps its width.
 //
 // THE ANCHOR is the one the panel already names: the last element whose style says `anchor-name` with the
 // panel's `position-anchor`. A panel whose style names none is placed against what shows it: the first
@@ -190,6 +193,8 @@ interface Placing {
     cap: number | null;
     /** What its padding and border add to a `max-height` under `box-sizing: content-box`; 0 under `border-box`. */
     frame: number;
+    /** The inset its last landing wrote, in page coordinates. */
+    inset?: string;
 }
 
 // What a panel's padding and border add above and below the height its `max-height` holds. A page with no reset —
@@ -221,7 +226,7 @@ function resized(p: Placing): boolean {
     if (Math.abs(box.width - p.size.w) < 0.5) {
         return false;
     }
-    p.size = box.width > p.size.w ? p.natural : {w: box.width, h: p.cap === null ? box.height : p.size.h};
+    p.size = {w: box.width, h: p.cap === null ? box.height : p.size.h};
     return true;
 }
 
@@ -230,6 +235,8 @@ if (page) {
     const view = window;
     /** The open panels: the number each one's rule is keyed on, and what it is placed against. */
     const open = new Map<HTMLElement, {n: number; anchor: Element | null}>();
+    /** Where each panel last landed, kept when it closes: it is measured there when it opens again. */
+    const landed = new WeakMap<HTMLElement, string>();
     const HELD = "position:absolute!important;margin:0!important;translate:none!important;justify-self:auto!important;"
         + "align-self:auto!important;position-area:none!important;position-try-fallbacks:none!important;inset:";
     let sheet: CSSStyleSheet | null = null;
@@ -383,14 +390,16 @@ if (page) {
             }
             const to = landing(p.place, p.a, p.size.w, p.size.h, vw, vh, p.rtl, free);
             p.cap = to.cap;
-            return rule(p.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap === null ? null : to.cap - p.frame);
+            p.inset = (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px";
+            return rule(p.n, p.inset, to.cap === null ? null : to.cap - p.frame);
         };
-        // Then where it HANGS, at the side and alignment it asks for: one by an edge is laid out in the room left
-        // there — squeezed, down to its min-width — and placed at the size it has there, as Flux's is.
+        // Then where it STANDS — where it last landed, or the first time where it HANGS at the side and alignment it
+        // asks for: one by an edge is laid out in the room left there — squeezed, down to its min-width — and placed
+        // at the size it has there, as Flux's is.
         let moving = placing.filter(function (p) { return p.a && p.anchored; });
         if (moving.length) {
             write(placing.map(function (p) {
-                return p.a && p.anchored ? rule(p.n, hangs(p, view.scrollX, view.scrollY), null) : "";
+                return p.a && p.anchored ? rule(p.n, landed.get(p.panel) ?? hangs(p, view.scrollX, view.scrollY), null) : "";
             }).join(""));
             for (const p of moving) {
                 const box = p.panel.getBoundingClientRect();
@@ -398,10 +407,11 @@ if (page) {
             }
         }
         // Where it lands it may be another width again, and is placed again at the width it has there until it
-        // keeps one. One that grows there is placed at its full width at once — the room it is given only widens
-        // as it slides back from the edge — and one that shrinks goes on shrinking to where it stays.
+        // keeps one, as Flux's is each time its box changes: one turned to its trigger's end by the right edge of a
+        // page that keeps a scrollbar's gutter loses the gutter's width a pass, down to its min-width (288 px to 192
+        // in ten), so the passes are many — each a stylesheet written and one box read, and only by an edge.
         let rules = placing.map(function (p) { return lands(p, false); });
-        for (let pass = 0; pass < 8 && moving.length; pass++) {
+        for (let pass = 0; pass < 40 && moving.length; pass++) {
             write(rules.join(""));
             moving = moving.filter(resized);
             rules = placing.map(function (p) { return lands(p, false); });
@@ -414,6 +424,11 @@ if (page) {
             }
         });
         write(rules.join(""));
+        placing.forEach(function (p) {
+            if (p.a && p.anchored && p.inset) {
+                landed.set(p.panel, p.inset);
+            }
+        });
         // Measuring let a capped panel grow, and a box that no longer overflows forgets where it was scrolled to.
         panels.forEach(function (panel, i) {
             if (scrolled[i]) {
