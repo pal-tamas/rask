@@ -16,6 +16,15 @@ internal sealed class SqliteColumnConventionSetPlugin : IConventionSetPlugin
         // First, so each converter is the property's before EF picks its type mapping, and the moment collation is set
         // before a convention that collates every text column (OrderTextBy's) would read the converted column as text.
         conventionSet.ModelFinalizingConventions.Insert(0, new UtcMomentConvention(rewritesWallClock: true));
+
+        // Last of the entity-added conventions: after [NotMapped] set the stamps aside and discovery took a Timestamp for a
+        // navigation, both of which it overrides (TimestampConvention).
+        if (!conventionSet.EntityTypeAddedConventions.OfType<TimestampConvention>().Any())
+        {
+            var timestamps = new TimestampConvention();
+            conventionSet.EntityTypeAddedConventions.Add(timestamps);
+            conventionSet.ModelFinalizingConventions.Insert(0, timestamps);
+        }
         conventionSet.ModelFinalizingConventions.Insert(1, new MomentOrderConvention());
         conventionSet.ModelFinalizingConventions.Insert(2, new DecimalScaleConvention());
         return conventionSet;

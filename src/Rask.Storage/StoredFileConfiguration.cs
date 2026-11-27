@@ -13,7 +13,7 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         entity.Ignore(f => f.Version);
-        entity.Ignore(f => f.DeletedAt);
+        entity.Ignore(Columns.DeletedAt);
         entity.HasKey(f => f.Id);
         entity.Property(f => f.Name).HasMaxLength(255).IsRequired();
         entity.Property(f => f.ContentType).HasMaxLength(127).IsRequired();
@@ -22,7 +22,7 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
         entity.Property(f => f.Provider).HasConversion<string>().HasMaxLength(16);
         entity.Property(f => f.Key).HasMaxLength(512).IsRequired();
         // The dashboard lists newest first.
-        entity.HasIndex(f => f.CreatedAt);
+        entity.HasIndex(Columns.CreatedAt);
 
         // Mapped EXPLICITLY, and the table is deliberately not IBelongsTo<Tenant>. A partitioned table takes
         // a query filter, and a filter would hide other tenants' rows from the orphan sweep — which has to

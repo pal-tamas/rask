@@ -225,7 +225,7 @@ public sealed class SessionTests
         var earlier = rows.Single(s => s.Id == before);
         var later = rows.Single(s => s.Id == after);
         var stored = await db.Database
-            .SqlQueryRaw<string>("SELECT \"LastSeenAt\" AS \"Value\" FROM \"RaskAuthSession\" ORDER BY \"LastSeenAt\"")
+            .SqlQueryRaw<string>("SELECT \"LastSeenAt\" AS \"Value\" FROM \"auth_sessions\" ORDER BY \"LastSeenAt\"")
             .ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal((first, first.AddHours(1)), (earlier.LastSeenAt.Instant, later.LastSeenAt.Instant));

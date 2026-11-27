@@ -86,7 +86,7 @@ public sealed class StoredFileTableTests
               Annotations:
                 MaxLength: 127
                 SqlServer:ValueGenerationStrategy: None
-            CreatedAt (DateTime) Required Index
+            CreatedAt (Timestamp) Required Index
               Annotations:
                 SqlServer:ValueGenerationStrategy: None
             Key (string) Required MaxLength(512)
@@ -115,7 +115,7 @@ public sealed class StoredFileTableTests
             TenantId (Guid?)
               Annotations:
                 SqlServer:ValueGenerationStrategy: None
-            UpdatedAt (DateTime) Required
+            UpdatedAt (Timestamp) Required
               Annotations:
                 SqlServer:ValueGenerationStrategy: None
           Keys:

@@ -1,9 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 using Rask.Storage.Backends;
-
-using Rask.Values;
 
 namespace Rask.Storage;
 
@@ -124,16 +123,15 @@ internal sealed partial class OrphanSweeper<TContext>(
             return null;
         }
 
-        var cutoff = Timestamp.At(runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod);
+        var cutoff = runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod;
         var missing = 0;
         var examples = new List<Guid>();
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            var rows = db.Set<StoredFile>()
-                .AsNoTracking()
-                .Where(f => f.Provider == StorageProvider.Disk && f.CreatedAt < cutoff)
+            var rows = Stamps.CreatedBefore(db.Set<StoredFile>().AsNoTracking(), cutoff)
+                .Where(f => f.Provider == StorageProvider.Disk)
                 .Select(f => new { f.Id, f.Key })
                 .AsAsyncEnumerable();
 

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -92,6 +93,7 @@ public static class ModelBuilderExtensions
         }
 #pragma warning restore S3267
 
+        MapTimestamps(modelBuilder, entityTypes);
         UseChildFields(entityTypes);
         IgnoreComputedProperties(modelBuilder, entityTypes);
         MapValueCollections(modelBuilder, entityTypes);
@@ -101,6 +103,35 @@ public static class ModelBuilderExtensions
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    // A Timestamp an entity declares — Rask's own tables' times, an Authenticatable's EmailConfirmedAt — is a column of the
+    // instant it holds, whichever context maps the class: EF Core's convention would take the record for an entity of its
+    // own. The stamps (CreatedAt, UpdatedAt, DeletedAt) are [NotMapped] and the traits map them; a property the entity's
+    // own configuration already gave a converter keeps it.
+    private static void MapTimestamps(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
+    {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
+        foreach (var entityType in entityTypes)
+        {
+            var clrType = entityType.ClrType;
+            if (!typeof(IEntity).IsAssignableFrom(clrType))
+            {
+                continue;
+            }
+
+            foreach (var property in clrType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (property.PropertyType != typeof(Timestamp) || property.IsDefined(typeof(NotMappedAttribute), inherit: true) ||
+                    entityType.IsIgnored(property.Name) || entityType.FindProperty(property.Name)?.GetValueConverter() is not null)
+                {
+                    continue;
+                }
+
+                ValueObjectColumn.MapTimestamp(modelBuilder.Entity(clrType).Property(property.Name));
+            }
+        }
+#pragma warning restore S3267
     }
 
     // Children behind a field EF Core's convention cannot pair with the navigation by name — `_items` behind `Lines`,

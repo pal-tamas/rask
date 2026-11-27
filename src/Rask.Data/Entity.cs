@@ -123,4 +123,7 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
 
         UpdatedAt = at;
     }
+
+    // Stamp, for a battery that names no Rask.Core type (Stamps, #1086).
+    internal void StampAt(DateTimeOffset at) => Stamp(Timestamp.At(at));
 }

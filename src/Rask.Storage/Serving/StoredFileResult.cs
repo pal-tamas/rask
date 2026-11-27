@@ -2,9 +2,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
+using Rask.Data;
 using Rask.Storage.Upload;
-
-using Rask.Values;
 
 namespace Rask.Storage.Serving;
 
@@ -56,7 +55,7 @@ internal sealed partial class StoredFileResult(Guid id, StoredFileAccess access)
             stream,
             ContentTypePolicy.ServedType(file.ContentType),
             fileDownloadName: null,
-            lastModified: file.CreatedAt.Instant,
+            lastModified: Stamps.CreatedOf(file),
             entityTag: new EntityTagHeaderValue("\"" + file.Sha256 + "\""),
             enableRangeProcessing: true);
 

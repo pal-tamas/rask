@@ -138,10 +138,25 @@ public static class ValueObjectColumn
     /// <returns>The same builder.</returns>
     public static PropertyBuilder MapTimestamp(PropertyBuilder property)
     {
-        Map(property, static (Rask.Values.Timestamp t) => t.Value);
-        property.Metadata.SetValueConverter(OneValueConverters.StoringInstant(property.Metadata.GetValueConverter()!));
+        ArgumentNullException.ThrowIfNull(property);
+
+        var (converter, comparer) = TimestampConversion();
+        property.HasConversion(converter, comparer);
         return property;
     }
+
+    /// <summary>
+    ///     How a <see cref="Rask.Values.Timestamp" /> column is stored: the UTC instant, built back from it exactly, and
+    ///     compared by it. One pair, shared by every such column.
+    /// </summary>
+    /// <returns>The converter and the comparer.</returns>
+    internal static (ValueConverter Converter, ValueComparer Comparer) TimestampConversion() => TimestampColumns.Value;
+
+    private static readonly Lazy<(ValueConverter Converter, ValueComparer Comparer)> TimestampColumns = new(static () =>
+    {
+        var (converter, comparer) = Conversion<Rask.Values.Timestamp, DateTime>(static t => t.Value);
+        return (OneValueConverters.StoringInstant(converter)!, comparer);
+    });
 
     /// <summary>
     ///     Maps the stamps <paramref name="builder" />'s class says it has — <c>CreatedAt</c> for

@@ -16,6 +16,15 @@ internal sealed class PostgresMomentConventionSetPlugin : IConventionSetPlugin
     {
         // PostgreSQL kept moments as UTC from the start: there is nothing to rewrite.
         conventionSet.ModelFinalizingConventions.Insert(0, new UtcMomentConvention(rewritesWallClock: false));
+
+        // Last of the entity-added conventions: after [NotMapped] set the stamps aside and discovery took a Timestamp for a
+        // navigation, both of which it overrides (TimestampConvention).
+        if (!conventionSet.EntityTypeAddedConventions.OfType<TimestampConvention>().Any())
+        {
+            var timestamps = new TimestampConvention();
+            conventionSet.EntityTypeAddedConventions.Add(timestamps);
+            conventionSet.ModelFinalizingConventions.Insert(0, timestamps);
+        }
         return conventionSet;
     }
 }
