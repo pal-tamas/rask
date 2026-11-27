@@ -43,9 +43,6 @@ internal static partial class TemplateMarkers
         RegexOptions.ExplicitCapture | RegexOptions.NonBacktracking)]
     private static partial Regex Marker { get; }
 
-    /// <summary>Whether <paramref name="line"/> is a marker rather than content.</summary>
-    public static bool IsMarker(string line) => Marker.IsMatch(line);
-
     /// <summary>
     ///     <paramref name="content"/> with every unsatisfied region removed and every marker line
     ///     dropped.

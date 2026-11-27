@@ -231,12 +231,13 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     private static bool HasTenant(EntityEntry entry) =>
         entry.Property(Columns.TenantId).CurrentValue is { } tenant && !Equals(tenant, Guid.Empty);
 
-    // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it.
+    // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it: the tenant as the
+    // Guid the framework carries, whatever type the column keeps it in — a Guid, a number, the tenant's typed id.
     //
-    // NOT gated on the tenancy registry, deliberately: the accounts table cannot say IBelongsTo<Tenant>,
-    // because stamping a tenant-scoped row demands an ambient tenant and an ADMINISTRATOR legitimately has
-    // none — a tenant-scoped accounts table could not have an admin inserted into it at all. So Rask.Auth
-    // maps the tenant itself, and this keeps the indexed copy honest wherever it is mapped.
+    // NOT gated on the tenancy registry, deliberately: the accounts table is not partitioned, even when the account
+    // says IBelongsTo<Tenant>, because stamping a tenant-scoped row demands an ambient tenant and an ADMINISTRATOR
+    // legitimately has none — a tenant-scoped accounts table could not have an admin inserted into it at all. So
+    // Rask.Auth maps the tenant itself, and this keeps the indexed copy honest wherever it is mapped.
     private static void SyncTenantKey(EntityEntry entry)
     {
         if (entry.Metadata.FindProperty(Columns.TenantKey) is null ||
@@ -246,7 +247,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         }
 
         entry.Property(Columns.TenantKey).CurrentValue =
-            entry.Property(Columns.TenantId).CurrentValue as Guid? ?? Guid.Empty;
+            TenantColumn.Carried(entry.Property(Columns.TenantId).CurrentValue) ?? Guid.Empty;
     }
 
     // A tenant-scoped row records its tenant on insert, from the ambient scope. The column is only mapped on
@@ -482,7 +483,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                     $"Entity<{idType.Name}> assigns its own id — nothing generates one. " +
                     (ModelBuilderExtensions.IsInteger(idType)
                         ? "Its key is configured ValueGeneratedNever(), so give it one: Create(id, …), or set it where the entity is built."
-                        : "Set it where the entity is created — for a Guid key, Guid.CreateVersion7() in the entity's constructor or factory."));
+                        : "Set it where the entity is created — for a Guid key, OrderedGuid.New() (a typed id: its New()) in the entity's constructor or factory."));
             }
         }
     }

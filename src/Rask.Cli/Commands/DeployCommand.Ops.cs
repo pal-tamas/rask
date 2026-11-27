@@ -401,11 +401,9 @@ internal sealed partial class DeployCommand
                 continue;
             }
 
-            rows.Add(new StatusRow(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3]), Label(parts[4]), Label(parts[5])));
+            rows.Add(new StatusRow(parts[0], DockerLabel.Value(parts[1]), DockerLabel.Value(parts[2]), DockerLabel.Value(parts[3]), DockerLabel.Value(parts[4]), DockerLabel.Value(parts[5])));
         }
 
         return rows;
-
-        static string Label(string value) => string.Equals(value, "<no value>", StringComparison.Ordinal) ? string.Empty : value.Trim();
     }
 }

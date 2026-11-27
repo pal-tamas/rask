@@ -55,12 +55,15 @@ public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     /// <summary>The longest an address is kept, in characters.</summary>
     internal const int IpAddressLength = 64;
 
+    // A session's row is written at most once a minute, so an active page does not turn every request into a write.
+    internal static readonly TimeSpan TouchInterval = TimeSpan.FromMinutes(1);
+
     internal static Session Start(
         Guid userId, string? ipAddress, string? userAgent, bool persistent, Timestamp now, TimeSpan lifetime)
     {
         var session = new Session
         {
-            Id = Guid.CreateVersion7(),
+            Id = OrderedGuid.New(),
             UserId = userId,
             IpAddress = Truncate(ipAddress, IpAddressLength),
             UserAgent = Truncate(userAgent, UserAgentLength),

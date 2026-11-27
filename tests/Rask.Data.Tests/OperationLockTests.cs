@@ -49,7 +49,7 @@ public sealed class OperationLockTests : IDisposable
 
         await Caravan.Lead(caravan.Id, 0, "Bea", Token);
 
-        Assert.Contains("\"Caravan\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
+        Assert.Contains("\"caravans\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
         Assert.Equal("Bea", (await database.Load<Caravan>(caravan.Id, Token))!.Leader);
     }
 
@@ -62,7 +62,7 @@ public sealed class OperationLockTests : IDisposable
 
         await Caravan.Hitch(caravan.Id, 0, "salt", Token);
 
-        Assert.Contains("\"CaravanWagon\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
+        Assert.Contains("\"caravan_wagons\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
         Assert.Equal("salt", Assert.Single((await GeneratedModelWrites.Find<Caravan>(caravan.Id, Token))!.Wagons).Load);
     }
 

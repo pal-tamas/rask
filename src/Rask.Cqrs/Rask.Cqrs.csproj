@@ -53,7 +53,8 @@
     <InternalsVisibleTo Include="Rask.Ui"/>
     <InternalsVisibleTo Include="Rask.Ui.Tests"/>
     <InternalsVisibleTo Include="Rask.Site"/>
-    <!-- The site's publish compiles it again as its prerender twin. -->
+    <!-- The site's publish compiles it again as its prerender twin (Rask.Wasm.Prerender.targets): DemoWorkBoard
+         implements IWorkBoard there too. -->
     <InternalsVisibleTo Include="Rask.Site.Prerender"/>
     <InternalsVisibleTo Include="Rask.Site.Tests"/>
     <InternalsVisibleTo Include="Rask.Server.E2E.Tests"/>

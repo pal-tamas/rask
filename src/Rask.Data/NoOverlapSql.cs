@@ -14,7 +14,8 @@ namespace Rask.Data;
 ///         The extension is created first (<c>IF NOT EXISTS</c>: it is a trusted one, so the database's owner may).
 ///     </para>
 ///     <para>
-///         <b>SQL Server</b>: an index over the key and the start, and an <c>AFTER INSERT, UPDATE</c> trigger that looks for
+///         <b>SQL Server</b>: an index over the key and the start (a key column of a <c>(max)</c> type included in it, which
+///         SQL Server refuses as an index key), and an <c>AFTER INSERT, UPDATE</c> trigger that looks for
 ///         another row the new one overlaps under <c>UPDLOCK, HOLDLOCK</c> — the key range stays locked to the end of the
 ///         transaction, so a second save at the same moment waits for the first and then sees its row (or is chosen as a
 ///         deadlock victim): never both. It refuses with <c>THROW</c> <see cref="SqlServerError" />, the rule's name as
@@ -85,7 +86,12 @@ internal static class NoOverlapSql
         var (from, to) = (Ss(rule.From), Ss(rule.To));
         var name = rule.Name.Replace("'", "''", StringComparison.Ordinal);
 
-        yield return $"CREATE INDEX {Ss(Index(rule.Name, limit))} ON {Ss(table.Name, table.Schema)} ({string.Join(", ", rule.Keys.Append(rule.From).Select(Ss))});";
+        // A (max) column cannot be an index key on SQL Server, so a key of one is carried as an included column: the
+        // trigger's locked read then seeks by the rest and locks the wider range they give, which holds the rule as well.
+        var seek = rule.Keys.Where(k => !IsMax(table, k)).Append(rule.From);
+        var carried = rule.Keys.Where(k => IsMax(table, k)).ToList();
+        var include = carried.Count > 0 ? $" INCLUDE ({string.Join(", ", carried.Select(Ss))})" : "";
+        yield return $"CREATE INDEX {Ss(Index(rule.Name, limit))} ON {Ss(table.Name, table.Schema)} ({string.Join(", ", seek.Select(Ss))}){include};";
         yield return string.Create(CultureInfo.InvariantCulture, $"""
             CREATE TRIGGER {Ss(Trigger(rule.Name, limit), table.Schema)} ON {Ss(table.Name, table.Schema)} AFTER INSERT, UPDATE AS
             BEGIN
@@ -102,10 +108,14 @@ internal static class NoOverlapSql
             """);
     }
 
-    /// <summary>The name a rule's trigger takes on SQL Server: <c>TR_</c> in place of <c>EX_</c>.</summary>
-    internal static string Trigger(string rule, int limit) => Limited("TR_" + rule[3..], limit);
+    // nvarchar(max), varchar(max), varbinary(max): what EF Core makes a string or a byte[] without a length.
+    private static bool IsMax(ITable table, string column) =>
+        table.FindColumn(column)?.StoreType.EndsWith("(max)", StringComparison.OrdinalIgnoreCase) == true;
 
-    private static string Index(string rule, int limit) => Limited("IX_" + rule[3..], limit);
+    /// <summary>The name a rule's trigger takes on SQL Server: <c>tr_</c> in place of <c>xc_</c>.</summary>
+    internal static string Trigger(string rule, int limit) => Limited("tr_" + rule[3..], limit);
+
+    private static string Index(string rule, int limit) => Limited("ix_" + rule[3..], limit);
 
     private static string Limited(string name, int limit) => name.Length > limit ? name[..limit] : name;
 

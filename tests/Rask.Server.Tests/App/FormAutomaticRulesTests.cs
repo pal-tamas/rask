@@ -58,9 +58,12 @@ public sealed class Berth : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<Moo
 
     public static void Configure(EntityTypeBuilder<Berth> builder)
     {
+        // The names the existing table has, stated: Rask's own (berths, tenant_id, uq_…) are for the tables it makes.
         builder.ToTable("Berths");
-        builder.Property(b => b.Name).HasMaxLength(255);
-        builder.HasIndex(b => new { b.Name, b.TenantId }).IsUnique(NameTaken);
+        builder.Property(b => b.Id).HasColumnName("Id");
+        builder.Property(b => b.Name).HasColumnName("Name").HasMaxLength(255);
+        builder.Property(b => b.TenantId).HasColumnName("TenantId");
+        builder.HasIndex(b => new { b.Name, b.TenantId }).HasDatabaseName("IX_Berths_Name_TenantId").IsUnique(NameTaken);
     }
 }
 
@@ -75,7 +78,15 @@ public sealed class Trailer : Aggregate<int>, IHasForm, IDeletable
 
     public int? Axles { get; private set; }
 
-    public static void Configure(EntityTypeBuilder<Trailer> builder) => builder.ToTable("Trailers");
+    // The names the existing table has, stated, as Berth's are.
+    public static void Configure(EntityTypeBuilder<Trailer> builder)
+    {
+        builder.ToTable("Trailers");
+        builder.Property(t => t.Id).HasColumnName("Id");
+        builder.Property(t => t.Weight).HasColumnName("Weight");
+        builder.Property(t => t.Plate).HasColumnName("Plate");
+        builder.Property(t => t.Axles).HasColumnName("Axles");
+    }
 }
 
 public sealed class LegacyTrailer

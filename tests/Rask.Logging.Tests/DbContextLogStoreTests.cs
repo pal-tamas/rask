@@ -103,17 +103,19 @@ public sealed class DbContextLogStoreTests
     }
 
     [Fact]
-    public void The_log_table_is_mapped_with_the_file_stores_names_and_indexes()
+    public void The_log_table_is_mapped_with_its_indexes_and_named_by_the_contexts_own_conventions()
     {
         using var db = new LogTestDbContext(
             new DbContextOptionsBuilder<LogTestDbContext>().UseSqlite("Data Source=:memory:").Options);
 
         var entity = db.Model.FindEntityType(typeof(LogEntry))!;
 
-        Assert.Equal("RaskLog", entity.GetTableName());
+        // A plain DbContext names it as EF does; a Rask context's conventions make it log_entries.
+        Assert.Equal("LogEntry", entity.GetTableName());
+        Assert.Equal("Category", entity.FindProperty(nameof(LogEntry.Category))!.GetColumnName());
         Assert.Equal(LogEntry.CategoryMaxLength, entity.FindProperty(nameof(LogEntry.Category))!.GetMaxLength());
         Assert.Equal(
-            ["IX_RaskLog_Category_Id", "IX_RaskLog_Level_Id", "IX_RaskLog_Timestamp"],
+            ["IX_LogEntry_Category_Id", "IX_LogEntry_Level_Id", "IX_LogEntry_Timestamp"],
             entity.GetIndexes().Select(i => i.GetDatabaseName()).Order(StringComparer.Ordinal));
     }
 

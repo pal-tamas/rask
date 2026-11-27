@@ -4,11 +4,16 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
 
-/// <summary>Names every table and column the model did not name itself, by the app's <c>TableNames</c> and <c>ColumnNames</c>.</summary>
+/// <summary>
+///     Names every table and column the model did not name itself — by Rask's rule (<c>delivery_notes</c>,
+///     <c>pistol_id</c>) or the app's <c>TableNames</c> and <c>ColumnNames</c> — and holds the rule its constraints are
+///     named by.
+/// </summary>
 /// <remarks>
 ///     <para>
 ///         It takes the place of EF Core's <see cref="ModelCleanupConvention" />, the first convention to run as the model
@@ -24,12 +29,53 @@ namespace Rask.Data;
 /// </remarks>
 internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependencies dependencies) : ModelCleanupConvention(dependencies)
 {
-    // One per model being configured, however many of TableNames and ColumnNames it calls.
+    // One per model being configured, however many of TableNames, ColumnNames and ConstraintNames it calls.
     private static readonly ConditionalWeakTable<ModelConfigurationBuilder, StoreNameConvention> Configured = new();
+
+    private bool _namesConstraints;
 
     public Func<TableName, string>? Tables { get; set; }
 
     public Func<ColumnName, string>? Columns { get; set; }
+
+    public Func<Constraint, string?>? Constraints { get; set; }
+
+    /// <summary>
+    ///     Whether the constraints are named once every other convention is in place (a Rask context's), rather than where
+    ///     <c>ConstraintNames</c> is called (a plain <c>DbContext</c>'s).
+    /// </summary>
+    public bool NamesConstraintsLast { get; private set; }
+
+    /// <summary>
+    ///     Rask's own names for <paramref name="configurationBuilder" />'s model, which the app's <c>TableNames</c>,
+    ///     <c>ColumnNames</c> and <c>ConstraintNames</c> may replace; the constraints are named by
+    ///     <see cref="NameConstraints" />, once every convention is in place.
+    /// </summary>
+    internal static void Defaults(ModelConfigurationBuilder configurationBuilder)
+    {
+        var naming = For(configurationBuilder);
+        // A rule the app stated before Rask's conventions were applied stays the rule.
+        naming.Tables ??= static t => t.SnakeCasePlural;
+        naming.Columns ??= static n => n.SnakeCase;
+        naming.Constraints ??= static n => n.Prefixed;
+        naming.NamesConstraintsLast = true;
+    }
+
+    /// <summary>
+    ///     Adds the convention that names the model's constraints by <see cref="Constraints" />, read as the model is
+    ///     finalized — once, however often it is asked.
+    /// </summary>
+    internal void NameConstraints(ModelConfigurationBuilder configurationBuilder)
+    {
+        if (_namesConstraints)
+        {
+            return;
+        }
+
+        _namesConstraints = true;
+        configurationBuilder.Conventions.Add(services => new ConstraintNameConvention(
+            this, string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)));
+    }
 
     /// <summary>The convention naming <paramref name="configurationBuilder" />'s model, put in place on first use.</summary>
     internal static StoreNameConvention For(ModelConfigurationBuilder configurationBuilder) =>
@@ -45,8 +91,7 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
     {
         base.ProcessModelFinalizing(modelBuilder, context);
 
-        // Rask's own batteries keep the names their code and their users' databases already have.
-        var entityTypes = modelBuilder.Metadata.GetEntityTypes().Where(e => !IsKept(e)).ToList();
+        var entityTypes = modelBuilder.Metadata.GetEntityTypes().ToList();
 
         if (Tables is { } tables)
         {
@@ -57,18 +102,6 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
         {
             entityTypes.ForEach(e => NameColumns(e, columns));
         }
-    }
-
-    // A battery's entity type, or a type owned by one.
-    private static bool IsKept(IConventionEntityType entityType)
-    {
-        var owner = entityType;
-        while (owner.FindOwnership() is { } ownership)
-        {
-            owner = ownership.PrincipalEntityType;
-        }
-
-        return KeptNames.Has(owner.ClrType);
     }
 
     // A table of its own, not stated: not a type in its base's one table, not an owned type in its owner's, not a view.

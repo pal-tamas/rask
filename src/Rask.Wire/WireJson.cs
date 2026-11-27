@@ -145,6 +145,26 @@ public static class WireJson
             ? value
             : throw Unexpected(ref reader, property, "an ISO-8601 date-time string");
 
+    /// <summary>
+    ///     Reads what a moment travels as: the instant it holds — <c>"2026-10-25T00:30:00Z"</c>, or one with an offset —
+    ///     handed back as UTC, exactly; or a bare <c>"2026-10-25T02:30:00"</c>, the wall-clock form a page loaded before
+    ///     moments travelled as instants still sends, handed back of <see cref="DateTimeKind.Unspecified" /> for the
+    ///     moment to read as a wall-clock time of <see cref="Clock.Zone" />.
+    /// </summary>
+    /// <param name="reader">The reader, positioned on the value.</param>
+    /// <param name="property">The property being read, for the error message.</param>
+    /// <returns>The instant, of <see cref="DateTimeKind.Utc" />, or the wall-clock time, of <see cref="DateTimeKind.Unspecified" />.</returns>
+    public static DateTime ReadMoment(ref Utf8JsonReader reader, string property)
+    {
+        if (reader.TokenType != JsonTokenType.String || !reader.TryGetDateTime(out var value))
+        {
+            throw Unexpected(ref reader, property, "an ISO-8601 date-time string");
+        }
+
+        // An offset other than Z comes back as the machine's local time; the offset itself names the instant exactly.
+        return value.Kind == DateTimeKind.Local && reader.TryGetDateTimeOffset(out var instant) ? instant.UtcDateTime : value;
+    }
+
     /// <summary>Reads a <see cref="DateTimeOffset" />.</summary>
     /// <param name="reader">The reader, positioned on the value.</param>
     /// <param name="property">The property being read, for the error message.</param>

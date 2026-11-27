@@ -49,7 +49,7 @@ public sealed class CoveringIndexTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON [Remittance] ([PayeeId]) INCLUDE ([Amount], [Note])", script, StringComparison.Ordinal);
+        Assert.Contains("ON [remittances] ([payee_id]) INCLUDE ([amount], [note])", script, StringComparison.Ordinal);
     }
 
     private static DbContextOptions<CoveredContext> Options() =>

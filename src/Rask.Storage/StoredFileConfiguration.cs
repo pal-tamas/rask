@@ -9,8 +9,6 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
 {
     public void Configure(EntityTypeBuilder<StoredFile> entity)
     {
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(entity.Metadata.ClrType);
         ValueObjectColumn.MapStamps(entity);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.

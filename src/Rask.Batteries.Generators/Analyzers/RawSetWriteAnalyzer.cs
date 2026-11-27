@@ -127,14 +127,14 @@ public sealed class RawSetWriteAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        receiver = Unwrapped(receiver);
+        receiver = receiver.WithoutImplicitConversion();
         if (receiver is IInvocationOperation { TargetMethod.Name: "Where", Arguments.Length: 2 } where &&
             string.Equals(where.TargetMethod.ContainingType.ToDisplayString(), "System.Linq.Queryable", StringComparison.Ordinal) &&
-            Unwrapped(where.Arguments[1].Value) is IDelegateCreationOperation or IAnonymousFunctionOperation &&
+            where.Arguments[1].Value.WithoutImplicitConversion() is IDelegateCreationOperation or IAnonymousFunctionOperation &&
             where.TargetMethod.Parameters[1].Type is INamedTypeSymbol { TypeArguments.Length: 1 } expression &&
             expression.TypeArguments[0] is INamedTypeSymbol { TypeArguments.Length: 2 })
         {
-            return (Unwrapped(where.Arguments[0].Value), where.Arguments[1].Value);
+            return (where.Arguments[0].Value.WithoutImplicitConversion(), where.Arguments[1].Value);
         }
 
         return (receiver, null);
@@ -145,9 +145,6 @@ public sealed class RawSetWriteAnalyzer : DiagnosticAnalyzer
 
     private static bool IsEfCore(INamespaceSymbol? space) =>
         string.Equals(space?.ToDisplayString(), "Microsoft.EntityFrameworkCore", StringComparison.Ordinal);
-
-    private static IOperation Unwrapped(IOperation operation) =>
-        operation is IConversionOperation { IsImplicit: true, Operand: var operand } ? Unwrapped(operand) : operation;
 
     // An argument the caller wrote (not a default filled in).
     private static IOperation? Argument(IInvocationOperation call, string parameter) =>

@@ -18,7 +18,7 @@ internal static class AuthPrincipal
     /// </summary>
     internal static ClaimsPrincipal For<TKey>(Authenticatable<TKey> user, string name, Guid? sessionId = null)
         where TKey : notnull =>
-        For(user.AccountId, name, user.Email, user.Roles, sessionId, user.TenantId, user.OwnClaims());
+        For(user.AccountId, name, user.Email, user.Roles, sessionId, user.CarriedTenant, user.OwnClaims());
 
     /// <summary>A principal from the parts of an account that reach it.</summary>
     /// <param name="userId">The account, as the Guid Rask carries it.</param>

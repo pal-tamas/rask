@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: Directory\.Build\.targets$|scripts/lib/(analyzer|unit)-shards\.txt$|Rask\.slnx$|.*\.csproj$|\.github/workflows/|src/Rask\.Templates/[^/]+/client/package\.json$
+# gate-inputs: Directory\.Build\.targets$|scripts/lib/(analyzer|unit)-shards\.txt$|Rask\.slnx$|.*\.csproj$|\.github/workflows/
 # Table test for scripts/lib/affected_gates.py — which CI gates a change reaches on a push to main —
 # and for the plan step in gates.yml that turns that answer, or a pull request's diff, into jobs.
 #

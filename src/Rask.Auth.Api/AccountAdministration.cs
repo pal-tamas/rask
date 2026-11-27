@@ -73,11 +73,11 @@ internal sealed class AccountAdministration<TUser, TKey>(
             var normalized = AccountName<TUser, TKey>.Normalize(name);
             var user = new TUser();
             user.Register(AccountName<TUser, TKey>.IsEmail ? normalized : "", hasher.Hash(password));
-            user.JoinTenantInFlight(Tenant.Key);
             user.GrantRole(RaskRoles.User);
             apply?.Invoke(user);
 
             db.Add(user);
+            AccountTenant.JoinInFlight(db, user);
             AccountName<TUser, TKey>.Write(db, user, normalized);
 
             if (!await SaveAsync(db, name, except: null, cancellationToken).ConfigureAwait(false))
@@ -227,7 +227,7 @@ internal sealed class AccountAdministration<TUser, TKey>(
             .FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(id), cancellationToken)
             .ConfigureAwait(false);
 
-        return user is not null && user.TenantId == tenant && !user.IsInRole(RaskRoles.Admin)
+        return user is not null && user.CarriedTenant == tenant && !user.IsInRole(RaskRoles.Admin)
             ? user
             : throw AccountNotFound.For(id);
     }

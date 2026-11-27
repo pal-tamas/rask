@@ -24,7 +24,9 @@ namespace Rask.Data;
 ///         column is marked <see cref="MomentsInUtc.Annotation" />, which the migration snapshot keeps: the first migration added
 ///         after the change rewrites the column's rows from the wall clock to UTC (<see cref="MomentsInUtc" />), and until
 ///         it is added the app's start refuses the model as changed since its last migration. A moment inside a JSON
-///         document keeps the wall clock there, as it always did: no migration rewrites a document.
+///         document holds its instant too, as text with its Z (<see cref="InstantText" />) since SQLite's JSON writer of a
+///         <see cref="DateTime" /> drops it; no migration rewrites a document, so one written before still holds the wall
+///         clock, read as a wall-clock time of <see cref="Clock.Zone" /> until its row is saved again.
 ///     </para>
 /// </remarks>
 /// <param name="rewritesWallClock">Whether the provider kept moments as the wall clock before, so a migration rewrites them.</param>
@@ -52,9 +54,13 @@ internal sealed class UtcMomentConvention(bool rewritesWallClock) : IModelFinali
                 continue;
             }
 
-            // A moment inside a JSON document keeps the wall clock where it always did: no migration rewrites a document.
+            // A moment inside a JSON document holds its instant too, as text that keeps its Z, but no migration rewrites a
+            // document: the wall-clock time one written before holds is read as one, and holds the instant once its row
+            // is saved again.
             if (rewritesWallClock && json)
             {
+                var inDocument = OneValueConverters.StoringInstantInDocument(converter) ?? converter.ComposeWith(WallClockInUtc.InDocument);
+                ((IMutableProperty)property).SetValueConverter(inDocument.ComposeWith(InstantText.Converter));
                 continue;
             }
 

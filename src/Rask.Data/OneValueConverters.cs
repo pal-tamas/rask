@@ -69,7 +69,15 @@ internal static class OneValueConverters
     ///     included — while its <c>.Value</c>, read in a query, still reads the column through
     ///     <see cref="WallClockInUtc" />. Null for a converter of the app's own, whose stored value Rask cannot know.
     /// </summary>
-    public static ValueConverter? StoringInstant(ValueConverter written) => (written as IOwn)?.OfInstant();
+    public static ValueConverter? StoringInstant(ValueConverter written) => (written as IOwn)?.OfInstant(inDocument: false);
+
+    /// <summary>
+    ///     Rask's own converter of a <see cref="Moment" /> inside a JSON document: the instant written as UTC, as a column
+    ///     stores it, but read back by what the document holds — an instant (a value with its Z) exactly, and a wall-clock
+    ///     time of <see cref="Clock.Zone" /> (one without, written before a document held instants) as the moment reads one
+    ///     (<see cref="WallClockInUtc.InDocument" />). Null for a converter of the app's own.
+    /// </summary>
+    public static ValueConverter? StoringInstantInDocument(ValueConverter written) => (written as IOwn)?.OfInstant(inDocument: true);
 
     private interface IOwn
     {
@@ -82,18 +90,26 @@ internal static class OneValueConverters
         /// <summary>The same converter, storing the value through <paramref name="stored" />.</summary>
         ValueConverter StoringThrough(ValueConverter stored);
 
-        /// <summary>The same converter of a moment, storing its instant as UTC (<see cref="StoringInstant" />).</summary>
-        ValueConverter OfInstant();
+        /// <summary>
+        ///     The same converter of a moment, storing its instant as UTC (<see cref="StoringInstant" />), in a JSON document
+        ///     when <paramref name="inDocument" /> (<see cref="StoringInstantInDocument" />).
+        /// </summary>
+        ValueConverter OfInstant(bool inDocument);
     }
 
     private sealed class Own<TValueObject, TValue>(
         Expression<Func<TValueObject, TValue>> value,
         Expression<Func<TValue, TValueObject>> build,
         ValueConverter? stored,
-        bool instant = false)
+        Instant instant = Instant.None)
         : ValueConverter<TValueObject, TValue>(
-            instant ? InstantOf(value) : Through(value, stored),
-            instant ? FromInstant(build) : Back(build, stored)), IOwn
+            instant == Instant.None ? Through(value, stored) : InstantOf(value),
+            instant switch
+            {
+                Instant.InColumn => FromInstant(build),
+                Instant.InDocument => build,
+                _ => Back(build, stored),
+            }), IOwn
     {
         public MemberInfo? Held { get; } =
             value.Body is MemberExpression { Member: var member } access && access.Expression == value.Parameters[0] ? member : null;
@@ -103,10 +119,19 @@ internal static class OneValueConverters
         public ValueConverter StoringThrough(ValueConverter stored) =>
             new Own<TValueObject, TValue>(value, build, Stored is null ? stored : Stored.ComposeWith(stored));
 
-        public ValueConverter OfInstant() =>
-            typeof(Moment).IsAssignableFrom(typeof(TValueObject)) && typeof(TValue) == typeof(DateTime)
-                ? new Own<TValueObject, TValue>(value, build, WallClockInUtc.Converter, instant: true)
-                : throw new InvalidOperationException($"{typeof(TValueObject).Name} is no moment over a DateTime.");
+        // In a document the moment is built from what was read as it is: one of DateTimeKind.Utc is its instant, and an
+        // unspecified one — a wall-clock time a document held before — a wall-clock time of Clock.Zone.
+        public ValueConverter OfInstant(bool inDocument)
+        {
+            if (!typeof(Moment).IsAssignableFrom(typeof(TValueObject)) || typeof(TValue) != typeof(DateTime))
+            {
+                throw new InvalidOperationException($"{typeof(TValueObject).Name} is no moment over a DateTime.");
+            }
+
+            return inDocument
+                ? new Own<TValueObject, TValue>(value, build, WallClockInUtc.InDocument, Instant.InDocument)
+                : new Own<TValueObject, TValue>(value, build, WallClockInUtc.Converter, Instant.InColumn);
+        }
 
         // v => v.Instant.UtcDateTime: the instant the moment holds, as UTC.
         private static Expression<Func<TValueObject, TValue>> InstantOf(Expression<Func<TValueObject, TValue>> read)
@@ -143,5 +168,14 @@ internal static class OneValueConverters
                 : Expression.Lambda<Func<TValue, TValueObject>>(
                     ReplacingExpressionVisitor.Replace(build.Parameters[0], stored.ConvertFromProviderExpression.Body, build.Body),
                     stored.ConvertFromProviderExpression.Parameters);
+    }
+
+    // How Rask's own converter of a moment stores it: its value as it is, its instant in a column, or its instant in a
+    // JSON document, which may still hold a wall-clock time written before.
+    private enum Instant
+    {
+        None,
+        InColumn,
+        InDocument,
     }
 }

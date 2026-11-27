@@ -46,13 +46,12 @@ public sealed class NoOverlapScriptTests
         var script = context.Database.GenerateCreateScript();
 
         Assert.Contains("CREATE EXTENSION IF NOT EXISTS btree_gist;", script, StringComparison.Ordinal);
-        Assert.Contains(
-            "ALTER TABLE \"DeskBooking\" ADD CONSTRAINT \"EX_DeskBooking_Floor_DeskId_From\" EXCLUDE USING gist "
-            + "(\"Floor\" WITH =, \"DeskId\" WITH =, daterange(\"From\", \"To\", '[)') WITH &&) WHERE (\"Cancelled\" = FALSE);",
-            script,
-            StringComparison.Ordinal);
+        Assert.Equal(
+            "ALTER TABLE \"desk_bookings\" ADD CONSTRAINT \"xc_desk_bookings_floor_desk_id_from\" EXCLUDE USING gist "
+            + "(\"floor\" WITH =, \"desk_id\" WITH =, daterange(\"from\", \"to\", '[)') WITH &&) WHERE (cancelled = FALSE);",
+            script.Split('\n').Single(static l => l.Contains("EXCLUDE USING gist", StringComparison.Ordinal)).Trim());
         Assert.True(
-            script.IndexOf("CREATE TABLE \"DeskBooking\"", StringComparison.Ordinal) < script.IndexOf("EXCLUDE USING gist", StringComparison.Ordinal));
+            script.IndexOf("CREATE TABLE desk_bookings", StringComparison.Ordinal) < script.IndexOf("EXCLUDE USING gist", StringComparison.Ordinal));
     }
 
     private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider

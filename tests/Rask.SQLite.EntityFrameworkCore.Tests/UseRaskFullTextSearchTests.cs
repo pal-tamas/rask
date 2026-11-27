@@ -32,7 +32,7 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
         // own generator is the one that can.
         using var db = new ArticleContext(Plain().UseRaskFullTextSearch().Options);
 
-        Assert.IsType<RaskSqliteRangeExclusionSqlGenerator>(db.GetService<IMigrationsSqlGenerator>());
+        Assert.IsType<RaskSqliteMigrationsSqlGenerator>(db.GetService<IMigrationsSqlGenerator>());
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
             .Options;
         using var db = new ArticleContext(options);
 
-        Assert.IsType<RaskSqliteStrictRangeExclusionSqlGenerator>(db.GetService<IMigrationsSqlGenerator>());
+        Assert.IsType<RaskSqliteStrictMigrationsSqlGenerator>(db.GetService<IMigrationsSqlGenerator>());
     }
 
     [Fact]

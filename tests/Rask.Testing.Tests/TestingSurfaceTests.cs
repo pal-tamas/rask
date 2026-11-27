@@ -98,6 +98,8 @@ public class TestingSurfaceTests
 
         Assert.True(sink.TryConsume(out var first));
         Assert.Equal("a.txt", first!.Filename);
+        Assert.False(string.IsNullOrEmpty(first.Token));
+        Assert.Null(first.Url);
         Assert.True(sink.TryConsume(out _));
         Assert.False(sink.TryConsume(out _));
 

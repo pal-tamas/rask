@@ -92,7 +92,7 @@ public sealed class LiveRenderContext : IDisposable
         HasCulture = _handle?.HasCulture ?? pushed is not null;
 
         // Pin the ambient culture for the walk, so code that formats through CultureInfo.CurrentCulture
-        // — including code Rask does not own, and BsDataGrid's linguistic string sort, which reaches
+        // — including code Rask does not own, and a grid's linguistic string sort, which reaches
         // Comparer<T>.Default and has no seam to route through — agrees with the session.
         if (Globalization.RaskCulture.IsEnabled)
         {

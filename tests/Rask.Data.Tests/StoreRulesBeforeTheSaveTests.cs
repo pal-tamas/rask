@@ -35,7 +35,7 @@ public sealed class StoreRulesBeforeTheSaveTests : IDisposable
         var failure = Assert.Single(field);
         Assert.Equal(Contact.NameTaken, failure.Message);
         Assert.Equal(["Name"], failure.Fields);
-        Assert.Equal("IX_Contacts_Name_TenantId", failure.Source);
+        Assert.Equal("uq_Contacts_name_tenant_id", failure.Source);
         Assert.Equal(Contact.NameTaken, Assert.Single(whole).Message);
         Assert.Empty(free);
     }

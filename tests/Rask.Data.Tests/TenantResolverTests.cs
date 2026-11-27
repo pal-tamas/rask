@@ -521,7 +521,7 @@ public sealed class TenantResolverTests : IDisposable
         }
 
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Destinations (Name, TenantId) VALUES ('Nowhere', NULL)", TestContext.Current.CancellationToken);
+            $"INSERT INTO destinations (name, tenant_id) VALUES ('Nowhere', NULL)", TestContext.Current.CancellationToken);
 
         return budapest.Id;
     }
@@ -529,7 +529,7 @@ public sealed class TenantResolverTests : IDisposable
     // Straight to the table, past every filter: what the database holds, whoever is asking.
     private static async Task<List<string>> StoredNamesAsync(TestDatabase database) =>
         await database.Context.Database
-            .SqlQuery<string>($"SELECT Name AS Value FROM Destinations ORDER BY Name")
+            .SqlQuery<string>($"SELECT name AS Value FROM destinations ORDER BY name")
             .ToListAsync(TestContext.Current.CancellationToken);
 
     private Task<TestDatabase> StartDatabaseAsync() =>

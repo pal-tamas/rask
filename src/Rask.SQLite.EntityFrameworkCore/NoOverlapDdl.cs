@@ -97,7 +97,7 @@ internal static class NoOverlapDdl
     {
         Append(builder, $"DROP TRIGGER IF EXISTS {Quote(rule.Name + "_Insert")};");
         Append(builder, $"DROP TRIGGER IF EXISTS {Quote(rule.Name + "_Update")};");
-        Append(builder, $"DROP INDEX IF EXISTS {Quote("IX_" + rule.Name[3..])};");
+        Append(builder, $"DROP INDEX IF EXISTS {Quote("ix_" + rule.Name[3..])};");
     }
 
     private static void Emit(MigrationCommandListBuilder builder, IEntityType entityType, string table, NoOverlapRule rule)
@@ -124,7 +124,7 @@ internal static class NoOverlapDdl
             $"      AND (n.{to} IS NULL OR x.{from} < n.{to}) AND (x.{to} IS NULL OR n.{from} < x.{to}));";
 
         Drop(builder, rule);
-        Append(builder, $"CREATE INDEX {Quote("IX_" + rule.Name[3..])} ON {Quote(table)} ({string.Join(", ", rule.Keys.Append(rule.From).Select(Quote))});");
+        Append(builder, $"CREATE INDEX {Quote("ix_" + rule.Name[3..])} ON {Quote(table)} ({string.Join(", ", rule.Keys.Append(rule.From).Select(Quote))});");
         Append(builder, $"CREATE TRIGGER {Quote(rule.Name + "_Insert")} AFTER INSERT ON {Quote(table)}\nBEGIN\n{body}\nEND;");
         Append(builder, $"CREATE TRIGGER {Quote(rule.Name + "_Update")} AFTER UPDATE ON {Quote(table)}\nBEGIN\n{body}\nEND;");
     }

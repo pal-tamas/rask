@@ -232,7 +232,7 @@ public sealed class StoreKeyRebuildModelTests
         Assert.Contains("INTO [rask_key_rebuild].[QueueRows_rask_rebuild]", sql, StringComparison.Ordinal);
         Assert.Contains("DATEDIFF_BIG(millisecond", sql, StringComparison.Ordinal);
         Assert.Contains("DROP TABLE [rask_key_rebuild].[QueueRows]", sql, StringComparison.Ordinal);
-        Assert.Contains("[Id] uniqueidentifier NOT NULL", sql, StringComparison.Ordinal);
+        Assert.Contains("[id] uniqueidentifier NOT NULL", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("IDENTITY", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("ALTER COLUMN", sql, StringComparison.Ordinal);
     }
@@ -242,7 +242,7 @@ public sealed class StoreKeyRebuildModelTests
     {
         var sql = Script(o => o.UseRaskSqlServerAt(SqlServerOffline), ordered: false);
 
-        Assert.Contains(SqlServerGuidOrder.StoredFromNative("rask_rows.[UserId]"), sql, StringComparison.Ordinal);
+        Assert.Contains(SqlServerGuidOrder.StoredFromNative("rask_rows.[user_id]"), sql, StringComparison.Ordinal);
         Assert.DoesNotContain("UPDATE [rask_key_rebuild].[QueueRows]", sql, StringComparison.Ordinal);
     }
 
@@ -256,7 +256,7 @@ public sealed class StoreKeyRebuildModelTests
         Assert.Contains("RAISE EXCEPTION", sql, StringComparison.Ordinal);
         Assert.Contains("CREATE TABLE rask_key_rebuild.\"QueueRows_rask_rebuild\" AS SELECT", sql, StringComparison.Ordinal);
         Assert.Contains("AS uuid)", sql, StringComparison.Ordinal);
-        Assert.Contains("\"Id\" uuid NOT NULL", sql, StringComparison.Ordinal);
+        Assert.Contains("id uuid NOT NULL", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("ALTER COLUMN", sql, StringComparison.Ordinal);
     }
 

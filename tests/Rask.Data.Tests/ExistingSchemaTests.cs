@@ -22,8 +22,11 @@ public sealed class LegacyContext(DbContextOptions<LegacyContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.Entity<LegacyDestination>(b =>
         {
+            // Its columns are already in snake case, the names Rask's side gives them.
             b.ToTable("Destinations");
-            b.Property(d => d.Name).IsRequired().HasMaxLength(255);
+            b.Property(d => d.Id).HasColumnName("id");
+            b.Property(d => d.Name).HasColumnName("name").IsRequired().HasMaxLength(255);
+            b.Property(d => d.TenantId).HasColumnName("tenant_id");
             b.HasIndex(d => d.TenantId);
             b.HasIndex(d => new { d.Name, d.TenantId }).IsUnique();
         });

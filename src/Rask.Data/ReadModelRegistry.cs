@@ -82,6 +82,12 @@ public static class ReadModelRegistry
         // Before any convention finalizes the model: one that writes the schema (the tenant references) skips a read model.
         modelBuilder.HasAnnotation(Annotation, true);
 
+        // Whether the write side stores its Guids time-ordered (SQL Server): the faces read them as written.
+        if (writeModel is not null)
+        {
+            modelBuilder.HasAnnotation(SqlServerGuidOrder.WriteSideAnnotation, writeModel.FindAnnotation(SqlServerGuidOrder.Annotation) is not null);
+        }
+
         var all = Contributions.Values.SelectMany(static c => c).ToList();
 
         foreach (var mapping in all)

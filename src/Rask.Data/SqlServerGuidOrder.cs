@@ -28,6 +28,12 @@ internal static class SqlServerGuidOrder
     /// <summary>The annotation's value: ordered by the id's own bytes, so a version-7 id by time.</summary>
     internal const string ByTime = "Time";
 
+    /// <summary>
+    ///     On a read model, whether the write model it mirrors holds the stored form: its faces read the columns the way
+    ///     those were written, so a write model without <see cref="Annotation" /> leaves its faces' ids as they are.
+    /// </summary>
+    internal const string WriteSideAnnotation = "Rask:GuidOrderOfWrite";
+
     // Where SQL Server looks i-th, in Guid.ToByteArray()'s layout: the id's big-endian byte i is put there.
     private static ReadOnlySpan<byte> Order => [10, 11, 12, 13, 14, 15, 8, 9, 6, 7, 4, 5, 0, 1, 2, 3];
 

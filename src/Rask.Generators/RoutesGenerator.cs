@@ -46,13 +46,9 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
             .Where(static c => c is not null)
             .Select(static (c, _) => c!);
 
-        // The per-page `SomePage.Url(...)` / `SomePage.Go(...)` helpers are C# 14 static extension members.
-        // Generated code is compiled with the CONSUMER's language version, and below C# 14 an extension
-        // block does not fail with a clean "feature unavailable" message — it fails as a parse-error
-        // cascade (CS1001/CS1513/CS1519) pointing inside generated source, which is unactionable. So the
-        // emission is gated here and the legacy Routes.X(...) factories carry those consumers.
-        var supportsExtensionMembers = context.ParseOptionsProvider.Select(static (options, _) =>
-            options is CSharpParseOptions cs && cs.LanguageVersion >= LanguageVersion.CSharp14);
+        // The per-page `SomePage.Url(...)` / `SomePage.Go(...)` helpers are C# 14 static extension members,
+        // emitted unconditionally: Rask requires C# 15, and build/Rask.Core.targets stops a project that
+        // pins an older LangVersion (RASKLANG001) before the generated source could fail to parse.
 
         // The ONE Routes class lives in the project's root namespace, so code anywhere under it reaches
         // every page with no using. The assembly name stands in when RootNamespace is not set.
@@ -64,9 +60,9 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
                     ? root.Trim()
                     : CSharpNames.Namespace(pair.Right));
 
-        var grouped = candidates.Collect().Combine(supportsExtensionMembers).Combine(rootNamespace);
+        var grouped = candidates.Collect().Combine(rootNamespace);
         context.RegisterSourceOutput(grouped,
-            static (spc, pair) => Emit(spc, pair.Left.Left, pair.Left.Right, pair.Right));
+            static (spc, pair) => Emit(spc, pair.Left, pair.Right));
 
         var orphanCandidates = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -83,7 +79,7 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates,
-        bool supportsExtensionMembers, string rootNamespace)
+        string rootNamespace)
     {
         if (candidates.IsDefaultOrEmpty)
         {
@@ -109,7 +105,7 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
         var routed = byFqn.Values.Where(c => !c.IsNotFound).ToList();
         if (routed.Count > 0)
         {
-            EmitRoutesClass(spc, routed, byFqn, supportsExtensionMembers, rootNamespace);
+            EmitRoutesClass(spc, routed, byFqn, rootNamespace);
         }
 
         // Deduplicate by fully-qualified type name before emitting the registry. A `partial`

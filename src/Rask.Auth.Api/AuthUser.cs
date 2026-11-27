@@ -40,11 +40,34 @@ public static class AuthUser
 
     /// <summary>Names the application's user type and its key. Called by generated code.</summary>
     /// <typeparam name="TUser">The application's <see cref="Authenticatable{TKey}" /> user.</typeparam>
-    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
+    /// <typeparam name="TKey">
+    /// Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one. A typed id over a <see cref="Guid" /> is
+    /// named with <see cref="Use{TUser,TKey}(Func{Guid,TKey},Func{TKey,Guid})" />.
+    /// </typeparam>
     public static void Use<TUser, TKey>()
         where TUser : Authenticatable<TKey>, new()
         where TKey : notnull =>
         Binding = new UserBinding<TUser, TKey>();
+
+    /// <summary>Names the application's user type keyed by a typed id over a <see cref="Guid" />. Called by generated code.</summary>
+    /// <typeparam name="TUser">The application's <see cref="Authenticatable{TKey}" /> user.</typeparam>
+    /// <typeparam name="TKey">Its key: a typed id over a <see cref="Guid" /> — <c>UserId(Guid Value)</c>.</typeparam>
+    /// <param name="wrap">The id holding a value: <c>value =&gt; new UserId(value)</c>.</param>
+    /// <param name="unwrap">The value an id holds: <c>id =&gt; id.Value</c>.</param>
+    /// <remarks>
+    /// Rask carries the signed-in user as the <see cref="Guid" /> the id holds — its sessions, passkeys, claims and events
+    /// — so the id's column is the <see cref="Guid" /> one it replaces, and moving a users table from <see cref="Guid" />
+    /// to a <c>UserId</c> over one changes no column.
+    /// </remarks>
+    public static void Use<TUser, TKey>(Func<Guid, TKey> wrap, Func<TKey, Guid> unwrap)
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : struct
+    {
+        ArgumentNullException.ThrowIfNull(wrap);
+        ArgumentNullException.ThrowIfNull(unwrap);
+        AccountKey<TKey>.Typed(wrap, unwrap);
+        Use<TUser, TKey>();
+    }
 
     /// <summary>Forgets the declared user type. Test seam.</summary>
     public static void Reset() => Binding = null;

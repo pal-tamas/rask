@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK147, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -39,6 +39,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
+| **RASK192** | deletes the line that says what Rask names it anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]` — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
 | **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -169,6 +170,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK145](#rask145) | Warning (Error under `<RaskStrict>`) | An event reads a key the database has not produced yet |
 | [RASK146](#rask146) | Error | A trait the class cannot carry |
 | [RASK147](#rask147) | Warning (Error under `<RaskStrict>`) | The domain holds a bare `DateTime` |
+| [RASK148](#rask148) | Info | An entity is keyed by a Guid that is not strictly increasing |
 | [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
@@ -192,6 +194,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
 | [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
+| [RASK192](#rask192) | Info | The configuration says what Rask's conventions already say |
 | [RASK193](#rask193) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
@@ -2162,7 +2165,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
 {
     public string Reference { get; private set; } = "";
 
-    public static Order Place(string reference) => new() { Id = Guid.CreateVersion7(), Reference = reference };   // ✓
+    public static Order Place(string reference) => new() { Id = OrderedGuid.New(), Reference = reference };   // ✓
 }
 
 var order = new Order();                       // ✗ RASK107
@@ -2608,6 +2611,7 @@ and no quick-fix.
 
 | Code | What happened | Fix |
 | --- | --- | --- |
+| `RASKLANG001` | The project pins a `<LangVersion>` below C# 15 (`14`, `13.0`, `ISO-2`, …). Rask's generated code — the per-page `Url()`/`Go()` extension members among it — needs C# 15. | Remove `<LangVersion>` (.NET 11 defaults to C# 15) or set it to `15`, `latest` or `preview`. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net11.0-browser`. |
@@ -3589,6 +3593,33 @@ A wall-clock time from outside — a pump's local time without an offset — bec
 `DeliveryFueledAt.FromWall(reading.LocalTime, pumpZone)`. On PostgreSQL a bare `DateTime` left on an aggregate or an
 entity is also refused as the model is built ([data.md](data.md#dates-and-moments-what-each-database-keeps)).
 
+## RASK148
+
+**An entity is keyed by a Guid that is not strictly increasing** · Info
+
+An entity's `Id` is set to `Guid.CreateVersion7()` or `Guid.NewGuid()` — directly, or inside a typed id
+(`new OrderId(Guid.CreateVersion7())`). `Guid.CreateVersion7()` fills the 12 bits after the millisecond at random, so
+two rows made in one millisecond sort either way; `Guid.NewGuid()` is not time-ordered at all. Either way the key's
+index stops being append-only, and ordering or paging by the key is not the order the rows were made.
+
+```csharp
+public static Order Place(string reference) =>
+    new() { Id = new OrderId(Guid.CreateVersion7()), Reference = reference };   // ℹ RASK148
+```
+
+> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'
+
+**Fix:** a typed id's generated `New()`, or `OrderedGuid.New()` for a plain `Guid` key. Both are version-7 `Guid`s
+whose 12 bits after the millisecond count (RFC 9562's method 1), so every id is later than the one before it:
+
+```csharp
+public static Order Place(string reference) => new() { Id = OrderId.New(), Reference = reference };   // ✓
+public static Note Write(string text) => new() { Id = OrderedGuid.New(), Text = text };              // ✓ a Guid key
+```
+
+A service handed a `TimeProvider` stamps its ids with it: `OrderedGuid.New(timeProvider)` — a test's fake time then
+stamps them, counting within its millisecond on a sequence of its own.
+
 ## RASK150
 
 **A required value object starts from a placeholder** · Warning
@@ -4158,6 +4189,33 @@ public sealed class Fueling : Aggregate<int>              // ✗ RASK191: it is 
 ```
 
 **Fix:** declare the aggregate `partial` (and at namespace level, not generic).
+
+## RASK192
+
+**The configuration says what Rask's conventions already say** · Info
+
+Rask [names every table, column and constraint itself](data.md#names-rasks-own-in-postgresqls-style) —
+`fuelings`, `pistol_id`, `ix_fuelings_created_at`. A name stated in an entity's configuration that is exactly that name
+changes nothing, and is one more line to keep in step with the model; the IDE shows it faded, as unneeded.
+
+```csharp
+b.ToTable("fuelings");                                                  // ✗ RASK192: Fueling's table anyway
+b.Property(x => x.PistolId).HasColumnName("pistol_id");                 // ✗ RASK192
+b.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_fuelings_created_at"); // ✗ RASK192
+b.HasOne<Pistol>().WithMany().HasForeignKey(x => x.PistolId)
+    .HasConstraintName("fk_fuelings_pistol_id");                         // ✗ RASK192
+b.ToTable("Fueling");                                                   // ✓ a name that is not Rask's
+```
+
+It compares `ToTable`, `HasColumnName` (a property, or a value object's member), `HasDatabaseName` (an index, `uq_`
+when it is unique), `HasName` (a primary or alternate key), `HasConstraintName` (a foreign key held by the entity
+being configured), and `[Table]`/`[Column]`, each with Rask's own name for it — on an entity's own table (not a
+hierarchy's derived type, not an owned type), against the table the same method names when it names one. A project
+that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no report: there Rask's
+names are not the model's.
+
+**Fix:** delete it — the quick fix does, taking the call out of its chain (`.HasColumnName("pistol_id").HasMaxLength(9)`
+→ `.HasMaxLength(9)`) and a statement left saying nothing with it; **Fix all** does every one at once.
 
 ## RASK193
 

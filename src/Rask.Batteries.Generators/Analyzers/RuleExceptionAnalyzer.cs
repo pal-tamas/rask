@@ -58,16 +58,13 @@ public sealed class RuleExceptionAnalyzer : DiagnosticAnalyzer
     private static void Analyze(OperationAnalysisContext context)
     {
         var thrown = (IThrowOperation)context.Operation;
-        if (Unwrapped(thrown.Exception) is IObjectCreationOperation { Type: INamedTypeSymbol type } creation &&
+        if (thrown.Exception?.WithoutImplicitConversion() is IObjectCreationOperation { Type: INamedTypeSymbol type } creation &&
             IsRuleException(type) &&
             DomainCode.EntityOf(context.ContainingSymbol) is { } entity)
         {
             context.ReportDiagnostic(Diagnostic.Create(Rask184, creation.Syntax.GetLocation(), type.Name, entity.Name));
         }
     }
-
-    private static IOperation? Unwrapped(IOperation? operation) =>
-        operation is IConversionOperation { IsImplicit: true, Operand: var operand } ? operand : operation;
 
     private static bool IsRuleException(INamedTypeSymbol type) =>
         type is { Name: "InvalidOperationException" or "ArgumentException", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } };

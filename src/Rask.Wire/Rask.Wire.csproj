@@ -39,6 +39,10 @@
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Wire.Tests"/>
     <InternalsVisibleTo Include="Rask.Pdf"/>
+    <!-- OrderedGuid.Of: a log row read from SQLite is keyed by its millisecond and its number. -->
+    <InternalsVisibleTo Include="Rask.Logging"/>
+    <!-- OrderedGuid.Of: the ids SqliteLogKeyTests expects a numbered log row to read back as. -->
+    <InternalsVisibleTo Include="Rask.Logging.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
@@ -54,6 +58,8 @@
     <InternalsVisibleTo Include="Rask.Mail.Tests"/>
     <InternalsVisibleTo Include="Rask.Cache.Tests"/>
     <InternalsVisibleTo Include="Rask.WebPush.Tests"/>
+    <!-- AmbientClock.UseZone: a moment the generated codec reads in the wall-clock form of a zone. -->
+    <InternalsVisibleTo Include="Rask.Batteries.Generators.Tests"/>
   </ItemGroup>
 
 </Project>

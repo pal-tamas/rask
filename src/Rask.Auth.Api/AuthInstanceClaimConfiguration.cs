@@ -12,11 +12,6 @@ public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<Au
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(builder.Metadata.ClrType);
-
-        builder.ToTable("RaskAuthInstanceClaim");
-
         // Never generated: the value is the constraint. A database-assigned key would let every
         // registration insert a new row, which is exactly the guarantee this table exists to provide.
         builder.HasKey(x => x.Id);

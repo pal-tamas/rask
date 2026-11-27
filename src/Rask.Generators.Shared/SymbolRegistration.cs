@@ -36,7 +36,7 @@ internal static class SymbolRegistration
     //   * NameAndContainingTypesAndNamespaces — "N.Outer.Ev", matching "N.Outer+Ev" post-normalization.
     //   * MiscellaneousOptions.None      — drops EscapeKeywordIdentifiers (FullName has no '@') and
     //                                      UseSpecialTypes (FullName says "System.Int32", not "int").
-    //   * GenericsOptions.None           — belt and braces; IsRegisterable already rejects every generic.
+    //   * GenericsOptions.None           — belt and braces; DescribeUnregisterable already refuses every generic.
     // Do NOT use the parameterless ToDisplayString() here: it defaults to CSharpErrorMessageFormat,
     // which escapes keyword identifiers and would reintroduce the key mismatch.
     private static readonly SymbolDisplayFormat RuntimeNameFormat = new(
@@ -204,10 +204,6 @@ internal static class SymbolRegistration
 
         return DescribeUnnameableWithRemedy(symbol);
     }
-
-    /// <summary>True when <paramref name="symbol"/> can be put in a name-keyed generated registry.</summary>
-    public static bool IsRegisterable(INamedTypeSymbol symbol) =>
-        DescribeUnregisterable(symbol) is null;
 
     /// <summary>True when <paramref name="symbol"/> directly or indirectly implements <paramref name="markerInterface"/>.</summary>
     public static bool ImplementsMarker(INamedTypeSymbol symbol, string markerInterface) =>
