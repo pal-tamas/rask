@@ -773,7 +773,10 @@ public static void Configure(EntityTypeBuilder<Supply> b) => b.InOrder(s => s.Pa
 
 Each part's place is then stored in a `Position` column Rask adds to the child's table (`Columns.Position`, a shadow
 property written on every save — so declaring it on children already stored is a migration), and the parts load back in
-the order the aggregate last gave them. A child that declares a `Position` of its own keeps it.
+the order the aggregate last gave them. A child that declares a `Position` of its own keeps it. Nor is the key an order: a
+version-7 id is time-ordered only to the millisecond and random below it, so two children made in one `Sync` sort either
+way by it. A form's row list (`Form.For(Supply.Change, id)`) reads the children in the order they loaded, so a list
+people edit by place — and expect back as they left it — is one to declare `InOrder`.
 
 **Children made from a form's rows: `Sync`.** When the children are whatever a list of rows says — a delivery's parts,
 a driver's chips — let `Sync` do the add/change/remove loop:
