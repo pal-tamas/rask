@@ -69,6 +69,7 @@ public sealed class OwnWorkWireTests
 
     [Theory]
     [InlineData("""{"id":1,"title":"x","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":1,"title":"x","state":"Done","at":"2026-11-17T09:30:00Z"}""")]
     [InlineData("""["not","work"]""")]
     public void A_report_that_is_not_one_is_refused_as_malformed(string json)
     {
@@ -131,9 +132,9 @@ public sealed class OwnWorkWireTests
     }
 
     [Theory]
-    [InlineData("""{"id":1,"title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
-    [InlineData("""{"id":1,"title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
-    [InlineData("""{"id":1,"title":"x","state":"Done","outcome":"Paused","at":"2026-11-17T09:30:00Z","colour":"teal"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"Done","outcome":"Paused","at":"2026-11-17T09:30:00Z","colour":"teal"}""")]
     public void A_state_a_newer_server_knows_and_this_reader_does_not_reads_as_an_end_rather_than_breaking_the_bell(string json)
     {
         var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;

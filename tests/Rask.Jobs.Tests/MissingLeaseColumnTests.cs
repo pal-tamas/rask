@@ -21,7 +21,7 @@ public sealed class MissingLeaseColumnTests
             await db.Database.ExecuteSqlRawAsync(
                 """
                 CREATE TABLE Job (
-                    Id INTEGER NOT NULL CONSTRAINT PK_Job PRIMARY KEY AUTOINCREMENT,
+                    Id TEXT NOT NULL CONSTRAINT PK_Job PRIMARY KEY,
                     Type TEXT NOT NULL,
                     Payload TEXT NOT NULL,
                     RunAt TEXT NOT NULL,
@@ -66,7 +66,7 @@ public sealed class MissingLeaseColumnTests
             await db.Database.ExecuteSqlRawAsync(
                 """
                 CREATE TABLE Job (
-                    Id INTEGER NOT NULL CONSTRAINT PK_Job PRIMARY KEY AUTOINCREMENT,
+                    Id TEXT NOT NULL CONSTRAINT PK_Job PRIMARY KEY,
                     Type TEXT NOT NULL,
                     Payload TEXT NOT NULL,
                     RunAt TEXT NOT NULL,
