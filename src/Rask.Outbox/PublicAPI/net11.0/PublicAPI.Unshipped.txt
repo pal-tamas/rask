@@ -82,7 +82,7 @@ static Rask.Outbox.OutboxMessageReadAccess.AsQueryable() -> System.Linq.IQueryab
 static Rask.Outbox.OutboxMessageReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
-static Rask.Outbox.OutboxMessageReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
+static Rask.Outbox.OutboxMessageReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!, TProperty>!
 static Rask.Outbox.OutboxMessageReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
@@ -95,7 +95,7 @@ static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!)
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
-static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
+static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!, TProperty>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!

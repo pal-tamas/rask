@@ -304,7 +304,7 @@ static Rask.Auth.PasskeyReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.
 static Rask.Auth.PasskeyReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
-static Rask.Auth.PasskeyReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!, TProperty>!
 static Rask.Auth.PasskeyReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
@@ -317,7 +317,7 @@ static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AsQueryable() -
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
-static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!, TProperty>!
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
@@ -330,7 +330,7 @@ static Rask.Auth.SessionReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.
 static Rask.Auth.SessionReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
-static Rask.Auth.SessionReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!, TProperty>!
 static Rask.Auth.SessionReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
@@ -343,7 +343,7 @@ static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AsQueryable() -
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
-static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!, TProperty>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!

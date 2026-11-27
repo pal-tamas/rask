@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BelongsTo<T>`: a reference to another aggregate, Rails' `belongs_to` across the border.** `public partial
+  BelongsTo<Vehicle>? Vehicle { get; }` on a partial entity generates the stored `VehicleId` (the vehicle's key type,
+  nullable as the reference is, `private set`) and maps it as `HasOne<Vehicle>().WithMany().HasForeignKey(…)` with
+  `OnDelete(NoAction)` below an explicit one — no navigation, so the vehicle is never loaded, tracked or saved with the
+  fueling. Read it through the read face: `await f.Vehicle.Read()`, `Read(v => v.Plate)`, the batched
+  `fuelings.Select(f => f.Vehicle).Read()` (one query, a dictionary by id), or `Fueling.Include(f => f.Vehicle)`; assign
+  it through the id inside the aggregate. A hand-written id (with or without a navigation or a configured `HasOne`) moves
+  to it with no migration — the differ finds nothing on SQLite, SQL Server and PostgreSQL. RASK194 (error) refuses a
+  declaration Rask cannot complete (not partial, not to an aggregate, to the tenant, a child to its own root, a key name
+  taken, an aggregate with a form); RASK195 (error) an EF Core `Include`/`ThenInclude`/`Reference` over a `BelongsTo`;
+  RASK196 (suggestion, quick-fix) another aggregate's id held by hand. `docs/domain.md#relationships-hasmany-and-belongsto`.
+- **`ThenInclude` on the read face.** `Order.Include(o => o.Lines).ThenInclude(l => l.Product)`,
+  `Fueling.Include(f => f.Vehicle).ThenInclude(v => v.Owner)`: `Include` now returns `ModelQuery<T, TIncluded>`, which
+  `ThenInclude` continues — a reference, a child list or the rows that point here.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
