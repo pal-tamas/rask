@@ -141,14 +141,15 @@ report({
         pasted: [pastedDate("2026-03-14", ["month", "day", "year"]), pastedDate("3/14/2026", ["month", "day", "year"]), pastedDate("14.03.2026", ["day", "month", "year"]), pastedDate("13/40/2026", ["month", "day", "year"]), pastedDate("tomorrow", ["month", "day", "year"])]
             .map((d) => d ? d["year"] + "-" + d["month"] + "-" + d["day"] : null),
     },
-    // Every number is where Flux UI's own popover landed with its trigger held there (2026-10-13).
+    // Every number is where Flux UI's own popover landed with its trigger held there (2026-10-13; the 5 px a panel
+    // keeps from the edge counts in what fits since Flux 2.22, measured 2026-11-27).
     place: {
         fits: lands(800, 400),
-        // No room under it: over it. And the last place it still fits under: its bottom edge on the viewport's.
-        over: [lands(800, 840), lands(800, 745), lands(800, 746)],
-        // Past the right edge: its end on the trigger's end. Within 5 px of the edge: slid back, not turned.
+        // No room under it: over it. And the last place it still fits under: its bottom edge 5 px over the viewport's.
+        over: [lands(800, 840), lands(800, 740), lands(800, 741)],
+        // Past the right edge: its end on the trigger's end. Within 5 px of the edge: turned the same.
         end: lands(1774, 400),
-        slid: lands(1727, 400),
+        near: lands(1727, 400),
         corner: lands(1694, 940),
         // An end-aligned one at the left edge turns to the start; a centred one is only slid.
         start: lands(40, 400, "bottom end 5 0"),
@@ -165,7 +166,8 @@ report({
             .map((to) => [to.x, to.y, to.cap]),
         // What padding and border add to a held height: under content-box their sum, under border-box nothing.
         frame: [framed("content-box", ["5px", "5px", "1px", "1px"]), framed("border-box", ["5px", "5px", "1px", "1px"])],
-        // As tall as the room, 5 px from the edge, or taller: held to it. A pixel shorter: not.
+        // A pixel taller than the room over it, 5 px from the edge: it no longer fits there and turns under the
+        // trigger. As tall as the room: held to it. A pixel shorter: not.
         brim: [lands(800, 300, "top start 5 0", 192, 291), lands(800, 300, "top start 5 0", 192, 290), lands(800, 300, "top start 5 0", 192, 289)],
         // Wider than the viewport: its start edge 5 px in, the rest past the other edge.
         wide: lands(800, 400, "bottom start 5 0", 2534, 307),
@@ -175,7 +177,9 @@ report({
         // A menu at the pointer: a point for an anchor.
         pointer: [landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 100, 1920, 1080, false),
             landing("bottom end 5 0", {x: 100, y: 1060, w: 0, h: 0}, 200, 100, 1920, 1080, false),
-            // Taller than the viewport and not to be held: it runs past the edge, as Flux's context menu does.
+            // Taller than the viewport: held to the room under the pointer, as Flux 2.22's context menu is; and one
+            // not to be held runs past the edge.
+            landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 1500, 1920, 1080, false),
             landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 1500, 1920, 1080, false, true)].map((to) => [to.x, to.y, to.cap]),
     },
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},

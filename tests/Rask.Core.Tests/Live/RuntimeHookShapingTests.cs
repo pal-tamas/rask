@@ -280,23 +280,22 @@ public sealed class RuntimeHookShapingTests
         var over = place.GetProperty("over").EnumerateArray().Select(Landed).ToArray();
 
         Assert.Equal("800 445 -", Landed(place.GetProperty("fits")));
-        // Its bottom edge on the viewport's still fits, inside the 5 px a held height keeps — and a pixel lower
-        // it goes over the trigger.
-        Assert.Equal(["800 545 -", "800 790 285", "800 451 -"], over);
+        // Its bottom edge 5 px over the viewport's still fits — and a pixel lower it goes over the trigger.
+        Assert.Equal(["800 545 -", "800 785 290", "800 446 -"], over);
         Assert.Equal("1708 445 -", Landed(place.GetProperty("end")));
+        Assert.Equal("1661 445 -", Landed(place.GetProperty("near")));
         Assert.Equal("1694 645 -", Landed(place.GetProperty("corner")));
         Assert.Equal("40 445 -", Landed(place.GetProperty("start")));
     }
 
     [Fact]
-    public void A_panel_within_five_pixels_of_an_edge_is_slid_back_and_one_wider_than_the_viewport_keeps_its_start_in_view()
+    public void A_panel_no_alignment_keeps_in_view_is_slid_back_5_px_inside_and_one_wider_than_the_viewport_keeps_its_start_in_view()
     {
         var root = Run();
 
         var place = root.GetProperty("place");
         var phone = place.GetProperty("phone").EnumerateArray().Select(Landed).ToArray();
 
-        Assert.Equal("1723 445 -", Landed(place.GetProperty("slid")));
         Assert.Equal("5 445 -", Landed(place.GetProperty("centred")));
         Assert.Equal("5 445 -", Landed(place.GetProperty("wide")));
         Assert.Equal(["193 345 -", "5 345 -"], phone);
@@ -328,7 +327,7 @@ public sealed class RuntimeHookShapingTests
         Assert.Equal(["800 445 630", "800 5 530", "931 5 1070"], tall);
         // What the hook then does with a height the panel barely scrolls in is a browser's to show
         // (RuntimeHookPlaceTests): this is the height it is offered.
-        Assert.Equal(["800 5 290", "800 5 290", "800 6 -"], brim);
+        Assert.Equal(["800 345 -", "800 5 290", "800 6 -"], brim);
     }
 
     [Fact]
@@ -360,9 +359,9 @@ public sealed class RuntimeHookShapingTests
 
         var pointer = root.GetProperty("place").GetProperty("pointer").EnumerateArray().Select(Landed).ToArray();
 
-        // At the left edge its end on the pointer would put it out of view: its start goes there instead. And
-        // one taller than the viewport, which is never held to a height, runs past the bottom edge.
-        Assert.Equal(["400 305 -", "100 955 -", "400 305 -"], pointer);
+        // At the left edge its end on the pointer would put it out of view: its start goes there instead. One
+        // taller than the viewport is held to the room under the pointer; one not to be held runs past the edge.
+        Assert.Equal(["400 305 -", "100 955 -", "400 305 770", "400 305 -"], pointer);
     }
 
     [Fact]
