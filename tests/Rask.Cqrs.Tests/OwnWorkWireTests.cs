@@ -119,15 +119,15 @@ public sealed class OwnWorkWireTests
     }
 
     [Fact]
-    public void A_warned_job_crosses_as_done_for_a_tab_from_before_warnings_and_as_warned_for_one_after()
+    public void A_warned_job_crosses_as_warned()
     {
         var work = new WorkReported(Id(7), "Import", null, null, null, WorkState.Warned, At) { Detail = "No new rows" };
 
         var json = Written(writer => OwnWorkWire.Watch.WriteResult!(writer, work));
         var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
 
-        Assert.Contains("\"state\":\"Done\"", json, StringComparison.Ordinal);
-        Assert.Contains("\"outcome\":\"Warned\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"state\":\"Warned\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("outcome", json, StringComparison.Ordinal);
         Assert.Equal(WorkState.Warned, back.State);
     }
 

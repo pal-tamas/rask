@@ -229,6 +229,36 @@ public class ModelRegistryGeneratorTests
     }
 
     [Fact]
+    public void An_account_that_belongs_to_a_typed_tenant_names_it_and_is_not_partitioned()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Rask.Auth
+            {
+                public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps where TKey : notnull { }
+            }
+            namespace Shop
+            {
+                public readonly partial record struct TenantId(Guid Value);
+                public readonly partial record struct UserId(Guid Value);
+                public sealed class Tenant : Aggregate<TenantId>, ITenant { }
+                public sealed class User : Rask.Auth.Authenticatable<UserId>, IBelongsTo<Tenant>
+                {
+                    public TenantId? TenantId { get; private set; }
+                }
+            }
+            """);
+
+        var conventions = run.GeneratedSource("__RaskConventions");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Declare(typeof(global::Shop.User), (global::Rask.Data.TraitSet)3);", conventions, StringComparison.Ordinal);
+        Assert.Contains("DeclareTenant(typeof(global::Shop.User), typeof(global::Shop.Tenant));", conventions, StringComparison.Ordinal);
+        Assert.Contains("DeclareTenantKey(typeof(global::Shop.User), typeof(global::Shop.TenantId));", conventions, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_entity_that_is_not_an_aggregate_says_its_timestamps_and_its_soft_delete_as_a_child()
     {
         var run = Run("""

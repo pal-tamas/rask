@@ -32,11 +32,16 @@ Declare the user type once, anywhere in the app — the generator finds it, and 
 property:
 
 ```csharp
-public sealed class User : Authenticatable
+public readonly partial record struct UserId(Guid Value);
+
+public sealed class User : Authenticatable<UserId>
 {
     public string DisplayName { get; private set; } = "";
 }
 ```
+
+Its tenant is its own column, typed by the tenant it names — `User : Authenticatable<UserId>, IBelongsTo<Tenant>` with
+`public TenantId? TenantId { get; private set; }` — optional, and never filtered or stamped.
 
 A users table keyed by text, whose people sign in by user name, keeps both — and its bcrypt hashes:
 

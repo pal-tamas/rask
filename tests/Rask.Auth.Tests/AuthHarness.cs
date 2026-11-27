@@ -16,6 +16,9 @@ public sealed class TestUser : Authenticatable
 {
     public string DisplayName { get; private set; } = "";
 
+    /// <summary>The tenant the user belongs to, or none: an app with no tenant aggregate keeps it as a Guid.</summary>
+    public Guid? TenantId { get; private set; }
+
     public void Rename(string name) => DisplayName = name;
 
     public static TestUser Blank() => new();
