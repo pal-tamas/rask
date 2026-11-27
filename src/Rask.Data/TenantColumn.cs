@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -12,8 +13,9 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The declared property's type decides — <c>Guid?</c>, <c>int?</c> or <c>long?</c> — and an entity
-///         that declares nothing keeps a shadow <c>Guid?</c>. The framework goes on carrying the tenant as a
+///         The declared property's type decides — <c>Guid?</c>, <c>int?</c>, <c>long?</c>, or the tenant's own
+///         typed id over one of them (<see cref="ITypedTenantColumn" />) — and an entity that declares nothing keeps
+///         a shadow <c>Guid?</c>, or the type its <c>PerTenant&lt;TKey&gt;</c> names. The framework goes on carrying the tenant as a
 ///         <see cref="Guid" /> everywhere else; an integer column compares against, and is stamped with, the
 ///         number that <see cref="Guid" /> carries (<see cref="TenantNumber" />).
 ///     </para>
@@ -53,6 +55,26 @@ internal static class TenantColumn
     private static readonly MethodInfo Int64Reader =
         Call((Expression<Func<ITenantScoped, string, long?>>)((scope, table) => CurrentInt64(scope, table)));
 
+    // The typed ids a tenant is kept in, by the id: registered with the tenant, for the whole process — a column type
+    // is a fact of the model, not of the work in flight.
+    private static readonly ConcurrentDictionary<Type, ITypedTenantColumn> Typed = new();
+
+    /// <summary>Makes <paramref name="column" />'s typed id one a tenant-scoped table may keep its tenant in.</summary>
+    internal static void Know(ITypedTenantColumn column) => Typed[column.Key] = column;
+
+    /// <summary>The typed column <paramref name="type" /> — the id, or the id nullable — is, or null.</summary>
+    internal static ITypedTenantColumn? TypedFor(Type type) =>
+        Typed.GetValueOrDefault(Nullable.GetUnderlyingType(type) ?? type);
+
+    /// <summary>
+    ///     The type a battery table that follows <paramref name="column" /> keeps: the value a typed id holds, else the
+    ///     column itself.
+    /// </summary>
+    internal static Type ValueColumnOf(Type column) => TypedFor(column)?.Value ?? column;
+
+    /// <summary>A stored typed id as the <see cref="Guid" /> the framework carries, or null when it is no tenant's id.</summary>
+    internal static Guid? TypedCarried(object stored) => TypedFor(stored.GetType())?.Carried(stored);
+
     /// <summary>The type <paramref name="entityType" /> keeps its tenant in: what it declared, or <c>Guid?</c>.</summary>
     /// <exception cref="InvalidOperationException">It declared a <c>TenantId</c> of a type no tenant is kept in.</exception>
     internal static Type TypeFor(IReadOnlyEntityType entityType) =>
@@ -89,10 +111,7 @@ internal static class TenantColumn
     {
         var entity = Expression.Parameter(clrType, "e");
         var scope = Expression.Convert(Expression.Constant(context), typeof(ITenantScoped));
-        var (storedReader, currentReader) = ReadersFor(column);
-
-        var stored = Expression.Call(storedReader, entity, Expression.Constant(Columns.TenantId));
-        var current = Expression.Call(currentReader, scope, Expression.Constant(clrType.Name));
+        var (stored, current) = ReadersFor(column, entity, scope, Expression.Constant(clrType.Name));
 
         var owned = Expression.AndAlso(
             Expression.NotEqual(stored, Expression.Constant(null, column)),
@@ -138,7 +157,26 @@ internal static class TenantColumn
             return Int32(tenant, table);
         }
 
-        return column == typeof(long?) ? Int64(tenant, table) : tenant;
+        if (column == typeof(long?))
+        {
+            return Int64(tenant, table);
+        }
+
+        return TypedFor(column) is { } typed ? typed.ValueFor(tenant, table) : tenant;
+    }
+
+    /// <summary><paramref name="tenant" /> as the <typeparamref name="TValue" /> a column keeps it in.</summary>
+    /// <typeparam name="TValue">A <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" />.</typeparam>
+    /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
+    internal static TValue ValueAs<TValue>(Guid tenant, string table)
+        where TValue : struct
+    {
+        if (typeof(TValue) == typeof(int))
+        {
+            return (TValue)(object)Int32(tenant, table);
+        }
+
+        return typeof(TValue) == typeof(long) ? (TValue)(object)Int64(tenant, table) : (TValue)(object)tenant;
     }
 
     internal static bool Unrestricted(ITenantScoped scope) => scope.CurrentTenant is null;
@@ -164,10 +202,23 @@ internal static class TenantColumn
 
     // Null for "nobody" as well as for "unrestricted". The first is what makes a read with no resolved tenant
     // empty: the filter then asks for `TenantId IS NOT NULL AND TenantId IS NULL`, which no row satisfies.
-    private static Guid? Named(ITenantScoped scope) =>
+    internal static Guid? Named(ITenantScoped scope) =>
         scope.CurrentTenant is { } tenant && tenant != Tenant.Nobody ? tenant : null;
 
-    private static (MethodInfo Stored, MethodInfo Current) ReadersFor(Type column)
+    private static (Expression Stored, Expression Current) ReadersFor(
+        Type column, ParameterExpression entity, Expression scope, Expression table)
+    {
+        var name = Expression.Constant(Columns.TenantId);
+        if (TypedFor(column) is { } typed)
+        {
+            return (Expression.Call(typed.Stored, entity, name), typed.Current(scope, table));
+        }
+
+        var (stored, current) = PlainReadersFor(column);
+        return (Expression.Call(stored, entity, name), Expression.Call(current, scope, table));
+    }
+
+    private static (MethodInfo Stored, MethodInfo Current) PlainReadersFor(Type column)
     {
         if (column == typeof(int?))
         {
@@ -203,14 +254,16 @@ internal static class TenantColumn
                 $"PerTenant<{Display(declared).TrimEnd('?')}>.");
         }
 
-        return column == typeof(Guid?) || column == typeof(int?) || column == typeof(long?)
+        return column == typeof(Guid?) || column == typeof(int?) || column == typeof(long?) || TypedFor(column)?.Column == column
             ? column
             : throw new InvalidOperationException(
                 $"'{entity.Name}' names PerTenant and declares a TenantId of type '{Display(column)}'. " +
-                "A tenant-scoped table keeps its tenant in a Guid?, an int? or a long? — nullable, because a row " +
-                "has none until it is saved. Declare `public int? TenantId { get; private set; }`, or leave " +
+                "A tenant-scoped table keeps its tenant in a Guid?, an int?, a long? or the tenant's own typed id " +
+                "made nullable — nullable, because a row has none until it is saved. Declare " +
+                "`public int? TenantId { get; private set; }`, or leave " +
                 "the property out and name " +
-                "PerTenant<int> (or plain PerTenant for a Guid?) on its base.");
+                "PerTenant<int> (or plain PerTenant for a Guid?) on its base. A typed id is the tenant's own once " +
+                "the aggregate keyed by it says ITenant.");
     }
 
     // PerTenant<int> names the column a table with no TenantId property gets; plain PerTenant keeps a Guid?.
@@ -219,6 +272,7 @@ internal static class TenantColumn
         {
             { } key when key == typeof(int) => typeof(int?),
             { } key when key == typeof(long) => typeof(long?),
+            { } key when TypedFor(key) is { } typed => typed.Column,
             _ => typeof(Guid?),
         };
 

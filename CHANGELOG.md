@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A tenant or user keyed by a typed id.** `public sealed class Shop : Aggregate<ShopId>, ITenant` (a typed id over a
+  `Guid`, an `int` or a `long`) was RASK114; it now gets `Current.TenantId` / `Current.RequiredTenantId` as a `ShopId`,
+  `Tenant.Use(shopId)`, and its tables keep the id — `ShopId? TenantId`, or `PerTenant<ShopId>` — filtered by and
+  stamped with the tenant in flight. The id travels as the value it holds, so a `ShopId(42)` is the same carried tenant
+  as `Tenant.Use(42)`. A `Guid? TenantId` table beside a typed tenant is RASK114 ("give the tables the tenant's key").
+  A typed user reads `Current.UserId` as its id and `Current.UseUser(userId)` takes one. New
+  `CurrentRows.UseTenant`/`UseUser` overloads with `wrap`/`unwrap` carry the id for the generated registration.
 - **RASK145: an event that reads a key the database has not produced yet; client-generated keys are the default.**
   `Raise(new OrderPlaced(Id))` in a factory takes `Id` before the insert, and an `int`/`long` identity (or a typed id
   over one) is still `0` there — EF Core keeps the temporary key in its own entry — so the handlers got `0` for good.

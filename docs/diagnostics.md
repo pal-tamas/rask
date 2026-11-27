@@ -2714,10 +2714,11 @@ public sealed class Partner : Aggregate<int>, ITenant { }   // ✗ RASK113
 **The tenant's or the user's key cannot be the current one** · Error
 
 The framework carries the current tenant and user as a `Guid` and reads the row back by the key that `Guid` stands for:
-a `Guid`, a `string` holding one, or the `int` or `long` it carries (`Tenant.Use(42)`). The marked type must be an
-aggregate with one such key. The tenant's key must also be the one its `PerTenant` tables keep in `TenantId` — a `Guid`
-(or `string`) tenant for `Guid` columns, the same number type for number columns — or a filter and the row would name
-different tenants.
+a `Guid`, a `string` holding one, the `int` or `long` it carries (`Tenant.Use(42)`), or a typed id holding a `Guid`, an
+`int` or a `long` (`Aggregate<TenantId>`). The marked type must be an aggregate with one such key. The tenant's key must
+also be the one its `PerTenant` tables keep in `TenantId` — a `Guid` (or `string`) tenant for `Guid` columns, the same
+number type for number columns, the same typed id for a typed tenant (`TenantId? TenantId`, or `PerTenant<TenantId>`)
+— or a filter and the row would name different tenants.
 
 ```csharp
 public sealed class Tenant : Aggregate<Guid>, ITenant { }          // ✗ RASK114
@@ -2726,6 +2727,13 @@ public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   //   keeps it
 
 ```text
 'Tenant' says ITenant, but its key is Guid and 'Invoice' keeps its tenant as int; give the tenant the key its tables keep, or the tables the tenant's
+```
+
+A typed tenant holds its tables to the id itself, so a plain `PerTenant` (a `Guid?`) or a `Guid? TenantId` beside it
+is the same error:
+
+```text
+'Tenant' says ITenant, but its key is TenantId and 'Invoice' keeps its tenant as Guid; give the tables the tenant's key: TenantId? TenantId, or PerTenant<TenantId>
 ```
 
 **Fix:** key the tenant like its tables (`Aggregate<int>` here), or the tables like the tenant.

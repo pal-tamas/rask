@@ -328,6 +328,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             Guid tenant when tenant != Guid.Empty => tenant,
             int number => TenantNumber.ToGuid(number),
             long number => TenantNumber.ToGuid(number),
+            { } typed => TenantColumn.TypedCarried(typed),
             _ => null,
         };
     }
