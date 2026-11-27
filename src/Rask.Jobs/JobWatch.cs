@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -143,7 +144,7 @@ internal sealed partial class JobWatch<TContext>(
         IgnoresStop(logger, run.Id, run.Type, run.Lane, now - stoppedAt);
     }
 
-    private sealed record Row(Guid Id, DateTime? ProcessedAt, JobStop? Stopped);
+    private sealed record Row(Guid Id, Timestamp? ProcessedAt, JobStop? Stopped);
 
     [LoggerMessage(
         EventName = "JobIgnoresStop",

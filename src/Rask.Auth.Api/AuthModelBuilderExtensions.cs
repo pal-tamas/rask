@@ -98,8 +98,8 @@ public static class AuthModelBuilderExtensions
 
         b.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
 
-        TimestampColumn.Map(b.Property(u => u.EmailConfirmedAt));
-        TimestampColumn.Map(b.Property(u => u.PasswordChangedAt));
+        ValueObjectColumn.MapTimestamp(b.Property(u => u.EmailConfirmedAt));
+        ValueObjectColumn.MapTimestamp(b.Property(u => u.PasswordChangedAt));
         b.PrimitiveCollection(u => u.Roles);
     }
 
@@ -110,8 +110,8 @@ public static class AuthModelBuilderExtensions
         b.HasIndex(s => s.UserId);
         b.Property(s => s.IpAddress).HasMaxLength(Session.IpAddressLength);
         b.Property(s => s.UserAgent).HasMaxLength(Session.UserAgentLength);
-        TimestampColumn.Map(b.Property(s => s.LastSeenAt));
-        TimestampColumn.Map(b.Property(s => s.ExpiresAt));
+        ValueObjectColumn.MapTimestamp(b.Property(s => s.LastSeenAt));
+        ValueObjectColumn.MapTimestamp(b.Property(s => s.ExpiresAt));
     }
 
     private static void MapPasskey(EntityTypeBuilder<Passkey> b)
@@ -135,6 +135,6 @@ public static class AuthModelBuilderExtensions
         b.HasIndex(p => p.CredentialId).IsUnique();
         b.Property(p => p.Name).HasMaxLength(Passkey.NameLength).IsRequired();
         b.Property(p => p.Transports).HasMaxLength(Passkey.TransportsLength);
-        TimestampColumn.Map(b.Property(p => p.LastUsedAt));
+        ValueObjectColumn.MapTimestamp(b.Property(p => p.LastUsedAt));
     }
 }

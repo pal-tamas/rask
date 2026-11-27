@@ -1,3 +1,5 @@
+using Rask.Values;
+
 namespace Rask.Background;
 
 /// <summary>
@@ -19,7 +21,7 @@ internal static class JobWork
         }
 
         // A dead letter: every attempt spent, the last one failed, and no attempt in a handler now.
-        var running = job.ClaimedUntil > now;
+        var running = job.ClaimedUntil?.Instant.UtcDateTime > now;
         return job.Attempts >= maxAttempts && job.Error is not null && !running ? WorkState.Failed : WorkState.Running;
     }
 

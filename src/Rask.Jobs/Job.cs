@@ -1,5 +1,6 @@
 using Rask.Batteries;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -25,10 +26,10 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     public string Payload { get; private set; } = "";
 
     /// <summary>The earliest time (UTC) the job is eligible to run — enqueue time, or later for a delayed job or a backed-off retry.</summary>
-    public DateTime RunAt { get; private set; }
+    public Timestamp RunAt { get; private set; } = null!;
 
     /// <summary>When the job completed successfully (UTC), or <c>null</c> while it is pending.</summary>
-    public DateTime? ProcessedAt { get; private set; }
+    public Timestamp? ProcessedAt { get; private set; }
 
     /// <summary>How many times the job has been attempted.</summary>
     public int Attempts { get; private set; }
@@ -49,7 +50,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// When the current claim expires (UTC). Null or in the past means the job is claimable — which is
     /// also how a processor that died mid-job releases its work: the lease simply runs out.
     /// </summary>
-    public DateTime? ClaimedUntil { get; private set; }
+    public Timestamp? ClaimedUntil { get; private set; }
 
     /// <summary>
     /// The user the job was enqueued for — <c>Current.UserId</c> at the time — or <c>null</c> when it
@@ -120,7 +121,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     public JobStop? Stopped { get; private set; }
 
     /// <summary>When the job was last claimed to run (UTC), or null while it has never been: what "started 12 minutes ago" reads.</summary>
-    public DateTime? StartedAt { get; private set; }
+    public Timestamp? StartedAt { get; private set; }
 
     /// <summary>
     ///     What the job is, in words for the person who enqueued it — the title of <c>.Noticed("Import of prices.csv")</c> — or
@@ -178,7 +179,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     ///         belongs to nobody.
     ///     </para>
     /// </remarks>
-    public static Job For(string type, string payload, DateTime runAt, string? lane = null)
+    public static Job For(string type, string payload, Timestamp runAt, string? lane = null)
     {
         var userId = CurrentUser.Id;
         return new Job
@@ -202,7 +203,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// <param name="payload">The serialized job.</param>
     /// <param name="runAt">The earliest time (UTC) it may run.</param>
     /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
-    internal static Job Waiting(string type, string payload, DateTime runAt, string? lane)
+    internal static Job Waiting(string type, string payload, Timestamp runAt, string? lane)
     {
         var job = For(type, payload, runAt, lane);
         job.WaitingKey = JobWaitingKey.Of(type, payload, JobSameWork.Pending, lane, job.TenantId);
@@ -214,7 +215,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// <param name="payload">The serialized job.</param>
     /// <param name="runAt">The earliest time (UTC) it may run.</param>
     /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
-    internal static Job ForAwaiting(string type, string payload, DateTime runAt, string? lane)
+    internal static Job ForAwaiting(string type, string payload, Timestamp runAt, string? lane)
     {
         var job = For(type, payload, runAt, lane);
         job.Awaited = true;
@@ -229,7 +230,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>
     /// <param name="at">When it completed (UTC).</param>
-    public void Completed(DateTime at)
+    public void Completed(Timestamp at)
     {
         ProcessedAt = at;
         Error = null;
@@ -237,7 +238,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 
     /// <summary>Records when its handler started (UTC) — later than the claim for a job that waited behind others of its batch.</summary>
     /// <param name="at">When it started.</param>
-    internal void Began(DateTime at)
+    internal void Began(Timestamp at)
     {
         StartedAt = at;
         Reported(null, null, null); // a new attempt starts with nothing said of it
@@ -271,7 +272,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// </summary>
     /// <param name="detail">What its handler said.</param>
     /// <param name="at">When it ended (UTC).</param>
-    internal void Refused(string? detail, DateTime at)
+    internal void Refused(string? detail, Timestamp at)
     {
         ProcessedAt = at;
         Error = $"Refused: {detail}";
@@ -281,7 +282,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// <summary>Records a job that was stopped before it finished: processed, with why, and neither done nor failed.</summary>
     /// <param name="why">Why it was stopped.</param>
     /// <param name="at">When it ended (UTC).</param>
-    internal void Ended(JobStop why, DateTime at)
+    internal void Ended(JobStop why, Timestamp at)
     {
         ProcessedAt = at;
         Stopped = why;
@@ -290,7 +291,7 @@ public sealed class Job : Aggregate<Guid>, IHasTimestamps, IInfrastructure
     /// <summary>Records why an attempt failed, and when the job may next be tried.</summary>
     /// <param name="error">The failure message.</param>
     /// <param name="retryAt">The earliest time (UTC) of the next attempt.</param>
-    public void Failed(string error, DateTime retryAt)
+    public void Failed(string error, Timestamp retryAt)
     {
         Error = error;
         RunAt = retryAt;

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Background;
+using Rask.Values;
 
 namespace Rask.Dashboard.Tests;
 
@@ -22,7 +23,7 @@ public sealed class QueueActionTests
         Assert.Equal(1, affected);
         var job = await SingleAsync(h);
         Assert.Equal(0, job.Attempts);      // eligible again
-        Assert.Equal(now, job.RunAt);       // and due now, not after another backoff
+        Assert.Equal(Timestamp.Create(now), job.RunAt); // and due now, not after another backoff
         Assert.Null(job.Error);             // the stale error would otherwise read as a fresh failure
         Assert.Null(job.ProcessedAt);
     }

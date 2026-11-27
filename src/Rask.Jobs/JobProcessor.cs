@@ -97,7 +97,8 @@ public sealed partial class JobProcessor<TContext>(
         ArgumentNullException.ThrowIfNull(db);
 
         var includeDefault = Volatile.Read(ref _defaultLaneRunning) == 0;
-        var ids = await DueIdsAsync(db, now, includeDefault, cancellationToken).ConfigureAwait(false);
+        var at = Timestamp.Create(now);
+        var ids = await DueIdsAsync(db, at, includeDefault, cancellationToken).ConfigureAwait(false);
 
         if (ids.Count == 0)
         {
@@ -109,7 +110,7 @@ public sealed partial class JobProcessor<TContext>(
         ids.Sort();
 
         var token = Guid.NewGuid();
-        var until = now + options.LeaseDuration;
+        var until = Timestamp.Create(now + options.LeaseDuration);
 
         // Attempts is incremented HERE, not on failure. A job that takes the process down with it (OOM, an
         // eviction, a FailFast) never reaches the failure path, so counting only failures would leave it
@@ -118,7 +119,7 @@ public sealed partial class JobProcessor<TContext>(
         var claimed = await db.Set<Job>()
             .Where(j => ids.Contains(j.Id)
                 && j.ProcessedAt == null
-                && (j.ClaimedUntil == null || j.ClaimedUntil <= now))
+                && (j.ClaimedUntil == null || j.ClaimedUntil <= at))
             .ExecuteUpdateAsync(
                 s => s
                     .SetProperty(j => j.ClaimToken, token)
@@ -127,7 +128,7 @@ public sealed partial class JobProcessor<TContext>(
                     // Claimed work is no longer waiting: the same work may wait behind it from here on.
                     .SetProperty(j => j.WaitingKey, (string?)null)
                     // Last, the newest column: a database that lacks an older one is named that older one's migration first.
-                    .SetProperty(j => j.StartedAt, now),
+                    .SetProperty(j => j.StartedAt, at),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -149,7 +150,7 @@ public sealed partial class JobProcessor<TContext>(
     }
 
     // Ids of what may be claimed now: the default lane's due jobs, and the first due job of each other lane.
-    private async Task<List<Guid>> DueIdsAsync(TContext db, DateTime now, bool includeDefault, CancellationToken cancellationToken)
+    private async Task<List<Guid>> DueIdsAsync(TContext db, Timestamp now, bool includeDefault, CancellationToken cancellationToken)
     {
         // A named lane with a job in flight (here or on another instance) is busy: nothing of it is claimed
         // until that job has let go of its lease.
@@ -193,7 +194,7 @@ public sealed partial class JobProcessor<TContext>(
         return ids;
     }
 
-    private IQueryable<Job> Due(TContext db, DateTime now) =>
+    private IQueryable<Job> Due(TContext db, Timestamp now) =>
         db.Set<Job>()
             .Where(j => j.ProcessedAt == null
                 && j.Attempts < options.MaxAttempts
@@ -308,7 +309,7 @@ public sealed partial class JobProcessor<TContext>(
         {
             var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
             await using var dbScope = db.ConfigureAwait(false);
-            var until = timeProvider.GetUtcNow().UtcDateTime + options.LeaseDuration;
+            var until = Timestamp.At(timeProvider.GetUtcNow() + options.LeaseDuration);
             await db.Set<Job>()
                 .Where(j => held.Contains(j.ClaimToken) && j.ProcessedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(j => j.ClaimedUntil, until), CancellationToken.None)
@@ -594,7 +595,7 @@ public sealed partial class JobProcessor<TContext>(
         var run = new JobRun(job, timeProvider, graceToken);
         _inFlight[job.Id] = run;
         options.Signals.Began(run);
-        job.Began(run.Started);
+        job.Began(Timestamp.Create(run.Started));
         SayStart(run);
         try
         {
@@ -714,7 +715,7 @@ public sealed partial class JobProcessor<TContext>(
         }
 
         job.Answered(answer);
-        job.Completed(timeProvider.GetUtcNow().UtcDateTime);
+        job.Completed(Timestamp.At(timeProvider.GetUtcNow()));
         job.Concluded(run.Outcome, run.Detail);
         job.Release();
         metrics.Processed(job.Type, timeProvider.GetElapsedTime(run.StartedTimestamp).TotalMilliseconds);
@@ -725,7 +726,7 @@ public sealed partial class JobProcessor<TContext>(
     // dead letter. Counted as the failure it is.
     private Outcome Refused(Job job, JobRun run)
     {
-        job.Refused(run.Detail, timeProvider.GetUtcNow().UtcDateTime);
+        job.Refused(run.Detail, Timestamp.At(timeProvider.GetUtcNow()));
         job.Release();
         metrics.Failed(job.Type);
         return Outcome.Ours;
@@ -765,7 +766,7 @@ public sealed partial class JobProcessor<TContext>(
                 break;
         }
 
-        job.Ended(why, timeProvider.GetUtcNow().UtcDateTime);
+        job.Ended(why, Timestamp.At(timeProvider.GetUtcNow()));
         job.Release();
         return Outcome.Ours;
     }
@@ -865,7 +866,7 @@ public sealed partial class JobProcessor<TContext>(
     // still counts toward MaxAttempts instead of being retried forever.
     private Outcome Fail(Job job, string error)
     {
-        job.Failed(error, timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts));
+        job.Failed(error, Timestamp.At(timeProvider.GetUtcNow() + options.RetryDelay(job.Attempts)));
         job.Release();
         if (job.Awaited)
         {
@@ -937,7 +938,7 @@ public sealed partial class JobProcessor<TContext>(
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(j => j.ClaimToken, (Guid?)null)
-                        .SetProperty(j => j.ClaimedUntil, (DateTime?)null)
+                        .SetProperty(j => j.ClaimedUntil, (Timestamp?)null)
                         .SetProperty(j => j.Attempts, j => j.Attempts - 1),
                     CancellationToken.None)
                 .ConfigureAwait(false);
@@ -1031,7 +1032,7 @@ public sealed partial class JobProcessor<TContext>(
                 }
 
                 var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
-                db.Set<Job>().Add(Job.For(type, payload, now));
+                db.Set<Job>().Add(Job.For(type, payload, Timestamp.Create(now)));
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 await transaction.CommitAsync(token).ConfigureAwait(false);
                 return true;
@@ -1147,7 +1148,7 @@ public sealed partial class JobProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.Retention;
+        var cutoff = Timestamp.Create(now - options.Retention);
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

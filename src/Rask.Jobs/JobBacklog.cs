@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -129,7 +130,7 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
         }
 
         var (type, payload) = JobSerializerRegistry.Serialize(job);
-        var row = Job.ForAwaiting(type, payload, timeProvider.GetUtcNow().UtcDateTime, lane);
+        var row = Job.ForAwaiting(type, payload, Timestamp.At(timeProvider.GetUtcNow()), lane);
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
@@ -174,7 +175,7 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
         string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal);
 
     /// <summary>The insert alone, as a host that lost the race between its look and its write makes it.</summary>
-    internal async Task<bool> Insert(IJob job, DateTime due, string? lane, CancellationToken cancellationToken)
+    internal async Task<bool> Insert(IJob job, Timestamp due, string? lane, CancellationToken cancellationToken)
     {
         var (type, payload) = JobSerializerRegistry.Serialize(job);
         var db = await Open(cancellationToken).ConfigureAwait(false);
@@ -255,6 +256,6 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
         Stale,
     }
 
-    private DateTime Due(DateTimeOffset? at, TimeSpan? after) =>
-        (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;
+    private Timestamp Due(DateTimeOffset? at, TimeSpan? after) =>
+        Timestamp.At(at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero));
 }

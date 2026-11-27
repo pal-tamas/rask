@@ -48,6 +48,7 @@
     <InternalsVisibleTo Include="Rask.Postgres.Tests"/>
     <InternalsVisibleTo Include="Rask.SqlServer.Tests"/>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
+    <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
   </ItemGroup>
 
 </Project>

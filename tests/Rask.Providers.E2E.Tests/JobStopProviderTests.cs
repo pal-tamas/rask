@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Background.Tests;
+using Rask.Values;
 
 namespace Rask.Providers.E2E.Tests;
 
@@ -115,10 +116,10 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         var pending = await InsertBeforeUpgrade(new NoteJob("pending"), "pump-1");
         var running = await InsertBeforeUpgrade(new NoteJob("running"), "pump-2", s => s
             .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-            .SetProperty(j => j.ClaimedUntil, now - Minute) // its host went down with the old version
+            .SetProperty(j => j.ClaimedUntil, Timestamp.Create(now - Minute)) // its host went down with the old version
             .SetProperty(j => j.Attempts, 1));
         var processed = await InsertBeforeUpgrade(new NoteJob("processed"), null, s => s
-            .SetProperty(j => j.ProcessedAt, now - Minute)
+            .SetProperty(j => j.ProcessedAt, Timestamp.Create(now - Minute))
             .SetProperty(j => j.Attempts, 1));
         var dead = await InsertBeforeUpgrade(new NoteJob("dead"), "pump-3", s => s
             .SetProperty(j => j.Attempts, 25)
@@ -185,21 +186,21 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         await Enqueue(jobs, new HoldJob("z"), "pump-z");
         await Update(running, s => s
             .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-            .SetProperty(j => j.ClaimedUntil, now + TimeSpan.FromMinutes(5))
-            .SetProperty(j => j.StartedAt, now)
+            .SetProperty(j => j.ClaimedUntil, Timestamp.Create(now + TimeSpan.FromMinutes(5)))
+            .SetProperty(j => j.StartedAt, Timestamp.Create(now))
             .SetProperty(j => j.Attempts, 1));
-        await Update(first, s => s.SetProperty(j => j.RunAt, now - Minute));
+        await Update(first, s => s.SetProperty(j => j.RunAt, Timestamp.Create(now - Minute)));
         await Update(dead, s => s.SetProperty(j => j.Attempts, 25).SetProperty(j => j.Error, "boom"));
-        await Update(done, s => s.SetProperty(j => j.ProcessedAt, now));
+        await Update(done, s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(now)));
         await Update(expired, s => s
             .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-            .SetProperty(j => j.ClaimedUntil, now - Minute)
-            .SetProperty(j => j.StartedAt, now - TimeSpan.FromMinutes(10))
+            .SetProperty(j => j.ClaimedUntil, Timestamp.Create(now - Minute))
+            .SetProperty(j => j.StartedAt, Timestamp.Create(now - TimeSpan.FromMinutes(10)))
             .SetProperty(j => j.Attempts, 1));
         await Update(lastTry, s => s
             .SetProperty(j => j.ClaimToken, Guid.NewGuid())
-            .SetProperty(j => j.ClaimedUntil, now + TimeSpan.FromMinutes(5))
-            .SetProperty(j => j.StartedAt, now)
+            .SetProperty(j => j.ClaimedUntil, Timestamp.Create(now + TimeSpan.FromMinutes(5)))
+            .SetProperty(j => j.StartedAt, Timestamp.Create(now))
             .SetProperty(j => j.Attempts, 25));
         var reads = Reads.Count;
 
@@ -416,7 +417,7 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         await Stage.Entered("a");
         var doneAt = _clock.GetUtcNow().UtcDateTime - TimeSpan.FromHours(1);
 
-        await Update(id, s => s.SetProperty(j => j.ProcessedAt, doneAt).SetProperty(j => j.Error, "fixed by hand"));
+        await Update(id, s => s.SetProperty(j => j.ProcessedAt, Timestamp.Create(doneAt)).SetProperty(j => j.Error, "fixed by hand"));
         await JobStopWait.Until(async () => (await Row(next))?.ProcessedAt is not null);
         var row = await Row(id);
 
@@ -496,7 +497,7 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
     private async Task<Guid> InsertBeforeUpgrade(IJob job, string? lane, Action<UpdateSettersBuilder<Job>>? state = null)
     {
         var (type, payload) = JobSerializerRegistry.Serialize(job);
-        var row = Job.For(type, payload, _clock.GetUtcNow().UtcDateTime - Minute, lane);
+        var row = Job.For(type, payload, Timestamp.At(_clock.GetUtcNow() - Minute), lane);
         await using var db = NewContextBeforeUpgrade();
         db.Set<Job>().Add(row);
         await db.SaveChangesAsync(Ct);
@@ -558,10 +559,11 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
         await to.GetService<IMigrationCommandExecutor>().ExecuteNonQueryAsync(commands, to.GetService<IRelationalConnection>(), Ct);
     }
 
-    private void AssertSameMoment(DateTime expected, DateTime? actual)
+    private void AssertSameMoment(DateTime expected, Timestamp? actual)
     {
         Assert.NotNull(actual);
-        var lost = (expected - actual.Value).Duration();
-        Assert.True(lost < Precision, $"{actual.Value:O} is {lost} away from {expected:O}; the provider keeps {Precision}.");
+        var instant = actual.Instant.UtcDateTime;
+        var lost = (expected - instant).Duration();
+        Assert.True(lost < Precision, $"{instant:O} is {lost} away from {expected:O}; the provider keeps {Precision}.");
     }
 }

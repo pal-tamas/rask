@@ -199,12 +199,12 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
-            db.Set<Job>().Add(Job.Waiting(type, payload, DateTime.UtcNow, "pump-7"));
+            db.Set<Job>().Add(Job.Waiting(type, payload, Timestamp.At(DateTimeOffset.UtcNow), "pump-7"));
             await db.SaveChangesAsync(ct);
-            db.Set<Job>().Add(Job.Waiting(type, payload, DateTime.UtcNow, "pump-7"));
+            db.Set<Job>().Add(Job.Waiting(type, payload, Timestamp.At(DateTimeOffset.UtcNow), "pump-7"));
             await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(ct));
             db.ChangeTracker.Clear();
-            db.Set<Job>().Add(Job.For(type, payload, DateTime.UtcNow, "pump-7"));
+            db.Set<Job>().Add(Job.For(type, payload, Timestamp.At(DateTimeOffset.UtcNow), "pump-7"));
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         });
@@ -259,7 +259,7 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         for (var i = 0; i < count; i++)
         {
             var (type, payload) = JobSerializerRegistry.Serialize(new ProbeJob($"j{i}"));
-            db.Set<Job>().Add(Job.For(type, payload, now));
+            db.Set<Job>().Add(Job.For(type, payload, Timestamp.Create(now)));
         }
 
         await db.SaveChangesAsync();

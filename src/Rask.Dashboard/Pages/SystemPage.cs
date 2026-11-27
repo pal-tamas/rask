@@ -39,7 +39,7 @@ public sealed partial class SystemPage(
              $"{_replication?.IsReplicating}:{_replication?.RestartCount}:{_replication?.LastError}",
              $"{_verification?.Outcome}:{_verification?.LastVerifiedAt?.Ticks ?? 0}:{_verification?.LastError}",
              $"{_snapshots.Count}:{(_snapshots.Count > 0 ? _snapshots[0].Name : null)}",
-             .. _recurring.Select(r => $"{r.Name}:{r.LastEnqueuedAt?.Ticks ?? 0}")]);
+             .. _recurring.Select(r => $"{r.Name}:{r.LastEnqueuedAt?.Instant.UtcTicks ?? 0}")]);
     }
 
     /// <inheritdoc />
@@ -213,7 +213,7 @@ public sealed partial class SystemPage(
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate font-mono").Title(r.Name)[r.Name],
                         Ui.TableCell.Class("truncate font-mono").Title(r.Schedule)[r.Schedule],
                         Ui.TableCell[
-                            r.LastEnqueuedAt is { } last
+                            r.LastEnqueuedAt?.Instant.UtcDateTime is { } last
                                 ? Span.Title(last.ToString("u"))[DashboardParts.Ago(last, now)]
                                 // Declared but never fired: either the app just started, or this one is stuck.
                                 : Ui.Badge.Sm["never"]

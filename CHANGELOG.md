@@ -135,6 +135,14 @@ them until tagged releases begin.
   and are now `Timestamp`/`Timestamp?` (`Rask.Values`): read `.Instant` for the UTC instant, `.Value` for the wall clock
   of `Clock.Zone`. The columns still hold the UTC instant they always did, so no migration rewrites them; the read faces
   (`SessionRead.LastSeenAt`, `PasskeyRead.LastUsedAt`) stay `DateTime`, now the wall clock rather than UTC.
+- **BREAKING: a job's times are `Timestamp`s.** `Job.RunAt` is a `Timestamp`, and `Job.ProcessedAt`, `ClaimedUntil` and
+  `StartedAt` are `Timestamp?`; `Job.For(type, payload, Timestamp runAt, lane)`, `Job.Completed(Timestamp at)` and
+  `Job.Failed(error, Timestamp retryAt)` take one; `LaneJob.Due` is a `Timestamp` and `LaneJob.Started` a `Timestamp?`;
+  the dashboard's `RecurringJobRow.LastEnqueuedAt` is a `Timestamp?`. Each column still holds the UTC instant it always
+  did — mapped so on any context, a plain `DbContext` included, so no migration and no rewrite of the rows — and a query
+  compares `Timestamp`s (`j.RunAt <= Timestamp.At(now)`). `IJobs`/`Enqueue(…).At(DateTimeOffset)` are unchanged. The read
+  face `JobRead` keeps `DateTime` members, now the wall clock of `Clock.Zone` as every moment's read face is. Write
+  `Timestamp.Create(utc)` or `Timestamp.At(instant)` where a `DateTime` went in, and `.Instant` where one came out.
 - **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
   last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
   version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived
