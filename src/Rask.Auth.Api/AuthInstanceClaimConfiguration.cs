@@ -12,9 +12,6 @@ public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<Au
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // A battery's table: infrastructure, which no aggregate's rules reach. Named as every table is (jobs, run_at).
-        BatteryEntities.Record(builder.Metadata.ClrType);
-
         // Never generated: the value is the constraint. A database-assigned key would let every
         // registration insert a new row, which is exactly the guarantee this table exists to provide.
         builder.HasKey(x => x.Id);

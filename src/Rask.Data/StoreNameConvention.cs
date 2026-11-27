@@ -54,9 +54,10 @@ internal sealed class StoreNameConvention(ProviderConventionSetBuilderDependenci
     internal static void Defaults(ModelConfigurationBuilder configurationBuilder)
     {
         var naming = For(configurationBuilder);
-        naming.Tables = static t => t.SnakeCasePlural;
-        naming.Columns = static n => n.SnakeCase;
-        naming.Constraints = static n => n.Prefixed;
+        // A rule the app stated before Rask's conventions were applied stays the rule.
+        naming.Tables ??= static t => t.SnakeCasePlural;
+        naming.Columns ??= static n => n.SnakeCase;
+        naming.Constraints ??= static n => n.Prefixed;
         naming.NamesConstraintsLast = true;
     }
 

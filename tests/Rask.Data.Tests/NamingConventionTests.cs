@@ -111,7 +111,7 @@ public class LegacyContext(DbContextOptions options) : DbContext(options)
         modelBuilder.Entity<Refuel>(Configure);
         modelBuilder.Entity<Tanker>().OwnsOne(t => t.Depot);
         modelBuilder.Entity<Tanker>().OwnsMany(t => t.Legs);
-        modelBuilder.Entity<Ledger>(ledger => BatteryEntities.Record(ledger.Metadata.ClrType));
+        modelBuilder.Entity<Ledger>();
         modelBuilder.Entity<IbcNozzle>();
     }
 

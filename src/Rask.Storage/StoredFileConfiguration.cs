@@ -9,8 +9,6 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
 {
     public void Configure(EntityTypeBuilder<StoredFile> entity)
     {
-        // A battery's table: infrastructure, which no aggregate's rules reach. Named as every table is (jobs, run_at).
-        BatteryEntities.Record(entity.Metadata.ClrType);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         entity.Ignore(f => f.Version);

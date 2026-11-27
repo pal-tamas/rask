@@ -41,7 +41,15 @@ public sealed class WallRefuelling
 
 public sealed class WallRefuellingContext(DbContextOptions<WallRefuellingContext> options) : DbContext(options)
 {
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<WallRefuelling>().ToTable("Refuellings");
+    // The names Rask gives the table today, so the migration is the moments' rewrite and nothing else.
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<WallRefuelling>(b =>
+        {
+            b.ToTable("refuellings");
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.At).HasColumnName("at");
+            b.HasKey(x => x.Id).HasName("pk_refuellings");
+        });
 }
 
 /// <summary>
@@ -64,7 +72,7 @@ public sealed class MomentUtcTests
         var sql = context.Refuellings.Where(r => r.At.Day == new DateOnly(2026, 10, 25)).ToQueryString();
 
         Assert.Contains(
-            "CAST(([r].[At] AT TIME ZONE N'UTC') AT TIME ZONE N'Central Europe Standard Time' AS date)", sql, StringComparison.Ordinal);
+            "CAST(([r].[at] AT TIME ZONE N'UTC') AT TIME ZONE N'Central Europe Standard Time' AS date)", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,7 +91,7 @@ public sealed class MomentUtcTests
         Assert.Contains(
             commands,
             c => c.CommandText.Contains(
-                "UPDATE [Refuellings] SET [At] = CAST(([At] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2) WHERE [At] IS NOT NULL;",
+                "UPDATE [refuellings] SET [at] = CAST(([at] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2) WHERE [at] IS NOT NULL;",
                 StringComparison.Ordinal));
     }
 

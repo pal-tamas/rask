@@ -90,7 +90,7 @@ namespace Rask.Postgres.Tests
 
             var sql = context.Deliveries.Where(d => d.At.Day == new DateOnly(2026, 10, 25)).ToQueryString();
 
-            Assert.Contains("timezone('Europe/Budapest', d.\"At\")::date", sql, StringComparison.Ordinal);
+            Assert.Contains("timezone('Europe/Budapest', d.at)::date", sql, StringComparison.Ordinal);
         }
 
         [Fact]

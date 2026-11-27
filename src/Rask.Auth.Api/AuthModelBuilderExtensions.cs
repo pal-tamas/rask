@@ -102,7 +102,6 @@ public static class AuthModelBuilderExtensions
 
     private static void MapSession(EntityTypeBuilder<Session> b)
     {
-        BatteryEntities.Record(b.Metadata.ClrType);
         // Not plain `sessions`: an app's own Session would claim the same table.
         b.ToTable("auth_sessions");
         b.HasIndex(s => s.UserId);
@@ -112,7 +111,6 @@ public static class AuthModelBuilderExtensions
 
     private static void MapPasskey(EntityTypeBuilder<Passkey> b)
     {
-        BatteryEntities.Record(b.Metadata.ClrType);
         b.ToTable("auth_passkeys");
         b.HasIndex(p => p.UserId);
 
