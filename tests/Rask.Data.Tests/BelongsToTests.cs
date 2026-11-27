@@ -111,7 +111,7 @@ public sealed class BelongsToTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var orphan = NewDig(ExcavatorId.New(), 1m);
+        var orphan = NewDig(ExcavatorId.Create(), 1m);
 
         await Assert.ThrowsAnyAsync<DbUpdateException>(() => orphan.Save(cancellationToken: Token));
     }

@@ -14,7 +14,7 @@ public sealed class Quarry : Aggregate<Guid>
 
     public string Name { get; private set; } = "";
 
-    internal static Quarry Named(string name) => new() { Id = Guid.CreateVersion7(), Name = name };
+    internal static Quarry Named(string name) => new() { Id = Uuid.Create(), Name = name };
 }
 
 /// <summary>An excavator, kept at one quarry or none.</summary>
@@ -27,7 +27,7 @@ public sealed partial class Excavator : Aggregate<ExcavatorId>
     public partial BelongsTo<Quarry>? Quarry { get; }
 
     internal static Excavator Made(string make, Guid? quarry) =>
-        new() { Id = ExcavatorId.New(), Make = make, QuarryId = quarry };
+        new() { Id = ExcavatorId.Create(), Make = make, QuarryId = quarry };
 }
 
 /// <summary>A dig: always by one excavator, its spoil dumped at a quarry or not yet.</summary>
@@ -42,7 +42,7 @@ public sealed partial class Dig : Aggregate<Guid>
     public partial BelongsTo<Quarry>? DumpedAt { get; }
 
     internal static Dig By(ExcavatorId excavator, decimal tonnes) =>
-        new() { Id = Guid.CreateVersion7(), ExcavatorId = excavator, Tonnes = tonnes };
+        new() { Id = Uuid.Create(), ExcavatorId = excavator, Tonnes = tonnes };
 
     public void Dump(Guid quarry) => DumpedAtId = quarry;
 }
