@@ -17,6 +17,17 @@ them until tagged releases begin.
   new image this before it starts it: an exclusive migration stops the old version first (stop-then-start instead of
   blue-green, said why), and a start that then fails is not rolled back onto the old image, which could not read the
   rewritten rows (docs/deployment.md).
+- **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
+  `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
+  and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a
+  referenced assembly counts too. `{id:int}` over a `Guid` id is still RASK005.
+- **A tenant or user keyed by a typed id.** `public sealed class Shop : Aggregate<ShopId>, ITenant` (a typed id over a
+  `Guid`, an `int` or a `long`) was RASK114; it now gets `Current.TenantId` / `Current.RequiredTenantId` as a `ShopId`,
+  `Tenant.Use(shopId)`, and its tables keep the id — `ShopId? TenantId`, or `PerTenant<ShopId>` — filtered by and
+  stamped with the tenant in flight. The id travels as the value it holds, so a `ShopId(42)` is the same carried tenant
+  as `Tenant.Use(42)`. A `Guid? TenantId` table beside a typed tenant is RASK114 ("give the tables the tenant's key").
+  A typed user reads `Current.UserId` as its id and `Current.UseUser(userId)` takes one. New
+  `CurrentRows.UseTenant`/`UseUser` overloads with `wrap`/`unwrap` carry the id for the generated registration.
 - **RASK145: an event that reads a key the database has not produced yet; client-generated keys are the default.**
   `Raise(new OrderPlaced(Id))` in a factory takes `Id` before the insert, and an `int`/`long` identity (or a typed id
   over one) is still `0` there — EF Core keeps the temporary key in its own entry — so the handlers got `0` for good.
@@ -90,6 +101,10 @@ them until tagged releases begin.
   again); until it exists `MigrateOnStart` refuses to start, so no new code reads the old layout. **Raw SQL (`FromSql`,
   Dapper, SSMS) sees the stored form**; docs/data.md gives the T-SQL for an id's text and for rewriting a column.
   PostgreSQL and SQLite are unchanged.
+- **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
+  where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
+  time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter
+  narrows to its min-width there, as Flux's does, and one opened beside it again later is measured at that width.
 - **A panel near the viewport's edge turns as Flux 2.22's does (#1189).** Every panel placed by `data-rask-place`
   (menus, context menus, popovers, select / autocomplete / pillbox lists, date / time pickers, tooltips) now counts
   the 5 px it keeps from the edge in what fits: one that would end 3 px from the edge turns to the other alignment

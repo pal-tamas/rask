@@ -72,8 +72,31 @@ using (Tenant.Use(42))
 ```
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
-it is saved — and any other is refused when the model is built. An aggregate that names plain `PerTenant` and declares nothing keeps a shadow
-`Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
+it is saved — plus the tenant's own typed id over one of them, and any other is refused when the model is built.
+An aggregate that names plain `PerTenant` and declares nothing keeps a shadow
+`Guid?`.
+
+A tenant keyed by a typed id keeps it in its tables too — `TenantId? TenantId`, or `PerTenant<TenantId>` and no
+property — and the build holds every table to it (RASK114 for a `Guid? TenantId` beside a typed tenant):
+
+```csharp
+public readonly partial record struct ShopId(int Value);
+
+public sealed class Shop : Aggregate<ShopId>, ITenant { … }
+public sealed class Stall : Aggregate<int, PerTenant<ShopId>>
+{
+    public ShopId? TenantId { get; private set; }     // optional — to read it
+}
+
+using (Tenant.Use(new ShopId(42)))                   // generated for the typed tenant
+{
+    ShopId shop = Current.RequiredTenantId;          // ShopId(42); WHERE TenantId = 42
+}
+```
+
+The id travels as the value it holds, so a `ShopId` over an `int` is carried by the number rule below and a
+`Guid` one as itself. A typed user reads the same way: `Current.UserId` is a `UserId?`, `Current.UseUser(userId)`
+takes one. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
 it follows the root's number without saying anything.
 
 Inside the framework the tenant is still a `Guid` — a job's row, a cache key — while `Current.Tenant.Id` is your

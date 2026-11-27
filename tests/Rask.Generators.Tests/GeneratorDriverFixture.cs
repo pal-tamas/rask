@@ -14,6 +14,10 @@ internal static class GeneratorDriverFixture
 
     public static GeneratorRun RunRoutes(string source) => Run(source, new RoutesGenerator());
 
+    /// <summary>Runs the routes generator with <paramref name="extra" /> referenced too — a library compiled for real.</summary>
+    public static GeneratorRun RunRoutes(string source, IEnumerable<MetadataReference> extra) =>
+        Run(source, new RoutesGenerator(), extra);
+
     /// <summary>Runs the routes generator with MSBuild's <c>RootNamespace</c> set, as a real project build does.</summary>
     public static GeneratorRun RunRoutes(string rootNamespace, params (string Path, string Source)[] sources) =>
         Run(sources, [new RoutesGenerator()], null, new RootNamespaceOptions(rootNamespace));
@@ -154,12 +158,12 @@ internal static class GeneratorDriverFixture
         return new GeneratorRun(runResult, compilation);
     }
 
-    private static GeneratorRun Run(string source, IIncrementalGenerator generator)
+    private static GeneratorRun Run(string source, IIncrementalGenerator generator, IEnumerable<MetadataReference>? extra = null)
     {
         // A real path, as in GeneratorHarness: `file`-local types are scoped by syntax-tree path.
         var syntaxTree = CSharpSyntaxTree.ParseText(
             source, new CSharpParseOptions(LanguageVersion.Latest), path: "Source.cs");
-        var references = BuildReferences();
+        var references = extra is null ? BuildReferences() : BuildReferences().AddRange(extra);
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },

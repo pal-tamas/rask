@@ -7,6 +7,27 @@ namespace Rask.Flux;
 public static class PageScripts
 {
     /// <summary>
+    ///     Runs on an example's wrapper: moves it by less than a pixel to the viewport row its Flux twin stood at
+    ///     (<c>data-parity-origin</c>, written by <c>parity</c> on the Rask page), relatively when it is static.
+    /// </summary>
+    public const string StandWhereTheTwinStood = """
+        el => {
+          const want = parseFloat(el.dataset.parityOrigin);
+          if (Number.isNaN(want)) return;
+          const relative = getComputedStyle(el).position === 'static' || el.dataset.parityMoved === 'top';
+          el.style.top = '';
+          el.style.translate = '';
+          const by = want - el.getBoundingClientRect().y;
+          if (Math.abs(by) >= 1 || Math.abs(by) < 0.01) return;
+          if (relative) {
+            el.dataset.parityMoved = 'top';
+            el.style.position = 'relative';
+            el.style.top = `${by}px`;
+          } else el.style.translate = `0 ${by}px`;
+        }
+        """;
+
+    /// <summary>
     ///     Everything in motion, put where it rests: what ends (a transition, an entrance) at its end — the state Flux
     ///     draws — and what never ends (a spinner, a shimmer) on its first frame. What either IS (duration, easing,
     ///     keyframes) is recorded per node in <see cref="Collect" /> and compared on that. A scroll-driven animation runs

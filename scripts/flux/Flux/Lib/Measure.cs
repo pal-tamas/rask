@@ -153,6 +153,12 @@ public static class Measure
     private static async Task Open(IPage page, IElementHandle wrapper, IElementHandle opener)
     {
         await wrapper.Run("el => el.scrollIntoView({ block: 'center' })");
+        // Centred, Flux's example stands where the docs page's own layout leaves it, a fraction of a pixel off the whole
+        // (366.4375 px down, where the parity page's stands at 366): enough for a popup 420 px tall under a trigger there to
+        // pass the 5 px a panel keeps from the bottom edge on Flux's page and not on ours (the datetime picker's range
+        // examples, 2026-11-27). The Rask example is moved by that fraction — never more than a pixel — to where its twin
+        // was, so both popups are asked the same question; its nodes are counted from it, so nothing else moves.
+        await wrapper.Run(PageScripts.StandWhereTheTwinStood);
         var box = (await opener.BoundingBoxAsync())!;
         double[] at = [box.X + box.Width / 2, box.Y + box.Height / 2];
         var phone = page.ViewportSize!.Width < 640;

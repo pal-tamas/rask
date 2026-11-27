@@ -74,6 +74,39 @@ internal static class TypedIdShape
         return ValueOf(value);
     }
 
+    /// <summary>
+    ///     What the typed id <paramref name="type" /> compiled into a referenced assembly holds, or
+    ///     <see cref="TypedIdValue.None" />.
+    /// </summary>
+    /// <remarks>
+    ///     A referenced type has no declaration to read, so it is known by what its declaration compiled to: a
+    ///     <c>readonly</c> struct with ONE public constructor, taking a <c>Value</c> of <c>int</c>, <c>long</c>,
+    ///     <c>Guid</c> or <c>string</c>, that is <c>ISpanParsable</c> of itself — the members TypedIdGenerator gave it.
+    ///     Not <c>IsRecord</c>: metadata does not say a struct was a record, since what marks one is private.
+    /// </remarks>
+    public static TypedIdValue OfReferenced(ITypeSymbol? type)
+    {
+        if (type is not INamedTypeSymbol { IsReadOnly: true, TypeKind: TypeKind.Struct, IsGenericType: false } named ||
+            named.ContainingType is not null ||
+            !named.AllInterfaces.Any(face => IsSpanParsableOf(face, named)))
+        {
+            return TypedIdValue.None;
+        }
+
+        var constructors = named.InstanceConstructors
+            .Where(static ctor => ctor is { DeclaredAccessibility: Accessibility.Public, IsImplicitlyDeclared: false })
+            .ToList();
+
+        return constructors.Count == 1 && constructors[0].Parameters.Length == 1 &&
+               string.Equals(constructors[0].Parameters[0].Name, ValueName, StringComparison.Ordinal)
+            ? ValueOf(constructors[0].Parameters[0].Type)
+            : TypedIdValue.None;
+    }
+
+    private static bool IsSpanParsableOf(INamedTypeSymbol face, INamedTypeSymbol self) =>
+        face is { Name: "ISpanParsable", TypeArguments.Length: 1, ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } &&
+        SymbolEqualityComparer.Default.Equals(face.TypeArguments[0], self);
+
     private static TypedIdValue ValueOf(ITypeSymbol? value) => value switch
     {
         { SpecialType: SpecialType.System_Int32 } => TypedIdValue.Int32,
