@@ -438,6 +438,10 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A moment's change tracking follows its instant.** EF Core compared, hashed and snapshotted a `Moment` column by its
+  wall-clock `.Value`, so a moment moved from the first `02:30` of an October night to the second was not seen as a
+  change, and a snapshot rebuilt from the wall time came back as the first. It now compares by the instant and keeps the
+  (immutable) value itself.
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.

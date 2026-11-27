@@ -794,7 +794,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   RASK106 still refuses a form over rows holding rows of their own, a row with no parameterless constructor, or a key with no part for its holder — and a non-partial class, an unnamed/undeclared value part, a taken name, and a composite key on a ROOT.
   **TRAITS ON THE CLASS CHOOSE WHAT A TABLE CARRIES — EVERYTHING IS OPT-IN**: marker interfaces beside the base, read like a sentence (`Company : Aggregate<CompanyId>, IBelongsTo<Tenant>, ISoftDeletes, IHasForm`), in any order, nothing to implement (namespace Rask.Data), read at COMPILE time off the class and NEVER reflected over (the type-argument traits `Aggregate<TId, Timestamps, …>` and the extra-arity bases are GONE; so are the consts `Writes`/`Stamps`/`Deletes`/`Checks`/`Scope`/`Broadcast` and their enums ModelWrites/Timestamps-enum/Deletion/Concurrency/Tenancy/Broadcasts are GONE — an old const no longer compiles).
   A bare `Aggregate<Guid>` has NO CreatedAt/UpdatedAt, NO Version, NO form model, NO generated Delete — only its columns, its read face and the behaviour writes.
-  The traits: `IHasTimestamps` (= `IHasCreatedAt` + `IHasUpdatedAt`, or either alone) CreatedAt/UpdatedAt;
+  The traits: `IHasTimestamps` (= `IHasCreatedAt` + `IHasUpdatedAt`, or either alone) CreatedAt/UpdatedAt — each a `Timestamp` (Rask's own `Moment`, stored as UTC; `.Instant`, `.Value` wall clock, `.Day`), as is `DeletedAt` and every time of Rask's own tables;
   `IVersioned` the Version concurrency token;
   `IHasForm` (= `IHasCreateForm` + `IHasUpdateForm`, or either alone for half) the form model + `X.Create(model)` / `X.Update(id, model)`;
   `IDeletable` a generated `X.Delete(id)` that removes the row;
