@@ -85,8 +85,14 @@ On SQLite, keep the file store: there every writer shares one lock, and a file o
 The table is keyed by a version-7 `Guid` the writer makes for each entry, never a number the database hands out. A
 `RaskLog` table from before that is rebuilt by the app's next migration (`rask db add RaskGuidKeys && rask db
 update`), an [exclusive one](deployment.md): the old entries are history and are not carried over, so read what you
-need from them first. The file store keeps its own integer rowid — its full-text index needs one that never changes —
-and derives each entry's `Guid` from it. See [docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
+need from them first. The file store is keyed the same way: `logs.db`'s `RaskLog` is a `WITHOUT ROWID` table whose
+primary key is the entry's `Guid`, made before the insert. Beside it each row has a `Sequence`, its place in the write
+order — the integer the full-text index addresses it by (FTS5 can address a row by nothing else) and what a page is
+ordered by. It is never part of an entry, and `VACUUM` never changes it. A `logs.db` from an earlier release, keyed by
+its rowid, is rebuilt into this shape the first time it is opened, in one transaction: every entry is kept, under the
+same id it was shown with before (the Unix millisecond and the old rowid, `xxxxxxxx-xxxx-7000-8nnn-nnnnnnnnnnnn`), and
+the search index is rebuilt — expect a few seconds for a file of a million entries. See
+[docs/data.md](data.md#rasks-own-tables-re-keyed-from-store-numbers-to-guids).
 
 An app built with `RaskApp` gets this without writing it: when `Rask:Database:Provider` is `postgres` or
 `sqlserver`, the log store moves into the application database and `RaskAppDbContext` maps the table. On SQLite it

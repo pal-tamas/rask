@@ -110,8 +110,8 @@ public sealed class SqliteLogSearchIndexTests
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "EXPLAIN QUERY PLAN SELECT Id FROM RaskLog WHERE Id IN "
-            + "(SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $m) ORDER BY Id DESC";
+            "EXPLAIN QUERY PLAN SELECT Id FROM RaskLog WHERE Sequence IN "
+            + "(SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $m) ORDER BY Sequence DESC";
         command.Parameters.AddWithValue("$m", match);
 
         var plan = new List<string>();

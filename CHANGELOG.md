@@ -118,6 +118,14 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
+  last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
+  version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived
+  from the rowid. The trigram search index now addresses a row by a `Sequence` column, the write order, which is never
+  part of an entry and which `VACUUM` never renumbers. A `logs.db` from an earlier release is rebuilt into the new shape
+  the first time it is opened, in one transaction, keeping every entry under the id it was shown with before, its
+  order, and its scopes, and the search index is rebuilt. Search, retention, the live tail and the dashboard's History
+  behave as before; a search with no other filter is now counted in the index alone (docs/logging.md).
 - **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
   error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
   (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.

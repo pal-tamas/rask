@@ -1765,7 +1765,9 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `StopAsync` drains what's buffered under `ShutdownDrainTimeout` (5s) before completing the channel, because the lines just before a shutdown are the ones worth keeping.
   RETENTION every `PurgeInterval` (1h): entries older than `Retention` (14d, `TimeSpan.Zero` = forever) then a trim to the newest `MaxRows` (100_000, 0 = uncapped) — BOTH by default, since age alone can't bound the disk under a storm;
   deleted in pages of 1000 looping until drained, so the write lock is never held for a whole sweep.
-  SCHEMA is `CREATE TABLE IF NOT EXISTS RaskLog` (Id INTEGER PRIMARY KEY — a rowid alias, deliberately NOT AUTOINCREMENT;
+  SCHEMA is `CREATE TABLE IF NOT EXISTS RaskLog (...) WITHOUT ROWID` (Id TEXT PRIMARY KEY — the entry's version-7 Guid, made by Rask before the insert, uppercase like EF Core's SQLite Guid;
+  Sequence INTEGER — the write order and the FTS5 trigram index's row number (external content, content_rowid='Sequence'), never part of an entry, VACUUM-stable;
+  an integer-keyed logs.db from an earlier release is re-keyed on open, keeping each entry's old id (OrderedGuid.Of(time, rowid)) and its rowid as Sequence;
   Timestamp TEXT round-trip "O" UTC so range filters are string compares and the file reads in a sqlite3 shell;
   Level INTEGER;
   Category;
