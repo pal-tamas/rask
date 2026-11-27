@@ -86,16 +86,32 @@ public sealed class TenantSwitchRowsTests(PlaywrightFixture playwright) : IClass
     // belonged to the tenant the page is in.
     private static async Task<string[]> RowsAsync(IPage page, string tenant, string[] expected)
     {
-        var rows = page.Locator("#rows tbody tr td:first-child");
         await Expect(page.Locator("#tenant")).ToHaveTextAsync("tenant=" + tenant, Settled);
-        await Expect(rows).ToHaveTextAsync(expected, new() { Timeout = 15_000 });
-        var shown = await page.EvaluateAsync<string[]>("() => { const seen = [...window.__rows]; window.__rows.clear(); return seen; }");
+        var read = await page.WaitForFunctionAsync(SettledRows, expected, new() { Timeout = 15_000 });
+        var rows = await read.JsonValueAsync<string[][]>();
+        var (shown, seen) = (rows[0], rows[1]);
 
-        var foreign = shown.Where(row => !row.StartsWith(tenant + "-", StringComparison.Ordinal)).ToArray();
+        var foreign = seen.Where(row => !row.StartsWith(tenant + "-", StringComparison.Ordinal)).ToArray();
         Assert.True(foreign.Length == 0, $"in tenant {tenant} the table showed rows of another: {string.Join(", ", foreign)}");
-        Assert.Subset(shown.ToHashSet(StringComparer.Ordinal), expected.ToHashSet(StringComparer.Ordinal));
-        return [.. (await rows.AllInnerTextsAsync()).Select(text => text.Trim())];
+        return shown;
     }
+
+    // What the table shows and what the recorder saw, read and cleared in ONE call in ONE document, once the table
+    // shows the expected rows AND the recorder has seen them. Checking the table with one call and reading the
+    // recorder with another raced: when the document changed in between (the tab loading its page again, as one
+    // whose connection is reopened for a cookie the tenant choice wrote may), the read met a recorder that had seen
+    // nothing yet (run 45853675787). A MutationObserver also reports a moment after the change it saw.
+    private const string SettledRows =
+        """
+        expected => {
+            if (!window.__rows) return false;
+            const shown = [...document.querySelectorAll('#rows tbody tr td:first-child')].map(td => td.textContent.trim());
+            if (shown.join('\n') !== expected.join('\n') || !expected.every(row => window.__rows.has(row))) return false;
+            const seen = [...window.__rows];
+            window.__rows.clear();
+            return [shown, seen];
+        }
+        """;
 
     private static Task ConnectedAsync(IPage page) =>
         page.WaitForFunctionAsync("() => document.body.inert === false && !document.querySelector('.rask-overlay[data-show]')");
