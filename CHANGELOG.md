@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`OrderedGuid.New()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `New()` now returns it
+  instead of emitting its own copy, and every key Rask makes is one: the batteries' rows (jobs, outbox, mail, logs,
+  cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
+  `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
+  after the millisecond are random, so two made in one millisecond sorted either way. Rask's clock (`Clock.Now`, so
+  `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
+  so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
+- **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
+  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion naming `OrderId.New()` or `OrderedGuid.New()`.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,

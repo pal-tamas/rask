@@ -559,3 +559,6 @@ Rask.Cqrs.RaskValidationException.Failures.get -> System.Collections.Generic.IRe
 Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures, System.Exception? innerException = null) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
+Rask.OrderedGuid
+static Rask.OrderedGuid.New() -> System.Guid
+static Rask.OrderedGuid.New(System.TimeProvider! time) -> System.Guid

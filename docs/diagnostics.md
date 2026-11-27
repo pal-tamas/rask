@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK147, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -169,6 +169,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK145](#rask145) | Warning (Error under `<RaskStrict>`) | An event reads a key the database has not produced yet |
 | [RASK146](#rask146) | Error | A trait the class cannot carry |
 | [RASK147](#rask147) | Warning (Error under `<RaskStrict>`) | The domain holds a bare `DateTime` |
+| [RASK148](#rask148) | Info | An entity is keyed by a Guid that is not strictly increasing |
 | [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
@@ -2162,7 +2163,7 @@ public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasFor
 {
     public string Reference { get; private set; } = "";
 
-    public static Order Place(string reference) => new() { Id = Guid.CreateVersion7(), Reference = reference };   // ✓
+    public static Order Place(string reference) => new() { Id = OrderedGuid.New(), Reference = reference };   // ✓
 }
 
 var order = new Order();                       // ✗ RASK107
@@ -3587,6 +3588,33 @@ public DeliveryDueDate? DueDate { get; private set; }
 A wall-clock time from outside — a pump's local time without an offset — becomes a moment where it comes in:
 `DeliveryFueledAt.FromWall(reading.LocalTime, pumpZone)`. On PostgreSQL a bare `DateTime` left on an aggregate or an
 entity is also refused as the model is built ([data.md](data.md#dates-and-moments-what-each-database-keeps)).
+
+## RASK148
+
+**An entity is keyed by a Guid that is not strictly increasing** · Info
+
+An entity's `Id` is set to `Guid.CreateVersion7()` or `Guid.NewGuid()` — directly, or inside a typed id
+(`new OrderId(Guid.CreateVersion7())`). `Guid.CreateVersion7()` fills the 12 bits after the millisecond at random, so
+two rows made in one millisecond sort either way; `Guid.NewGuid()` is not time-ordered at all. Either way the key's
+index stops being append-only, and ordering or paging by the key is not the order the rows were made.
+
+```csharp
+public static Order Place(string reference) =>
+    new() { Id = new OrderId(Guid.CreateVersion7()), Reference = reference };   // ℹ RASK148
+```
+
+> 'Order' keys 'Id' with 'Guid.CreateVersion7()', which two rows made in one millisecond do not sort by — use 'OrderId.New()'
+
+**Fix:** a typed id's generated `New()`, or `OrderedGuid.New()` for a plain `Guid` key. Both are version-7 `Guid`s
+whose 12 bits after the millisecond count (RFC 9562's method 1), so every id is later than the one before it:
+
+```csharp
+public static Order Place(string reference) => new() { Id = OrderId.New(), Reference = reference };   // ✓
+public static Note Write(string text) => new() { Id = OrderedGuid.New(), Text = text };              // ✓ a Guid key
+```
+
+A service handed a `TimeProvider` stamps its ids with it: `OrderedGuid.New(timeProvider)` — a test's fake time then
+stamps them, counting within its millisecond on a sequence of its own.
 
 ## RASK150
 
