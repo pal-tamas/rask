@@ -5,10 +5,10 @@ using Rask.Data;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
-// AddRaskData<TContext> refuses to boot a context whose provider would ignore HasNonOverlappingRange. That check
+// AddRaskData<TContext> refuses to boot a context whose provider would ignore NoOverlap. That check
 // is only worth having if the provider that DOES enforce the rule passes it — through both generators
 // UseRaskSqlite can register, since the strict one is a separate type.
-public sealed class RangeExclusionBootCheckTests
+public sealed class NoOverlapBootCheckTests
 {
     [Theory]
     [InlineData(false)]

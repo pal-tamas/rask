@@ -141,7 +141,7 @@ internal static class ReferencedTenantCheck
         return asked;
     }
 
-    // The references to another tenant-scoped table a PerTenant row holds — not the one that holds a child in its
+    // The references to another tenant-scoped table a row that belongs to a tenant holds — not the one that holds a child in its
     // aggregate, whose tenant is its parent's (ParentTenantCheck).
     internal static IForeignKey[] KeysOf(IEntityType entityType) =>
         Checked.GetValue(entityType, static type =>

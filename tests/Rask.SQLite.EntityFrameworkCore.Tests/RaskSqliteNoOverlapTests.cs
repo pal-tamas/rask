@@ -4,9 +4,9 @@ using Rask.Data;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
-// Integration tests for HasNonOverlappingRange, driven through the same migration path `dotnet ef` uses
+// Integration tests for NoOverlap's SQLite triggers, without Rask's save check or translation in front of them, driven through the same migration path `dotnet ef` uses
 // (model differ -> IMigrationsSqlGenerator) against a real SQLite database (in memory).
-public sealed class RaskSqliteRangeExclusionTests : IDisposable
+public sealed class RaskSqliteNoOverlapTests : IDisposable
 {
     private readonly InMemorySqlite _database = new();
 
@@ -21,8 +21,8 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         context.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
 
-        var error = await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
-        Assert.Equal("Bookings", error.Table);
+        var error = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("rask no overlap: EX_Bookings_RoomId_StartsAt", error.InnerException!.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         context.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = startsAt, EndsAt = endsAt });
 
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         first.EndsAt = 250;
 
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -115,23 +115,9 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         // The constraint lives in the database, so raw SQL is bound by it too.
         var error = await Assert.ThrowsAsync<SqliteException>(() => context.Database.ExecuteSqlRawAsync(
-            """INSERT INTO "Bookings" ("Id","RoomId","StartsAt","EndsAt") VALUES (2,1,150,250);""", cancellationToken: TestContext.Current.CancellationToken));
+            """INSERT INTO "Bookings" ("Id","RoomId","StartsAt","EndsAt","Building") VALUES (2,1,150,250,0);""", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(1811, error.SqliteExtendedErrorCode);
-    }
-
-    [Fact]
-    public async Task A_table_wide_rule_needs_no_partition()
-    {
-        await using var context = Create<SeasonContext>();
-        CreateSchema(context);
-
-        context.Seasons.Add(new Season { Id = 1, ValidFrom = "2026-01-01", ValidTo = "2026-04-01" });
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        context.Seasons.Add(new Season { Id = 2, ValidFrom = "2026-03-01", ValidTo = "2026-05-01" });
-
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -148,7 +134,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         context.Slots.Add(new Slot { Id = 2, StartsAt = 150, EndsAt = 250 });
 
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -185,18 +171,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Reservations.Add(Reservation.For(2, 1, 150, 250));
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task A_rule_ignoring_soft_deleted_rows_on_a_table_without_DeletedAt_says_how_to_fix_it()
-    {
-        await using var context = Create<StaleSoftDeleteRuleContext>();
-
-        var error = Assert.Throws<InvalidOperationException>(() => CreateSchema(context));
-
-        Assert.Contains("'Booking'", error.Message, StringComparison.Ordinal);
-        Assert.Contains("ISoftDeletes on the aggregate", error.Message, StringComparison.Ordinal);
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -215,10 +190,10 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         Migrate<UnruledBookingContext>(after);
 
         Assert.Equal(2, TriggerCount(after));
-        Assert.Contains("IX_Bookings_Range", Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("IX_Bookings_RoomId_StartsAt", Ddl(after), StringComparison.Ordinal);
 
         after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -233,7 +208,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         Migrate<BookingContext>(after);
 
         Assert.Equal(0, TriggerCount(after));
-        Assert.DoesNotContain("IX_Bookings_Range", Ddl(after), StringComparison.Ordinal);
+        Assert.DoesNotContain("IX_Bookings_RoomId_StartsAt", Ddl(after), StringComparison.Ordinal);
 
         after.Bookings.Add(new Booking { Id = 1, RoomId = 1, StartsAt = 100, EndsAt = 200 });
         after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
@@ -255,11 +230,11 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         Migrate<BookingContext>(after);
 
         Assert.DoesNotContain("\"RoomId\", \"StartsAt\"", Ddl(after), StringComparison.Ordinal);
-        Assert.Contains("ON \"Bookings\" (\"StartsAt\", \"EndsAt\")", Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("ON \"Bookings\" (\"Building\", \"StartsAt\")", Ddl(after), StringComparison.Ordinal);
 
-        // Another room, the same hours: now an overlap, because the rule no longer partitions by room.
+        // Another room, the same hours: now an overlap, because the rule is the building's, not the room's.
         after.Bookings.Add(new Booking { Id = 2, RoomId = 2, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -280,7 +255,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         Assert.Equal(2, TriggerCount(after));
 
         after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         after.ChangeTracker.Clear();
         after.Bookings.Add(new Booking { Id = 3, RoomId = 1, StartsAt = 200, EndsAt = 300 });
@@ -290,8 +265,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
     [Fact]
     public async Task A_store_generated_key_is_handled()
     {
-        // The key is assigned by SQLite, so NEW.<key> is still NULL when the BEFORE INSERT trigger runs and
-        // the "not this same row" test has to hold anyway.
+        // The key is assigned by SQLite; the AFTER INSERT trigger finds the row by the key it was given.
         await using var context = Create<GeneratedKeyContext>();
         CreateSchema(context);
 
@@ -301,7 +275,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         Assert.NotEqual(0, (await context.Meetings.SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Id);
 
         context.Meetings.Add(new Meeting { RoomId = 1, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         context.ChangeTracker.Clear();
         context.Meetings.Add(new Meeting { RoomId = 1, StartsAt = 200, EndsAt = 300 });
@@ -323,7 +297,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Shifts.Add(new Shift { TenantId = 1, Code = "b", EmployeeId = 7, StartsAt = 250, EndsAt = 400 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -343,7 +317,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
 
         // The range rule still bites ...
         context.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         context.ChangeTracker.Clear();
 
@@ -367,7 +341,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
-        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

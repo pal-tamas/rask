@@ -128,6 +128,7 @@ public static class ModelRegistry
         configurationBuilder.Conventions.Add(static services => new ComputedColumnConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new DatabaseDefaultConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new FilteredIndexConvention(ModelSql.For(services)));
+        configurationBuilder.Conventions.Add(static services => new NoOverlapConvention(ModelSql.For(services)));
         configurationBuilder.Conventions.Add(static services => new SequenceConvention(ModelSql.For(services)));
 
         // A table that belongs to the app's tenant refers to its key, so a tenant with rows is not deleted.

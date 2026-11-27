@@ -23,10 +23,10 @@ namespace Rask.SQLite;
 /// like any other, which <see cref="FullTextSearchDdl"/> then turns into the DDL.
 /// </para>
 /// <para>
-/// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/> had the same problem and shipped with it:
+/// <c>NoOverlap(…)</c> had the same problem and its predecessor shipped with it:
 /// the rule added to an existing table whose columns did not otherwise change produced an empty migration, and
 /// the triggers were never created (#1113). It is reported here for the same reason, and
-/// <see cref="RangeExclusionDdl"/> reacts to the <c>AlterTableOperation</c>.
+/// <see cref="NoOverlapDdl"/> reacts to the <c>AlterTableOperation</c>.
 /// </para>
 /// <para>
 /// Registered once, by <c>UseRaskSqlite</c>: EF Core resolves exactly one <see cref="IRelationalAnnotationProvider"/>,
@@ -46,7 +46,7 @@ internal sealed class RaskSqliteAnnotationProvider(RelationalAnnotationProviderD
 
         // A table shared by several entity types (table splitting) has one of each at most: the first declaration wins,
         // and the DDL reads the same one back from the model.
-        foreach (var name in (string[])[FullTextSearchSpec.AnnotationName, RangeExclusionSpec.AnnotationName])
+        foreach (var name in (string[])[FullTextSearchSpec.AnnotationName, NoOverlapRule.Annotation])
         {
             foreach (var mapping in table.EntityTypeMappings)
             {

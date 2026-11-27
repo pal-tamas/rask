@@ -89,6 +89,7 @@ internal sealed class RaskMigrationsModelDiffer(
 
         operations = WithTenantReferences(operations, source, target);
         operations = WithGuidOrder(operations, source, target);
+        operations = WithNoOverlapRules(operations, source, target);
 
         foreach (var operation in operations)
         {
@@ -188,6 +189,71 @@ internal sealed class RaskMigrationsModelDiffer(
 
     private static bool IsOrderedByTime(IRelationalModel? model) =>
         string.Equals(model?.Model.FindAnnotation(SqlServerGuidOrder.Annotation)?.Value as string, SqlServerGuidOrder.ByTime, StringComparison.Ordinal);
+
+    // PostgreSQL's exclusion constraints and SQL Server's triggers for b.NoOverlap(…), which no EF Core operation
+    // describes: dropped first where the rule changed, went away, or its table's columns change under it (SQL Server
+    // cannot alter a column its index holds), and created last, once every column is there. SQLite's triggers are its
+    // migrations generator's (INoOverlapEnforcer): its table rebuilds take them with them.
+    private List<MigrationOperation> WithNoOverlapRules(
+        IReadOnlyList<MigrationOperation> operations, IRelationalModel? source, IRelationalModel target)
+    {
+        var provider = databaseProvider.Name;
+        if (provider is not (ProviderNames.Postgres or ProviderNames.SqlServer))
+        {
+            return [.. operations];
+        }
+
+        var limit = target.Model.GetMaxIdentifierLength();
+        var before = NoOverlapRules(source, provider, limit);
+        var after = NoOverlapRules(target, provider, limit);
+        if (before.Count == 0 && after.Count == 0)
+        {
+            return [.. operations];
+        }
+
+        var dropped = operations.OfType<DropTableOperation>().Select(static d => (d.Name, d.Schema)).ToHashSet();
+        var reshaped = operations.Select(static o => o switch
+            {
+                AlterColumnOperation a => (a.Table, a.Schema),
+                DropColumnOperation d => (d.Table, d.Schema),
+                RenameColumnOperation r => (r.Table, r.Schema),
+                _ => ((string, string?)?)null,
+            })
+            .OfType<(string, string?)>()
+            .ToHashSet();
+
+        var drops = before
+            .Where(b => !dropped.Contains(b.Table) && (reshaped.Contains(b.Table) || !after.Contains(b)))
+            .SelectMany(b => NoOverlapSql.Drop(provider, b.Rule, b.Table.Name, b.Table.Schema, limit))
+            .Select(static sql => new SqlOperation { Sql = sql });
+        var creates = after
+            .Where(a => reshaped.Contains(a.Table) || !before.Contains(a))
+            .SelectMany(static a => a.Create)
+            .Distinct(StringComparer.Ordinal)
+            .Select(static sql => new SqlOperation { Sql = sql });
+
+        return [.. drops, .. operations, .. creates];
+    }
+
+    private static List<NoOverlapAt> NoOverlapRules(IRelationalModel? model, string provider, int limit) =>
+        model is null
+            ? []
+            : [.. model.Tables.SelectMany(table => table.EntityTypeMappings
+                .Select(static m => m.TypeBase).OfType<IEntityType>()
+                .SelectMany(NoOverlapRule.Of)
+                .Select(rule => new NoOverlapAt(
+                    (table.Name, table.Schema),
+                    rule,
+                    [.. NoOverlapSql.Create(provider, rule, table, [.. table.PrimaryKey?.Columns.Select(static c => c.Name) ?? []], limit)])))];
+
+    // A rule on its table, equal to another when it would be created by the same statements.
+    private sealed record NoOverlapAt((string Name, string? Schema) Table, NoOverlapRule Rule, IReadOnlyList<string> Create)
+    {
+        public bool Equals(NoOverlapAt? other) =>
+            other is not null && Table == other.Table && Create.SequenceEqual(other.Create, StringComparer.Ordinal);
+
+        public override int GetHashCode() => HashCode.Combine(Table, string.Concat(Create));
+    }
 
     private static AddForeignKeyOperation ForeignKey(string table, string? schema, string column, TenantReference reference) =>
         new()

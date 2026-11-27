@@ -8,7 +8,7 @@ namespace Rask.Data;
 /// <summary>
 ///     Turns a refusal of the database's that the model has a sentence for into the failure a validator
 ///     produces, for every save through the context — Rask's own and plain EF Core's: the violation of a unique
-///     index (<c>IsUnique("…")</c>), and the delete of a row that is still referenced
+///     index (<c>IsUnique("…")</c>), of a <c>NoOverlap(…, "…")</c> rule, and the delete of a row that is still referenced
 ///     (<c>OnDelete(behavior, "…")</c>, <c>WhenReferenced("…")</c>), and a row a form's list added whose key points
 ///     nowhere (<c>ActivityIds</c>).
 /// </summary>
@@ -34,6 +34,7 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
     /// </summary>
     internal static RaskValidationException? Translation(DbContext? context, Exception? failure) =>
         UniqueViolation.Translate(context, failure)
+        ?? NoOverlapViolation.Translate(context, failure)
         ?? ReferencedDelete.Translate(context, failure)
         ?? HeldRowReference.Translate(failure);
 
@@ -134,7 +135,8 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbC
         return eventData.CommandSource switch
         {
             CommandSource.ExecuteDelete => ReferencedDelete.Translate(eventData.Context, command, eventData.Exception),
-            CommandSource.ExecuteUpdate => UniqueViolation.TranslateCommand(eventData.Context, eventData.Exception),
+            CommandSource.ExecuteUpdate => UniqueViolation.TranslateCommand(eventData.Context, eventData.Exception)
+                ?? NoOverlapViolation.TranslateCommand(eventData.Context, eventData.Exception),
             _ => null,
         };
     }

@@ -4,10 +4,6 @@ Rask.SQLite.RaskSqliteConnectionInterceptor.RaskSqliteConnectionInterceptor(Rask
 Rask.SQLite.RaskSqliteDbContextOptionsExtensions
 Rask.SQLite.RaskSqliteExecutionStrategy
 Rask.SQLite.RaskSqliteExecutionStrategy.RaskSqliteExecutionStrategy(Microsoft.EntityFrameworkCore.Storage.ExecutionStrategyDependencies! dependencies, Rask.SQLite.SqliteBusyRetryOptions! retry) -> void
-Rask.SQLite.RaskSqliteRangeExclusionInterceptor
-Rask.SQLite.RaskSqliteRangeExclusionInterceptor.RaskSqliteRangeExclusionInterceptor() -> void
-Rask.SQLite.RaskSqliteRangeExclusionInterceptor.SaveChangesFailed(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData) -> void
-Rask.SQLite.RaskSqliteRangeExclusionInterceptor.SaveChangesFailedAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.SQLite.RaskSqliteRangeExclusionSqlGenerator
 Rask.SQLite.RaskSqliteRangeExclusionSqlGenerator.RaskSqliteRangeExclusionSqlGenerator(Microsoft.EntityFrameworkCore.Migrations.MigrationsSqlGeneratorDependencies! dependencies, Microsoft.EntityFrameworkCore.Metadata.IRelationalAnnotationProvider! migrationsAnnotations) -> void
 Rask.SQLite.RaskSqliteStrictMigrationsSqlGenerator

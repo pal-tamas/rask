@@ -28,7 +28,7 @@ public sealed class FrameworkColumnTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         // The default is HARD: no column, no query filter, and Delete removes the row. An aggregate
-        // that wants the row kept says so — see Memo, whose base names SoftDelete.
+        // that wants the row kept says so — see Memo, which says ISoftDeletes.
         var receipt = database.Context.Model.FindEntityType(typeof(Receipt))!;
         Assert.Null(receipt.FindProperty(Columns.DeletedAt));
         Assert.Empty(receipt.GetDeclaredQueryFilters());
