@@ -484,7 +484,7 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run"));
+        var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run") && i.Arguments.Contains("-d"));
         var written = fs.Written[Path.GetFullPath(run.Arguments[run.Arguments.ToList().IndexOf("--env-file") + 1])];
         Assert.DoesNotContain(run.Arguments, a => a.StartsWith("Rask__ConnectionStrings__App=", StringComparison.Ordinal));
         Assert.Contains("Rask__ConnectionStrings__App=Server=db;Database=shop", written, StringComparison.Ordinal);
@@ -503,7 +503,7 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--env-file", "/proj/.env.prod", "--env", "EXTRA=1"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run"));
+        var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run") && i.Arguments.Contains("-d"));
         var written = fs.Written[Path.GetFullPath(run.Arguments[run.Arguments.ToList().IndexOf("--env-file") + 1])];
 
         Assert.Contains("DB=postgres", written, StringComparison.Ordinal);
@@ -512,7 +512,9 @@ public sealed partial class DeployCommandTests
         Assert.DoesNotContain("# comment", written, StringComparison.Ordinal);
 
         // It carries the secrets, and the temp dir is shared with every user of the machine.
-        Assert.Contains(fs.Written.Keys.Single(k => k.EndsWith(".env", StringComparison.Ordinal) && k.Contains("rask-shop-", StringComparison.Ordinal)), fs.SecretFiles);
+        var envFiles = fs.Written.Keys.Where(k => k.EndsWith(".env", StringComparison.Ordinal) && k.Contains("rask-shop-", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(envFiles);
+        Assert.All(envFiles, k => Assert.Contains(k, fs.SecretFiles));
     }
 
     [Fact]

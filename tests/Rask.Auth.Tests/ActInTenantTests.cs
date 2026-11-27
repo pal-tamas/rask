@@ -14,13 +14,16 @@ namespace Rask.Auth.Tests;
 ///     An administrator acts in a tenant they choose (#1280): the choice is kept on the sign-in's session, so the
 ///     next request, a reconnect and a live page's next event all work in it, and signing out drops it.
 /// </summary>
-public sealed class ActInTenantTests
+public sealed class ActInTenantTests : IDisposable
 {
     private const string Password = "Password1";
     private const string Owner = "owner@example.com";
     private const string None = "none";
 
     private static readonly Guid Acme = Guid.Parse("0f8fad5b-d9cb-469f-a165-70867728950e");
+    private static readonly Guid Gone = Guid.Parse("7c9e6679-7425-40de-944b-e07fc1f90ae7");
+
+    public void Dispose() => CurrentRows.Reset();
 
     [Fact]
     public async Task An_administrator_s_choice_is_the_tenant_of_the_next_request_and_of_a_reconnect()
@@ -141,8 +144,50 @@ public sealed class ActInTenantTests
         Assert.Equal(AuthError.NotAllowed, result.Error);
     }
 
+    [Fact]
+    public async Task A_tenant_the_app_has_no_row_for_is_refused_as_a_bad_value_and_the_sign_in_acts_in_none()
+    {
+        CurrentRows.Use(new KnownTenants(Acme));
+        using var app = TenantApp(flowContext: true);
+        using var browser = app.Client();
+        await RegisterOwnerAsync(browser);
+
+        var gone = await ChooseAsync(browser, Gone.ToString());
+        var acme = await ChooseAsync(browser, Acme.ToString());
+
+        Assert.Equal(HttpStatusCode.BadRequest, gone.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, acme.StatusCode);
+        Assert.Equal(Acme.ToString(), await TenantNowAsync(browser));
+    }
+
+    [Fact]
+    public async Task Choosing_a_tenant_nobody_has_is_not_allowed_and_leaves_the_session_as_it_was()
+    {
+        CurrentRows.Use(new KnownTenants(Acme));
+        await using var harness = new AuthHarness();
+        var (sessions, held) = await SignedInOwnerAsync(harness);
+
+        var result = await Accounts(harness).ActInTenantAsync(held, Gone, TestContext.Current.CancellationToken);
+        var resumed = await sessions.ResumeAsync(SessionOf(held), TestContext.Current.CancellationToken);
+
+        Assert.Equal(AuthError.NotAllowed, result.Error);
+        Assert.Null(resumed!.FindFirstValue(Tenant.ClaimType));
+    }
+
+    [Fact]
+    public async Task Leaving_a_tenant_asks_nothing_of_the_tenant_rows()
+    {
+        CurrentRows.Use(new KnownTenants());
+        await using var harness = new AuthHarness();
+        var (_, held) = await SignedInOwnerAsync(harness);
+
+        var result = await Accounts(harness).ActInTenantAsync(held, tenant: null, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+    }
+
     // An app with one endpoint that says which tenant its request works in, read the way a tenant filter reads it.
-    private static EndpointApp TenantApp() =>
+    private static EndpointApp TenantApp(bool flowContext = false) =>
         new(
             services => services
                 .AddHttpContextAccessor()
@@ -153,7 +198,8 @@ public sealed class ActInTenantTests
                 {
                     return Tenant.Key?.ToString() ?? None;
                 }
-            }));
+            }),
+            flowContext: flowContext);
 
     private static async Task<string> RegisterOwnerAsync(HttpClient client)
     {
@@ -219,6 +265,16 @@ public sealed class ActInTenantTests
         var sessionId = await sessions.StartAsync(owner.Id, null, null, persistent: false, TestContext.Current.CancellationToken);
 
         return (sessions, (await sessions.ResumeAsync(sessionId, TestContext.Current.CancellationToken))!);
+    }
+
+    // The app's tenant rows, as the generated Current.Tenant registration reads them: these ids, and no others.
+    private sealed class KnownTenants(params Guid[] ids) : CurrentRow(CurrentRowKind.Tenant, typeof(object))
+    {
+        protected override object? Load(Guid key) => ids.Contains(key) ? key : null;
+
+        protected override Task<object?> LoadAsync(Guid key, CancellationToken cancellationToken) => Task.FromResult(Load(key));
+
+        protected override bool Owns(object row, Guid key) => (Guid)row == key;
     }
 
     private sealed class RequestPrincipal(IHttpContextAccessor http) : IPrincipalSource

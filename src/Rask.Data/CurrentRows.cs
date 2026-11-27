@@ -237,6 +237,16 @@ public static class CurrentRows
         return CurrentKey.Of<TKey>(Data.Tenant.RequiredKey, CurrentRowKind.Tenant, KeyedBy(TenantRow, "The tenant"));
     }
 
+    /// <summary>
+    ///     Whether the app's tenant aggregate has a row keyed <paramref name="tenant" />, or <see langword="null" /> when
+    ///     no aggregate says <see cref="ITenant" />, so there is no row to ask about. Read as <c>Current.Tenant</c> reads
+    ///     it, and kept for it.
+    /// </summary>
+    internal static ValueTask<bool?> TenantExists(Guid tenant, CancellationToken cancellationToken) =>
+        TenantRow is { } row ? Answer(row.Exists(tenant, cancellationToken)) : new((bool?)null);
+
+    private static async ValueTask<bool?> Answer(ValueTask<bool> exists) => await exists.ConfigureAwait(false);
+
     /// <summary>Whether the app's user aggregate is keyed by a number, so a numeric user claim names a user.</summary>
     internal static bool NumberedUser => UserRow?.IsNumbered == true;
 

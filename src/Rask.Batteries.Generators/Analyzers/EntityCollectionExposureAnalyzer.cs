@@ -24,7 +24,7 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///     <para>
 ///         "Mutable" is "implements <c>ICollection&lt;T&gt;</c>", less the collections that implement it
 ///         only to throw: <c>ReadOnlyCollection&lt;T&gt;</c> and the immutable and frozen families — and Rask.Data's
-///         <c>Children&lt;TEntity, TSpec&gt;</c>, which implements it explicitly for EF Core alone. Arrays
+///         <c>HasMany&lt;TChild&gt;</c>, whose mutators only its aggregate may call (RASK180). Arrays
 ///         are not reported — EF Core cannot map one as a navigation, so no entity that works has one.
 ///     </para>
 /// </remarks>
@@ -127,9 +127,8 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
     {
         var ns = type.ContainingNamespace?.ToDisplayString();
 
-        // Rask.Data's Children<TEntity, TSpec> implements it explicitly, for EF Core alone: its own surface reads only,
-        // and changes only through Sync.
-        return (ns is "Rask.Data" && type.Name is "Children" && type.Arity == 2)
+        // Rask.Data's HasMany<TChild> is changed only by the aggregate that declares it, which RASK180 holds it to.
+        return (ns is "Rask.Data" && type.Name is "HasMany" && type.Arity == 1)
                || ns is "System.Collections.Immutable" or "System.Collections.Frozen"
                || (ns is "System.Collections.ObjectModel"
                    && type.Name is "ReadOnlyCollection" or "ReadOnlyObservableCollection" or "ReadOnlySet");

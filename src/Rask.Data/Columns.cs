@@ -38,8 +38,9 @@ public static class Columns
     public const string Version = "Version";
 
     /// <summary>
-    ///     A child's place among its siblings in a <see cref="Children{TEntity, TSpec}" />, written by each save so they
-    ///     load back in the order the last <c>Sync</c> gave them. Added to every entity a <c>Children&lt;,&gt;</c> holds.
+    ///     A child's place among its siblings in a <see cref="HasMany{TChild}" />, written by each save so they load back
+    ///     in the order the aggregate last gave them. Added to the child of every <c>HasMany</c> declared
+    ///     <see cref="InOrderBuilderExtensions.InOrder{TAggregate, TChild}" />.
     /// </summary>
     public const string Position = "Position";
 

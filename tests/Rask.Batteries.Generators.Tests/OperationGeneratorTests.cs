@@ -745,7 +745,7 @@ public class OperationGeneratorTests
 
             public sealed partial class Cargo : Aggregate<Guid>, IVersioned
             {
-                public Children<CargoPart, CargoPartSpec> Parts { get; } = new();
+                public HasMany<CargoPart> Parts { get; } = new();
                 public void Load(IReadOnlyList<CargoPartSpec> parts) => Parts.Sync(parts, s => s.Id, CargoPart.For, (p, s) => p.Take(s));
             }
 

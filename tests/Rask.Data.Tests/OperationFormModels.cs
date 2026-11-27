@@ -21,7 +21,7 @@ public sealed partial record ConvoyWindow(DateOnly From, int? Days) : Value
 /// <summary>A row of the convoy form's trucks; <paramref name="Id" /> names a stored one, none a new one.</summary>
 public sealed record ConvoyTruckSpec(Guid? Id, string Plate, ConvoyLoad Load);
 
-// A partial aggregate whose operations take a list of rows for its Children<,> and value objects of several values: what
+// A partial aggregate whose operations take a list of rows for its HasMany and value objects of several values: what
 // the generated Form.For of each holds (OperationFormEntryTests).
 public sealed partial class Convoy : Aggregate<Guid>, IVersioned
 {
@@ -31,7 +31,7 @@ public sealed partial class Convoy : Aggregate<Guid>, IVersioned
 
     public string Name { get; private set; } = "";
 
-    public Children<ConvoyTruck, ConvoyTruckSpec> Trucks { get; } = new();
+    public HasMany<ConvoyTruck> Trucks { get; } = new();
 
     public RigOpening Opening { get; private set; } = null!;
 

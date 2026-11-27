@@ -1088,7 +1088,7 @@ Form.For(Note.Rename, id)[f => [
   `.OnInvalidSubmit(m => …)` — so moving a hand form to `Form.For` loses none of them. `.Saved("Company saved.")` is
   what is toasted once it saves: by `Ui.EditorDialog` in place of its own "Saved" (the catalog's `EditorSaved`), or by
   the form itself when nothing hosts it.
-- **Rows: a list parameter.** An operation that takes a list of rows — the `Children<TEntity, TSpec>.Sync` of
+- **Rows: a list parameter.** An operation that takes a list of rows — the `HasMany<TChild>.Sync` of
   [children made from a form's rows](domain.md#children) — is an editable list: `f.Parts`, a row per child the aggregate holds
   (read off the child by the spec's member names, its `Id` among them, so `Sync` matches it), each row's fields the
   spec's members. Write the rows with the kit's table, a row added with `f.Parts.Add(new())` and taken away with

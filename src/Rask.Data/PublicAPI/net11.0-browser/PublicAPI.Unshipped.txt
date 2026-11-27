@@ -497,12 +497,6 @@ static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, int version, Sy
 Rask.Data.GeneratedOperations
 Rask.Data.OperationBuilderExtensions
 static Rask.Data.GeneratedOperations.Run<TAggregate>(string! operation, string? roles, object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Data.Children<TEntity, TSpec>
-Rask.Data.Children<TEntity, TSpec>.Children() -> void
-Rask.Data.Children<TEntity, TSpec>.Count.get -> int
-Rask.Data.Children<TEntity, TSpec>.GetEnumerator() -> System.Collections.Generic.IEnumerator<TEntity!>!
-Rask.Data.Children<TEntity, TSpec>.Sync(System.Collections.Generic.IEnumerable<TSpec>! specs, System.Func<TSpec, object?>! key, System.Func<TSpec, TEntity!>! add, System.Action<TEntity!, TSpec>! update, System.Action<TEntity!>? remove = null) -> Rask.Data.SyncResult<TEntity!>!
-Rask.Data.Children<TEntity, TSpec>.this[int index].get -> TEntity!
 Rask.Data.SyncResult<TEntity>
 Rask.Data.SyncResult<TEntity>.Added.get -> System.Collections.Generic.IReadOnlyList<TEntity>!
 Rask.Data.SyncResult<TEntity>.Changed.get -> System.Collections.Generic.IReadOnlyList<TEntity>!
@@ -513,9 +507,6 @@ static Rask.Data.GeneratedOperations.Build<TAggregate, TId>(string! operation, s
 static Rask.Data.GeneratedOperations.Try<TAggregate>(object! key, int? version, System.Func<TAggregate!, System.Threading.Tasks.Task!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.TryBuild<TAggregate>(System.Func<System.Threading.Tasks.Task<TAggregate!>!>! build, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>!
 static Rask.Data.GeneratedOperations.Given<T>(System.Func<T>! make, System.Collections.Generic.ICollection<Rask.Wire.FieldFailure!>! failures) -> T?
-Rask.Data.Children<TEntity, TSpec>.Add(TEntity! item) -> void
-Rask.Data.Children<TEntity, TSpec>.Remove(TEntity! item) -> bool
-Rask.Data.Children<TEntity, TSpec>.Sync<TKey>(System.Collections.Generic.IEnumerable<TSpec>! specs, System.Func<TSpec, TKey?>! specKey, System.Func<TEntity!, TKey>! childKey, System.Func<TSpec, TEntity!>! add, System.Action<TEntity!, TSpec>! update, System.Action<TEntity!>? remove = null) -> Rask.Data.SyncResult<TEntity!>!
 Rask.Data.LockedByBuilder<T, TParent>
 Rask.Data.LockedByBuilder<T, TParent>.Except(params System.Linq.Expressions.Expression<System.Func<T!, object?>!>![]! columns) -> Rask.Data.LockedByBuilder<T!, TParent!>!
 Rask.Data.LockedByBuilder<T, TParent>.Including<TProperty>(System.Linq.Expressions.Expression<System.Func<TParent!, TProperty>!>! navigation) -> Rask.Data.LockedByBuilder<T!, TParent!>!
@@ -697,3 +688,18 @@ Rask.Data.IInfrastructure
 Rask.Data.ISoftDeletes
 Rask.Data.IVersioned
 static Rask.Data.ConventionRegistry.DeclareTenant(System.Type! entity, System.Type! tenant) -> void
+Rask.Data.HasMany<TChild>
+Rask.Data.HasMany<TChild>.HasMany() -> void
+Rask.Data.HasMany<TChild>.Add(System.Collections.Generic.IEnumerable<TChild!>! children) -> void
+Rask.Data.HasMany<TChild>.Add(TChild! item) -> void
+Rask.Data.HasMany<TChild>.Clear() -> void
+Rask.Data.HasMany<TChild>.Count.get -> int
+Rask.Data.HasMany<TChild>.GetEnumerator() -> System.Collections.Generic.IEnumerator<TChild!>!
+Rask.Data.HasMany<TChild>.Remove(TChild! item) -> bool
+Rask.Data.HasMany<TChild>.RemoveAll(System.Func<TChild!, bool>! match) -> int
+Rask.Data.HasMany<TChild>.Sync<TKey>(System.Collections.Generic.IEnumerable<TKey>! ids, System.Func<TChild!, TKey>! childKey, System.Func<TKey, TChild!>! add) -> Rask.Data.SyncResult<TChild!>!
+Rask.Data.HasMany<TChild>.Sync<TSpec, TKey>(System.Collections.Generic.IEnumerable<TSpec>! specs, System.Func<TSpec, TKey?>! specKey, System.Func<TChild!, TKey>! childKey, System.Func<TSpec, TChild!>! add, System.Action<TChild!, TSpec>! update, System.Action<TChild!>? remove = null) -> Rask.Data.SyncResult<TChild!>!
+Rask.Data.HasMany<TChild>.Sync<TSpec>(System.Collections.Generic.IEnumerable<TSpec>! specs, System.Func<TSpec, object?>! key, System.Func<TSpec, TChild!>! add, System.Action<TChild!, TSpec>! update, System.Action<TChild!>? remove = null) -> Rask.Data.SyncResult<TChild!>!
+Rask.Data.HasMany<TChild>.this[int index].get -> TChild!
+Rask.Data.InOrderBuilderExtensions
+static Rask.Data.InOrderBuilderExtensions.InOrder<TAggregate, TChild>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, Rask.Data.HasMany<TChild!>!>!>! children) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!

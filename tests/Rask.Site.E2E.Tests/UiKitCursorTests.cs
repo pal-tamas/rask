@@ -43,7 +43,7 @@ public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixtur
     [InlineData("select", "Select", "#ui-select-listbox")]
     [InlineData("select", "Select", "#ui-select-native")]
     [InlineData("pagination", "Pagination", "[data-testid='ui-pagination-size'] select")]
-    [InlineData("pagination", "Pagination", "[data-testid='ui-pagination'] [data-ui-pagination] button >> visible=true")]
+    [InlineData("pagination", "Pagination", "[data-testid='ui-pagination'] [data-ui-pagination] button:not([disabled]) >> visible=true")]
     [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox'] [data-ui-checkbox]")]
     [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox'] [data-ui-label]")]
     [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox-cards'] [data-ui-checkbox-cards]")]

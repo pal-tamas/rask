@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK146, RASK150, RASK165, RASK170–RASK191, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK146, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -38,6 +38,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
+| **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -180,7 +181,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK177](#rask177) | Info | Code written for one database |
 | [RASK178](#rask178) | Info | A transaction writes two aggregates without saying why |
 | [RASK179](#rask179) | Error | An aggregate's `On` is not an event handler |
-| [RASK180](#rask180) | Error | Children are added or removed outside their aggregate |
+| [RASK180](#rask180) | Error | Children are changed outside their aggregate |
 | [RASK184](#rask184) | Info | An aggregate refuses with an exception no form can show |
 | [RASK185](#rask185) | Info | An aggregate is loaded outside the transaction that changes it |
 | [RASK186](#rask186) | Info | An update runs an operation that has a generated entry |
@@ -189,6 +190,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
 | [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
+| [RASK193](#rask193) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3900,27 +3902,32 @@ suppress CA1859 on a handler of exactly this shape (`RASKSUP003`), and on nothin
 
 ## RASK180
 
-**Children are added or removed outside their aggregate** · Error
+**Children are changed outside their aggregate** · Error
 
-`Children<TEntity, TSpec>` is read by everyone and changed only by the aggregate that declares it: through `Sync`, or
-through `Add` and `Remove` in its own methods, where its rules are. C# has no access level for "only my holder", so
-`Add` and `Remove` are public and this error says it instead. A call is allowed when its receiver is the property (or
-field) of the type the call is written in — or of a type it is nested in: `Parts.Add(part)`, `this.Parts.Remove(p)`,
-`other.Parts.Add(p)` between two of the same aggregate, and `Parts.Add` handed over as a delegate. Children held in a
-local or returned from a method cannot be traced to their aggregate, so they are refused even inside it.
+A [`HasMany<TChild>`](domain.md#children) is read by everyone and changed only by the aggregate that declares it, in its
+own methods, where its rules are. C# has no access level for "only my holder", so its mutators — `Add` (one child or
+several), `Remove`, `RemoveAll`, `Clear` and every `Sync` — are public and this error says it instead; a cast to
+`ICollection<T>` (or handing it to an `ICollection<T>` parameter) is the same door by another name, and is held to the
+same rule. A call is allowed when its receiver is the property (or field) of the type the call is written in — or of a
+type it is nested in: `Parts.Add(part)`, `this.Parts.Remove(p)`, `other.Parts.Add(p)` between two of the same
+aggregate, and `Parts.Add` handed over as a delegate. Children held in a local or returned from a method cannot be
+traced to their aggregate, so they are refused even inside it. Reading them — `Count`, an index, a `foreach`, LINQ, an
+`IReadOnlyList<T>` — is anyone's.
 
 ```csharp
 public sealed class Supply : Aggregate<SupplyId>
 {
-    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+    public HasMany<SupplyPart> Parts { get; } = new();
     public void Take(SupplyPart part) => Parts.Add(part);   // ✓ the aggregate's own method
 }
 
 supply.Parts.Add(part);                                      // ✗ RASK180, from a page or a handler
+supply.Parts.Sync(rows, r => r.Id, SupplyPart.For, …);       // ✗ RASK180
+((ICollection<SupplyPart>)supply.Parts).Add(part);           // ✗ RASK180
 supply.Take(part);                                           // ✓
 ```
 
-**Fix:** call the aggregate's method that adds or removes the child, or write one.
+**Fix:** call the aggregate's method that changes the children, or write one.
 
 ## RASK184
 
@@ -4106,3 +4113,38 @@ public sealed class Fueling : Aggregate<int>              // ✗ RASK191: it is 
 ```
 
 **Fix:** declare the aggregate `partial` (and at namespace level, not generic).
+
+## RASK193
+
+**A child list exposed by hand** · Info (Error under `<RaskStrict>`) · quick-fix
+
+An aggregate holds its children (entities that are not aggregates) by hand: a private `List<X>` field behind an
+`IReadOnlyList<X>`, `IReadOnlyCollection<X>` or `IEnumerable<X>` view, or a public `List<X>` / `ICollection<X>`. That is
+two members for one thing, and only the view is guarded — the field is changed by any method of the aggregate with no
+rule seeing it, and a public list by anyone. One [`HasMany<X>`](domain.md#children) is the list and the view at once:
+everyone reads it, only the aggregate changes it ([RASK180](#rask180)), and its `Sync` makes the rows of a form into
+children. EF Core maps it as it mapped the field — the navigation keeps its name, the child its foreign key — so the
+move is **no migration**. A list of another aggregate's rows is not reported (that is [RASK087](#rask087)'s), and
+neither is an entity's own list of its own children.
+
+```csharp
+public sealed class Rack : Aggregate<RackId>
+{
+    private readonly List<Pistol> _pistols = [];
+    public IReadOnlyList<Pistol> Pistols => _pistols;        // ℹ RASK193
+    public void Hang(Pistol p) => _pistols.Add(p);
+}
+
+public sealed class Rack : Aggregate<RackId>
+{
+    public HasMany<Pistol> Pistols { get; } = new();         // ✓
+    public void Hang(Pistol p) => Pistols.Add(p);
+}
+```
+
+**Fix:** declare `public HasMany<X> Xs { get; } = new();` and change the children through it (**quick-fix available**:
+it removes the field, declares the property, and renames the field's uses in the aggregate to the property, an
+`AddRange` becoming `Add`; it is withheld where the list is used in a way `HasMany` has no member for — `Insert`, `Sort`,
+an index written, a `List<X>` parameter, `RemoveAll` given a method group — or is assigned anew). Where the children's
+order is the data, add `b.InOrder(r => r.Pistols)` to the aggregate's `Configure` — that one is a migration, a
+`Position` column.

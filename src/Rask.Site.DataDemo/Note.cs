@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
 using Rask.Values;
 
@@ -18,8 +19,12 @@ public sealed partial class Note : Aggregate<Guid>, IHasTimestamps, IVersioned, 
     [MaxLength(2000)]
     public string? Body { get; private set; }
 
-    /// <summary>The note's checklist, in the order its form lists the items.</summary>
-    public Children<NoteItem, NoteItemSpec> Items { get; } = new();
+    /// <summary>The note's checklist, in the order its form lists the items (<see cref="Configure" />).</summary>
+    public HasMany<NoteItem> Items { get; } = new();
+
+    /// <summary>The checklist keeps its order: each item's place is stored, and they load back in it.</summary>
+    /// <param name="note">The note's builder.</param>
+    public static void Configure(EntityTypeBuilder<Note> note) => note.InOrder(n => n.Items);
 
     /// <summary>
     ///     An operation over the checklist: <c>Form.For(Note.Checklist, id)</c> is an editable list of its rows, a row

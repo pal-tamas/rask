@@ -40,7 +40,7 @@ internal static class InForceIndexes
                       k.PrincipalToDependent is { IsCollection: true } && typeof(IAggregate).IsAssignableFrom(k.PrincipalEntityType.ClrType))
                   ?? throw new InvalidOperationException(
                       $"'{childType.Name}' says when one of it is in force, but no aggregate holds a collection of them. " +
-                      $"Hold them on the aggregate — IReadOnlyList<{childType.Name}> or Children<{childType.Name}, …>.");
+                      $"Hold them on the aggregate — IReadOnlyList<{childType.Name}> or HasMany<{childType.Name}>.");
 
         // Named, so it stands beside the foreign key's own index rather than replacing it with one over some rows only.
         var index = modelBuilder.Entity(childType).HasIndex(

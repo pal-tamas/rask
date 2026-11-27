@@ -46,7 +46,7 @@ public class EntityCollectionExposureAnalyzerTests
     [InlineData("private readonly List<OrderLine> _lines = []; public IEnumerable<OrderLine> Lines => _lines;")]
     [InlineData("public ReadOnlyCollection<OrderLine> Lines { get; } = new([]);")]
     [InlineData("public ImmutableList<OrderLine> Lines { get; } = [];")]
-    [InlineData("public Children<OrderLine, string> Lines { get; } = new();")]
+    [InlineData("public HasMany<OrderLine> Lines { get; } = new();")]
     public async Task A_read_only_exposure_is_not_reported(string member) =>
         Assert.Empty(await Run(member));
 

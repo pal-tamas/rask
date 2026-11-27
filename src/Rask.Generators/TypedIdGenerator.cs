@@ -61,6 +61,7 @@ public sealed partial class TypedIdGenerator : IIncrementalGenerator
             Declares(symbol, "Parse"),
             Declares(symbol, "TryParse"),
             Declares(symbol, nameof(ToString)),
+            Declares(symbol, "CompareTo") || Declares(symbol, "op_LessThan"),
             symbol.GetAttributes().Any(static a =>
                 a.AttributeClass?.ToDisplayString() is "System.Text.Json.Serialization.JsonConverterAttribute"));
     }
@@ -79,6 +80,7 @@ public sealed partial class TypedIdGenerator : IIncrementalGenerator
         bool HasParse,
         bool HasTryParse,
         bool HasToString,
+        bool HasCompareTo,
         bool HasJsonConverter)
     {
         public string HintName => FullName.Replace("global::", "") + ".TypedId.g.cs";

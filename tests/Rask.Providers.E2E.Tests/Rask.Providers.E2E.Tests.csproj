@@ -21,6 +21,9 @@
     <Compile Include="..\Rask.Data.Tests\ValueObjectMappingShapes.cs" Link="ValueObjectMappingShapes.cs"/>
     <!-- The value collections of every nullability, asked of every provider. -->
     <Compile Include="..\Rask.Data.Tests\ValueCollectionNullabilityShapes.cs" Link="ValueCollectionNullabilityShapes.cs"/>
+    <!-- An aggregate's children as a hand-written List and view, and as one HasMany: no migration between them on every provider. -->
+    <Compile Include="..\Rask.Data.Tests\HandListedShapes.cs" Link="HandListedShapes.cs"/>
+    <Compile Include="..\Rask.Data.Tests\ListedShapes.cs" Link="ListedShapes.cs"/>
     <!-- The jobs' clock, moved by hand while the poll ticks for real: the stop and limit tests on every provider. -->
     <Compile Include="..\Rask.Jobs.Tests\FakeTimeProvider.cs" Link="FakeTimeProvider.cs"/>
   </ItemGroup>

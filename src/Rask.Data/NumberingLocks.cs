@@ -11,7 +11,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     SQL Server takes <c>sp_getapplock</c> owned by the transaction, PostgreSQL <c>pg_advisory_xact_lock</c> on the
-///     name's <c>hashtext</c> — each in a sorted order, so two saves that touch the same groups take them alike. SQLite
+///     name's 64-bit <c>hashtextextended</c> — each in a sorted order, so two saves that touch the same groups take them alike. SQLite
 ///     has one writer at a time, which already keeps them apart.
 /// </remarks>
 internal static class NumberingLocks
@@ -44,10 +44,10 @@ internal static class NumberingLocks
 
                 break;
             case ProviderNames.Postgres:
-                var keys = new SortedSet<int>();
+                var keys = new SortedSet<long>();
                 foreach (var name in names)
                 {
-                    keys.Add(await context.Database.SqlQueryRaw<int>("SELECT hashtext({0}) AS \"Value\"", name)
+                    keys.Add(await context.Database.SqlQueryRaw<long>("SELECT hashtextextended({0}, 0) AS \"Value\"", name)
                         .SingleAsync(cancellationToken).ConfigureAwait(false));
                 }
 

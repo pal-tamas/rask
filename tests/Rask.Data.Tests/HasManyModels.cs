@@ -5,14 +5,14 @@ namespace Rask.Data.Tests;
 /// <summary>A row of the delivery form's parts; <paramref name="Id" /> names a saved one, none a new one.</summary>
 public sealed record CargoPartSpec(Guid? Id, string Hold, decimal Tonnes);
 
-// A delivery in parts, its children declared as one Children<,> property: what ChildrenSyncTests syncs from a form's specs.
+// A delivery in parts, its children declared as one HasMany property: what HasManyTests syncs from a form's specs.
 public sealed class Cargo : Aggregate<Guid>
 {
     private Cargo() { } // EF materialization
 
     public string Ship { get; private set; } = "";
 
-    public Children<CargoPart, CargoPartSpec> Parts { get; } = new();
+    public HasMany<CargoPart> Parts { get; } = new();
 
     public static Cargo Load(string ship, IReadOnlyList<CargoPartSpec> parts)
     {
@@ -36,6 +36,24 @@ public sealed class Cargo : Aggregate<Guid>
     }
 
     public bool Unload(CargoPart part) => Parts.Remove(part);
+
+    /// <summary>A change keyed by the spec's id as text: a key of another type than the parts' ids.</summary>
+    public SyncResult<CargoPart> ChangeByText(IReadOnlyList<CargoPartSpec> parts) =>
+        Parts.Sync(parts, s => s.Id?.ToString(), CargoPart.For, (_, _) => { });
+
+    public void StowAll(params CargoPartSpec[] parts) => Parts.Add(parts.Select(CargoPart.For));
+
+    public int UnloadLighterThan(decimal tonnes) => Parts.RemoveAll(p => p.Tonnes < tonnes);
+
+    public void UnloadAll() => Parts.Clear();
+
+    // The ports the cargo calls at: a link, each call naming one port's id and nothing more.
+    public HasMany<CargoCall> Calls { get; } = new();
+
+    public SyncResult<CargoCall> CallAt(params Guid[] ports) => Calls.Sync(ports, c => c.PortId, CargoCall.At);
+
+    // The parts load back in the order the last sync gave them.
+    public static void Configure(EntityTypeBuilder<Cargo> builder) => builder.InOrder(c => c.Parts);
 }
 
 public sealed class CargoPart : Entity<Guid>
@@ -68,6 +86,16 @@ public sealed class CargoPart : Entity<Guid>
     }
 }
 
+// A cargo's call at a port: the link child, the port's id and nothing more.
+public sealed class CargoCall : Entity<Guid>
+{
+    private CargoCall() { } // EF materialization
+
+    public Guid PortId { get; private set; }
+
+    internal static CargoCall At(Guid port) => new() { Id = Guid.CreateVersion7(), PortId = port };
+}
+
 /// <summary>A row of the barge form's holds; <paramref name="Id" /> names a saved one, none a new one.</summary>
 public sealed record BargeHoldSpec(Guid? Id, string Name);
 
@@ -78,7 +106,7 @@ public sealed class Barge : Aggregate<Guid>
 
     public string Name { get; private set; } = "";
 
-    public Children<BargeHold, BargeHoldSpec> Holds { get; } = new();
+    public HasMany<BargeHold> Holds { get; } = new();
 
     public static Barge Named(string name, params string[] holds)
     {
