@@ -14,7 +14,7 @@ public sealed partial class Numbering<TEntity> : INumbering
     async Task<NumberingTouch> INumbering.Touched(DbContext context, CancellationToken cancellationToken)
     {
         var touch = new NumberingTouch();
-        var comparable = NumberingOrder.IsComparable(Order[0].ReturnType);
+        var comparable = NumberingOrder.IsComparable(First.ReturnType);
         var now = _now.Value;
         foreach (var entry in context.ChangeTracker.Entries<TEntity>().ToList())
         {
@@ -152,7 +152,7 @@ public sealed partial class Numbering<TEntity> : INumbering
             return;
         }
 
-        var comparable = NumberingOrder.IsComparable(Order[0].ReturnType);
+        var comparable = NumberingOrder.IsComparable(First.ReturnType);
         var held = touched.LockNames(Name).ToHashSet(StringComparer.Ordinal);
         foreach (var entry in touched.ReadBack)
         {
@@ -205,7 +205,7 @@ public sealed partial class Numbering<TEntity> : INumbering
             Expression.MemberInit(
                 Expression.New(typeof(NumberedRow)),
                 Expression.Bind(typeof(NumberedRow).GetProperty(nameof(NumberedRow.Within))!, Boxed(Within, row)),
-                Expression.Bind(typeof(NumberedRow).GetProperty(nameof(NumberedRow.First))!, Boxed(Order[0], row))),
+                Expression.Bind(typeof(NumberedRow).GetProperty(nameof(NumberedRow.First))!, Boxed(First, row))),
             row);
         return await Where(context.Set<TEntity>(), row, KeyIs(row, keyProperty, key)).Select(spot)
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
@@ -244,7 +244,7 @@ public sealed partial class Numbering<TEntity> : INumbering
         var next = 0L;
         if (!since.IsWhole)
         {
-            var first = NumberingOrder.Rebind.To(Order[0], row);
+            var first = NumberingOrder.Rebind.To(First, row);
             next = await LastBefore(rows, row, number, NumberingOrder.Compared(first, since.From!, atOrAfter: false), cancellationToken)
                 .ConfigureAwait(false);
             rows = Where(rows, row, NumberingOrder.Compared(first, since.From!, atOrAfter: true));

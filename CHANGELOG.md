@@ -225,6 +225,11 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **`b.Numbered(…)` ordered by a typed id kept as text no longer fails to translate.** The order's members were each
+  unwrapped to their `.Value`, so `by: f => new { f.Moment, f.Number, f.Id }` sorted by `f.Id.Value` — which EF Core
+  cannot translate once the id's column is text (SQLite's every Guid, a column an app's converter keeps as text). Each member is now
+  ordered by as it is mapped, so the database orders by its column exactly as for an untyped id; only the first
+  member's place is still compared by a value object's value, and only where that value has an order.
 - **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
   `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
   and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`
