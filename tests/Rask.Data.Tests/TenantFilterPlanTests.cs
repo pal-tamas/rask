@@ -265,7 +265,7 @@ public sealed class TenantFilterPlanTests : IDisposable
         }
 
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Destinations (Name, TenantId) VALUES ('Nowhere', NULL)", TestContext.Current.CancellationToken);
+            $"INSERT INTO Destinations (name, tenant_id) VALUES ('Nowhere', NULL)", TestContext.Current.CancellationToken);
 
         return database;
     }

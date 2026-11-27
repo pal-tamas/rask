@@ -10,8 +10,8 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     /// <inheritdoc/>
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(builder.Metadata.ClrType);
+        // A battery's table: infrastructure, which no aggregate's rules reach. Named as every table is (jobs, run_at).
+        BatteryEntities.Record(builder.Metadata.ClrType);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);

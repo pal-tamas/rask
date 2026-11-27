@@ -702,6 +702,10 @@ Rask.Data.HasMany<TChild>.Sync<TSpec>(System.Collections.Generic.IEnumerable<TSp
 Rask.Data.HasMany<TChild>.this[int index].get -> TChild!
 Rask.Data.InOrderBuilderExtensions
 static Rask.Data.InOrderBuilderExtensions.InOrder<TAggregate, TChild>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>! aggregate, System.Linq.Expressions.Expression<System.Func<TAggregate!, Rask.Data.HasMany<TChild!>!>!>! children) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TAggregate!>!
+Rask.Data.Constraint.AsDeclared.get -> string?
+Rask.Data.Constraint.Prefixed.get -> string!
+Rask.Data.ConstraintKind.Check = 5 -> Rask.Data.ConstraintKind
+Rask.Data.TableName.SnakeCasePlural.get -> string!
 Rask.Data.NoOverlapBuilder<TEntity>
 Rask.Data.NoOverlapBuilder<TEntity>.Where(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! rows) -> Rask.Data.NoOverlapBuilder<TEntity!>!
 Rask.Data.NoOverlapBuilderExtensions

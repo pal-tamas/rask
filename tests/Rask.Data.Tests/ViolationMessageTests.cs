@@ -143,7 +143,7 @@ public sealed class ViolationMessageTests : IDisposable
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Lane.RouteTaken, failure.Message);
         Assert.Equal(["Origin", "Target"], failure.Fields);
-        Assert.Equal("IX_Lane_TenantId_Origin_Target", failure.Source);
+        Assert.Equal("uq_lanes_tenant_id_origin_target", failure.Source);
         Assert.Equal([Lane.RouteTaken], refused.Errors["Origin"]);
         Assert.Equal([Lane.RouteTaken], refused.Errors["Target"]);
     }

@@ -68,7 +68,7 @@ public sealed class OneInForceTests : IDisposable
 
         var index = Assert.Single(filing.GetIndexes(), i => i.IsUnique);
         Assert.Equal(["TaxReturnId"], index.Properties.Select(p => p.Name));
-        Assert.Equal("\"UnfiledAt\" IS NULL", index.GetFilter());
+        Assert.Equal("\"unfiled_at\" IS NULL", index.GetFilter());
         Assert.Null(filing.FindAnnotation(InForceBuilderExtensions.Annotation));
     }
 

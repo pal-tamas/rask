@@ -19,6 +19,7 @@
   <ItemGroup>
     <!-- The two mappings of a one-value value object, compared by EF's migration differ on every provider. -->
     <Compile Include="..\Rask.Data.Tests\ValueObjectMappingShapes.cs" Link="ValueObjectMappingShapes.cs"/>
+    <Compile Include="..\Rask.Data.Tests\NamingShapes.cs" Link="NamingShapes.cs"/>
     <!-- The value collections of every nullability, asked of every provider. -->
     <Compile Include="..\Rask.Data.Tests\ValueCollectionNullabilityShapes.cs" Link="ValueCollectionNullabilityShapes.cs"/>
     <!-- An aggregate's children as a hand-written List and view, and as one HasMany: no migration between them on every provider. -->

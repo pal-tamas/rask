@@ -8,8 +8,8 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
 {
     public void Configure(EntityTypeBuilder<PushSubscriber> entity)
     {
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(entity.Metadata.ClrType);
+        // A battery's table: infrastructure, which no aggregate's rules reach. Named as every table is (jobs, run_at).
+        BatteryEntities.Record(entity.Metadata.ClrType);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         entity.Ignore(s => s.Version);

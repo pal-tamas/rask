@@ -241,7 +241,7 @@ public sealed class TenancyThroughHeldParentTests : IDisposable
 
         // Past the aggregate, which takes its children with it: a root marked deleted with its rows still there.
         var table = database.Context.Model.FindEntityType(typeof(Cistern))!.GetTableName();
-        var markDeleted = $"UPDATE \"{table}\" SET \"{Columns.DeletedAt}\" = '2026-01-01 00:00:00+00:00' WHERE \"Id\" = 'gone'";
+        var markDeleted = $"UPDATE \"{table}\" SET \"deleted_at\" = '2026-01-01 00:00:00+00:00' WHERE \"id\" = 'gone'";
         await database.Context.Database.ExecuteSqlRawAsync(markDeleted, token);
 
         List<string> cells;

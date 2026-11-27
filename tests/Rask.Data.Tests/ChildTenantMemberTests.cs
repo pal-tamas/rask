@@ -91,7 +91,7 @@ public sealed class ChildTenantMemberTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var supply = await SaveAsync(Acme, Supply.Of("S-1", "nails", "screws", "bolts"));
-        await ForgetTenantAsync(database, "SupplyLine", "Goods", "screws", "bolts");
+        await ForgetTenantAsync(database, "supply_lines", "goods", "screws", "bolts");
 
         using (Tenant.Use(Acme))
         {
@@ -109,7 +109,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var acme = Guid.CreateVersion7();
         var hopper = await SaveAsync(acme, Hopper.Of("H-1", "red", "green", "blue"));
-        await ForgetTenantAsync(database, "HopperBin", "Label", "green", "blue");
+        await ForgetTenantAsync(database, "hopper_bins", "label", "green", "blue");
 
         using (Tenant.Use(acme))
         {
@@ -127,7 +127,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Supply.Of("S-A", "nails", "screws"));
         var theirs = await SaveAsync(Globex, Supply.Of("S-G", "rivets", "washers"));
-        await ForgetTenantAsync(database, "SupplyLine", "Goods", "screws", "washers");
+        await ForgetTenantAsync(database, "supply_lines", "goods", "screws", "washers");
 
         using (Tenant.Use(Acme))
         {
@@ -154,7 +154,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         var globex = Guid.CreateVersion7();
         await SaveAsync(acme, Hopper.Of("H-A", "red"));
         await SaveAsync(globex, Hopper.Of("H-G", "black", "white"));
-        await ForgetTenantAsync(database, "HopperBin", "Label", "white");
+        await ForgetTenantAsync(database, "hopper_bins", "label", "white");
 
         using (Tenant.Use(acme))
         {
@@ -174,9 +174,9 @@ public sealed class ChildTenantMemberTests : IDisposable
         }
 
         await using var read = database.OpenRead();
-        var face = read.Model.GetEntityTypes().Single(t => t.GetTableName() == "SupplyLine");
+        var face = read.Model.GetEntityTypes().Single(t => t.GetTableName() == "supply_lines");
         Assert.Contains("EXISTS", write, StringComparison.Ordinal);
-        Assert.Contains("FROM \"Supply\"", write, StringComparison.Ordinal);
+        Assert.Contains("FROM \"supplies\"", write, StringComparison.Ordinal);
         Assert.Equal(true, face.FindAnnotation("Rask:TenantThroughParent")?.Value);
     }
 
@@ -195,7 +195,7 @@ public sealed class ChildTenantMemberTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Supply.Of("S-1", "nails"));
-        await ForgetTenantAsync(database, "SupplyLine", "Goods", "nails");
+        await ForgetTenantAsync(database, "supply_lines", "goods", "nails");
 
         Supply loaded;
         using (Tenant.Use(Acme))
@@ -219,7 +219,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         var acme = Guid.CreateVersion7();
         await SaveAsync(acme, Hopper.Of("H-1", "red"));
         await SaveAsync(acme, Hopper.Of("H-2", "black"));
-        await ForgetTenantAsync(database, "Hopper", "Name", "H-2");
+        await ForgetTenantAsync(database, "hoppers", "name", "H-2");
 
         string sql;
         using (Tenant.Use(acme))
@@ -230,7 +230,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         }
 
         Assert.DoesNotContain("EXISTS", sql, StringComparison.Ordinal);
-        Assert.Contains("\"TenantId\" = @", sql, StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed class ChildTenantMemberTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Supply.Of("S-1", "nails", "screws"));
-        await ForgetTenantAsync(database, "SupplyLine", "Goods", "screws");
+        await ForgetTenantAsync(database, "supply_lines", "goods", "screws");
 
         using (Tenant.Use(Acme))
         {
@@ -256,7 +256,7 @@ public sealed class ChildTenantMemberTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Supply.Of("S-1", "screws"));
-        await ForgetTenantAsync(database, "SupplyLine", "Goods", "screws");
+        await ForgetTenantAsync(database, "supply_lines", "goods", "screws");
 
         Supply loaded;
         using (Tenant.Use(Acme))
@@ -297,7 +297,7 @@ public sealed class ChildTenantMemberTests : IDisposable
         var list = string.Join(", ", values.Select(static v => "'" + v + "'"));
 #pragma warning disable EF1002 // Test-only names and literals, none from input.
         var changed = await database.Context.Database.ExecuteSqlRawAsync(
-            $"UPDATE \"{table}\" SET \"TenantId\" = NULL WHERE \"{column}\" IN ({list});",
+            $"UPDATE \"{table}\" SET \"tenant_id\" = NULL WHERE \"{column}\" IN ({list});",
             TestContext.Current.CancellationToken);
 #pragma warning restore EF1002
 

@@ -105,7 +105,7 @@ public sealed class StoredFilesBackupTests : IDisposable
 
         Assert.True(StoredFilesArchive.IsRooted(rooted));
         var data = HostVolume();
-        File.Copy(CreateDatabase("StoredFile", Path.Combine(_directory, "b.db")), Path.Combine(data, ".rask-backup.db"));
+        File.Copy(CreateDatabase("stored_files", Path.Combine(_directory, "b.db")), Path.Combine(data, ".rask-backup.db"));
         File.Copy(rooted, Path.Combine(data, ".rask-backup-files.tgz"));
         RunOnHost(DbCommand.BuildRemoteReplaceArguments("h", "shop", withFiles: true).Last(), data);
         Assert.Equal("legacy bytes", File.ReadAllText(Path.Combine(data, "files/private/ab/avatar")));
@@ -119,9 +119,9 @@ public sealed class StoredFilesBackupTests : IDisposable
         var vacuum = DbCommand.BuildRemoteVacuumArguments("h", "shop").Last();
         RunOnHost(vacuum[vacuum.IndexOf("owner=", StringComparison.Ordinal)..], data);
         var project = CreateProject();
-        var backup = CreateDatabase("StoredFile", Path.Combine(_directory, "host.db"), ("private/ab/avatar", "Disk"));
+        var backup = CreateDatabase("stored_files", Path.Combine(_directory, "host.db"), ("private/ab/avatar", "Disk"));
         File.Copy(Path.Combine(data, ".rask-backup-files.tgz"), StoredFilesArchive.PathFor(backup));
-        CreateDatabase("StoredFile", Path.Combine(project, "app.db"));
+        CreateDatabase("stored_files", Path.Combine(project, "app.db"));
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
 
@@ -268,6 +268,25 @@ public sealed class StoredFilesBackupTests : IDisposable
     }
 
     [Fact]
+    public void A_database_from_before_the_snake_case_names_is_still_checked()
+    {
+        var root = Path.Combine(_directory, "storage");
+        var db = Path.Combine(_directory, "legacy.db");
+        using (var connection = new SqliteConnection($"Data Source={db};Pooling=False"))
+        {
+            connection.Open();
+            Exec(connection, "CREATE TABLE \"StoredFile\"(Id TEXT PRIMARY KEY, \"Key\" TEXT NOT NULL, Provider TEXT NOT NULL, Sha256 TEXT NOT NULL);");
+            Exec(connection, "INSERT INTO \"StoredFile\" VALUES ('old', 'private/ab/gone', 'Disk', '');");
+        }
+
+        var found = StoredFilesCheck.FindMissing(db, root);
+
+        Assert.NotNull(found);
+        Assert.Equal(1, found.Missing);
+        Assert.Equal(["private/ab/gone"], found.Examples);
+    }
+
+    [Fact]
     public void A_database_with_no_stored_file_table_is_not_checked()
     {
         var db = Path.Combine(_directory, "plain.db");
@@ -290,7 +309,7 @@ public sealed class StoredFilesBackupTests : IDisposable
             """{ "Rask": { "ConnectionStrings": { "App": "Data Source=app.db" } } }""");
         var root = Path.Combine(project, "storage");
         Write(root, "private/ab/avatar", "original bytes");
-        CreateDatabase("StoredFile", Path.Combine(project, "app.db"), ("private/ab/avatar", "Disk"));
+        CreateDatabase("stored_files", Path.Combine(project, "app.db"), ("private/ab/avatar", "Disk"));
         var backup = Path.Combine(_directory, "backups", "app.db");
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
@@ -318,8 +337,8 @@ public sealed class StoredFilesBackupTests : IDisposable
     public async Task Restoring_a_database_without_its_archive_names_the_files_that_will_404()
     {
         var project = CreateProject();
-        var backup = CreateDatabase("StoredFile", Path.Combine(_directory, "old.db"), ("private/ab/avatar", "Disk"));
-        CreateDatabase("StoredFile", Path.Combine(project, "app.db"));
+        var backup = CreateDatabase("stored_files", Path.Combine(_directory, "old.db"), ("private/ab/avatar", "Disk"));
+        CreateDatabase("stored_files", Path.Combine(project, "app.db"));
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
 
@@ -334,7 +353,7 @@ public sealed class StoredFilesBackupTests : IDisposable
     {
         var project = CreateProject();
         Write(Path.Combine(project, "storage"), key, bytes);
-        CreateDatabase("StoredFile", Path.Combine(project, "app.db"), (key, "Disk"));
+        CreateDatabase("stored_files", Path.Combine(project, "app.db"), (key, "Disk"));
         var backup = Path.Combine(_directory, "backups", "app.db");
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
@@ -346,7 +365,7 @@ public sealed class StoredFilesBackupTests : IDisposable
     private string HostVolume(params (string Path, string Content)[] files)
     {
         var data = Directory.CreateDirectory(Path.Combine(_directory, $"volume-{Guid.NewGuid():N}")).FullName;
-        CreateDatabase("StoredFile", Path.Combine(data, "app.db"));
+        CreateDatabase("stored_files", Path.Combine(data, "app.db"));
         foreach (var (path, content) in files)
         {
             Write(data, path, content);
@@ -386,7 +405,7 @@ public sealed class StoredFilesBackupTests : IDisposable
     {
         using var connection = new SqliteConnection($"Data Source={database};Pooling=False");
         connection.Open();
-        Exec(connection, "INSERT INTO \"StoredFile\" VALUES ('after', 'private/ab/new', 'Disk', '');");
+        Exec(connection, "INSERT INTO stored_files VALUES ('after', 'private/ab/new', 'Disk', '');");
     }
 
     private string CreateProject()
@@ -405,7 +424,7 @@ public sealed class StoredFilesBackupTests : IDisposable
     {
         using var connection = new SqliteConnection($"Data Source={path};Pooling=False");
         connection.Open();
-        Exec(connection, $"CREATE TABLE \"{table}\"(Id TEXT PRIMARY KEY, \"Key\" TEXT NOT NULL, Provider TEXT NOT NULL, Sha256 TEXT NOT NULL);");
+        Exec(connection, $"CREATE TABLE \"{table}\"(id TEXT PRIMARY KEY, key TEXT NOT NULL, provider TEXT NOT NULL, sha256 TEXT NOT NULL);");
         foreach (var (key, provider) in rows)
         {
             using var insert = connection.CreateCommand();

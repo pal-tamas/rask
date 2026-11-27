@@ -616,6 +616,57 @@ mapped by convention. An index declared here is kept exactly as written — on a
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
 
+### Names: Rask's own, in PostgreSQL's style
+
+Rask names every table, column and constraint itself, the same way on SQLite, SQL Server and PostgreSQL — so a model
+says nothing about names, and `ToTable`, `HasColumnName` and `HasDatabaseName` are for the name that is *not* Rask's:
+
+| | Rask names it | e.g. |
+|---|---|---|
+| a table | its class in snake case, plural (Rails' plural, of the last word) | `Fueling` → `fuelings`, `DeliveryNote` → `delivery_notes`, `Company` → `companies`, `Person` → `people` |
+| a column | its property in snake case, after the value objects and owned types holding it | `PistolId` → `pistol_id`, `Km.Start` → `km_start`, `Address.Street` → `address_street` |
+| a primary key | `pk_{table}` | `pk_fuelings` |
+| a foreign key | `fk_{table}_{columns}` | `fk_fuelings_pistol_id` |
+| a unique index or alternate key | `uq_{table}_{columns}` | `uq_users_tenant_key_email` |
+| an index | `ix_{table}_{columns}` | `ix_fuelings_created_at` |
+| a check constraint the model declares unnamed | `ck_{table}_{name}` | `ck_bookings_ends_after_start` |
+| a column default (SQL Server names it) | `df_{table}_{column}` | `df_jobs_awaited` |
+
+- **The table is the class's, never the `DbSet`'s**: `public DbSet<Fueling> Tankolasok` still maps `fuelings`. A
+  hierarchy in one table is named once, after its root, and its discriminator is `discriminator`; an owned type in a
+  table of its own (`OwnsMany`) after its class (`legs`); a many-to-many's join table after EF Core's join type, its two
+  classes in order (`vehicle_vehicle_categories`, columns `vehicle_categories_id`, `vehicles_id`); a shadow foreign key like any column
+  (`pistol_id`). A JSON column is named, what is inside it keeps its JSON names.
+- **The plural is Rails'**, as Laravel's is: `-y` after a consonant → `-ies`, `-s`/`-x`/`-ch`/`-sh`/`-ss` → `-es`,
+  `-f`/`-fe` → `-ves`, `-sis` → `-ses`, `-um` → `-a`, a word already ending in `s` kept (`stored_file_bytes`), the
+  irregulars (`person`, `child`, `man`, `woman`, `foot`, `tooth`, `goose`, `mouse`, `ox`, …) and the uncountables
+  (`equipment`, `information`, `series`, `species`, `money`, …). It is built in — EF Core's own pluralizer is in its
+  design-time package, and Humanizer would be every app's dependency for one method.
+- **63 bytes at most, on every database** — PostgreSQL's limit, within SQL Server's 128 — so a model's names do not
+  depend on where it runs: a longer name keeps what fits, then `_` and an 8-hex hash of the whole name
+  (`ix_monthly_excise_duty_return_for_agricultural_diesel_1f3a9c0e`). Two long names stay apart.
+- **Rask's own tables follow it too**: `jobs`, `recurring_job_states`, `outbox_messages`, `queued_mails`,
+  `cache_entries`, `stored_files`, `stored_file_bytes`, `push_subscribers`, `auth_instance_claims`, `auth_sessions`,
+  `auth_passkeys`, `log_entries` — and the app's own user class (`users`). EF Core's `__EFMigrationsHistory` stays EF
+  Core's.
+- **A name stated wins**: `ToTable`, `HasColumnName`, `HasDatabaseName`, `HasConstraintName`, `HasName`, `[Table]`,
+  `[Column]`, `[Index(Name = …)]` in an entity's `Configure` keep exactly what they say — how an app moves over one
+  table at a time. A name that *is* Rask's is a line saying nothing: [RASK192](diagnostics.md#rask192) points at it,
+  and its quick fix (Fix all included) deletes it.
+- **A plain `DbContext`** — one deriving from neither `RaskDbContext` nor `RaskAppDbContext`, and not calling
+  `ModelRegistry.ApplyConventions` — keeps EF Core's names.
+
+To name by another pattern, say it once in the app's [`IRaskModel`](#app-wide-model-rules-one-iraskmodel) — the same
+three rules, which replace Rask's: `TableNames`, `ColumnNames` and `ConstraintNames`. Each one's argument carries
+Rask's own name (`t.SnakeCasePlural`, `n.SnakeCase`, `n.Prefixed`) and EF Core's (`t.AsDeclared`, `n.AsDeclared`, a
+`null` constraint name), so a rule can change one thing and keep the rest:
+
+```csharp
+c.TableNames(t => "app_" + t.SnakeCasePlural);                 // app_fuelings
+c.ColumnNames(n => n.AsDeclared);                              // EF Core's PistolId, Km_Start
+c.ConstraintNames(n => n.Kind == ConstraintKind.Index ? $"{n.Table}_{n.Joined}_idx" : n.Prefixed);
+```
+
 ### App-wide model rules: one `IRaskModel`
 
 What holds for every table — a string length, a decimal's precision, how a constraint is named, what a delete does —
@@ -649,23 +700,21 @@ public sealed class AppModel : IRaskModel
 - **`Conventions`** is EF Core's `ConfigureConventions` for the whole app; **`Model`** runs on the model after Rask's
   conventions and **before** each entity's own `Configure`. Both are optional. They reach `RaskAppDbContext`, an
   app's own context deriving from `RaskDbContext`, every battery's tables, and the read faces' context.
-- **`ConstraintNames`** names every primary key, foreign key, unique index or alternate key, index and — on SQL
-  Server — column default the model did not name itself. `n.Table`, `n.Columns` (as the database names them) and
-  `n.Joined` (`Name_TenantId`) describe it; return `null` to keep EF Core's name. A name longer than the database
-  allows is cut to its limit: 128 characters on SQL Server, 63 on PostgreSQL.
-- **`ColumnNames`** and **`TableNames`** name every column and table the model did not name itself — what a schema
-  another tool made needs, said once instead of property by property:
+- **`ConstraintNames`**, **`ColumnNames`** and **`TableNames`** replace [Rask's names](#names-rasks-own-in-postgresqls-style)
+  with the app's pattern — what a schema another tool made needs, said once instead of property by property:
 
   ```csharp
   c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class);   // a Prisma schema: countedAt, kmStart; Fueling
-  c.ColumnNames(n => n.SnakeCase).TableNames(t => t.SnakeCase); // a PostgreSQL one: counted_at, km_start; delivery_note
   ```
 
-  A column's `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and
-  `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`), `n.SnakeCase` (`km_start`) and `n.AsDeclared` (EF Core's
-  `Km_Start`) are its ready names; `n.Table` is the table it is in. A table's are `t.Class` (the class name, whatever
-  its `DbSet` is called), `t.CamelCase`, `t.SnakeCase` and `t.AsDeclared` (EF Core's: the `DbSet`'s name). Return an
-  empty string to keep EF Core's. What they leave alone:
+  A constraint's `n.Kind`, `n.Table`, `n.Columns` (as the database names them), `n.Joined` (`name_tenant_id`),
+  `n.AsDeclared` (EF Core's name) and `n.Prefixed` (Rask's) describe it; return `null` to keep EF Core's. A column's
+  `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and `n.SnakeCase`
+  (`km_start`, Rask's), `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`) and `n.AsDeclared` (EF Core's `Km_Start`)
+  are its ready names; `n.Table` is the table it is in. A table's are `t.SnakeCasePlural` (`delivery_notes`, Rask's),
+  `t.Class` (the class name, whatever its `DbSet` is called), `t.SnakeCase`, `t.CamelCase` and `t.AsDeclared` (EF
+  Core's: the `DbSet`'s name). An empty string keeps EF Core's. A name longer than the database allows is cut to its
+  limit and ends in a hash of the whole name. What they leave alone:
 
   | | named? |
   |---|---|
@@ -677,11 +726,11 @@ public sealed class AppModel : IRaskModel
   | an owned type in a table of its own | yes, after its class (`t.Class` is `Leg`) |
   | a one-value value object inside another (`Price_Currency`) | yes, like its siblings (`priceCurrency`) |
   | a view (`ToView` always names it) | no |
-  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — each battery's configuration records its tables, and they keep the names their migrations have; the app's own user class (`AddRaskAuth<TUser>`) is the app's table and is named |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | yes, like the app's own |
 
-  Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
-  unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work
-  on every provider.
+  The tables and columns are named as the model is finalized but **before** every other rule that reads a name — so a
+  constraint's name, a unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states
+  them in — and the constraints after every other convention. They work on every provider.
 - **`DeleteBehavior(children:, others:)`** says what a delete does: `children` for an aggregate's
   [children](domain.md#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
@@ -1605,6 +1654,26 @@ had, one a line, in the order they apply; one that rewrites what the rows hold (
 run beside) ends in ` exclusive` — what [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) asks a new image
 before it starts it.
 
+### Rask's names: the next migration renames
+
+A database made before Rask named the model has EF Core's names (`Fuelings`, `PistolId`, `IX_Fuelings_PistolId`), or
+the ones its `Configure` stated. Once those lines are gone, the next migration moves it to
+[Rask's names](#names-rasks-own-in-postgresqls-style) — and only renames, nothing dropped or added, so no row moves:
+
+```bash
+rask db add RaskNames      # RenameTable, RenameColumn, RenameIndex — and each key renamed in place
+```
+
+EF Core has no operation that renames a primary, foreign or unique key, and writes a drop and an add for one; Rask's
+migration differ turns each such pair — the same key of the same entity, over the same properties — into the
+database's own rename: `ALTER TABLE … RENAME CONSTRAINT` on PostgreSQL, `sp_rename … 'OBJECT'` on SQL Server. SQLite
+checks no constraint by name, so there the pair is left out rather than rebuilding the table for a name. Read the
+migration before it runs: anything that is not a rename is a change the model made besides the names.
+
+A step at a time works too: keep a table's old names with `ToTable`/`HasColumnName` until its turn, or restate the old
+pattern for the whole app (`c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`)
+and drop it later. Raw SQL, views and reports that name the old tables and columns change with them.
+
 ### Taking over an existing schema
 
 An app moving onto Rask has a live database its new migrations did not make. Their first migration — the baseline —
@@ -1746,7 +1815,7 @@ What changes with the database, in a `RaskApp`:
 | | SQLite | PostgreSQL or SQL Server |
 | --- | --- | --- |
 | No `Rask:ConnectionStrings:App` | falls back to `app.db` | fails, naming the key |
-| The durable log | `logs.db`, a file of its own | the `RaskLog` table in the app database |
+| The durable log | `logs.db`, a file of its own | the `log_entries` table in the app database |
 | Snapshots | on by default | left out; configuring them refuses the start |
 | Litestream | on when `Rask:Litestream:ReplicaUrl` is set | setting it refuses the start |
 

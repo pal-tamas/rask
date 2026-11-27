@@ -8,18 +8,20 @@ namespace Rask.Data;
 public static class ModelConfigurationBuilderExtensions
 {
     /// <summary>
-    ///     Names every primary key, foreign key, unique constraint, index and (on SQL Server) default the model did not
-    ///     name explicitly: <c>c.ConstraintNames(n =&gt; $"{n.Table}_{n.Joined}_idx")</c>.
+    ///     Names every primary key, foreign key, unique constraint, index, check and (on SQL Server) default the model did
+    ///     not name explicitly, in place of Rask's <c>pk_</c>/<c>fk_</c>/<c>uq_</c>/<c>ix_</c>/<c>ck_</c>/<c>df_</c> names:
+    ///     <c>c.ConstraintNames(n =&gt; $"{n.Table}_{n.Joined}_idx")</c>.
     /// </summary>
     /// <param name="configurationBuilder">The conventions being configured.</param>
     /// <param name="name">
-    ///     The name for one constraint, or null to keep EF Core's. A name longer than the provider allows is cut to its
-    ///     limit.
+    ///     The name for one constraint — <c>n.Prefixed</c> is Rask's — or null to keep EF Core's. A name longer than the
+    ///     provider allows is cut to its limit and ends in a hash of the whole name.
     /// </param>
     /// <returns>The same builder.</returns>
     /// <remarks>
     ///     Applied as the model is finalized, after every entity's own <c>Configure</c>: a <c>HasDatabaseName</c> or
-    ///     <c>HasConstraintName</c> there wins.
+    ///     <c>HasConstraintName</c> there wins. In a Rask context it names the constraints after every other convention,
+    ///     wherever in <c>Conventions</c> it is called.
     /// </remarks>
     public static ModelConfigurationBuilder ConstraintNames(
         this ModelConfigurationBuilder configurationBuilder, Func<Constraint, string?> name)
@@ -27,8 +29,13 @@ public static class ModelConfigurationBuilderExtensions
         ArgumentNullException.ThrowIfNull(configurationBuilder);
         ArgumentNullException.ThrowIfNull(name);
 
-        configurationBuilder.Conventions.Add(services => new ConstraintNameConvention(
-            name, string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)));
+        var naming = StoreNameConvention.For(configurationBuilder);
+        naming.Constraints = name;
+        if (!naming.NamesConstraintsLast)
+        {
+            naming.NameConstraints(configurationBuilder);
+        }
+
         return configurationBuilder;
     }
 
@@ -87,7 +94,7 @@ public static class ModelConfigurationBuilderExtensions
     ///     <para>
     ///         The key is the database's, made by the migrations and by <c>EnsureCreated</c> through <c>UseRaskSqlite</c>,
     ///         <c>UseRaskSqlServer</c> and <c>UseRaskPostgres</c>: <c>NO ACTION</c> on delete, named by the app's
-    ///         <c>ConstraintNames</c> rule (<see cref="ConstraintKind.ForeignKey" />) or <c>FK_{table}_{tenant}_{column}</c>.
+    ///         <c>ConstraintNames</c> rule (<see cref="ConstraintKind.ForeignKey" />), Rask's <c>fk_{table}_tenant_id</c> by default.
     ///         It is no relationship of the model — EF Core relates only properties of one type, and a tenant is often a
     ///         <see cref="Guid" /> to its tables and text to its own row — so a save neither orders its commands by it nor
     ///         deletes a tenant's rows with it. Give the tenant a <c>WhenReferenced("…")</c> sentence and a refused delete

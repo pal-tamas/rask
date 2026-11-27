@@ -15,10 +15,10 @@ public sealed class DatabaseDefaultTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Size\" INTEGER NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
-        Assert.Contains("\"Kind\" INTEGER NOT NULL DEFAULT (1)", script, StringComparison.Ordinal);
-        Assert.Contains("\"CreatedAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00')", script, StringComparison.Ordinal);
-        Assert.Contains("\"CountedAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))", script, StringComparison.Ordinal);
+        Assert.Contains("\"size\" INTEGER NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
+        Assert.Contains("\"kind\" INTEGER NOT NULL DEFAULT (1)", script, StringComparison.Ordinal);
+        Assert.Contains("\"created_at\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00')", script, StringComparison.Ordinal);
+        Assert.Contains("\"counted_at\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class DatabaseDefaultTests
         var before = DateTimeOffset.UtcNow.AddMinutes(-1);
 
         await context.Database.ExecuteSqlRawAsync(
-            "INSERT INTO \"StorageTank\" (\"Id\", \"Name\") VALUES ('7d3f4b1e-0000-0000-0000-000000000001', 'legacy')",
+            "INSERT INTO \"storage_tanks\" (\"id\", \"name\") VALUES ('7d3f4b1e-0000-0000-0000-000000000001', 'legacy')",
             TestContext.Current.CancellationToken);
 
         var read = await context.Set<StorageTank>().AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
@@ -99,8 +99,8 @@ public sealed class DatabaseDefaultTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Number\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
-        Assert.Contains("\"Locked\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
+        Assert.Contains("\"number\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
+        Assert.Contains("\"locked\" INTEGER NOT NULL DEFAULT (0)", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,8 +126,8 @@ public sealed class DatabaseDefaultTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Sent\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
-        Assert.Contains("\"SeenAt\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
+        Assert.Contains("\"sent\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
+        Assert.Contains("\"seen_at\" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime'))", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -139,11 +139,11 @@ public sealed class DatabaseDefaultTests
         var before = DateTime.Now.AddMinutes(-1);
 
         await context.Database.ExecuteSqlRawAsync(
-            "INSERT INTO \"PumpNozzle\" (\"Id\") VALUES ('7d3f4b1e-0000-0000-0000-000000000002')", TestContext.Current.CancellationToken);
+            "INSERT INTO \"pump_nozzles\" (\"id\") VALUES ('7d3f4b1e-0000-0000-0000-000000000002')", TestContext.Current.CancellationToken);
 
-        var row = await context.Database.SqlQueryRaw<int>("SELECT \"Number\" AS \"Value\" FROM \"PumpNozzle\"")
+        var row = await context.Database.SqlQueryRaw<int>("SELECT \"number\" AS \"Value\" FROM \"pump_nozzles\"")
             .SingleAsync(TestContext.Current.CancellationToken);
-        var sent = await context.Database.SqlQueryRaw<DateTime>("SELECT \"SeenAt\" AS \"Value\" FROM \"PumpNozzle\"")
+        var sent = await context.Database.SqlQueryRaw<DateTime>("SELECT \"seen_at\" AS \"Value\" FROM \"pump_nozzles\"")
             .SingleAsync(TestContext.Current.CancellationToken);
         Assert.Equal(0, row);
         Assert.InRange(sent, before, DateTime.Now.AddMinutes(1));

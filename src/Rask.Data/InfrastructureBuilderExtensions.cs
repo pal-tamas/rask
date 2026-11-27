@@ -33,6 +33,6 @@ public static class InfrastructureBuilderExtensions
     }
 
     /// <summary>Whether <paramref name="type" /> was marked <see cref="Infrastructure{TEntity}" />.</summary>
-    /// <remarks>A table of Rask's own batteries is, as they record it for its names (<see cref="KeptNames" />).</remarks>
-    internal static bool IsInfrastructure(Type type) => Marked.ContainsKey(type) || KeptNames.Has(type);
+    /// <remarks>A table of Rask's own batteries is, as each records it (<see cref="BatteryEntities" />).</remarks>
+    internal static bool IsInfrastructure(Type type) => Marked.ContainsKey(type) || BatteryEntities.Has(type);
 }

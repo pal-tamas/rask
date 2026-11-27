@@ -17,4 +17,7 @@ public enum ConstraintKind
 
     /// <summary>A column's default value — a named constraint on SQL Server only.</summary>
     Default,
+
+    /// <summary>A check constraint the model declared without naming it in the database.</summary>
+    Check,
 }

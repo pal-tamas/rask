@@ -51,7 +51,7 @@ public sealed class Leg
     public int DrivenKm { get; set; }
 }
 
-/// <summary>A table a battery maps, recorded as one the way every battery's configuration records its own.</summary>
+/// <summary>A table a battery maps, recorded as one the way every battery's configuration records its own — and named as any other.</summary>
 public sealed class Ledger
 {
     public int Id { get; set; }
@@ -111,7 +111,7 @@ public class LegacyContext(DbContextOptions options) : DbContext(options)
         modelBuilder.Entity<Refuel>(Configure);
         modelBuilder.Entity<Tanker>().OwnsOne(t => t.Depot);
         modelBuilder.Entity<Tanker>().OwnsMany(t => t.Legs);
-        modelBuilder.Entity<Ledger>(ledger => KeptNames.Keep(ledger.Metadata.ClrType));
+        modelBuilder.Entity<Ledger>(ledger => BatteryEntities.Record(ledger.Metadata.ClrType));
         modelBuilder.Entity<IbcNozzle>();
     }
 
@@ -283,13 +283,13 @@ public sealed class NamingConventionTests : IDisposable
     }
 
     [Fact]
-    public void A_table_a_battery_recorded_keeps_its_names()
+    public void A_table_a_battery_recorded_is_named_as_every_other_table_is()
     {
         var ledger = Model(Snake()).FindEntityType(typeof(Ledger))!;
 
         var names = (ledger.GetTableName(), Column(ledger, nameof(Ledger.EntryCount)));
 
-        Assert.Equal(("Ledger", "EntryCount"), names);
+        Assert.Equal(("ledger", "entry_count"), names);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public sealed class NamingConventionTests : IDisposable
         using var db = new CamelGondolaContext(
             OptionsLayout.LikeAddDbContext<CamelGondolaContext>().UseSqlite("Data Source=:memory:").Options);
         var gondola = Model(db).FindEntityType(typeof(Gondola))!;
-        var store = StoreObjectIdentifier.Table("Gondolas");
+        var store = StoreObjectIdentifier.Table(gondola.GetTableName()!);
 
         var crate = gondola.FindComplexProperty(nameof(Gondola.Crate))!.ComplexType;
         var route = gondola.FindComplexProperty(nameof(Gondola.Route))!.ComplexType.FindComplexProperty(nameof(GondolaRoute.Label))!.ComplexType;

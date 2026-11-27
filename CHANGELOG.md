@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
+  `b.Property(x => x.PistolId).HasColumnName("pistol_id")`, `HasDatabaseName("ix_fuelings_created_at")`,
+  `HasName("pk_fuelings")`, `HasConstraintName("fk_fuelings_pistol_id")`, `[Table("fuelings")]` and `[Column("pistol_id")]`
+  are reported as a suggestion, faded as unneeded, and the quick fix (with Fix all) deletes them — the call out of its
+  chain, and a statement left saying nothing with it. A project that restates the pattern (`TableNames`, `ColumnNames`,
+  `ConstraintNames`) gets no report.
 - **Typed ids over a number or a `Guid` are ordered: `<`, `>`, `<=`, `>=` and `IComparable<T>`.** `Where(x => x.Id >
   last)` pages by the key in a query, and `ids.Order()` / `Min()` sort them in memory, by the value — a version-7 id's
   by the time it was made. A text id gets none (the database orders it by its collation), and an order the author wrote
@@ -105,6 +111,26 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING — Rask names the model in PostgreSQL's style on every database.** Before: a Rask context kept EF Core's
+  names (`Fuelings` after the `DbSet`, `PistolId`, `IX_Fuelings_PistolId`, `FK_Fuelings_Pistols_PistolId`), and Rask's
+  own tables theirs (`RaskAuthSession`, `RaskLog`, `Jobs`). Now every `RaskDbContext`/`RaskAppDbContext` names a table
+  after its class in snake case and plural (Rails' plural: `DeliveryNote` → `delivery_notes`, `Company` →
+  `companies`, `Person` → `people`), a column after its property's path in snake case (`pistol_id`, `km_start`,
+  `discriminator`), and its constraints `pk_{table}`, `fk_{table}_{columns}`, `uq_{table}_{columns}`,
+  `ix_{table}_{columns}`, `ck_{table}_{name}` and (SQL Server) `df_{table}_{column}` — cut to PostgreSQL's 63 bytes on
+  every database, a longer one ending in a hash of the whole name. Rask's battery tables follow too (`jobs`,
+  `outbox_messages`, `queued_mails`, `cache_entries`, `stored_files`, `push_subscribers`, `auth_sessions`,
+  `auth_passkeys`, `auth_instance_claims`, `log_entries`, …). A name stated in `Configure` (`ToTable`,
+  `HasColumnName`, `HasDatabaseName`, `HasConstraintName`, `[Table]`, `[Column]`) still wins; `TableNames`,
+  `ColumnNames` and `ConstraintNames` in the app's `IRaskModel` are the one way to change the pattern (new
+  `t.SnakeCasePlural`, `n.Prefixed`, `n.AsDeclared` and `ConstraintKind.Check` say Rask's and EF Core's names). A plain
+  `DbContext` keeps EF Core's. **Upgrading:** delete the naming lines Rask now gives anyway (RASK192 finds them; Fix
+  all deletes them), then `rask db add RaskNames` — the migration only renames: `RenameTable`, `RenameColumn`,
+  `RenameIndex`, and each primary, foreign and unique key renamed in place (`ALTER TABLE … RENAME CONSTRAINT` on
+  PostgreSQL, `sp_rename` on SQL Server; on SQLite nothing for a key's name), where EF Core would drop and add it.
+  Raw SQL that names the old tables or columns changes with them. To keep EF Core's names for now:
+  `c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`
+  ([Names](docs/data.md#names-rasks-own-in-postgresqls-style), [the next migration renames](docs/data.md#rasks-names-the-next-migration-renames)).
 - **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
   and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
   is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.

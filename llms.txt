@@ -98,7 +98,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   A battery the app does without is switched off in code (`c.Jobs.Off()`);
   its package stays referenced, and a DB-backed battery keeps its table mapped so switching it back on is not a destructive migration.
   `Rask:Database:Provider` (sqlite default | postgres | sqlserver) picks the app database at `Rask:ConnectionStrings:App`: `RaskApp` reads it at registration, and an app-owned context uses `.UseRaskDatabase(sp)` (one opening another provider fails at start).
-  On postgres/sqlserver there is NO app.db fallback (a missing App string throws naming the key), the durable log goes to the app database (`RaskAppDbContext` maps `RaskLog` only there), default Snapshots is skipped, and configured Snapshots or a Litestream ReplicaUrl REFUSE the start.
+  On postgres/sqlserver there is NO app.db fallback (a missing App string throws naming the key), the durable log goes to the app database (`RaskAppDbContext` maps `log_entries` only there), default Snapshots is skipped, and configured Snapshots or a Litestream ReplicaUrl REFUSE the start.
 - [Tutorial: zero to deploy](docs/tutorial/00-overview.md): a step-by-step build of a "Shop" app that adds every OPF pillar in order — scaffold (`rask new`), first DB-backed feature (the chapter writes the aggregate and its pages as code — nothing to register, `RaskAppDbContext` maps it — then `rask db add/update`), auth (`[Authorize]` + the `Authorize` component), background jobs (`IJob` + an `IJobHandler<T>` + `Jobs.Enqueue`;
   a schedule is `app.Configure(c => c.Jobs.Run<T>().Every(…))`), transactional email (a body component + `Mail.Send`), cache (`Cache.Remember(key, load).For(…)`), domain events/outbox (an `IEvent` + an `IDurableHandler<T>`), production SQLite (the WAL pragmas, snapshots, Litestream on `Rask:Litestream:ReplicaUrl`), Web Push (`Push.Subscribe` from a component, `await Push.Send(…).To(order.CustomerId)` from the outbox handler, `Push.Fake()` in a test), and `rask deploy --host --domain` to one box.
   11 chapters under docs/tutorial/, each the code to write + a verify step;
@@ -324,7 +324,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   **PASSKEYS (WebAuthn) — ANOTHER WAY IN, NOT A REPLACEMENT FOR THE PASSWORD**: `o.Passkeys` ON by default;
   `IAuth.AddPasskey(name)` / `SignInWithPasskey(remember, returnUrl)` / `RemovePasskey(id)` on every host (TypeScript: `addPasskey`/`signInWithPasskey`/`removePasskey`/`passkeysSupported()` in the auth module) — CALL THEM FROM A CLICK HANDLER (browsers show the dialog only for a real gesture);
   a dismissed dialog answers `AuthError.PasskeyRejected`, never throws.
-  Rask-owned `Passkey : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` in table RaskAuthPasskey (UserId, UNIQUE CredentialId, COSE PublicKey, Algorithm, SignCount, Name, Transports, BackedUp, LastUsedAt), read like sessions — `Passkey.Where(p => p.UserId == me)` — events PasskeyAdded/PasskeyRemoved.
+  Rask-owned `Passkey : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` in table auth_passkeys (user_id, UNIQUE CredentialId, COSE PublicKey, Algorithm, SignCount, Name, Transports, BackedUp, LastUsedAt), read like sessions — `Passkey.Where(p => p.UserId == me)` — events PasskeyAdded/PasskeyRemoved.
   **VERIFIED BY RASK ON THE BCL, NO FIDO LIBRARY**: System.Formats.Cbor + ECDsa/RSA, attestation "none", ES256(-7)/RS256(-257) ONLY.
   The challenge is a Data-Protection-sealed state (5 min, redeemable ONCE, so a captured ceremony cannot be replayed);
   the origin must be in `PasskeyOrigins` when it is configured (EXACT match);
@@ -344,7 +344,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   the wire contract (`AuthApi`, request/response records, `AuthResult`/`AuthError`) lives in `Rask.Wire`.
   **ON BY DEFAULT** — `app.Configure(c => c.Auth.Off())` declines.
   **THE FIRST ACCOUNT TO REGISTER BECOMES `admin`**, the rest `user`, `/_rask` gated on it;
-  single winner via a constant-PK row (RaskAuthInstanceClaim, AdminUserId Guid);
+  single winner via a constant-PK row (auth_instance_claims, admin_user_id Guid);
   the FIRST registration alone needs the one-time token from the startup log (`o.RequireFirstRunToken = false` drops it).
   `o.Registration = Registration.Closed` shuts sign-up: `/api/auth/register` is NOT mapped, `IAuth.Register` → `AuthError.NotAllowed`, `IAccounts.Create` still works, and an UNCLAIMED instance is still claimed once with the first-run token.
   Confirmation and reset go out through the MAIL battery (IMail resolved at send time;
@@ -1739,7 +1739,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The dashboard has a read-only Storage tab at `/_rask/storage`;
   `/_rask/files/…` is reserved for the file routes.
 - [Logging](docs/logging.md): the `Rask.Logging` package (in `Rask.Server`, on by default) — a DURABLE log store with TWO backends behind one `ILogs`, both configured by `Rask:Logs` then the callback.
-  On PostgreSQL/SQL Server use the APPLICATION DATABASE: `builder.Services.AddRaskLogging<AppDbContext>()` + `modelBuilder.AddRaskLogging()` (an internal `LogEntry` → table `RaskLog`, Category max 512, indexes Timestamp / (Level, Id desc) / (Category, Id desc);
+  On PostgreSQL/SQL Server use the APPLICATION DATABASE: `builder.Services.AddRaskLogging<AppDbContext>()` + `modelBuilder.AddRaskLogging()` (an internal `LogEntry` → table `log_entries`, Category max 512, indexes Timestamp / (Level, Id desc) / (Category, Id desc);
   create it with a migration;
   no connection string of its own).
   There every flush runs on its OWN context + connection from `IDbContextFactory<TContext>`, so a line logged inside a rolled-back transaction is KEPT;

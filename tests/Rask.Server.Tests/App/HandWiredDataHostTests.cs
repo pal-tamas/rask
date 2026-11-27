@@ -34,8 +34,12 @@ public sealed class Terminal : Aggregate<int, Model, Deletable, PerTenant>
 
     public static void Configure(EntityTypeBuilder<Terminal> builder)
     {
+        // The names the existing table has, stated: Rask's own (terminals, tenant_id, uq_…) are for the tables it makes.
         builder.ToTable("Terminals");
-        builder.HasIndex(t => new { t.Name, t.TenantId }).IsUnique(NameTaken);
+        builder.Property(t => t.Id).HasColumnName("Id");
+        builder.Property(t => t.Name).HasColumnName("Name");
+        builder.Property(t => t.TenantId).HasColumnName("TenantId");
+        builder.HasIndex(t => new { t.Name, t.TenantId }).HasDatabaseName("IX_Terminals_Name_TenantId").IsUnique(NameTaken);
     }
 }
 

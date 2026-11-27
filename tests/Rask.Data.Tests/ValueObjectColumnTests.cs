@@ -87,9 +87,11 @@ public sealed class ComplexContactContext(DbContextOptions<ComplexContactContext
         modelBuilder.Entity<ComplexContact>(e =>
         {
             e.ToTable("Contacts");
-            e.ComplexProperty(x => x.Name, b => b.Property(v => v.Value).HasColumnName("Name").HasMaxLength(255));
-            e.ComplexProperty(x => x.Code, b => b.Property(v => v.Value).HasColumnName("Code"));
-            e.ComplexProperty(x => x.Rank, b => b.Property(v => v.Value).HasColumnName("Rank"));
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.TenantId).HasColumnName("tenant_id");
+            e.ComplexProperty(x => x.Name, b => b.Property(v => v.Value).HasColumnName("name").HasMaxLength(255));
+            e.ComplexProperty(x => x.Code, b => b.Property(v => v.Value).HasColumnName("code"));
+            e.ComplexProperty(x => x.Rank, b => b.Property(v => v.Value).HasColumnName("rank"));
         });
 }
 
@@ -113,7 +115,7 @@ public sealed class ValueObjectColumnTests : IDisposable
 
         var name = database.Context.Model.FindEntityType(typeof(Contact))!.FindProperty(nameof(Contact.Name))!;
 
-        Assert.Equal("Name", name.GetColumnName());
+        Assert.Equal("name", name.GetColumnName());
         Assert.Equal(typeof(string), name.GetValueConverter()!.ProviderClrType);
         Assert.Equal(255, name.GetMaxLength());
         Assert.False(name.IsNullable);
@@ -212,7 +214,7 @@ public sealed class ValueObjectColumnTests : IDisposable
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlAsync(
-            $"DROP INDEX \"IX_Contacts_Name_TenantId\"", TestContext.Current.CancellationToken);
+            $"DROP INDEX \"uq_Contacts_name_tenant_id\"", TestContext.Current.CancellationToken);
         await SaveAsync(Acme, Contact.Named("Ada"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(() => SaveAsync(Acme, Contact.Named("Ada")));

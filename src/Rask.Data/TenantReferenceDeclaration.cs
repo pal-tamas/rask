@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Generators.Shared;
 
 namespace Rask.Data;
 
@@ -49,7 +50,7 @@ internal static class TenantReferenceDeclaration
         {
             if (TenantReference.Parse(entityType.FindAnnotation(TenantReference.Annotation)?.Value as string) is { } declared
                 && Column(entityType) is { } column
-                && name(new Constraint(ConstraintKind.ForeignKey, entityType.GetTableName()!, [column])) is { Length: > 0 } named)
+                && name(new Constraint(ConstraintKind.ForeignKey, entityType.GetTableName()!, [column], declared.Name)) is { Length: > 0 } named)
             {
                 entityType.Builder.HasAnnotation(TenantReference.Annotation, (declared with { Name = Cut(named, limit) }).ToString());
             }
@@ -88,5 +89,5 @@ internal static class TenantReferenceDeclaration
             ? property.GetColumnName(StoreObjectIdentifier.Table(table, entityType.GetSchema())) ?? property.GetColumnName()
             : null;
 
-    private static string Cut(string name, int? limit) => limit is { } max && name.Length > max ? name[..max] : name;
+    private static string Cut(string name, int? limit) => limit is { } max ? StoreNames.Fit(name, max) : name;
 }

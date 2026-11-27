@@ -27,9 +27,15 @@ public sealed class Destination : Aggregate<int, Model, Deletable, PerTenant>
 
     public static void Configure(EntityTypeBuilder<Destination> builder)
     {
+        // The names the table already has, stated: Rask's own (destinations, tenant_id, uq_…) are for tables it makes.
         builder.ToTable("Destinations");
-        builder.Property(d => d.Name).IsRequired().HasMaxLength(255);
-        builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique(NameTaken).HasFilter("[TenantId] IS NOT NULL");
+        builder.Property(d => d.Id).HasColumnName("Id");
+        builder.Property(d => d.Name).HasColumnName("Name").IsRequired().HasMaxLength(255);
+        builder.Property(d => d.TenantId).HasColumnName("TenantId");
+        builder.HasIndex(d => new { d.Name, d.TenantId })
+            .HasDatabaseName("IX_Destinations_Name_TenantId")
+            .IsUnique(NameTaken)
+            .HasFilter("[TenantId] IS NOT NULL");
     }
 }
 

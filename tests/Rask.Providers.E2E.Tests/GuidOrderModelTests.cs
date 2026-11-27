@@ -83,10 +83,10 @@ public sealed class GuidOrderModelTests
         Assert.StartsWith(GuidOrderRewrite.Marker, rewrite, StringComparison.Ordinal);
         Assert.Contains("NOCHECK CONSTRAINT", rewrite, StringComparison.Ordinal);
         Assert.Contains("WITH CHECK CHECK CONSTRAINT", rewrite, StringComparison.Ordinal);
-        Assert.Contains("UPDATE [rask_guid_order].[ConvoyLeg] SET [Id] = " + SqlServerGuidOrder.StoredFromNative("[Id]") + ", [Convoy] = ", rewrite, StringComparison.Ordinal);
-        Assert.Contains("[Spare] = " + SqlServerGuidOrder.StoredFromNative("[Spare]"), rewrite, StringComparison.Ordinal);
+        Assert.Contains("UPDATE [rask_guid_order].[convoy_legs] SET [id] = " + SqlServerGuidOrder.StoredFromNative("[id]") + ", [convoy] = ", rewrite, StringComparison.Ordinal);
+        Assert.Contains("[spare] = " + SqlServerGuidOrder.StoredFromNative("[spare]"), rewrite, StringComparison.Ordinal);
         Assert.Empty(again);
-        Assert.Contains("[Id] = " + SqlServerGuidOrder.NativeFromStored("[Id]"), Assert.IsType<SqlOperation>(Assert.Single(back)).Sql, StringComparison.Ordinal);
+        Assert.Contains("[id] = " + SqlServerGuidOrder.NativeFromStored("[id]"), Assert.IsType<SqlOperation>(Assert.Single(back)).Sql, StringComparison.Ordinal);
     }
 
     [Fact]

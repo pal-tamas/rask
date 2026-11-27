@@ -19,7 +19,8 @@ namespace Rask.Data;
 
 /// <summary>
 ///     EF Core's migration differ, with an empty ARRAY — not an object — as the default of a JSON collection column that
-///     a migration adds or turns <c>NOT NULL</c>, and the foreign keys <c>TenantReferences&lt;T&gt;()</c> declares.
+///     a migration adds or turns <c>NOT NULL</c>, the foreign keys <c>TenantReferences&lt;T&gt;()</c> declares, and a
+///     constraint renamed rather than dropped and added (<see cref="ConstraintRenames" />).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -102,6 +103,12 @@ internal sealed class RaskMigrationsModelDiffer(
             (IsStoredByTime(source), IsStoredByTime(target)));
         operations = WithGuidOrder(operations, source, target);
         operations = WithNoOverlapRules(operations, source, target);
+
+        // A constraint only renamed — Rask's pk_/fk_/uq_ names over an existing database — is renamed, not dropped and added.
+        if (source is not null)
+        {
+            operations = ConstraintRenames.Apply([.. operations], source, target, databaseProvider.Name, sqlGenerationHelper);
+        }
 
         foreach (var operation in operations)
         {

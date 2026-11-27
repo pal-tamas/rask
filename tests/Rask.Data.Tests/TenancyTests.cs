@@ -331,7 +331,7 @@ public sealed class TenancyTests : IDisposable
 
         Assert.True(column.IsShadowProperty());
         Assert.Equal(typeof(Guid?), column.ClrType);
-        Assert.Equal("TenantId", column.GetColumnName());
+        Assert.Equal("tenant_id", column.GetColumnName());
     }
 
     [Fact]
@@ -343,7 +343,7 @@ public sealed class TenancyTests : IDisposable
 
         Assert.False(column.IsShadowProperty());
         Assert.Equal(typeof(Guid?), column.ClrType);
-        Assert.Equal("TenantId", column.GetColumnName());
+        Assert.Equal("tenant_id", column.GetColumnName());
     }
 
     [Fact]

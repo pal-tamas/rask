@@ -151,8 +151,8 @@ public sealed class MigrationE2ETests
             var text = string.Concat(migrations.Select(File.ReadAllText));
 
             Assert.True(
-                text.Contains("name: \"Product\"", StringComparison.Ordinal),
-                "the model was declared but no Product table reached the migration — either AppDbContext "
+                text.Contains("name: \"products\"", StringComparison.Ordinal),
+                "the model was declared but no products table reached the migration — either AppDbContext "
                 + "does not derive from RaskDbContext, or the model generator never ran for the app.\n"
                 + string.Join("\n", migrations));
 

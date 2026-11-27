@@ -137,9 +137,9 @@ public sealed class TenancyThroughParentTests : IDisposable
         Assert.Equal(2, where.Split("EXISTS").Length - 1);
         Assert.Contains("FROM \"Driver\"", where, StringComparison.Ordinal);
         Assert.Contains("FROM \"Vehicle\"", where, StringComparison.Ordinal);
-        Assert.Contains("\"TenantId\" = @", where, StringComparison.Ordinal);
-        Assert.Contains("\"DriverId\"", where, StringComparison.Ordinal);
-        Assert.Contains("\"VehicleId\"", where, StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", where, StringComparison.Ordinal);
+        Assert.Contains("\"driver_id\"", where, StringComparison.Ordinal);
+        Assert.Contains("\"vehicle_id\"", where, StringComparison.Ordinal);
         Assert.DoesNotContain(Acme.ToString(), where, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -218,7 +218,7 @@ public sealed class TenancyThroughParentTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync();
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Chip (Id, Code, DriverId, VehicleId) VALUES ('loose', 'LOOSE', NULL, NULL)",
+            $"INSERT INTO Chip (id, code, driver_id, vehicle_id) VALUES ('loose', 'LOOSE', NULL, NULL)",
             TestContext.Current.CancellationToken);
 
         using (Tenant.Across())
@@ -404,7 +404,7 @@ public sealed class TenancyThroughParentTests : IDisposable
     // Straight to the table, past every filter: what the database holds, whoever is asking.
     private static async Task<int> StoredCountAsync(TestDatabase database, string code) =>
         (await database.Context.Database
-            .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM Chip WHERE Code = {code}")
+            .SqlQuery<int>($"SELECT COUNT(*) AS Value FROM Chip WHERE code = {code}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private Task<TestDatabase> StartDatabaseAsync() =>

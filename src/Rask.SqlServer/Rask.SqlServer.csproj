@@ -39,6 +39,8 @@
     <!-- Rask's migrations differ, registered by RaskSqlServerOptionsExtension. Linked, since this package does not
          reference Rask.Data; internal in both, so an app holding both sees neither. -->
     <Compile Include="..\Rask.Data\RaskMigrationsModelDiffer.cs" Link="Shared\RaskMigrationsModelDiffer.cs"/>
+    <!-- The differ's constraint renames: Rask's pk_/fk_/uq_ names over an existing database. -->
+    <Compile Include="..\Rask.Data\ConstraintRenames.cs" Link="Shared\ConstraintRenames.cs"/>
     <!-- The one-time rewrite the differ emits when the model starts storing its uniqueidentifier columns by time. -->
     <Compile Include="..\Rask.Data\GuidOrderRewrite.cs" Link="Shared\GuidOrderRewrite.cs"/>
     <Compile Include="..\Rask.Data\SqlServerGuidOrder.cs" Link="Shared\SqlServerGuidOrder.cs"/>

@@ -82,7 +82,7 @@ public sealed class OptionalStructValueObjectTests : IDisposable
         var discount = offer.FindProperty(nameof(Offer.Discount))!;
         var code = offer.FindProperty(nameof(Offer.Code))!;
 
-        Assert.Equal("Discount", discount.GetColumnName());
+        Assert.Equal("discount", discount.GetColumnName());
         Assert.Equal(typeof(int), discount.GetValueConverter()!.ProviderClrType);
         Assert.True(discount.IsNullable);
         Assert.Equal(typeof(string), code.GetValueConverter()!.ProviderClrType);

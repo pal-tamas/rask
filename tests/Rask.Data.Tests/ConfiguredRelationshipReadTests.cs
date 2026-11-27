@@ -109,16 +109,16 @@ public sealed class ConfiguredRelationshipReadTests : IAsyncLifetime
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
-            CREATE TABLE "ProductCategories" ("Id" INTEGER NOT NULL PRIMARY KEY, "Name" TEXT NOT NULL);
-            CREATE TABLE "ForeignTaxCategories" ("Id" INTEGER NOT NULL PRIMARY KEY, "Name" TEXT NOT NULL);
+            CREATE TABLE "ProductCategories" ("id" INTEGER NOT NULL PRIMARY KEY, "name" TEXT NOT NULL);
+            CREATE TABLE "ForeignTaxCategories" ("id" INTEGER NOT NULL PRIMARY KEY, "name" TEXT NOT NULL);
             CREATE TABLE "TaxedGoods" (
-                "Id" INTEGER NOT NULL PRIMARY KEY, "TenantId" INTEGER NULL, "Name" TEXT NOT NULL,
-                "ProductCategoryId" INTEGER NULL, "ForeignTaxProductCategoryId" INTEGER NULL);
-            CREATE TABLE "Countries" ("Id" INTEGER NOT NULL PRIMARY KEY);
-            CREATE TABLE "TransactionTypes" ("Id" INTEGER NOT NULL PRIMARY KEY, "TenantId" INTEGER NULL, "Name" TEXT NOT NULL);
+                "id" INTEGER NOT NULL PRIMARY KEY, "tenant_id" INTEGER NULL, "name" TEXT NOT NULL,
+                "product_category_id" INTEGER NULL, "foreign_tax_product_category_id" INTEGER NULL);
+            CREATE TABLE "Countries" ("id" INTEGER NOT NULL PRIMARY KEY);
+            CREATE TABLE "TransactionTypes" ("id" INTEGER NOT NULL PRIMARY KEY, "tenant_id" INTEGER NULL, "name" TEXT NOT NULL);
             CREATE TABLE "TransactionTypeCountries" (
-                "TransactionTypeId" INTEGER NOT NULL, "CountryId" INTEGER NOT NULL, "VatNumber" TEXT NOT NULL,
-                PRIMARY KEY ("TransactionTypeId", "CountryId"));
+                "transaction_type_id" INTEGER NOT NULL, "country_id" INTEGER NOT NULL, "vat_number" TEXT NOT NULL,
+                PRIMARY KEY ("transaction_type_id", "country_id"));
             INSERT INTO "ProductCategories" VALUES (1, 'Fuel'), (2, 'Toll');
             INSERT INTO "ForeignTaxCategories" VALUES (1, 'Excise duty'), (2, 'Road tax');
             INSERT INTO "TaxedGoods" VALUES (10, 7, 'Diesel', 1, 2), (11, 8, 'Petrol', 2, 1);

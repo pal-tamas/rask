@@ -102,8 +102,9 @@ public static class AuthModelBuilderExtensions
 
     private static void MapSession(EntityTypeBuilder<Session> b)
     {
-        KeptNames.Keep(b.Metadata.ClrType);
-        b.ToTable("RaskAuthSession");
+        BatteryEntities.Record(b.Metadata.ClrType);
+        // Not plain `sessions`: an app's own Session would claim the same table.
+        b.ToTable("auth_sessions");
         b.HasIndex(s => s.UserId);
         b.Property(s => s.IpAddress).HasMaxLength(Session.IpAddressLength);
         b.Property(s => s.UserAgent).HasMaxLength(Session.UserAgentLength);
@@ -111,8 +112,8 @@ public static class AuthModelBuilderExtensions
 
     private static void MapPasskey(EntityTypeBuilder<Passkey> b)
     {
-        KeptNames.Keep(b.Metadata.ClrType);
-        b.ToTable("RaskAuthPasskey");
+        BatteryEntities.Record(b.Metadata.ClrType);
+        b.ToTable("auth_passkeys");
         b.HasIndex(p => p.UserId);
 
         // Unique, because a credential id is how an assertion finds its account: two rows claiming one id would make

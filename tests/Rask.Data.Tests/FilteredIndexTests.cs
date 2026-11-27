@@ -15,7 +15,7 @@ public sealed class FilteredIndexTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("CREATE UNIQUE INDEX \"IX_PartnerGrant_Partner\" ON \"PartnerGrant\" (\"Partner\") WHERE \"RevokedAt\" IS NULL;", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE UNIQUE INDEX \"uq_partner_grants_partner\" ON \"partner_grants\" (\"partner\") WHERE \"revoked_at\" IS NULL;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -25,8 +25,8 @@ public sealed class FilteredIndexTests
 
         var indexes = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(PartnerGrant))!.GetIndexes().ToList();
 
-        Assert.Contains(indexes, i => i.GetFilter() == "\"Active\" = 1 AND \"Kind\" = 1");
-        Assert.Contains(indexes, i => i.GetFilter() == "\"Active\" = 0 AND \"Level\" IS NOT NULL AND \"Level\" <> 3");
+        Assert.Contains(indexes, i => i.GetFilter() == "\"active\" = 1 AND \"kind\" = 1");
+        Assert.Contains(indexes, i => i.GetFilter() == "\"active\" = 0 AND \"level\" IS NOT NULL AND \"level\" <> 3");
         Assert.DoesNotContain(indexes.SelectMany(i => i.GetAnnotations()), a => a.Name == "Rask:Filter");
     }
 

@@ -21,7 +21,7 @@ namespace Rask.Cli.Commands;
 /// </para>
 /// <para>
 ///     <b>Uploaded files go with it.</b> An app on Rask.Storage's disk provider keeps its uploads as files, and a
-///     <c>StoredFile</c> row per upload in the database. A database restored without its files points at bytes that are
+///     <c>stored_files</c> row per upload in the database. A database restored without its files points at bytes that are
 ///     gone, so the files are archived beside the copy (<c>shop-….files.tgz</c> next to <c>shop-….db</c>) and restored
 ///     with it. The archive is taken after the database copy: a save writes its bytes before its row, so every row in
 ///     the copy has its bytes in the archive, and bytes saved in between are orphans the storage sweep removes.

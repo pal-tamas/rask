@@ -124,10 +124,11 @@ public sealed class ComplexGondolaContext(DbContextOptions<ComplexGondolaContext
             e.ToTable("Gondolas");
             e.ComplexProperty(x => x.Crate, b0 =>
             {
-                b0.ComplexProperty(x => x.Alias, b1 => b1.Property(v => v.Value).HasColumnName("Crate_Alias"));
-                b0.ComplexProperty(x => x.Code, b1 => b1.Property(v => v.Value).HasColumnName("Crate_Code"));
-                b0.ComplexProperty<GondolaWeight>(x => x.Tare, b1 => b1.Property(v => v.Value).HasColumnName("Crate_Tare"));
-                b0.ComplexProperty(x => x.Weight, b1 => b1.Property(v => v.Value).HasColumnName("Crate_Weight"));
+                b0.ComplexProperty(x => x.Alias, b1 => b1.Property(v => v.Value).HasColumnName("crate_alias"));
+                b0.ComplexProperty(x => x.Code, b1 => b1.Property(v => v.Value).HasColumnName("crate_code"));
+                b0.ComplexProperty<GondolaWeight>(x => x.Tare, b1 => b1.Property(v => v.Value).HasColumnName("crate_tare"));
+                b0.ComplexProperty(x => x.Weight, b1 => b1.Property(v => v.Value).HasColumnName("crate_weight"));
+                b0.Property(x => x.Units).HasColumnName("crate_units");
             });
         });
 }
@@ -198,13 +199,13 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
 
         Assert.Equal(
             [
-                "Crate_Alias TEXT NULL", "Crate_Code TEXT NOT NULL", "Crate_Tare INTEGER NULL", "Crate_Units INTEGER NOT NULL",
-                "Crate_Weight INTEGER NOT NULL", "Id INTEGER NOT NULL",
-                "Label_Alias TEXT NULL", "Label_Code TEXT NOT NULL", "Label_Copies INTEGER NOT NULL", "Label_Tare INTEGER NULL",
-                "Label_Weight INTEGER NOT NULL",
-                "Route_Carrier TEXT NOT NULL", "Route_Label_Alias TEXT NULL", "Route_Label_Code TEXT NOT NULL",
-                "Route_Label_Copies INTEGER NOT NULL", "Route_Label_Tare INTEGER NULL", "Route_Label_Weight INTEGER NOT NULL",
-                "Spot_Code TEXT NOT NULL", "Spot_Row INTEGER NOT NULL",
+                "crate_alias TEXT NULL", "crate_code TEXT NOT NULL", "crate_tare INTEGER NULL", "crate_units INTEGER NOT NULL",
+                "crate_weight INTEGER NOT NULL", "id INTEGER NOT NULL",
+                "label_alias TEXT NULL", "label_code TEXT NOT NULL", "label_copies INTEGER NOT NULL", "label_tare INTEGER NULL",
+                "label_weight INTEGER NOT NULL",
+                "route_carrier TEXT NOT NULL", "route_label_alias TEXT NULL", "route_label_code TEXT NOT NULL",
+                "route_label_copies INTEGER NOT NULL", "route_label_tare INTEGER NULL", "route_label_weight INTEGER NOT NULL",
+                "spot_code TEXT NOT NULL", "spot_row INTEGER NOT NULL",
             ],
             columns);
     }
@@ -231,8 +232,8 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
         using var complex = new ComplexGondolaContext(
             OptionsLayout.LikeAddDbContext<ComplexGondolaContext>().UseSqlite("Data Source=:memory:").Options);
 
-        var now = ColumnsOf(database.Context, "Gondolas").Where(c => c.StartsWith("Crate_", StringComparison.Ordinal));
-        var before = ColumnsOf(complex, "Gondolas").Where(c => c.StartsWith("Crate_", StringComparison.Ordinal));
+        var now = ColumnsOf(database.Context, "Gondolas").Where(c => c.StartsWith("crate_", StringComparison.Ordinal));
+        var before = ColumnsOf(complex, "Gondolas").Where(c => c.StartsWith("crate_", StringComparison.Ordinal));
 
         Assert.Equal(before, now);
     }

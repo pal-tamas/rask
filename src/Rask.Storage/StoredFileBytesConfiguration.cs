@@ -9,8 +9,8 @@ internal sealed class StoredFileBytesConfiguration : IEntityTypeConfiguration<St
 {
     public void Configure(EntityTypeBuilder<StoredFileBytes> entity)
     {
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(entity.Metadata.ClrType);
+        // A battery's table: infrastructure, which no aggregate's rules reach. Named as every table is (jobs, run_at).
+        BatteryEntities.Record(entity.Metadata.ClrType);
 
         entity.HasKey(b => b.Id);
 

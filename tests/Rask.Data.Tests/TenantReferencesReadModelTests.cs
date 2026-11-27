@@ -68,6 +68,6 @@ public sealed class TenantReferencesReadModelTests : IAsyncLifetime
 
         var reference = goods.FindAnnotation("Rask:TenantReference")?.Value as string;
 
-        Assert.EndsWith("-> NumberShop(Id)", reference, StringComparison.Ordinal);
+        Assert.EndsWith("-> number_shops(id)", reference, StringComparison.Ordinal);
     }
 }

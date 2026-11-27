@@ -2,20 +2,28 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Rask.Generators.Shared;
 
 namespace Rask.Data;
 
-/// <summary>Names every key, index, foreign key and default the model did not name itself.</summary>
+/// <summary>Names every key, index, foreign key, check and default the model did not name itself.</summary>
 /// <remarks>
 ///     As the model is finalized, so it sees the whole of it — every battery's table and every entity's own
 ///     <c>Configure</c> — and at convention strength, so a name stated explicitly (<c>HasDatabaseName</c>,
-///     <c>HasConstraintName</c>, <c>[Index(Name = …)]</c>) is left as it was. A name longer than the provider allows is
-///     cut to its limit: 128 on SQL Server, 63 on PostgreSQL.
+///     <c>HasConstraintName</c>, <c>[Index(Name = …)]</c>, <c>HasCheckConstraint</c>) is left as it was. The rule is
+///     <paramref name="naming" />'s, read here, so an app's <c>ConstraintNames</c> replaces Rask's wherever it is called.
+///     A name longer than the provider allows is cut to its limit (128 on SQL Server, 63 on PostgreSQL) and ends in a
+///     hash of the whole name.
 /// </remarks>
-internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, bool namesDefaults) : IModelFinalizingConvention
+internal sealed class ConstraintNameConvention(StoreNameConvention naming, bool namesDefaults) : IModelFinalizingConvention
 {
     public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)
     {
+        if (naming.Constraints is not { } name)
+        {
+            return;
+        }
+
         var limit = modelBuilder.Metadata.GetMaxIdentifierLength();
 
         // The tenant references TenantReferences<T>() declares are foreign keys too, though not the model's.
@@ -33,7 +41,7 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
             foreach (var key in entityType.GetDeclaredKeys())
             {
                 var kind = key.IsPrimaryKey() ? ConstraintKind.PrimaryKey : ConstraintKind.Unique;
-                Name(kind, table, store, key.Properties, limit, key.Builder.HasName);
+                Name(name, kind, table, store, key.Properties, key.GetName(), limit, key.Builder.HasName);
             }
 
             foreach (var index in entityType.GetDeclaredIndexes())
@@ -42,20 +50,28 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
                 if (IndexProperties.Scalars<IConventionProperty>(index.Properties) is { } columns)
                 {
                     var kind = index.IsUnique ? ConstraintKind.Unique : ConstraintKind.Index;
-                    Name(kind, table, store, columns, limit, index.Builder.HasDatabaseName);
+                    Name(name, kind, table, store, columns, index.GetDatabaseName(), limit, index.Builder.HasDatabaseName);
                 }
             }
 
             foreach (var foreignKey in entityType.GetDeclaredForeignKeys().Where(k => IsConstraint(k, table)))
             {
-                Name(ConstraintKind.ForeignKey, table, store, foreignKey.Properties, limit, foreignKey.Builder.HasConstraintName);
+                Name(name, ConstraintKind.ForeignKey, table, store, foreignKey.Properties, foreignKey.GetConstraintName(), limit, foreignKey.Builder.HasConstraintName);
+            }
+
+            foreach (var check in entityType.GetDeclaredCheckConstraints().Where(NamesItsCheckByConvention))
+            {
+                if (name(new Constraint(ConstraintKind.Check, table, [], check.ModelName)) is { Length: > 0 } named)
+                {
+                    check.Builder.HasName(Cut(named, limit));
+                }
             }
 
             if (namesDefaults && !string.Equals(entityType.GetMappingStrategy(), RelationalAnnotationNames.TpcMappingStrategy, StringComparison.Ordinal))
             {
                 foreach (var property in entityType.GetDeclaredProperties().Where(NamesItsDefaultByConvention))
                 {
-                    Name(ConstraintKind.Default, table, store, [property], limit, property.SetDefaultConstraintName);
+                    Name(name, ConstraintKind.Default, table, store, [property], property.GetDefaultConstraintName(), limit, property.SetDefaultConstraintName);
                 }
             }
         }
@@ -74,20 +90,27 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
          || property.FindAnnotation(DatabaseDefaultConvention.Annotation) is not null) &&
         property.GetDefaultConstraintNameConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation);
 
-    private void Name(
+    private static bool NamesItsCheckByConvention(IConventionCheckConstraint check) =>
+        check.GetNameConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation);
+
+    private static string Cut(string named, int? limit) => limit is { } max ? StoreNames.Fit(named, max) : named;
+
+    private static void Name(
+        Func<Constraint, string?> name,
         ConstraintKind kind,
         string table,
         StoreObjectIdentifier store,
         IReadOnlyList<IConventionProperty> properties,
+        string? declared,
         int? limit,
         Func<string?, bool, object?> set)
     {
         var columns = properties.Select(p => p.GetColumnName(store) ?? p.GetColumnName()).ToArray();
-        if (name(new Constraint(kind, table, columns)) is not { Length: > 0 } named)
+        if (name(new Constraint(kind, table, columns, declared)) is not { Length: > 0 } named)
         {
             return;
         }
 
-        set(limit is { } max && named.Length > max ? named[..max] : named, false);
+        set(Cut(named, limit), false);
     }
 }
