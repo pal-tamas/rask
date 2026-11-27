@@ -40,7 +40,9 @@ internal sealed class SqlServerGuidOrderConvention(IRelationalTypeMappingSource?
 
     public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext<IConventionModelBuilder> context)
     {
-        if (typeMappings is null)
+        // A read model follows the write model it mirrors: rewriting a face's id the write side stores as it is would
+        // compare it with bytes no row holds.
+        if (typeMappings is null || modelBuilder.Metadata.FindAnnotation(SqlServerGuidOrder.WriteSideAnnotation)?.Value is false)
         {
             return;
         }

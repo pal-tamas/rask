@@ -718,7 +718,10 @@ public sealed class AppModel : IRaskModel
   foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
   foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
   two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
-  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A search that cuts a
+  Hungarian double letter in two (`cs`, `sz`, `gy`, …) differs too: SQL Server's `Hungarian_100` keeps the letter
+  whole, so `Kovács Béla` does not end in `s Béla` there, while SQLite and PostgreSQL find it; `EndsWith("ács Béla")`
+  is the same on all three. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
@@ -1129,7 +1132,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 |---|---|---|---|
 | Smallest step kept | a tick (100 ns) | a tick (stored as text, seven fractional digits) | a microsecond: the seventh digit is rounded away |
 | A `DateTime` reads back as | `Kind = Unspecified` | `Kind = Unspecified` | `Kind = Utc`, and writing one that is not UTC is refused |
-| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
+| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter — a parameter as an `InvalidCastException` around the `ArgumentException`) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
 | A `Moment` value object | the UTC instant, kept to the tick, in a `datetime2` | the UTC instant, kept to the tick, as text | the UTC instant, kept to the microsecond, in a `timestamptz` |
@@ -1151,7 +1154,8 @@ wall clock of `Clock.Zone` (`.Value`). The value object and every query still sp
 `Where(f => f.At.Value > since)` compares the column with `since` made an instant by the rule a moment follows (a time
 shown twice is its first occurrence, a skipped one moves forward — [Moment and Day](domain.md#moment-and-day)), and
 stays an index seek. A moment's day reads the wall calendar in SQL on every provider: `GroupBy(f => f.At.Day)` and
-`f.At.Day == day` group and filter by the day the app shows, in the zone the app was set to as the query is compiled.
+`f.At.Day == day` group and filter by the day the app shows, in `Clock.Zone` as the query runs — a query run again
+after the zone changed (a test under a zone of its own) is compiled again for the new zone.
 A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
 instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
 comparison of moments for a stretch of time.
@@ -1822,6 +1826,11 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
 included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
 
+**Supported servers: PostgreSQL 18 and 19.** 18 is the floor: it is the first whose `LIKE` takes a nondeterministic
+collation, which a case-insensitive [`OrderTextBy`](#app-wide-model-rules-one-iraskmodel) and `x.Loosely()` rely on,
+so a migration that creates one on an older server stops at that statement and says so. The provider suite runs on the newest 19.x and on
+the newest 18.x on every change that reaches the data stack.
+
 > **A package of its own, at Rask's version.** `Rask.Postgres` ships stable, at the same version as every other Rask
 > package, on Npgsql's stable EF Core 11 provider. It stays out of `Rask.Server`, which finds it by name, so only a
 > Postgres app restores Npgsql. The provider asks for EF Core `[11.0.0, 12.0.0)`, the line the rest of Rask is on, so
@@ -1915,7 +1924,9 @@ know, as on PostgreSQL:
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
 in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
-clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way. SQL Server compares
+clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
+`min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte
+(`min(x::text COLLATE "C")::uuid`), which is the same order. SQL Server compares
 a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every
 `uniqueidentifier` column — every `Guid`, `Guid?` and typed id over a `Guid`, keys and foreign keys alike, Rask's own
 tables included — with its bytes rearranged so SQL Server's order is the id's. The id the app reads, writes, prints
@@ -1976,8 +1987,10 @@ battery marks such a table, and **the migration you add after upgrading rebuilds
 | `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
 | `RaskLog` | never | none | old log lines are history; read what you need first |
 
-The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
-full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+The SQLite **file** log store (`logs.db`) is not part of any migration, and it is keyed by a `Guid` too: a
+`WITHOUT ROWID` table whose primary key is the version-7 `Guid` made before the insert, with a `Sequence` column beside
+it that the full-text index addresses the row by. A `logs.db` from an earlier release is rebuilt into that shape when it
+is opened, every entry kept under the id it was shown with before ([docs/logging.md](logging.md)).
 
 The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
 [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,

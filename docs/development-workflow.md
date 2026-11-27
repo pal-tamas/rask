@@ -553,8 +553,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   Azure signing against MinIO and Azurite, in containers; a provider fact whose server is not reachable
   reports SKIPPED, never PASSED.
 - **Providers — `scripts/run-providers-local.sh`** (push set, when the data stack or its suite changed;
-  daily in `full.yml`). `tests/Rask.Providers.E2E.Tests` against a real SQL Server 2022 and PostgreSQL 19,
-  which the suite starts itself on Testcontainers — one container per server per run, on first use, stopped
+  daily in `full.yml`). `tests/Rask.Providers.E2E.Tests` against a real SQL Server 2022, PostgreSQL 19 and
+  PostgreSQL 18 (the floor `docs/data.md` supports, `RASK_PROVIDERS_POSTGRES=floor`), which the suite starts itself on
+  Testcontainers — one container per server per run, on first use, stopped
   at the end; no service container or `docker run` in any workflow. **Local policy: no Docker by default.**
   Outside CI (`CI`/`GITHUB_ACTIONS` unset) the server facts report SKIPPED ("runs in CI on Testcontainers")
   and the SQLite legs run; `RASK_PROVIDERS_LOCAL=1` lets it start the containers on your machine (SQL Server
@@ -628,7 +629,7 @@ names a generator under `scripts/{upstream,flux,mdn}` that is on neither list �
 
 | Follower | Pins | Upstream |
 | --- | --- | --- |
-| `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the scripts' `postgres:NN-alpine` — each to the newest tag of the same shape | Docker Hub |
+| `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the suite's and the benchmark's `postgres:NN.N-alpine` — each to the newest tag of the same shape, the PostgreSQL floor within its major | Docker Hub |
 | `litestream.py` | `RaskLitestreamVersion`, its seven SHA-256s (downloaded and checked against `checksums.txt`), the templates' `litestream/litestream` image | GitHub releases |
 | `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download | the npm registry's tarball URLs, GitHub releases |
 | `chrome.py` | `RaskPdfChromeVersion` and its per-platform SHA-256s (`Rask.Pdf.ChromePin.props`) — the newest Stable a week old | Chrome for Testing |

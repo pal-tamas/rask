@@ -128,6 +128,18 @@ them until tagged releases begin.
   its instant too, as text with its `Z` on SQL Server and SQLite, without a migration: an older document's wall-clock
   value reads as before and holds the instant once its row is saved (`docs/data.md#dates-and-moments-what-each-database-keeps`).
   `docs/domain.md#moment-and-day`.
+- **PostgreSQL 18 and 19 are the supported servers, and the provider suite proves both.** It runs on
+  `postgres:19.0-alpine` and on the 18 floor (`postgres:18.7-alpine`, `RASK_PROVIDERS_POSTGRES=floor`), side by side
+  with SQL Server; a failing leg no longer stops the others, so every server's conformance is reported on every run.
+  The `images` follower moves the newest pin across majors and the floor within its own (docs/data.md#postgresql).
+- **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
+  last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
+  version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived
+  from the rowid. The trigram search index now addresses a row by a `Sequence` column, the write order, which is never
+  part of an entry and which `VACUUM` never renumbers. A `logs.db` from an earlier release is rebuilt into the new shape
+  the first time it is opened, in one transaction, keeping every entry under the id it was shown with before, its
+  order, and its scopes, and the search index is rebuilt. Search, retention, the live tail and the dashboard's History
+  behave as before; a search with no other filter is now counted in the index alone (docs/logging.md).
 - **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
   error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
   (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.
@@ -306,6 +318,23 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
+  and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
+  which orders as `uuid` and .NET's `Guid.CompareTo` do.
+- **SQL Server: `b.NoOverlap(…)` over a text key of no length creates its index.** An `nvarchar(max)` key column
+  cannot key an index there; it is now carried in the index (`INCLUDE`), and the trigger's locked read still holds the
+  rule.
+- **SQL Server: a read face compares its Guids as its write side stores them.** A write context that does not apply
+  Rask's model conventions (`ModelRegistry.ApplyConventions`) keeps its `uniqueidentifier`s as they are, but its read
+  faces stored theirs time-ordered — so `Member.Count(m => m.Owner == id)` counted no row the write side had saved, and
+  a `Serializable` claim retried after a deadlock took the pistol a second time. A read model now follows the write
+  model it mirrors.
+- **`b.InOrder(…)` survives a trimmed publish** (IL2091): its `TChild` carries `HasMany<TChild>`'s annotation.
+- **A moment's day in a query follows the zone as the query runs, on SQL Server and PostgreSQL.** `f.At.Day` writes
+  `Clock.Zone` into the SQL (`AT TIME ZONE N'…'`, `timezone('…', …)`), and EF reused the SQL compiled for the first
+  zone a query ran under: a test under a zone of its own, or an app that named its zone after a first query, read the
+  old zone's day. The zone is now a part of every compiled query's cache key, so the query is compiled again for a new
+  zone (and once, as before, for an app that keeps one). SQLite already read the zone per row.
 - **RASK089 no longer fires on a typed id whose name merely ends in an aggregate.** A `StockMove.FromVirtualTankId`
   of type `VirtualTankId` was matched to the aggregate `Tank` by its name's suffix and reported as the wrong key
   type. A typed id that is exactly one entity's key now settles the reference by its type, whatever the property is
