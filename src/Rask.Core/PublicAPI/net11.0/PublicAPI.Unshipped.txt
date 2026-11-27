@@ -5,6 +5,10 @@ override Rask.Core.Forms.StatedFacets.ToString() -> string!
 override Rask.Core.SetHTMLUnsafeOptions.Equals(object? obj) -> bool
 override Rask.Core.SetHTMLUnsafeOptions.GetHashCode() -> int
 override Rask.Core.SetHTMLUnsafeOptions.ToString() -> string!
+override Rask.Values.Timestamp.<Clone>$() -> Rask.Values.Timestamp!
+override Rask.Values.Timestamp.Equals(object? obj) -> bool
+override Rask.Values.Timestamp.GetHashCode() -> int
+override sealed Rask.Values.Timestamp.Equals(Rask.Values.Moment? other) -> bool
 Rask.Core.ButtonCommand
 Rask.Core.ButtonCommand.Close = 667630371 -> Rask.Core.ButtonCommand
 Rask.Core.ButtonCommand.HidePopover = 1115129597 -> Rask.Core.ButtonCommand
@@ -4834,6 +4838,11 @@ Rask.RefusedException.Failures.get -> System.Collections.Generic.IReadOnlyList<R
 Rask.RefusedException.RefusedException() -> void
 Rask.RefusedException.RefusedException(string! message) -> void
 Rask.RefusedException.RefusedException(string! message, System.Exception! innerException) -> void
+Rask.Values.Timestamp
+Rask.Values.Timestamp.CompareTo(Rask.Values.Timestamp? other) -> int
+Rask.Values.Timestamp.Deconstruct(out System.DateTime Value) -> void
+Rask.Values.Timestamp.Equals(Rask.Values.Timestamp? other) -> bool
+Rask.Values.Timestamp.Timestamp(System.DateTime Value) -> void
 RaskBuilderSettersRask_Core
 RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!)
 RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Button.get -> Rask.Core.HTMLInputElement<T>!
@@ -7794,6 +7803,25 @@ static Rask.Core.Virtualization.VirtualItem<T>.operator ==(Rask.Core.Virtualizat
 static Rask.Core.Virtualization.VirtualScroller.New() -> Rask.Core.Virtualization.VirtualScroller!
 static Rask.Markup.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
 static Rask.Markup.Lazy.get -> Rask.Core.Components.Lazy!
+static Rask.Values.Timestamp.__Field.get -> Rask.Core.Forms.FieldShape!
+static Rask.Values.Timestamp.__Problems(System.DateTime? value) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Values.Timestamp.At(System.DateTimeOffset instant) -> Rask.Values.Timestamp!
+static Rask.Values.Timestamp.Check(System.DateTime value) -> System.Collections.Generic.IEnumerable<string!>!
+static Rask.Values.Timestamp.Check(System.DateTime? value) -> System.Collections.Generic.IEnumerable<string!>!
+static Rask.Values.Timestamp.Create(System.DateTime Value, string? field = null) -> Rask.Values.Timestamp!
+static Rask.Values.Timestamp.CreateOptional(System.DateTime? Value, string? field = null) -> Rask.Values.Timestamp?
+static Rask.Values.Timestamp.FromWall(System.DateTime local, System.TimeZoneInfo? zone = null, string? field = null) -> Rask.Values.Timestamp!
+static Rask.Values.Timestamp.Now.get -> Rask.Values.Timestamp!
+static Rask.Values.Timestamp.operator !=(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.operator <(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.operator <=(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.operator ==(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.operator >(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.operator >=(Rask.Values.Timestamp? left, Rask.Values.Timestamp? right) -> bool
+static Rask.Values.Timestamp.Parse(string! text, string? format = null, string? field = null) -> Rask.Values.Timestamp!
+static Rask.Values.Timestamp.TryCreate(System.DateTime Value, out Rask.Values.Timestamp? result, out System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems) -> bool
+static Rask.Values.Timestamp.TryParse(string? text, out Rask.Values.Timestamp? result) -> bool
+static Rask.Values.Timestamp.TryParse(string? text, string? format, out Rask.Values.Timestamp? result) -> bool
 static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Lazy(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Core.__RaskResetEager_Rask_Core_Components_Lazy(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Lazy(Rask.Core.Component! __c0, ulong __p) -> void
