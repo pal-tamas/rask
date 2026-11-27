@@ -368,7 +368,7 @@ internal static class AriaEmitter
     // DocNote). No word list: a name reads as the token the spec spells.
     private static string Identifier(string token)
     {
-        var name = string.Concat(token.Split('-', '_', ' ').Where(w => w.Length > 0).Select(Pascal));
+        var name = string.Concat(token.Split('-', '_', ' ').Where(w => w.Length > 0).Select(DomRefEmitter.Pascal));
         if (name.Length == 0 || !name.All(char.IsLetterOrDigit) || char.IsDigit(name[0]))
         {
             throw new DomEmitException($"the ARIA token `{token}` makes no C# name");
