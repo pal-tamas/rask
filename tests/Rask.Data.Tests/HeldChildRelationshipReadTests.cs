@@ -100,9 +100,9 @@ public sealed class HeldChildRelationshipReadTests : IAsyncLifetime
         services.AddDbContextFactory<RefundContext>((sp, o) => o
             .UseSqlite(connection)
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        services.AddDbContextFactory<RaskReadDbContext>(o => o
-            .UseSqlite(connection)
-            .ConfigureWarnings(static w => w.Throw(CoreEventId.ShadowForeignKeyPropertyCreated)));
+        // No ConfigureWarnings(Throw ShadowForeignKeyPropertyCreated) here: each test asserts the face has no shadow
+        // property, and a warning configuration is one more EF Core service provider (ServiceProviderBudget).
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite(connection));
 
         _app = services.BuildServiceProvider(validateScopes: true);
         _db = Db.Use(_app);

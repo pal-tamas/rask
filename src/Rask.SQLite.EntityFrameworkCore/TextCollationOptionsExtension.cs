@@ -37,6 +37,8 @@ internal sealed class TextCollationOptionsExtension : IDbContextOptionsExtension
 
         // A moment's day on the wall calendar, read in a query off a column that keeps it as UTC (MomentDayTranslator).
         services.TryAddScoped<IMomentDays, SqliteMomentDays>();
+        // RaskDbContext adds the same translator (ValueObjectQueryOptionsExtension); it is added here too for a context
+        // that is not one, and TryAdd keeps a single registration.
         new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
     }
 

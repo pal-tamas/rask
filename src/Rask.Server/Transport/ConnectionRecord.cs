@@ -22,9 +22,6 @@ internal sealed class ConnectionRecord(long number, string transport, long opene
     /// <summary>When it opened, on the store's clock.</summary>
     public long OpenedAt { get; } = openedAt;
 
-    /// <summary>When a session attached to it, on the store's clock; zero until one does.</summary>
-    public long AttachedAt { get; set; }
-
     public ClosedBy By { get; private set; } = ClosedBy.Client;
 
     public string Reason { get; private set; } = "the connection ended";

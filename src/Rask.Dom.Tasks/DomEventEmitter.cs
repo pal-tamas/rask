@@ -79,8 +79,6 @@ namespace Rask.Core.Dom.Build
             _ => "ReadDouble",
         };
 
-        private static string Pascal(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
-
         internal static string HandlerName(string type)
         {
             var sb = new StringBuilder("On");
@@ -89,7 +87,7 @@ namespace Rask.Core.Dom.Build
             {
                 var word = Words.Where(w => string.CompareOrdinal(type, i, w, 0, w.Length) == 0).OrderByDescending(w => w.Length).FirstOrDefault()
                            ?? throw new DomEmitException($"RASKDOM002: the event name '{type}' has a part DomEventEmitter.Words cannot split at '{type.Substring(i)}'. Add the word to the list.");
-                sb.Append(Pascal(word));
+                sb.Append(DomRefEmitter.Pascal(word));
                 i += word.Length;
             }
 
@@ -198,7 +196,7 @@ namespace Rask.Core.Dom.Build
                 var type = m["type"]?.AsString() ?? "";
                 if (CSharp(type) is { } plain)
                 {
-                    result.Add(new Member { Idl = idl, Prop = Pascal(idl), Cs = plain });
+                    result.Add(new Member { Idl = idl, Prop = DomRefEmitter.Pascal(idl), Cs = plain });
                     continue;
                 }
 
@@ -210,7 +208,7 @@ namespace Rask.Core.Dom.Build
 
                 if (held is "FrozenArray<DOMString>" or "sequence<DOMString>")
                 {
-                    result.Add(new Member { Idl = idl, Prop = Pascal(idl), Cs = "global::System.Collections.Generic.IReadOnlyList<string>", Kind = 3 });
+                    result.Add(new Member { Idl = idl, Prop = DomRefEmitter.Pascal(idl), Cs = "global::System.Collections.Generic.IReadOnlyList<string>", Kind = 3 });
                     continue;
                 }
 
@@ -221,7 +219,7 @@ namespace Rask.Core.Dom.Build
                         snapshots.Add(held);
                     }
 
-                    result.Add(new Member { Idl = idl, Prop = Pascal(idl), Cs = "DataTransfer?", Kind = 2, Of = held });
+                    result.Add(new Member { Idl = idl, Prop = DomRefEmitter.Pascal(idl), Cs = "DataTransfer?", Kind = 2, Of = held });
                     continue;
                 }
 
@@ -240,7 +238,7 @@ namespace Rask.Core.Dom.Build
                         snapshots.Add(itemType);
                     }
 
-                    result.Add(new Member { Idl = idl, Prop = Pascal(idl), Cs = $"global::System.Collections.Generic.IReadOnlyList<{itemType}>", Kind = 1, Of = itemType });
+                    result.Add(new Member { Idl = idl, Prop = DomRefEmitter.Pascal(idl), Cs = $"global::System.Collections.Generic.IReadOnlyList<{itemType}>", Kind = 1, Of = itemType });
                 }
             }
 
@@ -398,7 +396,7 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("    {");
             foreach (var (idl, type, _) in props)
             {
-                cs.Append("        ").Append(Pascal(idl)).Append(" = EventPayload.").Append(Reader(type)).Append("(p, \"").Append(idl).AppendLine("\");");
+                cs.Append("        ").Append(DomRefEmitter.Pascal(idl)).Append(" = EventPayload.").Append(Reader(type)).Append("(p, \"").Append(idl).AppendLine("\");");
             }
 
             cs.AppendLine("        ReadRuntimeState(p);");
@@ -414,7 +412,7 @@ namespace Rask.Core.Dom.Build
                     Remarks(cs, "    ", data);
                 }
 
-                cs.Append("    public ").Append(type).Append(' ').Append(Pascal(idl)).AppendLine(" { get; init; }");
+                cs.Append("    public ").Append(type).Append(' ').Append(DomRefEmitter.Pascal(idl)).AppendLine(" { get; init; }");
             }
 
             cs.AppendLine("}");

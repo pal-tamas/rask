@@ -31,19 +31,16 @@ internal static class CaddyRouting
 
             // A container deployed before rask.port existed reports no label; it can only have been
             // listening on the then-hardcoded default, so that is the correct reading of its absence.
-            var port = parts.Length > 4 && int.TryParse(Label(parts[4]), NumberStyles.None, CultureInfo.InvariantCulture, out var labelled)
+            var port = parts.Length > 4 && int.TryParse(DockerLabel.Value(parts[4]), NumberStyles.None, CultureInfo.InvariantCulture, out var labelled)
                 ? labelled
                 : DeployCommand.DefaultContainerPort;
 
             // rask.redirect came after rask.port: an older listing, or a container without redirects, has none.
-            var redirects = parts.Length > 5 ? Label(parts[5]) : string.Empty;
-            apps.Add(new DeployedApp(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3]), port, redirects));
+            var redirects = parts.Length > 5 ? DockerLabel.Value(parts[5]) : string.Empty;
+            apps.Add(new DeployedApp(parts[0], DockerLabel.Value(parts[1]), DockerLabel.Value(parts[2]), DockerLabel.Value(parts[3]), port, redirects));
         }
 
         return apps;
-
-        // docker prints "<no value>" for a label a container doesn't carry.
-        static string Label(string value) => string.Equals(value, "<no value>", StringComparison.Ordinal) ? string.Empty : value;
     }
 
     /// <summary>

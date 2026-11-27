@@ -162,10 +162,6 @@ internal static class AggregateShape
     /// <summary>Whether a removed child keeps its row, stamped: it says <c>ISoftDeletes</c>.</summary>
     public static bool SoftRemoves(INamedTypeSymbol entity) => !IsAggregate(entity) && Has(entity, SoftRemoved);
 
-    /// <summary>The Rask.Data traits <paramref name="symbol" /> says, by their names — for the analyzer that checks them.</summary>
-    public static IEnumerable<string> TraitNamesOf(INamedTypeSymbol symbol) =>
-        symbol.Interfaces.Where(static face => TraitOf(face, aggregate: true) != 0 || IsTraitGroup(face)).Select(static face => face.Name);
-
     private static IEnumerable<INamedTypeSymbol> TypeArgumentOf(INamedTypeSymbol symbol, string trait) =>
         Traits(symbol)
             .Where(t => string.Equals(t.Name, trait, StringComparison.Ordinal) && t.TypeArguments.Length == 1)
@@ -191,9 +187,6 @@ internal static class AggregateShape
     // Every Rask.Data interface the class has, its bases' and the groups' halves included.
     private static IEnumerable<INamedTypeSymbol> Traits(INamedTypeSymbol symbol) =>
         symbol.AllInterfaces.Where(IsRaskDataType);
-
-    private static bool IsTraitGroup(INamedTypeSymbol face) =>
-        IsRaskDataType(face) && face.Name is "IHasTimestamps" or "IHasForm";
 
     // ISoftDeletes means what its place makes it: a root's delete is a stamp, a child's removal keeps the row.
     private static int TraitOf(INamedTypeSymbol trait, bool aggregate)
