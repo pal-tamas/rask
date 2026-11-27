@@ -33,10 +33,11 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
         NumberLambda = numberLambda;
         Within = within;
         Order = order;
+        First = NumberingOrder.Placed(order[0]);
         Skip = skip;
         _write = write;
         _readWithin = NumberingPlace<TEntity>.Read(within);
-        _readFirst = NumberingPlace<TEntity>.Read(order[0]);
+        _readFirst = NumberingPlace<TEntity>.Read(First);
         _now = new Lazy<NumberingPlace<TEntity>>(Now);
         foreach (var lambda in (IEnumerable<LambdaExpression?>)[within, .. order, skip])
         {
@@ -59,6 +60,9 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
     private LambdaExpression Within { get; }
 
     private IReadOnlyList<LambdaExpression> Order { get; }
+
+    // The order's first member as a row's place is compared by (NumberingOrder.Placed); the order sorts by Order[0].
+    private LambdaExpression First { get; }
 
     private LambdaExpression? Skip { get; set; }
 
@@ -138,7 +142,7 @@ public sealed partial class Numbering<[DynamicallyAccessedMembers(DataTrimming.E
             new Members(lambda.Parameters[0], _members).Visit(ComputedValues.Inlined(lambda).Body);
         }
 
-        return new NumberingPlace<TEntity>(Within, Order[0]);
+        return new NumberingPlace<TEntity>(Within, First);
     }
 
     /// <summary>The other table whose rows leave numbered rows out, and how to read which one.</summary>

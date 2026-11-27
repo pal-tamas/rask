@@ -296,6 +296,16 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **RASK089 no longer fires on a typed id whose name merely ends in an aggregate.** A `StockMove.FromVirtualTankId`
+  of type `VirtualTankId` was matched to the aggregate `Tank` by its name's suffix and reported as the wrong key
+  type. A typed id that is exactly one entity's key now settles the reference by its type, whatever the property is
+  called — it reaches the `VirtualTank` child — and a name whose entity has another key falls through to the child
+  entities and the next rule before anything is reported.
+- **`b.Numbered(…)` ordered by a typed id kept as text no longer fails to translate.** The order's members were each
+  unwrapped to their `.Value`, so `by: f => new { f.Moment, f.Number, f.Id }` sorted by `f.Id.Value` — which EF Core
+  cannot translate once the id's column is text (SQLite's every Guid, a column an app's converter keeps as text). Each member is now
+  ordered by as it is mapped, so the database orders by its column exactly as for an untyped id; only the first
+  member's place is still compared by a value object's value, and only where that value has an order.
 - **A `Ui.Select` over a member that may hold none takes options of the type it holds.** A select bound to `CompanyId?`
   (or `int?`, `Guid?`) is handed `Ui.SelectOption.Value(new CompanyId(3))` and rows of `CompanyId`, as the docs say,
   without relying on the runtime to unbox one into the nullable; and an option of another type is refused naming both

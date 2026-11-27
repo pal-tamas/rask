@@ -309,8 +309,11 @@ internal static class ReadModelShape
             SymbolLocation.From(entity));
 
     /// <summary>What an entity offers the resolver: its read face and the key a reference must match.</summary>
-    internal readonly struct ReadTarget(string readTypeName, string keyTypeName, string ownerTypeName)
+    internal readonly struct ReadTarget(string name, string readTypeName, string keyTypeName, string ownerTypeName)
     {
+        /// <summary>The entity's simple name — <c>Customer</c>, what an id's name or a typed id's name says.</summary>
+        public string Name { get; } = name;
+
         /// <summary>The read face — <c>global::Shop.CustomerRead</c>.</summary>
         public string ReadTypeName { get; } = readTypeName;
 
@@ -332,6 +335,50 @@ internal static class ReadModelShape
 
         /// <summary>The name matches more than one aggregate by suffix.</summary>
         Ambiguous,
+    }
+
+    /// <summary>
+    ///     The one entity a typed id is the key of — a <c>VirtualTankId</c> keys the <c>VirtualTank</c> child — which then
+    ///     settles the reference whatever the property is called: a <c>FromVirtualTankId</c> never reaches the
+    ///     <c>Tank</c> aggregate its name ends in.
+    /// </summary>
+    /// <remarks>
+    ///     Only a type of the app's own: a <see cref="Guid" /> or an <c>int</c> keys many entities and says nothing, so
+    ///     the name decides those. A typed id that keys several entities says nothing either.
+    /// </remarks>
+    /// <param name="reference">The candidate recorded by <see cref="Describe" />.</param>
+    /// <param name="owner">The fully-qualified write type the reference is declared on.</param>
+    /// <param name="aggregates">The aggregates, by simple name.</param>
+    /// <param name="children">The child entities, by simple name.</param>
+    /// <param name="navigation">The navigation, or null for the row's own id.</param>
+    /// <returns>Whether the id's type is the key of exactly one entity.</returns>
+    public static bool TryResolveByType(
+        ReadReference reference,
+        string owner,
+        IReadOnlyDictionary<string, ReadTarget> aggregates,
+        IReadOnlyDictionary<string, ReadTarget> children,
+        out ReadNavigation? navigation)
+    {
+        navigation = null;
+        if (!IsTypedId(reference.IdTypeName))
+        {
+            return false;
+        }
+
+        var keyed = aggregates.Values.Concat(children.Values)
+            .Where(target => string.Equals(target.KeyTypeName, reference.IdTypeName, StringComparison.Ordinal))
+            .Take(2)
+            .ToList();
+        if (keyed.Count != 1)
+        {
+            return false;
+        }
+
+        var target = keyed[0];
+        navigation = IsOwnId(reference, owner, target)
+            ? null
+            : new ReadNavigation(reference.Target, target.ReadTypeName, reference.Property, reference.Nullable);
+        return true;
     }
 
     /// <summary>
@@ -438,6 +485,15 @@ internal static class ReadModelShape
 
         return new ReadNavigation(reference.Target, target.ReadTypeName, reference.Property, reference.Nullable);
     }
+
+    private static bool IsOwnId(ReadReference reference, string owner, ReadTarget target) =>
+        string.Equals(reference.Target, target.Name, StringComparison.Ordinal) &&
+        string.Equals(target.OwnerTypeName, owner, StringComparison.Ordinal);
+
+    // A type of the app's own — global::Fuel.VirtualTankId — rather than a keyword (int, string) or a System type (Guid).
+    private static bool IsTypedId(string idTypeName) =>
+        idTypeName.StartsWith("global::", StringComparison.Ordinal) &&
+        !idTypeName.StartsWith("global::System.", StringComparison.Ordinal);
 
     private static ITypeSymbol Underlying(ITypeSymbol type) =>
         type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable

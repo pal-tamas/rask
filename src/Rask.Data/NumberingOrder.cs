@@ -6,7 +6,8 @@ namespace Rask.Data;
 
 /// <summary>
 ///     The pieces of a <see cref="NumberedBuilderExtensions.Numbered{TEntity, TNumber, TWithin, TOrder}" />
-///     declaration as queries need them: the order's members one by one, each a value the database compares.
+///     declaration as queries need them: the order's members one by one, each as it is mapped — so the database orders
+///     by its column, through whatever converter maps it — and the first one as the value a row's place is compared by.
 /// </summary>
 internal static class NumberingOrder
 {
@@ -18,12 +19,26 @@ internal static class NumberingOrder
     private static readonly MethodInfo StringCompare = ((Func<string?, string?, int>)string.Compare).Method;
 
     /// <summary>The members of <paramref name="by" />: an anonymous type's, or itself — each as a lambda of its own.</summary>
+    /// <remarks>
+    ///     Each is ordered by as it is mapped, never unwrapped to its <c>.Value</c>: a typed id kept as text is stored
+    ///     through a converter that is not Rask's own, and EF Core cannot translate the <see cref="Guid" /> behind it.
+    /// </remarks>
     internal static IReadOnlyList<LambdaExpression> Members(LambdaExpression by)
     {
         var parameter = by.Parameters[0];
         var body = by.Body is UnaryExpression { NodeType: ExpressionType.Convert } cast ? cast.Operand : by.Body;
         var members = body is NewExpression { Arguments.Count: > 0 } several ? several.Arguments : [body];
-        return [.. members.Select(member => Expression.Lambda(Comparable(member), parameter))];
+        return [.. members.Select(member => Expression.Lambda(member, parameter))];
+    }
+
+    /// <summary>
+    ///     The first member of the order as a row's place is compared by: a one-value value object's value where that
+    ///     value has an order (a moment, a number, text), else the member as it is mapped.
+    /// </summary>
+    internal static LambdaExpression Placed(LambdaExpression first)
+    {
+        var compared = Comparable(first.Body);
+        return compared == first.Body ? first : Expression.Lambda(compared, first.Parameters);
     }
 
     /// <summary><paramref name="rows" /> in the declared order, the first member first.</summary>
@@ -76,13 +91,15 @@ internal static class NumberingOrder
         return atOrAfter ? Expression.GreaterThanOrEqual(member, value) : Expression.LessThan(member, value);
     }
 
-    // A one-value value object is compared, and ordered, by its value — which is what the database holds.
+    // A one-value value object is compared by its value, which C# and the database both order. One whose value has no
+    // order — a typed id's Guid — stays whole: nothing compares it, and its column may be text the Guid does not reach.
     [UnconditionalSuppressMessage("Trimming", "IL2075",
         Justification = "The member is one of a mapped entity's, and its type's properties are what the model maps — rooted by it.")]
     private static Expression Comparable(Expression member)
     {
         var type = Nullable.GetUnderlyingType(member.Type) ?? member.Type;
-        if (IsPlain(type) || type.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance) is not { } value)
+        if (IsPlain(type) || type.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance) is not { } value ||
+            !IsComparable(value.PropertyType))
         {
             return member;
         }
