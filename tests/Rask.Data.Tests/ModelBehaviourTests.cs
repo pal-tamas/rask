@@ -197,7 +197,7 @@ public sealed class ModelBehaviourTests : IDisposable
 
         var reloaded = await database.Load<Order>(order.Id, TestContext.Current.CancellationToken);
 
-        Assert.Equal(Now, reloaded!.CreatedAt);
+        Assert.Equal(Now, reloaded!.CreatedAt.Instant.UtcDateTime);
     }
 
     [Fact]

@@ -105,13 +105,13 @@ public sealed class BulkInsertFastPathTests : IDisposable
         await using (var verify = NewContext())
         {
             var stored = await verify.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
-            Assert.All(stored, w => Assert.Equal(expected, w.CreatedAt));
-            Assert.All(stored, w => Assert.Equal(expected, w.UpdatedAt));
+            Assert.All(stored, w => Assert.Equal(expected, w.CreatedAt.Instant.UtcDateTime));
+            Assert.All(stored, w => Assert.Equal(expected, w.UpdatedAt.Instant.UtcDateTime));
         }
 
         // ...and on the entity the caller still holds, as the interceptor would have done.
-        Assert.All(widgets, w => Assert.Equal(expected, w.CreatedAt));
-        Assert.All(widgets, w => Assert.Equal(expected, w.UpdatedAt));
+        Assert.All(widgets, w => Assert.Equal(expected, w.CreatedAt.Instant.UtcDateTime));
+        Assert.All(widgets, w => Assert.Equal(expected, w.UpdatedAt.Instant.UtcDateTime));
     }
 
     [Fact]

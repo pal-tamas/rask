@@ -76,8 +76,8 @@ public sealed class BulkInsertTests : IDisposable
         {
             var stamped = await verify.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(5, stamped.Count);
-            Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.CreatedAt));
-            Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.UpdatedAt));
+            Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.CreatedAt.Instant.UtcDateTime));
+            Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.UpdatedAt.Instant.UtcDateTime));
         }
     }
 

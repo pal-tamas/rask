@@ -136,7 +136,7 @@ public sealed class AggregateSaveTests : IDisposable
         var stored = await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken);
         Assert.Equal("ada", stored!.Customer);
         Assert.Equal([("apple", 3)], stored.Lines.Select(l => (l.Product, l.Quantity)));
-        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
+        Assert.Equal(Start.UtcDateTime, stored.CreatedAt.Instant.UtcDateTime);
     }
 
     [Fact]

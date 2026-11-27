@@ -309,3 +309,10 @@ dotnet_diagnostic.CA1716.severity = none
 # It ships off; Directory.Build.targets gives each *.Tests project the analyzer, and this makes it an error.
 [tests/**.cs]
 dotnet_diagnostic.RASK116.severity = error
+
+# RASK147 (a bare DateTime in the domain) holds for everything under src/, Rask's own tables included, with no name or
+# namespace exempt. A test's fixture models are the exception: many hold a bare DateTime on purpose — the refusal of one
+# on PostgreSQL, a range over DateTime, the wall-clock column a migration rewrites — and RASK147's own tests compile
+# their sources in memory, where this does not reach.
+[tests/**.cs]
+dotnet_diagnostic.RASK147.severity = none

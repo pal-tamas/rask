@@ -161,7 +161,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         Assert.Equal("March", stored.Title);
         Assert.Equal(120.5m, stored.Balance);
         Assert.Equal(new InvoiceTotal(99m, "HUF"), stored.Total);
-        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
+        Assert.Equal(Start.UtcDateTime, stored.CreatedAt.Instant.UtcDateTime);
         Assert.Equal(0, stored.Views);
     }
 
@@ -215,7 +215,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         Assert.Same(draft, created);
         Assert.Equal("Built", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
-        Assert.Equal(Start.UtcDateTime, created.CreatedAt);
+        Assert.Equal(Start.UtcDateTime, created.CreatedAt.Instant.UtcDateTime);
     }
 
     // ---- update -------------------------------------------------------------------------------------

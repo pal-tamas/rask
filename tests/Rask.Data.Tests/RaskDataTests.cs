@@ -41,8 +41,8 @@ public sealed class RaskDataTests : IDisposable
             db.Widgets.Add(widget);
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = widget.Id;
-            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.CreatedAt);
-            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt);
+            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.CreatedAt.Instant.UtcDateTime);
+            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt.Instant.UtcDateTime);
         }
 
         _clock.UtcNow = _clock.UtcNow.AddHours(3);
@@ -52,8 +52,8 @@ public sealed class RaskDataTests : IDisposable
             var widget = await db.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             widget.Rename("second");
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-            Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).UtcDateTime, widget.CreatedAt);
-            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt);
+            Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).UtcDateTime, widget.CreatedAt.Instant.UtcDateTime);
+            Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt.Instant.UtcDateTime);
         }
     }
 

@@ -97,7 +97,7 @@ public sealed class AggregateChildrenTests : IDisposable
         var after = (await database.Load<Basket>(id, TestContext.Current.CancellationToken))!;
 
         Assert.Equal(before.Version + 1, after.Version);
-        Assert.Equal(_clock.UtcNow.UtcDateTime, after.UpdatedAt);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, after.UpdatedAt.Instant.UtcDateTime);
         Assert.Equal(9, after.Lines.Single(l => l.Product == "apple").Quantity);
 
         // And the root's own data is still its own — a bump must not write stale columns back.

@@ -95,8 +95,8 @@ public sealed class FrameworkColumnTests : IDisposable
         database.Context.Add(memo);
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(start.UtcDateTime, memo.CreatedAt);
-        Assert.Equal(start.UtcDateTime, memo.UpdatedAt);
+        Assert.Equal(start.UtcDateTime, memo.CreatedAt.Instant.UtcDateTime);
+        Assert.Equal(start.UtcDateTime, memo.UpdatedAt.Instant.UtcDateTime);
         Assert.Equal(0, memo.Version);
 
         clock.UtcNow = start.AddHours(1);
@@ -105,8 +105,8 @@ public sealed class FrameworkColumnTests : IDisposable
 
         var stored = (await database.Load<Memo>(memo.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("twice", stored.Text);
-        Assert.Equal(start.UtcDateTime, stored.CreatedAt);
-        Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt);
+        Assert.Equal(start.UtcDateTime, stored.CreatedAt.Instant.UtcDateTime);
+        Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt.Instant.UtcDateTime);
         Assert.Equal(1, stored.Version);
     }
 

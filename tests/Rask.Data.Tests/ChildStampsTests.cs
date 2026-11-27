@@ -108,8 +108,8 @@ public sealed class ChildStampsTests : IDisposable
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var badge = await database.Context.Set<RosterBadge>().SingleAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(_clock.UtcNow.UtcDateTime, badge.CreatedAt);
-        Assert.Equal(_clock.UtcNow.UtcDateTime, badge.UpdatedAt);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, badge.CreatedAt.Instant.UtcDateTime);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, badge.UpdatedAt.Instant.UtcDateTime);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class ChildStampsTests : IDisposable
 
         var roster = (await database.Load<Roster>(id, TestContext.Current.CancellationToken))!;
 
-        Assert.Equal(_clock.UtcNow.UtcDateTime, roster.CreatedAt);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, roster.CreatedAt.Instant.UtcDateTime);
         Assert.Equal(["gate"], await RosterSlot.Select(s => s.Label));
         Assert.Equal(["bring keys"], await SlotNote.Select(n => n.Text));
     }
@@ -149,7 +149,7 @@ public sealed class ChildStampsTests : IDisposable
             cancellationToken: TestContext.Current.CancellationToken);
 
         var after = (await database.Load<Roster>(id, TestContext.Current.CancellationToken))!;
-        Assert.Equal(_clock.UtcNow.UtcDateTime, after.UpdatedAt);
+        Assert.Equal(_clock.UtcNow.UtcDateTime, after.UpdatedAt.Instant.UtcDateTime);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class ChildStampsTests : IDisposable
         await Roster.Update(id, _ => { }, cancellationToken: TestContext.Current.CancellationToken);
 
         var after = (await database.Load<Roster>(id, TestContext.Current.CancellationToken))!;
-        Assert.Equal(stamped, after.UpdatedAt);
+        Assert.Equal(stamped, after.UpdatedAt.Instant.UtcDateTime);
     }
 
     [Fact]

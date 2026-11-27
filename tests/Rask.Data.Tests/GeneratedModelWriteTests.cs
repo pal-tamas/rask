@@ -25,12 +25,12 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(Start.UtcDateTime, widget.CreatedAt);
+        Assert.Equal(Start.UtcDateTime, widget.CreatedAt.Instant.UtcDateTime);
 
         var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Equal("anvil", stored.Name);
-        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
+        Assert.Equal(Start.UtcDateTime, stored.CreatedAt.Instant.UtcDateTime);
         Assert.Equal(0, stored.Version);
     }
 
@@ -65,8 +65,8 @@ public sealed class GeneratedModelWriteTests : IDisposable
         var stored = await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken);
         Assert.Equal("hammer", stored!.Name);
         Assert.Equal(1, stored.Version);
-        Assert.Equal(Start.AddHours(2).UtcDateTime, stored.UpdatedAt);
-        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
+        Assert.Equal(Start.AddHours(2).UtcDateTime, stored.UpdatedAt.Instant.UtcDateTime);
+        Assert.Equal(Start.UtcDateTime, stored.CreatedAt.Instant.UtcDateTime);
     }
 
     [Fact]
