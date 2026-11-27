@@ -431,7 +431,7 @@ Never key on `[data-ui-card]` from another component.
 ### The harness, as it is (`scripts/flux/Flux`: `Lib/Measure.cs`, `Lib/ParityComparer.cs`, `Commands/Parity.cs`; `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
-card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
+card accordion callout button toast badge tooltip item kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
 calendar date-picker datetime-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `flux rail` (the collapsed sidebar, below) and the open-state scripts `flux parity-toast`, `flux parity-tooltip`,
 `flux parity-menu dropdown|context`, `flux parity-modal`, `flux parity-select`, `flux parity-autocomplete`,
 `flux parity-pillbox`, `flux parity-editor`, `flux parity-popover`, `flux parity-command` (the page `command-open`, brought to its states by

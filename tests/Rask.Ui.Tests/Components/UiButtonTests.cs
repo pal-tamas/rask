@@ -192,14 +192,14 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.Contains(expected, Ui.Button.Align(align).Class("w-full")["Save"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
-    public void Inset_pulls_only_the_named_sides_out_by_what_the_size_pads()
+    public void Inset_pulls_only_the_named_sides_out_by_what_the_size_pads_and_the_sides_by_the_padding_there()
     {
         var html = Ui.Button.Ghost.Sm.Inset(Ui.Inset.Top | Ui.Inset.Bottom)["Edit"].ToHtml();
         var all = Ui.Button.Ghost.Inset(Ui.Inset.All)["Edit"].ToHtml();
 
         Assert.Contains("[:where(&amp;)]:-mt-1.5 [:where(&amp;)]:-mb-1.5", html, StringComparison.Ordinal);
         Assert.DoesNotContain("-ms-", html, StringComparison.Ordinal);
-        Assert.Contains("[:where(&amp;)]:-mt-2.5 [:where(&amp;)]:-mb-2.5 [:where(&amp;)]:-ms-2.5 [:where(&amp;)]:-me-2.5", all, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:-mt-2.5 [:where(&amp;)]:-mb-2.5 [:where(&amp;)]:-ms-4 [:where(&amp;)]:-me-4", all, StringComparison.Ordinal);
     }
 
     [Fact]

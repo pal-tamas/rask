@@ -35,6 +35,13 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
     private static readonly UiPartMarker Unmarked = Marker.And("rask-loading", "off");
     private static readonly UiPartMarker GroupedUnmarked = Grouped.And("rask-loading", "off");
 
+    // Flux marks a square button once more (`data-flux-button-square`): an item tells an icon button by it, and keeps
+    // one at the end of its row where a button with words goes under the text on a narrow item. Each marker above
+    // with it, built once.
+    private static readonly Dictionary<UiPartMarker, UiPartMarker> Squared =
+        new UiPartMarker[] { Marker, Grouped, Waiting, GroupedWaiting, Unmarked, GroupedUnmarked }
+            .ToDictionary(marker => marker, marker => marker.And("ui-button-square"));
+
     private static readonly Dictionary<string, string?> IndicatorMark = new(StringComparer.Ordinal)
     {
         ["data-ui-loading-indicator"] = null,
@@ -220,7 +227,7 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
             variant is Ui.ButtonVariant.Ghost or Ui.ButtonVariant.Subtle || !(InTooltip || Tooltip is not null)
                 ? null
                 : UiButtonClasses.GroupedInTooltip(Sized),
-            Inset is { } inset ? UiButtonClasses.Inset(inset, Sized) : null,
+            Inset is { } inset ? UiButtonClasses.Inset(inset, Sized, Shape) : null,
             Class);
     }
 
@@ -244,7 +251,7 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
             _ => grouped ? Grouped : Marker,
         };
 
-        return marker.With(Data);
+        return (IsSquare ? Squared[marker] : marker).With(Data);
     }
 
     /// <inheritdoc />

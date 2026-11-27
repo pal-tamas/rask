@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Item`, Flux UI v2.22's item: a row with a heading, a line of text and a control at the end (#1189).**
+  `Ui.ItemGroup[Ui.Item[Ui.ItemMedia[avatar], Ui.ItemHeading["Two-factor authentication"], Ui.ItemSubheading["…"],
+  Ui.ItemActions[Ui.Switch…]]]` draws settings rows, account details and lists of people on one bordered surface with a
+  rule between each; an item alone draws that surface itself. `Ui.ItemHeading.Level(3)` is an `<h3>`. The item is a size
+  container: under 24rem of its own width a button with words in its actions moves under the text, while a switch, a
+  value, a dropdown's button or an icon button stays at the end. Measured from fluxui.dev/components/item and held to it
+  by `flux parity item`, all twelve examples, light and dark, desktop and phone; rask.sh/ui/item shows every one.
 - **`database.Arrange<T>(where, set)` / `database.ArrangeGone<T>(where)` (Rask.Testing.Data): a test's setup of a
   state the aggregate would not make.** A legacy row, a user moved to another tenant, a period closed under a note
   already written — one `ExecuteUpdate`/`ExecuteDelete` each on the test's database, every tenant's rows (no query
@@ -95,6 +102,13 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **An inset `Ui.Button` with words is pulled out by its own padding, as Flux's.** `.Inset(Ui.Inset.Right)` on a
+  small ghost button with a trailing chevron hung 6px past its edge where Flux's hangs 8px (its `pe-2`), and a button
+  of words 12px; measured on Flux's demos, a side's inset is the padding on that side and a square's the room around its
+  glyph (unchanged). Up and down are as before. An icon-only button now also writes Flux's `data-ui-button-square`.
+- **A plain menu row under a radio group keeps no icon's room.** `Ui.MenuItem.Danger["Remove from team…"]` after a
+  `Ui.MenuRadioGroup` was indented 28px; Flux's is not (measured on fluxui.dev/components/item). A row's icon and a
+  `Ui.MenuGroup`'s still indent the rows around them.
 - **An MDN link with an `&` in it no longer breaks the build of the generated DOM.** MDN's new `headingoffset` /
   `headingreset` globals link whatwg's `#heading-levels-&-offsets`, which the emitters wrote verbatim into a
   `<see href>` — CS1570 in `HTMLElement.g.cs`, so the `mdn` follower could not land (#1259). Every spec and MDN link

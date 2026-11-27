@@ -30,7 +30,7 @@ Ui.Button.Primary["Save"]
 [Popover](https://rask.sh/ui/popover/), [Modal](https://rask.sh/ui/modal/), [Progress](https://rask.sh/ui/progress/),
 [Skeleton](https://rask.sh/ui/skeleton/), [Toast](https://rask.sh/ui/toast/), [Tooltip](https://rask.sh/ui/tooltip/),
 [Accordion](https://rask.sh/ui/accordion/), [Avatar](https://rask.sh/ui/avatar/), [Table](https://rask.sh/ui/table/),
-[Chart](https://rask.sh/ui/chart/), [Kanban](https://rask.sh/ui/kanban/), [Timeline](https://rask.sh/ui/timeline/),
+[Chart](https://rask.sh/ui/chart/), [Item](https://rask.sh/ui/item/), [Kanban](https://rask.sh/ui/kanban/), [Timeline](https://rask.sh/ui/timeline/),
 [Carousel](https://rask.sh/ui/carousel/), [Flag](https://rask.sh/ui/flag/), [Brand](https://rask.sh/ui/brand/),
 [Breadcrumbs](https://rask.sh/ui/breadcrumbs/), [Navbar](https://rask.sh/ui/navbar/),
 [Navlist](https://rask.sh/ui/navlist/), [Pagination](https://rask.sh/ui/pagination/),
@@ -1393,6 +1393,28 @@ Ui.Card.Class("grid gap-4 sm:grid-cols-3")[ViewField.Of("Company", _company), Vi
 Ui.Card[Ui.Facts[Ui.Fact("Company", _company), Ui.Fact("Driver card", card)]]
 ```
 
+### Item
+
+`Ui.Item` is [Flux UI's item](https://fluxui.dev/components/item): a row with a `Ui.ItemHeading`, an optional
+`Ui.ItemSubheading` under it, `Ui.ItemMedia` (an avatar, an icon) before them and `Ui.ItemActions` (buttons, a switch,
+a value) after them — for settings pages, account details and lists of people or connections. `Ui.ItemGroup` draws
+several on one bordered surface with a rule between each; an item alone draws that surface itself. The item is a size
+container: under 24rem of its own width a button with words moves under the text, while a switch, a value, a
+dropdown's button or an icon button stays at the end.
+
+```csharp
+Ui.ItemGroup[
+    Ui.Item[
+        Ui.ItemHeading["Two-factor authentication"],
+        Ui.ItemSubheading["Ask for a code when you sign in on a new device."],
+        Ui.ItemActions[Ui.Switch.Bind(() => m.TwoFactor).Attributes(("aria-label", "Two-factor authentication"))]
+    ],
+    Ui.Item[Ui.ItemHeading["Seats"], Ui.ItemActions[Ui.Text["3 of 5 used"]]]
+]
+```
+
+Every example and the reference: **[rask.sh/ui/item](https://rask.sh/ui/item/)**.
+
 ### Kanban
 
 `Ui.Kanban` is [Flux UI's kanban](https://fluxui.dev/components/kanban): `Ui.KanbanColumn`s of `Ui.KanbanCard`s, one
@@ -1448,7 +1470,7 @@ Grouped by what each piece is for.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.NavmenuSeparator` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` `Ui.Filters` `Ui.Filter` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.ItemGroup` `Ui.Item` `Ui.ItemMedia` `Ui.ItemHeading` `Ui.ItemSubheading` `Ui.ItemActions` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.FilePicker` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Field` `Ui.Field.Bind` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Calendar` `Ui.DatePicker` `Ui.DatetimePicker` `Ui.DatetimePickerButton` `Ui.TimePicker` `Ui.DayAndTime` |
