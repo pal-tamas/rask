@@ -67,7 +67,7 @@ public sealed class PostgresCapabilityTests() : ParityTests<CapabilityDbContext>
         var sameRoomOtherCase = await Assert.ThrowsAsync<PostgresException>(() => Book(db, "KÉK SZOBA", 2, 4));
         await Book(db, "Kek szoba", 2, 4);
         await Book(db, "KÉK SZOBA", 3, 5);
-        var openEnded = await Assert.ThrowsAsync<PostgresException>(() => Book(db, "kék szoba", 10, null));
+        var openEnded = await Assert.ThrowsAsync<PostgresException>(() => Book(db, "kék szoba", 4, null));
 
         Assert.Equal(ExclusionViolation, sameRoomOtherCase.SqlState);
         Assert.Equal("EX_Bookings_Room", sameRoomOtherCase.ConstraintName);
