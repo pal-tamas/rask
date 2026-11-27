@@ -48,7 +48,7 @@ public sealed class HasManyTests : IDisposable
         var a = cargo.Parts[0];
 
         var refused = Assert.Throws<ArgumentException>(() =>
-            cargo.Parts.Sync([new CargoPartSpec(a.Id, "A", 11)], s => s.Id?.ToString(), CargoPart.For, (_, _) => { }));
+            cargo.ChangeByText([new CargoPartSpec(a.Id, "A", 11)]));
 
         Assert.Equal("key", refused.ParamName);
         Assert.Equal([a], cargo.Parts);

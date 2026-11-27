@@ -17,4 +17,14 @@ internal interface ITextCollationEnforcer
     ///     aside — as the provider registers or creates it.
     /// </summary>
     string SearchCollation { get; }
+
+    /// <summary>
+    ///     The collation a text key column gets instead — a primary or alternate key, or a foreign key — or null to give it
+    ///     <see cref="Collation" /> like every other text column.
+    /// </summary>
+    /// <remarks>
+    ///     PostgreSQL's is the binary <c>"C"</c>: an id is compared byte for byte, its btree index deduplicates, and a
+    ///     foreign key matches its principal by equality no ICU rule can make ambiguous.
+    /// </remarks>
+    string? KeyCollation => null;
 }

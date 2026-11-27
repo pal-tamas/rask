@@ -148,15 +148,15 @@ internal static class NamedLock
         }
     }
 
-    // PostgreSQL locks the name's hashtext, so that is the order the locks are taken in: two names that hash alike are one
-    // lock there, and taking them by name could put one caller's second lock before another's first.
+    // PostgreSQL locks the name's 64-bit hashtextextended, so that is the order the locks are taken in: two names that hash
+    // alike are one lock there, and taking them by name could put one caller's second lock before another's first.
     private static async Task TakeOnPostgres(
         DbConnection connection, DatabaseLock held, IReadOnlyList<string> names, Deadline deadline, CancellationToken cancellationToken)
     {
-        var keys = new SortedDictionary<int, string>();
+        var keys = new SortedDictionary<long, string>();
         foreach (var name in names)
         {
-            var key = Convert.ToInt32(await Scalar(connection, "SELECT hashtext(@name);", ("@name", name), cancellationToken)
+            var key = Convert.ToInt64(await Scalar(connection, PostgresKey, ("@name", name), cancellationToken)
                 .ConfigureAwait(false), CultureInfo.InvariantCulture);
             keys.TryAdd(key, name);
         }
@@ -207,6 +207,9 @@ internal static class NamedLock
     }
 
     private const string PostgresRelease = "SELECT pg_advisory_unlock(@key);";
+
+    /// <summary>The key PostgreSQL locks a name under: its 64-bit hash, seeded 0 — what <c>NumberingLocks</c> takes too.</summary>
+    internal const string PostgresKey = "SELECT hashtextextended(@name, 0);";
 
     private static async Task Restore(DbConnection connection, string? previous)
     {
@@ -286,7 +289,7 @@ internal static class NamedLock
 
         internal void Taken(string release, string name) => _taken.Add((release, "@name", name));
 
-        internal void Taken(string release, int key) => _taken.Add((release, "@key", key));
+        internal void Taken(string release, long key) => _taken.Add((release, "@key", key));
 
         public async ValueTask DisposeAsync()
         {

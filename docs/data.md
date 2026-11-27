@@ -714,9 +714,32 @@ public sealed class AppModel : IRaskModel
   (`Contains`, `StartsWith`, `EndsWith`) compare as SQL Server's do. **It needs PostgreSQL 18 or later**: `LIKE` refuses
   a nondeterministic collation before 18, so on an older server the migration stops at that statement and says so,
   rather than every search failing later. The collation is made `IF NOT EXISTS` — a database whose collation was made
-  under another locale keeps it until it is dropped. A collation that tells case and accents apart
+  under another locale keeps it until it is dropped. **A text key is binary**: a primary or alternate key column and a
+  foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
+  foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
+  two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
+
+  PostgreSQL refuses every substring search by a nondeterministic collation but `LIKE` — `strpos`, `replace`, the
+  regular expressions and `ILIKE` fail with *nondeterministic collations are not supported* — and Npgsql writes several
+  string members as those. So on a column in `rask_text` (or `rask_search`, `x.Loosely()`'s), `UseRaskPostgres` writes
+  them as below; *the language's collation* is its deterministic ICU one (`"hu-HU-x-icu"`; `"und-x-icu"` for
+  `rask_search`). A column given a deterministic collation of its own is left to Npgsql, and so is a plain `UseNpgsql`.
+
+  | On PostgreSQL through `UseRaskPostgres` | written as | compares | vs SQL Server / SQLite (`Hungarian_100_CI_AS`) |
+  |---|---|---|---|
+  | `Contains` / `StartsWith` / `EndsWith` of a constant or a parameter | Npgsql's `LIKE @p`, the value's `%`, `_` and `\` escaped | by `rask_text`: case aside, accents as the collation says | the same |
+  | the same of another column or an expression | `LIKE '%' \|\| (escaped value COLLATE rask_text) \|\| '%' ESCAPE '\'` — not `strpos`, `left`, `right` | by `rask_text`, `%`/`_` in the value literal | the same |
+  | `IndexOf(string)` / `IndexOf(char)` | `strpos(lower(x COLLATE "hu-HU-x-icu"), lower(v COLLATE "hu-HU-x-icu")) - 1` (no `lower` when the collation tells case apart) | case aside, **accents always counted** | the same for an `_AS` collation; under an `_AI` one SQL Server and SQLite also ignore accents |
+  | `Replace` | `replace(x COLLATE "hu-HU-x-icu", …) COLLATE rask_text` | the exact value, **case counted** | as SQLite; SQL Server's `REPLACE` matches case aside |
+  | `Regex.IsMatch` / `Replace` / `Count`, `EF.Functions.ILike` | Npgsql's, the text `COLLATE "hu-HU-x-icu"` | as .NET's `Regex` and PostgreSQL's `ILIKE` do | PostgreSQL only |
+  | `==`, `ToUpper()`/`ToLower()`, `Trim`, `Substring`, `Length`, `OrderBy` | unchanged | by `rask_text` | the same |
+
+  A text `Replace` or a regular expression answers is given `rask_text` back, so `x.Name.Replace(a, b) == "KOVÁCS"`
+  still compares case aside. `lower()` maps `İ` to two characters, so `IndexOf` past one is off by one — Hungarian has
+  none.
 
   ```csharp
   // before — the collation repeated in every query
@@ -1179,8 +1202,9 @@ await pump.Talk();
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
   with its connection. Disposing twice lets go once.
 - **SQL Server** takes it with `sp_getapplock` (owned by the session, names up to 255 characters), released with
-  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtext(name))` — a 32-bit hash, so two names that hash
-  alike share one lock — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
+  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtextextended(name, 0))` — a 64-bit hash, so two names
+  would share one lock only if they hashed alike (about once in 2⁶⁴; the 32-bit `hashtext` before it collided at a
+  few tens of thousands of names) — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
   connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
   name. Any other provider throws `NotSupportedException`.
 
@@ -1190,8 +1214,8 @@ await pump.Talk();
 await using var chips = await Db.Lock(driver.Chips.Touched.Select(c => "chip:" + c.Code)).For(30.Seconds);
 ```
 
-Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtext`, the locks it
-really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
+Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtextextended`, the
+locks it really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
 waits for. A name given twice is taken once, and an empty list takes nothing. `.For(wait)` is the whole call's wait,
 not each name's. All or none: when one is not granted, the ones already taken are let go before the
 `TimeoutException`. Disposing the handle lets go of every one.
@@ -1894,6 +1918,30 @@ CAST(SUBSTRING(@n, 13, 4) + SUBSTRING(@n, 11, 2) + SUBSTRING(@n, 9, 2) + SUBSTRI
 
 A migration of your own that re-keys rows writes ids through EF (`UpdateData`, a data step) and gets the stored form
 without either.
+
+### Rask's own tables re-keyed from store numbers to Guids
+
+A table of Rask's own whose key moves from a store-numbered integer (an `IDENTITY`, a PostgreSQL identity, SQLite's
+rowid) to a Guid the app makes before the insert cannot be altered in place — SQL Server refuses to alter an identity,
+PostgreSQL has no cast from `bigint` to `uuid`, and SQLite's table rebuild would copy `1`, `2`, `3` in as ids. The
+battery marks such a table, and **the migration you add after upgrading rebuilds it** instead:
+
+1. **The guard.** While a row is still pending (a job, an outbox message or a queued mail not yet processed — dead
+   letters included), the migration fails with *"Rask cannot rebuild the key of …: rows with no ProcessedAt are still
+   waiting"* and changes nothing. Let the queue drain, retry or delete what the dashboard shows, then migrate again.
+2. **The kept rows set aside**, where the table keeps its history: each gets a deterministic version-7 id made from
+   what it holds — the Unix millisecond of its own time, version 7, then the old number as the last fifteen hex digits
+   (`xxxxxxxx-xxxx-7000-8iii-iiiiiiiiiiii`) — so the ids sort by that time, then by the old number, and every id made
+   afterwards sorts after them. They wait in a `<table>_rask_rebuild` table beside it. A table whose rows are pure
+   history keeps none: they are dropped with it.
+3. **The table dropped and created again** from the current model, with its indexes.
+4. **The kept rows written back**, and the scratch table dropped.
+
+The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
+[`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,
+so nothing is enqueued under the old key while it runs. With plain `dotnet ef`, stop the old instances yourself first.
+On SQL Server a database still in the native Guid layout gets both changes in one migration: the rebuilt rows come back
+in the stored form.
 
 One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.

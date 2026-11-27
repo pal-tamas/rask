@@ -20,6 +20,39 @@ public sealed class HungarianPayees(DbContextOptions<HungarianPayees> options) :
         configurationBuilder.OrderTextBy("Hungarian_100_CI_AS");
 }
 
+public sealed class Ledger
+{
+    public string Code { get; set; } = "";
+
+    public string Title { get; set; } = "";
+}
+
+public sealed class Posting
+{
+    public int Id { get; set; }
+
+    public string LedgerCode { get; set; } = "";
+
+    public string Memo { get; set; } = "";
+}
+
+/// <summary>Text keys: a ledger keyed by its code, and postings that reference it by that code.</summary>
+public sealed class HungarianLedgers(DbContextOptions<HungarianLedgers> options) : DbContext(options)
+{
+    public DbSet<Ledger> Ledgers => Set<Ledger>();
+
+    public DbSet<Posting> Postings => Set<Posting>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        configurationBuilder.OrderTextBy("Hungarian_100_CI_AS");
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Ledger>().HasKey(l => l.Code);
+        modelBuilder.Entity<Posting>().HasOne<Ledger>().WithMany().HasForeignKey(p => p.LedgerCode);
+    }
+}
+
 /// <summary>The same model under a collation that tells case and accents apart.</summary>
 public sealed class CaseSensitivePayees(DbContextOptions<CaseSensitivePayees> options) : DbContext(options)
 {
@@ -33,7 +66,7 @@ public sealed class CaseSensitivePayees(DbContextOptions<CaseSensitivePayees> op
 // migrations create; a plain UseNpgsql orders by the language's ICU collation and changes no column.
 public sealed class TextOrderTests
 {
-    private static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
+    internal static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
         .AddInMemoryCollection([new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", "Host=localhost;Database=rask")])
         .Build());
 
@@ -49,6 +82,19 @@ public sealed class TextOrderTests
         Assert.Contains("\"Name\" text COLLATE rask_text NOT NULL", script, StringComparison.Ordinal);
         Assert.True(
             script.IndexOf("CREATE COLLATION", StringComparison.Ordinal) < script.IndexOf("CREATE TABLE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Through_UseRaskPostgres_a_text_key_and_the_foreign_key_to_it_are_binary_collated()
+    {
+        using var context = new HungarianLedgers(new DbContextOptionsBuilder<HungarianLedgers>().UseRaskPostgres(Services).Options);
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("\"Code\" text COLLATE \"C\" NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("\"LedgerCode\" text COLLATE \"C\" NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("\"Title\" text COLLATE rask_text NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("\"Memo\" text COLLATE rask_text NOT NULL", script, StringComparison.Ordinal);
     }
 
     [Fact]

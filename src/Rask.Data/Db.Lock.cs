@@ -29,8 +29,8 @@ public static partial class Db
     ///         The lock is the database's, on a connection of its own that it keeps for as long as it is held — never the
     ///         connection of a <c>Db.Transaction</c> in progress, so it outlives that transaction's commit or rollback,
     ///         and a host that dies gives it back with its connection. SQL Server takes it with <c>sp_getapplock</c>
-    ///         (owned by the session), PostgreSQL with <c>pg_advisory_lock</c> on the name's <c>hashtext</c> — so two
-    ///         names that hash alike share one lock there.
+    ///         (owned by the session), PostgreSQL with <c>pg_advisory_lock</c> on the name's 64-bit <c>hashtextextended</c> —
+    ///         so two names that hash alike would share one lock there, about once in four billion billion pairs.
     ///     </para>
     ///     <para>
     ///         SQLite has no lock across connections, and a SQLite app runs on one host: there the lock is this
@@ -58,7 +58,7 @@ public static partial class Db
     ///     <para>
     ///         The names are taken one after another in ordinal order, whatever order they were given in — so two callers
     ///         that share some of them can never each hold one the other waits for. On PostgreSQL the order is that of
-    ///         the names' <c>hashtext</c>, the locks it actually takes.
+    ///         the names' <c>hashtextextended</c>, the locks it actually takes.
     ///     </para>
     ///     <para>
     ///         All or none: when one is not granted before the wait runs out, or the wait is cancelled, the ones already

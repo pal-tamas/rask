@@ -121,6 +121,19 @@ them until tagged releases begin.
   number; processed outbox rows and the stored log are history and are not carried over. A SQLite file log store
   (`AddRaskLogging()` without a context) keeps its own integer rowid — its full-text index needs one — and derives each
   entry's `Guid` from it. docs/data.md, docs/jobs.md, docs/outbox.md, docs/mail.md, docs/logging.md.
+- **`Db.Lock` and numbering take a 64-bit lock on PostgreSQL.** `pg_advisory_lock(hashtextextended(name, 0))` (and
+  `pg_advisory_xact_lock` for numbering) instead of the 32-bit `hashtext`, whose keys collide at a few tens of
+  thousands of names. The key a name locks changes, so an instance of the previous version and one of this version do
+  not exclude each other: never run the two side by side against one PostgreSQL database — `rask deploy`'s blue-green
+  overlap included. No app runs on PostgreSQL yet; after one does, a change of lock identity takes both keys for a
+  release.
+- **PostgreSQL: a text key is binary.** Through `UseRaskPostgres` under a case-insensitive `c.OrderTextBy(…)`, a text
+  primary or alternate key column and a text foreign key column are now `COLLATE "C"` instead of `rask_text`: an id
+  compares byte for byte and its index deduplicates; every other text column keeps `rask_text`. A database already
+  created through `UseRaskPostgres` gets the change as a column alteration in its next migration. Pinned on
+  PostgreSQL 19 (`PostgresCapabilityTests`, `TrailingSpaceEqualityTests`): a `btree_gist` exclusion compares a
+  `rask_text` key case-insensitively, and a trailing space tells two texts apart on PostgreSQL and SQLite where SQL
+  Server pads it away.
 - **BREAKING — on SQL Server every `uniqueidentifier` is stored time-ordered: `ORDER BY Id` is the order of creation
   on all three databases.** SQL Server compares a `uniqueidentifier`'s bytes in its own order, so a version-7 key sorted
   by its random tail there — paging, `Min`/`Max` and a clustered index's appends all differed from PostgreSQL and
@@ -214,6 +227,16 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
+  `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
+  and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`
+  (another column), `IndexOf`, `Replace`, `Regex.IsMatch` and `EF.Functions.ILike` threw *nondeterministic collations
+  are not supported*. `Contains`/`StartsWith`/`EndsWith` of a column or an expression are now an escaped `LIKE` by the
+  column's collation (case aside, `%`/`_` literal, as SQL Server and SQLite); `IndexOf` is `strpos` over `lower()` by
+  the language's deterministic ICU collation (case aside, accents counted); `Replace`, the `Regex` methods and `ILike`
+  run by that collation (`Replace` matches the exact value, as SQLite's does — SQL Server's ignores case), their text
+  answer given `rask_text` back. Of a constant or a parameter they were already Npgsql's escaped `LIKE`, unchanged. The
+  same holds for `x.Loosely()`'s `rask_search`. `docs/data.md` lists what each string member is written as.
 - **`auth.ActInTenant(id)` refuses a tenant the app does not have.** It recorded any id on the session, so an
   administrator could act in a deleted tenant (every read then threw `MissingTenantException`) or in an id nobody
   has. With a tenant aggregate (`ITenant`), an id it has no row for is now `AuthError.NotAllowed` ("No tenant has that
