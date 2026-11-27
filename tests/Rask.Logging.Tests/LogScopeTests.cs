@@ -43,7 +43,7 @@ public sealed class FileStoreLogScopeTests() : LogScopeContract(LogStoreKind.Fil
         var store = new SqliteLogStore(database.ConnectionString, options, TimeProvider.System);
 
         await store.Append(
-            [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "New.Category", 0, "after upgrade", null,
+            [new LogRecord(Guid.Empty, DateTimeOffset.UtcNow, LogLevel.Information, "New.Category", 0, "after upgrade", null,
                 [new LogScopeValue("RequestId", "r9")])], TestContext.Current.CancellationToken);
 
         var page = await store.Search(new LogQuery(), TestContext.Current.CancellationToken);

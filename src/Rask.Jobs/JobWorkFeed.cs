@@ -68,5 +68,5 @@ internal sealed partial class JobWorkFeed(IServiceScopeFactory scopeFactory, ILo
         EventName = "JobWorkPublishFailed",
         Level = LogLevel.Warning,
         Message = "Publishing how job {Id} is getting on ({State}) failed; its row still says it, and the next report is published.")]
-    private static partial void PublishFailed(ILogger logger, Exception exception, long id, WorkState state);
+    private static partial void PublishFailed(ILogger logger, Exception exception, Guid id, WorkState state);
 }

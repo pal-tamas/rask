@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Batteries;
 using Rask.Data;
 
 namespace Rask.Mailing;
@@ -17,11 +18,12 @@ namespace Rask.Mailing;
 /// The setters are <c>internal</c>: this package writes its own rows through <see cref="MailSerializer"/>,
 /// and nothing outside it should.
 /// </remarks>
-public sealed class QueuedMail : Aggregate<long>, IHasTimestamps
+public sealed class QueuedMail : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 {
     /// <summary>The row for <paramref name="email" />, sent from <paramref name="from" /> once <paramref name="runAt" /> comes.</summary>
     internal static QueuedMail For(Mail.Message email, EmailAddress from, DateTime runAt) => new()
     {
+        Id = OrderedGuid.New(),
         From = MailSerializer.SerializeAddress(from),
         To = JsonSerializer.Serialize(email.ToRecipients, MailSerializer.Options),
         Cc = MailSerializer.ToJsonOrNull(email.CcRecipients),

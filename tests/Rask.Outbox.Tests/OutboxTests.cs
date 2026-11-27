@@ -73,7 +73,7 @@ public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> fact
             .FirstOrDefaultAsync(Current.Cancellation)
             .ConfigureAwait(false);
 
-        if (doomed != 0)
+        if (doomed != Guid.Empty)
         {
             await db.Set<OutboxMessage>()
                 .Where(m => m.Id == doomed)

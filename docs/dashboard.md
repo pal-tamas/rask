@@ -160,6 +160,10 @@ sets `RunAt` to now, and clears the stale `Error` so it doesn't read as a fresh 
 Purge only ever matches processed rows, so outstanding work **and dead letters** survive it whatever cutoff
 you pass.
 
+A row is named by its id, a version-7 `Guid`: a list shows its last eight hex digits (`#5c6d7e8f`, the random end
+that tells rows apart — the start is the time it was made), hovering the cell shows the whole id, and the row's
+details carry it in full — what `Jobs.Stop(id)` and the panels' `Retry(id)` / `Delete(id)` take.
+
 ## Logs
 
 ```jsonc

@@ -8,7 +8,7 @@ namespace Rask.Storage;
 /// come from the base. No <see cref="ISoftDeletes"/> and no <see cref="IVersioned"/>: the orphan sweep removes
 /// rows for real, and nothing edits one twice.
 /// </remarks>
-public sealed class StoredFile : Aggregate<Guid>, IHasTimestamps
+public sealed class StoredFile : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 {
     /// <summary>The display name the file was uploaded with, reduced to a safe leaf.</summary>
     public string Name { get; internal set; } = "";

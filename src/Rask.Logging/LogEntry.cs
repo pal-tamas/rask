@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Rask.Batteries;
 
 namespace Rask.Logging;
 
@@ -18,7 +19,8 @@ internal sealed class LogEntry
     /// </summary>
     internal const int CategoryMaxLength = 512;
 
-    public long Id { get; set; }
+    /// <summary>The row's key: a version-7 Guid made as the entry is written, never by the store.</summary>
+    public Guid Id { get; set; }
 
     /// <summary>When it was logged, as UTC.</summary>
     public DateTime Timestamp { get; set; }
@@ -38,6 +40,7 @@ internal sealed class LogEntry
 
     internal static LogEntry From(LogRecord record) => new()
     {
+        Id = OrderedGuid.New(),
         Timestamp = record.Timestamp.UtcDateTime,
         Level = record.Level,
         // Cut rather than refused: an over-long category would fail the INSERT, and a failed INSERT loses the

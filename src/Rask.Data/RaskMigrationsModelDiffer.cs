@@ -33,6 +33,10 @@ namespace Rask.Data;
 ///         here from the annotations of the two models — inside the <c>CREATE TABLE</c> on SQLite, which makes a foreign
 ///         key only with its table, and after every other operation elsewhere, once the tenant's table is there too.
 ///     </para>
+///     <para>
+///         A table a battery marks with <see cref="StoreKeyRebuild" /> whose key turns from a store-numbered integer into
+///         a Guid is rebuilt rather than altered (<see cref="StoreKeyRebuildOperations" />).
+///     </para>
 /// </remarks>
 internal sealed class RaskMigrationsModelDiffer(
     IRelationalTypeMappingSource typeMappingSource,
@@ -88,6 +92,14 @@ internal sealed class RaskMigrationsModelDiffer(
         }
 
         operations = WithTenantReferences(operations, source, target);
+        operations = StoreKeyRebuildOperations.Apply(
+            operations,
+            source,
+            target,
+            () => base.GetDifferences(null, target),
+            databaseProvider.Name,
+            sqlGenerationHelper,
+            (IsStoredByTime(source), IsStoredByTime(target)));
         operations = WithGuidOrder(operations, source, target);
         operations = WithNoOverlapRules(operations, source, target);
 
@@ -186,6 +198,10 @@ internal sealed class RaskMigrationsModelDiffer(
         var seeds = operations.ToList().FindIndex(static o => o is InsertDataOperation or UpdateDataOperation or DeleteDataOperation);
         return seeds < 0 ? [.. operations, rewrite] : [.. operations.Take(seeds), rewrite, .. operations.Skip(seeds)];
     }
+
+    // Whether SQL Server holds the model's Guids in the time-ordered stored form.
+    private bool IsStoredByTime(IRelationalModel? model) =>
+        IsOrderedByTime(model) && string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal);
 
     private static bool IsOrderedByTime(IRelationalModel? model) =>
         string.Equals(model?.Model.FindAnnotation(SqlServerGuidOrder.Annotation)?.Value as string, SqlServerGuidOrder.ByTime, StringComparison.Ordinal);

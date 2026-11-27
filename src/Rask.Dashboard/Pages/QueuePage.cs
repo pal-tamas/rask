@@ -21,7 +21,7 @@ public sealed partial class QueuePage(
     private IReadOnlyList<QueueRow> _rows = [];
     private int _total;
     private int _page;
-    private long? _expanded;
+    private Guid? _expanded;
     private (string Prompt, Func<CancellationToken, Task<string>> Action)? _pending;
 
     /// <summary>Which queue, from the route.</summary>
@@ -181,7 +181,7 @@ public sealed partial class QueuePage(
             ],
             Ui.TableRows[
                 _rows.Select(r => Ui.TableRow.Key(r.Id)[
-                    Ui.TableCell.Class("hidden font-mono md:table-cell")[$"{r.Id}"],
+                    Ui.TableCell.Class("hidden font-mono md:table-cell").Title($"{r.Id}")[DashboardParts.ShortId(r.Id)],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate max-md:ps-0").Title(r.Type)[r.Type],
                     Jobs is null ? null : Ui.TableCell.Class("truncate font-mono").Title(r.Lane ?? "")[r.Lane ?? "—"],
                     Ui.TableCell[When(r, now)],
@@ -275,7 +275,7 @@ public sealed partial class QueuePage(
             Div.Class("space-y-6")[
                 Ui.Heading.Level(2).Lg[row.Type],
                 DashboardFacts[
-                    DashboardFact.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
+                    DashboardFact.Key("id").Label("ID").Value($"{row.Id}").Mono(true),
                     DashboardFact.Key("queue").Label("Queue").Value(_panel!.Title),
                     Jobs is not null && row.Lane is { } lane ? DashboardFact.Key("lane").Label("Lane").Value(lane).Mono(true) : null,
                     Jobs is not null && row.StartedAt is { } started
@@ -300,7 +300,7 @@ public sealed partial class QueuePage(
         ];
     }
 
-    private void Open(long id)
+    private void Open(Guid id)
     {
         _expanded = id;
         StateHasChanged();
@@ -355,8 +355,8 @@ public sealed partial class QueuePage(
                 .OnClick(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.Retry(row.Id, ct).ConfigureAwait(false) > 0
-                        ? $"Re-queued #{row.Id}."
-                        : $"#{row.Id} was already picked up."))["Retry"];
+                        ? $"Re-queued {DashboardParts.ShortId(row.Id)}."
+                        : $"{DashboardParts.ShortId(row.Id)} was already picked up."))["Retry"];
         }
 
         if (Jobs is { } jobs && row is { ProcessedAt: null, Stopped: null } && options.Actions.HasFlag(RaskDashboardActions.Destructive))
@@ -366,8 +366,8 @@ public sealed partial class QueuePage(
                 .OnClick(() => RunAsync(
                     "Stop this job? It ends as stopped and is not tried again.",
                     async ct => await jobs.Stop(row.Id, ct).ConfigureAwait(false)
-                        ? $"Stopping #{row.Id}."
-                        : $"#{row.Id} had already ended and was left alone."))["Stop"];
+                        ? $"Stopping {DashboardParts.ShortId(row.Id)}."
+                        : $"{DashboardParts.ShortId(row.Id)} had already ended and was left alone."))["Stop"];
         }
 
         if (row.ProcessedAt is null && options.Actions.HasFlag(RaskDashboardActions.Destructive))
@@ -375,10 +375,10 @@ public sealed partial class QueuePage(
             yield return Ui.Button.Red.Sm
                 .Key("delete")
                 .OnClick(() => RunAsync(
-                    $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
+                    $"Delete {DashboardParts.ShortId(row.Id)}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.Delete(row.Id, ct).ConfigureAwait(false) > 0
-                        ? $"Deleted #{row.Id}."
-                        : $"#{row.Id} had already completed and was left alone."))["Delete"];
+                        ? $"Deleted {DashboardParts.ShortId(row.Id)}."
+                        : $"{DashboardParts.ShortId(row.Id)} had already completed and was left alone."))["Delete"];
         }
     }
 

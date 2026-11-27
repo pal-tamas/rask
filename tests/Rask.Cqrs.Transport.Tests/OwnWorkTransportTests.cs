@@ -24,7 +24,7 @@ public sealed class OwnWorkTransportTests
         var rows = await board.Mine("imports", TestContext.Current.CancellationToken);
 
         var row = Assert.Single(rows);
-        Assert.Equal(new WorkReported(7, "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At), row);
+        Assert.Equal(new WorkReported(Id(7), "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At), row);
         Assert.Null(row.Owner);
         Assert.Equal(TimeSpan.FromSeconds(3), board.Every);
         Assert.Equal(HttpMethod.Get, wire.Recorder.Last.Method);
@@ -48,11 +48,11 @@ public sealed class OwnWorkTransportTests
         await using var wire = Wire.Connect(user: Alice.ToString(), serverServices: Server);
         await using var watch = await OpenAsync(wire);
 
-        await wire.Server.Publish(Work(Bob, 8, WorkState.Running), TestContext.Current.CancellationToken);
-        await wire.Server.Publish(Work(Alice, 7, WorkState.Done), TestContext.Current.CancellationToken);
+        await wire.Server.Publish(Work(Bob, Id(8), WorkState.Running), TestContext.Current.CancellationToken);
+        await wire.Server.Publish(Work(Alice, Id(7), WorkState.Done), TestContext.Current.CancellationToken);
 
         var heard = await watch.NextAsync();
-        Assert.Equal(7, heard.Id);
+        Assert.Equal(Id(7), heard.Id);
         Assert.Equal(WorkState.Done, heard.State);
         Assert.Null(heard.Owner);
     }
@@ -77,7 +77,7 @@ public sealed class OwnWorkTransportTests
         services.AddScoped<IWatchPolicy<WatchOwnWork>>(static scope => new OwnWorkPolicy(scope));
     }
 
-    private static WorkReported Work(Guid owner, long id, WorkState state) =>
+    private static WorkReported Work(Guid owner, Guid id, WorkState state) =>
         new(id, $"Job {id}", null, null, null, state, At) { Owner = owner };
 
     private static async Task<Watch> OpenAsync(Wire wire)
@@ -131,9 +131,12 @@ public sealed class OwnWorkTransportTests
         {
             var who = principal.Current?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             IReadOnlyList<WorkReported> work = who == Alice.ToString() && lane == "imports"
-                ? [new WorkReported(7, "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At) { Owner = Alice }]
+                ? [new WorkReported(Id(7), "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At) { Owner = Alice }]
                 : [];
             return Task.FromResult(work);
         }
     }
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }

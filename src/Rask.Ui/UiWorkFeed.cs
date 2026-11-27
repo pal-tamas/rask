@@ -57,7 +57,7 @@ internal static class UiWorkFeed
     /// </summary>
     internal static IReadOnlyList<WorkReported> Merge(IEnumerable<WorkReported> rows, IEnumerable<WorkReported> live, Guid? viewer = null)
     {
-        var latest = new Dictionary<long, WorkReported>();
+        var latest = new Dictionary<Guid, WorkReported>();
         foreach (var work in rows.Concat(live))
         {
             latest[work.Id] = latest.TryGetValue(work.Id, out var had) ? Later(had, work) : work;

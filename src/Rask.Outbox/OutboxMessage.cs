@@ -1,3 +1,4 @@
+using Rask.Batteries;
 using Rask.Data;
 
 namespace Rask.Outbox;
@@ -18,7 +19,7 @@ namespace Rask.Outbox;
 /// Nothing creates one of these from a form, so no form model is generated: it says no <c>IHasForm</c>.
 /// </para>
 /// </remarks>
-public sealed class OutboxMessage : Aggregate<long>, IHasUpdatedAt
+public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastructure
 {
     private OutboxMessage()
     {
@@ -102,6 +103,7 @@ public sealed class OutboxMessage : Aggregate<long>, IHasUpdatedAt
     {
         return new OutboxMessage
         {
+            Id = OrderedGuid.New(),
             Type = type,
             Payload = payload,
             Handler = handler,

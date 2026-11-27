@@ -13,7 +13,7 @@ namespace Rask.Caching;
 /// <see cref="ISoftDeletes"/>: a soft-delete filter over a cache would hide entries the purge sweep is meant to
 /// remove.
 /// </remarks>
-public sealed class CacheEntry : Aggregate<Guid>, IHasTimestamps
+public sealed class CacheEntry : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 {
     /// <summary>The cache key.</summary>
     public string Key { get; internal set; } = "";
