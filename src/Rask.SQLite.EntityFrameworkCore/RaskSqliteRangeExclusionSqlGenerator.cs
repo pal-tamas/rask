@@ -1,7 +1,7 @@
 // EF1001: SqliteMigrationsSqlGenerator is EF-internal, but subclassing the provider's generator is the only
 // seam that can add DDL to a migration while keeping every SQLite behaviour the provider implements (notably
 // its table-rebuild rewriting). The base type moves with the EF Core version this package already pins, so an
-// EF Core major upgrade must re-verify this file — the RangeExclusion tests cover exactly that.
+// EF Core major upgrade must re-verify this file — the NoOverlap tests cover exactly that.
 #pragma warning disable EF1001
 
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -12,7 +12,7 @@ using Rask.Data;
 namespace Rask.SQLite;
 
 /// <summary>
-/// Emits the DDL enforcing each <see cref="RangeExclusionSpec"/> the model declares, on top of the SQLite
+/// Emits the triggers enforcing each <c>NoOverlap(…)</c> rule the model declares, on top of the SQLite
 /// provider's own migration SQL. Registered by <c>UseRaskSqlite(...)</c>.
 /// </summary>
 /// <remarks>
@@ -27,7 +27,7 @@ namespace Rask.SQLite;
 public class RaskSqliteRangeExclusionSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     IRelationalAnnotationProvider migrationsAnnotations)
-    : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer, IFullTextSearchEnforcer, IJsonIndexEnforcer
+    : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), INoOverlapEnforcer, IFullTextSearchEnforcer, IJsonIndexEnforcer
 {
     /// <inheritdoc />
     public override IReadOnlyList<MigrationCommand> Generate(
@@ -36,7 +36,7 @@ public class RaskSqliteRangeExclusionSqlGenerator(
         MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
     {
         var commands = base.Generate(SqliteMoments.Written(operations, Dependencies.SqlGenerationHelper), model, options).ToList();
-        commands.AddRange(RangeExclusionDdl.Build(operations, model, Dependencies));
+        commands.AddRange(NoOverlapDdl.Build(operations, model, Dependencies));
         commands.AddRange(FullTextSearchDdl.Build(operations, model, Dependencies));
         commands.AddRange(JsonIndexDdl.Build(operations, model, Dependencies));
         return commands;

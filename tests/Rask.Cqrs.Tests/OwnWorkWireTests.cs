@@ -17,7 +17,7 @@ public sealed class OwnWorkWireTests
     [Fact]
     public void A_report_crosses_as_what_its_enqueuer_sees_and_never_whose_it_is()
     {
-        var work = new WorkReported(7, "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At)
+        var work = new WorkReported(Id(7), "Import of prices.csv", "1,200 rows kept", 1200, 5000, WorkState.Running, At)
         {
             Owner = Alice,
             Tenant = Acme,
@@ -38,8 +38,8 @@ public sealed class OwnWorkWireTests
     {
         var read = new OwnWorkRead(TimeSpan.FromSeconds(3),
         [
-            new WorkReported(9, "Export of March invoices", null, 310, 900, WorkState.Failed, At),
-            new WorkReported(8, "Monthly fuel report", "12 pages", null, null, WorkState.Done, DateTime.SpecifyKind(At, DateTimeKind.Unspecified)),
+            new WorkReported(Id(9), "Export of March invoices", null, 310, 900, WorkState.Failed, At),
+            new WorkReported(Id(8), "Monthly fuel report", "12 pages", null, null, WorkState.Done, DateTime.SpecifyKind(At, DateTimeKind.Unspecified)),
         ]);
 
         var json = Written(writer => OwnWorkWire.Rows.WriteResult!(writer, read));
@@ -69,6 +69,7 @@ public sealed class OwnWorkWireTests
 
     [Theory]
     [InlineData("""{"id":1,"title":"x","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":1,"title":"x","state":"Done","at":"2026-11-17T09:30:00Z"}""")]
     [InlineData("""["not","work"]""")]
     public void A_report_that_is_not_one_is_refused_as_malformed(string json)
     {
@@ -81,7 +82,7 @@ public sealed class OwnWorkWireTests
     public void A_batch_its_detail_and_whether_it_is_shared_or_the_readers_own_cross_and_its_kind_does_not()
     {
         var batch = Guid.Parse("01937f2a-0000-7000-8000-000000000001");
-        var work = new WorkReported(7, "Import of b.csv", null, 3, 3, WorkState.Failed, At)
+        var work = new WorkReported(Id(7), "Import of b.csv", null, 3, 3, WorkState.Failed, At)
         {
             Batch = batch,
             Detail = "b.csv has no header row",
@@ -106,7 +107,7 @@ public sealed class OwnWorkWireTests
     [Fact]
     public void A_report_from_before_batches_reads_with_none_of_them()
     {
-        const string json = """{"id":1,"title":"x","progress":null,"done":null,"of":null,"state":"Done","at":"2026-11-17T09:30:00Z"}""";
+        const string json = """{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","progress":null,"done":null,"of":null,"state":"Done","at":"2026-11-17T09:30:00Z"}""";
 
         var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
 
@@ -120,7 +121,7 @@ public sealed class OwnWorkWireTests
     [Fact]
     public void A_warned_job_crosses_as_done_for_a_tab_from_before_warnings_and_as_warned_for_one_after()
     {
-        var work = new WorkReported(7, "Import", null, null, null, WorkState.Warned, At) { Detail = "No new rows" };
+        var work = new WorkReported(Id(7), "Import", null, null, null, WorkState.Warned, At) { Detail = "No new rows" };
 
         var json = Written(writer => OwnWorkWire.Watch.WriteResult!(writer, work));
         var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
@@ -131,9 +132,9 @@ public sealed class OwnWorkWireTests
     }
 
     [Theory]
-    [InlineData("""{"id":1,"title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
-    [InlineData("""{"id":1,"title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
-    [InlineData("""{"id":1,"title":"x","state":"Done","outcome":"Paused","at":"2026-11-17T09:30:00Z","colour":"teal"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":"019ac4f0-5a00-7000-8000-000000000001","title":"x","state":"Done","outcome":"Paused","at":"2026-11-17T09:30:00Z","colour":"teal"}""")]
     public void A_state_a_newer_server_knows_and_this_reader_does_not_reads_as_an_end_rather_than_breaking_the_bell(string json)
     {
         var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
@@ -162,7 +163,7 @@ public sealed class OwnWorkWireTests
     [Fact]
     public async Task The_server_answers_the_read_from_the_board_of_the_scope_that_asks()
     {
-        var board = new OneBoard(TimeSpan.FromSeconds(2), new WorkReported(7, "Import", null, 1, 4, WorkState.Running, At));
+        var board = new OneBoard(TimeSpan.FromSeconds(2), new WorkReported(Id(7), "Import", null, 1, 4, WorkState.Running, At));
         using var services = new ServiceCollection()
             .AddSingleton<IWorkBoard>(board)
             .BuildServiceProvider();
@@ -188,7 +189,7 @@ public sealed class OwnWorkWireTests
     [Fact]
     public async Task The_browser_s_board_reads_the_server_s_rows_and_learns_how_often_they_change()
     {
-        var work = new WorkReported(7, "Import", "half", 2, 4, WorkState.Running, At);
+        var work = new WorkReported(Id(7), "Import", "half", 2, 4, WorkState.Running, At);
         var server = new ScriptedServer(_ => new OwnWorkRead(TimeSpan.FromSeconds(30), [work]));
         var board = new RemoteWorkBoard(server);
         var before = board.Every;
@@ -279,4 +280,7 @@ public sealed class OwnWorkWireTests
         public Task Publish(RemoteContract contract, object e, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
+
+    // A job's id as a test names it: the nth, a version-7 Guid that reads as its number.
+    private static Guid Id(int n) => new($"019ac4f0-5a00-7000-8000-{n:D12}");
 }

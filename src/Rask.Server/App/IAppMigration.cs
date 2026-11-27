@@ -10,4 +10,12 @@ internal interface IAppMigration
     /// <param name="cancellationToken">Cancels the migration.</param>
     /// <returns>The task.</returns>
     Task MigrateAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     The migrations the database has not had yet, in the order they apply — what <c>rask db pending</c> lists, and
+    ///     <c>rask deploy</c> asks a new image before it starts it.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the look.</param>
+    /// <returns>Each pending migration, and whether no older version of the app may run beside it.</returns>
+    Task<IReadOnlyList<PendingMigration>> PendingAsync(CancellationToken cancellationToken);
 }

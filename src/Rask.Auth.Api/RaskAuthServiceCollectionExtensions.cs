@@ -181,6 +181,9 @@ public static class RaskAuthServiceCollectionExtensions
 
         // An administrator's create, rename, set-password and remove: Accounts.Create(…) and the injectable IAccounts.
         services.TryAddScoped<IAccounts, AccountAdministration<TUser, TKey>>();
+
+        // A bearer token for an app's own sign-in contract, with the login endpoint's checks: IBearerSignIn.SignIn(…).
+        services.TryAddScoped<IBearerSignIn, BearerSignIn<TUser, TKey>>();
     }
 
     private static void AddHostedParts<TContext, TUser, TKey>(IServiceCollection services)

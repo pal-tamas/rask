@@ -6,11 +6,11 @@ Rask.Background.WorkReported
 Rask.Background.WorkReported.<Clone>$() -> Rask.Background.WorkReported!
 Rask.Background.WorkReported.At.get -> System.DateTime
 Rask.Background.WorkReported.At.init -> void
-Rask.Background.WorkReported.Deconstruct(out long Id, out string! Title, out string? Progress, out int? Done, out int? Of, out Rask.Background.WorkState State, out System.DateTime At) -> void
+Rask.Background.WorkReported.Deconstruct(out System.Guid Id, out string! Title, out string? Progress, out int? Done, out int? Of, out Rask.Background.WorkState State, out System.DateTime At) -> void
 Rask.Background.WorkReported.Done.get -> int?
 Rask.Background.WorkReported.Done.init -> void
 Rask.Background.WorkReported.Equals(Rask.Background.WorkReported? other) -> bool
-Rask.Background.WorkReported.Id.get -> long
+Rask.Background.WorkReported.Id.get -> System.Guid
 Rask.Background.WorkReported.Id.init -> void
 Rask.Background.WorkReported.Of.get -> int?
 Rask.Background.WorkReported.Of.init -> void
@@ -20,7 +20,7 @@ Rask.Background.WorkReported.State.get -> Rask.Background.WorkState
 Rask.Background.WorkReported.State.init -> void
 Rask.Background.WorkReported.Title.get -> string!
 Rask.Background.WorkReported.Title.init -> void
-Rask.Background.WorkReported.WorkReported(long Id, string! Title, string? Progress, int? Done, int? Of, Rask.Background.WorkState State, System.DateTime At) -> void
+Rask.Background.WorkReported.WorkReported(System.Guid Id, string! Title, string? Progress, int? Done, int? Of, Rask.Background.WorkState State, System.DateTime At) -> void
 Rask.Background.WorkState
 Rask.Background.WorkState.Done = 1 -> Rask.Background.WorkState
 Rask.Background.WorkState.Failed = 2 -> Rask.Background.WorkState
@@ -298,8 +298,8 @@ Rask.Cqrs.PublishedEventsException.PublishedEventsException(string! message) -> 
 static Rask.Cqrs.Events.Fake() -> Rask.Cqrs.EventsFake!
 Rask.Cqrs.DurableEvent
 Rask.Cqrs.DurableEvent.Attempt.get -> int
-Rask.Cqrs.DurableEvent.DurableEvent(long messageId, int attempt) -> void
-Rask.Cqrs.DurableEvent.MessageId.get -> long
+Rask.Cqrs.DurableEvent.DurableEvent(System.Guid messageId, int attempt) -> void
+Rask.Cqrs.DurableEvent.MessageId.get -> System.Guid
 static Rask.Cqrs.DurableEvent.Current.get -> Rask.Cqrs.DurableEvent?
 static Rask.Cqrs.DurableEvent.Use(Rask.Cqrs.DurableEvent! running) -> System.IDisposable!
 Rask.Cqrs.AggregateEvents

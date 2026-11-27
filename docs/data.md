@@ -714,9 +714,32 @@ public sealed class AppModel : IRaskModel
   (`Contains`, `StartsWith`, `EndsWith`) compare as SQL Server's do. **It needs PostgreSQL 18 or later**: `LIKE` refuses
   a nondeterministic collation before 18, so on an older server the migration stops at that statement and says so,
   rather than every search failing later. The collation is made `IF NOT EXISTS` — a database whose collation was made
-  under another locale keeps it until it is dropped. A collation that tells case and accents apart
+  under another locale keeps it until it is dropped. **A text key is binary**: a primary or alternate key column and a
+  foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
+  foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
+  two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
+
+  PostgreSQL refuses every substring search by a nondeterministic collation but `LIKE` — `strpos`, `replace`, the
+  regular expressions and `ILIKE` fail with *nondeterministic collations are not supported* — and Npgsql writes several
+  string members as those. So on a column in `rask_text` (or `rask_search`, `x.Loosely()`'s), `UseRaskPostgres` writes
+  them as below; *the language's collation* is its deterministic ICU one (`"hu-HU-x-icu"`; `"und-x-icu"` for
+  `rask_search`). A column given a deterministic collation of its own is left to Npgsql, and so is a plain `UseNpgsql`.
+
+  | On PostgreSQL through `UseRaskPostgres` | written as | compares | vs SQL Server / SQLite (`Hungarian_100_CI_AS`) |
+  |---|---|---|---|
+  | `Contains` / `StartsWith` / `EndsWith` of a constant or a parameter | Npgsql's `LIKE @p`, the value's `%`, `_` and `\` escaped | by `rask_text`: case aside, accents as the collation says | the same |
+  | the same of another column or an expression | `LIKE '%' \|\| (escaped value COLLATE rask_text) \|\| '%' ESCAPE '\'` — not `strpos`, `left`, `right` | by `rask_text`, `%`/`_` in the value literal | the same |
+  | `IndexOf(string)` / `IndexOf(char)` | `strpos(lower(x COLLATE "hu-HU-x-icu"), lower(v COLLATE "hu-HU-x-icu")) - 1` (no `lower` when the collation tells case apart) | case aside, **accents always counted** | the same for an `_AS` collation; under an `_AI` one SQL Server and SQLite also ignore accents |
+  | `Replace` | `replace(x COLLATE "hu-HU-x-icu", …) COLLATE rask_text` | the exact value, **case counted** | as SQLite; SQL Server's `REPLACE` matches case aside |
+  | `Regex.IsMatch` / `Replace` / `Count`, `EF.Functions.ILike` | Npgsql's, the text `COLLATE "hu-HU-x-icu"` | as .NET's `Regex` and PostgreSQL's `ILIKE` do | PostgreSQL only |
+  | `==`, `ToUpper()`/`ToLower()`, `Trim`, `Substring`, `Length`, `OrderBy` | unchanged | by `rask_text` | the same |
+
+  A text `Replace` or a regular expression answers is given `rask_text` back, so `x.Name.Replace(a, b) == "KOVÁCS"`
+  still compares case aside. `lower()` maps `İ` to two characters, so `IndexOf` past one is off by one — Hungarian has
+  none.
 
   ```csharp
   // before — the collation repeated in every query
@@ -1140,13 +1163,14 @@ start over rows it would read an hour or two off, saying to add a migration. `ra
 step per column:
 
 ```csharp
-migrationBuilder.Sql("-- Rask: this column's moments, kept as the app's wall clock until now, are rewritten to UTC as the migration applies: [dbo].[Fueling].[At]");
+migrationBuilder.Sql("-- rask:exclusive — Rask: this column's moments, kept as the app's wall clock until now, are rewritten to UTC as the migration applies: [dbo].[Fueling].[At]");
 ```
 
 As the migration applies, Rask's SQL generator writes it as the `UPDATE` it is, in the app's zone at that moment —
 `CAST(([At] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2)` on SQL Server,
 `rask_moment_utc("At")` on SQLite — inside the migration's transaction, with its history row, so it runs once and
-whole. Run it where the app's zone is set (`c.TimeZone`, `AddRask(timeZone: …)`): the app's start, or
+whole. The step marks the migration exclusive (`rask db pending` says so): an older release beside it would go on
+writing wall-clock times into the UTC column, so stop it first. Run it where the app's zone is set (`c.TimeZone`, `AddRask(timeZone: …)`): the app's start, or
 `dotnet App.dll rask db migrate` ([a one-off migration](deployment.md#migrations-as-a-one-off-step)). PostgreSQL kept
 moments as UTC from the start and owes nothing.
 
@@ -1208,8 +1232,9 @@ await pump.Talk();
   progress — so a lock taken inside a block outlives its commit or rollback, and a host that dies gives the lock back
   with its connection. Disposing twice lets go once.
 - **SQL Server** takes it with `sp_getapplock` (owned by the session, names up to 255 characters), released with
-  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtext(name))` — a 32-bit hash, so two names that hash
-  alike share one lock — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
+  `sp_releaseapplock`. **PostgreSQL** takes `pg_advisory_lock(hashtextextended(name, 0))` — a 64-bit hash, so two names
+  would share one lock only if they hashed alike (about once in 2⁶⁴; the 32-bit `hashtext` before it collided at a
+  few tens of thousands of names) — bounded by `lock_timeout`, which is put back as it was. **SQLite** has no lock across
   connections and a SQLite app runs on one host, so there the lock is the process's own, one per database file and
   name. Any other provider throws `NotSupportedException`.
 
@@ -1219,8 +1244,8 @@ await pump.Talk();
 await using var chips = await Db.Lock(driver.Chips.Touched.Select(c => "chip:" + c.Code)).For(30.Seconds);
 ```
 
-Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtext`, the locks it
-really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
+Rask takes them one after another in **ordinal order** (on PostgreSQL, the order of their `hashtextextended`, the
+locks it really takes), whatever order you gave them in — so two saves that share some codes can never each hold one the other
 waits for. A name given twice is taken once, and an empty list takes nothing. `.For(wait)` is the whole call's wait,
 not each name's. All or none: when one is not granted, the ones already taken are let go before the
 `TimeoutException`. Disposing the handle lets go of every one.
@@ -1479,64 +1504,56 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 ## Non-overlapping ranges
 
-A booking, a lease, a price valid for a period — the rule is always the same: **two rows may not cover the
-same point in time (or in a number line)**. PostgreSQL spells this as an exclusion constraint. SQLite has
-nothing, and a `UNIQUE` index does not help — it only stops *identical* rows, so `100–200` and `150–250`
-both sail through.
-
-Declare it on the model and the migration carries the enforcement:
+A chip held by a driver, a room booked by the hour, a price valid for a period — the rule is always the same: **two
+rows with the same key may not cover the same moment**. A `UNIQUE` index cannot say it — it only stops *identical*
+rows, so `100–200` and `150–250` both sail through. Declare it on the model, once, and every provider holds it:
 
 ```csharp
-modelBuilder.Entity<Booking>()
-    .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);
+
+b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld)   // a Range value object
+ .Where(x => x.DriverId != null);                                              // only the rows it holds
+
+b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken);   // two properties of the row
 ```
 
-That is the whole API. `dotnet ef migrations add` then emits an index and a `BEFORE INSERT` / `BEFORE
-UPDATE` trigger pair that `RAISE(ABORT)`s on a conflict, and a violating `SaveChanges` throws
-`RangeOverlapException` naming the table — catch it and tell the user the slot
-is taken.
+A save that breaks it is refused with **the rule's message under the range's field** (`Period`, or the start's
+property) — a `RaskValidationException`, as an `IsUnique("…")` index's duplicate is, so a form shows it where the
+user typed. Rask asks before the save writes anything, and the database has the last word: a write that never went
+through a save (`ExecuteUpdate`, a second instance at the same moment) is refused by the database and answered with
+the same message. Two saves at the same moment never both get through.
 
-```csharp
-try
-{
-    await context.SaveChangesAsync();
-}
-catch (RangeOverlapException)
-{
-    return Results.Conflict("That slot is already booked.");
-}
-```
+What counts as an overlap is PostgreSQL's, on all three databases:
 
-**Ranges are half-open — `[lo, hi)`.** This is the part to get right: it is what makes `100–200` and
-`200–300` neighbours rather than a conflict. Store bounds in a type the database orders correctly — a
-number, a date, or a `yyyy-MM-dd` string — never a localized date string. Pair the rule with a check
-constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing about inverted ones.
+- **Half-open, `[from, to)`.** A hold ending on the 5th and one starting on the 5th are neighbours, not a conflict.
+  An empty range (`from` = `to`) overlaps nothing.
+- **A null end is open**: the row holds from its start for ever, and overlaps every later range of its key.
+- **A key holding a null conflicts with nothing** — a booking with no room is no room's.
+- **The key compares as the app's text order says**: `c.OrderTextBy("Hungarian_100_CI_AS")` makes `C-1` and `c-1`
+  one chip on every provider, and keeps `árvíz` apart from `arviz`.
+- **Only the rows the rule holds count**: its `.Where(…)` (a filtered index's subset — columns compared with
+  constants, joined by `&&`), and, for an aggregate that soft deletes, the rows not deleted — a deleted row frees its
+  range.
 
-| Option | Effect |
+An entity may declare several rules. Each is one database object named `EX_{table}_{key columns}_{start column}`:
+
+| Database | Holds it as |
 | --- | --- |
-| `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
-| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that names `SoftDelete`, where it defaults to on; a hard-deleted row has already freed its slot, so asking for it on any other entity throws. |
+| **PostgreSQL** | `EXCLUDE USING gist (key WITH =, …, tstzrange(from, to, '[)') WITH &&) WHERE (…)` — the migration creates the `btree_gist` extension first (`IF NOT EXISTS`; a trusted extension the database's owner may create). The range is the start column's type: `tstzrange`, `tsrange`, `daterange`, `int4range`, `int8range` or `numrange`. A refusal is SQLSTATE `23P01` naming the constraint. |
+| **SQL Server** | an index over the key and the start, and an `AFTER INSERT, UPDATE` trigger that looks for an overlapping row under `UPDLOCK, HOLDLOCK` — the key's range stays locked to the end of the transaction, so a second save waits for the first and then sees its row (or is chosen as a deadlock's victim) — and `THROW`s error 51101 with the rule's name. EF Core is told the table has a trigger, so it saves without the `OUTPUT` clause a trigger refuses. |
+| **SQLite** | an index and an `AFTER INSERT` / `AFTER UPDATE` trigger pair that `RAISE(ABORT, 'rask no overlap: …')`, written again at the end of every migration that touches the table, since SQLite rebuilds a table to alter it and takes its triggers with it. |
 
-Three things worth knowing:
+**It arrives through migrations.** Adding a rule to an existing table is a migration of its own, even when no column
+changes; removing one drops it; changing one, or a column under it, drops it first and creates it again last. Rows
+already in the table are checked as the rule is created on PostgreSQL (the `ALTER TABLE … ADD CONSTRAINT` fails on an
+existing overlap) and are not re-checked on SQL Server and SQLite — find existing overlaps with a query and clean them
+before the migration.
 
-- **Enforcement is in the database, not the `DbContext`.** Raw SQL, a second process and a background job
-  are all bound by it. That is the point — an application-level check is bypassable, and a check-then-insert
-  in your own code has a race between the check and the insert.
-- **It arrives via migrations.** Adding the rule to an existing table is a migration of its own —
-  `dotnet ef migrations add` sees it even when no column changes — and applying it checks every later
-  write. Removing the rule is a migration too, and drops the triggers and index; changing it rebuilds them.
-  A database created with `EnsureCreated` does not get it at all. Rows already in the table are not
-  re-checked: find existing overlaps with a query before you add the rule.
-- **It survives table rebuilds.** SQLite cannot `ALTER` most things in place, so EF rebuilds the table and
-  drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
-  touches the table, so the constraint cannot silently disappear.
-
-Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. On any other
-provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
-**refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
-until an entity declares a rule, and the rule composes with
-[`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
-`STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+Requires the Rask providers — `UseRaskSqlite`, `UseRaskSqlServer` or `UseRaskPostgres`, whose migrations write the
+rule. On any other — a plain `UseSqlite`, `UseSqlServer` or `UseNpgsql` — the rule would be silently ignored, so
+`AddRaskData<TContext>` **refuses to boot** instead. The rule is read by Rask's conventions, which every `RaskDbContext`
+applies; a plain `DbContext` calls `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
+It composes with [`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types).
 
 ## Full-text search
 
@@ -1613,7 +1630,10 @@ migrates on start only when its `AddRaskData<TContext>(…)` says `.OwnsSchema()
 
 The release step itself can be the app: `dotnet App.dll rask db migrate` builds the host without starting it, applies
 the pending migrations the way a start would (`OwnsSchema` included), runs their [data steps](data-writes.md#moving-data-in-c-with-bdata),
-and exits — with `MigrateOnStart` on or off.
+and exits — with `MigrateOnStart` on or off. `dotnet App.dll rask db pending` lists the migrations the database has not
+had, one a line, in the order they apply; one that rewrites what the rows hold (and so no older version of the app may
+run beside) ends in ` exclusive` — what [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) asks a new image
+before it starts it.
 
 ### Taking over an existing schema
 
@@ -1824,8 +1844,8 @@ that PostgreSQL keeps current itself, with no triggers. Three things change:
   `Rask:Postgres:Retry:Enabled` to `false`.
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
-- **`HasJsonIndex` and non-overlapping ranges are SQLite-only for now.** A context that declares either on
-  PostgreSQL is refused at boot rather than left to scan or to allow overlaps silently.
+- **`HasJsonIndex` is SQLite-only for now.** A context that declares one on PostgreSQL is refused at boot rather than
+  left to scan silently.
 
 ## SQL Server
 
@@ -1870,7 +1890,7 @@ on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on 
 SQL Server), so a migration that rewrites a table, or waits behind the old instance's queries, is not killed
 partway. The pool puts the session back as it came once the migrations are done.
 
-Everything in this guide works unchanged except full-text search, `HasJsonIndex` and non-overlapping ranges,
+Everything in this guide works unchanged except full-text search and `HasJsonIndex`,
 which a context on SQL Server cannot declare — it is refused at boot, naming the declaration. Three things to
 know, as on PostgreSQL:
 
@@ -1879,6 +1899,81 @@ know, as on PostgreSQL:
 - **Litestream and snapshots do not apply.** Back up with `BACKUP DATABASE` or your provider's snapshots.
 - **Open connections through EF** (`context.Database.OpenConnectionAsync()`) in hand-written ADO code, or the
   session settings are not sent.
+
+### Guid keys sort by time on every database
+
+`ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
+`>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
+clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way. SQL Server compares
+a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every
+`uniqueidentifier` column — every `Guid`, `Guid?` and typed id over a `Guid`, keys and foreign keys alike, Rask's own
+tables included — with its bytes rearranged so SQL Server's order is the id's. The id the app reads, writes, prints
+and serializes is unchanged; a column of text (`nvarchar`, or a Guid stored as text) and JSON are left as they are.
+No default is added: Rask assigns every key in the app.
+
+It applies where Rask's migrations do (`UseRaskSqlServer`, a `RaskApp`): the model carries a `Rask:GuidOrder`
+annotation, and **the first migration you add after upgrading rewrites the rows an existing database holds**, once —
+every `uniqueidentifier` column of every table the context's migrations own, with the foreign keys between them
+switched off while it runs and checked again after. A database the first migration creates needs none. Until that
+migration exists, `MigrateOnStart` refuses to start the app (a pending model change), so the new code never reads
+rows in the old layout; [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before
+the new one applies it.
+
+**Raw SQL sees the stored form** — `FromSql`, Dapper, SSMS. EF's own parameters, `BulkInsert` and Rask's own
+statements convert for you. In T-SQL, the stored form of an id's text is
+
+```sql
+DECLARE @r binary(16) = CONVERT(binary(16), REPLACE(@id, '-', ''), 2);
+SELECT CAST(SUBSTRING(@r, 13, 4) + SUBSTRING(@r, 11, 2) + SUBSTRING(@r, 9, 2) + SUBSTRING(@r, 7, 2)
+          + SUBSTRING(@r, 1, 6) AS uniqueidentifier);
+```
+
+and a column `[c]` still in SQL Server's native layout is rewritten to it (what the generated migration does) with
+
+```sql
+-- @n = CAST([c] AS binary(16))
+CAST(SUBSTRING(@n, 13, 4) + SUBSTRING(@n, 11, 2) + SUBSTRING(@n, 9, 2) + SUBSTRING(@n, 8, 1) + SUBSTRING(@n, 7, 1)
+   + SUBSTRING(@n, 4, 1) + SUBSTRING(@n, 3, 1) + SUBSTRING(@n, 2, 1) + SUBSTRING(@n, 1, 1)
+   + SUBSTRING(@n, 6, 1) + SUBSTRING(@n, 5, 1) AS uniqueidentifier)
+```
+
+A migration of your own that re-keys rows writes ids through EF (`UpdateData`, a data step) and gets the stored form
+without either.
+
+### Rask's own tables re-keyed from store numbers to Guids
+
+A table of Rask's own whose key moves from a store-numbered integer (an `IDENTITY`, a PostgreSQL identity, SQLite's
+rowid) to a Guid the app makes before the insert cannot be altered in place — SQL Server refuses to alter an identity,
+PostgreSQL has no cast from `bigint` to `uuid`, and SQLite's table rebuild would copy `1`, `2`, `3` in as ids. The
+battery marks such a table, and **the migration you add after upgrading rebuilds it** instead:
+
+1. **The guard.** While a row is still pending (a job, an outbox message or a queued mail not yet processed — dead
+   letters included), the migration fails with *"Rask cannot rebuild the key of …: rows with no ProcessedAt are still
+   waiting"* and changes nothing. Let the queue drain, retry or delete what the dashboard shows, then migrate again.
+2. **The kept rows set aside**, where the table keeps its history: each gets a deterministic version-7 id made from
+   what it holds — the Unix millisecond of its own time, version 7, then the old number as the last fifteen hex digits
+   (`xxxxxxxx-xxxx-7000-8iii-iiiiiiiiiiii`) — so the ids sort by that time, then by the old number, and every id made
+   afterwards sorts after them. They wait in a `<table>_rask_rebuild` table beside it. A table whose rows are pure
+   history keeps none: they are dropped with it.
+3. **The table dropped and created again** from the current model, with its indexes.
+4. **The kept rows written back**, and the scratch table dropped.
+
+| Table | Refused while | Kept | Why |
+| --- | --- | --- | --- |
+| `Job` | a job has no `ProcessedAt` (waiting, running, a dead letter) | processed jobs, ids from `CreatedAt` | the dashboard's history and the bell's recently ended work |
+| `QueuedMail` | a mail has no `ProcessedAt` | sent mail, ids from `CreatedAt` | the record of what was sent |
+| `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
+| `RaskLog` | never | none | old log lines are history; read what you need first |
+
+The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
+full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+
+The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
+[`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,
+so nothing is enqueued under the old key while it runs. With plain `dotnet ef`, stop the old instances yourself first.
+On SQL Server a database still in the native Guid layout gets both changes in one migration: the rebuilt rows come back
+in the stored form.
 
 One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.

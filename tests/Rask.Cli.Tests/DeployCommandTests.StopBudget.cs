@@ -125,7 +125,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(0, exit);
         var all = inner.Invocations.ToList();
         int Stop = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop", ShutdownBudget.PortModeStopTimeout)));
-        int Start = all.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("shop:current"));
+        int Start = all.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("-d") && i.Arguments.Contains("shop:current"));
         Assert.True(Stop >= 0 && Stop < Start, "the old container is stopped within the short budget before the new one starts");
         Assert.Contains(all, i => i.Arguments.Contains("run") && i.Arguments.Contains("ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=15"));
         Assert.Contains("shop is finishing 1 job: AtPump (3m12s)", console.OutText, StringComparison.Ordinal);

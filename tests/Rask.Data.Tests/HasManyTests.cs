@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// Children<TEntity, TSpec>: an aggregate's children as one read-only property, made what the form's rows say by Sync —
+// HasMany<TChild>: an aggregate's children as one property only it changes, made what the form's rows say by Sync —
 // and mapped by EF Core as the aggregate's collection, so the save writes exactly what Sync changed.
-public sealed class ChildrenSyncTests : IDisposable
+public sealed class HasManyTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
 
@@ -48,7 +48,7 @@ public sealed class ChildrenSyncTests : IDisposable
         var a = cargo.Parts[0];
 
         var refused = Assert.Throws<ArgumentException>(() =>
-            cargo.Parts.Sync([new CargoPartSpec(a.Id, "A", 11)], s => s.Id?.ToString(), CargoPart.For, (_, _) => { }));
+            cargo.ChangeByText([new CargoPartSpec(a.Id, "A", 11)]));
 
         Assert.Equal("key", refused.ParamName);
         Assert.Equal([a], cargo.Parts);
@@ -164,6 +164,75 @@ public sealed class ChildrenSyncTests : IDisposable
         var holds = await database.Context.Set<BargeHold>().AsNoTracking().ToListAsync(Token);
         var only = Assert.Single(holds);
         Assert.Equal((b.Id, "A"), (only.Id, only.Name));
+    }
+
+    [Fact]
+    public async Task Children_added_together_and_removed_by_a_match_or_all_at_once_are_written_on_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var cargo = Cargo.Load("Aurora", [new(null, "A", 10)]);
+        await cargo.Save(cancellationToken: Token);
+        var stored = (await Cargo.Find(cargo.Id, Token))!;
+
+        stored.StowAll(new(null, "B", 1), new(null, "C", 20));
+        var light = stored.UnloadLighterThan(5);
+        await stored.Save(cancellationToken: Token);
+        var afterMatch = await database.Context.Set<CargoPart>().AsNoTracking().Select(p => p.Hold).ToListAsync(Token);
+        var emptied = (await Cargo.Find(cargo.Id, Token))!;
+        emptied.UnloadAll();
+        await emptied.Save(cancellationToken: Token);
+
+        Assert.Equal(1, light);
+        Assert.Equal(["A", "C"], afterMatch.Order(StringComparer.Ordinal));
+        Assert.Empty(await database.Context.Set<CargoPart>().AsNoTracking().ToListAsync(Token));
+    }
+
+    [Fact]
+    public void A_link_sync_keeps_the_ids_it_holds_adds_the_new_ones_lets_go_of_the_rest_and_refuses_an_id_given_twice()
+    {
+        var (rotterdam, hamburg, gdansk) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var cargo = Cargo.Load("Aurora", []);
+        cargo.CallAt(rotterdam, hamburg);
+        var kept = cargo.Calls.Single(c => c.PortId == hamburg);
+
+        var sync = cargo.CallAt(hamburg, gdansk);
+        var refused = Assert.Throws<ArgumentException>(() => cargo.CallAt(gdansk, gdansk));
+
+        Assert.Equal([hamburg, gdansk], cargo.Calls.Select(c => c.PortId));
+        Assert.Same(kept, cargo.Calls[0]);
+        Assert.Equal(gdansk, Assert.Single(sync.Added).PortId);
+        Assert.Equal(rotterdam, Assert.Single(sync.Removed).PortId);
+        Assert.Empty(sync.Changed);
+        Assert.Equal("ids", refused.ParamName);
+    }
+
+    [Fact]
+    public async Task A_link_synced_on_a_loaded_aggregate_inserts_and_deletes_its_rows_on_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var (rotterdam, hamburg) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var cargo = Cargo.Load("Aurora", []);
+        cargo.CallAt(rotterdam);
+        await cargo.Save(cancellationToken: Token);
+        var stored = (await Cargo.Find(cargo.Id, Token))!;
+
+        stored.CallAt(hamburg);
+        await stored.Save(cancellationToken: Token);
+
+        var calls = await database.Context.Set<CargoCall>().AsNoTracking().ToListAsync(Token);
+        Assert.Equal(hamburg, Assert.Single(calls).PortId);
+    }
+
+    [Fact]
+    public async Task Only_children_declared_in_order_get_a_position_column()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var model = database.Context.Model;
+
+        Assert.NotNull(model.FindEntityType(typeof(CargoPart))!.FindProperty(Columns.Position));
+        Assert.Null(model.FindEntityType(typeof(BargeHold))!.FindProperty(Columns.Position));
+        Assert.Null(model.FindEntityType(typeof(CargoCall))!.FindProperty(Columns.Position));
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>

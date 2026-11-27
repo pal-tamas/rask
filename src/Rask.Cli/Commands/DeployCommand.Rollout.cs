@@ -295,24 +295,18 @@ internal sealed partial class DeployCommand
                 ConsoleStyle.Warning);
         }
 
+        // Port mode stops the old container first anyway; what an exclusive migration changes is the way back — once it
+        // has run, `:previous` would misread the rewritten rows, so a failed start is not rolled back onto it.
+        var exclusive = fallBack && string.Equals(tag, CurrentTag, StringComparison.Ordinal)
+            ? await StoppingForExclusiveAsync(host, slug, domain: null, env, tag, cancellationToken).ConfigureAwait(false)
+            : [];
+        Task<int> FailedStart(string reason) => exclusive.Count > 0
+            ? StayDown(slug, exclusive, reason)
+            : RestorePreviousAsync(host, slug, port, containerPort, env, healthEnabled, healthPath, tag, fallBack, reason, cancellationToken);
+
         await RetireContainerAsync(host, slug, ShutdownBudget.PortModeStopTimeout, cancellationToken, PortModeAdvice).ConfigureAwait(false);
         await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…", cancellationToken).ConfigureAwait(false);
-        var runtimeEnv = WriteEnvFile(slug, env);
-        int started;
-        try
-        {
-            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout, release: await ReleaseForAsync(host, slug, tag, env, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            // The values are inside the container now; the local copy has no reason to outlive the call.
-            if (runtimeEnv is not null)
-            {
-                _fileSystem.TryDelete(runtimeEnv);
-            }
-        }
-
-        if (started != 0)
+        if (await StartPortContainerAsync(host, slug, port, containerPort, env, tag, cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
@@ -321,9 +315,7 @@ internal sealed partial class DeployCommand
         if (!await WaitUntilRunningAsync(host, slug, cancellationToken).ConfigureAwait(false))
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
-            return await RestorePreviousAsync(
-                host, slug, port, containerPort, env, healthEnabled, healthPath, tag, fallBack,
-                "The new container did not stay running.", cancellationToken).ConfigureAwait(false);
+            return await FailedStart("The new container did not stay running.").ConfigureAwait(false);
         }
 
         // There is no blue-green swap on a single published port — the old container is stopped before the
@@ -333,9 +325,7 @@ internal sealed partial class DeployCommand
         if (healthEnabled && !await WaitUntilHealthyAsync(host, slug, healthPath, containerPort, cancellationToken).ConfigureAwait(false))
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
-            return await RestorePreviousAsync(
-                host, slug, port, containerPort, env, healthEnabled, healthPath, tag, fallBack,
-                HealthFailureMessage(healthPath, rolledBack: false), cancellationToken).ConfigureAwait(false);
+            return await FailedStart(HealthFailureMessage(healthPath, rolledBack: false)).ConfigureAwait(false);
         }
 
         if (persist)
@@ -344,6 +334,26 @@ internal sealed partial class DeployCommand
         }
         Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
+    }
+
+    // The one container port mode runs, on the published port.
+    private async Task<int> StartPortContainerAsync(
+        string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string tag, CancellationToken cancellationToken)
+    {
+        var release = await ReleaseForAsync(host, slug, tag, env, cancellationToken).ConfigureAwait(false);
+        var runtimeEnv = WriteEnvFile(slug, env);
+        try
+        {
+            return await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout, release: release), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The values are inside the container now; the local copy has no reason to outlive the call.
+            if (runtimeEnv is not null)
+            {
+                _fileSystem.TryDelete(runtimeEnv);
+            }
+        }
     }
 
     /// <summary>
@@ -462,10 +472,15 @@ internal sealed partial class DeployCommand
         var newColor = NextColor(string.IsNullOrEmpty(current) ? null : current);
         var newContainer = $"{slug}-{newColor}";
 
-        if (!await EnsureNetworkAsync(host, slug, await network.ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
-            || !await StartAndGateAsync(host, slug, domain, newColor, containerPort, env, tag, healthEnabled, healthPath, redirects, cancellationToken).ConfigureAwait(false))
+        if (!await EnsureNetworkAsync(host, slug, await network.ConfigureAwait(false), cancellationToken).ConfigureAwait(false))
         {
             return 1;
+        }
+
+        var exclusive = await StopForExclusiveAsync(host, slug, domain, env, tag, current, newContainer, cancellationToken).ConfigureAwait(false);
+        if (!await StartAndGateAsync(host, slug, domain, newColor, containerPort, env, tag, healthEnabled, healthPath, redirects, cancellationToken).ConfigureAwait(false))
+        {
+            return exclusive.Count > 0 ? await StayDown(slug, exclusive, reason: null).ConfigureAwait(false) : 1;
         }
 
         var change = new ProxySwitch(host, slug, domain, new RouteTarget(newContainer, containerPort, redirects), proxy.Value, healthEnabled, healthPath);

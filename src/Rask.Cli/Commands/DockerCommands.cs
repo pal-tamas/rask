@@ -138,6 +138,39 @@ internal static class DockerCommands
         return args;
     }
 
+    /// <summary>
+    /// The app's image asked <c>rask db pending</c> (<c>dotnet App.dll rask db pending</c>) in a one-off container: the
+    /// app's environment, data volume and — in domain mode — network, so it reaches the database the app will, and
+    /// nothing else of a running app (no port, no labels, no restart). Named, so a deploy that gives up on an image that
+    /// never answers can remove it.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildPendingMigrationsArguments(string host, string slug, string? domain, IReadOnlyList<string> env, string tag = CurrentTag, string? envFilePath = null)
+    {
+        var args = new List<string>(Prefix(host)) { "run", "--rm", "--name", PendingMigrationsContainer(slug) };
+        if (domain is not null)
+        {
+            args.AddRange(["--network", Network]);
+        }
+
+        var defaults = new RunDefaults(args, env);
+        AddAppDefaults(args, defaults, slug, stopTimeout: null, release: null);
+        if (envFilePath is not null)
+        {
+            args.AddRange(["--env-file", envFilePath]);
+        }
+
+        foreach (var entry in env.Where(entry => envFilePath is null || !CanGoInEnvFile(entry)))
+        {
+            args.AddRange(["-e", entry]);
+        }
+
+        args.AddRange([$"{slug}:{tag}", "rask", "db", "pending"]);
+        return args;
+    }
+
+    /// <summary>The one-off container <see cref="BuildPendingMigrationsArguments"/> runs.</summary>
+    internal static string PendingMigrationsContainer(string slug) => $"{slug}-pending-migrations";
+
     // What every app container gets: its environment, its shutdown budget, its data volume and the stores on it, its release.
     private static void AddAppDefaults(List<string> args, RunDefaults defaults, string slug, TimeSpan? stopTimeout, string? release)
     {

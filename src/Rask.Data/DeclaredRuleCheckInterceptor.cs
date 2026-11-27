@@ -99,7 +99,14 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
 
     private static async Task CheckAsync(DbContext? context, CancellationToken cancellationToken)
     {
-        if (context is null || UniqueRulesOfSave.Touched(context) is not { Count: > 0 } rows)
+        if (context is null)
+        {
+            return;
+        }
+
+        var rows = UniqueRulesOfSave.Touched(context);
+        var ranges = NoOverlapRulesOfSave.Touched(context);
+        if (rows.Count == 0 && ranges.Count == 0)
         {
             return;
         }
@@ -111,6 +118,8 @@ internal sealed class DeclaredRuleCheckInterceptor : SaveChangesInterceptor
             // The tenant is stamped by now, so every value is the row's own.
             var failures = await UniqueRulesOfSave.FailuresAsync(
                 context, rows, static (row, name) => row.Property(name).CurrentValue, static _ => "", cancellationToken).ConfigureAwait(false);
+            failures.AddRange(await NoOverlapRulesOfSave.FailuresAsync(
+                context, ranges, static (row, name) => row.Property(name).CurrentValue, static _ => "", cancellationToken).ConfigureAwait(false));
             if (failures.Count > 0)
             {
                 throw new RaskValidationException(failures);

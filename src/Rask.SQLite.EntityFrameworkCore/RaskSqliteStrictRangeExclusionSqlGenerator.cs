@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Both of the things Rask adds to SQLite's migration SQL at once: <c>STRICT</c> tables and the DDL enforcing
-/// each <see cref="RangeExclusionSpec"/>. Registered by <c>UseRaskSqlite(..., o => o.StrictTables = true)</c>.
+/// each <c>NoOverlap(…)</c> rule. Registered by <c>UseRaskSqlite(..., o => o.StrictTables = true)</c>.
 /// </summary>
 /// <remarks>
 /// EF Core resolves exactly one <see cref="IMigrationsSqlGenerator"/>, so registering
@@ -15,7 +15,7 @@ namespace Rask.SQLite;
 /// <see cref="RaskSqliteRangeExclusionSqlGenerator"/> both would silently keep only whichever was replaced
 /// last — the app would build, migrate and pass its tests with one of the two features quietly missing. This
 /// type exists so that combination is expressible: it inherits the strict <c>CREATE TABLE</c> and composes
-/// the shared range DDL, which is why that DDL lives in <see cref="RangeExclusionDdl"/> rather than in a
+/// the shared range DDL, which is why that DDL lives in <see cref="NoOverlapDdl"/> rather than in a
 /// generator.
 /// </remarks>
 /// <param name="dependencies">Generator dependencies, supplied by EF Core.</param>
@@ -23,7 +23,7 @@ namespace Rask.SQLite;
 public sealed class RaskSqliteStrictRangeExclusionSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     IRelationalAnnotationProvider migrationsAnnotations)
-    : RaskSqliteStrictMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer, IFullTextSearchEnforcer, IJsonIndexEnforcer
+    : RaskSqliteStrictMigrationsSqlGenerator(dependencies, migrationsAnnotations), INoOverlapEnforcer, IFullTextSearchEnforcer, IJsonIndexEnforcer
 {
     /// <inheritdoc />
     public override IReadOnlyList<MigrationCommand> Generate(
@@ -32,7 +32,7 @@ public sealed class RaskSqliteStrictRangeExclusionSqlGenerator(
         MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
     {
         var commands = base.Generate(SqliteMoments.Written(operations, Dependencies.SqlGenerationHelper), model, options).ToList();
-        commands.AddRange(RangeExclusionDdl.Build(operations, model, Dependencies));
+        commands.AddRange(NoOverlapDdl.Build(operations, model, Dependencies));
         commands.AddRange(FullTextSearchDdl.Build(operations, model, Dependencies));
         commands.AddRange(JsonIndexDdl.Build(operations, model, Dependencies));
         return commands;

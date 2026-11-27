@@ -1042,7 +1042,7 @@ not just asserted in prose.
   which is slower and briefly locks the table.
 - **No exclusion constraints.** There is no `EXCLUDE … WITH &&`, and a `UNIQUE` index cannot express
   "these two ranges must not overlap" — it only stops *identical* rows. Rask closes this one:
-  [`HasNonOverlappingRange`](data.md#non-overlapping-ranges) declares the rule on the model and the
+  [`NoOverlap`](data.md#non-overlapping-ranges) declares the rule on the model and the
   migration emits the trigger pair that enforces it, re-emitting it after the table rebuilds above (which
   would otherwise drop it along with the original table).
 - **No server-side surface.** It's an in-process library, not a server: no network endpoint, no

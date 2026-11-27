@@ -44,7 +44,7 @@ public sealed partial class OperationFormRowsPage : Component
                 ]]
         ];
 
-    /// <summary>The form's model: one list of rows, as the generated one holds a <c>Children</c> list.</summary>
+    /// <summary>The form's model: one list of rows, as the generated one holds a <c>HasMany</c> list.</summary>
     public sealed class LineInput
     {
         /// <summary>The rows.</summary>

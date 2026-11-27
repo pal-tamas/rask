@@ -130,16 +130,16 @@ public sealed class QueueActionTests
         await using var h = new DashboardHarness(registered: Batteries.All, mapped: Batteries.Jobs);
         var outbox = h.Queue("outbox");
 
-        Assert.Equal(0, await outbox.Retry(1, CancellationToken.None));
+        Assert.Equal(0, await outbox.Retry(Guid.CreateVersion7(), CancellationToken.None));
         Assert.Equal(0, await outbox.RetryAll(CancellationToken.None));
         Assert.Equal(0, await outbox.PurgeProcessed(TimeSpan.Zero, CancellationToken.None));
-        Assert.Equal(0, await outbox.Delete(1, CancellationToken.None));
+        Assert.Equal(0, await outbox.Delete(Guid.CreateVersion7(), CancellationToken.None));
     }
 
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>
         QueueRowBuilder.Job(runAt, attempts, processedAt, error);
 
-    private static async Task<long> SeedAsync(DashboardHarness harness, Job job)
+    private static async Task<Guid> SeedAsync(DashboardHarness harness, Job job)
     {
         await using var db = harness.NewContext();
         db.Set<Job>().Add(job);

@@ -673,22 +673,22 @@ public sealed partial class OutboxProcessor<TContext>(
     private static partial void CycleFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {Id} has an unregistered type '{Type}'.")]
-    private static partial void UnregisteredType(ILogger logger, long id, string type);
+    private static partial void UnregisteredType(ILogger logger, Guid id, string type);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "
             + "will be published again on restart, so its handlers must be idempotent.")]
-    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type, TimeSpan grace);
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, Guid id, string type, TimeSpan grace);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {Id} failed to publish (attempt {Attempts}).")]
-    private static partial void PublishFailed(ILogger logger, Exception exception, long id, int attempts);
+    private static partial void PublishFailed(ILogger logger, Exception exception, Guid id, int attempts);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "Outbox message {Id} lost its lease mid-dispatch on instance {Instance}; another instance owns it now. "
             + "Increase OutboxOptions.LeaseDuration past the time this handler takes.")]
-    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+    private static partial void LeaseLost(ILogger logger, Exception exception, Guid id, Guid instance);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not renew this instance's outbox lease; retrying on the next tick.")]
     private static partial void LeaseRenewalFailed(ILogger logger, Exception exception);

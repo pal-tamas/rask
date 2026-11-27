@@ -101,7 +101,7 @@ internal static class DryRun
         }
     }
 
-    // The save's store refusals: its declared unique rules (with the tenant in flight standing for the stamp a new row has
+    // The save's store refusals: its declared unique and no-overlap rules (with the tenant in flight standing for the stamp a new row has
     // not had yet) and its references to another tenant-scoped table.
     private static async Task<List<FieldFailure>> SaveRefusalsAsync(DbContext context, CancellationToken cancellationToken)
     {
@@ -111,6 +111,12 @@ internal static class DryRun
         {
             failures.AddRange(await UniqueRulesOfSave.FailuresAsync(
                 context, touched, AsWritten, row => RowPath.Of(context, row), cancellationToken).ConfigureAwait(false));
+        }
+
+        if (NoOverlapRulesOfSave.Touched(context) is { Count: > 0 } ranges)
+        {
+            failures.AddRange(await NoOverlapRulesOfSave.FailuresAsync(
+                context, ranges, AsWritten, row => RowPath.Of(context, row), cancellationToken).ConfigureAwait(false));
         }
 
         failures.AddRange(await ReferencedTenantCheck.FailuresAsync(context, cancellationToken).ConfigureAwait(false));

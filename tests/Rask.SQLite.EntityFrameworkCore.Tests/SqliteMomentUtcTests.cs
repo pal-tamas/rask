@@ -160,7 +160,7 @@ public sealed class SqliteMomentUtcTests : IAsyncLifetime
         var none = differ.GetDifferences(null, after).OfType<SqlOperation>();
 
         Assert.True(pending);
-        Assert.StartsWith("-- Rask: ", rewrite.Sql, StringComparison.Ordinal);
+        Assert.StartsWith("-- rask:exclusive", rewrite.Sql, StringComparison.Ordinal);
         Assert.Contains("[Duties].[Start]", rewrite.Sql, StringComparison.Ordinal);
         Assert.Empty(none);
     }

@@ -316,7 +316,7 @@ public sealed class JobLimitTests
     }
 
     // Makes job `id` stop for `why` — the way each kind of stop happens.
-    private static async Task Stop(JobsHarness h, long id, JobStop why)
+    private static async Task Stop(JobsHarness h, Guid id, JobStop why)
     {
         switch (why)
         {

@@ -35,6 +35,46 @@ public class TypedIdGeneratorTests
         Assert.DoesNotContain(" New()", run.GeneratedSource("Fleet.VehicleId.TypedId.g.cs"));
     }
 
+    [Fact]
+    public void A_number_or_Guid_id_is_ordered_by_its_value_and_a_text_one_is_not()
+    {
+        var src = """
+                  namespace Fleet;
+                  public readonly partial record struct DriverId(System.Guid Value);
+                  public readonly partial record struct PlateId(string Value);
+                  public static class Paging
+                  {
+                      public static bool After(DriverId id, DriverId last) => id > last && last <= id && id.CompareTo(last) > 0;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run([("Ids.cs", src)], new TypedIdGenerator());
+
+        var driver = run.GeneratedSource("Fleet.DriverId.TypedId.g.cs");
+        Assert.Contains("global::System.IComparable<DriverId>", driver);
+        Assert.Contains("public static bool operator >(DriverId left, DriverId right) => left.Value > right.Value;", driver);
+        Assert.DoesNotContain("IComparable", run.GeneratedSource("Fleet.PlateId.TypedId.g.cs"));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_order_the_author_wrote_is_kept()
+    {
+        var src = """
+                  namespace Fleet;
+                  public readonly partial record struct DriverId(System.Guid Value)
+                  {
+                      public static bool operator <(DriverId left, DriverId right) => false;
+                      public static bool operator >(DriverId left, DriverId right) => false;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run([("Ids.cs", src)], new TypedIdGenerator());
+
+        Assert.DoesNotContain("operator", run.GeneratedSource("Fleet.DriverId.TypedId.g.cs"));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
     [Theory]
     [InlineData("public readonly record struct VehicleId(int Value);")]
     [InlineData("public partial record struct VehicleId(int Value);")]

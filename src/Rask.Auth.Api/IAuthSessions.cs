@@ -10,10 +10,23 @@ internal interface IAuthSessions
         Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Starts a session only a bearer token carries, returning its id. It lasts <see cref="AuthOptions.BearerLifetime" />,
+    /// as the token does, and using the token does not extend it.
+    /// </summary>
+    Task<Guid> StartForTokenAsync(
+        Guid userId, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The principal for a live session, freshly built from its user, or <see langword="null" /> when the session has
     /// ended, expired, or its user is gone.
     /// </summary>
     Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <see cref="ResumeAsync" /> for a request that carries a bearer token: the session is seen, but its expiry is not
+    /// moved. A token lives as long as it was issued for, so the session it names has no reason to outlive it.
+    /// </summary>
+    Task<ClaimsPrincipal?> ResumeForTokenAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// What a live page asks before each event: <paramref name="held" /> itself while its session lives and its user's

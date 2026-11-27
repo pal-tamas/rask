@@ -46,6 +46,6 @@ internal sealed class JobsQueuePanel<TContext>(
         rows.Where(j => j.ProcessedAt != null || j.ClaimedUntil == null || j.ClaimedUntil <= now);
 
     // Through the queue itself, so the host running the job cancels it at once when it is this one.
-    public Task<bool> Stop(long id, CancellationToken cancellationToken) =>
+    public Task<bool> Stop(Guid id, CancellationToken cancellationToken) =>
         services.GetRequiredService<IJobs>().Stop(id, cancellationToken);
 }

@@ -21,6 +21,30 @@ them until tagged releases begin.
   `DateTimeOffset`) beside `.Value` (the app's wall clock), `.WallIn(zone)` for another zone's clock; two moments compare,
   order and are equal by their instant, so the two `02:30`s of an October night made from UTC stay two moments.
   `docs/domain.md#moment-and-day`.
+- **Typed ids over a number or a `Guid` are ordered: `<`, `>`, `<=`, `>=` and `IComparable<T>`.** `Where(x => x.Id >
+  last)` pages by the key in a query, and `ids.Order()` / `Min()` sort them in memory, by the value — a version-7 id's
+  by the time it was made. A text id gets none (the database orders it by its collation), and an order the author wrote
+  is kept.
+- **`dotnet App.dll rask db pending`: the migrations the database has not had, an exclusive one marked.** One line a
+  migration, in the order they apply; one that rewrites what the rows hold ends in ` exclusive`. `rask deploy` asks a
+  new image this before it starts it: an exclusive migration stops the old version first (stop-then-start instead of
+  blue-green, said why), and a start that then fails is not rolled back onto the old image, which could not read the
+  rewritten rows (docs/deployment.md).
+- **`IBearerSignIn.SignIn(name, password, client)`: an app keeps its own login contract and Rask issues the token.**
+  A partner's `POST /api/auth` answering a plain-text token is now `await bearer.SignIn(body.Username, body.Password,
+  AuthClient.Of(http)) is { Token: { } token } ? Results.Text(token) : Results.Unauthorized()` — with the login
+  endpoint's throttle per name and client, its constant-cost miss, the renewal of a carried-over bcrypt hash and a
+  `Session` row the token names, so signing out everywhere or a reset ends it. The answer is a `BearerIssue(Result,
+  Token, ExpiresAt)`. A session started this way lasts `BearerLifetime` rather than `ExpireTimeSpan`, and no bearer
+  request extends a session any more, so periodic partner sign-ins leave short rows the sweep removes. `AuthClient.Of(
+  HttpContext)` is the client Rask's endpoints throttle on; a component sign-in on the Server host now counts an IPv6
+  caller by its /64 too, as the endpoints already did.
+- **`AuthOptions.Registration = Registration.Closed`: sign-up is shut, an administrator hands accounts out.**
+  `MapRaskAuth` mapped `POST /api/auth/register` always, so anybody could register once the first account existed.
+  Closed, the endpoint is not mapped (it answers what any unknown path does), `IAuth.Register` answers
+  `AuthError.NotAllowed` and makes no account, and `IAccounts.Create` keeps working. A fresh instance is still claimed
+  once with its first-run token, so a deployment is never left without an administrator. `Open` stays the default.
+  A WebAssembly client reads a 404 from any auth endpoint as `NotAllowed` rather than a wrong password.
 - **`{id:guid}` binds a typed id.** `[Route("/drivers/{id:guid}")]` over `DriverId Id` (a typed id over a `Guid`;
   `{id:int}`/`{id:long}` likewise for a number) was RASK005; the constraint is now met through the value the id holds,
   and `Routes.DriverPage(DriverId id)` / `DriverPage.Url(DriverId)` take the typed id. A typed id compiled into a
@@ -108,6 +132,76 @@ them until tagged releases begin.
   refused with the way to say it. A moment inside a JSON document keeps the wall clock. `UseRaskPostgres` refuses a bare
   `DateTime` on an aggregate or an entity as the model is built (a `HasConversion` of the app's own, Rask's own types
   and tables outside the domain are left alone). `docs/data.md#dates-and-moments-what-each-database-keeps`.
+- **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
+  and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
+  is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.
+  The key is strictly increasing on the host that made it (the same monotonic `New()` a typed id gets) and time-ordered
+  across hosts — on SQL Server stored time-ordered too — so the queues still take the oldest first and two jobs due at
+  the same instant still run in the order they were enqueued. Every id the batteries hand out is now a `Guid`:
+  `Jobs.Stop(Guid)`, `LaneJob.Id`, `WorkReported.Id` (a string on the work wire), `DurableEvent.MessageId`,
+  `LogRecord.Id`, the dashboard's `QueueRow.Id` and `IQueueActions.Retry/Delete(Guid)`; the dashboard lists a row by
+  the last eight hex digits of its id and shows the whole id in its details. **Upgrading is one migration per app**
+  (`rask db add RaskGuidKeys`): Rask's differ rebuilds each of these tables instead of altering its key, as an
+  exclusive migration (`rask deploy` stops the old version, then starts the new one). It refuses to run while a job,
+  an outbox message or a mail is still pending — dead letters included: retry or delete them, let the queues drain,
+  then migrate. Processed jobs and sent mail are kept, each given the deterministic id of its `CreatedAt` and old
+  number; processed outbox rows and the stored log are history and are not carried over. A SQLite file log store
+  (`AddRaskLogging()` without a context) keeps its own integer rowid — its full-text index needs one — and derives each
+  entry's `Guid` from it. docs/data.md, docs/jobs.md, docs/outbox.md, docs/mail.md, docs/logging.md.
+- **BREAKING: `b.NoOverlap(…)` replaces `HasNonOverlappingRange`, and holds on PostgreSQL and SQL Server too.**
+  `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld).Where(x => x.DriverId != null)` (a
+  `Range` value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken)`: two rows with
+  the same key may not cover the same moment. PostgreSQL's semantics on all three providers — half-open, a null end
+  open, a null key part and an empty range conflicting with nothing, the key under the app's text order, only the rows
+  the `Where(…)` keeps, a soft-deleted row freeing its range — and several rules per entity. PostgreSQL holds it as an
+  `EXCLUDE USING gist` constraint (`btree_gist`, created by the migration), SQL Server as an index and an
+  `AFTER INSERT, UPDATE` trigger checking under `UPDLOCK, HOLDLOCK`, SQLite as `AFTER` triggers; a refusal — the save's
+  own check first, the database's last word — is a `RaskValidationException` with the rule's message under the range's
+  field, as an `IsUnique("…")` duplicate is, and two saves at the same moment never both get through. Migrations add,
+  change and drop it. `HasNonOverlappingRange`, `RangeExclusionSpec`, `RangeOverlapException` and
+  `RaskSqliteRangeExclusionInterceptor` are gone: write `b.NoOverlap(partitionBy, lo, hi, "message")` (a rule needs a
+  key) and catch `RaskValidationException`. A plain `DbContext` (not a `RaskDbContext`) declaring one calls
+  `ModelRegistry.ApplyConventions(configurationBuilder)`.
+- **`Db.Lock` and numbering take a 64-bit lock on PostgreSQL.** `pg_advisory_lock(hashtextextended(name, 0))` (and
+  `pg_advisory_xact_lock` for numbering) instead of the 32-bit `hashtext`, whose keys collide at a few tens of
+  thousands of names. The key a name locks changes, so an instance of the previous version and one of this version do
+  not exclude each other: never run the two side by side against one PostgreSQL database — `rask deploy`'s blue-green
+  overlap included. No app runs on PostgreSQL yet; after one does, a change of lock identity takes both keys for a
+  release.
+- **PostgreSQL: a text key is binary.** Through `UseRaskPostgres` under a case-insensitive `c.OrderTextBy(…)`, a text
+  primary or alternate key column and a text foreign key column are now `COLLATE "C"` instead of `rask_text`: an id
+  compares byte for byte and its index deduplicates; every other text column keeps `rask_text`. A database already
+  created through `UseRaskPostgres` gets the change as a column alteration in its next migration. Pinned on
+  PostgreSQL 19 (`PostgresCapabilityTests`, `TrailingSpaceEqualityTests`): a `btree_gist` exclusion compares a
+  `rask_text` key case-insensitively, and a trailing space tells two texts apart on PostgreSQL and SQLite where SQL
+  Server pads it away.
+- **BREAKING — on SQL Server every `uniqueidentifier` is stored time-ordered: `ORDER BY Id` is the order of creation
+  on all three databases.** SQL Server compares a `uniqueidentifier`'s bytes in its own order, so a version-7 key sorted
+  by its random tail there — paging, `Min`/`Max` and a clustered index's appends all differed from PostgreSQL and
+  SQLite. Through `UseRaskSqlServer` (or a `RaskApp`) Rask now stores every `Guid`, `Guid?` and typed id over a `Guid`
+  in a `uniqueidentifier` column — keys, foreign keys and Rask's own tables alike — with its bytes rearranged so SQL
+  Server's order is .NET's, PostgreSQL's and SQLite's; the id the app sees is unchanged, text and JSON columns are left
+  alone, and no default or generated key is added. **SQL Server apps with stored Guids get a one-time rewrite migration**
+  from the next `rask db add` / `dotnet ef migrations add` (every such column, foreign keys switched off and checked
+  again); until it exists `MigrateOnStart` refuses to start, so no new code reads the old layout. **Raw SQL (`FromSql`,
+  Dapper, SSMS) sees the stored form**; docs/data.md gives the T-SQL for an id's text and for rewriting a column.
+  PostgreSQL and SQLite are unchanged.
+- **BREAKING — `HasMany<TChild>` replaces `Children<TEntity, TSpec>`: an aggregate's children, read by everyone and
+  changed only by the aggregate.** Before: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`, or a
+  hand-written `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;`. After:
+  `public HasMany<Pistol> Pistols { get; } = new();` with `Add(child)`, `Add(children)`, `Remove`, `RemoveAll(match)`,
+  `Clear()` and three `Sync`s — by the child's `Id` (`Sync(specs, s => s.Id, add, update, remove)`), by a key of its own
+  (`Sync(specs, specKey, childKey, add, update, remove)`), and a link from the other side's ids
+  (`Sync(vehicleIds, v => v.VehicleId, add)`); the spec type moved from the class to the method. A key given twice
+  throws, before anything changes. Moving from the `List` field and its view is **no migration** (the same navigation,
+  foreign key and columns — proved by EF Core's migration differ on SQLite, SQL Server and PostgreSQL). The `Position`
+  column is no longer added to every child: the order is kept only where the aggregate's `Configure` asks,
+  `b.InOrder(s => s.Parts)` — an app that used `Children<,>` and relies on the order adds that line (its `Position`
+  column stays as it was); one that does not drops the column in its next migration. RASK180 now covers every mutator
+  (`Add`, `Remove`, `RemoveAll`, `Clear`, `Sync`) and a cast to `ICollection<T>` outside the aggregate. New
+  **RASK193** (a suggestion; an error under `<RaskStrict>`) reports a child list exposed by hand — a `List<X>` field
+  behind a read-only view, or a public `List<X>`/`ICollection<X>` — with a quick-fix that rewrites it to `HasMany<X>`
+  and `_xs.Add(x)` to `Xs.Add(x)`.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
   where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
   time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter
@@ -174,6 +268,25 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A `Ui.Select` over a member that may hold none takes options of the type it holds.** A select bound to `CompanyId?`
+  (or `int?`, `Guid?`) is handed `Ui.SelectOption.Value(new CompanyId(3))` and rows of `CompanyId`, as the docs say,
+  without relying on the runtime to unbox one into the nullable; and an option of another type is refused naming both
+  types as the page wrote them (`holds CompanyId, and its Ui.Select holds Int32?`), not `Nullable`1`.
+- **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
+  `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
+  and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`
+  (another column), `IndexOf`, `Replace`, `Regex.IsMatch` and `EF.Functions.ILike` threw *nondeterministic collations
+  are not supported*. `Contains`/`StartsWith`/`EndsWith` of a column or an expression are now an escaped `LIKE` by the
+  column's collation (case aside, `%`/`_` literal, as SQL Server and SQLite); `IndexOf` is `strpos` over `lower()` by
+  the language's deterministic ICU collation (case aside, accents counted); `Replace`, the `Regex` methods and `ILike`
+  run by that collation (`Replace` matches the exact value, as SQLite's does — SQL Server's ignores case), their text
+  answer given `rask_text` back. Of a constant or a parameter they were already Npgsql's escaped `LIKE`, unchanged. The
+  same holds for `x.Loosely()`'s `rask_search`. `docs/data.md` lists what each string member is written as.
+- **`auth.ActInTenant(id)` refuses a tenant the app does not have.** It recorded any id on the session, so an
+  administrator could act in a deleted tenant (every read then threw `MissingTenantException`) or in an id nobody
+  has. With a tenant aggregate (`ITenant`), an id it has no row for is now `AuthError.NotAllowed` ("No tenant has that
+  id."), `400` from `POST /api/auth/tenant`, and the session keeps acting where it was. The row is read as
+  `Current.Tenant` reads it, and only for a user who may choose.
 - **A typed id's `New()` is strictly increasing within the process: two ids made in one millisecond come out in order.**
   Before, the generated `XId.New()` was `Guid.CreateVersion7()`, which fills the 12 bits after the millisecond at random,
   so ids made in the same millisecond sorted in either order — an `ORDER BY Id` (or `Guid.CompareTo`) that was meant

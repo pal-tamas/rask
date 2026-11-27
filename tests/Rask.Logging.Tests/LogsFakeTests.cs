@@ -8,7 +8,7 @@ namespace Rask.Logging.Tests;
 public sealed class LogsFakeTests
 {
     private static LogRecord Entry(string message, LogLevel level = LogLevel.Information, string category = "Shop.Orders") =>
-        new(0, Clock.Now, level, category, EventId: 0, message, Exception: null);
+        new(Guid.Empty, Clock.Now, level, category, EventId: 0, message, Exception: null);
 
     [Fact]
     public async Task A_fake_takes_every_write_instead_of_the_real_store()

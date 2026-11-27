@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
@@ -83,6 +84,29 @@ internal sealed class MigrateOnStart<TContext>(
 
             // With nothing pending too: a migration `dotnet ef` applied ran none of its C#.
             await RunDataStepsAsync(db, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async Task<IReadOnlyList<PendingMigration>> PendingAsync(CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            if (!db.Database.IsRelational())
+            {
+                return [];
+            }
+
+            var migrations = db.GetService<IMigrationsAssembly>();
+            var provider = db.Database.ProviderName ?? "";
+            var pending = await db.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false);
+            return
+            [
+                .. pending.Select(id => new PendingMigration(
+                    id,
+                    migrations.Migrations.TryGetValue(id, out var type) &&
+                    ExclusiveMigrations.IsExclusive(migrations.CreateMigration(type, provider)))),
+            ];
         }
     }
 

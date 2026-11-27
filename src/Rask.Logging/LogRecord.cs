@@ -4,8 +4,10 @@ namespace Rask.Logging;
 
 /// <summary>One stored log entry.</summary>
 /// <param name="Id">
-/// The store's monotonic row id — the stable key for a list row, since timestamps collide. Zero on an entry
-/// that has not been persisted yet (the value the logger hands to the writer); the store assigns the real id.
+/// The entry's id — the stable key for a list row, since timestamps collide: a version-7 <see cref="Guid" />, made by
+/// Rask as the entry is written to the application's database, and derived from the row's place in a SQLite file
+/// store's own file. <see cref="Guid.Empty" /> on an entry that has not been persisted yet (the value the logger hands
+/// to the writer).
 /// </param>
 /// <param name="Timestamp">When it was logged (UTC).</param>
 /// <param name="Level">Its severity.</param>
@@ -20,7 +22,7 @@ namespace Rask.Logging;
 /// that request?"</em> rather than leaving it to be reconstructed from message text.
 /// </param>
 public sealed record LogRecord(
-    long Id,
+    Guid Id,
     DateTimeOffset Timestamp,
     LogLevel Level,
     string Category,

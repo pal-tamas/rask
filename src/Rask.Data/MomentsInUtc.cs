@@ -30,7 +30,9 @@ internal static class MomentsInUtc
     /// </summary>
     internal const string Annotation = "Rask:MomentInUtc";
 
-    private const string Prefix = "-- Rask: this column's moments, kept as the app's wall clock until now, are rewritten to UTC as the migration applies: ";
+    // Opens with ExclusiveMigrations.Prefix: an older release beside it would go on writing wall-clock times into a
+    // column that now holds UTC, so `rask db pending` marks the migration exclusive.
+    private const string Prefix = "-- rask:exclusive — Rask: this column's moments, kept as the app's wall clock until now, are rewritten to UTC as the migration applies: ";
 
     /// <summary>The step that rewrites one column, as it sits in a migration.</summary>
     internal static SqlOperation Rewriting(string table, string? schema, string column) =>

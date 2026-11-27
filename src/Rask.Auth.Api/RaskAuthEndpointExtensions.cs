@@ -41,7 +41,13 @@ public static class RaskAuthEndpointExtensions
             // fetch and echo. The required header below is the same defence without the round-trip.
             .DisableAntiforgery();
 
-        group.MapPost(AuthApi.Register, RegisterAsync);
+        // Not mapped at all when registration is closed, rather than mapped to refuse: an unmapped path answers exactly
+        // what every other unknown one does, so nothing says a sign-up exists here and is shut.
+        if (options.Registration == Registration.Open)
+        {
+            group.MapPost(AuthApi.Register, RegisterAsync);
+        }
+
         group.MapPost(AuthApi.Login, LoginAsync);
         // Cast to Delegate deliberately (ASP0016). LogoutAsync takes only an HttpContext, which is
         // exactly RequestDelegate's shape, so without the cast ASP.NET binds it as one and throws the
@@ -146,7 +152,8 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>
     /// Chooses the tenant the caller acts in on this sign-in. <c>204</c>; <c>401</c> for nobody; <c>403</c> for a caller
-    /// who may not choose, or a request another site made; <c>400</c> for a value that names no tenant.
+    /// who may not choose, or a request another site made; <c>400</c> for a value that names no tenant, or a tenant the
+    /// app has no row for.
     /// </summary>
     /// <remarks>
     /// Same-origin only. The required header already keeps cross-site markup out; a browser's <c>Sec-Fetch-Site</c>
@@ -182,7 +189,12 @@ public static class RaskAuthEndpointExtensions
         }
 
         var result = await accounts.ActInTenantAsync(context.User, tenant, cancellationToken).ConfigureAwait(false);
-        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status403Forbidden);
+        if (result.Succeeded)
+        {
+            return Results.NoContent();
+        }
+
+        return Refuse(result, result == TenantChoice.Unknown ? StatusCodes.Status400BadRequest : StatusCodes.Status403Forbidden);
     }
 
     /// <summary>Emails a reset link. Answers the same way whether or not the address has an account.</summary>
@@ -444,9 +456,8 @@ public static class RaskAuthEndpointExtensions
     private static IResult Refuse(AuthResult result, int statusCode) =>
         Results.Json(new AuthFailure(result.Error.ToString(), result.Message), statusCode: statusCode);
 
-    // The address a throttle is keyed on. Behind a proxy this is the proxy's address unless the app runs
-    // UseForwardedHeaders, which is the ordinary ASP.NET arrangement for learning the client's.
-    private static string? Client(HttpContext context) => AuthThrottle.ClientOf(context.Connection.RemoteIpAddress);
+    // The address a throttle is keyed on: the one an app's own sign-in endpoint reads too.
+    private static string? Client(HttpContext context) => AuthClient.Of(context);
 
     // Where this app is being served from, used only when the app configured neither PasskeyOrigins nor PublicOrigin.
     // Built from the request's own scheme and host rather than the Origin header: a host is what the server was asked

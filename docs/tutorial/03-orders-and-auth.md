@@ -51,7 +51,7 @@ public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned, De
 
     public TrackingNumber? Tracking { get; private set; }
 
-    public Children<OrderLine, OrderLineSpec> Lines { get; } = new();
+    public HasMany<OrderLine> Lines { get; } = new();
 
     private static Order Place(CustomerEmail customer, ShippingAddress shipTo, GiftNote? gift, IReadOnlyList<OrderLineSpec> lines)
     {
@@ -130,7 +130,7 @@ What is new since chapter 2:
 - **Kinds of text.** `CustomerEmail` derives from `Email`, a `Text` that also checks the address's form and tells a
   bound input it is an email. `Phone`, `Url`, `Password` and `Multiline` are its siblings
   ([kinds of text](../domain.md#kinds-of-text-email-phone-url-password-multiline)).
-- **Children: `Children<OrderLine, OrderLineSpec>`.** The lines are entities inside the order — each has its own
+- **Children: `HasMany<OrderLine>`.** The lines are entities inside the order — each has its own
   `OrderLineId`, and none stands on its own. `Lines.Sync(lines, …)` makes the children whatever the list of specs
   says: a spec with no id is added, one naming a line updates it, and a line no spec names is removed. They load and
   save with the order, so a change to a line bumps the order's `Version` ([children](../domain.md#children)).

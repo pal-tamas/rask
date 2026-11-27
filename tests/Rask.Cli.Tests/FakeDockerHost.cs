@@ -21,6 +21,9 @@ internal sealed class FakeDockerHost
 
     public bool HasNetwork { get; set; } = true;
 
+    /// <summary>What a new image answers <c>rask db pending</c> with: one migration a line, an exclusive one marked.</summary>
+    public string PendingMigrations { get; set; } = "";
+
     /// <summary>Every <c>docker cp</c> into the proxy fails, as a full disk or a dropped connection would.</summary>
     public bool CopyFails { get; set; }
 
@@ -117,6 +120,8 @@ internal sealed class FakeDockerHost
             return args[0] switch
             {
                 "ps" => Ok(Listing()),
+                // The new image asked `rask db pending` in a one-off container: it answers and leaves nothing running.
+                "run" when args[^3..] is ["rask", "db", "pending"] => Ok(PendingMigrations),
                 "run" => RunContainer(args),
                 "rm" => _containers.RemoveAll(c => c.Name == args[^1] || c.Id == args[^1]) > 0 ? Ok() : Fail("No such container"),
                 "inspect" => Inspect(args),

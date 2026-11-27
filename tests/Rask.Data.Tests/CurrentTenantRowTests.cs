@@ -90,6 +90,33 @@ public sealed class CurrentTenantRowTests : IDisposable
     }
 
     [Fact]
+    public async Task Whether_a_tenant_exists_is_read_by_its_key_and_a_Guid_a_numbered_tenant_cannot_hold_names_none()
+    {
+        await using var database = await StartAsync();
+        await SeedAsync(database, NumberShop.Open(7, "Acme"));
+        UseTenant<NumberShop, NumberShopRead, int>(static key => row => row.Id == key, static row => row.Id);
+
+        var seven = await CurrentRows.TenantExists(TenantNumber.ToGuid(7), TestContext.Current.CancellationToken);
+        var eight = await CurrentRows.TenantExists(TenantNumber.ToGuid(8), TestContext.Current.CancellationToken);
+        var notANumber = await CurrentRows.TenantExists(Guid.NewGuid(), TestContext.Current.CancellationToken);
+
+        Assert.True(seven);
+        Assert.False(eight);
+        Assert.False(notANumber);
+    }
+
+    [Fact]
+    public async Task Without_a_tenant_aggregate_whether_a_tenant_exists_has_no_answer()
+    {
+        CurrentRows.Use(new CurrentRow<NumberShopRead, int>(
+            CurrentRowKind.User, typeof(NumberShop), static key => row => row.Id == key, static row => row.Id));
+
+        var exists = await CurrentRows.TenantExists(Guid.NewGuid(), TestContext.Current.CancellationToken);
+
+        Assert.Null(exists);
+    }
+
+    [Fact]
     public async Task A_Guid_tenant_reads_its_own_row()
     {
         var acme = Guid.NewGuid();

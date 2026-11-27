@@ -181,11 +181,11 @@ public abstract class LogQueryContract(LogStoreKind kind)
         var at = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.FromHours(2)).AddTicks(1_234_560);
 
         await harness.Store.Append(
-            [new LogRecord(0, at, LogLevel.Critical, "Shop.Payments", 42, "card declined", "System.Exception: boom",
+            [new LogRecord(Guid.Empty, at, LogLevel.Critical, "Shop.Payments", 42, "card declined", "System.Exception: boom",
                 [new LogScopeValue("RequestId", "r1")])], TestContext.Current.CancellationToken);
 
         var entry = Assert.Single((await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
-        Assert.True(entry.Id > 0);
+        Assert.NotEqual(Guid.Empty, entry.Id);
         Assert.Equal(at.UtcTicks, entry.Timestamp.UtcTicks);
         Assert.Equal(LogLevel.Critical, entry.Level);
         Assert.Equal("Shop.Payments", entry.Category);
@@ -207,8 +207,8 @@ public abstract class LogQueryContract(LogStoreKind kind)
 
         await harness.Store.Append(
         [
-            new LogRecord(0, now, LogLevel.Warning, "Shop\0Input", 0, "user sent a\0b", "System.Exception: x\0y"),
-            new LogRecord(0, now, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
+            new LogRecord(Guid.Empty, now, LogLevel.Warning, "Shop\0Input", 0, "user sent a\0b", "System.Exception: x\0y"),
+            new LogRecord(Guid.Empty, now, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
         ], TestContext.Current.CancellationToken);
 
         var page = await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken);

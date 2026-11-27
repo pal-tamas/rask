@@ -60,7 +60,18 @@ only to TCP — so leave it (and `AllowStreamLocalForwarding`) at the default `y
   before it listens — so the health check cannot pass over an un-migrated database, and there is no
   separate migrate step to run. One that fails stops the container, and the old one keeps serving. When a
   pipeline applies migrations instead, pass `--env Rask:Database:MigrateOnStart=false`. See
-  [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
+  [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start).
+- **A migration that rewrites the rows is stop-then-start.** Before it starts the new colour, the deploy asks the
+  new image which migrations the database has not had (`dotnet App.dll rask db pending`, in a one-off container on
+  the app's network and volume). One marked *exclusive* — Rask's one-time rewrite of a SQL Server app's Guid columns
+  into [time order](data.md#guid-keys-sort-by-time-on-every-database) is one — would make the old version misread
+  every row it touched once it ran, so the deploy says so, stops the old version first and starts the new one after
+  it: the app is down until the new version is healthy. A start that then fails is not rolled back onto the old
+  image, which could not read the rewritten rows: the deploy says nothing serves the app, and the fix is a new
+  deploy. An image that cannot answer (no Rask `RaskApp`, no database to reach) deploys blue-green as always. Do not
+  run any other instance of the old version against the database while such a migration applies, and do not
+  `rask deploy rollback` past it.
+- Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
   HTTP requests are zero-downtime; **live sessions re-establish**, because a session is a component tree
   and a DI scope inside *that* container and cannot hand over to the next one. The retiring container

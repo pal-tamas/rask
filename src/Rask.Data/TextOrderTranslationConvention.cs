@@ -22,7 +22,8 @@ namespace Rask.Data;
 ///         SQLite has no such default, so where the provider registers the collation on each connection
 ///         (<see cref="ITextCollationEnforcer" />, which <c>UseRaskSqlite</c> adds) every text column is created with it:
 ///         equality, a unique index, <c>GROUP BY</c> and <c>ORDER BY</c> then compare as SQL Server does. PostgreSQL through
-///         <c>UseRaskPostgres</c> does the same with a nondeterministic ICU collation its migrations create; a plain
+///         <c>UseRaskPostgres</c> does the same with a nondeterministic ICU collation its migrations create — but its key
+///         and foreign key columns are binary (<c>"C"</c>), so an id compares byte for byte; a plain
 ///         <c>UseNpgsql</c> orders by the language's ICU collation and leaves the columns alone. Read once, as the model is
 ///         built.
 ///     </para>
@@ -32,16 +33,19 @@ internal sealed class TextOrderTranslationConvention : IModelInitializedConventi
     private readonly string? _orderedBy;
     private readonly string? _columns;
     private readonly string? _annotated;
+    private readonly string? _keys;
 
     /// <summary>The convention, as <see cref="For" /> reads it off the provider.</summary>
     /// <param name="orderedBy">The collation <c>InTextOrder()</c> writes, or null to order by the column as it is.</param>
     /// <param name="columns">The collation every text column gets, or null to leave the columns as they are.</param>
     /// <param name="annotated">The SQL Server name the model carries for the connections that register it, or null.</param>
-    private TextOrderTranslationConvention(string? orderedBy, string? columns, string? annotated)
+    /// <param name="keys">The collation a text key or foreign key column gets instead of <paramref name="columns" />, or null.</param>
+    private TextOrderTranslationConvention(string? orderedBy, string? columns, string? annotated, string? keys = null)
     {
         _orderedBy = orderedBy;
         _columns = columns;
         _annotated = annotated;
+        _keys = keys;
     }
 
     /// <summary>The convention for <paramref name="collation" /> on the provider <paramref name="services" /> belong to.</summary>
@@ -60,7 +64,7 @@ internal sealed class TextOrderTranslationConvention : IModelInitializedConventi
             // migrations create; anywhere else — or for one that tells them apart — the language's ICU order is enough.
             var parsed = TextCollation.Parse(collation);
             return Enforcer(services) is { } postgres && parsed.NondeterministicIcuLocale is not null
-                ? new TextOrderTranslationConvention(postgres.Collation, postgres.Collation, collation)
+                ? new TextOrderTranslationConvention(postgres.Collation, postgres.Collation, collation, postgres.KeyCollation)
                 : new TextOrderTranslationConvention(parsed.IcuCollation, columns: null, annotated: null);
         }
 
@@ -105,12 +109,13 @@ internal sealed class TextOrderTranslationConvention : IModelInitializedConventi
         }
     }
 
-    // A column the model gave a collation of its own keeps it; a JSON document's members are no columns at all.
+    // A column the model gave a collation of its own keeps it; a JSON document's members are no columns at all. A key — the
+    // row's own, an alternate one, or a foreign key to another's — takes the provider's key collation where it names one.
     private void Collate(IEnumerable<IConventionProperty> properties, IEnumerable<IConventionComplexProperty> complexProperties)
     {
         foreach (var property in properties.Where(static p => IsText(p) && p.GetCollation() is null))
         {
-            property.Builder.UseCollation(_columns);
+            property.Builder.UseCollation(_keys is not null && (property.IsKey() || property.IsForeignKey()) ? _keys : _columns);
         }
 
         foreach (var type in complexProperties.Select(static c => c.ComplexType).Where(static t => !t.IsMappedToJson()))

@@ -168,14 +168,14 @@ public sealed class JobLaneViewTests
         IJobs fake = jobs;
 
         var lanes = await fake.Lanes(["a", "b"], Ct);
-        var stopped = await fake.Stop(1, Ct);
+        var stopped = await fake.Stop(Guid.CreateVersion7(), Ct);
 
         Assert.True(lanes["a"].IsIdle);
         Assert.True(lanes["b"].IsIdle);
         Assert.False(stopped);
     }
 
-    private static async Task Update(JobsHarness h, long id, Action<UpdateSettersBuilder<Job>> set)
+    private static async Task Update(JobsHarness h, Guid id, Action<UpdateSettersBuilder<Job>> set)
     {
         await using var db = h.NewContext();
         await db.Set<Job>().Where(j => j.Id == id).ExecuteUpdateAsync(set, Ct);
