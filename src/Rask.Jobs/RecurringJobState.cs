@@ -1,4 +1,5 @@
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Background;
 
@@ -22,7 +23,7 @@ public sealed class RecurringJobState : Aggregate<Guid>, IHasTimestamps, IInfras
 
     /// <summary>When this recurring job was last enqueued (UTC), or <c>null</c> if it never has been.</summary>
 #pragma warning disable S1144 // EF materializes the column through the setter; code only moves it with ExecuteUpdate
-    public DateTime? LastEnqueuedAt { get; private set; }
+    public Timestamp? LastEnqueuedAt { get; private set; }
 #pragma warning restore S1144
 
     /// <summary>Starts the bookkeeping for <paramref name="name" />, never yet enqueued.</summary>
@@ -31,6 +32,6 @@ public sealed class RecurringJobState : Aggregate<Guid>, IHasTimestamps, IInfras
         new() { Id = Guid.CreateVersion7(), Name = name };
 
     // Started as if it had just run at lastEnqueuedAt: a new schedule then waits for its next occurrence.
-    internal static RecurringJobState For(string name, DateTime? lastEnqueuedAt) =>
+    internal static RecurringJobState For(string name, Timestamp? lastEnqueuedAt) =>
         new() { Id = Guid.CreateVersion7(), Name = name, LastEnqueuedAt = lastEnqueuedAt };
 }
