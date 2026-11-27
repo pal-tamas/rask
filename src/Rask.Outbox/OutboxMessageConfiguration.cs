@@ -10,8 +10,6 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     /// <inheritdoc/>
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
-        // A battery's table keeps its names whatever the app's TableNames and ColumnNames say.
-        KeptNames.Keep(builder.Metadata.ClrType);
 
         // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
         builder.Ignore(x => x.Version);

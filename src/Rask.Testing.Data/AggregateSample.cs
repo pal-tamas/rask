@@ -103,7 +103,7 @@ internal sealed class AggregateSample(MakeOptions options, Type root)
 
         if (type == typeof(Guid))
         {
-            return Guid.CreateVersion7();
+            return OrderedGuid.New();
         }
 
         if (Rows(type) is { } row)

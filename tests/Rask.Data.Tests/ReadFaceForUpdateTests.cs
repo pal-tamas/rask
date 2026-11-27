@@ -26,7 +26,7 @@ public sealed class ReadFaceForUpdateTests : IDisposable
         await Db.Transaction(async () => read = await Caravan.Where(c => c.Id == caravan.Id).ForUpdate(), cancellationToken: Token);
 
         Assert.Equal("Ann", Assert.Single(read).Leader);
-        Assert.Contains("\"Caravan\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
+        Assert.Contains("\"caravans\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ReadFaceForUpdateTests : IDisposable
         await Db.Transaction(async () => read = await LockedAsync<Caravan>(c => c.Id == caravan.Id), cancellationToken: Token);
 
         Assert.Equal("Fay", Assert.Single(read).Leader);
-        Assert.Contains("\"Caravan\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
+        Assert.Contains("\"caravans\"", Assert.Single(_reads.Locked), StringComparison.Ordinal);
     }
 
     [Fact]

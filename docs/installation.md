@@ -78,7 +78,9 @@ Every path is overridable from the environment, on both scripts:
 
 `RASK_INSTALL_DOTNET_QUALITY` is passed to Microsoft's `dotnet-install` only when you set it, because a
 released channel needs no quality and an empty one is an argument error. Rask ships for .NET 11, and that
-is what `rask new` scaffolds, so the defaults are the ones to keep.
+is what `rask new` scaffolds, so the defaults are the ones to keep. It also requires **C# 15** — .NET 11's
+default language version — so an app leaves `<LangVersion>` unset; one pinned below 15 fails the build with
+`RASKLANG001` ([build errors from MSBuild](diagnostics.md#build-errors-from-msbuild)).
 
 ### Which shell profile it writes
 

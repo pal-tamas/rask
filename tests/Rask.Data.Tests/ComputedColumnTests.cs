@@ -15,8 +15,8 @@ public sealed class ComputedColumnTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"CountedAt\" AS (COALESCE(\"ModifiedPistol\", \"Pistol\")) STORED", script, StringComparison.Ordinal);
-        Assert.Contains("AS ((CAST(\"Year\" AS TEXT) || '.' || CAST(\"Month\" AS TEXT))) STORED", script, StringComparison.Ordinal);
+        Assert.Contains("\"counted_at\" AS (COALESCE(\"modified_pistol\", \"pistol\")) STORED", script, StringComparison.Ordinal);
+        Assert.Contains("AS ((CAST(\"year\" AS TEXT) || '.' || CAST(\"month\" AS TEXT))) STORED", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class ComputedColumnTests
 
         var property = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(PumpReading))!.FindProperty(nameof(PumpReading.CountedAt))!;
 
-        Assert.Equal("COALESCE(\"ModifiedPistol\", \"Pistol\")", property.GetComputedColumnSql());
+        Assert.Equal("COALESCE(\"modified_pistol\", \"pistol\")", property.GetComputedColumnSql());
         Assert.True(property.GetIsStored());
         Assert.DoesNotContain(property.GetAnnotations(), a => a.Name.StartsWith("Rask:", StringComparison.Ordinal));
     }

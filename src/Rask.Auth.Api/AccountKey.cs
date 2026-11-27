@@ -37,7 +37,7 @@ internal static class AccountKey<TKey>
     }
 
     /// <summary>A new account's key.</summary>
-    internal static TKey New() => From(Guid.CreateVersion7());
+    internal static TKey New() => From(OrderedGuid.New());
 
     /// <summary>The <see cref="Guid" /> <paramref name="key" /> carries.</summary>
     /// <exception cref="InvalidOperationException">A text key that holds no <see cref="Guid" />.</exception>

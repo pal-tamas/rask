@@ -19,7 +19,9 @@ Rask-specific ideas, not the language.
 
 ## Before you start
 
-Rask requires the **.NET 11 SDK** — every package ships for .NET 11. Confirm you have it:
+Rask requires the **.NET 11 SDK** and **C# 15** — every package ships for .NET 11, whose default language
+version is C# 15, so leave `<LangVersion>` unset (or `latest`); a project that pins an older one stops at
+build with `RASKLANG001`. Confirm you have the SDK:
 
 ```bash
 dotnet --version      # must be ≥ 11.0

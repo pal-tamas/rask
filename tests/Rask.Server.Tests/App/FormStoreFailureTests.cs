@@ -31,8 +31,15 @@ public sealed class Wharf : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<Moo
 
     public static void Configure(EntityTypeBuilder<Wharf> builder)
     {
+        // The names the existing table has, stated: Rask's own (wharves, tenant_id, uq_…) are for the tables it makes.
         builder.ToTable("Wharves");
-        builder.HasIndex(w => new { w.Name, w.TenantId }).IsUnique(NameTaken).HasFilter("[TenantId] IS NOT NULL");
+        builder.Property(w => w.Id).HasColumnName("Id");
+        builder.Property(w => w.Name).HasColumnName("Name");
+        builder.Property(w => w.TenantId).HasColumnName("TenantId");
+        builder.HasIndex(w => new { w.Name, w.TenantId })
+            .HasDatabaseName("IX_Wharves_Name_TenantId")
+            .IsUnique(NameTaken)
+            .HasFilter("[TenantId] IS NOT NULL");
     }
 }
 
@@ -53,8 +60,15 @@ public sealed class Crane : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<Moo
 
     public static void Configure(EntityTypeBuilder<Crane> builder)
     {
+        // The names the existing table has, stated, as Wharf's are.
         builder.ToTable("Cranes");
-        builder.HasIndex(c => new { c.Pier, c.Slot, c.TenantId }).IsUnique(PlaceTaken);
+        builder.Property(c => c.Id).HasColumnName("Id");
+        builder.Property(c => c.Pier).HasColumnName("Pier");
+        builder.Property(c => c.Slot).HasColumnName("Slot");
+        builder.Property(c => c.TenantId).HasColumnName("TenantId");
+        builder.HasIndex(c => new { c.Pier, c.Slot, c.TenantId })
+            .HasDatabaseName("IX_Cranes_Pier_Slot_TenantId")
+            .IsUnique(PlaceTaken);
     }
 }
 

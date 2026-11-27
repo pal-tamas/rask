@@ -125,7 +125,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[CountedAt] AS COALESCE([ModifiedPistol], [Pistol]) PERSISTED", script, StringComparison.Ordinal);
+        Assert.Contains("[counted_at] AS COALESCE([modified_pistol], [pistol]) PERSISTED", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -135,9 +135,9 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Name] AS (CAST([Year] AS nvarchar(20)) + N'.' + CAST([Month] AS nvarchar(20))) PERSISTED", script, StringComparison.Ordinal);
+        Assert.Contains("[name] AS (CAST([year] AS nvarchar(20)) + N'.' + CAST([month] AS nvarchar(20))) PERSISTED", script, StringComparison.Ordinal);
         Assert.Contains(
-            "[Label] AS (COALESCE([Note], N'') + N'#' + COALESCE(CAST([ModifiedPistol] AS nvarchar(20)), N'')) PERSISTED", script, StringComparison.Ordinal);
+            "[label] AS (COALESCE([note], N'') + N'#' + COALESCE(CAST([modified_pistol] AS nvarchar(20)), N'')) PERSISTED", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class NeutralModelTests
         var script = context.Database.GenerateCreateScript();
 
         Assert.Contains(
-            "[SamePistol] AS CASE WHEN ([ModifiedPistol] IS NOT NULL AND [ModifiedPistol] = [Pistol]) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END PERSISTED",
+            "[same_pistol] AS CASE WHEN ([modified_pistol] IS NOT NULL AND [modified_pistol] = [pistol]) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END PERSISTED",
             script,
             StringComparison.Ordinal);
     }
@@ -160,7 +160,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON [Permit] ([Partner]) WHERE [Partner] IS NOT NULL AND [RevokedAt] IS NULL;", script, StringComparison.Ordinal);
+        Assert.Contains("ON [permits] ([partner]) WHERE [partner] IS NOT NULL AND [revoked_at] IS NULL;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("ON [Permit] ([Kind]) WHERE [Active] = 1 AND [Kind] = 1;", script, StringComparison.Ordinal);
+        Assert.Contains("ON [permits] ([kind]) WHERE [active] = 1 AND [kind] = 1;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -180,9 +180,9 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Size] int NOT NULL DEFAULT (1000)", script, StringComparison.Ordinal);
-        Assert.Contains("[CreatedAt] datetimeoffset NOT NULL DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))", script, StringComparison.Ordinal);
-        Assert.Contains("[CountedAt] datetime2 NOT NULL DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
+        Assert.Contains("[size] int NOT NULL CONSTRAINT [df_vessels_size] DEFAULT (1000)", script, StringComparison.Ordinal);
+        Assert.Contains("[created_at] datetimeoffset NOT NULL CONSTRAINT [df_vessels_created_at] DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))", script, StringComparison.Ordinal);
+        Assert.Contains("[counted_at] datetime2 NOT NULL CONSTRAINT [df_vessels_counted_at] DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class NeutralModelTests
 
         var sql = context.Set<Meter>().Where(m => m.Name.Loosely().Contains(typed)).ToQueryString();
 
-        Assert.Contains("[m].[Name] COLLATE Latin1_General_100_CI_AI", sql, StringComparison.Ordinal);
+        Assert.Contains("[m].[name] COLLATE Latin1_General_100_CI_AI", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("Latin1_General_100_CI_AI", context.Database.GenerateCreateScript(), StringComparison.Ordinal);
     }
 
@@ -217,12 +217,12 @@ public sealed class NeutralModelTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("[Size] int NOT NULL CONSTRAINT [Vessel_Size_df] DEFAULT (1000)", script, StringComparison.Ordinal);
+        Assert.Contains("[size] int NOT NULL CONSTRAINT [vessels_size_df] DEFAULT (1000)", script, StringComparison.Ordinal);
         Assert.Contains(
-            "[CreatedAt] datetimeoffset NOT NULL CONSTRAINT [Vessel_CreatedAt_df] DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))",
+            "[created_at] datetimeoffset NOT NULL CONSTRAINT [vessels_created_at_df] DEFAULT (TODATETIMEOFFSET(SYSUTCDATETIME(), 0))",
             script,
             StringComparison.Ordinal);
-        Assert.Contains("CONSTRAINT [Vessel_CountedAt_df] DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
+        Assert.Contains("CONSTRAINT [vessels_counted_at_df] DEFAULT (SYSUTCDATETIME())", script, StringComparison.Ordinal);
     }
 
     private static DbContextOptions<NeutralContext> Options() =>

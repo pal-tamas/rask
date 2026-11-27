@@ -41,7 +41,44 @@ public sealed class WallRefuelling
 
 public sealed class WallRefuellingContext(DbContextOptions<WallRefuellingContext> options) : DbContext(options)
 {
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<WallRefuelling>().ToTable("Refuellings");
+    // The names Rask gives the table today, so the migration is the moments' rewrite and nothing else.
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<WallRefuelling>(b =>
+        {
+            b.ToTable("refuellings");
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.At).HasColumnName("at");
+            b.HasKey(x => x.Id).HasName("pk_refuellings");
+        });
+}
+
+/// <summary>What a refuelling's note says, kept whole in one JSON column.</summary>
+public sealed class RefuellingNote
+{
+    public RefuelledAt At { get; set; } = null!;
+
+    public string Text { get; set; } = "";
+}
+
+public sealed class NotedRefuelling
+{
+    public int Id { get; set; }
+
+    public RefuellingNote Note { get; set; } = new();
+}
+
+/// <summary>A moment inside a JSON document, as <c>b.Json(r =&gt; r.Note)</c> keeps one.</summary>
+public sealed class NotedRefuellingContext(DbContextOptions<NotedRefuellingContext> options) : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<NotedRefuelling>().ComplexProperty(r => r.Note, note =>
+        {
+            note.ToJson();
+            ValueObjectColumn.Map<RefuelledAt, DateTime>(note.Property(n => n.At), v => v.Value);
+        });
+    }
 }
 
 /// <summary>
@@ -66,7 +103,7 @@ public sealed class MomentUtcTests
         var sql = context.Refuellings.Where(r => r.At.Day == new DateOnly(2026, 10, 25)).ToQueryString();
 
         Assert.Contains(
-            "CAST(([r].[At] AT TIME ZONE N'UTC') AT TIME ZONE N'Central Europe Standard Time' AS date)", sql, StringComparison.Ordinal);
+            "CAST(([r].[at] AT TIME ZONE N'UTC') AT TIME ZONE N'Central Europe Standard Time' AS date)", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -98,7 +135,7 @@ public sealed class MomentUtcTests
         Assert.Contains(
             commands,
             c => c.CommandText.Contains(
-                "UPDATE [Refuellings] SET [At] = CAST(([At] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2) WHERE [At] IS NOT NULL;",
+                "UPDATE [refuellings] SET [at] = CAST(([at] AT TIME ZONE N'Central Europe Standard Time') AT TIME ZONE 'UTC' AS datetime2) WHERE [at] IS NOT NULL;",
                 StringComparison.Ordinal));
     }
 
@@ -115,6 +152,28 @@ public sealed class MomentUtcTests
         var commands = today.GetService<IMigrationsSqlGenerator>().Generate(operations, today.Model);
 
         Assert.DoesNotContain(commands, c => c.CommandText.Contains("UPDATE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_moment_inside_a_json_document_is_kept_as_its_instant_with_its_z_and_owes_no_migration()
+    {
+        using var zone = AmbientClock.UseZone(Budapest);
+        using var context = new NotedRefuellingContext(On<NotedRefuellingContext>());
+        var at = context.Model.FindEntityType(typeof(NotedRefuelling))!.FindComplexProperty(nameof(NotedRefuelling.Note))!
+            .ComplexType.FindProperty(nameof(RefuellingNote.At))!;
+        var converter = at.GetValueConverter()!;
+#pragma warning disable RASK127 // no value-object generator runs here, so there is no Create: the record is made as a loaded row is
+        var second = new RefuelledAt(new DateTime(2026, 10, 25, 1, 30, 0, DateTimeKind.Utc));
+#pragma warning restore RASK127
+
+        var stored = converter.ConvertToProvider(second);
+        var back = (RefuelledAt)converter.ConvertFromProvider(stored)!;
+        var old = (RefuelledAt)converter.ConvertFromProvider("2026-10-25T02:30:00")!;
+
+        Assert.Equal("2026-10-25T01:30:00Z", stored);
+        Assert.Equal(second.Instant, back.Instant);
+        Assert.Equal(new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero), old.Instant);
+        Assert.Null(at.FindAnnotation("Rask:MomentInUtc"));
     }
 
     private static string InZone(TimeZoneInfo zone, Func<string> query)

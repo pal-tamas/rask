@@ -257,7 +257,7 @@ public sealed class ReadModelTests : IDisposable
         Assert.Equal(
             write.FindComplexProperty("Total")!.ComplexType.FindProperty("Amount")!.GetColumnName(table),
             face.FindProperty("TotalAmount")!.GetColumnName(table));
-        Assert.Equal("Total_Amount", face.FindProperty("TotalAmount")!.GetColumnName(table));
+        Assert.Equal("total_amount", face.FindProperty("TotalAmount")!.GetColumnName(table));
     }
 
     // A computed property has no column on the write side, so it is not a member of the read face either.

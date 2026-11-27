@@ -10,8 +10,7 @@ internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        // The same table and index names as the file store's, so a query plan or a runbook reads the same on both.
-        entity.ToTable("RaskLog");
+        // Named as every table of the app's is — log_entries, its columns snake case — by Rask.Data's conventions.
         entity.HasKey(e => e.Id);
         // Made by Rask as the batch is written (LogEntry.From), never by the store: no identity column or sequence.
         entity.Property(e => e.Id).ValueGeneratedNever();
@@ -28,19 +27,11 @@ internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
             entity.Property(text).Metadata.SetMaxLength(null);
         }
 
-
         // Retention's cutoff, and the time-range filter.
         entity.HasIndex(e => e.Timestamp);
 
         // The level and category filters, each already in the newest-first order a page is read in.
         entity.HasIndex(e => new { e.Level, e.Id }).IsDescending(false, true);
         entity.HasIndex(e => new { e.Category, e.Id }).IsDescending(false, true);
-
-        // The file store's column names, stated: an app's ColumnNames (Rask.Data, which this package does not
-        // reference) leaves a column named explicitly as it is, so the log reads the same in both stores.
-        foreach (var property in entity.Metadata.GetDeclaredProperties())
-        {
-            property.SetColumnName(property.Name);
-        }
     }
 }

@@ -20,6 +20,6 @@ public sealed class ModelOfAnotherAssemblyTests
             .SqlQueryRaw<string>("SELECT name AS Value FROM sqlite_master WHERE type = 'table'")
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains("Pump", tables);
+        Assert.Contains("pumps", tables);
     }
 }

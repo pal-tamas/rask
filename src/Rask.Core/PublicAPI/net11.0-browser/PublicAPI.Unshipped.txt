@@ -4623,15 +4623,13 @@ Rask.Core.Routing.ParentRouteAttribute.Parent.get -> System.Type!
 Rask.Core.Routing.ParentRouteAttribute.ParentRouteAttribute(System.Type! parent) -> void
 Rask.Core.Routing.PendingDownload
 Rask.Core.Routing.PendingDownload.<Clone>$() -> Rask.Core.Routing.PendingDownload!
-Rask.Core.Routing.PendingDownload.Bytes.get -> byte[]?
-Rask.Core.Routing.PendingDownload.Bytes.init -> void
 Rask.Core.Routing.PendingDownload.ContentType.get -> string?
 Rask.Core.Routing.PendingDownload.ContentType.init -> void
-Rask.Core.Routing.PendingDownload.Deconstruct(out string! Filename, out string? ContentType, out string? Url, out byte[]? Bytes, out string? Token) -> void
+Rask.Core.Routing.PendingDownload.Deconstruct(out string! Filename, out string? ContentType, out string? Url, out string? Token) -> void
 Rask.Core.Routing.PendingDownload.Equals(Rask.Core.Routing.PendingDownload? other) -> bool
 Rask.Core.Routing.PendingDownload.Filename.get -> string!
 Rask.Core.Routing.PendingDownload.Filename.init -> void
-Rask.Core.Routing.PendingDownload.PendingDownload(string! Filename, string? ContentType, string? Url, byte[]? Bytes, string? Token = null) -> void
+Rask.Core.Routing.PendingDownload.PendingDownload(string! Filename, string? ContentType, string? Url, string? Token = null) -> void
 Rask.Core.Routing.PendingDownload.Token.get -> string?
 Rask.Core.Routing.PendingDownload.Token.init -> void
 Rask.Core.Routing.PendingDownload.Url.get -> string?
@@ -20579,3 +20577,8 @@ abstract Rask.Values.ValueDraft.FillFrom(object? value) -> void
 abstract Rask.Values.ValueDraft.TryMake(out System.Collections.Generic.IReadOnlyList<Rask.Values.Problem>! problems) -> object?
 static Rask.Values.GeneratedValueRules.Group<TValue, TDraft>(System.Func<TDraft!>! draft, System.Func<Rask.Core.Forms.FieldShape!>? shape) -> void
 static Rask.Values.Change<T>.Kept(T? value) -> Rask.Values.Change<T>
+Rask.Values.MomentJsonConverter<TMoment>
+Rask.Values.MomentJsonConverter<TMoment>.MomentJsonConverter() -> void
+override sealed Rask.Values.MomentJsonConverter<TMoment>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TMoment!
+override sealed Rask.Values.MomentJsonConverter<TMoment>.Write(System.Text.Json.Utf8JsonWriter! writer, TMoment! value, System.Text.Json.JsonSerializerOptions! options) -> void
+abstract Rask.Values.MomentJsonConverter<TMoment>.Make(System.DateTime moment) -> TMoment!
