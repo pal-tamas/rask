@@ -44,6 +44,10 @@
     <Compile Include="..\Rask.Data\SqlServerGuidOrder.cs" Link="Shared\SqlServerGuidOrder.cs"/>
     <Compile Include="..\Rask.Data\ProviderNames.cs" Link="Shared\ProviderNames.cs"/>
     <Compile Include="..\Rask.Data\ExclusiveMigrations.cs" Link="Shared\ExclusiveMigrations.cs"/>
+    <!-- The rebuild of a battery table whose key turns from a store-numbered integer into a Guid. -->
+    <Compile Include="..\Rask.Data\StoreKeyRebuild.cs" Link="Shared\StoreKeyRebuild.cs"/>
+    <Compile Include="..\Rask.Data\StoreKeyRebuildOperations.cs" Link="Shared\StoreKeyRebuildOperations.cs"/>
+    <Compile Include="..\Rask.Data\StoreKeyRebuildSql.cs" Link="Shared\StoreKeyRebuildSql.cs"/>
     <!-- An optional value object whose members are all optional, held in its row's columns (RaskSqlServerModelValidator). -->
     <Compile Include="..\Rask.Data\OptionalComplexValues.cs" Link="Shared\OptionalComplexValues.cs"/>
     <Compile Include="..\Rask.Data\TenantReference.cs" Link="Shared\TenantReference.cs"/>
