@@ -32,7 +32,7 @@ public sealed class SqlServerGuidRewriteTests : IAsyncLifetime
     public async Task Rows_written_natively_read_back_the_same_ids_in_time_order_after_the_rewrite()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
-        var ids = Enumerable.Range(0, 300).Select(static _ => ConvoyId.New()).ToList();
+        var ids = Enumerable.Range(0, 300).Select(static _ => ConvoyId.Create()).ToList();
         await using (var native = Native())
         {
             await native.Database.EnsureDeletedAsync(Ct);
@@ -67,7 +67,7 @@ public sealed class SqlServerGuidRewriteTests : IAsyncLifetime
     public async Task The_stored_form_of_an_id_s_text_in_T_SQL_is_the_one_Rask_writes()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
-        var id = ConvoyId.New().Value;
+        var id = ConvoyId.Create().Value;
         await using var connection = new SqlConnection(SqlServer.Database("master"));
         await connection.OpenAsync(Ct);
 

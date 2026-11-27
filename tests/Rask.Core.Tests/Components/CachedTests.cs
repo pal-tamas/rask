@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Components;
 // same — with the widget never mounted. Each "visit" below is a fresh root over the same store, as a later request is.
 public sealed partial class CachedTests : global::Rask.Core.RaskMarkup
 {
-    private readonly FakeTime _time = new();
+    private readonly ManualClock _time = new();
     private readonly MemoryFragmentStore _store;
     private readonly CachedProbeCounts _counts = new();
 
@@ -468,15 +468,6 @@ public sealed partial class CachedTests : global::Rask.Core.RaskMarkup
     {
         public string? Header(string name) =>
             headers is null ? null : headers.TryGetValue(name, out var value) ? value : string.Empty;
-    }
-
-    private sealed class FakeTime : TimeProvider
-    {
-        private DateTimeOffset _now = new(2026, 11, 11, 12, 0, 0, TimeSpan.Zero);
-
-        public override DateTimeOffset GetUtcNow() => _now;
-
-        public void Advance(TimeSpan by) => _now += by;
     }
 }
 

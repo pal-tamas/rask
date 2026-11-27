@@ -94,7 +94,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                         foreach (var record in records)
                         {
                             // Made here, before the insert, as the application-database store makes its own.
-                            id.Value = FormatId(OrderedGuid.New());
+                            id.Value = FormatId(Uuid.Create());
                             sequence.Value = ++last;
                             timestamp.Value = FormatTimestamp(record.Timestamp);
                             level.Value = (int)record.Level;

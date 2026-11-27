@@ -119,13 +119,13 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Every scaffolded setting lives in appsettings.json under `Rask` (connection strings, `Sqlite:StrictTables`, `Litestream:ReplicaUrl` left `""`, `Mail:From`/`PickupDirectory`, `Snapshots`, `Push:Subject`, `Cultures`) and **the `server` template's Program.cs is ONE LINE — `RaskApp.Create(args).Run<App>();`** — with ONE host reference in the csproj (`Rask.Server`, which carries every battery, plus the dev-only `Rask.DevTools`) and NO `AppDbContext`: `RaskAppDbContext` (namespace `Rask`) maps every `Aggregate<TId>` plus every battery's tables, and code that needs the context injects `IDbContextFactory<RaskAppDbContext>`.
   `RaskApp` gates Litestream on `Rask:Litestream:ReplicaUrl` and the Web Push sender on `Rask:Push:VapidKeys:PublicKey`/`PrivateKey` (`rask new` mints a development pair into the gitignored appsettings.Development.json).
   The default set is literally `template.SupportedFlags` intersected with the battery list, so nobody maintains a per-template default list.
-  **`OptInFlags` is gone** (#854): localization was its only member and it stopped being a flag at all — languages are configured in appsettings.json (`Rask:Cultures`, the first entry the default;
+  Languages are configured in appsettings.json (`Rask:Cultures`, the first entry the default;
   a `configureCulture` callback on AddRask appends to that list), never on the command line, because a flag would only restate at scaffold time what the file goes on being the truth about.
   Every C# app starts with `"Cultures": [ "en" ]` and adding another is an entry there — `wasm` in `wwwroot/appsettings.json`, `wasm-hosted` in the host's appsettings.json (read by the browser half's build too);
   in the browser the build ships ICU (~1 MB, +32% on the showcase) only once the list names a non-English language.
   `--culture` and `--no-localization` are REFUSED by name, not ignored: --culture took a value, so swallowing it would scaffold English while the command line said Hungarian.
   **The wizard asks only a name and a project type** — where the UI runs is the project type (`server`, `wasm`, `wasm-hosted`), batteries are included rather than offered as a checklist, and dropping one is `--no-<battery>` on the command line.
-  `--auth` is GONE and refused by name: accounts are a battery like the rest, on by default, and `app.Configure(c => c.Auth.Off())` is how an app declines.
+  Accounts are a battery like the rest, on by default, and `app.Configure(c => c.Auth.Off())` is how an app declines.
   `--template wasm-hosted` writes a WebAssembly app into one project on an ASP.NET host: `Client/` holds the browser app (its own `Client/Program.cs` entry point, `App`, pages, `Client/wwwroot/index.html`), `Shared/` holds what both halves compile (message records), and everything else is server-only (handlers, the database).
   The server renders NO pages: its Program.cs is ONE LINE — `RaskApp.Create(args).Serve();` — which serves the client build beside the API/CQRS endpoints and the `/_rask` dashboard (a hand-wired host writes `AddRaskSpaHost()`, `app.MapRaskSpa()` and `MapRaskServer<RaskDashboardShell>("/_rask/{**path}")` itself).
   The build generates the browser project into obj/rask-client from Client/ + Shared/ (switched on by the presence of Client/Program.cs, off with `<RaskClient>false</RaskClient>`;
@@ -139,7 +139,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `--no-cqrs` also drops data;
   `--no-pwa` also drops push;
   `--no-logs` drops nothing, since the log store owns its own file).
-  **The positive flags are REMOVED, not kept as no-ops** — `--data`, `--jobs`, `--all-batteries` etc. fail with a message naming the `--no-` replacement, because an accepted-and-disregarded flag is this repo's most expensive bug class.
   `--no-<battery>` for something the template never had is a usage error naming what it does support.
   **`rask new` also CREATES AND APPLIES THE FIRST MIGRATION** (delegating to `rask db`, so it installs dotnet-ef and finds Microsoft.EntityFrameworkCore.Design already in the csproj, pinned to the EF Core version Rask is built against — `rask db` adds it at that version to a project without it), because the DB-backed pillars are hosted services and one that cannot find its table STOPS THE HOST — without it the first `dotnet run` of every new project would exit rather than warn;
   `--no-restore` skips it and a failure is a warning plus the two manual commands, never a failed scaffold.
@@ -250,8 +249,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   A QUERY VALUE THE PAGE CANNOT READ IS ABSENT: `?weightFrom=abc` on `[QueryParam("weightFrom")] public int? WeightFrom` binds as a URL without it, the page answers 200 and the address is not rewritten — whereas a path SEGMENT the page cannot read does not match and not-found answers.
 - [Lifecycle](docs/lifecycle.md): OnMount/OnUpdated/OnFirstRender/OnRendered/OnUnmount — five hooks, one per moment, each a `Task`.
   A page reached IN PLACE (NavLink, Back, `Go()` from a handler, a redirect, a sign-in's return page;
-  both hosts, WASM's first render too) is SENT AT ONCE with its address, and what its `OnMount`/`OnUpdated` read follows in the next frame — nothing is waited for, nothing is cancelled (`NavigationQuiescenceTimeout` was REMOVED;
-  an appsettings key of that name is ignored).
+  both hosts, WASM's first render too) is SENT AT ONCE with its address, and what its `OnMount`/`OnUpdated` read follows in the next frame — nothing is waited for, nothing is cancelled.
   So a page renders a loading state until its data are back, and an edit page says "no such record" only once the read has answered (a `_read` flag beside the null check);
   to keep the rows the reader sees, keep them in the component (`Ui.Table` dims them while its pager waits) or use `KeepPreviousData`, and a `Rask.Query` query already cached is shown at once with no fetch.
   A page that calls `Go()` before its first `await` is never shown (its destination is sent in its place);
@@ -395,10 +393,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `IDispatcher` is transient and reaches handlers through the provider that built it, so publishing from a singleton (a `BackgroundService`) otherwise meant opening a scope by hand.
   Same publish (subscribers first, then handlers);
   inside work in progress it uses that work's scope, outside any it opens one of its own, disposed once the handlers finish — `Dispatcher.Send`/`Query` likewise;
-  `Notify` is GONE;
-  injecting `IDispatcher` where one is to hand stays right.
-  Subscriptions proper are for what is GENUINELY AN EVENT (chat, price tick, job progress, "your export is ready") where there is no query to refresh: tRPC-style subscriptions over CQRS — **`IBroadcast`/`Topic<T>` ARE GONE;
-  AN EVENT IS THE MESSAGE.** `IDispatcher.Publish(event)` runs its `IEventHandler`s AND hands it to every open subscription, so a command handler, a job, a Rask.Data domain event (after commit) or an outbox relay all reach screens.
+  Injecting `IDispatcher` where one is to hand stays right.
+  Subscriptions proper are for what is GENUINELY AN EVENT (chat, price tick, job progress, "your export is ready") where there is no query to refresh: tRPC-style subscriptions over CQRS — **AN EVENT IS THE MESSAGE.** `IDispatcher.Publish(event)` runs its `IEventHandler`s AND hands it to every open subscription, so a command handler, a job, a Rask.Data domain event (after commit) or an outbox relay all reach screens.
   In a component: `QueryClient.Subscribe<OrderPlaced>()` in `Render` → `Subscription<T>` with `Data` (latest), `Items` (with `.Keep(n)`, oldest first), `Status` Connecting/Live/Reconnecting/Ended/Error, `IsLoading`/`IsLive`/`IsReconnecting`/`IsEnded`/`IsError`, `Error`;
   each value re-renders;
   closes with the component that read it — no OnMount, no dispose.
@@ -688,7 +684,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The globals are sealed classes (not static) so they can be extended.
   Doc comments say "Secure contexts only" from MDN's [SecureContext].
 - [Browser APIs](docs/browser-apis.md): the map of the typed Web-API wrappers (6: 5 shared + 1 WASM-only — IIndexedDb, ISignaling, IViewTransitions, IWebAuthn, IWebRtc, and IBackgroundSync on WASM;
-  everything else the browser ships is MDN's own surface in Rask.Web) — shared vs WASM-only, one-shot vs subscription, with the inject-from-ctor pattern and the push/[JSInvokable] mechanism.
+  everything else the browser ships is MDN's own surface in Rask.Web) — shared vs WASM-only, one-shot vs subscription, declarative Web Share and the gesture triggers that keep a click's activation on the Server host, with the inject-from-ctor pattern and the push/[JSInvokable] mechanism; which host registers each wrapper is the table at the top of [the reference](docs/browser-apis-reference.md#where-each-wrapper-works).
   Every element component and every wrapper carries an XML `<summary>` that names its MDN reference page, and the generator forwards it (plus a `<param>` per documented property) onto the chain's entry and steps, so the documentation appears at the CALL SITE — hovering `Video` — not only on the type.
   BACKGROUND SYNC: `IBackgroundSync` (WASM only) wraps SyncManager + PeriodicSyncManager.
   The boundary is the whole design: the browser fires the sync even with the tab CLOSED, but the .NET runtime lives in the PAGE, not the service worker, so C# runs only while a client is open — Rask SW forwards the tag to every open client and the registration is otherwise consumed unseen.
@@ -851,7 +847,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Anything per-property or expression-shaped (column name, index, converter, length) stays in `static Configure(EntityTypeBuilder<T>)` — the traits are the whole family.
   `Entity<TId>` also has a `protected void Stamp(DateTime at)` for an entity whose package writes it and knows when;
   the auditing interceptor fills CreatedAt only when still unset, so a row in a package that does not own the DbContext cannot end up at 0001-01-01 (Rask.Storage found this the hard way: its CreatedAt is an orphan sweep cutoff AND the Last-Modified of every file response);
-  ITimestamped/IVersioned/ISoftDeletable/IValueObject/[SkipModel] are GONE.
   ENTITIES ARE THEIR IDENTITY: two of the same type with the same Id are Equals/== (two loads of one row), one with no id yet equals only itself, and its hash is fixed when first taken so an insert-assigned int key does not lose it from a HashSet.
   **RASK'S OWN BATTERY TABLES ARE AGGREGATES**: OutboxMessage, Job, QueuedMail, CacheEntry, StoredFile, PushSubscriber and RecurringJobState derive from `Aggregate<TId>, IHasTimestamps` (OutboxMessage `Aggregate<long>, IHasUpdatedAt`), naming neither `ISoftDeletes` nor `IVersioned` — a soft-delete filter would hide rows from the drain queries and a second concurrency token would fight the ClaimToken lease — and their configurations `Ignore` Version/DeletedAt, so a context that maps them with `AddRaskJobs()` alone keeps the same columns and get read faces under `<RaskReadFacesOnly>true</RaskReadFacesOnly>`, which emits the read faces and NOTHING else — no form surface, and no registry contribution, since the registry's [ModuleInitializer] would map those tables into every app referencing the package and a second time for one calling AddRaskX.
   Rask.Jobs/Mail/Cache/Storage therefore now depend on Rask.Data;
@@ -992,7 +987,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   RASK085 (warning + code fix) reports an entity exposing a mutable collection of other entities — expose `IReadOnlyCollection<T>` over `private readonly List<T> _items` and mutate through a method.
   EVERY WRITE IS AN AGGREGATE METHOD ([domain modelling](docs/domain.md)) — NO service layer, NO handler around it, NO context injected into a page or a handler: a `partial` aggregate's public method `Change(…)` gets a generated static entry `Supply.Change(id, version, …)` (Find(id, version) → the method → Save(), its roles asked first, ONE aggregate in ONE transaction), a private/internal static factory `Register(…)` gets `await Supply.Register(…)` handing back the id, plus a hidden `DryRunChange(…)` (what a form asks while it is filled in) and `Supply.MayChange`;
   a refusal is `Refuse.When(cond, () => field, "…")` / `Refuse.Unless(…)` / `Refuse.At(…)` (a `RaskValidationException` under the field), never an InvalidOperationException; a rule over the whole aggregate is its `IEnumerable<Problem> Validate()` (`ValidateDelete()` for a delete), asked by every save;
-  KEYS: default to a typed id over a Guid made in the factory — `public readonly partial record struct OrderId(Guid Value);`, `new Order { Id = OrderId.New() }` (version-7, time-ordered and strictly increasing — `OrderedGuid.New()` is the same for a plain Guid key, `OrderedGuid.New(timeProvider)` stamps a service's own time; `Guid.CreateVersion7()`/`Guid.NewGuid()` as an entity key is RASK148, a suggestion, since ids of one millisecond sort either way; `ORDER BY Id` and `Where(o => o.Id > last)` paging follow that time on SQL Server, PostgreSQL and SQLite alike — on SQL Server Rask stores every uniqueidentifier time-ordered, so raw SQL sees the stored form and an upgraded app's next migration rewrites its rows once); an int/long identity is 0 until the insert, so an event a factory/constructor raises with it (or with a just-made child's `Id`) carries 0 — RASK145 (warning; error under RaskStrict).
+  KEYS: default to a typed id over a Guid made in the factory — `public readonly partial record struct OrderId(Guid Value);`, `new Order { Id = OrderId.Create() }` (version-7, time-ordered and strictly increasing — `Uuid.Create()` is the same for a plain Guid key, `Uuid.Create(timeProvider)` stamps a service's own time; `Guid.CreateVersion7()`/`Guid.NewGuid()` as an entity key is RASK148 (a suggestion, an error under RaskStrict, quick-fix to `XId.Create()`/`Uuid.Create()`), since ids of one millisecond sort either way; `ORDER BY Id` and `Where(o => o.Id > last)` paging follow that time on SQL Server, PostgreSQL and SQLite alike — on SQL Server Rask stores every uniqueidentifier time-ordered, so raw SQL sees the stored form and an upgraded app's next migration rewrites its rows once); an int/long identity is 0 until the insert, so an event a factory/constructor raises with it (or with a just-made child's `Id`) carries 0 — RASK145 (warning; error under RaskStrict).
   ANOTHER aggregate changes from a domain event: `Raise(new X(...))` in the operation, and a one-line `static Task On(X e) => Other.Op(e.Id, …)` on the aggregate it changes (a durable handler through the outbox, its own transaction, at least once; `o.HandlerInTransaction = true` makes its database writes exactly once) — or an `IEventHandler<X>` in memory — that calls the other aggregate's own entry; two aggregates in one save is the LAST RESORT — both entries inside one `Db.Transaction(async () => …, manyAggregates: "why")`, the reason naming the invariant that needs it ([the transaction boundary](docs/domain.md#the-transaction-boundary));
   a FORM is the operation's: `Form.For(Supply.Change, id)[f => [Ui.Field.Bind(() => f.Details) …]]` — fields are the parameters, filled from the aggregate's property of that name (a plain `decimal? totalSum` from a one-value VO `Amount? TotalSum` and back), each value object's rule and the method's Refuse shown under its field as it is typed, saved through the entry at the version read ([a form over an operation](docs/forms.md#a-form-over-an-operation)); a generated `ProductModel` (trait `IHasForm`) is only for a data-shaped aggregate with no steps;
   a write over thousands of rows (BulkInsert, ExecuteUpdate/ExecuteDelete) is a job's or a migration's and skips the domain ([writing many rows](docs/data-writes.md)).
@@ -1018,8 +1013,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `ExecuteDelete` says the same sentence; SQLite, which names no constraint, is ASKED which relationship still holds a row, so it answers exactly as SQL Server/PostgreSQL do — tests on SQLite alone are enough;
   a unique violation lands under the FORM's field: a complex member as `Km.Start`, an aggregate's child row as `Pistols[1].Number`, or the field `.IsUnique("…").Field("Plate")` names;
   an insert-side foreign-key failure is not translated) (part of the row) rather than owned entities (a joined table with hidden identity), nested ones included — but a value object CONTAINING another needs a parameterless ctor + settable (private) properties, because EF cannot bind a nested complex type to a constructor parameter (a positional record is fine when it holds only scalars).
-  A TYPED ID IS ONE LINE: `public readonly partial record struct VehicleId(int Value);` (top-level, name ends in `Id`, one positional `Value` of int/long/Guid/string) — Rask generates `New()` (Guid only, version 7), `Parse`/`TryParse` (`IParsable<T>` + `ISpanParsable<T>`), `ToString()` = the value alone (Guid lower case), a string id refuses `""`, a scalar JSON converter (`42`, not `{"Value":42}`; dictionary keys too) and route binding (`[RouteParam] public VehicleId Id`); a member written by hand is kept.
-  An id over int/long is the store's IDENTITY (`Create(model)`, no `Create(id, model)`); over a Guid it is the app's (`New()`); over a string the caller's. A Guid id in a TEXT column (SQLite, an existing `nvarchar` key) is written lower case; legacy upper-case rows still load and match a `Where` only where the column compares case-insensitively (OrderTextBy `_CI_` / RASK_TEXT). A JsonSerializerContext of your own must list `VehicleId.__JsonConverter` (source-gen cannot see the attribute).
+  A TYPED ID IS ONE LINE: `public readonly partial record struct VehicleId(int Value);` (top-level, name ends in `Id`, one positional `Value` of int/long/Guid/string) — Rask generates `Create()` (Guid only, version 7, `Uuid.Create()`), `Parse`/`TryParse` (`IParsable<T>` + `ISpanParsable<T>`), `ToString()` = the value alone (Guid lower case), a string id refuses `""`, a scalar JSON converter (`42`, not `{"Value":42}`; dictionary keys too) and route binding (`[RouteParam] public VehicleId Id`); a member written by hand is kept.
+  An id over int/long is the store's IDENTITY (`Create(model)`, no `Create(id, model)`); over a Guid it is the app's (`Create()`); over a string the caller's. A Guid id in a TEXT column (SQLite, an existing `nvarchar` key) is written lower case; legacy upper-case rows still load and match a `Where` only where the column compares case-insensitively (OrderTextBy `_CI_` / RASK_TEXT). A JsonSerializerContext of your own must list `VehicleId.__JsonConverter` (source-gen cannot see the attribute).
   STRONGLY-TYPED IDS need nothing declared: `Aggregate<ProductId>` where ProductId is a user-defined single-value type gets a generated ValueConverter registered ONCE PER TYPE in ConfigureConventions, so the key, foreign keys and nullable occurrences are all converted;
   one the generator cannot convert is RASK073.
   BATCH (on a context, db.Set<T>().Where(...)): EF Core's ExecuteUpdateAsync(s => s.SetProperty(...)) and ExecuteDeleteAsync() are set-based single statements that BYPASS THE INTERCEPTORS (no UpdatedAt, no Version bump, no domain events) — a batch SOFT delete is an ExecuteUpdateAsync of DeletedAt, because ExecuteDeleteAsync really deletes an aggregate's row.
@@ -1131,7 +1126,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
 - [Transactional outbox](docs/outbox.md): `Rask.Outbox`, ALWAYS ON while data is (no `c.Outbox.Off()` — settings only: `c.Outbox.Configure(o => …)` / `Rask:Outbox`).
   **THE HANDLER CHOOSES DURABILITY, NOT THE EVENT**: an event is a plain `IEvent`;
   `IEventHandler<T>` runs in memory right after the commit (fast, lost on a crash), `IDurableHandler<T>` gets its OWN `OutboxMessage` row (Handler column) written in the SAME transaction as the change that raised it, run after the commit, retried to MaxAttempts, dead-lettered alone — one row PER durable handler, so a failing SendReceipt never re-runs ChargeCard.
-  `IOutboxEvent` and `RaskDataOptions.DispatchDomainEventsInProcess` are GONE.
   A bare `dispatcher.Publish(e)` (no save) stores its durable rows in a transaction of its own;
   with no outbox (browser, Cqrs alone) durable handlers run in memory.
   AN AGGREGATE HANDLES AN EVENT IN ONE LINE (F-21): `static Task On(E e)` on a `partial` aggregate IS a durable handler of E (generated registration, no class, no DI; stored as `{Aggregate}:{Event}`; runs in its OWN transaction, never the raiser's — one aggregate per transaction); RASK179 (Error) = wrong shape (not static / not Task / not one IEvent parameter), RASK191 (Error) = aggregate not partial, nested or generic.
@@ -1339,14 +1333,13 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.ToastGroup[Ui.Toast]` STACKS them (three shown as a deck that opens under the pointer;
   `.Expanded()` always open;
   `Position`).
-  The old page-owned `Ui.Toast.Message(…).OnDismiss(…)` and `Ui.Toaster` are GONE.
   Markup: a native `popover="manual"` host with role=status (every variant — no role=alert), each toast `[data-ui-toast-dialog]` `aria-atomic` with `data-variant`.
   NO KIT SCRIPT: the runtime shows the popover (`data-rask-popover-open`), presses the toast's `[data-rask-dismiss]` close button after `data-rask-dismiss-after="<ms>"` (paused while the pointer is over it), and Escape presses it for a toast on its own (`data-rask-shortcut="escape"`);
   an action button shows a spinner while its handler runs (`data-loading`).
   SHIPS NO JAVASCRIPT (the runtime does).
   A field's `Label` becomes its accessible name (a real `<label for>`) rather than a placeholder.
   `Ui.Checkbox`, `Ui.Radio` AND `Ui.Switch` ARE FLUX UI's (fluxui.dev/components/checkbox, /radio, /switch — same parts, props, look and `data-ui-*` markers;
-  `Tone`/`Size`, `Options(...)`, `Layout(Ui.ChoiceLayout.X)` and `CheckAll()` are GONE, and `Ui.Toggle` is now Flux's own toggle button): `Ui.Checkbox.Bind(() => m.Agreed).Label("I agree")` binds a `bool` or a `bool?` (null draws the dash), `Ui.Checkbox.Checked(on).OnChange(v => on = v)` is the controlled form, `Indeterminate()`, `Disabled()`, `Invalid()`;
+  `Ui.Toggle` is Flux's own toggle button): `Ui.Checkbox.Bind(() => m.Agreed).Label("I agree")` binds a `bool` or a `bool?` (null draws the dash), `Ui.Checkbox.Checked(on).OnChange(v => on = v)` is the controlled form, `Indeterminate()`, `Disabled()`, `Invalid()`;
   `Ui.Switch.Bind(() => m.Alerts).Label("Alerts").Description("…")` / `Ui.Switch.Value(on).OnChange(…)`, `.Left` puts it before its label.
   THE GROUP IS THE FIELD AND THE CHOICES ARE ITS CHILDREN: `Ui.RadioGroup.Bind(() => m.Plan).Label("Plan")[Ui.Radio.Value(Plan.Free).Label("Free"), Ui.Radio.Value(Plan.Pro).Label("Pro").Description("…")]` binds ONE value of any type (controlled: `.Value(x).OnChange(…)`);
   `Ui.CheckboxGroup.Bind(() => m.Topics).Label("Topics")[Ui.CheckboxAll.Label("Everything"), Ui.Checkbox.Value("news").Label("News"), …]` binds the collection (`List<T>`/`HashSet<T>`/array;
@@ -1362,8 +1355,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   a choice's id is `{group id}-{value}`;
   `Name("notify")` on a checkbox, radio, switch or radio group is the `<input>`'s own `name` (a radio group names its radios after its own id unless its `Name` says otherwise;
   a `Name` on one radio replaces the group's), and `Attributes(("aria-label", "Select row"))` forwards any other attribute to that `<input>` as Flux forwards it to its control.
-  SLIDER AND OTP ARE FLUX UI's (fluxui.dev/components/slider, /otp-input;
-  `Ui.Range` is GONE): `Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)` over int/long/float/double/decimal (generic `UiSlider<T>`);
+  SLIDER AND OTP ARE FLUX UI's (fluxui.dev/components/slider, /otp-input): `Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)` over int/long/float/double/decimal (generic `UiSlider<T>`);
   it takes NO `Label` — put it in `Ui.Field[Ui.Label["Volume"], Ui.Slider.Bind(…)]` and every thumb is `aria-labelledby` that label;
   the value follows the thumb WHILE it moves (`OnChange`/the bound member on every step);
   `BigStep(100)` is Flux's `big-step` — Shift+Arrow and PageUp/PageDown move by it (`data-rask-big-step` on the range input, stepped by the runtime;
@@ -1380,7 +1372,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The keys are Flux's and the runtime's (`data-rask-otp` on the group): a character moves on to the next cell, type-over replaces, Backspace steps back, arrows stop at the first empty cell, a paste fills from the first cell, fast typing drops nothing.
   The cells are rendered with NO `value` and NO handler and ONE `<input type="hidden">` in the group carries the code — in a browser test type into the cells and read the hidden field or your own state;
   set the bound string in C# and the cells follow.
-  REMOVED from `Ui.Otp`: `Joined` (→ `Ui.OtpGroup`), `Tone`, `Size`, `Hint` (→ `DescriptionTrailing`), `Description`, `Badge`, `Invalid` (the bound member's message marks the cells), `AccessibleLabel`, required `Length`.
   `Ui.Input` AND `Ui.Textarea` ARE FLUX UI's (fluxui.dev/components/input, /textarea — same props, look and `data-ui-*` markers): `Ui.Input.Bind(() => m.Email).Label("Email").Description("…")` wraps the input in a `Ui.Field` with its `Ui.Error` (`DescriptionTrailing` under the control;
   `Badge` on a textarea);
   with none of them it is the control alone — a wrapper `div[data-ui-input]` (`Class`) around the `input[data-ui-control]` (`InputClass`) — and draws NO message, so place it in a `Ui.Field[…, Ui.Error]`.
@@ -1397,7 +1388,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   for a label put the GROUP in a `Ui.Field`.
   `Ui.Textarea.Bind(() => m.Notes).Rows(2)` (4 by default;
   `Rows(UiTextareaRows.Auto)` = CSS `field-sizing: content`) with `Resize`: `.Vertical`/`.Horizontal`/`.Both`/`.None` (`Ui.TextareaResize`).
-  REMOVED with the old input: `Ui.Search` (→ `Ui.Input.Icon(Ui.IconName.MagnifyingGlass)`), floating labels/`Floating`, `Hint` (→ `Description`), `Tone`/`Error("…")` (→ `Invalid()` + `Ui.Error.Message("…")`), `AccessibleLabel`, `ShowValidating`, `AutoSize`, `Ui.Resize`, the old `Size`/`Variant` on these two.
   `Ui.Avatar.Src` is OPTIONAL: given a `Name` it draws the INITIALS as Flux does (first letter of the first and LAST words;
   the first two letters of a single word) — `Ui.Profile` shares it.
   `Ui.Select` IS FLUX UI'S `flux:select` (fluxui.dev/components/select), AND ITS OPTIONS ARE CHILDREN: `Ui.Select.Bind(() => m.Country).Label("Country").Placeholder("Choose…")[countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])]` — an option made from a list needs `.Key(…)` (RASK022), an option with no `Value` stands for its own text (`Ui.SelectOption["Photography"]`), and `Ui.Select.Of<string>()` opens one with no binding and no value.
@@ -1426,7 +1416,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Keyboard as recorded on fluxui.dev: Space/ArrowDown/ArrowUp open on the picked option, arrows stop at either end (no wrap), Home/End/PageUp/PageDown do nothing, Enter picks and closes (multiple: switches the row and stays open), a letter on the CLOSED button picks the next option starting with it;
   the closed listbox button ignores Enter as Flux's does (`data-rask-listbox-button`) and the page behind an open list is locked (`data-rask-lock`);
   every list says `aria-multiselectable="true"` as Flux's does.
-  GONE, nothing beyond Flux stayed: `.Options(list)` (→ option children), `Ui.MultiSelect`, `Native()`/`Native(false)` (→ `.Listbox`), `OptionTemplate` (→ the option's children/`Icon`/`Avatar`/`Description`), `OptionGroup` (→ `Ui.SelectGroup`), `OptionDisabled` (→ `Ui.SelectOption.Disabled()`), `Filter((v, text) => …)`/`OnSearch`/`Loading` (→ `Filter(false)`), `EmptyText`/`LoadingText` (→ `Empty`), `SelectAll()`, `Chips(n)`, `Floating`, `Tone`, the old `Variant`/`Size`, `Hint` (→ `Description`), `AccessibleLabel` (→ `Label`).EVERY DATA-INPUT CONTROL works bound or controlled, and those whose value is a `T` implement `IFormControl<T>`: the chain opens on `Bind` (bound), `Value` (controlled) or `Of<T>()` (controlled, no value yet), and that opening step fixes the value type and the mode together — `Ui.Input.Label("Email")` does NOT compile.
+  EVERY DATA-INPUT CONTROL works bound or controlled, and those whose value is a `T` implement `IFormControl<T>`: the chain opens on `Bind` (bound), `Value` (controlled) or `Of<T>()` (controlled, no value yet), and that opening step fixes the value type and the mode together — `Ui.Input.Label("Email")` does NOT compile.
   Generic where the value type varies (`UiInput<T>`/`UiTextarea<T>`/`UiSelect<T>`, and `Ui.Select` is BOTH selects under one name: `UiSelect<T>` holds one answer and `UiSelectMultiple<T>` a collection of them, and the chain builds the second when it is opened on a collection — `Bind` over a `List<T>`/`T[]`/`HashSet<T>` (each gets its own kind back), or `Ui.Select.Values(x).OnChange(…)` beside `Ui.Select.Value(x)` for one — where T is the ELEMENT type.
   Several answers are the listbox's, as on Flux: write `Ui.Select.Bind(() => m.Tags).Listbox.Multiple()[…]`;
   a collection left on the native variant throws, and so does `Multiple()` on a select that holds one answer.
@@ -1437,8 +1427,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Backspace on empty removes the last pill), `Filter(false)`, parts `Ui.PillboxOption` (`Value`/`Label`/`SelectedLabel`/`Disabled()`/`Filterable(false)`), `Ui.PillboxOptionCreate.MinLength(2).OnClick(name => …)`, `Ui.PillboxOptionEmpty.WhenLoading(…)`, `Ui.PillboxSearch`, `Ui.PillboxTrigger`, `Ui.PillboxInput.Value(search).OnInput(…)`.
   There is no `Ui.MultiSelect` to type and NO `UiCombobox` either: `.Listbox.Searchable()` and `.Combobox` are it), closed where it does not (`Ui.Checkbox`/`Ui.Switch` over bool, `Ui.Otp` over string).
   `Ui.Radio` binds nothing: it is a CHILD of `Ui.RadioGroup`, which binds the value;
-  CALENDAR, DATE PICKER, TIME PICKER (Flux UI's `flux:calendar`, `flux:date-picker`, `flux:time-picker`;
-  the old `Label`/`Month`/`OnMonth`/`FirstDay`/`Hint` steps and `Ui.DatePicker.Values` are GONE): Flux's `mode` is the STEP THAT OPENS the control and picks the one binding that mode's type — `Ui.Calendar.Bind(() => m.Day)` (no step = Flux's default, single;
+  CALENDAR, DATE PICKER, TIME PICKER (Flux UI's `flux:calendar`, `flux:date-picker`, `flux:time-picker`): Flux's `mode` is the STEP THAT OPENS the control and picks the one binding that mode's type — `Ui.Calendar.Bind(() => m.Day)` (no step = Flux's default, single;
   `Ui.Calendar.Single` is the same) over `DateOnly`/`DateOnly?` one day (a second click clears it), `Ui.Calendar.Multiple.Bind(() => m.DaysOff)` (or `Ui.Calendar.Multiple.Values([...])`) over a collection of days several, `Ui.Calendar.Range.Bind(() => m.Stay)` (or `Ui.Calendar.Range.Value(new UiDateRange(a, b))`) over `UiDateRange(Start, End)`;
   a collection or a range handed to the bare `Ui.Calendar`/`Ui.DatePicker` does NOT compile;
   `Ui.Calendar.Mode(Ui.CalendarMode.Range).Bind(…)` takes the mode as a value, and a mode (or Flux's bare `.Multiple()`) that disagrees with what is bound throws InvalidOperationException at render;
@@ -1459,7 +1448,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   steps `Interval(minutes)` (30), `Min`/`Max`/`OpenTo` (TimeOnly), `Unavailable([new TimeOnly(3,0), new UiTimeRange(new(5,30), new(7,29))])`, `.TwelveHour`/`.TwentyFourHour` (culture's clock by default), `Locale`, `.Type(Ui.TimePickerType.Input)` (hour/minute/AM-PM fields;
   `.Dropdown(false)` removes the list), `.Sm`/`.Xs`, `Placeholder`, `Clearable()`, `Disabled()`, `Invalid()`, and the field shorthand — a `role=combobox` button over a native `popover` listbox;
   FILE UPLOAD IS FLUX UI's (fluxui.dev/components/file-upload;
-  `Ui.FileInput` and its `Dropzone()` are GONE — a plain file field is `Ui.Input.Of<string>().Type(InputType.File).Label("Logo").OnFiles(…)`): `Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")]`, then one `Ui.FileItem.Heading(name).Size(bytes).Image(url).Actions(Ui.FileItemRemove.OnClick(Remove))` per file the PAGE kept — `OnFiles` (an `IReadOnlyList<IRaskFile>`, each readable only while the handler runs) stands for Livewire's `wire:model`, and the list is the page's own state.
+  a plain file field is `Ui.Input.Of<string>().Type(InputType.File).Label("Logo").OnFiles(…)`): `Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")]`, then one `Ui.FileItem.Heading(name).Size(bytes).Image(url).Actions(Ui.FileItemRemove.OnClick(Remove))` per file the PAGE kept — `OnFiles` (an `IReadOnlyList<IRaskFile>`, each readable only while the handler runs) stands for Livewire's `wire:model`, and the list is the page's own state.
   `Ui.FileUpload` takes `Name`/`Multiple()`/`Label`/`Description`/`Error`/`Disabled()` (+ the input's `Accept`) and any children — the dropzone or markup of your own;
   `Ui.FileUploadDropzone` takes `Heading`/`Text`/`Icon`/`Inline()`/`WithProgress()`;
   `Ui.FileItem` takes `Heading`/`Text`/`Image`/`Size` (162400 → "159 KB")/`Icon`/`Invalid()`/`Actions`;
@@ -1495,13 +1484,12 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.Main` takes `Container`/`Inset`, `Ui.Header` `Sticky`/`Container`;
   the ground and borders are YOUR classes (a kit-only document writes `UiStylesheet.DocumentAttribute` on `<html>` instead).
   AN APP'S WHOLE FRAME (owner-approved, not Flux, #1296): the root layout's Render is ONE line — `Ui.AppFrame.Brand("PPTA").Logo(url).Tenant(partnerName).User(name).SignOut(SignOut.Path).Notices(Ui.WorkNotices)[Ui.SidebarNav[Ui.SidebarItem.Icon(…).Href(Routes.HomePage())["Home"], Ui.SidebarGroup.Expandable(true).Heading("Records").Icon(…)[Ui.SidebarItem…]], Outlet]` — Flux's sidebar layout (sticky, slides over a phone, zinc-50 ground), the header with the phone's toggle + breadcrumbs WRITTEN FROM THE MENU (home › group › list › the page's `PageTitle`; the list step links back to the list AS IT WAS LEFT — filters/sort/page kept, a `Ui.EditorDialog` key dropped; a phone keeps the last two steps) + `Notices` at the end, the profile with a `Ui.MenuItem…SignOut()` row that asks first, `Ui.Main` holding every non-nav child, and `Ui.Toast`/`Ui.ConfirmLeave`/`Ui.Confirm` mounted in the catalog's words. Each `Ui.SidebarNav` child is the menu; the row of the page shown OR the list it is beneath is lit (`aria-current`), its group opened; a row's own `.Current(…)` wins, a string link is never lit; home = `.Home(Routes.HomePage())` when named (brand + the trail's first step go there), else the row every other row is beneath; `.LeaveHeading("…")` titles the unsaved-changes dialog (default: the catalog's `ConfirmLeaveHeading`, "Unsaved changes"); the tenant line is `#ui-app-frame-tenant`. NO `.Accent(…)` step: the accent is the app's `--color-accent` theme; NO `Ui.SidebarScript` needed (no rail). The built-in 404/403 render inside it.
-  `Ui.Shell`, `Ui.TopBar`, `Ui.SidebarFooter` and the page-heading `Ui.Header.Title(...)` are GONE.
   Outside a sidebar the navigation is `Ui.Navlist` (Flux's navlist: a `<nav>`), `Ui.NavlistItem` and `Ui.NavbarItem` (words are the children: `Ui.NavlistItem.Href(Routes.X())["Orders"]`;
   a NavLink, so `Current` is auto from the route for a generated link → `aria-current="page"`, stated for a string href or a whole section;
   `Icon`, `Badge`/`BadgeColor` (a `Ui.Color`), `Accent(false)`), `Ui.NavlistGroup` (`Heading`, or a `<details>` with `Expandable`/`Expanded`/`OnExpandedChange`), `Ui.Navbar` (the row for a header), `Ui.Brand` (`Name`, `Logo` = image URL or content, `Href` default `/`), `Ui.Profile` (a button: `Name`, `Avatar`, `Circle`, `Chevron`), `Ui.Breadcrumbs[Ui.BreadcrumbsItem.Href(u)["Home"], Ui.BreadcrumbsItem["Post"]]`, `Ui.Avatar` (`Src` or initials from `Name`, `Xs`/`Sm`/`Lg`/`Xl`, `Circle`, `Color`/`ColorAuto`, `Badge`, `Tooltip`, `Href`) and `Ui.AvatarGroup`;
   `Ui.Spacer` (flex-1);
   `Ui.Separator` is Flux's separator (`Vertical()`, `Text("or")`, `.Subtle`, `Orientation`;
-  `role="none"`, NO outer margin — `Ui.Divider` is gone);
+  `role="none"`, NO outer margin);
   `Ui.Heading`, `Ui.Text` and `Ui.Link` are FLUX UI's `flux:heading`/`flux:text`/`flux:link` exactly (props, look, markup;
   zinc + accent;
   each ONE element marked `data-ui-heading`/`data-ui-text`/`data-ui-link`): `Ui.Heading` takes `Size` (`Ui.HeadingSize` Base 14px/Lg 16px/Xl 24px/Xxl 36px = Flux's 2xl), `Level` 1-6 (`<div>` without one) and `Accent()`; `Ui.Subheading` (Flux's `flux:subheading`, no props) is the 14px zinc-500 line under a heading, which keeps 8px from it by itself;
@@ -1519,17 +1507,14 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.Description` sits under the label when before the control and under the control when after it;
   `Ui.Error` is an always-rendered `role="alert"` live region, hidden until there is a message, that shows the FIRST message of a bound member — bare inside a field (the control's `Bind`), `For(() => m.Email)` anywhere, `Name("Email")` for a member of the form's model, `Message("…")` for your own text, `Icon(Ui.IconName.InformationCircle)`/`Icon(false)`;
   `Ui.Fieldset.Legend("…").Description("…")` is a real `<fieldset>`/`<legend>`, or place `Ui.Legend` yourself.
-  `Ui.Fieldset.Text`/`Help` and the old `Ui.Label.Text` are gone.
   Markers `data-ui-field|label|description|error|fieldset|legend` mirror Flux's `data-flux-*`.
-  ACCORDION (Flux UI's `flux:accordion`;
-  `Ui.Collapse`, `Ui.AccordionSection` and `Ui.Marker` are GONE): `Ui.Accordion[Ui.AccordionItem.Heading("Where do you ship?")["…"], …]`, or the two parts `Ui.AccordionHeading[…]` + `Ui.AccordionContent[…]` inside an item;
+  ACCORDION (Flux UI's `flux:accordion`): `Ui.Accordion[Ui.AccordionItem.Heading("Where do you ship?")["…"], …]`, or the two parts `Ui.AccordionHeading[…]` + `Ui.AccordionContent[…]` inside an item;
   steps `Ui.Accordion.Exclusive()` (one open at a time), `.Transition()` (250 ms height), `.Reverse` (chevron before the heading, `Ui.AccordionVariant`), `Ui.AccordionItem.Expanded()` / `.Disabled()`.
   An item is a native `<details>` and its heading the `<summary>`, so it opens on click/Enter/Space with NO handler and NO script, `Exclusive()` is the browser's own `<details name>` group, and find-in-page opens the item holding a match.
   To own an item from C#: `.Expanded(_open).OnToggle(open => _open = open)` (`Callback<bool>`, the state it is now in;
   the browser toggles first and reports).
   A single collapsible section is a one-item `Ui.Accordion`.
-  ICONS (Flux UI's `flux:icon`): `Ui.Icon.Name(Ui.IconName.ArrowDownTray)` draws any Heroicon — `Ui.IconName` is ALL of Heroicons under Heroicons' own names in PascalCase (`x-mark` → `XMark`, `magnifying-glass` → `MagnifyingGlass`, `exclamation-triangle` → `ExclamationTriangle`;
-  the kit's old names `Close`/`Search`/`Warning`/`Gear` are GONE), plus `Loading` (Flux's spinner);
+  ICONS (Flux UI's `flux:icon`): `Ui.Icon.Name(Ui.IconName.ArrowDownTray)` draws any Heroicon — `Ui.IconName` is ALL of Heroicons under Heroicons' own names in PascalCase (`x-mark` → `XMark`, `magnifying-glass` → `MagnifyingGlass`, `exclamation-triangle` → `ExclamationTriangle`), plus `Loading` (Flux's spinner);
   `.Solid`/`.Mini`/`.Micro` pick the variant (`Ui.IconVariant`;
   default outline 24px, solid 24px, mini 20px, micro 16px);
   `.Class("size-8 text-amber-500")` overrides size and colour.
@@ -1549,7 +1534,6 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   ARIA is Flux's live DOM — a COUNTED pager's arrows are labelled `&laquo; Previous` / `Next &raquo;` (entity as text) and a spent one is a `<div aria-disabled="true">`, the SIMPLE pager's arrows have NO `aria-label` and its spent one is a bare `<div>`;
   `ScrollTo("body" | "#table")` writes `data-rask-scroll-to`, a generic runtime hook that scrolls that selector into view on a press inside the pager.
   `Ui.Table.Paginate(…)` draws this pager under its rows.
-  `Pages`/`Current` are GONE.
   TIMELINE (Flux UI's `flux:timeline`): `Ui.Timeline[Ui.TimelineItem[Ui.TimelineIndicator[icon or "1"], Ui.TimelineContent[…]]]` is an `<ol>`;
   `Ui.Timeline.Horizontal()`, `.Lg` (`Ui.TimelineSize`), `.Start`/`.Baseline`/`.Center`/`.End` (`Ui.TimelineAlign`, also per item);
   `Ui.TimelineItem.Complete`/`.Current`/`.Incomplete` (`Ui.TimelineStatus` — a complete item darkens the line on to the next);
@@ -1558,7 +1542,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.TimelineBlock` is a full-width card as an item and `Ui.TimelineSubgrid` inside it puts its first child in the indicator column and its second in the content column;
   spacing is `--ui-timeline-item-gap` / `--ui-timeline-content-gap` set from `Class`;
   baseline alignment reads the indicator's hidden first line, `[data-ui-timeline-baseline]`.
-  `Ui.Timeline.Vertical` is GONE (vertical is the default).
+  A timeline is vertical by default.
   `Ui.ColorPicker` is Flux UI's color picker (`Ui.ColorPicker.Bind(() => m.Theme).Label("Theme")`, `.Format(Ui.ColorPickerFormat.Rgba)`, `.Type(Ui.ColorPickerType.Button)`, `.Swatches([("#ef4444", "Red")])`, `.Dropper()`, `.Clearable()`, `.Copyable()`;
   parts `Ui.ColorPickerArea`/`Slider`/`Input`/`Swatches`/`Swatch`/`Dropper` compose the popover): the value is CSS text in its format, a bound one is written with the next action (`.Live()` at once), on a phone the popover is a sheet that holds the choice until Select, a typed `oklch()`/`lab()`/`color()` becomes exactly what Flux makes of it (`oklch(0.7 0.1 200)` → `#0100c8`), and text that is no colour in a form is refused with "Enter a valid color." (docs/ui-kit.md#color-picker).
   `Ui.Flag` is FLUX's flag: `Ui.Flag.Country("US")` (two-letter region code, either case), `.Xs`/`.Md`/`.Lg`/`.Xl` (default 24px, 3:2), `.Circle()`, `.Src(url)` for your own image, `.Alt("Canada")` (empty by default: decoration).
@@ -1568,7 +1552,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.Toggle` is FLUX's toggle, a `<button role="switch">` (NOT the switch — that is `Ui.Switch`): `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")`, `.OnIcon`/`.OffIcon`, `.Label`/`.OnLabel`/`.OffLabel`, `.Sm`/`.Xs`, `.Filled`/`.Ghost`/`.Subtle`, `.Color(Ui.Color.Red)`, `.Disabled()`;
   state is `.Bind(() => m.Flag)` (deferred;
   `.Live()` or an `.OnChange` beside it writes at once, OnChange after the write) or unbound `.Checked(on).OnChange(v => on = v)` — it has NO `Value`.
-  `Ui.Swap` is GONE: use `Ui.Toggle.OnIcon(…).OffIcon(…)`.
+  A two-icon swap is `Ui.Toggle.OnIcon(…).OffIcon(…)`.
   `Ui.Carousel` is FLUX's carousel: `Ui.Carousel[Ui.CarouselSlide.Class("w-full")[…], …]` — a slide's width class decides how many show;
   `.Arrows(false)`, `.Overlap`/`.Outside`, `.Indicators()`, `.Autoplay().AutoplayInterval(3500)`, `.Fade()`, `.Bleed()`, `.Mandatory`, `.Instant`, `.Page`, `.Rewind`, `.Disabled()`, `.TrackClass(…)`;
   `Ui.CarouselControls.Name("x")` beside `Ui.Carousel.Name("x").Arrows(false)` puts the arrows elsewhere.
@@ -1769,7 +1753,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   deleted in pages of 1000 looping until drained, so the write lock is never held for a whole sweep.
   SCHEMA is `CREATE TABLE IF NOT EXISTS RaskLog (...) WITHOUT ROWID` (Id TEXT PRIMARY KEY — the entry's version-7 Guid, made by Rask before the insert, uppercase like EF Core's SQLite Guid;
   Sequence INTEGER — the write order and the FTS5 trigram index's row number (external content, content_rowid='Sequence'), never part of an entry, VACUUM-stable;
-  an integer-keyed logs.db from an earlier release is re-keyed on open, keeping each entry's old id (OrderedGuid.Of(time, rowid)) and its rowid as Sequence;
+  an integer-keyed logs.db from an earlier release is re-keyed on open, keeping each entry's old id (Uuid.Of(time, rowid)) and its rowid as Sequence;
   Timestamp TEXT round-trip "O" UTC so range filters are string compares and the file reads in a sqlite3 shell;
   Level INTEGER;
   Category;
@@ -1904,6 +1888,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   no plural forms.
   A component library ships its own translations with the same file plus `<RaskStringsLibrary>true</RaskStringsLibrary>` (registered UNDER the app's catalog via `RaskStrings.UseLibrarySource`).
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
+- [Upgrading Rask](docs/upgrading.md): every API a release removed (CLI flags, CQRS and data types, `Ui.*` components and steps) beside what replaces it — this file lists only the current API.
 - [Diagnostics](docs/diagnostics.md): RASK001–122 compile-time diagnostics + fixes (RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 retired and never reused), including IDE quick-fixes (lightbulb) for RASK001 (add `required`), RASK014 (rewrite `new Widget()` as the bare entry), RASK023 (append `.Alt("")`), RASK026, RASK071 (swap ASP.NET's `[Route]` for Rask's own — the two differ only by namespace, and the ASP.NET one leaves the page silently unregistered), RASK084 (an error: an entity's or value object's public setter/init/mutable field becomes private — a positional record's init is exempt), RASK085 (an entity's `List<OtherEntity>` becomes a `private readonly` field behind `IReadOnlyCollection<T>`, which EF Core maps through the backing field by convention), RASK095 (a chain that skips a required step — `'Card' needs 'Title' before anything else — write Card.Title(…).Note(…)` — the fix inserts the missing steps), RASK096 (an event declared as `Action<T>`/`Func<T, Task>` must be a non-nullable `Callback<T>`, or its chain setter is unreachable — the fix rewrites the type and `OnSave?.Invoke(x)` → `await OnSave.Invoke(x)`), RASK092 (a unit that disagrees with its count — `2.Hour` → `2.Hours`), RASK093 (a dropped awaitable — the fix awaits it, making the method `async`, or assigns it to a discard `_ =`), RASK119 (a `StateHasChanged()` in `OnMount`/`OnUpdated` that no await follows — the fix deletes it), RASK121 (a `[JSInvokable]` that is not public, which the browser cannot call — the fix makes it public), RASK104 (a `static readonly Component Empty = Div;` keeps one render's positional slot and shares it with every page — the fix makes it `static Component Empty => Div;`), shipped in `Rask.Generators.CodeFixes`.
   **CS0108 needs no answer at all**: `RASKSUP001` suppresses it whenever the hidden member is a chain entry, so a property named `Title`, `Label` or `Form` costs you no `new`, while hiding a real member of your own base type still warns.
   It is the ONE diagnostic Rask does not escalate to an error, because `dotnet format` does not honour suppressors and surfaces it anyway.
@@ -2005,9 +1990,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The build scans your C# for classes, with knobs and fixes.
   `RaskApp` links the compiled sheet as `css/app.css?v={hash}`;
   a hand-wired `AddRask()` + `MapRask<App>()` host writes the same link with `AppStylesheet` in its `HeadAssets` (`HeadAssets => [Title["Shop"], AppStylesheet]`).
-- [Browser APIs — sharing model](docs/browser-apis-sharing.md): Which typed browser APIs run on server and WASM hosts, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#.
-- [Browser APIs — reference & demos](docs/browser-apis-reference.md): Runnable demos for the browser APIs, C# source beside the live result: storage, environment, location, sensors, observers, media, crypto and files.
-- [Capability matrix](docs/browser-capabilities.md): See which browser and device APIs work from C# on the Server host and on WebAssembly, which need a click-gesture component, and which are WASM-only.
+- [Browser APIs — reference & demos](docs/browser-apis-reference.md): Which browser API wrapper works on the server host and on WebAssembly, then runnable demos with C# beside the result: storage, sensors, media, crypto and files.
 - [IIndexedDb](docs/apis/indexeddb.md): Store strings and byte arrays in IndexedDB from C# through an async key/value store.
   Works on Server and WebAssembly;
   bytes are kept as a real Uint8Array.

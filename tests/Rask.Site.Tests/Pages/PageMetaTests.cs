@@ -309,19 +309,22 @@ public sealed class PageMetaTests
         Assert.Contains($"\"dateModified\":\"{iso}\"", head, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task A_guide_that_moved_still_answers_at_its_old_slug_and_names_the_new_one_canonical()
+    [Theory]
+    [InlineData("broadcast", "subscriptions")]
+    [InlineData("browser-apis-sharing", "browser-apis")]
+    [InlineData("browser-capabilities", "browser-apis-reference")]
+    public async Task A_guide_that_moved_still_answers_at_its_old_slug_and_names_the_new_one_canonical(string old, string now)
     {
-        var head = await HeadAt((string)global::Rask.Site.Routes.GuidePage("broadcast"));
-        var moved = GuideCatalog.Find("subscriptions")!;
+        var head = await HeadAt((string)global::Rask.Site.Routes.GuidePage(old));
+        var moved = GuideCatalog.Find(now)!;
 
         // The old URL keeps rendering the guide, so a link from elsewhere still lands — and says where it lives now,
         // which is also what keeps it out of the sitemap.
         Assert.Equal(moved.SearchTitle + PageMeta.TitleSuffix, WebUtility.HtmlDecode(TitleOf(head)));
         Assert.Equal(
-            PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.GuidePage("subscriptions")),
+            PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.GuidePage(now)),
             CanonicalOf(head));
-        Assert.Contains((string)global::Rask.Site.Routes.GuidePage("broadcast"), new GuidePrerenderPaths().Paths());
+        Assert.Contains((string)global::Rask.Site.Routes.GuidePage(old), new GuidePrerenderPaths().Paths());
     }
 
     [Theory]

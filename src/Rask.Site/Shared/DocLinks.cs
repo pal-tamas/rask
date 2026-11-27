@@ -9,7 +9,7 @@ namespace Rask.Site;
 /// <remarks>
 ///     <para>
 ///         The docs are written to be read on GitHub, so their links are relative to the file they sit in:
-///         <c>routing.md</c>, <c>../browser-capabilities.md</c> from <c>docs/apis/</c>,
+///         <c>routing.md</c>, <c>../browser-apis-reference.md</c> from <c>docs/apis/</c>,
 ///         <c>../tests/Rask.Cqrs.Tests</c>. Served from <c>/docs/guides/{slug}/</c>, none of those resolve. A
 ///         link that lands on a guide becomes that guide; anything else becomes the file or folder on GitHub,
 ///         which is where it lives.

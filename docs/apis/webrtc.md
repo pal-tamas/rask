@@ -125,5 +125,5 @@ through the relay and the peer learns nothing about your network.
 
 - Source: [`IWebRtc.cs`](../../src/Rask.Core/Browser/IWebRtc.cs)
 - [`BroadcastChannel`](../web-apis.md) in `Rask.Web` — a signaling channel between two tabs of the same origin
-- [Capability matrix](../browser-capabilities.md)
+- [Where each wrapper works](../browser-apis-reference.md#where-each-wrapper-works)
 - [Browser APIs — the narrative map](../browser-apis.md)

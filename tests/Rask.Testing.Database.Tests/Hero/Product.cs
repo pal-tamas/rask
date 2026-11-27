@@ -19,7 +19,7 @@ public sealed partial class Product
 
     // A factory: Product.Add(…) saves what it makes.
     private static Product Add(ProductName n, UnitPrice p) =>
-        new() { Id = ProductId.New(), Name = n, Price = p };
+        new() { Id = ProductId.Create(), Name = n, Price = p };
 
     public void Reprice(UnitPrice price)
     {

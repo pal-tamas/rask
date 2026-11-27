@@ -14,7 +14,7 @@ public sealed class ReaderTests
     [Fact]
     public void A_reader_in_tokyo_is_already_on_tomorrow_when_utc_is_late_in_the_evening()
     {
-        var reader = new Reader(new FixedTime(LateEveningUtc));
+        var reader = new Reader(new ManualClock(LateEveningUtc));
 
         reader.Saw("Asia/Tokyo", address: null);
 
@@ -27,7 +27,7 @@ public sealed class ReaderTests
     [Fact]
     public void Until_the_browser_names_a_zone_the_reader_is_on_the_apps_clock()
     {
-        var reader = new Reader(new FixedTime(LateEveningUtc));
+        var reader = new Reader(new ManualClock(LateEveningUtc));
 
         var zone = reader.TimeZone;
 
@@ -52,7 +52,7 @@ public sealed class ReaderTests
     [Fact]
     public void A_zone_the_browser_named_is_kept_when_a_later_request_names_none_or_nonsense()
     {
-        var reader = new Reader(new FixedTime(LateEveningUtc));
+        var reader = new Reader(new ManualClock(LateEveningUtc));
 
         reader.Saw("Europe/Budapest", IPAddress.Parse("192.0.2.7"));
         reader.Saw("Not a zone", address: null);
@@ -127,10 +127,5 @@ public sealed class ReaderTests
 
         Assert.NotNull(dir);
         return dir;
-    }
-
-    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

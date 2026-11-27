@@ -138,7 +138,7 @@ public sealed class BearerTokenTests
         };
 
         var start = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
-        var clock = new FixedClock(start);
+        var clock = new ManualClock(start);
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier, "u1"), new Claim(ClaimTypes.Role, "admin")],
@@ -222,10 +222,5 @@ public sealed class BearerTokenTests
         public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
         public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
             new Microsoft.Extensions.FileProviders.NullFileProvider();
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

@@ -63,7 +63,7 @@ public abstract class GuidOrderParityTests(ProviderLeg leg) : ParityTests<Convoy
     private static readonly List<ConvoyId> Ids =
     [
         .. Enumerable.Range(0, 150).Select(static i => new ConvoyId(Guid.CreateVersion7(DateTimeOffset.UnixEpoch.AddMilliseconds(1_790_000_000_000L + i)))),
-        .. Enumerable.Range(0, 250).Select(static _ => ConvoyId.New()),
+        .. Enumerable.Range(0, 250).Select(static _ => ConvoyId.Create()),
     ];
 
     private static List<ConvoyId> Ordered => [.. Ids.Order()];

@@ -604,7 +604,7 @@ public sealed class Product : Aggregate<ProductId>
 ```
 
 **The key.** An entity is keyed by the `Id` it inherits. A `Guid`, or a typed id over one, is the application's —
-made in the factory with `XId.New()`, a time-ordered version-7 `Guid`, and Rask's recommended default
+made in the factory with `XId.Create()`, a time-ordered version-7 `Guid`, and Rask's recommended default
 ([choosing the key](domain.md#choosing-the-key-a-typed-id-over-a-guid)); an `int` or a `long`, or a typed id over one,
 is the database's identity, produced on insert, unless `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()`.
 
@@ -1996,7 +1996,7 @@ know, as on PostgreSQL:
 
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
-in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`, or `OrderedGuid.New()` for a plain `Guid`
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.Create()`, or `Uuid.Create()` for a plain `Guid`
 key) sorts by the time it was made, ids of one millisecond by the order they were made, and a clustered key stays
 append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
 `min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte

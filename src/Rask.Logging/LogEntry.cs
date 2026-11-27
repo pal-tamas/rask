@@ -40,7 +40,7 @@ internal sealed class LogEntry
 
     internal static LogEntry From(LogRecord record) => new()
     {
-        Id = OrderedGuid.New(),
+        Id = Uuid.Create(),
         Timestamp = record.Timestamp.UtcDateTime,
         Level = record.Level,
         // Cut rather than refused: an over-long category would fail the INSERT, and a failed INSERT loses the

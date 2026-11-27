@@ -57,7 +57,7 @@ internal static class SqliteLogSchema
 
         """;
 
-    // The id an entry of an integer-keyed file is given when the file is re-keyed: OrderedGuid.Of over its time and
+    // The id an entry of an integer-keyed file is given when the file is re-keyed: Uuid.Of over its time and
     // old number, the formula that file's entries were shown under, so an id seen before stays the same.
     private const string OldIdFunction = "rask_log_id_of";
 
@@ -100,7 +100,7 @@ internal static class SqliteLogSchema
 
     /// <summary>
     ///     Rebuilds an integer-keyed file into the <see cref="Guid" />-keyed shape. Every entry keeps the id it was shown
-    ///     with (<see cref="OrderedGuid.Of" /> over its time and old number) and keeps its old number as its place in the write order.
+    ///     with (<see cref="Uuid.Of" /> over its time and old number) and keeps its old number as its place in the write order.
     /// </summary>
     /// <remarks>
     ///     The old search index is dropped with its triggers — it was bound to the old table — and
@@ -117,7 +117,7 @@ internal static class SqliteLogSchema
         connection.CreateFunction(
             OldIdFunction,
             static (string timestamp, long number) =>
-                SqliteLogStore.FormatId(OrderedGuid.Of(SqliteLogStore.ParseTimestamp(timestamp), number)),
+                SqliteLogStore.FormatId(Uuid.Of(SqliteLogStore.ParseTimestamp(timestamp), number)),
             isDeterministic: true);
 
         await Execute(

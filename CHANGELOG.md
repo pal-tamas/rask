@@ -8,6 +8,8 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
 - **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
   `b.Property(x => x.PistolId).HasColumnName("pistol_id")`, `HasDatabaseName("ix_fuelings_created_at")`,
   `HasName("pk_fuelings")`, `HasConstraintName("fk_fuelings_pistol_id")`, `[Table("fuelings")]` and `[Column("pistol_id")]`
@@ -26,10 +28,13 @@ them until tagged releases begin.
   cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
   `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
   after the millisecond are random, so two made in one millisecond sorted either way. Rask's clock (`Clock.Now`, so
-  `Clock.Fake` too) stamps it; `OrderedGuid.New(timeProvider)` stamps a service's own time on a sequence of its own,
+  `Clock.Fake` too) stamps it; `Uuid.Create(timeProvider)` stamps a service's own time on a sequence of its own,
   so a test's fake time stamps its ids deterministically (a job batch's id keeps the queue's `TimeProvider`).
 - **RASK148: an entity keyed by `Guid.CreateVersion7()` or `Guid.NewGuid()`** — directly or in a typed id
-  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion naming `OrderId.New()` or `OrderedGuid.New()`.
+  (`new OrderId(Guid.CreateVersion7())`) — is a suggestion, an error under `<RaskStrict>`. The quick-fix (Fix all
+  included) writes `OrderId.Create()` for a typed id that makes its own key, else `Uuid.Create()`, and
+  `Guid.CreateVersion7(time.GetUtcNow())` becomes `Uuid.Create(time)`. A strict app keyed by
+  `Guid.CreateVersion7()` fails to build until the fix is applied.
 - **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
   positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
   (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
@@ -140,6 +145,10 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: typed ids: `New()` → `Create()`; one verb, as .NET's `Guid.CreateVersion7()`.** The generated
+  `OrderId.New()` is now `OrderId.Create()` (a version-7 id from `Uuid.Create()`); a typed id that declares its own
+  parameterless `Create()` keeps it, and a hand-written `Create(Guid)` or other overload sits beside the generated one.
+  Replace `XId.New()` with `XId.Create()` at each call site.
 - **BREAKING (wire): a background job that ended with a warning crosses as `"state": "Warned"`.** It no longer also
   crosses as `"Done"` with an `"outcome"` beside it for a tab opened before warnings existed; such a tab, if one is
   still open, reads the unknown state as done, as it reads any state it does not know.
@@ -380,6 +389,15 @@ them until tagged releases begin.
   accept a package held as a prerelease of the set's version.
 
 ### Documentation
+- **The browser-API guides are two pages, not four, and the docs say only the current API.** The capability matrix is
+  the first table of `docs/browser-apis-reference.md` ("Where each wrapper works": what each wrapper wraps, its shape,
+  Server and WASM as columns, `IViewTransitions` included), and the sharing model — shared vs WASM-only, `Shareable`,
+  the gesture triggers, the subscription push pattern — is part of `docs/browser-apis.md`. Both old guide URLs still
+  answer (`GuideCatalog.Moved`) with the new page as their canonical. `docs/validation.md` is now the type side (which
+  rule to write, requests, endpoints) and `docs/forms-validation.md` the form side, each linking the other instead of
+  repeating it. The removal notes `llms.txt` carried for APIs gone by 0.24.0 (`Ui.Toaster`, `Ui.FileInput`, `Ui.Shell`,
+  `IOutboxEvent`, `--auth` and the rest) moved to a new [Upgrading Rask](docs/upgrading.md) page; `docs/README.md` lists
+  it and the seven nested pages under `docs/apis/` and `docs/architecture/`.
 - **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
   (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In
   the analyzer's message and in `docs/diagnostics.md#rask177`.

@@ -42,7 +42,7 @@ public sealed partial class Note : Aggregate<Guid>, IHasTimestamps, IVersioned, 
 
     /// <summary>A note written by code rather than by the form — the seed rows.</summary>
     internal static Note Write(string title, string body) =>
-        new() { Id = OrderedGuid.New(), Title = title, Body = body };
+        new() { Id = Uuid.Create(), Title = title, Body = body };
 
     /// <summary>
     ///     An operation: its generated entry <c>Note.Rename(id, version, title)</c> saves it, and
