@@ -37,10 +37,10 @@ public static class AuthModelBuilderExtensions
     /// them: <c>modelBuilder.AddRaskAuth&lt;User, string&gt;()</c>.
     /// </summary>
     /// <typeparam name="TUser">The application's user aggregate.</typeparam>
-    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
+    /// <typeparam name="TKey">Its key: a typed id over a <see cref="Guid" />, a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
     /// <param name="modelBuilder">The model builder.</param>
     /// <returns>The same model builder.</returns>
-    /// <exception cref="NotSupportedException"><typeparamref name="TKey" /> is neither.</exception>
+    /// <exception cref="NotSupportedException"><typeparamref name="TKey" /> is none of them.</exception>
     /// <exception cref="InvalidOperationException">The user type's <see cref="SignInNameAttribute">[SignInName]</see> cannot be one.</exception>
     public static ModelBuilder AddRaskAuth<TUser, TKey>(this ModelBuilder modelBuilder)
         where TUser : Authenticatable<TKey>
@@ -69,18 +69,17 @@ public static class AuthModelBuilderExtensions
         // together. Without tenants nothing sets TenantId, every row's TenantKey is Guid.Empty, and this
         // means exactly what a unique index on Email alone meant.
         //
-        // Rask.Auth maps the tenant ITSELF rather than saying IBelongsTo<Tenant>, because this
-        // one table's tenant is optional: an administrator belongs to no tenant, and a tenant-scoped row
-        // is stamped from the ambient tenant and refused without one — so a tenant-scoped accounts table
-        // could not have an admin inserted into it at all.
+        // Rask.Auth maps the tenant ITSELF: the app's User says IBelongsTo<Tenant>, which gives the column the
+        // tenant's key and a foreign key to it, but this one table's tenant is optional and never stamped — an
+        // administrator belongs to no tenant, and a tenant-scoped row is stamped from the ambient tenant and refused
+        // without one, so a tenant-scoped accounts table could not have an admin inserted into it at all.
         //
         // The index is on TenantKey, not TenantId, because NULL in a unique index is not portable: SQLite
         // and PostgreSQL treat two NULLs as distinct, so any number of admins could share one address,
         // while SQL Server treats them as equal, so only one could. TenantKey folds the null to
         // Guid.Empty (kept in step by Rask.Data's auditing interceptor), which is one ordinary index that
         // behaves the same on all three.
-        b.Property(u => u.TenantId);
-        b.Property<Guid>(Columns.TenantKey);
+        AccountTenant.Map<TUser, TKey>(b);
         b.Property(u => u.Email).HasMaxLength(256).IsRequired();
 
         // An account that signs in by name holds the same guarantee on its name instead, and has no address: every row's
@@ -102,8 +101,8 @@ public static class AuthModelBuilderExtensions
 
     private static void MapSession(EntityTypeBuilder<Session> b)
     {
-        KeptNames.Keep(b.Metadata.ClrType);
-        b.ToTable("RaskAuthSession");
+        // Not plain `sessions`: an app's own Session would claim the same table.
+        b.ToTable("auth_sessions");
         b.HasIndex(s => s.UserId);
         b.Property(s => s.IpAddress).HasMaxLength(Session.IpAddressLength);
         b.Property(s => s.UserAgent).HasMaxLength(Session.UserAgentLength);
@@ -111,8 +110,7 @@ public static class AuthModelBuilderExtensions
 
     private static void MapPasskey(EntityTypeBuilder<Passkey> b)
     {
-        KeptNames.Keep(b.Metadata.ClrType);
-        b.ToTable("RaskAuthPasskey");
+        b.ToTable("auth_passkeys");
         b.HasIndex(p => p.UserId);
 
         // Unique, because a credential id is how an assertion finds its account: two rows claiming one id would make

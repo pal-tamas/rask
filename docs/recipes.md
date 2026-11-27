@@ -97,7 +97,7 @@ await Product.Search(query).Skip(20).Take(20);                   // best match f
 injected:
 
 ```csharp
-public static Note Create(string text) => new() { Id = Guid.CreateVersion7(), Text = text, OwnerId = Current.RequiredUserId };
+public static Note Create(string text) => new() { Id = Uuid.Create(), Text = text, OwnerId = Current.RequiredUserId };
 ```
 
 `Current.UserId` is `null` when nobody is signed in, and `Current.RequiredUserId` throws. A component that

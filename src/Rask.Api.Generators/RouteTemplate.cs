@@ -12,7 +12,7 @@ namespace Rask.Api.Generators;
 /// <remarks>
 ///     Deliberately a small subset, and everything outside it is refused rather than guessed. A client
 ///     that builds <em>almost</em> the right URL is the worst outcome available here: it type-checks on
-///     both sides and fails as a 404 in production, which is why the unsupported shapes report RASK062
+///     both sides and fails as a 404 in production, which is why the unsupported shapes report RASK068
 ///     instead of being approximated.
 /// </remarks>
 internal static class RouteTemplate

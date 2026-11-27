@@ -8,18 +8,20 @@ namespace Rask.Data;
 public static class ModelConfigurationBuilderExtensions
 {
     /// <summary>
-    ///     Names every primary key, foreign key, unique constraint, index and (on SQL Server) default the model did not
-    ///     name explicitly: <c>c.ConstraintNames(n =&gt; $"{n.Table}_{n.Joined}_idx")</c>.
+    ///     Names every primary key, foreign key, unique constraint, index, check and (on SQL Server) default the model did
+    ///     not name explicitly, in place of Rask's <c>pk_</c>/<c>fk_</c>/<c>uq_</c>/<c>ix_</c>/<c>ck_</c>/<c>df_</c> names:
+    ///     <c>c.ConstraintNames(n =&gt; $"{n.Table}_{n.Joined}_idx")</c>.
     /// </summary>
     /// <param name="configurationBuilder">The conventions being configured.</param>
     /// <param name="name">
-    ///     The name for one constraint, or null to keep EF Core's. A name longer than the provider allows is cut to its
-    ///     limit.
+    ///     The name for one constraint — <c>n.Prefixed</c> is Rask's — or null to keep EF Core's. A name longer than the
+    ///     provider allows is cut to its limit and ends in a hash of the whole name.
     /// </param>
     /// <returns>The same builder.</returns>
     /// <remarks>
     ///     Applied as the model is finalized, after every entity's own <c>Configure</c>: a <c>HasDatabaseName</c> or
-    ///     <c>HasConstraintName</c> there wins.
+    ///     <c>HasConstraintName</c> there wins. In a Rask context it names the constraints after every other convention,
+    ///     wherever in <c>Conventions</c> it is called.
     /// </remarks>
     public static ModelConfigurationBuilder ConstraintNames(
         this ModelConfigurationBuilder configurationBuilder, Func<Constraint, string?> name)
@@ -27,8 +29,13 @@ public static class ModelConfigurationBuilderExtensions
         ArgumentNullException.ThrowIfNull(configurationBuilder);
         ArgumentNullException.ThrowIfNull(name);
 
-        configurationBuilder.Conventions.Add(services => new ConstraintNameConvention(
-            name, string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)));
+        var naming = StoreNameConvention.For(configurationBuilder);
+        naming.Constraints = name;
+        if (!naming.NamesConstraintsLast)
+        {
+            naming.NameConstraints(configurationBuilder);
+        }
+
         return configurationBuilder;
     }
 

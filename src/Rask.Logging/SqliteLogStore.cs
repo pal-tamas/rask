@@ -27,8 +27,8 @@ namespace Rask.Logging;
 internal sealed class SqliteLogStore : ILogs, IDisposable
 {
     private const string InsertSql = """
-        INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception, Scopes)
-        VALUES ($timestamp, $level, $category, $eventId, $message, $exception, $scopes);
+        INSERT INTO RaskLog (Id, Sequence, Timestamp, Level, Category, EventId, Message, Exception, Scopes)
+        VALUES ($id, $sequence, $timestamp, $level, $category, $eventId, $message, $exception, $scopes);
         """;
 
     // Deletes are paged so a single unbounded DELETE never holds SQLite's write lock for the length of a
@@ -70,12 +70,19 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                 _options.BusyRetry,
                 async (c, token) =>
                 {
+                    // Read once per batch, inside the write lock the transaction holds, so the places the batch takes
+                    // are its own; its index makes MAX one descent rather than a scan.
+                    var last = await ScalarAsync(c, "SELECT MAX(Sequence) FROM RaskLog;", static _ => { }, token)
+                        .ConfigureAwait(false) ?? 0;
+
                     // One command prepared once and re-bound per row: the batch is the whole point, and
                     // re-creating the command per entry would throw away the prepared statement each time.
                     var command = c.CreateCommand();
                     await using (command.ConfigureAwait(false))
                     {
                         command.CommandText = InsertSql;
+                        var id = command.Parameters.Add("$id", SqliteType.Text);
+                        var sequence = command.Parameters.Add("$sequence", SqliteType.Integer);
                         var timestamp = command.Parameters.Add("$timestamp", SqliteType.Text);
                         var level = command.Parameters.Add("$level", SqliteType.Integer);
                         var category = command.Parameters.Add("$category", SqliteType.Text);
@@ -86,6 +93,9 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
 
                         foreach (var record in records)
                         {
+                            // Made here, before the insert, as the application-database store makes its own.
+                            id.Value = FormatId(Uuid.Create());
+                            sequence.Value = ++last;
                             timestamp.Value = FormatTimestamp(record.Timestamp);
                             level.Value = (int)record.Level;
                             // NUL as U+FFFD, the same as the application-database store (see LogText), so a
@@ -121,7 +131,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
             var where = new StringBuilder();
             var filters = BuildFilters(query, where);
 
-            var total = await CountAsync(connection, where.ToString(), filters, cancellationToken)
+            var total = await CountMatchesAsync(connection, query, where.ToString(), filters, cancellationToken)
                 .ConfigureAwait(false);
             if (total == 0)
             {
@@ -131,13 +141,15 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
             var command = connection.CreateCommand();
             await using (command.ConfigureAwait(false))
             {
-                // Ordered by Id, not Timestamp: the id is monotonic per insert, so it orders entries logged
-                // inside the same clock tick deterministically, and paging over a stable order is the only
-                // way a page boundary doesn't drop or repeat a row.
+                // Ordered by the write order, not Timestamp: it orders entries logged inside the same clock tick
+                // deterministically, and paging over a stable order is the only way a page boundary doesn't drop or
+                // repeat a row. It is the order of the ids too — each is made in the batch's loop under the same write
+                // lock — and it is what a search is matched by, so the matches are walked newest first and a page
+                // reads only its own rows instead of sorting every match (see SqliteLogSchema).
 #pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
                 command.CommandText =
                     $"SELECT Id, Timestamp, Level, Category, EventId, Message, Exception, Scopes FROM RaskLog{where} "
-                    + "ORDER BY Id DESC LIMIT $limit OFFSET $offset;";
+                    + "ORDER BY Sequence DESC LIMIT $limit OFFSET $offset;";
 #pragma warning restore S2077
                 Bind(command, filters);
                 command.Parameters.AddWithValue("$limit", pageSize);
@@ -149,10 +161,9 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                 {
                     while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        var at = ParseTimestamp(reader.GetString(1));
                         entries.Add(new LogRecord(
-                            OrderedGuid.Of(at, reader.GetInt64(0)),
-                            at,
+                            Guid.Parse(reader.GetString(0)),
+                            ParseTimestamp(reader.GetString(1)),
                             (LogLevel)reader.GetInt32(2),
                             reader.GetString(3),
                             reader.GetInt32(4),
@@ -197,7 +208,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            return await CountAsync(connection, string.Empty, [], cancellationToken).ConfigureAwait(false);
+            return await CountAsync(connection, string.Empty, "RaskLog", [], cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -220,20 +231,20 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                 var cutoff = FormatTimestamp(_timeProvider.GetUtcNow() - retention);
                 removed += await PurgePagesAsync(
                     connection,
-                    "SELECT Id FROM RaskLog WHERE Timestamp < $cutoff ORDER BY Id LIMIT $page",
+                    "SELECT Sequence FROM RaskLog WHERE Timestamp < $cutoff ORDER BY Sequence LIMIT $page",
                     command => command.Parameters.AddWithValue("$cutoff", cutoff),
                     cancellationToken).ConfigureAwait(false);
             }
 
             if (maxRows > 0)
             {
-                // The threshold is resolved once per sweep rather than per page: it is the id of the
+                // The threshold is resolved once per sweep rather than per page: it is the place of the
                 // oldest row that is still allowed to survive, so it doesn't move as pages are deleted.
                 // Rows arriving mid-sweep are simply left for the next one — the cap is a backstop, not a
                 // per-insert invariant.
                 var threshold = await ScalarAsync(
                     connection,
-                    "SELECT Id FROM RaskLog ORDER BY Id DESC LIMIT 1 OFFSET $max;",
+                    "SELECT Sequence FROM RaskLog ORDER BY Sequence DESC LIMIT 1 OFFSET $max;",
                     command => command.Parameters.AddWithValue("$max", maxRows),
                     cancellationToken).ConfigureAwait(false);
 
@@ -241,7 +252,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                 {
                     removed += await PurgePagesAsync(
                         connection,
-                        "SELECT Id FROM RaskLog WHERE Id <= $threshold ORDER BY Id LIMIT $page",
+                        "SELECT Sequence FROM RaskLog WHERE Sequence <= $threshold ORDER BY Sequence LIMIT $page",
                         command => command.Parameters.AddWithValue("$threshold", oldestKept),
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -300,14 +311,9 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
     }
 
     /// <summary>
-    /// Creates the table and its indexes, once per store. Gated rather than raced: the writer and a
-    /// dashboard reader can both be the first to touch the file.
+    /// Brings the file to the current shape (<see cref="SqliteLogSchema"/>), once per store. Gated rather than
+    /// raced: the writer and a dashboard reader can both be the first to touch the file.
     /// </summary>
-    /// <remarks>
-    /// The one store-numbered key Rask keeps, on purpose: this file is the host's own, written by this process alone,
-    /// and the full-text index needs an integer rowid that VACUUM never renumbers. A record's Guid is derived from it
-    /// (<c>OrderedGuid.Of</c>), so both stores hand out the same kind of id.
-    /// </remarks>
     private async Task EnsureSchemaAsync(CancellationToken cancellationToken)
     {
         if (_schemaReady)
@@ -326,39 +332,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
             var connection = await OpenRawAsync(cancellationToken).ConfigureAwait(false);
             await using (connection.ConfigureAwait(false))
             {
-                var command = connection.CreateCommand();
-                await using (command.ConfigureAwait(false))
-                {
-                    // Id is a plain INTEGER PRIMARY KEY (a rowid alias), not AUTOINCREMENT: AUTOINCREMENT
-                    // costs a sqlite_sequence write on every insert, and the id reuse it prevents cannot
-                    // happen here — retention only ever deletes the oldest rows, so the maximum never drops.
-                    command.CommandText = """
-                        CREATE TABLE IF NOT EXISTS RaskLog (
-                            Id        INTEGER PRIMARY KEY,
-                            Timestamp TEXT    NOT NULL,
-                            Level     INTEGER NOT NULL,
-                            Category  TEXT    NOT NULL,
-                            EventId   INTEGER NOT NULL,
-                            Message   TEXT    NOT NULL,
-                            Exception TEXT,
-                            Scopes    TEXT
-                        );
-                        CREATE INDEX IF NOT EXISTS IX_RaskLog_Timestamp ON RaskLog (Timestamp);
-                        CREATE INDEX IF NOT EXISTS IX_RaskLog_Level_Id ON RaskLog (Level, Id DESC);
-                        CREATE INDEX IF NOT EXISTS IX_RaskLog_Category_Id ON RaskLog (Category, Id DESC);
-                        """;
-                    await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                // Scopes arrived after the first release of this package, and CREATE TABLE IF NOT EXISTS
-                // does nothing to a table that already exists — so a store created by that release would
-                // otherwise fail every insert with "no such column". There is no migration history here
-                // (this database is framework-owned and deliberately outside the app's), so the check is
-                // the schema itself.
-                await AddColumnIfMissingAsync(connection, "Scopes", "TEXT", cancellationToken)
-                    .ConfigureAwait(false);
-
-                await EnsureSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
+                await SqliteLogSchema.Ensure(connection, cancellationToken).ConfigureAwait(false);
             }
 
             _schemaReady = true;
@@ -366,119 +340,6 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         finally
         {
             _schemaGate.Release();
-        }
-    }
-
-    /// <summary>
-    ///     The substring index behind <see cref="LogQuery.Search" /> (#1111): an FTS5 table with the <c>trigram</c>
-    ///     tokenizer over Message and Exception, kept current by triggers.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Log search wants SUBSTRINGS — an id, a path, half an exception type — not words, so the tokenizer is
-    ///     <c>trigram</c> rather than FTS5's default: a quoted phrase then matches anywhere inside the text, and the
-    ///     match is served from the index instead of a <c>LIKE '%…%'</c> scan of every row retention keeps.
-    ///     </para>
-    ///     <para>
-    ///     External content (<c>content='RaskLog'</c>), so the text is stored once. The triggers keep the index in
-    ///     step with every insert and with retention's deletes; a store that predates the index is backfilled once
-    ///     with <c>rebuild</c>. Written out here rather than shared with Rask.SQLite.EntityFrameworkCore's
-    ///     full-text DDL, which is built on EF's migration pipeline over an EF model — this store is raw ADO.NET on
-    ///     a framework-owned file, and five statements do not justify pulling that pipeline in.
-    ///     </para>
-    /// </remarks>
-    private static async Task EnsureSearchIndexAsync(SqliteConnection connection, CancellationToken cancellationToken)
-    {
-        // One transaction: whether to backfill is decided by whether the index exists, so an index created and then
-        // interrupted before its rebuild would never be backfilled — every entry older than the upgrade unsearchable
-        // for good. Created and rebuilt together, or neither.
-        var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
-        {
-            await CreateSearchIndexAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task CreateSearchIndexAsync(
-        SqliteConnection connection,
-        SqliteTransaction transaction,
-        CancellationToken cancellationToken)
-    {
-        var probe = connection.CreateCommand();
-        probe.Transaction = transaction;
-        bool existed;
-        await using (probe.ConfigureAwait(false))
-        {
-            probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'RaskLogSearch';";
-            existed = Convert.ToInt64(
-                await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
-                CultureInfo.InvariantCulture) > 0;
-        }
-
-        var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        await using (command.ConfigureAwait(false))
-        {
-            command.CommandText = """
-                CREATE VIRTUAL TABLE IF NOT EXISTS RaskLogSearch USING fts5(
-                    Message, Exception, content='RaskLog', content_rowid='Id', tokenize='trigram');
-                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Insert AFTER INSERT ON RaskLog BEGIN
-                    INSERT INTO RaskLogSearch (rowid, Message, Exception) VALUES (new.Id, new.Message, new.Exception);
-                END;
-                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Delete AFTER DELETE ON RaskLog BEGIN
-                    INSERT INTO RaskLogSearch (RaskLogSearch, rowid, Message, Exception)
-                    VALUES ('delete', old.Id, old.Message, old.Exception);
-                END;
-                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Update AFTER UPDATE OF Message, Exception ON RaskLog BEGIN
-                    INSERT INTO RaskLogSearch (RaskLogSearch, rowid, Message, Exception)
-                    VALUES ('delete', old.Id, old.Message, old.Exception);
-                    INSERT INTO RaskLogSearch (rowid, Message, Exception) VALUES (new.Id, new.Message, new.Exception);
-                END;
-                """;
-            if (!existed)
-            {
-                // The rows a store written before the index already holds. Once, while the schema gate is held.
-                command.CommandText += "INSERT INTO RaskLogSearch (RaskLogSearch) VALUES ('rebuild');";
-            }
-
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    ///     Adds a column when the table predates it. Idempotent, and cheap enough to run on every schema
-    ///     check — <c>PRAGMA table_info</c> reads the schema SQLite already has in memory.
-    /// </summary>
-    private static async Task AddColumnIfMissingAsync(
-        SqliteConnection connection,
-        string column,
-        string type,
-        CancellationToken cancellationToken)
-    {
-        var probe = connection.CreateCommand();
-        await using (probe.ConfigureAwait(false))
-        {
-            probe.CommandText = "SELECT COUNT(*) FROM pragma_table_info('RaskLog') WHERE name = $name;";
-            probe.Parameters.AddWithValue("$name", column);
-            var present = Convert.ToInt64(
-                await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
-                CultureInfo.InvariantCulture);
-            if (present > 0)
-            {
-                return;
-            }
-        }
-
-        var alter = connection.CreateCommand();
-        await using (alter.ConfigureAwait(false))
-        {
-            // Interpolated rather than parameterised because an identifier cannot be a parameter. Both
-            // values are compile-time constants from this file, never user input.
-#pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
-            alter.CommandText = $"ALTER TABLE RaskLog ADD COLUMN {column} {type};";
-#pragma warning restore S2077
-            await alter.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -501,7 +362,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
                     await using (command.ConfigureAwait(false))
                     {
 #pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
-                        command.CommandText = $"DELETE FROM RaskLog WHERE Id IN ({selectIds});";
+                        command.CommandText = $"DELETE FROM RaskLog WHERE Sequence IN ({selectIds});";
 #pragma warning restore S2077
                         command.Parameters.AddWithValue("$page", PurgePageSize);
                         bind(command);
@@ -521,9 +382,24 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         return removed;
     }
 
+    /// <summary>
+    /// The entries <paramref name="query"/> matches. A search and nothing else is counted in the index alone: every
+    /// row has exactly one entry there, so the count is the same, without looking each match up in the table.
+    /// </summary>
+    private static Task<long> CountMatchesAsync(
+        SqliteConnection connection,
+        LogQuery query,
+        string where,
+        IReadOnlyList<SqliteParameter> filters,
+        CancellationToken cancellationToken) =>
+        filters is [{ ParameterName: "$search" }] && IsIndexed(query.Search!)
+            ? CountAsync(connection, " WHERE RaskLogSearch MATCH $search", "RaskLogSearch", filters, cancellationToken)
+            : CountAsync(connection, where, "RaskLog", filters, cancellationToken);
+
     private static async Task<long> CountAsync(
         SqliteConnection connection,
         string where,
+        string table,
         IReadOnlyList<SqliteParameter> filters,
         CancellationToken cancellationToken)
     {
@@ -531,7 +407,7 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         await using (command.ConfigureAwait(false))
         {
 #pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
-            command.CommandText = $"SELECT COUNT(*) FROM RaskLog{where};";
+            command.CommandText = $"SELECT COUNT(*) FROM {table}{where};";
 #pragma warning restore S2077
             Bind(command, filters);
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
@@ -618,18 +494,23 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
         return filters;
     }
 
+    /// <summary>Whether the trigram index can look <paramref name="search"/> up: three characters or more.</summary>
+    /// <remarks>
+    /// Characters, not UTF-16 units: the trigram tokenizer counts code points, so "😀a" is two of them — too few for
+    /// a trigram — although its string length is three.
+    /// </remarks>
+    private static bool IsIndexed(string search) => search.EnumerateRunes().Count() >= 3;
+
     /// <summary>The clause and <c>$search</c> value that find <paramref name="search"/> in a message or exception.</summary>
     private static (string Clause, string Value) SearchFilter(string search)
     {
-        // Characters, not UTF-16 units: the trigram tokenizer counts code points, so "😀a" is two of them — too
-        // few for a trigram — although its string length is three.
-        if (search.EnumerateRunes().Count() >= 3)
+        if (IsIndexed(search))
         {
             // Served by the trigram index: a quoted phrase is a case-insensitive substring match in either
             // column. Inside the quotes every character is literal, a doubled quote included — so `%` and `_`
             // mean themselves, as they did escaped in LIKE.
             return (
-                "Id IN (SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $search)",
+                "Sequence IN (SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $search)",
                 "\"" + search.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"");
         }
 
@@ -667,6 +548,14 @@ internal sealed class SqliteLogStore : ILogs, IDisposable
     private static string FormatTimestamp(DateTimeOffset value) =>
         value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
 
-    private static DateTimeOffset ParseTimestamp(string value) =>
+    /// <summary>A key as the text it is stored as: the 36 characters of <c>D</c>, in uppercase.</summary>
+    internal static string FormatId(Guid id) =>
+        string.Create(36, id, static (text, value) =>
+        {
+            value.TryFormat(text, out _, "D");
+            Ascii.ToUpperInPlace(text, out _);
+        });
+
+    internal static DateTimeOffset ParseTimestamp(string value) =>
         new(DateTime.ParseExact(value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind));
 }

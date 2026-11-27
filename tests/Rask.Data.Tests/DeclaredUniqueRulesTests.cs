@@ -77,7 +77,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         var indexes = await context.Database
-            .SqlQuery<string>($"SELECT name AS Value FROM sqlite_master WHERE type = 'index' AND tbl_name = 'Lane' AND sql IS NOT NULL")
+            .SqlQuery<string>($"SELECT name AS Value FROM sqlite_master WHERE type = 'index' AND tbl_name = 'lanes' AND sql IS NOT NULL")
             .ToListAsync(TestContext.Current.CancellationToken);
         foreach (var index in indexes)
         {
@@ -105,7 +105,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Lane.NameTaken, failure.Message);
         Assert.Equal(["Name"], failure.Fields);
-        Assert.Equal("IX_Lane_Name_TenantId", failure.Source);
+        Assert.Equal("uq_lanes_name_tenant_id", failure.Source);
         Assert.Null(refused.InnerException);
         Assert.Equal(1, await RowsAsync());
     }
@@ -291,7 +291,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
     private async Task<int> RowsAsync()
     {
         await using var context = await OpenAsync();
-        return (await context.Database.SqlQuery<int>($"SELECT COUNT(*) AS Value FROM Lane")
+        return (await context.Database.SqlQuery<int>($"SELECT COUNT(*) AS Value FROM lanes")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
     }
 

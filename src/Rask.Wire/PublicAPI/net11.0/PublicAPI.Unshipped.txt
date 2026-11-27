@@ -259,6 +259,7 @@ static Rask.Wire.WireJson.ReadBytes(ref System.Text.Json.Utf8JsonReader reader, 
 static Rask.Wire.WireJson.ReadChar(ref System.Text.Json.Utf8JsonReader reader, string! property) -> char
 static Rask.Wire.WireJson.ReadDateOnly(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateOnly
 static Rask.Wire.WireJson.ReadDateTime(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTime
+static Rask.Wire.WireJson.ReadMoment(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTime
 static Rask.Wire.WireJson.ReadDateTimeOffset(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTimeOffset
 static Rask.Wire.WireJson.ReadDecimal(ref System.Text.Json.Utf8JsonReader reader, string! property) -> decimal
 static Rask.Wire.WireJson.ReadDouble(ref System.Text.Json.Utf8JsonReader reader, string! property) -> double
@@ -559,3 +560,6 @@ Rask.Cqrs.RaskValidationException.Failures.get -> System.Collections.Generic.IRe
 Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures, System.Exception? innerException = null) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
+Rask.Uuid
+static Rask.Uuid.Create() -> System.Guid
+static Rask.Uuid.Create(System.TimeProvider! time) -> System.Guid

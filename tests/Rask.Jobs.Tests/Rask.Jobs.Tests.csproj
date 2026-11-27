@@ -50,4 +50,9 @@
     <Compile Include="..\Rask.TestSupport\WaitFor.cs" Link="WaitFor.cs"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Generators.Shared;
 
 namespace Rask.Data;
 
@@ -30,6 +31,9 @@ public sealed class ColumnName
     /// <summary>The path in camel case, as one word: <c>countedAt</c>, <c>kmStart</c>, <c>vatNumber</c> for <c>VATNumber</c>.</summary>
     public string CamelCase => JsonNamingPolicy.CamelCase.ConvertName(string.Concat(Path));
 
-    /// <summary>Each step of the path in snake case, joined by <c>_</c>: <c>counted_at</c>, <c>km_start</c>.</summary>
-    public string SnakeCase => string.Join('_', Path.Select(JsonNamingPolicy.SnakeCaseLower.ConvertName));
+    /// <summary>
+    ///     Each step of the path in snake case, joined by <c>_</c> — Rask's own name for the column: <c>counted_at</c>,
+    ///     <c>km_start</c>, <c>vat_number</c>. Cut to 63 bytes, with a hash of the whole name at its end.
+    /// </summary>
+    public string SnakeCase => StoreNames.Column(Path);
 }

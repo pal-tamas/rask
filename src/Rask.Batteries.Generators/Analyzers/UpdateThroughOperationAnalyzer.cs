@@ -172,7 +172,7 @@ public sealed class UpdateThroughOperationAnalyzer : DiagnosticAnalyzer
             operation = awaited;
         }
 
-        return operation is IConversionOperation { IsImplicit: true, Operand: var operand } ? operand : operation;
+        return operation?.WithoutImplicitConversion();
     }
 
     private static bool Reads(IOperation value, IParameterSymbol handed) =>

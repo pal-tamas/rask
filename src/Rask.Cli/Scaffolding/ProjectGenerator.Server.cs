@@ -175,10 +175,10 @@ internal static partial class ProjectGenerator
         if (batteries.Data)
         {
             // Keyed by a typed id over a Guid, the default docs/domain.md recommends: the id is the row's from the
-            // first line (ProductId.New(), a version-7 Guid), so an event raised in a factory never carries 0 (RASK145).
+            // first line (ProductId.Create(), a version-7 Guid), so an event raised in a factory never carries 0 (RASK145).
             steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
             steps.Append("configuration class, no registration. Key it by a typed id over a Guid, which\n");
-            steps.Append("ProductId.New() makes (time-ordered, version 7) before the row is ever saved:\n");
+            steps.Append("ProductId.Create() makes (time-ordered, version 7) before the row is ever saved:\n");
             steps.Append("\n  public readonly partial record struct ProductId(Guid Value);\n");
             steps.Append("\n  public sealed class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IHasForm, IDeletable\n");
             steps.Append("  {\n");

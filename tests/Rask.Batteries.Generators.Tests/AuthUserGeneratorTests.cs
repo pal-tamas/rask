@@ -26,6 +26,8 @@ public class AuthUserGeneratorTests
             {
                 public static void Use<TUser>() where TUser : Authenticatable, new() { }
                 public static void Use<TUser, TKey>() where TUser : Authenticatable<TKey>, new() where TKey : notnull { }
+                public static void Use<TUser, TKey>(System.Func<System.Guid, TKey> wrap, System.Func<TKey, System.Guid> unwrap)
+                    where TUser : Authenticatable<TKey>, new() where TKey : struct { }
             }
         }
         """;
@@ -78,6 +80,57 @@ public class AuthUserGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
             "global::Rask.Auth.AuthUser.Use<global::Shop.User, string>();",
+            run.GeneratedSource("__RaskAuthUser"),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_user_keyed_by_a_typed_id_over_a_guid_is_named_with_the_way_across_to_the_guid()
+    {
+        var run = GeneratorHarness.Run(
+            Authenticatable + """
+
+            namespace Shop
+            {
+                public readonly partial record struct UserId(System.Guid Value);
+
+                public sealed class User : Rask.Auth.Authenticatable<UserId>
+                {
+                }
+            }
+            """,
+            new AuthUserGenerator(),
+            "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "global::Rask.Auth.AuthUser.Use<global::Shop.User, global::Shop.UserId>(static value => new global::Shop.UserId(value), static id => id.Value);",
+            run.GeneratedSource("__RaskAuthUser"),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_user_keyed_by_a_typed_id_over_a_number_is_named_without_one_and_refused_when_the_app_starts()
+    {
+        var run = GeneratorHarness.Run(
+            Authenticatable + """
+
+            namespace Shop
+            {
+                public readonly partial record struct UserId(int Value);
+
+                public sealed class User : Rask.Auth.Authenticatable<UserId>
+                {
+                }
+            }
+            """,
+            new AuthUserGenerator(),
+            "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "global::Rask.Auth.AuthUser.Use<global::Shop.User, global::Shop.UserId>();",
             run.GeneratedSource("__RaskAuthUser"),
             StringComparison.Ordinal);
     }

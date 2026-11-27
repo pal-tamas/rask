@@ -480,7 +480,7 @@ public sealed class Product : Aggregate<Guid>
 
 | Member | What it answers |
 |---|---|
-| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, or your user's own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
+| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, your user's typed id (`UserId?`, as `rask new` writes it), or its own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
 | `Current.Claim(type)` | the value of the principal's first `type` claim (`string?`), or `null` when it has none or nobody is signed in |
@@ -496,7 +496,7 @@ job row records `UserId` and the runner re-enters it. Anywhere else (a hosted se
 `null`, and the `Required…` forms throw rather than let an anonymous write through looking like a signed-in one.
 
 **The user's own row is `Current.User`.** Say which aggregate is your user — Rask.Auth's `Authenticatable` says it
-already, so a `User : Authenticatable` needs nothing — and the build generates `Current.User` (its read face,
+already, so a `User : Authenticatable<UserId>` needs nothing — and the build generates `Current.User` (its read face,
 `UserRead?`) and `Current.RequiredUser`:
 
 ```csharp
@@ -606,7 +606,7 @@ public sealed class Product : Aggregate<ProductId>
 ```
 
 **The key.** An entity is keyed by the `Id` it inherits. A `Guid`, or a typed id over one, is the application's —
-made in the factory with `XId.New()`, a time-ordered version-7 `Guid`, and Rask's recommended default
+made in the factory with `XId.Create()`, a time-ordered version-7 `Guid`, and Rask's recommended default
 ([choosing the key](domain.md#choosing-the-key-a-typed-id-over-a-guid)); an `int` or a `long`, or a typed id over one,
 is the database's identity, produced on insert, unless `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()`.
 
@@ -617,6 +617,58 @@ mapped by convention. An index declared here is kept exactly as written — on a
 
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
+
+### Names: Rask's own, in PostgreSQL's style
+
+Rask names every table, column and constraint itself, the same way on SQLite, SQL Server and PostgreSQL — so a model
+says nothing about names, and `ToTable`, `HasColumnName` and `HasDatabaseName` are for the name that is *not* Rask's:
+
+| | Rask names it | e.g. |
+|---|---|---|
+| a table | its class in snake case, plural (Rails' plural, of the last word) | `Fueling` → `fuelings`, `DeliveryNote` → `delivery_notes`, `Company` → `companies`, `Person` → `people` |
+| a column | its property in snake case, after the value objects and owned types holding it | `PistolId` → `pistol_id`, `Km.Start` → `km_start`, `Address.Street` → `address_street` |
+| a primary key | `pk_{table}` | `pk_fuelings` |
+| a foreign key | `fk_{table}_{columns}` | `fk_fuelings_pistol_id` |
+| a unique index or alternate key | `uq_{table}_{columns}` | `uq_users_tenant_key_email` |
+| an index | `ix_{table}_{columns}` | `ix_fuelings_created_at` |
+| a check constraint the model declares unnamed | `ck_{table}_{name}` | `ck_bookings_ends_after_start` |
+| a [`NoOverlap`](#non-overlapping-ranges) rule | `xc_{table}_{key columns}_{start column}` | `xc_bookings_room_id_starts_at` |
+| a column default (SQL Server names it) | `df_{table}_{column}` | `df_jobs_awaited` |
+
+- **The table is the class's, never the `DbSet`'s**: `public DbSet<Fueling> Tankolasok` still maps `fuelings`. A
+  hierarchy in one table is named once, after its root, and its discriminator is `discriminator`; an owned type in a
+  table of its own (`OwnsMany`) after its class (`legs`); a many-to-many's join table after EF Core's join type, its two
+  classes in order (`vehicle_vehicle_categories`, columns `vehicle_categories_id`, `vehicles_id`); a shadow foreign key like any column
+  (`pistol_id`). A JSON column is named, what is inside it keeps its JSON names.
+- **The plural is Rails'**, as Laravel's is: `-y` after a consonant → `-ies`, `-s`/`-x`/`-ch`/`-sh`/`-ss` → `-es`,
+  `-f`/`-fe` → `-ves`, `-sis` → `-ses`, `-um` → `-a`, a word already ending in `s` kept (`stored_file_bytes`), the
+  irregulars (`person`, `child`, `man`, `woman`, `foot`, `tooth`, `goose`, `mouse`, `ox`, …) and the uncountables
+  (`equipment`, `information`, `series`, `species`, `money`, …). It is built in — EF Core's own pluralizer is in its
+  design-time package, and Humanizer would be every app's dependency for one method.
+- **63 bytes at most, on every database** — PostgreSQL's limit, within SQL Server's 128 — so a model's names do not
+  depend on where it runs: a longer name keeps what fits, then `_` and an 8-hex hash of the whole name
+  (`ix_monthly_excise_duty_return_for_agricultural_diesel_1f3a9c0e`). Two long names stay apart.
+- **Rask's own tables follow it too**: `jobs`, `recurring_job_states`, `outbox_messages`, `queued_mails`,
+  `cache_entries`, `stored_files`, `stored_file_bytes`, `push_subscribers`, `auth_instance_claims`, `auth_sessions`,
+  `auth_passkeys`, `log_entries` — and the app's own user class (`users`). EF Core's `__EFMigrationsHistory` stays EF
+  Core's.
+- **A name stated wins**: `ToTable`, `HasColumnName`, `HasDatabaseName`, `HasConstraintName`, `HasName`, `[Table]`,
+  `[Column]`, `[Index(Name = …)]` in an entity's `Configure` keep exactly what they say — how an app moves over one
+  table at a time. A name that *is* Rask's is a line saying nothing: [RASK192](diagnostics.md#rask192) points at it,
+  and its quick fix (Fix all included) deletes it.
+- **A plain `DbContext`** — one deriving from neither `RaskDbContext` nor `RaskAppDbContext`, and not calling
+  `ModelRegistry.ApplyConventions` — keeps EF Core's names.
+
+To name by another pattern, say it once in the app's [`IRaskModel`](#app-wide-model-rules-one-iraskmodel) — the same
+three rules, which replace Rask's: `TableNames`, `ColumnNames` and `ConstraintNames`. Each one's argument carries
+Rask's own name (`t.SnakeCasePlural`, `n.SnakeCase`, `n.Prefixed`) and EF Core's (`t.AsDeclared`, `n.AsDeclared`, a
+`null` constraint name), so a rule can change one thing and keep the rest:
+
+```csharp
+c.TableNames(t => "app_" + t.SnakeCasePlural);                 // app_fuelings
+c.ColumnNames(n => n.AsDeclared);                              // EF Core's PistolId, Km_Start
+c.ConstraintNames(n => n.Kind == ConstraintKind.Index ? $"{n.Table}_{n.Joined}_idx" : n.Prefixed);
+```
 
 ### App-wide model rules: one `IRaskModel`
 
@@ -651,23 +703,21 @@ public sealed class AppModel : IRaskModel
 - **`Conventions`** is EF Core's `ConfigureConventions` for the whole app; **`Model`** runs on the model after Rask's
   conventions and **before** each entity's own `Configure`. Both are optional. They reach `RaskAppDbContext`, an
   app's own context deriving from `RaskDbContext`, every battery's tables, and the read faces' context.
-- **`ConstraintNames`** names every primary key, foreign key, unique index or alternate key, index and — on SQL
-  Server — column default the model did not name itself. `n.Table`, `n.Columns` (as the database names them) and
-  `n.Joined` (`Name_TenantId`) describe it; return `null` to keep EF Core's name. A name longer than the database
-  allows is cut to its limit: 128 characters on SQL Server, 63 on PostgreSQL.
-- **`ColumnNames`** and **`TableNames`** name every column and table the model did not name itself — what a schema
-  another tool made needs, said once instead of property by property:
+- **`ConstraintNames`**, **`ColumnNames`** and **`TableNames`** replace [Rask's names](#names-rasks-own-in-postgresqls-style)
+  with the app's pattern — what a schema another tool made needs, said once instead of property by property:
 
   ```csharp
   c.ColumnNames(n => n.CamelCase).TableNames(t => t.Class);   // a Prisma schema: countedAt, kmStart; Fueling
-  c.ColumnNames(n => n.SnakeCase).TableNames(t => t.SnakeCase); // a PostgreSQL one: counted_at, km_start; delivery_note
   ```
 
-  A column's `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and
-  `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`), `n.SnakeCase` (`km_start`) and `n.AsDeclared` (EF Core's
-  `Km_Start`) are its ready names; `n.Table` is the table it is in. A table's are `t.Class` (the class name, whatever
-  its `DbSet` is called), `t.CamelCase`, `t.SnakeCase` and `t.AsDeclared` (EF Core's: the `DbSet`'s name). Return an
-  empty string to keep EF Core's. What they leave alone:
+  A constraint's `n.Kind`, `n.Table`, `n.Columns` (as the database names them), `n.Joined` (`name_tenant_id`),
+  `n.AsDeclared` (EF Core's name) and `n.Prefixed` (Rask's) describe it; return `null` to keep EF Core's. A column's
+  `n.Path` is the property after the value objects and owned types that hold it (`["Km", "Start"]`), and `n.SnakeCase`
+  (`km_start`, Rask's), `n.CamelCase` (`kmStart`, `vatNumber` for `VATNumber`) and `n.AsDeclared` (EF Core's `Km_Start`)
+  are its ready names; `n.Table` is the table it is in. A table's are `t.SnakeCasePlural` (`delivery_notes`, Rask's),
+  `t.Class` (the class name, whatever its `DbSet` is called), `t.SnakeCase`, `t.CamelCase` and `t.AsDeclared` (EF
+  Core's: the `DbSet`'s name). An empty string keeps EF Core's. A name longer than the database allows is cut to its
+  limit and ends in a hash of the whole name. What they leave alone:
 
   | | named? |
   |---|---|
@@ -679,11 +729,11 @@ public sealed class AppModel : IRaskModel
   | an owned type in a table of its own | yes, after its class (`t.Class` is `Leg`) |
   | a one-value value object inside another (`Price_Currency`) | yes, like its siblings (`priceCurrency`) |
   | a view (`ToView` always names it) | no |
-  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | **no** — each battery's configuration records its tables, and they keep the names their migrations have; the app's own user class (`AddRaskAuth<TUser>`) is the app's table and is named |
+  | the tables of Rask's own batteries (jobs, mail, auth, logs, outbox, …) | yes, like the app's own |
 
-  Both run as the model is finalized but **before** every other rule that reads a name — so `ConstraintNames`, a
-  unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states them in. They work
-  on every provider.
+  The tables and columns are named as the model is finalized but **before** every other rule that reads a name — so a
+  constraint's name, a unique index's filter and a full-text table see `countedAt` whatever order `Conventions` states
+  them in — and the constraints after every other convention. They work on every provider.
 - **`DeleteBehavior(children:, others:)`** says what a delete does: `children` for an aggregate's
   [children](domain.md#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
@@ -720,7 +770,10 @@ public sealed class AppModel : IRaskModel
   foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
   foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
   two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
-  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A search that cuts a
+  Hungarian double letter in two (`cs`, `sz`, `gy`, …) differs too: SQL Server's `Hungarian_100` keeps the letter
+  whole, so `Kovács Béla` does not end in `s Béla` there, while SQLite and PostgreSQL find it; `EndsWith("ács Béla")`
+  is the same on all three. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
@@ -1131,7 +1184,7 @@ PostgreSQL differs in three ways it cannot be made not to. The parity suite (`Da
 |---|---|---|---|
 | Smallest step kept | a tick (100 ns) | a tick (stored as text, seven fractional digits) | a microsecond: the seventh digit is rounded away |
 | A `DateTime` reads back as | `Kind = Unspecified` | `Kind = Unspecified` | `Kind = Utc`, and writing one that is not UTC is refused |
-| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter) and read back in UTC |
+| A `DateTimeOffset` keeps its offset | yes | yes | no: it is written in UTC alone (Npgsql refuses another offset, in a value **or** a query parameter — a parameter as an `InvalidCastException` around the `ArgumentException`) and read back in UTC |
 | Order, `=`, `<`, `Min`/`Max` on a `DateTimeOffset` | by instant | by instant | by instant |
 | A unique index on a `DateTimeOffset` | refuses the same instant in another offset | refuses it too | refuses it too |
 | A `Moment` value object | the UTC instant, kept to the tick, in a `datetime2` | the UTC instant, kept to the tick, as text | the UTC instant, kept to the microsecond, in a `timestamptz` |
@@ -1153,10 +1206,21 @@ wall clock of `Clock.Zone` (`.Value`). The value object and every query still sp
 `Where(f => f.At.Value > since)` compares the column with `since` made an instant by the rule a moment follows (a time
 shown twice is its first occurrence, a skipped one moves forward — [Moment and Day](domain.md#moment-and-day)), and
 stays an index seek. A moment's day reads the wall calendar in SQL on every provider: `GroupBy(f => f.At.Day)` and
-`f.At.Day == day` group and filter by the day the app shows, in the zone the app was set to as the query is compiled.
+`f.At.Day == day` group and filter by the day the app shows, in `Clock.Zone` as the query runs — a query run again
+after the zone changed (a test under a zone of its own) is compiled again for the new zone.
 A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
 instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
-comparison of moments for a stretch of time. A moment inside a JSON document keeps the wall clock there.
+comparison of moments for a stretch of time.
+
+**A moment inside a JSON document** (`b.Json(…)`, a `ToJson()` complex or owned type) holds its instant too, with its
+`Z`: `"2026-10-25T00:30:00Z"`. SQL Server and SQLite keep it as that text — SQLite's own JSON writer of a `DateTime`
+drops the `Z` (`"2026-10-25 00:30:00"`), which would make it unreadable from what a document held before — and
+PostgreSQL's `jsonb` held the instant from the start. No migration rewrites a document, so a document may mix both
+forms for a while: a value without `Z` or an offset was written while documents kept the wall clock, and reads as a
+wall-clock time of `Clock.Zone` (the first occurrence of an hour shown twice, as ever); the document holds the instant
+once its row is saved again. A query that compares a moment INSIDE a document in SQL compares the stored text, so
+until every document of the table has been saved once, an older wall-clock value is compared as text with an
+instant: filter and order by a moment column, not a moment in a document.
 
 **A database that kept moments as the wall clock is rewritten by its next migration.** Until Rask stored them as UTC,
 SQL Server and SQLite kept a moment as the wall clock. Each of their moment columns is now marked in the model, the
@@ -1537,7 +1601,7 @@ What counts as an overlap is PostgreSQL's, on all three databases:
   constants, joined by `&&`), and, for an aggregate that soft deletes, the rows not deleted — a deleted row frees its
   range.
 
-An entity may declare several rules. Each is one database object named `EX_{table}_{key columns}_{start column}`:
+An entity may declare several rules. Each is one database object named `xc_{table}_{key columns}_{start column}`:
 
 | Database | Holds it as |
 | --- | --- |
@@ -1636,6 +1700,29 @@ and exits — with `MigrateOnStart` on or off. `dotnet App.dll rask db pending` 
 had, one a line, in the order they apply; one that rewrites what the rows hold (and so no older version of the app may
 run beside) ends in ` exclusive` — what [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) asks a new image
 before it starts it.
+
+### Rask's names: the next migration renames
+
+A database made before Rask named the model has EF Core's names (`Fuelings`, `PistolId`, `IX_Fuelings_PistolId`), or
+the ones its `Configure` stated. Once those lines are gone, the next migration moves it to
+[Rask's names](#names-rasks-own-in-postgresqls-style) — and only renames, nothing dropped or added, so no row moves:
+
+```bash
+rask db add RaskNames      # RenameTable, RenameColumn, RenameIndex — and each key renamed in place
+```
+
+EF Core has no operation that renames a primary, foreign or unique key, and writes a drop and an add for one; Rask's
+migration differ turns each such pair — the same key of the same entity, over the same properties — into the
+database's own rename: `ALTER TABLE … RENAME CONSTRAINT` on PostgreSQL, `sp_rename … 'OBJECT'` on SQL Server. SQLite
+checks no constraint by name, so there the pair is left out rather than rebuilding the table for a name. SQLite also
+refuses a rename that changes only a name's case (`Fuelings` → `fuelings`, `Id` → `id`), so there it goes through
+a name of its own (`Fuelings_rask_renamed`) in two steps; a SQL Server default constraint is renamed in place too,
+found by its column, whatever the server named it. Read the
+migration before it runs: anything that is not a rename is a change the model made besides the names.
+
+A step at a time works too: keep a table's old names with `ToTable`/`HasColumnName` until its turn, or restate the old
+pattern for the whole app (`c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`)
+and drop it later. Raw SQL, views and reports that name the old tables and columns change with them.
 
 ### Taking over an existing schema
 
@@ -1778,7 +1865,7 @@ What changes with the database, in a `RaskApp`:
 | | SQLite | PostgreSQL or SQL Server |
 | --- | --- | --- |
 | No `Rask:ConnectionStrings:App` | falls back to `app.db` | fails, naming the key |
-| The durable log | `logs.db`, a file of its own | the `RaskLog` table in the app database |
+| The durable log | `logs.db`, a file of its own | the `log_entries` table in the app database |
 | Snapshots | on by default | left out; configuring them refuses the start |
 | Litestream | on when `Rask:Litestream:ReplicaUrl` is set | setting it refuses the start |
 
@@ -1813,6 +1900,11 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 
 The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
 included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
+
+**Supported servers: PostgreSQL 18 and 19.** 18 is the floor: it is the first whose `LIKE` takes a nondeterministic
+collation, which a case-insensitive [`OrderTextBy`](#app-wide-model-rules-one-iraskmodel) and `x.Loosely()` rely on,
+so a migration that creates one on an older server stops at that statement and says so. The provider suite runs on the newest 19.x and on
+the newest 18.x on every change that reaches the data stack.
 
 > **A package of its own, at Rask's version.** `Rask.Postgres` ships stable, at the same version as every other Rask
 > package, on Npgsql's stable EF Core 11 provider. It stays out of `Rask.Server`, which finds it by name, so only a
@@ -1906,8 +1998,11 @@ know, as on PostgreSQL:
 
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
-in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
-clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way. SQL Server compares
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.Create()`, or `Uuid.Create()` for a plain `Guid`
+key) sorts by the time it was made, ids of one millisecond by the order they were made, and a clustered key stays
+append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
+`min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte
+(`min(x::text COLLATE "C")::uuid`), which is the same order. SQL Server compares
 a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every
 `uniqueidentifier` column — every `Guid`, `Guid?` and typed id over a `Guid`, keys and foreign keys alike, Rask's own
 tables included — with its bytes rearranged so SQL Server's order is the id's. The id the app reads, writes, prints
@@ -1968,8 +2063,10 @@ battery marks such a table, and **the migration you add after upgrading rebuilds
 | `OutboxMessage` | a message has no `ProcessedAt` | none | pure history — and no `DurableEvent.MessageId` a partner saw is handed out again |
 | `RaskLog` | never | none | old log lines are history; read what you need first |
 
-The SQLite **file** log store (`logs.db`) is not part of any migration: it keeps its own integer rowid, which its
-full-text index needs, and derives each entry's `Guid` from that rowid and the entry's time.
+The SQLite **file** log store (`logs.db`) is not part of any migration, and it is keyed by a `Guid` too: a
+`WITHOUT ROWID` table whose primary key is the version-7 `Guid` made before the insert, with a `Sequence` column beside
+it that the full-text index addresses the row by. A `logs.db` from an earlier release is rebuilt into that shape when it
+is opened, every entry kept under the id it was shown with before ([docs/logging.md](logging.md)).
 
 The migration is **exclusive** (its SQL opens with `-- rask:exclusive`): `rask db pending` marks it, and
 [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before the new one applies it,

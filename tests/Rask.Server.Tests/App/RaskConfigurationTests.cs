@@ -46,7 +46,7 @@ public sealed class RaskConfigurationTests
     [Fact]
     public void The_app_database_is_strict_by_default()
     {
-        Assert.IsType<Rask.SQLite.RaskSqliteStrictRangeExclusionSqlGenerator>(AppMigrationsSqlGenerator(settings: null));
+        Assert.IsType<Rask.SQLite.RaskSqliteStrictMigrationsSqlGenerator>(AppMigrationsSqlGenerator(settings: null));
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class RaskConfigurationTests
     {
         // What UseRaskSqlite(sp) actually applied, not what IConfiguration says. A later source always wins that lookup,
         // so reading the key back would pass even if the wiring went back to forcing StrictTables on in code.
-        Assert.IsType<Rask.SQLite.RaskSqliteRangeExclusionSqlGenerator>(
+        Assert.IsType<Rask.SQLite.RaskSqliteMigrationsSqlGenerator>(
             AppMigrationsSqlGenerator(new() { ["Rask:Sqlite:StrictTables"] = "false" }));
     }
 

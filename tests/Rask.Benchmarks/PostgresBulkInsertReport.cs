@@ -34,7 +34,7 @@ internal static partial class PostgresBulkInsertReport
             return 2;
         }
 
-        await using var server = new PostgreSqlBuilder("postgres:19-alpine")
+        await using var server = new PostgreSqlBuilder("postgres:19.0-alpine")
             .WithDatabase("rask")
             // tc needs it to add a qdisc to the container's own interface.
             .WithCreateParameterModifier(p => (p.HostConfig ??= new()).CapAdd = ["NET_ADMIN"])

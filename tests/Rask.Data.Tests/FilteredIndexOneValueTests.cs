@@ -32,7 +32,7 @@ public sealed class FilteredIndexOneValueTests
 
         var filter = Filter(context);
 
-        Assert.Equal("\"ParentId\" IS NULL AND \"Number\" > 0", filter);
+        Assert.Equal("\"parent_id\" IS NULL AND \"number\" > 0", filter);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class FilteredIndexOneValueTests
 
         var filter = Filter(context);
 
-        Assert.Equal("\"Number\" <> 1", filter);
+        Assert.Equal("\"number\" <> 1", filter);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class FilteredIndexOneValueTests
 
         var filter = Filter(context);
 
-        Assert.Equal("\"Previous\" IS NOT NULL AND \"Previous\" >= 2", filter);
+        Assert.Equal("\"previous\" IS NOT NULL AND \"previous\" >= 2", filter);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class FilteredIndexOneValueTests
 
         var computed = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(NumberedSlip))!.FindProperty(nameof(NumberedSlip.Twice))!.GetComputedColumnSql();
 
-        Assert.Equal("(\"Number\" * 2)", computed);
+        Assert.Equal("(\"number\" * 2)", computed);
     }
 
     // The columns Rask's model registry gives an aggregate's one-value value objects, given here by hand.

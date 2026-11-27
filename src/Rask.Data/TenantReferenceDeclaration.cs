@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Generators.Shared;
 
 namespace Rask.Data;
 
@@ -47,7 +48,7 @@ internal static class TenantReferenceDeclaration
         {
             if (TenantReference.Parse(entityType.FindAnnotation(TenantReference.Annotation)?.Value as string) is { } declared
                 && Column(entityType) is { } column
-                && name(new Constraint(ConstraintKind.ForeignKey, entityType.GetTableName()!, [column])) is { Length: > 0 } named)
+                && name(new Constraint(ConstraintKind.ForeignKey, entityType.GetTableName()!, [column], declared.Name)) is { Length: > 0 } named)
             {
                 entityType.Builder.HasAnnotation(TenantReference.Annotation, (declared with { Name = Cut(named, limit) }).ToString());
             }
@@ -73,18 +74,18 @@ internal static class TenantReferenceDeclaration
         return new TenantReference("", tenant.GetSchema(), table, column);
     }
 
-    // A table of the tenant's rows: partitioned, mapped to a table of its own, and not the tenant itself.
+    // A table of the tenant's rows: mapped to a table of its own, and not the tenant itself. Partitioned, or the one
+    // that says IBelongsTo<Tenant> without being partitioned — Rask.Auth's accounts, whose tenant is optional.
     private static bool KeepsTheTenant(IConventionEntityType entityType, Type tenant) =>
         entityType.ClrType != tenant
         && entityType.BaseType is null
         && !entityType.IsOwned()
-        && entityType.GetTableName() is not null
-        && ConventionRegistry.IsPerTenant(entityType.ClrType);
+        && entityType.GetTableName() is not null;
 
     private static string? Column(IConventionEntityType entityType) =>
         entityType.GetTableName() is { } table && entityType.FindProperty(Columns.TenantId) is { } property
             ? property.GetColumnName(StoreObjectIdentifier.Table(table, entityType.GetSchema())) ?? property.GetColumnName()
             : null;
 
-    private static string Cut(string name, int? limit) => limit is { } max && name.Length > max ? name[..max] : name;
+    private static string Cut(string name, int? limit) => limit is { } max ? StoreNames.Fit(name, max) : name;
 }

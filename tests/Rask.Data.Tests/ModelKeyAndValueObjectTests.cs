@@ -226,7 +226,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         var refused = await Assert.ThrowsAsync<DbUpdateException>(
             () => Chit.Create(1000, new ChitModel { Code = "SUMMER" }, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("UNIQUE constraint failed: Chit", refused.InnerException!.Message, StringComparison.Ordinal);
+        Assert.Contains("UNIQUE constraint failed: chits", refused.InnerException!.Message, StringComparison.Ordinal);
         Assert.Equal("SPRING", (await database.Load<Chit>(1000, TestContext.Current.CancellationToken))!.Code);
     }
 

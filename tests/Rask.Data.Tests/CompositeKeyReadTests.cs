@@ -112,13 +112,13 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
         await using var context = await OpenAsync();
         await context.Database.ExecuteSqlRawAsync(
             """
-            CREATE TABLE "DeliveryNotes" ("Id" INTEGER NOT NULL PRIMARY KEY, "Number" TEXT NOT NULL, "TenantId" INTEGER NULL);
-            CREATE TABLE "Transactions" ("Id" INTEGER NOT NULL PRIMARY KEY, "ProductId" INTEGER NOT NULL, "TenantId" INTEGER NULL);
+            CREATE TABLE "DeliveryNotes" ("id" INTEGER NOT NULL PRIMARY KEY, "number" TEXT NOT NULL, "tenant_id" INTEGER NULL);
+            CREATE TABLE "Transactions" ("id" INTEGER NOT NULL PRIMARY KEY, "product_id" INTEGER NOT NULL, "tenant_id" INTEGER NULL);
             CREATE TABLE "DeliveryNoteTransactions" (
-                "DeliveryNoteId" INTEGER NOT NULL REFERENCES "DeliveryNotes" ("Id"),
-                "TransactionId" INTEGER NOT NULL REFERENCES "Transactions" ("Id"),
-                "Quantity" TEXT NOT NULL,
-                PRIMARY KEY ("DeliveryNoteId", "TransactionId"));
+                "delivery_note_id" INTEGER NOT NULL REFERENCES "DeliveryNotes" ("id"),
+                "transaction_id" INTEGER NOT NULL REFERENCES "Transactions" ("id"),
+                "quantity" TEXT NOT NULL,
+                PRIMARY KEY ("delivery_note_id", "transaction_id"));
             INSERT INTO "DeliveryNotes" VALUES (1, 'A-1', 7), (2, 'A-2', 7), (3, 'G-1', 8);
             INSERT INTO "Transactions" VALUES (10, 100, 7), (11, 101, 7), (12, 102, 8);
             INSERT INTO "DeliveryNoteTransactions" VALUES (1, 10, '12.5'), (1, 11, '3.25'), (2, 11, '1'), (3, 12, '40');

@@ -24,7 +24,7 @@ namespace Rask.SQLite;
 /// </remarks>
 /// <param name="dependencies">Generator dependencies, supplied by EF Core.</param>
 /// <param name="migrationsAnnotations">Provider annotations, supplied by EF Core.</param>
-public class RaskSqliteRangeExclusionSqlGenerator(
+public class RaskSqliteMigrationsSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     IRelationalAnnotationProvider migrationsAnnotations)
     : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), INoOverlapEnforcer, IFullTextSearchEnforcer, IJsonIndexEnforcer

@@ -117,7 +117,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jobs);
-        var batch = Guid.CreateVersion7();
+        var batch = Uuid.Create();
         var tenant = Tenant.Key;
         var user = CurrentUser.Id;
         lock (_gate)
@@ -216,7 +216,7 @@ public sealed class JobsFake : IJobs, IJobBatches, IDisposable
         var watched = job.Notice is not null && job.User is not null;
         var said = new List<WorkReported>();
         var run = new JobRun(
-            OrderedGuid.New(), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
+            Uuid.Create(), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
             TimeProvider.System, cancellationToken)
         {
             Shared = job.Shared,

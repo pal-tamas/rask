@@ -29,4 +29,9 @@
     <ProjectReference Include="..\..\src\Rask.Wire\Rask.Wire.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>

@@ -14,7 +14,7 @@ public sealed class NoteItem : Entity<Guid>
 
     internal static NoteItem For(NoteItemSpec spec)
     {
-        var item = new NoteItem { Id = Guid.CreateVersion7() };
+        var item = new NoteItem { Id = Uuid.Create() };
         item.Take(spec);
         return item;
     }

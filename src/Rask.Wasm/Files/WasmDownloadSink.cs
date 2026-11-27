@@ -36,7 +36,7 @@ internal sealed class WasmDownloadSink : IDownloadSink
             _bytesByToken.TryRemove(oldest, out _);
         }
 
-        _pending = new PendingDownload(filename, contentType ?? "application/octet-stream", null, null, token);
+        _pending = new PendingDownload(filename, contentType ?? "application/octet-stream", null, token);
     }
 
     public void Stage(string filename, Stream stream, string? contentType)

@@ -77,7 +77,7 @@ public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     {
         var passkey = new Passkey
         {
-            Id = Guid.CreateVersion7(),
+            Id = Uuid.Create(),
             UserId = userId,
             Name = Clean(name) is { Length: > 0 } given ? given : "Passkey",
             CredentialId = credentialId,

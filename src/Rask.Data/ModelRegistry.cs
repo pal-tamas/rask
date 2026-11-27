@@ -105,6 +105,10 @@ public static class ModelRegistry
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);
 
+        // Rask's names — delivery_notes, pistol_id, ix_fuelings_pistol_id — which the app's TableNames, ColumnNames and
+        // ConstraintNames below may replace.
+        StoreNameConvention.Defaults(configurationBuilder);
+
         // An index's Covering(…) becomes the provider's own included columns as the model is finalized.
         configurationBuilder.Conventions.Add(static services =>
             new CoveringIndexConvention(services.GetService<IDatabaseProvider>()?.Name));
@@ -141,6 +145,9 @@ public static class ModelRegistry
 
         // The app's own rules last, so they can say otherwise about anything above.
         _appModel?.Conventions(configurationBuilder);
+
+        // The constraints after every other convention, so an index one of them adds as the model is finalized is named too.
+        StoreNameConvention.For(configurationBuilder).NameConstraints(configurationBuilder);
 
         return configurationBuilder;
     }

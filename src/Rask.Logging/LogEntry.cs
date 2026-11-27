@@ -4,7 +4,7 @@ using Rask.Batteries;
 namespace Rask.Logging;
 
 /// <summary>
-/// One row of the <c>RaskLog</c> table in the application's database — the storage shape behind
+/// One row of the <c>log_entries</c> table in the application's database — the storage shape behind
 /// <see cref="LogRecord"/> for <c>AddRaskLogging&lt;TContext&gt;()</c>.
 /// </summary>
 /// <remarks>
@@ -40,7 +40,7 @@ internal sealed class LogEntry
 
     internal static LogEntry From(LogRecord record) => new()
     {
-        Id = OrderedGuid.New(),
+        Id = Uuid.Create(),
         Timestamp = record.Timestamp.UtcDateTime,
         Level = record.Level,
         // Cut rather than refused: an over-long category would fail the INSERT, and a failed INSERT loses the

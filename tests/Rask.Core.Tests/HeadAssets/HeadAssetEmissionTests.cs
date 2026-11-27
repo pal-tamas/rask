@@ -211,13 +211,13 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_user_supplied_data_rask_key_preserves_the_users_key()
+    public void A_user_supplied_key_preserves_the_users_key()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link
             .Rel("stylesheet")
             .Href("https://cdn.example/x.css")
-            .Data(new Dictionary<string, string?> { ["rask-key"] = "my-bootstrap" }));
+            .Key("my-bootstrap"));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains("data-rask-key=\"my-bootstrap\"", html);

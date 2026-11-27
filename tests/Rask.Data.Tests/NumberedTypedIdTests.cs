@@ -91,7 +91,7 @@ public sealed class NumberedTypedIdTests : IDisposable
         var typed = OrderOf<TallyFueling>(database.Context, f => new { f.Hour, f.Id });
         var plain = OrderOf<TallyPlainFueling>(database.Context, f => new { f.Hour, f.Id });
 
-        Assert.Equal("ORDER BY \"t\".\"Hour\", \"t\".\"Id\"", typed);
+        Assert.Equal("ORDER BY \"t\".\"hour\", \"t\".\"id\"", typed);
         Assert.Equal(plain, typed);
     }
 

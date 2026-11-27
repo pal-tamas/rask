@@ -124,7 +124,7 @@ internal static class CssEmitter
     // `min-content` -> MinContent, `sRGB` -> SRGB. Mechanical, with no word list: a name CSS spells otherwise fails the build.
     private static string Identifier(string css, string kind)
     {
-        var name = string.Concat(css.Split('-').Select(DomEmitter.Pascal));
+        var name = string.Concat(css.Split('-').Select(DomRefEmitter.Pascal));
         if (name.Length == 0 || !char.IsLetter(name[0]) || !name.All(char.IsLetterOrDigit) || name.Any(c => c > 127))
         {
             throw new DomEmitException(string.Format(CultureInfo.InvariantCulture, "the {0} `{1}` is not a C# name", kind, css));

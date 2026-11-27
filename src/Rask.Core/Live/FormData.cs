@@ -25,8 +25,6 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
         FilesByField = files;
     }
 
-    public IEnumerable<string> FileKeys => FilesByField.Keys;
-
     internal IReadOnlyDictionary<string, IReadOnlyList<IRaskFile>> FilesByField { get; }
 
     public string this[string key] => _values[key];

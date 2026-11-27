@@ -4,7 +4,7 @@ namespace Rask.Batteries.Generators.Tests;
 ///     A generated form model holds another row's typed id AS the typed id — <c>CompanyId?</c>, never the <c>int?</c> it
 ///     holds — so a select binds it straight to the read face's choices and the write hands it to the aggregate as it is.
 /// </summary>
-/// <remarks>TypedIdGenerator is not part of this run, so the Guid id writes its own <c>New()</c>.</remarks>
+/// <remarks>TypedIdGenerator is not part of this run, so the Guid id writes its own <c>Create()</c>.</remarks>
 public class TypedIdFormModelTests
 {
     private const string Source = """
@@ -12,7 +12,7 @@ public class TypedIdFormModelTests
         using Rask.Data;
         namespace Shop;
         public readonly partial record struct CompanyId(int Value);
-        public readonly partial record struct DepotId(Guid Value) { public static DepotId New() => new(Guid.CreateVersion7()); }
+        public readonly partial record struct DepotId(Guid Value) { public static DepotId Create() => new(Guid.CreateVersion7()); }
         public sealed class Company : Aggregate<CompanyId>, IHasForm { private Company() { } public string Name { get; private set; } = ""; }
         public sealed class Depot : Aggregate<DepotId>, IHasForm { private Depot() { } public string Name { get; private set; } = ""; }
         public sealed class Contract : Aggregate<Guid>, IHasForm

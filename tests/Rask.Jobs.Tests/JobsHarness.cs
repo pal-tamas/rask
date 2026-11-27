@@ -168,7 +168,7 @@ public sealed class JobsHarness : IAsyncDisposable
         }
 
         ConnectionString = connectionString;
-        Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        Clock = new ManualClock(start);
 
         var collection = new ServiceCollection();
         services?.Invoke(collection);
@@ -201,7 +201,7 @@ public sealed class JobsHarness : IAsyncDisposable
     /// <summary>Every formatted log message the processor wrote, for asserting on diagnostics.</summary>
     public System.Collections.Concurrent.ConcurrentBag<string> Logs { get; } = [];
 
-    public FakeTimeProvider Clock { get; }
+    public ManualClock Clock { get; }
 
     /// <summary>Every query the jobs' contexts read with — counted, and failed on purpose when a test says so.</summary>
     public CommandCounter Commands { get; } = new();

@@ -362,7 +362,7 @@ public class ModelInputGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, new global::Shop.ProductId(global::System.Guid.CreateVersion7()));",
+            "__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, new global::Shop.ProductId(global::Rask.Uuid.Create()));",
             source,
             StringComparison.Ordinal);
         Assert.Contains("private static class __SetterKey_Id<TId>", source, StringComparison.Ordinal);
@@ -417,14 +417,14 @@ public class ModelInputGeneratorTests
             Assert.DoesNotContain($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
             Assert.DoesNotContain($"<c>{name}.Create(model)</c>", source, StringComparison.Ordinal);
             Assert.Contains($"Create({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
-            Assert.DoesNotContain("CreateVersion7", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("Uuid.Create", source, StringComparison.Ordinal);
         }
 
         // An integer key is left to the store — nothing is assigned — and a Guid key is assigned only when unset.
-        Assert.DoesNotContain("CreateVersion7", run.GeneratedSource("Shop.NoteModel"), StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateVersion7", run.GeneratedSource("Shop.EntryModel"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Uuid.Create", run.GeneratedSource("Shop.NoteModel"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Uuid.Create", run.GeneratedSource("Shop.EntryModel"), StringComparison.Ordinal);
         Assert.Contains(
-            "__SetterKey_Id<global::System.Guid>.Invoke(entity, global::System.Guid.CreateVersion7());",
+            "__SetterKey_Id<global::System.Guid>.Invoke(entity, global::Rask.Uuid.Create());",
             run.GeneratedSource("Shop.TagModel"),
             StringComparison.Ordinal);
 
@@ -449,8 +449,8 @@ public class ModelInputGeneratorTests
 
         var source = run.GeneratedSource("Shop.ProductModel");
 
-        Assert.Contains("__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, global::Shop.ProductId.New());", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateVersion7", source, StringComparison.Ordinal);
+        Assert.Contains("__SetterKey_Id<global::Shop.ProductId>.Invoke(entity, global::Shop.ProductId.Create());", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Uuid.Create", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1232,7 +1232,7 @@ public class ModelInputGeneratorTests
 
         // Any mention at all — the member, or a doc comment pointing a reader at a member that is not there.
         var source = run.GeneratedSource("Shop.ProductModel");
-        Assert.DoesNotContain("Create(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Create(", source, StringComparison.Ordinal);
         Assert.Contains("Update(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
     }
 
@@ -1272,7 +1272,7 @@ public class ModelInputGeneratorTests
         // it is created, changed and removed as part of the order.
         var line = run.GeneratedSource("Shop.OrderLineModel");
         Assert.Contains("public global::System.Guid? Id { get; set; }", line, StringComparison.Ordinal);
-        Assert.DoesNotContain("Create(", line, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Create(", line, StringComparison.Ordinal);
         Assert.DoesNotContain("Update(", line, StringComparison.Ordinal);
         Assert.DoesNotContain("Delete(", line, StringComparison.Ordinal);
 

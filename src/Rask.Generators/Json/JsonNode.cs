@@ -51,12 +51,4 @@ internal sealed class JsonNode(JsonKind kind, int line, int column)
         JsonKind.False => false,
         _ => null,
     };
-
-    /// <summary>The value of a number, when it is one.</summary>
-    public bool TryGetNumber(out double value)
-    {
-        value = 0;
-        return Kind == JsonKind.Number
-               && double.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
-    }
 }

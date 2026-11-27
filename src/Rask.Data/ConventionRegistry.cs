@@ -166,9 +166,6 @@ public static class ConventionRegistry
     internal static bool IsDeletable(Type entity) =>
         Has(entity, TraitSet.Deletable) || Has(entity, TraitSet.SoftDelete);
 
-    /// <summary>Whether any entity at all is partitioned by tenant.</summary>
-    internal static bool AnyTenantScoped => DeclaredTraits.Values.Any(static t => (t & TraitSet.PerTenant) != TraitSet.None);
-
     /// <summary>The tenant aggregate <c>IBelongsTo&lt;TTenant&gt;</c> names, or null.</summary>
     /// <param name="entity">The entity type.</param>
     internal static Type? TenantOf(Type entity) => DeclaredTenants.GetValueOrDefault(entity);

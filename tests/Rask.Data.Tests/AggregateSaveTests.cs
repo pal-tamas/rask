@@ -24,7 +24,7 @@ public sealed class AggregateSaveTests : IDisposable
     private static readonly DateTimeOffset Start = new(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
 
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(Start);
+    private readonly ManualClock _clock = new(Start);
     private readonly SqlCommandLog _log = new();
 
     public void Dispose() => _sqlite.Dispose();
@@ -261,7 +261,7 @@ public sealed class AggregateSaveTests : IDisposable
         await found.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         // The other SELECT asks whether the unversioned row is still there, by its key alone.
-        Assert.Equal(1, _log.Texts.Count(t => t.Contains("\"Contents\"", StringComparison.Ordinal) && t.TrimStart().StartsWith("SELECT", StringComparison.Ordinal)));
+        Assert.Equal(1, _log.Texts.Count(t => t.Contains("\"contents\"", StringComparison.Ordinal) && t.TrimStart().StartsWith("SELECT", StringComparison.Ordinal)));
         Assert.Equal(2, Selects());
         Assert.Equal("bag", (await database.Load<Satchel>(satchel.Id, TestContext.Current.CancellationToken))!.Name);
     }

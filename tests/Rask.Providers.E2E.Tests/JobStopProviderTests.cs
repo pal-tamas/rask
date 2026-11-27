@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Rask.Background.Tests;
+using Rask.Tests.Shared;
 
 namespace Rask.Providers.E2E.Tests;
 
@@ -37,7 +37,7 @@ public abstract class JobStopProviderTests<TContext, TBefore> : IAsyncLifetime
     private static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 
     // Sub-microsecond on purpose: PostgreSQL keeps microseconds, SQL Server's datetime2 keeps the whole tick.
-    private readonly FakeTimeProvider _clock = new(new DateTimeOffset(2026, 3, 1, 8, 30, 15, TimeSpan.Zero).AddTicks(1_234_567));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 3, 1, 8, 30, 15, TimeSpan.Zero).AddTicks(1_234_567));
     private readonly List<ServiceProvider> _hosts = [];
     private readonly List<IHostedService> _started = [];
 

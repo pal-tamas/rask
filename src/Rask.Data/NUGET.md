@@ -66,7 +66,7 @@ public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasF
     public Money Price { get; private set; } = new(0m, "EUR");
 
     public static Product Create(string name, Money price) =>
-        new() { Id = Guid.CreateVersion7(), Name = name, Price = price };
+        new() { Id = Uuid.Create(), Name = name, Price = price };
 }
 
 public sealed record Money(decimal Amount, string Currency);

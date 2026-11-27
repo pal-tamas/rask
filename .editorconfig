@@ -21,7 +21,7 @@ end_of_line = crlf
 
 [*.cs]
 # Rask's input/form binding goes through expression trees + reflection (see
-# Tags.Input / Tags.Select / EditContext), so Rider can't see the setter being
+# Input / Select / TextArea's Bind and EditContext), so Rider can't see the setter being
 # called and would otherwise flag bound `{ get; set; }` properties as unused
 # and silently strip the setter on Code Cleanup. Disable the inspection
 # repo-wide — the framework cannot work without these setters.

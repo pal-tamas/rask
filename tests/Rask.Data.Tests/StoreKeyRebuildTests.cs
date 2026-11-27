@@ -53,12 +53,9 @@ public sealed class GuidTicketContext(DbContextOptions<GuidTicketContext> option
 {
     public DbSet<GuidTicket> Tickets => Set<GuidTicket>();
 
-    internal (string? KeepBy, bool Marked) Shape => (keepBy, marked);
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-        optionsBuilder
-            .ReplaceService<IMigrationsModelDiffer, RaskMigrationsModelDiffer>()
-            .ReplaceService<IModelCacheKeyFactory, GuidTicketModelKey>();
+    // Rask's differ and a model per context, as ValueCollectionNullabilityTests lays them out: one shared options
+    // shape, never one more EF Core service provider (ServiceProviderBudget).
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.WithRaskDiffer();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.Entity<GuidTicket>(b =>
@@ -71,11 +68,6 @@ public sealed class GuidTicketContext(DbContextOptions<GuidTicketContext> option
                 b.RebuildsStoreKey(nameof(GuidTicket.ProcessedAt), keepBy);
             }
         });
-}
-
-internal sealed class GuidTicketModelKey : IModelCacheKeyFactory
-{
-    public object Create(DbContext context, bool designTime) => (context.GetType(), ((GuidTicketContext)context).Shape, designTime);
 }
 
 /// <summary>
@@ -119,7 +111,7 @@ public sealed class StoreKeyRebuildTests : IDisposable
     public void A_table_the_model_does_not_mark_is_left_to_EF_Core()
     {
         using var before = Numbered();
-        using var unmarked = new GuidTicketContext(new DbContextOptionsBuilder<GuidTicketContext>().UseSqlite(_connection).Options, null, marked: false);
+        using var unmarked = new GuidTicketContext(OptionsLayout.LikeAddDbContext<GuidTicketContext>().UseSqlite(_connection).Options, null, marked: false);
         using var after = Guids(nameof(GuidTicket.CreatedAt));
 
         var altered = Differences(before, unmarked);
@@ -216,10 +208,10 @@ public sealed class StoreKeyRebuildTests : IDisposable
     private static IRelationalModel Model(DbContext context) => context.GetService<IDesignTimeModel>().Model.GetRelationalModel();
 
     private NumberedTicketContext Numbered() =>
-        new(new DbContextOptionsBuilder<NumberedTicketContext>().UseSqlite(_connection).Options);
+        new(OptionsLayout.LikeAddDbContext<NumberedTicketContext>().UseSqlite(_connection).Options);
 
     private GuidTicketContext Guids(string? keepBy) =>
-        new(new DbContextOptionsBuilder<GuidTicketContext>().UseSqlite(_connection).Options, keepBy);
+        new(OptionsLayout.LikeAddDbContext<GuidTicketContext>().UseSqlite(_connection).Options, keepBy);
 
     private sealed class Written(IReadOnlyList<MigrationOperation> operations) : Migration
     {

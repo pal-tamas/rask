@@ -6,10 +6,10 @@ namespace Rask.Querying.Tests;
 /// </summary>
 public class QueryStatusTests
 {
-    private static (SessionQueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher, ManualClock Time) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        var time = new TestClock(DateTimeOffset.UnixEpoch);
+        var time = new ManualClock(DateTimeOffset.UnixEpoch);
         return (new SessionQueryClient(dispatcher, time), dispatcher, time);
     }
 

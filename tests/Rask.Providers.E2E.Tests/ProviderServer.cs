@@ -23,6 +23,10 @@ namespace Rask.Providers.E2E.Tests;
 ///         a process its twenty-first internal service provider and the three providers together are past twenty.
 ///     </para>
 ///     <para>
+///         <c>RASK_PROVIDERS_POSTGRES=floor</c> runs the PostgreSQL facts on the oldest server Rask supports instead of
+///         the newest: the script runs them once on each, so the floor docs/data.md names stays proven.
+///     </para>
+///     <para>
 ///         A container that fails to start FAILS the facts that need it rather than skipping them: where one was asked
 ///         for, a missing server is a broken gate, not an absent one.
 ///     </para>
@@ -32,6 +36,14 @@ internal sealed class ProviderServer : IAsyncDisposable
     internal const string LocalVariable = "RASK_PROVIDERS_LOCAL";
 
     internal const string ServersVariable = "RASK_PROVIDERS_SERVERS";
+
+    internal const string PostgresVersionVariable = "RASK_PROVIDERS_POSTGRES";
+
+    // The newest PostgreSQL, and the oldest Rask supports: 18, the first whose LIKE takes a nondeterministic collation
+    // (PostgresTextCollation refuses an older server). scripts/upstream/images.py moves the newest across majors and
+    // the floor within its own.
+    private const string PostgresNewest = "postgres:19.0-alpine";
+    private const string PostgresFloor = "postgres:18.7-alpine";
 
     private readonly Lazy<string> _connectionString;
     private IDatabaseContainer? _container;
@@ -52,10 +64,22 @@ internal sealed class ProviderServer : IAsyncDisposable
             ? null
             : $"the SQL Server image is amd64-only and crashes under emulation on {RuntimeInformation.OSArchitecture}");
 
-    /// <summary>PostgreSQL 18 or later: <c>PostgresTextOrderTests</c> needs its builtin collations. Multi-arch.</summary>
+    /// <summary>
+    ///     PostgreSQL 19, or 18 under <c>RASK_PROVIDERS_POSTGRES=floor</c>: never older, as the text collations need 18.
+    ///     Multi-arch.
+    /// </summary>
     internal static ProviderServer Postgres { get; } = new(
         "postgres",
-        static () => new PostgreSqlBuilder("postgres:19-alpine").WithDatabase("rask").Build());
+        static () => new PostgreSqlBuilder(PostgresImage).WithDatabase("rask").Build());
+
+    private static string PostgresImage =>
+        Environment.GetEnvironmentVariable(PostgresVersionVariable) switch
+        {
+            null or "" or "newest" => PostgresNewest,
+            "floor" => PostgresFloor,
+            var other => throw new InvalidOperationException(
+                $"{PostgresVersionVariable}={other}: say newest (the default) or floor."),
+        };
 
     /// <summary>Why the facts on this server are skipped, or <see langword="null" /> when it is there to run against.</summary>
     internal string? SkipReason { get; }

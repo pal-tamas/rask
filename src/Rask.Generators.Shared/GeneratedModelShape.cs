@@ -54,7 +54,8 @@ internal static class GeneratedModelShape
     /// <summary>
     ///     Whether <paramref name="symbol" /> is a type the model generator considers at all: a concrete, non-static,
     ///     non-generic AGGREGATE. Only an aggregate is edited through a form. A candidate may still be refused a
-    ///     model — see <see cref="GetsModel" />.
+    ///     model: a nested type, a name <see cref="ClashingType" /> finds taken, or a composite key its holder's
+    ///     form cannot carry as rows (<c>ModelInputGenerator</c> names each refusal).
     /// </summary>
     public static bool IsCandidate(INamedTypeSymbol symbol) => AggregateShape.IsMappedEntity(symbol);
 
@@ -75,16 +76,6 @@ internal static class GeneratedModelShape
         !existing.All(IsPartialSourceClass)
             ? existing[0]
             : null;
-
-    /// <summary>Whether a model is actually generated for <paramref name="symbol" />.</summary>
-    /// <remarks>
-    ///     A row keyed by several columns gets one only as a ROW its holder's form carries — one with fields of its own
-    ///     beside its key; a link is carried as a list of ids, and needs none.
-    /// </remarks>
-    public static bool GetsModel(INamedTypeSymbol symbol) =>
-        IsCandidate(symbol) && symbol.ContainingType is null && ClashingType(symbol) is null &&
-        (!CompositeKeyShape.HasCompositeKey(symbol) ||
-         CompositeChildForm.Of(symbol) is { Kind: CompositeChildKind.Rows, Problem: null });
 
     /// <summary>The model's simple name: <c>ProductModel</c>.</summary>
     public static string ModelName(INamedTypeSymbol entity) => entity.Name + ModelSuffix;

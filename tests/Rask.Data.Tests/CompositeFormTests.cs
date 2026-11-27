@@ -196,9 +196,9 @@ public sealed class CompositeFormTests : IAsyncLifetime
 
         var writes = Writes();
         Assert.Equal(3, writes.Count);
-        Assert.Single(writes, static w => w.StartsWith("UPDATE \"CompanyColumn\" SET \"Order\"", StringComparison.Ordinal));
-        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"CompanyColumn\"", StringComparison.Ordinal));
-        Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"CompanyColumn\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("UPDATE \"company_columns\" SET \"order\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("INSERT INTO \"company_columns\"", StringComparison.Ordinal));
+        Assert.Single(writes, static w => w.StartsWith("DELETE FROM \"company_columns\"", StringComparison.Ordinal));
         Assert.Equal(["1:0:True", "2:5:False", "4:3:True"], await ColumnsAsync(Acme, company.Id));
     }
 
