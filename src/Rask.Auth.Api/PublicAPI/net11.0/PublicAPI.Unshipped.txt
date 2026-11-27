@@ -48,8 +48,6 @@ Rask.Auth.AuthOptions.FirstRunToken.get -> string?
 Rask.Auth.AuthOptions.FirstRunToken.set -> void
 Rask.Auth.AuthOptions.FirstUserIsAdmin.get -> bool
 Rask.Auth.AuthOptions.FirstUserIsAdmin.set -> void
-Rask.Auth.AuthOptions.ForgotPasswordPath.get -> string!
-Rask.Auth.AuthOptions.ForgotPasswordPath.set -> void
 Rask.Auth.AuthOptions.LoginPath.get -> string!
 Rask.Auth.AuthOptions.LoginPath.set -> void
 Rask.Auth.AuthOptions.LogoutPath.get -> string!

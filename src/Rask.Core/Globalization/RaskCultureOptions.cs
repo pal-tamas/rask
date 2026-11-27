@@ -89,18 +89,4 @@ public sealed class RaskCultureOptions
     /// </summary>
     public bool UseClientPreference { get; set; } = true;
 
-    /// <summary>
-    ///     Whether Rask pins <see cref="System.Globalization.CultureInfo.CurrentCulture" /> to the
-    ///     session's culture for the duration of a render walk and a handler dispatch. Default <c>true</c>.
-    /// </summary>
-    /// <remarks>
-    ///     On by default because a great deal of correct-looking code formats through the ambient culture
-    ///     — including code Rask does not own. The concrete case inside the framework is
-    ///     <c>BsDataGrid</c>'s sort: comparing two strings reaches <c>Comparer&lt;T&gt;.Default</c> and
-    ///     therefore a <em>linguistic</em> comparison under the current culture, which is what makes a
-    ///     Hungarian grid sort in Hungarian order. There is no seam to route that through, so the pin is
-    ///     what makes it right. Turn this off only if you are hosting Rask inside something that manages
-    ///     the ambient culture itself.
-    /// </remarks>
-    public bool ApplyToCurrentCulture { get; set; } = true;
 }

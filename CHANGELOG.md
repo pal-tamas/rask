@@ -140,6 +140,11 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: six public members that did nothing are gone.** `RaskRuntimeScript` (a no-op since the runtime
+  `<script>` is injected at `</body>`; drop it from a tree that still names it), `RaskCultureOptions.ApplyToCurrentCulture`
+  (nothing read it: the ambient culture is pinned whenever Rask's culture is on), `AuthOptions.ForgotPasswordPath`
+  (no endpoint or page read it), `RouteAuthorizationGuard.ForbidPath`, `BuilderRuntime.ResetNothing` and
+  `FormData.FileKeys`.
 - **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
   is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
   and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,
