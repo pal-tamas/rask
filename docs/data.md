@@ -1474,64 +1474,56 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 ## Non-overlapping ranges
 
-A booking, a lease, a price valid for a period — the rule is always the same: **two rows may not cover the
-same point in time (or in a number line)**. PostgreSQL spells this as an exclusion constraint. SQLite has
-nothing, and a `UNIQUE` index does not help — it only stops *identical* rows, so `100–200` and `150–250`
-both sail through.
-
-Declare it on the model and the migration carries the enforcement:
+A chip held by a driver, a room booked by the hour, a price valid for a period — the rule is always the same: **two
+rows with the same key may not cover the same moment**. A `UNIQUE` index cannot say it — it only stops *identical*
+rows, so `100–200` and `150–250` both sail through. Declare it on the model, once, and every provider holds it:
 
 ```csharp
-modelBuilder.Entity<Booking>()
-    .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+public sealed partial record ChipPeriod(DateTime From, DateTime? To) : Range(From, To);
+
+b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld)   // a Range value object
+ .Where(x => x.DriverId != null);                                              // only the rows it holds
+
+b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken);   // two properties of the row
 ```
 
-That is the whole API. `dotnet ef migrations add` then emits an index and a `BEFORE INSERT` / `BEFORE
-UPDATE` trigger pair that `RAISE(ABORT)`s on a conflict, and a violating `SaveChanges` throws
-`RangeOverlapException` naming the table — catch it and tell the user the slot
-is taken.
+A save that breaks it is refused with **the rule's message under the range's field** (`Period`, or the start's
+property) — a `RaskValidationException`, as an `IsUnique("…")` index's duplicate is, so a form shows it where the
+user typed. Rask asks before the save writes anything, and the database has the last word: a write that never went
+through a save (`ExecuteUpdate`, a second instance at the same moment) is refused by the database and answered with
+the same message. Two saves at the same moment never both get through.
 
-```csharp
-try
-{
-    await context.SaveChangesAsync();
-}
-catch (RangeOverlapException)
-{
-    return Results.Conflict("That slot is already booked.");
-}
-```
+What counts as an overlap is PostgreSQL's, on all three databases:
 
-**Ranges are half-open — `[lo, hi)`.** This is the part to get right: it is what makes `100–200` and
-`200–300` neighbours rather than a conflict. Store bounds in a type the database orders correctly — a
-number, a date, or a `yyyy-MM-dd` string — never a localized date string. Pair the rule with a check
-constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing about inverted ones.
+- **Half-open, `[from, to)`.** A hold ending on the 5th and one starting on the 5th are neighbours, not a conflict.
+  An empty range (`from` = `to`) overlaps nothing.
+- **A null end is open**: the row holds from its start for ever, and overlaps every later range of its key.
+- **A key holding a null conflicts with nothing** — a booking with no room is no room's.
+- **The key compares as the app's text order says**: `c.OrderTextBy("Hungarian_100_CI_AS")` makes `C-1` and `c-1`
+  one chip on every provider, and keeps `árvíz` apart from `arviz`.
+- **Only the rows the rule holds count**: its `.Where(…)` (a filtered index's subset — columns compared with
+  constants, joined by `&&`), and, for an aggregate that soft deletes, the rows not deleted — a deleted row frees its
+  range.
 
-| Option | Effect |
+An entity may declare several rules. Each is one database object named `EX_{table}_{key columns}_{start column}`:
+
+| Database | Holds it as |
 | --- | --- |
-| `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
-| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that names `SoftDelete`, where it defaults to on; a hard-deleted row has already freed its slot, so asking for it on any other entity throws. |
+| **PostgreSQL** | `EXCLUDE USING gist (key WITH =, …, tstzrange(from, to, '[)') WITH &&) WHERE (…)` — the migration creates the `btree_gist` extension first (`IF NOT EXISTS`; a trusted extension the database's owner may create). The range is the start column's type: `tstzrange`, `tsrange`, `daterange`, `int4range`, `int8range` or `numrange`. A refusal is SQLSTATE `23P01` naming the constraint. |
+| **SQL Server** | an index over the key and the start, and an `AFTER INSERT, UPDATE` trigger that looks for an overlapping row under `UPDLOCK, HOLDLOCK` — the key's range stays locked to the end of the transaction, so a second save waits for the first and then sees its row (or is chosen as a deadlock's victim) — and `THROW`s error 51101 with the rule's name. EF Core is told the table has a trigger, so it saves without the `OUTPUT` clause a trigger refuses. |
+| **SQLite** | an index and an `AFTER INSERT` / `AFTER UPDATE` trigger pair that `RAISE(ABORT, 'rask no overlap: …')`, written again at the end of every migration that touches the table, since SQLite rebuilds a table to alter it and takes its triggers with it. |
 
-Three things worth knowing:
+**It arrives through migrations.** Adding a rule to an existing table is a migration of its own, even when no column
+changes; removing one drops it; changing one, or a column under it, drops it first and creates it again last. Rows
+already in the table are checked as the rule is created on PostgreSQL (the `ALTER TABLE … ADD CONSTRAINT` fails on an
+existing overlap) and are not re-checked on SQL Server and SQLite — find existing overlaps with a query and clean them
+before the migration.
 
-- **Enforcement is in the database, not the `DbContext`.** Raw SQL, a second process and a background job
-  are all bound by it. That is the point — an application-level check is bypassable, and a check-then-insert
-  in your own code has a race between the check and the insert.
-- **It arrives via migrations.** Adding the rule to an existing table is a migration of its own —
-  `dotnet ef migrations add` sees it even when no column changes — and applying it checks every later
-  write. Removing the rule is a migration too, and drops the triggers and index; changing it rebuilds them.
-  A database created with `EnsureCreated` does not get it at all. Rows already in the table are not
-  re-checked: find existing overlaps with a query before you add the rule.
-- **It survives table rebuilds.** SQLite cannot `ALTER` most things in place, so EF rebuilds the table and
-  drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
-  touches the table, so the constraint cannot silently disappear.
-
-Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. On any other
-provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
-**refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
-until an entity declares a rule, and the rule composes with
-[`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
-`STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+Requires the Rask providers — `UseRaskSqlite`, `UseRaskSqlServer` or `UseRaskPostgres`, whose migrations write the
+rule. On any other — a plain `UseSqlite`, `UseSqlServer` or `UseNpgsql` — the rule would be silently ignored, so
+`AddRaskData<TContext>` **refuses to boot** instead. The rule is read by Rask's conventions, which every `RaskDbContext`
+applies; a plain `DbContext` calls `ModelRegistry.ApplyConventions(configurationBuilder)` in its `ConfigureConventions`.
+It composes with [`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types).
 
 ## Full-text search
 
@@ -1822,8 +1814,8 @@ that PostgreSQL keeps current itself, with no triggers. Three things change:
   `Rask:Postgres:Retry:Enabled` to `false`.
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
-- **`HasJsonIndex` and non-overlapping ranges are SQLite-only for now.** A context that declares either on
-  PostgreSQL is refused at boot rather than left to scan or to allow overlaps silently.
+- **`HasJsonIndex` is SQLite-only for now.** A context that declares one on PostgreSQL is refused at boot rather than
+  left to scan silently.
 
 ## SQL Server
 
@@ -1868,7 +1860,7 @@ on one connection with them lifted (`statement_timeout` and `lock_timeout` 0 on 
 SQL Server), so a migration that rewrites a table, or waits behind the old instance's queries, is not killed
 partway. The pool puts the session back as it came once the migrations are done.
 
-Everything in this guide works unchanged except full-text search, `HasJsonIndex` and non-overlapping ranges,
+Everything in this guide works unchanged except full-text search and `HasJsonIndex`,
 which a context on SQL Server cannot declare — it is refused at boot, naming the declaration. Three things to
 know, as on PostgreSQL:
 

@@ -3,7 +3,7 @@ using Rask.Data;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
-// Test models for RaskSqliteRangeExclusionTests. EF caches a built model per (context type, options), so each
+// Test models for RaskSqliteNoOverlapTests. EF caches a built model per (context type, options), so each
 // model variant needs its own context type — two instances of one type would silently share a cached model.
 internal sealed class Booking
 {
@@ -16,16 +16,25 @@ internal sealed class Booking
     public long EndsAt { get; set; }
 
     public string? Note { get; set; }
+
+    public int Building { get; set; }
 }
 
-internal class BookingContext(DbContextOptions options) : DbContext(options)
+// NoOverlap is resolved by Rask's conventions, which a RaskDbContext applies by itself.
+internal abstract class RuledContext(DbContextOptions options) : DbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+}
+
+internal class BookingContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Booking> Bookings => Set<Booking>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>()
-            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+            .NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, "Taken");
     }
 }
 
@@ -37,13 +46,13 @@ internal sealed class UnruledBookingContext(DbContextOptions options) : DbContex
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<Booking>();
 }
 
-// The same rule without the partition: every room shares one calendar, so the index's columns change.
-internal sealed class UnpartitionedBookingContext(DbContextOptions options) : DbContext(options)
+// The same rule over the building: every room of it shares one calendar, so the index's columns change.
+internal sealed class UnpartitionedBookingContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Booking> Bookings => Set<Booking>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.Entity<Booking>().HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt);
+        modelBuilder.Entity<Booking>().NoOverlap(x => x.Building, x => x.StartsAt, x => x.EndsAt, "Taken");
 }
 
 // Same table, but Note becomes required — a change SQLite cannot apply in place, so EF rebuilds the table.
@@ -56,29 +65,11 @@ internal sealed class RebuiltBookingContext(DbContextOptions options) : BookingC
     }
 }
 
-internal sealed class Season
-{
-    public int Id { get; set; }
-
-    public string ValidFrom { get; set; } = string.Empty;
-
-    public string ValidTo { get; set; } = string.Empty;
-}
-
-internal sealed class SeasonContext(DbContextOptions options) : DbContext(options)
-{
-    public DbSet<Season> Seasons => Set<Season>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // No partition: the rule covers the whole table.
-        modelBuilder.Entity<Season>().HasNonOverlappingRange(x => x.ValidFrom, x => x.ValidTo);
-    }
-}
-
 internal sealed class Slot
 {
     public int Id { get; set; }
+
+    public int Lane { get; set; }
 
     public long StartsAt { get; set; }
 
@@ -90,7 +81,7 @@ internal sealed class SlotContext(DbContextOptions options) : DbContext(options)
     public DbSet<Slot> Slots => Set<Slot>();
 }
 
-internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext(options)
+internal sealed class RenamedColumnContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Slot> Slots => Set<Slot>();
 
@@ -99,7 +90,7 @@ internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext
         var slot = modelBuilder.Entity<Slot>();
         slot.Property(x => x.StartsAt).HasColumnName("from");
         slot.Property(x => x.EndsAt).HasColumnName("to");
-        slot.HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt);
+        slot.NoOverlap(x => x.Lane, x => x.StartsAt, x => x.EndsAt, "Taken");
     }
 }
 
@@ -115,14 +106,14 @@ internal sealed class Lease : Aggregate<int, Timestamps, Versioned, Model, SoftD
         new() { Id = id, AssetId = assetId, StartsAt = startsAt, EndsAt = endsAt };
 }
 
-internal sealed class LeaseContext(DbContextOptions options) : DbContext(options)
+internal sealed class LeaseContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Lease> Leases => Set<Lease>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Lease>()
-            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.AssetId);
+            .NoOverlap(x => x.AssetId, x => x.StartsAt, x => x.EndsAt, "Taken");
 
         modelBuilder.ApplyRaskConventions();
     }
@@ -141,29 +132,17 @@ internal sealed class Reservation : Aggregate<int, Timestamps, Versioned, Model,
         new() { Id = id, DeskId = deskId, StartsAt = startsAt, EndsAt = endsAt };
 }
 
-internal sealed class ReservationContext(DbContextOptions options) : DbContext(options)
+internal sealed class ReservationContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Reservation>()
-            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.DeskId);
+            .NoOverlap(x => x.DeskId, x => x.StartsAt, x => x.EndsAt, "Taken");
 
         modelBuilder.ApplyRaskConventions();
     }
-}
-
-// A rule annotation that asks to ignore soft-deleted rows on a table with no DeletedAt — what an older build wrote
-// for a hard-delete aggregate (#1131). The builder refuses the flag now, so the annotation is set by hand.
-internal sealed class StaleSoftDeleteRuleContext(DbContextOptions options) : DbContext(options)
-{
-    public DbSet<Booking> Bookings => Set<Booking>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.Entity<Booking>().HasAnnotation(
-            RangeExclusionSpec.AnnotationName,
-            new RangeExclusionSpec("StartsAt", "EndsAt", ["RoomId"], IgnoreSoftDeleted: true).Serialize());
 }
 
 internal sealed class Meeting
@@ -178,14 +157,14 @@ internal sealed class Meeting
     public long EndsAt { get; set; }
 }
 
-internal sealed class GeneratedKeyContext(DbContextOptions options) : DbContext(options)
+internal sealed class GeneratedKeyContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Meeting> Meetings => Set<Meeting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Meeting>()
-            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+            .NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, "Taken");
     }
 }
 
@@ -202,7 +181,7 @@ internal sealed class Shift
     public long EndsAt { get; set; }
 }
 
-internal sealed class CompositeKeyContext(DbContextOptions options) : DbContext(options)
+internal sealed class CompositeKeyContext(DbContextOptions options) : RuledContext(options)
 {
     public DbSet<Shift> Shifts => Set<Shift>();
 
@@ -210,7 +189,7 @@ internal sealed class CompositeKeyContext(DbContextOptions options) : DbContext(
     {
         var shift = modelBuilder.Entity<Shift>();
         shift.HasKey(x => new { x.TenantId, x.Code });
-        shift.HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.EmployeeId);
+        shift.NoOverlap(x => x.EmployeeId, x => x.StartsAt, x => x.EndsAt, "Taken");
     }
 }
 

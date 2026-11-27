@@ -10,10 +10,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rask.Data.Tests;
 
-// HasNonOverlappingRange is metadata a provider has to turn into DDL. On a provider that does not, the app used
+// NoOverlap is metadata a provider has to turn into DDL. On a provider that does not, the app used
 // to build, migrate and quietly accept the overlapping rows the rule was declared to stop. These pin the boot
 // check that refuses that, without opening a connection.
-public sealed class RangeExclusionCheckTests
+public sealed class NoOverlapCheckTests
 {
     [Fact]
     public async Task A_rule_the_provider_would_ignore_fails_the_boot()
@@ -23,8 +23,8 @@ public sealed class RangeExclusionCheckTests
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => StartAsync(provider));
 
         // Names the entity, the provider that ignores it, and the call that enforces it.
-        Assert.StartsWith("Slot declares HasNonOverlappingRange, but Microsoft.EntityFrameworkCore.Sqlite does not enforce it", error.Message);
-        Assert.Contains("Configure SlotContext with UseRaskSqlite(services)", error.Message);
+        Assert.StartsWith("Slot declares NoOverlap, but Microsoft.EntityFrameworkCore.Sqlite does not enforce it", error.Message);
+        Assert.Contains("Configure SlotContext with UseRaskSqlite, UseRaskSqlServer or UseRaskPostgres", error.Message);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class RangeExclusionCheckTests
         await using var provider = services.BuildServiceProvider();
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => StartAsync(provider));
-        Assert.StartsWith("Slot declares HasNonOverlappingRange", error.Message);
+        Assert.StartsWith("Slot declares NoOverlap", error.Message);
     }
 
     [Fact]
@@ -100,6 +100,8 @@ public sealed class RangeExclusionCheckTests
     {
         public int Id { get; set; }
 
+        public int Lane { get; set; }
+
         public long StartsAt { get; set; }
 
         public long EndsAt { get; set; }
@@ -107,8 +109,11 @@ public sealed class RangeExclusionCheckTests
 
     public sealed class SlotContext(DbContextOptions<SlotContext> options) : DbContext(options)
     {
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+            ModelRegistry.ApplyConventions(configurationBuilder);
+
         protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-            modelBuilder.Entity<Slot>().HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt);
+            modelBuilder.Entity<Slot>().NoOverlap(x => x.Lane, x => x.StartsAt, x => x.EndsAt, "Taken");
     }
 
     public sealed class PlainContext(DbContextOptions<PlainContext> options) : DbContext(options)
@@ -119,5 +124,5 @@ public sealed class RangeExclusionCheckTests
     private sealed class EnforcingGenerator(
         MigrationsSqlGeneratorDependencies dependencies,
         IRelationalAnnotationProvider migrationsAnnotations)
-        : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer;
+        : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), INoOverlapEnforcer;
 }
