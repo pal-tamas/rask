@@ -350,9 +350,9 @@ public sealed class AccountRecoveryTests
 
     /// <summary>A claimed instance with one account, registered and therefore emailed a confirmation.</summary>
     private static async Task<AuthHarness> ClaimedAsync(
-        Action<AuthOptions>? configure = null, bool mail = true)
+        Action<AuthOptions>? configure = null, bool mail = true, TimeProvider? clock = null)
     {
-        var harness = new AuthHarness(configure, mail: mail);
+        var harness = new AuthHarness(configure, mail: mail, clock: clock);
         await harness.StartAsync();
 
         var owner = await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
@@ -452,14 +452,17 @@ public sealed class AccountRecoveryTests
     [InlineData("nobody@example.com")]
     public async Task With_no_sender_running_a_reset_request_takes_the_same_least_time_for_any_address(string email)
     {
-        await using var harness = await ClaimedAsync(o => o.ResetAnswerFloor = TimeSpan.FromMilliseconds(200));
+        // The clock moves only by the delays the request asks for, so what it reads after is the wait the request chose:
+        // the floor, whole, for an address with an account and one without, however long the machine took.
+        var clock = new DelayOnlyClock();
+        await using var harness = await ClaimedAsync(o => o.ResetAnswerFloor = TimeSpan.FromMilliseconds(200), clock: clock);
         harness.Services.GetRequiredService<PasswordResetQueue>().IsRunning = false;
-        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var started = clock.GetTimestamp();
 
         var result = await AskForResetAsync(harness, email);
 
         Assert.True(result.Succeeded);
-        Assert.True(System.Diagnostics.Stopwatch.GetElapsedTime(started) >= TimeSpan.FromMilliseconds(200));
+        Assert.Equal(TimeSpan.FromMilliseconds(200), clock.GetElapsedTime(started));
     }
 
     [Theory]

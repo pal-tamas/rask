@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -396,19 +395,20 @@ internal sealed partial class AccountService<TUser, TKey>(
         // No sender running, or its queue full: done here, as long for an address with no account as for one whose link
         // is built and queued — answered sooner, the time alone would say which addresses have an account (Laravel's
         // Timebox).
-        var started = Stopwatch.GetTimestamp();
+        var started = clock.GetTimestamp();
         try
         {
             await QueueResetAsync(normalized, origin, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            // Until the floor has passed by the stopwatch, not by one delay: a timer counts whole milliseconds and may
-            // fire just short of the fraction it was asked for, which answered up to a millisecond sooner.
-            while (options.ResetAnswerFloor - Stopwatch.GetElapsedTime(started) is { Ticks: > 0 } rest)
+            // Until the floor has passed by the clock's own timestamp, not by one delay: a timer counts whole
+            // milliseconds and may fire just short of the fraction it was asked for, which answered up to a millisecond
+            // sooner. On the app's clock, so a test proves the floor without measuring wall time.
+            while (options.ResetAnswerFloor - clock.GetElapsedTime(started) is { Ticks: > 0 } rest)
             {
                 var wholeMilliseconds = TimeSpan.FromMilliseconds(Math.Ceiling(rest.TotalMilliseconds));
-                await Task.Delay(wholeMilliseconds, TimeProvider.System, CancellationToken.None).ConfigureAwait(false);
+                await Task.Delay(wholeMilliseconds, clock, CancellationToken.None).ConfigureAwait(false);
             }
         }
 
