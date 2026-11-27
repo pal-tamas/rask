@@ -30,7 +30,7 @@ public sealed partial record PumpFuelKind(PumpFuel Value) : Value
 }
 
 /// <summary>A pump that pours one fuel, written through its generated model.</summary>
-public sealed class Pump : Aggregate<int, Model>
+public sealed class Pump : Aggregate<int>, IHasForm
 {
     private Pump() { }
 

@@ -17,7 +17,7 @@ namespace Rask.Auth;
 /// creates and ends sessions; an app does not.
 /// </para>
 /// </remarks>
-public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes
 {
     /// <summary>The signed-in user.</summary>
     public Guid UserId { get; private set; }

@@ -43,7 +43,7 @@ public static class Columns
     /// </summary>
     public const string Position = "Position";
 
-    /// <summary>Which tenant owns the row. Added only to a table whose <c>Scope</c> const says <c>PerTenant</c>.</summary>
+    /// <summary>Which tenant owns the row. Added only to a table that says <c>IBelongsTo&lt;Tenant&gt;</c>.</summary>
     public const string TenantId = "TenantId";
 
     /// <summary>

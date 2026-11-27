@@ -113,7 +113,7 @@ public sealed partial record RigSeal(int Count, string Mark) : Value
 }
 
 /// <summary>An aggregate holding one value object of each one-value base, with a generated model.</summary>
-public sealed class Rig : Aggregate<int, Model, Deletable>
+public sealed class Rig : Aggregate<int>, IHasForm, IDeletable
 {
     private Rig() { }
 
@@ -164,7 +164,7 @@ public sealed partial record RigRank(int Value) : Value
 public sealed partial record RigSeats(int Value) : Integer(Value, Min: 1, Max: 9);
 
 /// <summary>An aggregate holding one-value value objects of an int, written through its generated model.</summary>
-public sealed class Ladder : Aggregate<int, Model>
+public sealed class Ladder : Aggregate<int>, IHasForm
 {
     private Ladder() { }
 
@@ -174,7 +174,7 @@ public sealed class Ladder : Aggregate<int, Model>
 }
 
 /// <summary>An aggregate written through its generated model, holding a value of several members with its own rule.</summary>
-public sealed class Bunker : Aggregate<int, Model>
+public sealed class Bunker : Aggregate<int>, IHasForm
 {
     private Bunker() { }
 
@@ -182,7 +182,7 @@ public sealed class Bunker : Aggregate<int, Model>
 }
 
 /// <summary>An aggregate holding a text that may be left empty, written through its generated model.</summary>
-public sealed class Notebook : Aggregate<int, Model>
+public sealed class Notebook : Aggregate<int>, IHasForm
 {
     private Notebook() { }
 
@@ -190,7 +190,7 @@ public sealed class Notebook : Aggregate<int, Model>
 }
 
 /// <summary>An aggregate written through its generated model, holding a range that checks itself.</summary>
-public sealed class Leg : Aggregate<int, Model>
+public sealed class Leg : Aggregate<int>, IHasForm
 {
     private Leg() { }
 
@@ -235,7 +235,7 @@ public sealed partial record RigQuantity(decimal Value) : Number(Value, Precisio
 public sealed partial record RigStart(DateTime Date, RigQuantity Quantity) : Value;
 
 /// <summary>An aggregate whose complex values are optional: a row may have none.</summary>
-public sealed class Tankyard : Aggregate<int, Model>
+public sealed class Tankyard : Aggregate<int>, IHasForm
 {
     private Tankyard() { }
 

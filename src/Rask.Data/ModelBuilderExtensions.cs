@@ -65,7 +65,7 @@ public static class ModelBuilderExtensions
     /// </para>
     /// <para>
     /// <paramref name="context" /> must implement <see cref="ITenantScoped" /> once anything is
-    /// <see cref="PerTenant" />; the parameterless overload refuses rather than mapping a table whose
+    /// <see cref="IBelongsTo{TTenant}" />; the parameterless overload refuses rather than mapping a table whose
     /// filter could not be built.
     /// </para>
     /// </remarks>
@@ -200,7 +200,7 @@ public static class ModelBuilderExtensions
 
     private static void ApplyTimestamps(EntityTypeBuilder builder, Type clrType)
     {
-        // Only what the base names — Aggregate<Guid, Timestamps> or Entity<Guid, Created> — read from the
+        // Only what the class says — Aggregate<Guid>, IHasTimestamps or Entity<Guid>, IHasCreatedAt — read from the
         // registry the generator filled at compile time, never reflected over.
         //
         // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
@@ -221,7 +221,7 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only for an aggregate that names Versioned.
+    // Only for an aggregate that says IVersioned.
     private static void ApplyVersion(EntityTypeBuilder builder, Type clrType)
     {
         if (ConventionRegistry.Has(clrType, TraitSet.Versioned))
@@ -234,14 +234,12 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only for an aggregate that names SoftDelete. A stamped row still occupies its UNIQUE constraints.
+    // Only for an aggregate that says ISoftDeletes. A stamped row still occupies its UNIQUE constraints.
     private static void ApplySoftDelete(EntityTypeBuilder builder, Type clrType)
     {
         // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
         // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
         // whatever this does; declining one has to say so out loud.
-        RefuseSoftRemovedRoot(clrType);
-
         if (ConventionRegistry.Has(clrType, TraitSet.SoftDelete))
         {
             builder.Property<DateTime?>(Columns.DeletedAt);
@@ -255,7 +253,7 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // A child that names SoftRemoved keeps the row its aggregate lets go of: a shadow DeletedAt, stamped by
+    // A child that says ISoftDeletes keeps the row its aggregate lets go of: a shadow DeletedAt, stamped by
     // SoftDeleteInterceptor, and the soft-delete filter, so the aggregate's load and the child's face no longer see it.
     private static void ApplySoftRemoved(EntityTypeBuilder builder, Type clrType)
     {
@@ -268,17 +266,6 @@ public static class ModelBuilderExtensions
         builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
     }
 
-    // SoftRemoved is a child's: a root that names it would be quietly hard-deleted, so the model says so instead.
-    private static void RefuseSoftRemovedRoot(Type clrType)
-    {
-        if (ConventionRegistry.Has(clrType, TraitSet.SoftRemoved))
-        {
-            throw new InvalidOperationException(
-                $"'{clrType.Name}' is an aggregate root and names SoftRemoved, which is a child's trait: what its " +
-                "aggregate lets go of is kept. A root that keeps its deleted rows names SoftDelete.");
-        }
-    }
-
     /// <summary>The name of the soft-delete query filter, which <c>IgnoreQueryFilters()</c> lifts.</summary>
     internal const string SoftDeleteFilter = "SoftDelete";
 
@@ -286,7 +273,7 @@ public static class ModelBuilderExtensions
     internal const string TenantFilter = "Tenant";
 
     /// <summary>
-    /// Gives every <see cref="PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
+    /// Gives every <see cref="IBelongsTo{TTenant}" /> table its <c>TenantId</c> column and its query filter. Its
     /// indexes are what the app wrote: one that holds within a tenant names <c>TenantId</c> itself.
     /// </summary>
     /// <remarks>
@@ -312,7 +299,7 @@ public static class ModelBuilderExtensions
             if (context is not ITenantScoped)
             {
                 throw new InvalidOperationException(
-                    $"'{entityType.ClrType.Name}' names PerTenant, but its DbContext " +
+                    $"'{entityType.ClrType.Name}' belongs to a tenant, but its DbContext " +
                     $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
                     "context as ': DbContext, ITenantScoped' and call " +
                     "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +
@@ -344,7 +331,7 @@ public static class ModelBuilderExtensions
     // path the aggregate's collections make. A root keeps the column it declared (Guid?, int? or long?) or a shadow
     // Guid?, and is filtered on it. A child that keeps a TenantId column keeps it as data — stamped with its root's
     // tenant and checked against it — and is STILL filtered through its parent: what partitions a table is the
-    // PerTenant its root names, never a member's name, so a legacy child row whose column is NULL stays its parent's.
+    // IBelongsTo its root says, never a member's name, so a legacy child row whose column is NULL stays its parent's.
     private static void PartitionByTenant(
         ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context, bool settling = false)
     {
@@ -356,7 +343,7 @@ public static class ModelBuilderExtensions
         {
             var parents = TenantParents.KeysOf(entityType, TenantParents.IsPartitioned);
 
-            // PerTenantThrough<TParent>'s key may be one the aggregate's own Configure maps, which runs after this:
+            // IBelongsToTenantThrough<TParent>'s key may be one the aggregate's own Configure maps, which runs after this:
             // marked now, and settled once it has run.
             if (parents.Count == 0 && tenantParent is not null && !settling)
             {
@@ -372,7 +359,7 @@ public static class ModelBuilderExtensions
                       "it up to a tenant-scoped parent, so its rows cannot be told apart by tenant. Hold it in a " +
                       "collection of its aggregate (or of a child of it) — IReadOnlyList<" + clrType.Name + "> on the " +
                       "parent — and map that relationship in the same context."
-                    : $"'{clrType.Name}' names PerTenantThrough<{tenantParent.Name}>, but the model has no relationship " +
+                    : $"'{clrType.Name}' says IBelongsToTenantThrough<{tenantParent.Name}>, but the model has no relationship " +
                       $"from it to '{tenantParent.Name}', so its rows cannot be told apart by tenant. Hold the " +
                       $"{tenantParent.Name}'s strongly-typed id, or map the foreign key in its Configure.");
             }

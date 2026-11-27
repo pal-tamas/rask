@@ -28,7 +28,7 @@ public class ValueObjectStaleRuleTests
 
     private const string Holder = """
 
-        public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Product() { }
             public Sku Sku { get; private set; } = new(default!);
@@ -131,7 +131,7 @@ public class ValueObjectStaleRuleTests
 
         var diagnostics = Rask132(source, """
 
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public Sku Sku { get; private set; } = Sku.Create("A-1");
@@ -170,7 +170,7 @@ public class ValueObjectStaleRuleTests
             """,
             """
 
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public Money Price { get; private set; } = new(0, "EUR");
@@ -202,7 +202,7 @@ public class ValueObjectStaleRuleTests
             """,
             """
 
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<ProductLine> _lines = [];
                 private Product() { }
@@ -210,7 +210,7 @@ public class ValueObjectStaleRuleTests
                 public Size Size { get; private set; } = new(new(""), 0);
                 public IReadOnlyList<ProductLine> Lines => _lines;
             }
-            public sealed class Bundle : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Bundle : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Bundle() { }
                 public Sku Sku { get; private set; } = new("");

@@ -28,7 +28,7 @@ var loaded = await Transaction.Import(lines, line => Loaded(file, line), o =>
 and `Validate()` do not run: it is for what no rule is about — a flag, a stamp, an infrastructure row (a login
 session, a pairing a pump re-sends). What a save keeps it still keeps:
 
-- the tenant and soft-delete filters (a `SoftDelete` aggregate's `DeleteWhere` stamps `DeletedAt` instead);
+- the tenant and soft-delete filters (an `ISoftDeletes` aggregate's `DeleteWhere` stamps `DeletedAt` instead);
 - `UpdatedAt` stamped and `Version` bumped by `UpdateWhere`, so a form read before it is refused as stale;
 - the declared locks ([`LockedBy`](domain.md#a-row-closed-by-its-parent-lockedby)): a row whose parent is locked is refused — the old parent
   before the statement, the one `UpdateWhere` moved it to after it, still inside the transaction it rolls back —
@@ -238,11 +238,11 @@ await Product.UpdateWhere(p => p.Discontinued, s => s
     .SetProperty(p => p.Active, false)
     .SetProperty(p => p.Price, p => p.Price * 0.9m));        // the arithmetic happens in SQL
 
-await Draft.DeleteWhere(d => d.SavedAt < cutoff);            // a SoftDelete aggregate's rows are stamped instead
+await Draft.DeleteWhere(d => d.SavedAt < cutoff);            // an ISoftDeletes aggregate's rows are stamped instead
 ```
 
 Unlike EF Core's `ExecuteUpdateAsync` and `ExecuteDeleteAsync` underneath, they keep the conventions: `UpdatedAt` is
-stamped and `Version` bumped, a `SoftDelete` aggregate's delete stamps `DeletedAt` rather than removing the row, the
+stamped and `Version` bumped, an `ISoftDeletes` aggregate's delete stamps `DeletedAt` rather than removing the row, the
 tenant and soft-delete filters apply, the declared locks and the unique and referenced-row messages are asked, and the
 pages showing the rows are told. A change a rule decides is never one of these — it goes through the aggregate's
 operation, row by row, with [`UpdateEach`](#writes-over-many-rows).

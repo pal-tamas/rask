@@ -47,7 +47,7 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
         // Materialised: a kept child puts back what it holds, which changes the tracker's entries.
         foreach (var entry in context.ChangeTracker.Entries<IEntity>().ToList())
         {
-            // Only an aggregate that asked for soft delete, or a child that names SoftRemoved, has the column. The
+            // Only an aggregate that asked for soft delete, or a child that says ISoftDeletes, has the column. The
             // default is a real delete, so the absence of DeletedAt is the answer rather than something to work around.
             if (entry.State == EntityState.Deleted && entry.Metadata.FindProperty(Columns.DeletedAt) is not null &&
                 (entry.Entity is IAggregate || ConventionRegistry.Has(entry.Metadata.ClrType, TraitSet.SoftRemoved)))

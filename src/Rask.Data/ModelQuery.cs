@@ -152,7 +152,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// <remarks>
     ///     <b>It does not cross tenants.</b> The tenant filter is a separate, named filter and stays exactly
     ///     where it is, so an existing call to this never quietly becomes a cross-tenant read the day an
-    ///     aggregate declares <see cref="PerTenant" />. Spanning tenants is
+    ///     aggregate declares <see cref="IBelongsTo{TTenant}" />. Spanning tenants is
     ///     <see cref="Tenant.Across" />, deliberately and visibly.
     /// </remarks>
     public ModelQuery<TEntity> IgnoreQueryFilters() =>
@@ -171,7 +171,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     ///         The per-query form of <see cref="Tenant.Across" />: the tenant filter is a named filter, and this lifts
     ///         that one alone — the soft-delete filter stays, as <see cref="IgnoreQueryFilters" /> leaves the tenant's.
     ///         A child read through its parent, and a table that belongs to its tenant through another aggregate
-    ///         (<see cref="PerTenantThrough{TParent}" />), are read across as well, since their filter is the same one.
+    ///         (<see cref="IBelongsToTenantThrough{TParent}" />), are read across as well, since their filter is the same one.
     ///     </para>
     ///     <para>
     ///         It only reads. A row it hands back that is then changed is saved in the tenant it belongs to, and a

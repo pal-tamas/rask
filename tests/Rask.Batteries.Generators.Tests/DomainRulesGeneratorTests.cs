@@ -17,7 +17,7 @@ public class DomainRulesGeneratorTests
 
             namespace Shop
             {
-                public sealed class Order : Aggregate<System.Guid, Deletable>
+                public sealed class Order : Aggregate<System.Guid>, IDeletable
                 {
                     [Required, StringLength(200)] public string Title { get; private set; } = "";
 

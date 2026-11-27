@@ -12,7 +12,7 @@ using Rask.Tests.Shared;
 namespace Rask.Server.Tests.App;
 
 /// <summary>A mooring at a quay: one row, nothing scoped, so the transaction is all a test has to watch.</summary>
-public sealed class Mooring : Aggregate<Guid, Model>
+public sealed class Mooring : Aggregate<Guid>, IHasForm
 {
     private Mooring() { }
 

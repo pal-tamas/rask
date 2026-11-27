@@ -81,6 +81,24 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: a table's traits are marker interfaces on the class, read like a sentence.** The trait type arguments of
+  the base and the bases of extra arity are gone:
+  `public sealed partial class Company : Aggregate<CompanyId>, IBelongsTo<Tenant>, ISoftDeletes, IHasForm` replaces
+  `Aggregate<CompanyId, PerTenant<int>, SoftDelete, Model>`. The map: `Timestamps`/`Created`/`Updated` →
+  `IHasTimestamps : IHasCreatedAt, IHasUpdatedAt`; `Versioned` → `IVersioned`; `Model`/`CreateModel`/`UpdateModel` →
+  `IHasForm : IHasCreateForm, IHasUpdateForm`; `Deletable` → `IDeletable`; `SoftDelete` and `SoftRemoved` → one
+  `ISoftDeletes`, whose meaning is its place (a root soft-deletes, a child is soft-removed; the model's refusal of
+  `SoftRemoved` on a root goes with it); `Broadcast` → `IBroadcasts`; `PerTenant` / `PerTenant<TKey>` →
+  `IBelongsTo<TTenant>`, naming the app's tenant aggregate, whose key decides the `TenantId` column (a typed id
+  included); `PerTenantThrough<TParent>` → `IBelongsToTenantThrough<TParent>`; `b.Infrastructure()` → `IInfrastructure`
+  on the class (Rask's own tables say it). `OneInForce<TChild>` is gone: the child's `b.InForceWhile(…)` alone makes the
+  index, on the aggregate that holds it in a collection. `c.TenantReferences<T>()` is gone: every table that
+  `IBelongsTo` the aggregate that says `ITenant` refers to the tenant's key, so **an app that did not call it gets a
+  migration adding those foreign keys** — rows whose tenant has no row fail it. RASK146 (an error) takes the place of
+  the compiler's refusal: an aggregate's trait on a child entity, `IBelongsTo` beside `IBelongsToTenantThrough`,
+  `IDeletable` beside `ISoftDeletes`, `IBelongsTo<T>` of an aggregate other than the app's tenant. The registry's
+  `TraitSet` is unchanged, so the EF Core model is otherwise identical (the Rask.Data test model, all 4564 lines of its
+  debug view, did not change): rewrite the class lines, and the tenant references are all a migration adds.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
   where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
   time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter

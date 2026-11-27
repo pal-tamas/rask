@@ -7,7 +7,7 @@ namespace Rask.Data;
 ///     <para>
 ///         Nothing to implement — the interface is the declaration, read by the build:
 ///         <code>
-/// public sealed class Tenant : Aggregate&lt;int, Deletable&gt;, ITenant { … }
+/// public sealed class Tenant : Aggregate&lt;int&gt;, IDeletable, ITenant { … }
 ///         </code>
 ///         and from then on <c>Current.Tenant</c> is that tenant's read face (<c>TenantRead?</c>), with
 ///         <c>Current.Tenant.Id</c> in the aggregate's own key type, and <c>Current.RequiredTenant</c> the same row
@@ -17,8 +17,8 @@ namespace Rask.Data;
 ///         One aggregate per app says it, and its key is a <see cref="Guid" />, an <see cref="int" />, a
 ///         <see cref="long" />, a <see cref="string" /> holding a <see cref="Guid" />, or a typed id over a
 ///         <see cref="Guid" />, an <see cref="int" /> or a <see cref="long" /> (<c>Aggregate&lt;TenantId&gt;</c>) —
-///         the one its <see cref="PerTenant" /> tables keep in <c>TenantId</c>, so a typed tenant's tables keep a
-///         <c>TenantId?</c> (or name <c>PerTenant&lt;TenantId&gt;</c>). The build refuses anything else. A typed
+///         the one its <see cref="IBelongsTo{TTenant}" /> tables keep in <c>TenantId</c>, so a typed tenant's tables keep a
+///         <c>TenantId?</c> (declared, or a shadow column <c>IBelongsTo&lt;Tenant&gt;</c> gives them). The build refuses anything else. A typed
 ///         tenant reads <c>Current.TenantId</c> as its id and opens with <c>Tenant.Use(tenantId)</c>.
 ///     </para>
 ///     <para>

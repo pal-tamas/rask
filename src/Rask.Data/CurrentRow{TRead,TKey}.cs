@@ -16,7 +16,7 @@ namespace Rask.Data;
 ///     <para>
 ///         The user's row is read across tenants: it is looked up by the signed-in user's own key, which names one
 ///         row whatever tenant the work is in — an administrator working in another tenant is still themselves, and
-///         a user aggregate that is <c>PerTenant</c> would otherwise read as gone there.
+///         a user aggregate that belongs to a tenant would otherwise read as gone there.
 ///     </para>
 /// </remarks>
 internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey>(

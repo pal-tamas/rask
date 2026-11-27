@@ -11,7 +11,7 @@ public sealed partial record UnitPrice(decimal Value)
 
 // The aggregate is the table, and each method is one write.
 public sealed partial class Product
-    : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+    : Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable
 {
     public ProductName Name { get; private set; } = null!;
     public UnitPrice Price { get; private set; } = null!;

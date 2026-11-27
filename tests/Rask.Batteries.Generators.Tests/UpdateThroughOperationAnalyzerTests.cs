@@ -7,7 +7,7 @@ namespace Rask.Batteries.Generators.Tests;
 public class UpdateThroughOperationAnalyzerTests
 {
     // The generated surface, written by hand: the Update the model writes and the entry the operation generator gives.
-    internal static string Source(string work, string traits = ", Versioned", string version = "int version, ") => $$"""
+    internal static string Source(string work, string traits = ", IVersioned", string version = "int version, ") => $$"""
         using System;
         using System.CodeDom.Compiler;
         using System.Threading;
@@ -15,7 +15,7 @@ public class UpdateThroughOperationAnalyzerTests
         using Microsoft.EntityFrameworkCore;
         using Rask.Data;
         namespace Shop;
-        public sealed partial class Supply : Aggregate<Guid{{traits}}>
+        public sealed partial class Supply : Aggregate<Guid>{{traits}}
         {
             private Supply() { }
             public string Name { get; private set; } = "";

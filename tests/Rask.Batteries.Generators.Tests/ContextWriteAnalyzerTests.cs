@@ -16,7 +16,7 @@ public class ContextWriteAnalyzerTests
         using Rask.Data;
         namespace Shop;
         public sealed class FactAttribute : Attribute;
-        public sealed partial class Product : Aggregate<Guid, Versioned>
+        public sealed partial class Product : Aggregate<Guid>, IVersioned
         {
             private Product() { }
             public string Name { get; private set; } = "";

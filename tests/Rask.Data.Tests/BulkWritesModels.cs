@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 // A firkin on a shelf, labelled once: what the writes over many rows load, stamp, match and import (BulkWritesTests).
-public sealed class Firkin : Aggregate<int, Timestamps, Versioned, Deletable>
+public sealed class Firkin : Aggregate<int>, IHasTimestamps, IVersioned, IDeletable
 {
     public const string Negative = "A firkin cannot hold fewer than none.";
 
@@ -31,7 +31,7 @@ public sealed class Firkin : Aggregate<int, Timestamps, Versioned, Deletable>
 }
 
 // A slip filed into a ledger period: a closed period keeps its slips, whatever writes them.
-public sealed class FirkinSlip : Aggregate<Guid, Deletable>
+public sealed class FirkinSlip : Aggregate<Guid>, IDeletable
 {
     private FirkinSlip() { } // EF materialization
 

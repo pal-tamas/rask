@@ -12,25 +12,28 @@ table has nothing to configure.
 
 ## Declaring a tenant-scoped table
 
-One trait on the base partitions a table by tenant — `PerTenant`, one of the family that
+One trait on the class partitions a table by tenant — `IBelongsTo<Tenant>`, naming the app's tenant aggregate (the
+one that [says `ITenant`](#your-tenant-row-currenttenant)), one of the family that
 [chooses what a table carries](domain.md#choosing-what-a-table-carries):
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
+public sealed class Tenant : Aggregate<Guid>, ITenant { … }
+
+public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IBelongsTo<Tenant>
 {
     public string Reference { get; private set; } = "";
 }
 ```
 
 That gives the table a `TenantId` column and a query filter no read can compose away; its indexes are
-[what you write](#an-index-is-what-you-write). A table that does not name it is shared. A child entity
+[what you write](#an-index-is-what-you-write). A table that does not say it is shared. A child entity
 takes its root's answer and needs no tenant column — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant).
 
 The column is the framework's, so the entity does not mention it. One that wants to read its tenant declares
 the property, and Rask maps the column to it:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
+public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IBelongsTo<Tenant>
 {
     public Guid? TenantId { get; private set; }
 }
@@ -47,19 +50,22 @@ using (Tenant.Across())
 }
 ```
 
-**Why a type argument.** Like the other traits, it is read at compile time rather than reflected over, so a
-trimmed publish cannot lose it and quietly fall back to "shared".
+**Why an interface the build reads.** Like the other traits, it is read at compile time rather than reflected over,
+so a trimmed publish cannot lose it and quietly fall back to "shared". The column's type is not written at all: it
+is the tenant aggregate's key, so the tables and the tenant cannot disagree.
 
 ### Tenants that are numbered
 
-An app whose tenants are rows with an integer key names `PerTenant<int>` (or `PerTenant<long>`), and that type is
-the column's, the filter's and the stamp's. The column is a shadow `int?` until the aggregate declares it, and a
-declared `TenantId` must have the same type:
+An app whose tenants are rows with an integer key — `Tenant : Aggregate<int>, ITenant` (or `long`) — keeps that type
+in every table that belongs to it: it is the column's, the filter's and the stamp's. The column is a shadow `int?`
+until the aggregate declares it, and a declared `TenantId` must have the same type:
 
 ```csharp
-public sealed class Destination : Aggregate<int, PerTenant<int>>
+public sealed class Tenant : Aggregate<int>, ITenant { … }
+
+public sealed class Destination : Aggregate<int>, IBelongsTo<Tenant>
 {
-    public int? TenantId { get; private set; }     // optional — to read it; long? under PerTenant<long>
+    public int? TenantId { get; private set; }     // optional — to read it; long? for a long tenant
 
     public string Name { get; private set; } = "";
 }
@@ -73,17 +79,16 @@ using (Tenant.Use(42))
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
 it is saved — plus the tenant's own typed id over one of them, and any other is refused when the model is built.
-An aggregate that names plain `PerTenant` and declares nothing keeps a shadow
-`Guid?`.
+A table of a `Guid` tenant (or a `string` one holding a `Guid`) that declares nothing keeps a shadow `Guid?`.
 
-A tenant keyed by a typed id keeps it in its tables too — `TenantId? TenantId`, or `PerTenant<TenantId>` and no
-property — and the build holds every table to it (RASK114 for a `Guid? TenantId` beside a typed tenant):
+A tenant keyed by a typed id keeps it in its tables too — `TenantId? TenantId`, or no property at all — and the build
+holds every table to it (RASK114 for a `Guid? TenantId` beside a typed tenant):
 
 ```csharp
 public readonly partial record struct ShopId(int Value);
 
 public sealed class Shop : Aggregate<ShopId>, ITenant { … }
-public sealed class Stall : Aggregate<int, PerTenant<ShopId>>
+public sealed class Stall : Aggregate<int>, IBelongsTo<Shop>
 {
     public ShopId? TenantId { get; private set; }     // optional — to read it
 }
@@ -118,7 +123,9 @@ the `Guid?` and say how it is stored; Rask filters and stamps in the column's ow
 read face alike:
 
 ```csharp
-public sealed class Company : Aggregate<string, PerTenant>
+public sealed class Partner : Aggregate<string>, ITenant { … }     // its key the text of a Guid
+
+public sealed class Company : Aggregate<string>, IBelongsTo<Partner>
 {
     public Guid? TenantId { get; private set; }
 
@@ -144,13 +151,13 @@ column and you write nothing for it: no `TenantId`, no trait, no configuration, 
 an `EXISTS` on the parent's key and tenant, one per level for a grandchild.
 
 ```csharp
-public sealed class Driver : Aggregate<string, PerTenant>
+public sealed class Driver : Aggregate<string>, IBelongsTo<Partner>
 {
     public Guid? TenantId { get; private set; }                   // tenantId, text
     public IReadOnlyList<Chip> Chips => _chips;                   // by driverId
 }
 
-public sealed class Vehicle : Aggregate<string, PerTenant>
+public sealed class Vehicle : Aggregate<string>, IBelongsTo<Partner>
 {
     public Guid? TenantId { get; private set; }
     public IReadOnlyList<Chip> Chips => _chips;                   // by vehicleId
@@ -202,17 +209,17 @@ What follows from reading through the root:
 tenant — inside `Tenant.Across()` as well — and refused at the save if it disagrees with the root's. It is NOT
 filtered on: the child is still read through its root, so a legacy row whose column is NULL is its parent's, and
 editing one is not refused for it. **A member's name never turns tenant filtering on** — public or internal,
-declared or shadow, a `TenantId` on a child is data; only `PerTenant` on the aggregate root partitions. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
+declared or shadow, a `TenantId` on a child is data; only `IBelongsTo<Tenant>` on the aggregate root partitions. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
 reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
 the property if the column should stay.
 
-### An aggregate that belongs to another one's tenant: `PerTenantThrough<T>`
+### An aggregate that belongs to another one's tenant: `IBelongsToTenantThrough<T>`
 
 Some aggregates are not held in a collection and keep no tenant of their own, but belong to whoever owns the
-aggregate they point at — a distribution of a supply, a pairing of a fueling. Name that aggregate on the base:
+aggregate they point at — a distribution of a supply, a pairing of a fueling. The class says which aggregate:
 
 ```csharp
-public sealed class Distribution : Aggregate<DistributionId, Versioned, PerTenantThrough<Supply>>
+public sealed class Distribution : Aggregate<DistributionId>, IVersioned, IBelongsToTenantThrough<Supply>
 {
     public SupplyId Supply { get; private set; }     // the key the tenant is read through
 }
@@ -235,7 +242,7 @@ if (await User.Across("a user name is unique across every partner").Any(u => u.U
 ```
 
 It lifts the tenant filter — and only that one — from every table the query reads: a child read through its
-parent, and a `PerTenantThrough` aggregate, are read across too, while a soft-deleted row stays hidden. The reason
+parent, and an `IBelongsToTenantThrough` aggregate, are read across too, while a soft-deleted row stays hidden. The reason
 is required and never empty, so each crossing says what it is for where a reviewer reads it. It only reads: a row it
 hands back is still saved in the tenant it belongs to. `Tenant.Across()` remains for a block of work — an admin
 tool, a migration — that spans tenants as a whole.
@@ -366,7 +373,7 @@ Say which of your aggregates is the tenant, once, and `Current.Tenant` is that t
 `Current.tenant` and Laravel's `tenant()` are:
 
 ```csharp
-public sealed class Tenant : Aggregate<int, Deletable>, ITenant
+public sealed class Tenant : Aggregate<int>, IDeletable, ITenant
 {
     public string Name { get; private set; } = "";
     public string Currency { get; private set; } = "HUF";
@@ -402,10 +409,11 @@ A numbered tenant's claim may hold the number written out (`"12"`) or the `Guid`
 tenant 12.
 
 The build generates both from the `ITenant` declaration. Its key is a `Guid`, an `int`, a `long`, or a `string`
-holding a `Guid` ([kept as text](#tenants-kept-as-text)), and it must be the key your `PerTenant` tables keep in
-`TenantId` — [RASK114](diagnostics.md#rask114) otherwise. Two aggregates that say `ITenant` are
-[RASK113](diagnostics.md#rask113); a project with `PerTenant` tables and no `ITenant` is warned with the line to
-add ([RASK115](diagnostics.md#rask115)).
+holding a `Guid` ([kept as text](#tenants-kept-as-text)), or a typed id over a `Guid`, an `int` or a `long`, and it is
+the key the tables that say `IBelongsTo<Tenant>` keep in `TenantId` — a `TenantId` one declares in another type is
+[RASK114](diagnostics.md#rask114). Two aggregates that say `ITenant` are [RASK113](diagnostics.md#rask113); a table
+that belongs to an aggregate other than the one that says it is [RASK146](diagnostics.md#rask146); a project with
+tables that belong to a tenant and no `ITenant` is warned with the line to add ([RASK115](diagnostics.md#rask115)).
 
 **It is not a query.** The row is read once per tenant and held for the whole process — per database, so two apps
 in one process (two tests side by side, each on its own `TestDatabase`, both with a tenant 2) never read each
@@ -433,22 +441,18 @@ sees it within 60 seconds, which is how long a held row is trusted.
 `Current.Tenant` used to be the tenant's `Guid`. The framework keeps that internally — a job's row, a cache key, a
 stored file still record it — and your code reads the row's `Id` instead.
 
-### Every table points at its tenant: `TenantReferences<T>()`
+### Every table points at its tenant
 
 A tenant that still has rows should not be deletable, and only the database can refuse that for every table at
-once. Say it once, in the app's `IRaskModel`:
-
-```csharp
-public static void Conventions(ModelConfigurationBuilder c) =>
-    c.TenantReferences<Partner>();      // every PerTenant table's TenantId → the Partner's key
-```
+once. There is nothing to say: a table that says `IBelongsTo<Partner>`, where `Partner` is the aggregate that says
+`ITenant`, refers to the partner's key. Give the tenant the sentence a refused delete says:
 
 ```csharp
 public static void Configure(EntityTypeBuilder<Partner> b) =>
     b.WhenReferenced("A partner that still has data is not removed.");   // what a refused delete says
 ```
 
-Every `PerTenant` table that keeps a `TenantId` column gets a foreign key to the tenant's key — `NO ACTION` on
+Every such table that keeps a `TenantId` column gets a foreign key to the tenant's key — `NO ACTION` on
 delete, named by your [`ConstraintNames`](data.md#app-wide-model-rules-one-iraskmodel) rule
 (`ConstraintKind.ForeignKey`, so `{Table}_{column}_fkey` gives `Driver_tenantId_fkey`) or else
 `FK_{table}_{tenant}_{column}`. The migrations make it on SQL Server and PostgreSQL, and a database made from the
@@ -464,7 +468,7 @@ SQLite makes a foreign key only with its table, so there a migration that adds i
 nothing; a new table, or a database made from the model, has it.
 
 **A database that already has these keys** — made by another tool, or by a hand-written migration — keeps them:
-the first migration after `TenantReferences<T>()` adds one `AddForeignKey` per table; with your naming rule giving
+the first migration that sees them adds one `AddForeignKey` per table; with your naming rule giving
 the names the database already has, delete those operations from its `Up` and `Down` (the snapshot keeps the
 declaration) and the migrations agree with the database from then on.
 
@@ -636,7 +640,7 @@ await Invoice.IgnoreQueryFilters();   // includes soft-deleted; SAME tenant
 ```
 
 It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call
-never quietly becomes a cross-tenant read the day an aggregate names `PerTenant`. Crossing tenants is
+never quietly becomes a cross-tenant read the day an aggregate says `IBelongsTo<Tenant>`. Crossing tenants is
 `Tenant.Across()`. This uses EF Core 10's named query filters.
 
 ## An index is what you write
@@ -679,8 +683,8 @@ is refused too, unless the row's `TenantId` is already set, because "across" nam
 ## A reference names a row of the same tenant
 
 The database's foreign key says only that the row exists — in **any** tenant. So a save checks it too: every
-reference a `PerTenant` row **sets** to another tenant-scoped table — a `PerTenant` aggregate, a child, a
-[`PerTenantThrough`](#an-aggregate-that-belongs-to-another-ones-tenant-pertenantthrought) aggregate's own parent —
+reference a tenant's row **sets** to another tenant-scoped table — an aggregate that belongs to the tenant, a child, an
+[`IBelongsToTenantThrough`](#an-aggregate-that-belongs-to-another-ones-tenant-ibelongstotenantthrought) aggregate's own parent —
 must name a row the tenant in flight reads. One of another tenant's, or none at all, refuses the save with a
 `RaskValidationException` **under the reference's field** (`CompanyId`, or `Axles[1].DepotId` for a child's), so a
 form shows it where the reader picked it and the method needs no guard of its own:

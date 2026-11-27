@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // An aggregate written the FluentValidation way: its rules in its own static Rules, beside a row whose rules are its
 // own, and a value object that states its rule the same way (FluentDomainValidationTests).
-public sealed class Harbour : Aggregate<Guid, Versioned, Model, Deletable>
+public sealed class Harbour : Aggregate<Guid>, IVersioned, IHasForm, IDeletable
 {
     private readonly List<Quay> _quays = [];
 

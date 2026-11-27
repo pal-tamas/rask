@@ -22,7 +22,7 @@ public class OperationGeneratorTests
         {
             public static class Roles { public const string Admin = "Admin"; }
 
-            public sealed partial class Supply : Aggregate<System.Guid, Versioned>
+            public sealed partial class Supply : Aggregate<System.Guid>, IVersioned
             {
                 public string Note { get; private set; } = "";
                 public int Opening { get; private set; }
@@ -145,7 +145,7 @@ public class OperationGeneratorTests
             using Rask.Data;
             namespace Shop
             {
-                public sealed partial class Tag : Aggregate<int, Versioned>
+                public sealed partial class Tag : Aggregate<int>, IVersioned
                 {
                     public int Level { get; private set; }
                     public void Bump(int version) => Level = version;
@@ -290,7 +290,7 @@ public class OperationGeneratorTests
             public sealed partial record DriverName(string Value) : Text(Value, MaxLength: 40);
             public sealed partial record Nickname(string Value) : Text(Value, MaxLength: 10);
 
-            public sealed partial class Driver : Aggregate<Guid, Versioned>
+            public sealed partial class Driver : Aggregate<Guid>, IVersioned
             {
                 public DriverName Name { get; private set; } = null!;
                 public Nickname? Nick { get; private set; }
@@ -330,7 +330,7 @@ public class OperationGeneratorTests
 
         namespace Shop
         {
-            public sealed partial class Memo : Aggregate<Guid, Versioned>
+            public sealed partial class Memo : Aggregate<Guid>, IVersioned
             {
                 public string Text { get; private set; } = "";
 
@@ -368,7 +368,7 @@ public class OperationGeneratorTests
 
             namespace Shop
             {
-                public sealed partial class Memo : Aggregate<Guid, Versioned>
+                public sealed partial class Memo : Aggregate<Guid>, IVersioned
                 {
                     public string Text { get; private set; } = "";
 
@@ -441,7 +441,7 @@ public class OperationGeneratorTests
             {
                 public sealed partial record TankSize(int Value) : Value;
 
-                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                public sealed partial class Vehicle : Aggregate<Guid>, IVersioned
                 {
                     public TankSize Size { get; private set; } = null!;
                     public void ProbeA(TankSize size) => Size = size;
@@ -472,7 +472,7 @@ public class OperationGeneratorTests
             public sealed partial record Note(string Value) : Text(Value, MaxLength: 40);
             public sealed partial record WallMoment(DateTime Value) : Moment(Value);
 
-            public sealed partial class Supply : Aggregate<Guid, Versioned>
+            public sealed partial class Supply : Aggregate<Guid>, IVersioned
             {
                 public Amount? TotalSum { get; private set; }
                 public Litres Volume { get; private set; } = null!;
@@ -618,7 +618,7 @@ public class OperationGeneratorTests
             using Rask.Data;
             namespace Shop
             {
-                public sealed partial class Tag : Aggregate<System.Guid, Versioned, Deletable>
+                public sealed partial class Tag : Aggregate<System.Guid>, IVersioned, IDeletable
                 {
                     public string Name { get; private set; } = "";
                     public static void Configure(EntityTypeBuilder<Tag> b) => b.Operation(nameof(Delete), roles: "Admin");
@@ -662,7 +662,7 @@ public class OperationGeneratorTests
                 public sealed partial record Nickname(string Value) : Text(Value, MaxLength: 10);
                 public sealed partial record Secret(string Value) : Password(Value, MinLength: 8);
 
-                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                public sealed partial class Driver : Aggregate<Guid>, IVersioned
                 {
                     public Nickname? Nick { get; private set; }
                     public Secret Code { get; private set; } = null!;
@@ -711,7 +711,7 @@ public class OperationGeneratorTests
 
             namespace Shop
             {
-                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                public sealed partial class Vehicle : Aggregate<Guid>, IVersioned
                 {
                     public Rask.Storage.Attachment? Registration { get; private set; }
                     public Rask.Storage.Attachment? Photo { get; private set; }
@@ -743,7 +743,7 @@ public class OperationGeneratorTests
             public sealed partial record Hold(string Value) : Text(Value, MaxLength: 8);
             public sealed record CargoPartSpec(Guid? Id, Hold Hold, Tonnage Tonnes, int Crates, bool Fragile);
 
-            public sealed partial class Cargo : Aggregate<Guid, Versioned>
+            public sealed partial class Cargo : Aggregate<Guid>, IVersioned
             {
                 public Children<CargoPart, CargoPartSpec> Parts { get; } = new();
                 public void Load(IReadOnlyList<CargoPartSpec> parts) => Parts.Sync(parts, s => s.Id, CargoPart.For, (p, s) => p.Take(s));
@@ -817,7 +817,7 @@ public class OperationGeneratorTests
                 }
             }
 
-            public sealed partial class Depot : Aggregate<Guid, Versioned>
+            public sealed partial class Depot : Aggregate<Guid>, IVersioned
             {
                 public KmRange Km { get; private set; } = null!;
                 public Opening? Opening { get; private set; }
@@ -878,7 +878,7 @@ public class OperationGeneratorTests
                     public Opening Start { get; private set; } = null!;
                 }
 
-                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                public sealed partial class Vehicle : Aggregate<Guid>, IVersioned
                 {
                     private readonly List<Probe> _rows = [];
                     public IReadOnlyList<Probe> Rows => _rows;
@@ -916,7 +916,7 @@ public class OperationGeneratorTests
             {
                 public sealed partial record WallMoment({{held}} Value) : Value;
 
-                public sealed partial class Vehicle : Aggregate<Guid, Versioned>
+                public sealed partial class Vehicle : Aggregate<Guid>, IVersioned
                 {
                     public void Stamp(WallMoment at) { }
                 }
@@ -943,7 +943,7 @@ public class OperationGeneratorTests
             {
                 public enum Module { Tachograph }
 
-                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                public sealed partial class Driver : Aggregate<Guid>, IVersioned
                 {
                     public string Name { get; private set; } = "";
                     public string? Card { get; private set; }
@@ -974,7 +974,7 @@ public class OperationGeneratorTests
             {
                 public enum Module { Fleet, Tachograph }
 
-                public sealed class Driver : Aggregate<Guid, Versioned>
+                public sealed class Driver : Aggregate<Guid>, IVersioned
                 {
                     public string? Card { get; private set; }
                     public static void Configure(EntityTypeBuilder<Driver> b) => b.Gated(d => d.Card, Module.Tachograph);
@@ -1002,7 +1002,7 @@ public class OperationGeneratorTests
             {
                 public sealed partial record Secret(string Value) : Password(Value, MinLength: 8);
 
-                public sealed partial class Driver : Aggregate<Guid, Versioned>
+                public sealed partial class Driver : Aggregate<Guid>, IVersioned
                 {
                     public Secret Code { get; private set; } = null!;
                     public void Recode(Secret code) => Code = code;
@@ -1127,7 +1127,7 @@ public class OperationGeneratorTests
         using Rask.Data;
         namespace Shop
         {
-            public sealed partial class Tag : Aggregate<Guid, Versioned>
+            public sealed partial class Tag : Aggregate<Guid>, IVersioned
             {
         {{members}}
             }

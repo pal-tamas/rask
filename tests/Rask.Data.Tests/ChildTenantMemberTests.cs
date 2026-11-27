@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests.ChildTenants;
 
 /// <summary>A numbered tenant's supply: the root carries the tenant.</summary>
-public sealed class Supply : Aggregate<int, Model, Deletable, PerTenant<int>>
+public sealed class Supply : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<NumberShop>
 {
     private readonly List<SupplyLine> _lines = [];
 
@@ -42,7 +42,7 @@ public sealed class SupplyLine : Entity<int>
 }
 
 /// <summary>A Guid tenant's hopper: the root carries the tenant.</summary>
-public sealed class Hopper : Aggregate<Guid, Model, Deletable, PerTenant>
+public sealed class Hopper : Aggregate<Guid>, IHasForm, IDeletable, IBelongsTo<GuidShop>
 {
     private readonly List<HopperBin> _bins = [];
 
@@ -74,7 +74,7 @@ public sealed class HopperBin : Entity<Guid>
 
 /// <summary>
 /// A child is partitioned THROUGH its root: a <c>TenantId</c> member on it — internal or public, int or Guid — is
-/// a column it keeps, never a filter of its own. Only a type that names <see cref="PerTenant" /> itself — an
+/// a column it keeps, never a filter of its own. Only a type that names <see cref="IBelongsTo{TTenant}" /> itself — an
 /// aggregate root, the one base that takes the trait — is filtered by its own column.
 /// </summary>
 public sealed class ChildTenantMemberTests : IDisposable

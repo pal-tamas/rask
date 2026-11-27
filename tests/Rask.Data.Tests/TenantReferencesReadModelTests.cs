@@ -4,25 +4,13 @@ using Rask.Data.Tests.Excise;
 
 namespace Rask.Data.Tests;
 
-/// <summary>The app's rules naming its tenant, as TA's <c>IRaskModel</c> says <c>c.TenantReferences&lt;Partner&gt;()</c>.</summary>
-/// <remarks>Not an <see cref="IRaskModel" />, for the reason <see cref="PayrollRules" /> gives: the test names it itself.</remarks>
-internal static class TenantReferenceRules
-{
-    public static void Conventions(ModelConfigurationBuilder c) => c.TenantReferences<NumberShop>();
-
-    public static void Model(ModelBuilder m)
-    {
-    }
-}
-
 /// <summary>A context of its own, so the model EF caches under the rules is never another test's.</summary>
 public sealed class TenantReferenceContext(DbContextOptions<TenantReferenceContext> options) : RaskDbContext(options);
 
 /// <summary>
-/// <c>TenantReferences&lt;T&gt;()</c> is the write model's — a foreign key a migration makes. The read model, whose tenant
-/// is its read face, builds under the same rules without it and reads as it did.
+/// The tenant reference is the write model's — a foreign key a migration makes from a table that belongs to the app's
+/// tenant. The read model, whose tenant is its read face, builds without it and reads as it did.
 /// </summary>
-[Collection(AppModelRulesCollection.Name)]
 public sealed class TenantReferencesReadModelTests : IAsyncLifetime
 {
     private readonly SqliteConnection _keeper = new($"Data Source=rask-tenant-read-{Guid.NewGuid():N};Mode=Memory;Cache=Shared");
@@ -32,7 +20,9 @@ public sealed class TenantReferencesReadModelTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        ModelRegistry.UseModel(typeof(TenantReferenceRules), TenantReferenceRules.Conventions, TenantReferenceRules.Model);
+        // GuidShop is the app's tenant here, as the generated registration of the aggregate that says ITenant names it.
+        CurrentRows.Use(new CurrentRow<GuidShopRead, Guid>(
+            CurrentRowKind.Tenant, typeof(GuidShop), static key => row => row.Id == key, static row => row.Id));
         await _keeper.OpenAsync(Ct);
         _database = await TestDatabase.Start<TenantReferenceContext>(o => o.UseSqlite(_keeper.ConnectionString), cancellationToken: Ct);
     }
@@ -41,7 +31,7 @@ public sealed class TenantReferencesReadModelTests : IAsyncLifetime
     {
         await _database.DisposeAsync();
         await _keeper.DisposeAsync();
-        ModelRegistry.ForgetModel();
+        CurrentRows.Reset();
     }
 
     [Fact]
@@ -68,6 +58,6 @@ public sealed class TenantReferencesReadModelTests : IAsyncLifetime
 
         var reference = goods.FindAnnotation("Rask:TenantReference")?.Value as string;
 
-        Assert.EndsWith("-> NumberShop(Id)", reference, StringComparison.Ordinal);
+        Assert.EndsWith("-> GuidShop(Id)", reference, StringComparison.Ordinal);
     }
 }

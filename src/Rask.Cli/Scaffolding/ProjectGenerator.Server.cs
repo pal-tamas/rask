@@ -180,7 +180,7 @@ internal static partial class ProjectGenerator
             steps.Append("configuration class, no registration. Key it by a typed id over a Guid, which\n");
             steps.Append("ProductId.New() makes (time-ordered, version 7) before the row is ever saved:\n");
             steps.Append("\n  public readonly partial record struct ProductId(Guid Value);\n");
-            steps.Append("\n  public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable>\n");
+            steps.Append("\n  public sealed class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IHasForm, IDeletable\n");
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");

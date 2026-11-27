@@ -14,7 +14,7 @@ public class RawSetWriteAnalyzerTests
         using Microsoft.EntityFrameworkCore;
         using Rask.Data;
         namespace Shop;
-        public sealed class Pairing : Aggregate<Guid, Versioned>
+        public sealed class Pairing : Aggregate<Guid>, IVersioned
         {
             private Pairing() { }
             public int Pump { get; private set; }

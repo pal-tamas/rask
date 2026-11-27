@@ -18,7 +18,7 @@ public class CurrentRowsGeneratorTests
 
             namespace Shop
             {
-                public sealed class Tenant : Aggregate<{{key}}, Deletable>, ITenant
+                public sealed class Tenant : Aggregate<{{key}}>, IDeletable, ITenant
                 {
                     public string Name { get; private set; } = "";
                 }
@@ -75,7 +75,7 @@ public class CurrentRowsGeneratorTests
 
             namespace Rask.Auth
             {
-                public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid, Rask.Data.Deletable>, Rask.Data.IUser
+                public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid>, Rask.Data.IDeletable, Rask.Data.IUser
                 {
                     public string Email { get; private set; } = "";
                 }
@@ -275,7 +275,7 @@ public class CurrentRowsGeneratorTests
             namespace Shop
             {
                 public sealed class Tenant : Aggregate<System.Guid>, ITenant { }
-                public sealed class Invoice : Aggregate<int, PerTenant<int>> { }
+                public sealed class Invoice : Aggregate<int>, IBelongsTo<Tenant> { public int? TenantId { get; private set; } }
             }
             """);
 
@@ -284,10 +284,11 @@ public class CurrentRowsGeneratorTests
     }
 
     [Theory]
-    [InlineData("int", "PerTenant<int>", "")]
-    [InlineData("string", "PerTenant", "")]
-    [InlineData("long", "PerTenant", "public long? TenantId { get; private set; }")]
-    public void A_tenant_keyed_like_its_tables_is_accepted(string key, string trait, string column)
+    [InlineData("int", "")]
+    [InlineData("string", "")]
+    [InlineData("System.Guid", "public System.Guid? TenantId { get; private set; }")]
+    [InlineData("long", "public long? TenantId { get; private set; }")]
+    public void A_tenant_keyed_like_its_tables_is_accepted(string key, string column)
     {
         var run = Run($$"""
             using Rask.Data;
@@ -295,7 +296,7 @@ public class CurrentRowsGeneratorTests
             namespace Shop
             {
                 public sealed class Tenant : Aggregate<{{key}}>, ITenant { }
-                public sealed class Invoice : Aggregate<int, {{trait}}> { {{column}} }
+                public sealed class Invoice : Aggregate<int>, IBelongsTo<Tenant> { {{column}} }
             }
             """);
 
@@ -311,13 +312,15 @@ public class CurrentRowsGeneratorTests
 
             namespace Shop
             {
-                public sealed class Invoice : Aggregate<int, PerTenant<int>> { }
+                public sealed class Shop : Aggregate<int> { }
+                public sealed class Invoice : Aggregate<int>, IBelongsTo<Shop> { }
             }
             """);
 
         var warning = Assert.Single(run.Diagnostics, d => d.Id == "RASK115");
         Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, warning.Severity);
-        Assert.Contains("Tenant : Aggregate<int>, ITenant", warning.GetMessage(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        Assert.Contains("'Invoice' says IBelongsTo<Shop>", warning.GetMessage(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        Assert.Contains("public sealed class Shop : Aggregate<…>, ITenant", warning.GetMessage(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -352,8 +355,8 @@ public class CurrentRowsGeneratorTests
                 public readonly partial record struct TenantId({{value}} Value);
 
                 public sealed class Tenant : Aggregate<TenantId>, ITenant { }
-                public sealed class Invoice : Aggregate<int, PerTenant<TenantId>> { }
-                public sealed class Payment : Aggregate<int, PerTenant> { public TenantId? TenantId { get; private set; } }
+                public sealed class Invoice : Aggregate<int>, IBelongsTo<Tenant> { }
+                public sealed class Payment : Aggregate<int>, IBelongsTo<Tenant> { public TenantId? TenantId { get; private set; } }
 
                 public static class Reads
                 {
@@ -414,11 +417,11 @@ public class CurrentRowsGeneratorTests
     }
 
     [Theory]
-    [InlineData("PerTenant", "public System.Guid? TenantId { get; private set; }", "keeps its tenant as Guid")]
-    [InlineData("PerTenant", "", "keeps its tenant as Guid")]
-    [InlineData("PerTenant<int>", "", "keeps its tenant as int")]
+    [InlineData("Tenant", "public System.Guid? TenantId { get; private set; }", "keeps its tenant as Guid")]
+    [InlineData("Tenant", "public int? TenantId { get; private set; }", "keeps its tenant as int")]
+    [InlineData("Branch", "", "keeps its tenant as Guid")]
     public void A_typed_tenant_whose_table_keeps_another_column_is_RASK114_naming_the_tenants_key(
-        string trait, string column, string kept)
+        string tenant, string column, string kept)
     {
         var run = Run($$"""
             using Rask.Data;
@@ -428,14 +431,15 @@ public class CurrentRowsGeneratorTests
                 public readonly partial record struct TenantId(System.Guid Value);
 
                 public sealed class Tenant : Aggregate<TenantId>, ITenant { }
-                public sealed class Invoice : Aggregate<int, {{trait}}> { {{column}} }
+                public sealed class Branch : Aggregate<System.Guid> { }
+                public sealed class Invoice : Aggregate<int>, IBelongsTo<{{tenant}}> { {{column}} }
             }
             """);
 
         var error = Assert.Single(run.Diagnostics, d => d.Id == "RASK114");
         var message = error.GetMessage(System.Globalization.CultureInfo.InvariantCulture);
         Assert.Contains($"'Invoice' {kept}", message, StringComparison.Ordinal);
-        Assert.Contains("give the tables the tenant's key: TenantId? TenantId, or PerTenant<TenantId>", message, StringComparison.Ordinal);
+        Assert.Contains("give the tables the tenant's key: TenantId? TenantId, or leave it to IBelongsTo<Tenant>", message, StringComparison.Ordinal);
         Assert.False(run.HasGeneratedSource("__RaskCurrentTenant"));
     }
 

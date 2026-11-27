@@ -39,7 +39,7 @@ namespace Rask.Auth;
 /// are the app's to change: <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </para>
 /// </remarks>
-public abstract class Authenticatable<TKey> : Aggregate<TKey, Timestamps, Versioned, Model, Deletable>, IUser
+public abstract class Authenticatable<TKey> : Aggregate<TKey>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IUser
     where TKey : notnull
 {
     /// <summary>

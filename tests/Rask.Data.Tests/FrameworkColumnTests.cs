@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 // An aggregate that names every column trait: the framework's columns come from the bases.
-public sealed class Memo : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+public sealed class Memo : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes
 {
     private Memo() { } // EF materialization
 
@@ -132,14 +132,14 @@ public sealed class FrameworkColumnTests : IDisposable
 }
 
 /// <summary>An append-only table: written once, never changed, so it declines <c>UpdatedAt</c>.</summary>
-public sealed class AppendOnlyLedger : Entity<long, Created>
+public sealed class AppendOnlyLedger : Entity<long>, IHasCreatedAt
 {
     /// <summary>What was recorded.</summary>
     public string Line { get; private set; } = "";
 }
 
 /// <summary>An aggregate that names what a CRUD table carries: timestamps, a version, a model, a delete.</summary>
-public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Receipt : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     /// <summary>What the receipt says.</summary>
     public string Text { get; private set; } = "";

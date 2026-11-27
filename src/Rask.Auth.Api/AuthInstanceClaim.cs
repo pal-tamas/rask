@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rask.Data;
 
 namespace Rask.Auth;
 
@@ -27,7 +28,7 @@ namespace Rask.Auth;
 /// delete should be able to open.
 /// </para>
 /// </remarks>
-public sealed class AuthInstanceClaim
+public sealed class AuthInstanceClaim : IInfrastructure
 {
     /// <summary>The only value this column ever holds.</summary>
     public const int SingletonId = 1;

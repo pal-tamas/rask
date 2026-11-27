@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's port.</summary>
-public sealed class ThroughPort : Aggregate<Guid, PerTenant>
+public sealed class ThroughPort : Aggregate<Guid>, IBelongsTo<GuidShop>
 {
     private ThroughPort() { }
 
@@ -14,7 +14,7 @@ public sealed class ThroughPort : Aggregate<Guid, PerTenant>
 }
 
 /// <summary>A ticket with no tenant of its own: it is the tenant's whose port it names.</summary>
-public sealed class ThroughTicket : Aggregate<Guid, PerTenantThrough<ThroughPort>>
+public sealed class ThroughTicket : Aggregate<Guid>, IBelongsToTenantThrough<ThroughPort>
 {
     private ThroughTicket() { }
 
@@ -29,7 +29,7 @@ public sealed class ThroughTicket : Aggregate<Guid, PerTenantThrough<ThroughPort
 }
 
 /// <summary>
-/// F-31: <see cref="PerTenantThrough{TParent}" /> partitions an aggregate through the one it points at, and
+/// F-31: <see cref="IBelongsToTenantThrough{TParent}" /> partitions an aggregate through the one it points at, and
 /// <c>X.Across(reason)</c> lifts the tenant filter for one read — and only the tenant filter.
 /// </summary>
 public sealed class TenantThroughTests : IDisposable

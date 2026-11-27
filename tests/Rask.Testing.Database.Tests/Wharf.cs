@@ -7,7 +7,7 @@ namespace Rask.Testing.Database.Tests;
 ///     A tenant's wharf: its name unique within the tenant, its operator a company of the tenant's — what only the store
 ///     refuses, which a form tells as the field is left (FormShowsStoreTests).
 /// </summary>
-public sealed partial class Wharf : Aggregate<Guid, Versioned, Model, PerTenant>
+public sealed partial class Wharf : Aggregate<Guid>, IVersioned, IHasForm, IBelongsTo<Ledger>
 {
     public const string NameTaken = "Már van ilyen név.";
 
@@ -35,7 +35,7 @@ public sealed partial class Wharf : Aggregate<Guid, Versioned, Model, PerTenant>
 }
 
 /// <summary>A tenant's company that runs wharves.</summary>
-public sealed class WharfOperator : Aggregate<Guid, PerTenant>
+public sealed class WharfOperator : Aggregate<Guid>, IBelongsTo<Ledger>
 {
     private WharfOperator() { } // EF materialization
 

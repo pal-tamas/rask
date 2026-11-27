@@ -14,9 +14,9 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.ObjectModel;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
+            public sealed class OrderLine : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
             public sealed record Money(decimal Amount, string Currency);
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 {{members}}
             }
@@ -76,7 +76,7 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
+            public sealed class OrderLine : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
             public sealed class OrderForm { public List<OrderLine> Lines { get; set; } = []; }
             """));
 
@@ -88,8 +88,8 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
-            public abstract class Annotated : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { public List<Note> Notes { get; } = []; }
+            public sealed class Note : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { }
+            public abstract class Annotated : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { public List<Note> Notes { get; } = []; }
             public sealed class Order : Annotated { }
             """));
 

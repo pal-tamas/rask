@@ -25,7 +25,7 @@ public sealed class Firm : Aggregate<string>
 }
 
 /// <summary>A firm's row, its tenant a Guid kept as text.</summary>
-public sealed class Lorry : Aggregate<string, PerTenant>
+public sealed class Lorry : Aggregate<string>, IBelongsTo<Firm>
 {
     private Lorry() { }
 
@@ -38,7 +38,7 @@ public sealed class Lorry : Aggregate<string, PerTenant>
 }
 
 /// <summary>A tenant keyed by the text of a Guid, whose generated <c>Delete</c> says why it is refused.</summary>
-public sealed class Guild : Aggregate<string, Model, Deletable>
+public sealed class Guild : Aggregate<string>, IHasForm, IDeletable
 {
     public const string InUse = "The guild still has wagons and cannot be deleted.";
 
@@ -52,7 +52,7 @@ public sealed class Guild : Aggregate<string, Model, Deletable>
 }
 
 /// <summary>A guild's row, its tenant a Guid kept as text against the guild's text key.</summary>
-public sealed class Wagon : Aggregate<string, PerTenant>
+public sealed class Wagon : Aggregate<string>, IBelongsTo<Guild>
 {
     private Wagon() { }
 
@@ -66,15 +66,8 @@ public sealed class Wagon : Aggregate<string, PerTenant>
         builder.Property(wagon => wagon.TenantId).HasConversion<string>();
 }
 
-/// <summary>The app's context, whose rules point every PerTenant table at the guild, as an app's IRaskModel says it.</summary>
-public sealed class GuildsContext(DbContextOptions<GuildsContext> options) : RaskDbContext(options)
-{
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
-        base.ConfigureConventions(configurationBuilder);
-        configurationBuilder.TenantReferences<Guild>();
-    }
-}
+/// <summary>The app's context: every table that belongs to the guild refers to it once the guild is the app's tenant.</summary>
+public sealed class GuildsContext(DbContextOptions<GuildsContext> options) : RaskDbContext(options);
 
 public abstract class FirmsContext(DbContextOptions options) : DbContext(options)
 {
@@ -85,29 +78,33 @@ public abstract class FirmsContext(DbContextOptions options) : DbContext(options
     }
 }
 
-/// <summary>The references declared before the app's naming rule.</summary>
+/// <summary>Rask's conventions — the tenant references among them — before the app's naming rule.</summary>
 public sealed class ReferencesFirstContext(DbContextOptions<ReferencesFirstContext> options) : FirmsContext(options)
 {
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-        configurationBuilder.TenantReferences<Firm>().ConstraintNames(TenantReferencesTests.Prisma);
+        ModelRegistry.ApplyConventions(configurationBuilder).ConstraintNames(TenantReferencesTests.Prisma);
 }
 
-/// <summary>The app's naming rule declared before the references.</summary>
+/// <summary>The app's naming rule declared before Rask's conventions.</summary>
 public sealed class NamesFirstContext(DbContextOptions<NamesFirstContext> options) : FirmsContext(options)
 {
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-        configurationBuilder.ConstraintNames(TenantReferencesTests.Prisma).TenantReferences<Firm>();
+        ModelRegistry.ApplyConventions(configurationBuilder.ConstraintNames(TenantReferencesTests.Prisma));
 }
 
 /// <summary>The references with no naming rule.</summary>
 public sealed class UnnamedReferencesContext(DbContextOptions<UnnamedReferencesContext> options) : FirmsContext(options)
 {
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
-        configurationBuilder.TenantReferences<Firm>();
+        ModelRegistry.ApplyConventions(configurationBuilder);
 }
 
-/// <summary>No references at all: the model as it was before.</summary>
-public sealed class NoReferencesContext(DbContextOptions<NoReferencesContext> options) : FirmsContext(options);
+/// <summary>Rask's conventions, and no tenant of the app's: the firm is just a table, and nothing refers to it.</summary>
+public sealed class NoReferencesContext(DbContextOptions<NoReferencesContext> options) : FirmsContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        ModelRegistry.ApplyConventions(configurationBuilder);
+}
 
 public sealed class TenantReferencesTests : IAsyncLifetime
 {
@@ -121,6 +118,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        CurrentRows.Reset();
         await _keeper.DisposeAsync();
         GC.SuppressFinalize(this);
     }
@@ -128,6 +126,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public async Task Deleting_a_tenant_that_still_has_rows_is_refused_by_a_database_made_from_the_model()
     {
+        TheTenantIsFirm();
         await using var db = Open<ReferencesFirstContext>(o => new ReferencesFirstContext(o));
         await db.Database.EnsureCreatedAsync(Ct);
         var firm = Guid.NewGuid();
@@ -145,6 +144,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public async Task The_generated_delete_of_a_tenant_that_still_has_rows_is_refused_with_its_sentence_and_the_tenant_stays()
     {
+        TheTenantIsGuild();
         await using var database = await TestDatabase.Start<GuildsContext>(o => o.UseRaskSqliteAt(_keeper.ConnectionString), cancellationToken: Ct);
         var guild = Guid.NewGuid();
         await Guild.Named(guild, "Coopers").Save(cancellationToken: Ct);
@@ -164,6 +164,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public async Task A_row_of_a_tenant_that_is_not_there_is_refused()
     {
+        TheTenantIsFirm();
         await using var db = Open<ReferencesFirstContext>(o => new ReferencesFirstContext(o));
         await db.Database.EnsureCreatedAsync(Ct);
 
@@ -176,6 +177,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public void The_reference_is_named_by_the_app_s_rule_whichever_is_declared_first()
     {
+        TheTenantIsFirm();
         using var referencesFirst = Open<ReferencesFirstContext>(o => new ReferencesFirstContext(o));
         using var namesFirst = Open<NamesFirstContext>(o => new NamesFirstContext(o));
 
@@ -193,6 +195,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public void Without_a_rule_the_reference_is_named_as_EF_Core_names_a_foreign_key()
     {
+        TheTenantIsFirm();
         using var db = Open<UnnamedReferencesContext>(o => new UnnamedReferencesContext(o));
 
         var key = Created(db);
@@ -203,17 +206,17 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     [Fact]
     public void The_migration_snapshot_carries_the_reference_and_nothing_of_the_declaration()
     {
+        TheTenantIsFirm();
         using var db = Open<ReferencesFirstContext>(o => new ReferencesFirstContext(o));
 
         var model = db.GetService<IDesignTimeModel>().Model;
 
         Assert.Equal("Lorry_TenantId_fkey -> Firm(Id)", model.FindEntityType(typeof(Lorry))!.FindAnnotation("Rask:TenantReference")?.Value);
         Assert.Null(model.FindEntityType(typeof(Firm))!.FindAnnotation("Rask:TenantReference"));
-        Assert.Null(model.FindAnnotation("Rask:TenantReferencesTo"));
     }
 
     [Fact]
-    public void A_model_without_the_declaration_has_no_reference()
+    public void A_model_whose_app_names_no_tenant_has_no_reference()
     {
         using var db = Open<NoReferencesContext>(o => new NoReferencesContext(o));
 
@@ -221,6 +224,15 @@ public sealed class TenantReferencesTests : IAsyncLifetime
 
         Assert.Empty(create.ForeignKeys);
     }
+
+    // The app's tenant, as the generated registration of the aggregate that says ITenant names it, for this test alone.
+    private static void TheTenantIsFirm() =>
+        CurrentRows.Use(new CurrentRow<FirmRead, string>(
+            CurrentRowKind.Tenant, typeof(Firm), static key => row => row.Id == key, static row => row.Id));
+
+    private static void TheTenantIsGuild() =>
+        CurrentRows.Use(new CurrentRow<GuildRead, string>(
+            CurrentRowKind.Tenant, typeof(Guild), static key => row => row.Id == key, static row => row.Id));
 
     private static AddForeignKeyOperation Created(DbContext db) =>
         Assert.Single(Operations(db).OfType<CreateTableOperation>().Single(c => c.Name == "Lorry").ForeignKeys);

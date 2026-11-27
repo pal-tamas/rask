@@ -11,7 +11,7 @@ using Rask.Wire;
 namespace Rask.Data;
 
 /// <summary>
-///     Before a save: every reference a <see cref="PerTenant" /> row sets to another tenant-scoped table names a row of
+///     Before a save: every reference a <see cref="IBelongsTo{TTenant}" /> row sets to another tenant-scoped table names a row of
 ///     the tenant in flight — never one of another tenant's, and never one that is not there — or the save is refused
 ///     with a <see cref="RaskValidationException" /> under the reference's field.
 /// </summary>
@@ -24,7 +24,7 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         <b>One query per referenced table per save</b>, through that table's own filters — the tenant's (a child's
-///         and a <see cref="PerTenantThrough{TParent}" /> aggregate's through its parent) and the soft delete's — for
+///         and a <see cref="IBelongsToTenantThrough{TParent}" /> aggregate's through its parent) and the soft delete's — for
 ///         every key the save sets to it at once: <c>WHERE Id IN (…)</c>. A key of several columns is asked row by row.
 ///     </para>
 ///     <para>
