@@ -105,6 +105,16 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: a generated form model holds another row's typed id AS the typed id.** `CompanyId Company` on an
+  aggregate (`readonly partial record struct CompanyId(int Value)`, or a `Guid`/`long`/`string` one) was `int? Company`
+  on its `XModel`; it is now `CompanyId? Company`, and a `List<TagId>` value collection stays one. So
+  `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c => c.Name))` — and `Ui.Field`, `Ui.Pillbox`, a paged
+  `Ui.ChoiceRows` source — binds the read face's `IChoiceSource<CompanyId>` with no bridge to the number, a query string
+  parses it through its own `IParsable`, and the save hands it to the aggregate as it is. A non-nullable one is still
+  required with the same message, and its field shape is still `FieldKind.Id`. **Upgrade:** drop a `.AsNumbers()`-style
+  bridge and the `new CompanyId(n)` / `.Value` an app wrote between the model and an id; `model.Company = 5` becomes
+  `model.Company = new CompanyId(5)`. A one-value record that is not a typed id (no `partial`, or no `Id` name) is still
+  carried as the value it holds.
 - **BREAKING: `b.NoOverlap(…)` replaces `HasNonOverlappingRange`, and holds on PostgreSQL and SQL Server too.**
   `b.NoOverlap(x => new { x.TenantId, x.Code }, x => x.Period, Texts.ChipHeld).Where(x => x.DriverId != null)` (a
   `Range` value object) or `b.NoOverlap(x => x.RoomId, x => x.StartsAt, x => x.EndsAt, Texts.RoomTaken)`: two rows with

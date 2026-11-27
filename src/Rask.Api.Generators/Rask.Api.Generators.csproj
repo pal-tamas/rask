@@ -36,6 +36,8 @@
     <Compile Include="..\Rask.Generators.Shared\WireType.cs" Link="Shared\WireType.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireCodecEmitter.cs" Link="Shared\WireCodecEmitter.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdShape.cs" Link="Shared\TypedIdShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypedIdValue.cs" Link="Shared\TypedIdValue.cs"/>
     <Compile Include="..\Rask.Generators.Shared\CSharpNames.cs" Link="Shared\CSharpNames.cs"/>
     <Compile Include="..\Rask.Generators.Shared\EquatableArray.cs" Link="Shared\EquatableArray.cs"/>
     <Compile Include="..\Rask.Generators.Shared\SymbolLocation.cs" Link="Shared\SymbolLocation.cs"/>
