@@ -23,6 +23,14 @@ internal static class WallClockInUtc
     /// <summary>The converter, wall clock to UTC and back.</summary>
     public static ValueConverter<DateTime, DateTime> Converter { get; } = new(wall => ToUtc(wall), utc => ToWall(utc));
 
+    /// <summary>
+    ///     The converter of a moment inside a JSON document, which holds the instant with its Z but may still hold a
+    ///     wall-clock time written before it did: wall clock to UTC, and back from a UTC (or offset) value, while a value of
+    ///     <see cref="DateTimeKind.Unspecified" /> — the older form — is the wall-clock time it already is.
+    /// </summary>
+    public static ValueConverter<DateTime, DateTime> InDocument { get; } =
+        new(wall => ToUtc(wall), stored => stored.Kind == DateTimeKind.Unspecified ? stored : ToWall(stored));
+
     /// <summary>The UTC instant a wall-clock time of <see cref="Clock.Zone" /> is, by the rule a <c>Moment</c> follows.</summary>
     /// <param name="wall">The wall-clock time; a UTC one is kept as it is.</param>
     /// <returns>The instant, of <see cref="DateTimeKind.Utc" />.</returns>

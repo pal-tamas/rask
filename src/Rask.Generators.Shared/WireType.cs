@@ -46,6 +46,13 @@ internal sealed class WireType : IEquatable<WireType>
     /// </summary>
     public bool ValueObject { get; set; }
 
+    /// <summary>
+    ///     For <see cref="WireKind.OneValue" />: a value object declared from <c>Moment</c>, which travels as the UTC
+    ///     instant it holds — <c>"2026-10-25T00:30:00Z"</c> — not as its wall-clock <c>Value</c>, so the hour the clock
+    ///     shows twice in autumn survives the trip.
+    /// </summary>
+    public bool Moment { get; set; }
+
     /// <summary>Whether a value of this shape can be null, and so needs null handling on both sides.</summary>
     public bool IsReferenceType => IsReference == true;
 
@@ -79,6 +86,7 @@ internal sealed class WireType : IEquatable<WireType>
                 && Sequence == other.Sequence
                 && IsReference == other.IsReference
                 && ValueObject == other.ValueObject
+                && Moment == other.Moment
                 && string.Equals(Name, other.Name, StringComparison.Ordinal)
                 && string.Equals(Reason, other.Reason, StringComparison.Ordinal)
                 && Members.SequenceEqual(other.Members)

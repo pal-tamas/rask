@@ -118,6 +118,16 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (wire): a `Moment` travels as the UTC instant it holds, not its wall-clock `.Value`.** The generated CQRS
+  codec, the API client and System.Text.Json (each record declared from `Moment` now gets its own generated
+  `[JsonConverter]`, over `Rask.Values.MomentJsonConverter<T>`) write `"2026-10-25T00:30:00Z"`, so the hour the clock
+  shows twice in autumn survives a round trip — a stored job, an outbox message, persisted state, an API body.
+  Compatible for this release: a text without `Z` or an offset — what a browser tab loaded before the deploy still
+  sends — is read as a wall-clock time of `Clock.Zone`, and the object an older System.Text.Json wrote
+  (`{"value":…,"instant":…}`) through its instant. A moment inside a JSON document (`b.Json(…)`, `ToJson()`) now holds
+  its instant too, as text with its `Z` on SQL Server and SQLite, without a migration: an older document's wall-clock
+  value reads as before and holds the instant once its row is saved (`docs/data.md#dates-and-moments-what-each-database-keeps`).
+  `docs/domain.md#moment-and-day`.
 - **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
   error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
   (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.
@@ -129,7 +139,7 @@ them until tagged releases begin.
   generator applies as an `UPDATE` in the app's zone inside the migration's transaction (`AT TIME ZONE` on SQL Server,
   `rask_moment_utc(…)` on SQLite). `GroupBy(f => f.At.Day)` and `f.At.Day == day` now read the day on the app's wall
   calendar in SQL on all three; `f.At.Value.Date`/`.Year`/`.Hour` on such a column — the UTC instant's parts — is
-  refused with the way to say it. A moment inside a JSON document keeps the wall clock. `UseRaskPostgres` refuses a bare
+  refused with the way to say it. `UseRaskPostgres` refuses a bare
   `DateTime` on an aggregate or an entity as the model is built (a `HasConversion` of the app's own, Rask's own types
   and tables outside the domain are left alone). `docs/data.md#dates-and-moments-what-each-database-keeps`.
 - **BREAKING: a table's traits are marker interfaces on the class, read like a sentence.** The trait type arguments of

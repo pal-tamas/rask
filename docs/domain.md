@@ -1694,6 +1694,16 @@ change: the two `02:30`s of an October night are two moments, ordered as they ha
 Going back out: `.Value` is the app's wall clock, `.Day` its day, `.Instant` the UTC instant and `.WallIn(zone)` the
 wall clock of another zone — what a device that keeps its own local time is sent.
 
+**On the wire and in JSON a moment is its instant.** The generated CQRS codec, the API client and System.Text.Json
+(a job's stored command, an outbox message, persisted state, an API body) all write it as the UTC instant with its
+`Z` — `"2026-10-25T00:30:00Z"` — never as the wall-clock `.Value`, so both `02:30`s of that October night arrive as the
+moments they were. The value object generator gives each record declared from `Moment` its own
+`[JsonConverter]` for that (System.Text.Json reads none off a base type); one the record names itself wins. Read, a
+text with `Z` or an offset is the instant it names, and one without is a wall-clock time of `Clock.Zone` — the form a
+browser tab loaded before this change still sends, and what an older stored job holds. The object an older
+System.Text.Json wrote, `{"value":…,"instant":…}`, is still read for one release, through its instant. What the UI
+shows — a picker, `Format.Moment` — stays on the wall clock.
+
 ### Services stay outside the domain
 
 The domain decides from the state it holds and what its caller hands it. A service it would need — a price list, an

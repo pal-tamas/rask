@@ -113,7 +113,9 @@ internal static class WireShape
             return sequence;
         }
 
-        if (unwrapValues && TryClassifyOneValue(type, stack, compilation) is { } one)
+        // A moment travels as its instant on every wire, a System.Text.Json server's too: the value object generator gives
+        // it a converter that writes it so (Rask.Values.MomentJsonConverter).
+        if ((unwrapValues || IsMoment(type)) && TryClassifyOneValue(type, stack, compilation) is { } one)
         {
             return one;
         }
@@ -144,10 +146,14 @@ internal static class WireShape
             IsReference = type.IsReferenceType,
             Inner = inner,
             ValueObject = AggregateShape.DeclaredValueBaseOf(type) is not null,
+            Moment = IsMoment(type),
         };
         result.Members.Add(new WireMember(held.Name, WireName(held), inner));
         return result;
     }
+
+    private static bool IsMoment(INamedTypeSymbol type) =>
+        string.Equals(AggregateShape.DeclaredValueBaseOf(type), "Moment", StringComparison.Ordinal);
 
     // The one value a type holds, fed by its one public constructor — or null when it holds more, or none. A value
     // object declared from Text, Number, Integer or Day holds its base's Value; a value object declared from Value, and a

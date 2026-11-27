@@ -1154,7 +1154,17 @@ stays an index seek. A moment's day reads the wall calendar in SQL on every prov
 `f.At.Day == day` group and filter by the day the app shows, in the zone the app was set to as the query is compiled.
 A part of the time read off `.Value` of the column — `f.At.Value.Date`, `.Year`, `.Hour` — would be the UTC
 instant's, an hour or two off near midnight, so the query is refused with the way to say it: `.Day` for the day, a
-comparison of moments for a stretch of time. A moment inside a JSON document keeps the wall clock there.
+comparison of moments for a stretch of time.
+
+**A moment inside a JSON document** (`b.Json(…)`, a `ToJson()` complex or owned type) holds its instant too, with its
+`Z`: `"2026-10-25T00:30:00Z"`. SQL Server and SQLite keep it as that text — SQLite's own JSON writer of a `DateTime`
+drops the `Z` (`"2026-10-25 00:30:00"`), which would make it unreadable from what a document held before — and
+PostgreSQL's `jsonb` held the instant from the start. No migration rewrites a document, so a document may mix both
+forms for a while: a value without `Z` or an offset was written while documents kept the wall clock, and reads as a
+wall-clock time of `Clock.Zone` (the first occurrence of an hour shown twice, as ever); the document holds the instant
+once its row is saved again. A query that compares a moment INSIDE a document in SQL compares the stored text, so
+until every document of the table has been saved once, an older wall-clock value is compared as text with an
+instant: filter and order by a moment column, not a moment in a document.
 
 **A database that kept moments as the wall clock is rewritten by its next migration.** Until Rask stored them as UTC,
 SQL Server and SQLite kept a moment as the wall clock. Each of their moment columns is now marked in the model, the
