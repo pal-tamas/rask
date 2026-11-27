@@ -296,6 +296,11 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A moment's day in a query follows the zone as the query runs, on SQL Server and PostgreSQL.** `f.At.Day` writes
+  `Clock.Zone` into the SQL (`AT TIME ZONE N'…'`, `timezone('…', …)`), and EF reused the SQL compiled for the first
+  zone a query ran under: a test under a zone of its own, or an app that named its zone after a first query, read the
+  old zone's day. The zone is now a part of every compiled query's cache key, so the query is compiled again for a new
+  zone (and once, as before, for an app that keeps one). SQLite already read the zone per row.
 - **RASK089 no longer fires on a typed id whose name merely ends in an aggregate.** A `StockMove.FromVirtualTankId`
   of type `VirtualTankId` was matched to the aggregate `Tank` by its name's suffix and reported as the wrong key
   type. A typed id that is exactly one entity's key now settles the reference by its type, whatever the property is

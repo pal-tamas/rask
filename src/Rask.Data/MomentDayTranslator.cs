@@ -16,7 +16,8 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         The zone is <see cref="Clock.Zone" /> as the query is translated: SQL Server and PostgreSQL write it into the
-///         SQL, SQLite reads it as each row is. An app sets its zone once, as it starts.
+///         SQL, SQLite reads it as each row is. As the zone is in the SQL, it is in the compiled query's cache key too
+///         (<see cref="ZonedQueryCacheKeys{TProvider}" />): a query run again under another zone is compiled for that zone.
 ///     </para>
 ///     <para>
 ///         A part of the time read off <c>.Value</c> of such a column — <c>f.FueledAt.Value.Date</c>, <c>.Year</c>,

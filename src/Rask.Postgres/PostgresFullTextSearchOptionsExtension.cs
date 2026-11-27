@@ -1,3 +1,7 @@
+// EF1001: NpgsqlCompiledQueryCacheKeyGenerator is the provider's own compiled-query cache key generator, in its Internal
+// namespace; the zone is added to the key it makes (ZonedQueryCacheKeys), which needs it by its type.
+#pragma warning disable EF1001
+
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +14,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 using NpgsqlTypes;
 using Rask.Data;
 
@@ -28,6 +33,9 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
     // EF Core's services builder activates the translator by reflection without a trimming annotation.
     [System.Diagnostics.CodeAnalysis.DynamicDependency(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors, typeof(MomentDayTranslator))]
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors,
+        typeof(ZonedQueryCacheKeys<NpgsqlCompiledQueryCacheKeyGenerator>))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)
@@ -39,6 +47,10 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
         // A moment's day on the wall calendar, read in a query off its UTC column (MomentDayTranslator).
         services.TryAddScoped<IMomentDays, PostgresMomentDays>();
         new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
+
+        // That day is written with the zone in its SQL, so the zone is a part of every compiled query's cache key: a
+        // query run again under another zone is compiled again for it.
+        ZonedQueryCacheKeys.Register<NpgsqlCompiledQueryCacheKeyGenerator>(services);
 
         // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);

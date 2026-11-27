@@ -40,6 +40,8 @@ public abstract class MomentParityTests(ProviderLeg leg) : ParityTests<MomentDbC
 {
     private static readonly TimeZoneInfo Budapest = TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest");
 
+    private static readonly TimeZoneInfo NewYork = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+
     [Fact]
     public async Task A_moment_is_stored_as_the_utc_instant_it_holds()
     {
@@ -111,6 +113,21 @@ public abstract class MomentParityTests(ProviderLeg leg) : ParityTests<MomentDbC
     }
 
     [Fact]
+    public async Task The_same_day_query_run_again_under_another_zone_counts_that_zone_s_day()
+    {
+        RequireServer();
+        await Seed();
+        await using var db = Open();
+        var day = new DateOnly(2026, 10, 25);
+
+        var inBudapest = await CountOn(db, day, Budapest);
+        var inNewYork = await CountOn(db, day, NewYork);
+
+        Assert.Equal(3, inBudapest);
+        Assert.Equal(0, inNewYork);
+    }
+
+    [Fact]
     public async Task A_part_of_the_time_read_off_the_utc_column_is_refused()
     {
         RequireServer();
@@ -121,6 +138,13 @@ public abstract class MomentParityTests(ProviderLeg leg) : ParityTests<MomentDbC
             () => db.Readings.Where(r => r.At.Value.Hour == 2).ToListAsync(Ct));
 
         Assert.Contains("'.Day'", refused.Message, StringComparison.Ordinal);
+    }
+
+    // The same query, its day read in the zone: SQL compiled under the first zone is not reused under the second.
+    private static async Task<int> CountOn(MomentDbContext db, DateOnly day, TimeZoneInfo zone)
+    {
+        using var ambient = AmbientClock.UseZone(zone);
+        return await db.Readings.CountAsync(r => r.At.Day == day, Ct);
     }
 
     private protected override MomentDbContext Open() => Leg.Open<MomentDbContext>(static o => new MomentDbContext(o));
