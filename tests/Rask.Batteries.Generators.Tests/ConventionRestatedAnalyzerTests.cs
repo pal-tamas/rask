@@ -41,7 +41,7 @@ public sealed class ConventionRestatedAnalyzerTests
     [Theory]
     [InlineData("b.ToTable(\"fuelings\");", "ToTable(\"fuelings\")")]
     [InlineData("b.Property(x => x.PistolId).HasColumnName(\"pistol_id\");", "HasColumnName(\"pistol_id\")")]
-    [InlineData("b.Property(x => x.CreatedAt).IsRequired().HasColumnName(\"created_at\");", "HasColumnName(\"created_at\")")]
+    [InlineData("b.Property(x => x.CreatedAt).HasPrecision(3).HasColumnName(\"created_at\");", "HasColumnName(\"created_at\")")]
     [InlineData("b.ComplexProperty(x => x.Km).Property(k => k.Start).HasColumnName(\"km_start\");", "HasColumnName(\"km_start\")")]
     [InlineData("b.ComplexProperty(x => x.Km, k => k.Property(o => o.End).HasColumnName(\"km_end\"));", "HasColumnName(\"km_end\")")]
     [InlineData("b.HasIndex(x => x.CreatedAt).HasDatabaseName(\"ix_fuelings_created_at\");", "HasDatabaseName(\"ix_fuelings_created_at\")")]

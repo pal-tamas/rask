@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK192 reports the other defaults a configuration restates, not only names.** An `OnDelete(…)` equal to Rask's
+  rule (a child's key cascades from its aggregate, or the `children:`/`others:` of the app's `c.DeleteBehavior(…)`, or
+  with none EF Core's `Cascade`/`ClientSetNull` by the key's nullability), a `HasMaxLength`/`HasPrecision` equal to the
+  value object's `MaxLength`/`Precision`/`Scale`, an `IsRequired()` on a property that cannot be null, a
+  `b.HasKey(x => x.Id);`, a `ValueGeneratedNever()` on the `Id` of an entity keyed by a `Guid`, a `string` or a typed id
+  over one, an `IsConcurrencyToken()` on an `IVersioned` aggregate's `Version`, and a
+  `HasConversion(v => v.Value, v => new X(v))` on a typed id or a one-value value object are each a suggestion the quick
+  fix (with Fix all) deletes — only where the line is provably equal to the default, and silent where the app changes
+  the rule (an attribute, another size, a delete rule it cannot read). A project that restates the naming pattern still
+  hears about these. A `HasOne<T>().WithMany().HasForeignKey(…)` is not reported: Rask infers that navigation for the
+  read face only, so in the write model the line is the foreign key. The kinds are tabled in `docs/diagnostics.md#rask192`.
 - **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
   `b.Property(x => x.PistolId).HasColumnName("pistol_id")`, `HasDatabaseName("ix_fuelings_created_at")`,
   `HasName("pk_fuelings")`, `HasConstraintName("fk_fuelings_pistol_id")`, `[Table("fuelings")]` and `[Column("pistol_id")]`
@@ -336,6 +347,10 @@ them until tagged releases begin.
   accept a package held as a prerelease of the set's version.
 
 ### Documentation
+- **Adopting one existing table under a Rask context, with no new API**: `b.ToTable("Fueling")` in its `Configure`, and
+  `c.ColumnNames(n => n.Table == "Fueling" ? n.AsDeclared : n.SnakeCase)` with
+  `c.ConstraintNames(n => n.Table == "Fueling" ? null : n.Prefixed)` keep EF Core's names on that table and Rask's on
+  every other (`docs/data.md#names-rasks-own-in-postgresqls-style`, pinned by a test).
 - **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
   (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In
   the analyzer's message and in `docs/diagnostics.md#rask177`.
@@ -366,6 +381,17 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **One migration that renames a legacy model to Rask's names and rewrites its moments to UTC does both.** The rewrite
+  matched a column by its name in the snapshot, so `Fuelings.At` becoming `fuelings.at` in the same migration left the
+  wall-clock rows unrewritten. It now finds each table and column under the name the migration renames it from, and
+  runs after the renames, on the new name — SQLite (executed in the tests), SQL Server (`UPDATE [fuelings] SET [at] = …`
+  after the `sp_rename`s) and PostgreSQL (which owes no rewrite) alike.
+- **BREAKING (SQLite) — `HasJsonIndex` and `HasFullTextSearch` name their objects as Rask names everything.** A JSON
+  index is `ix_{table}_{column}_{path}` (the path in snake case, its steps joined by `.`: `ix_orders_meta_address.city`)
+  instead of `IX_Orders_Meta.Address.City`; the full-text triggers are `tr_{table}_fts_insert`/`_delete`/`_update`
+  instead of `TR_{Table}_fts_Insert`; every one, and the `{table}_fts` index and `{table}_fts_keys` map, is cut to 63
+  bytes with a hash of the whole name. A database built under the older names owes one migration (`rask db add`), which
+  drops the old index or triggers and builds them under the new names.
 - **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
   and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
   which orders as `uuid` and .NET's `Guid.CompareTo` do.

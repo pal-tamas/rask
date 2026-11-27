@@ -102,6 +102,10 @@ Four things worth knowing:
   all stay correct. A single integer key (including a strongly-typed id stored as one) is the index's row id;
   any other key — a `Guid`, a string, a composite — goes through a small key map (`{Table}_fts_keys`), because
   SQLite's implicit rowid can change on `VACUUM`.
+- **Named as Rask names everything**: the triggers are `tr_{table}_fts_insert`, `…_delete` and `…_update`, and each
+  name — the index and the key map too — is cut to 63 bytes, ending in a hash of the whole name when longer. An index
+  built under the older `TR_{Table}_fts_Insert` is rebuilt under these names by the table's next migration (the
+  table carries the naming as an annotation, so a snapshot from before owes the change).
 
 **Anywhere you configure a plain `UseSqlite`,** add `UseRaskFullTextSearch()` instead. It registers only what
 search needs — none of `UseRaskSqlite`'s connection string, pragmas or retry. Called after `UseRaskSqlite`, it

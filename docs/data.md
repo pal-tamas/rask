@@ -668,6 +668,18 @@ c.ColumnNames(n => n.AsDeclared);                              // EF Core's Pist
 c.ConstraintNames(n => n.Kind == ConstraintKind.Index ? $"{n.Table}_{n.Joined}_idx" : n.Prefixed);
 ```
 
+**Adopting one existing table as it is** — a table another tool made, under a Rask context — needs no API of its own:
+name the table in its `Configure` (`b.ToTable("Fueling")`), and let the column and constraint rules ask for it. A
+column's `n.Table` and a constraint's `n.Table` are the table as the database names it, so:
+
+```csharp
+c.ColumnNames(n => n.Table == "Fueling" ? n.AsDeclared : n.SnakeCase);    // PistolId there, pistol_id elsewhere
+c.ConstraintNames(n => n.Table == "Fueling" ? null : n.Prefixed);         // PK_Fueling there, pk_pistols elsewhere
+```
+
+Every other table keeps Rask's names. A project that states any of the three rules gets no naming report from
+[RASK192](diagnostics.md#rask192) (its other defaults still are).
+
 ### App-wide model rules: one `IRaskModel`
 
 What holds for every table — a string length, a decimal's precision, how a constraint is named, what a delete does —
@@ -1237,6 +1249,11 @@ whole. The step marks the migration exclusive (`rask db pending` says so): an ol
 writing wall-clock times into the UTC column, so stop it first. Run it where the app's zone is set (`c.TimeZone`, `AddRask(timeZone: …)`): the app's start, or
 `dotnet App.dll rask db migrate` ([a one-off migration](deployment.md#migrations-as-a-one-off-step)). PostgreSQL kept
 moments as UTC from the start and owes nothing.
+
+One migration may do both moves at once — a database still under EF Core's names (`Fuelings`, `At`) taking
+[Rask's](#names-rasks-own-in-postgresqls-style) (`fuelings`, `at`) and its moments' rewrite: each column is found under
+the name the same migration renames it from, and the rewrite runs after the renames, on the new name
+(`UPDATE [fuelings] SET [at] = …`).
 
 **A bare `DateTime` on an aggregate or an entity is refused on PostgreSQL** as the model is built: Npgsql would refuse a
 wall-clock one only when the row is saved, long after the model was written. Hold an instant as a `Moment` and a

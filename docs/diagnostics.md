@@ -39,7 +39,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
-| **RASK192** | deletes the line that says what Rask names it anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]` — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
+| **RASK192** | deletes the line that says what Rask does anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]`, an `OnDelete`/`HasMaxLength`/`HasPrecision`/`IsRequired()`/`HasKey(x => x.Id)`/`ValueGeneratedNever()`/`IsConcurrencyToken()`/`HasConversion` equal to the default — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
 | **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -4210,11 +4210,31 @@ It compares `ToTable`, `HasColumnName` (a property, or a value object's member),
 when it is unique), `HasName` (a primary or alternate key), `HasConstraintName` (a foreign key held by the entity
 being configured), and `[Table]`/`[Column]`, each with Rask's own name for it — on an entity's own table (not a
 hierarchy's derived type, not an owned type), against the table the same method names when it names one. A project
-that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no report: there Rask's
-names are not the model's.
+that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no naming report: there
+Rask's names are not the model's.
+
+It reports the other defaults Rask (or EF Core) applies too — each only where the line is provably equal to the
+default, and only where the call can come out without changing the chain (a step that hands back what it was called
+on, or the last step of a statement):
+
+| Restated | Reported when | Left alone when |
+|---|---|---|
+| `OnDelete(…)` | a child's key to its aggregate (`b.HasMany(x => x.Lines).WithOne()`, or `HasOne(…).WithMany(o => o.Lines)` from the child) says the children rule — `Cascade`, or the `children:` of the app's `c.DeleteBehavior(…)`; any other key (`HasOne<T>().WithMany().HasForeignKey(x => x.TId)`) says the `others:` rule, or with none EF Core's own: `Cascade` for a key that cannot be null, `ClientSetNull` for one that can | another behavior; a `DeleteBehavior(…)` whose arguments are not `DeleteBehavior.X` constants (or two that differ); a one-to-one; a principal that holds a collection of the dependent the line does not name; no `HasForeignKey` to read and no `others:` rule; any other step in the chain (`IsRequired`, `HasPrincipalKey`) |
+| `HasMaxLength(n)` / `HasPrecision(p[, s])` | the property holds a `Text`/`Number` value object declaring that `MaxLength` / `Precision` (and `Scale`, `0` when it declares none) | another size; a `[MaxLength]`, `[StringLength]` or `[Precision]` on the property (the column follows it, not the value object); a size that is not a literal |
+| `IsRequired()` | the property cannot be null: a value type that is not `T?`, or a reference type not annotated `?` in a nullable context | `IsRequired(false)`; a `T?` or `string?` property; a generic one |
+| `HasKey(x => x.Id)` | a whole statement, on a Rask entity's own table, whose key is not composite | any other member; a `[Key]`, `[PrimaryKey]` or `[Keyless]` in the hierarchy; a chain going on (`.HasName("…")`) |
+| `ValueGeneratedNever()` | on the `Id` of an entity keyed by a `Guid`, a `string`, or a typed id over one — Rask leaves such a key to the entity | an `int`/`long` key or a typed id over one (Rask makes those identity columns); a default, generator or identity stated in the same method |
+| `IsConcurrencyToken()` | on the `Version` of an aggregate that says `IVersioned` | any other property; an aggregate without `IVersioned` |
+| `HasConversion(v => v.Value, v => new X(v))` | the property is a typed id or a one-value value object (`Text`, `Number`, `Integer`, `Value`) | another conversion; a nullable typed id; a moment, a day or a secret, which Rask stores its own way; a comparer passed with it |
+
+A relationship line — `b.HasOne<Tank>().WithMany().HasForeignKey(x => x.TankId)` — is **not** reported: Rask infers the
+navigation for the [read face](data.md#what-the-read-face-is) only, so in the write model that line is the foreign key
+constraint, and deleting it would drop it.
 
 **Fix:** delete it — the quick fix does, taking the call out of its chain (`.HasColumnName("pistol_id").HasMaxLength(9)`
-→ `.HasMaxLength(9)`) and a statement left saying nothing with it; **Fix all** does every one at once.
+→ `.HasMaxLength(9)`, `.HasMany(x => x.Lines).WithOne().OnDelete(DeleteBehavior.Cascade)` → `.HasMany(x => x.Lines).WithOne()`)
+and a statement left saying nothing with it (`b.HasKey(x => x.Id);`, `b.Property(x => x.Version).IsConcurrencyToken();`);
+**Fix all** does every one at once.
 
 ## RASK193
 

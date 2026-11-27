@@ -10,7 +10,7 @@ using Rask.Generators.CodeFixes;
 
 namespace Rask.Generators.Tests;
 
-/// <summary>RASK192's Fix all: every restated name of a document goes in one pass, two in one chain included.</summary>
+/// <summary>RASK192's Fix all: every restated name and default of a document goes in one pass, two in one chain included.</summary>
 public class ConventionRestatedFixAllTests
 {
     private const string Source = """
@@ -31,12 +31,13 @@ public class ConventionRestatedFixAllTests
                 b.Property(x => x.PistolId).HasColumnName("pistol_id");
                 b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
                 b.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_fuelings_created_at");
+                b.Property(x => x.Id).ValueGeneratedNever();
             }
         }
         """;
 
     [Fact]
-    public async Task Fix_all_deletes_every_restated_name_in_the_document()
+    public async Task Fix_all_deletes_every_restated_name_and_default_in_the_document()
     {
         var document = Document(Source);
 
@@ -48,7 +49,8 @@ public class ConventionRestatedFixAllTests
         Assert.DoesNotContain("HasDatabaseName", fixed_, StringComparison.Ordinal);
         Assert.DoesNotContain("b.Property(x => x.PistolId)", fixed_, StringComparison.Ordinal);
         Assert.Contains("b.HasKey(x => x.Id);", fixed_, StringComparison.Ordinal);
-        Assert.Contains("b.Property(x => x.CreatedAt).IsRequired();", fixed_, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsRequired", fixed_, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValueGeneratedNever", fixed_, StringComparison.Ordinal);
         Assert.Contains("b.HasIndex(x => x.CreatedAt);", fixed_, StringComparison.Ordinal);
     }
 

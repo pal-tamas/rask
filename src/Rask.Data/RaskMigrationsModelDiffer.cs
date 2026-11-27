@@ -37,7 +37,8 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         A column of moments the target stores as UTC and the source kept as the wall clock gets its rewrite step
-///         (<see cref="MomentsInUtc" />), after every other operation.
+///         (<see cref="MomentsInUtc" />), after every other operation — so a table or column the same migration renames
+///         (Rask's names over an older database) is found under its old name and rewritten under its new one.
 ///     </para>
 ///     <para>
 ///         A table a battery marks with <see cref="StoreKeyRebuild" /> whose key turns from a store-numbered integer into
@@ -108,7 +109,7 @@ internal sealed class RaskMigrationsModelDiffer(
             (IsStoredByTime(source), IsStoredByTime(target)));
         operations = WithGuidOrder(operations, source, target);
         operations = WithNoOverlapRules(operations, source, target);
-        operations = [.. operations, .. MomentsInUtc.Between(source, target)];
+        operations = [.. operations, .. MomentsInUtc.Between(source, target, operations)];
 
         // A constraint only renamed — Rask's pk_/fk_/uq_ names over an existing database — is renamed, not dropped and added.
         if (source is not null)
@@ -139,13 +140,14 @@ internal sealed class RaskMigrationsModelDiffer(
     /// <remarks>
     ///     A model that starts or stops storing its ids in time order is a change a migration must make, though no column
     ///     changes: an app started on it without one stops at <c>HasPendingModelChanges</c> instead of misreading the rows.
-    ///     So is a column of moments to rewrite from the wall clock to UTC (<see cref="MomentsInUtc" />).
+    ///     So is a column of moments to rewrite from the wall clock to UTC (<see cref="MomentsInUtc" />) — one the same
+    ///     migration renames is a difference EF Core's differ sees already, so no renames are looked for here.
     /// </remarks>
     public override bool HasDifferences(IRelationalModel? source, IRelationalModel? target) =>
         base.HasDifferences(source, target) ||
         (source is not null && target is not null && IsOrderedByTime(source) != IsOrderedByTime(target) &&
          string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal)) ||
-        (target is not null && MomentsInUtc.Between(source, target).Any());
+        (target is not null && MomentsInUtc.Between(source, target, []).Any());
 
     // The tenant references the target declares and the source did not, added; the ones it no longer declares, dropped.
     private List<MigrationOperation> WithTenantReferences(

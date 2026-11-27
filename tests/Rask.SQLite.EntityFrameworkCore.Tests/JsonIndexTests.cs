@@ -1,5 +1,10 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Rask.Data;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
@@ -17,7 +22,7 @@ public sealed class JsonIndexTests : IDisposable
 
         var plan = await PlanAsync(db, db.Orders.Where(o => o.Meta.Status == "open").ToQueryString());
 
-        Assert.Contains("USING INDEX IX_Orders_Meta.Status", plan, StringComparison.Ordinal);
+        Assert.Contains("USING INDEX ix_Orders_Meta_status", plan, StringComparison.Ordinal);
         Assert.Equal([2], await db.Orders.Where(o => o.Meta.Status == "open").Select(o => o.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
@@ -29,7 +34,7 @@ public sealed class JsonIndexTests : IDisposable
 
         var plan = await PlanAsync(db, db.Orders.Where(o => o.Meta.Address.City == "Pécs").ToQueryString());
 
-        Assert.Contains("USING INDEX IX_Orders_Meta.Address.City", plan, StringComparison.Ordinal);
+        Assert.Contains("USING INDEX ix_Orders_Meta_address.city", plan, StringComparison.Ordinal);
         Assert.Equal([1], await db.Orders.Where(o => o.Meta.Address.City == "Pécs").Select(o => o.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
@@ -57,7 +62,7 @@ public sealed class JsonIndexTests : IDisposable
         await using var after = Create<IndexedOrderContext>();
         TestMigrations.Apply(after, Create<UnindexedOrderContext>());
 
-        Assert.Contains("IX_Orders_Meta.Status", TestMigrations.Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("ix_Orders_Meta_status", TestMigrations.Ddl(after), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -71,7 +76,7 @@ public sealed class JsonIndexTests : IDisposable
         await using var after = Create<UnindexedOrderContext>();
         TestMigrations.Apply(after, Create<IndexedOrderContext>());
 
-        Assert.DoesNotContain("IX_Orders_Meta", TestMigrations.Ddl(after), StringComparison.Ordinal);
+        Assert.DoesNotContain("ix_Orders_Meta", TestMigrations.Ddl(after), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,8 +91,46 @@ public sealed class JsonIndexTests : IDisposable
         TestMigrations.Apply(after, Create<IndexedOrderContext>());
 
         var ddl = TestMigrations.Ddl(after);
-        Assert.Contains("IX_Orders_Meta.Status", ddl, StringComparison.Ordinal);
-        Assert.Contains("IX_Orders_Meta.Address.City", ddl, StringComparison.Ordinal);
+        Assert.Contains("ix_Orders_Meta_status", ddl, StringComparison.Ordinal);
+        Assert.Contains("ix_Orders_Meta_address.city", ddl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_index_built_under_the_older_name_is_renamed_by_the_next_migration()
+    {
+        await using var db = Create<IndexedOrderContext>();
+        TestMigrations.Apply(db);
+        await db.Database.ExecuteSqlRawAsync("DROP INDEX \"ix_Orders_Meta_status\"", TestContext.Current.CancellationToken);
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX \"IX_Orders_Meta.Status\" ON \"Orders\" (\"Meta\" ->> 'Status')", TestContext.Current.CancellationToken);
+        var model = db.GetService<IDesignTimeModel>().Model;
+        var now = (string)model.GetRelationalModel().FindTable("Orders", null)![JsonIndexSpec.AnnotationName]!;
+        var upgrade = new AlterTableOperation { Name = "Orders", OldTable = new AlterTableOperation { Name = "Orders" } };
+        upgrade[JsonIndexSpec.AnnotationName] = now;
+        upgrade.OldTable[JsonIndexSpec.AnnotationName] = now
+            .Replace("ix_Orders_Meta_status", "IX_Orders_Meta.Status", StringComparison.Ordinal)
+            .Replace("ix_Orders_Meta_address.city", "IX_Orders_Meta.Address.City", StringComparison.Ordinal);
+
+        foreach (var command in db.GetService<IMigrationsSqlGenerator>().Generate([upgrade], model))
+        {
+            await db.Database.ExecuteSqlRawAsync(command.CommandText, TestContext.Current.CancellationToken);
+        }
+
+        var ddl = TestMigrations.Ddl(db);
+        Assert.DoesNotContain("IX_Orders_Meta", ddl, StringComparison.Ordinal);
+        Assert.Contains("ix_Orders_Meta_status", ddl, StringComparison.Ordinal);
+        Assert.Contains("ix_Orders_Meta_address.city", ddl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_long_name_is_cut_to_63_bytes_as_every_other_name_is()
+    {
+        using var db = Create<LongIndexedOrderContext>();
+
+        TestMigrations.Apply(db);
+
+        var names = db.Database.SqlQueryRaw<string>("SELECT name AS Value FROM sqlite_master WHERE type = 'index' AND name LIKE 'ix_%'").ToList();
+        Assert.All(names, n => Assert.True(System.Text.Encoding.UTF8.GetByteCount(n) <= 63, n));
+        Assert.Contains(names, n => n.StartsWith("ix_OrdersOfAVeryLongTableName", StringComparison.Ordinal));
     }
 
     [Fact]

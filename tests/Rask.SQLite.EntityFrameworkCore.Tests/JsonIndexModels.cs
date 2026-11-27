@@ -67,3 +67,13 @@ internal sealed class NotJsonContext(DbContextOptions options) : DbContext(optio
             order.HasJsonIndex(o => o.Meta.Status);
         });
 }
+
+// The same indexes on a table whose name leaves no room for them: Rask's 63-byte cut, as every other name gets.
+internal sealed class LongIndexedOrderContext(DbContextOptions options) : IndexedOrderContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<JsonOrder>().ToTable("OrdersOfAVeryLongTableNameThatLeavesNoRoomForTheIndexName");
+    }
+}

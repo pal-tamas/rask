@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Rask.Data;
+using Rask.Generators.Shared;
 
 namespace Rask.SQLite;
 
@@ -155,12 +156,18 @@ internal static class JsonIndexDdl
         }
 
         var jsonPath = jsonNames.Count == 1 ? jsonNames[0] : "$." + string.Join('.', jsonNames);
-        // Segments joined with '.', which a JSON name here cannot contain: joined with '_', Meta.Address_City and
-        // Meta.Address.City were one name for two indexes, and IF NOT EXISTS then skipped the second.
-        return (
-            string.Create(CultureInfo.InvariantCulture, $"IX_{table}_{column}.{string.Join('.', jsonNames)}"),
-            $"{Quote(column)} ->> '{jsonPath}'");
+        return (Name(table, column, jsonNames), $"{Quote(column)} ->> '{jsonPath}'");
     }
+
+    // Rask's index name — ix_, the table, the column, then the JSON path in snake case — cut to 63 bytes as every other
+    // name is: ix_orders_meta_status, ix_orders_meta_address.city. The path's steps are joined with '.', which a JSON
+    // name here cannot hold: joined with '_', Meta.Address_City and Meta.Address.City were one name for two indexes,
+    // and IF NOT EXISTS then skipped the second. A table built under the older IX_Orders_Meta.Status gets the new name
+    // with its next migration: the annotation the table carries changes, and Build drops the old index and creates
+    // this one.
+    private static string Name(string table, string column, IEnumerable<string> jsonNames) =>
+        StoreNames.Fit(string.Create(
+            CultureInfo.InvariantCulture, $"{StoreNames.Index}_{table}_{column}_{string.Join('.', jsonNames.Select(StoreNames.SnakeCase))}"));
 
     private static InvalidOperationException Unresolvable(IEntityType entityType, IReadOnlyList<string> path, string why) =>
         new($"HasJsonIndex(p => p.{string.Join('.', path)}) on '{entityType.DisplayName()}' cannot be indexed: {why}.");
