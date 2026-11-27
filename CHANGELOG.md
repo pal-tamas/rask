@@ -229,6 +229,18 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **PostgreSQL: `Min`/`Max` of a `Guid` (or a typed id over one) runs.** PostgreSQL has no `min(uuid)` (42883, on 18
+  and 19 alike); `UseRaskPostgres` writes it over the id's text compared byte by byte, `min(x::text COLLATE "C")::uuid`,
+  which orders as `uuid` and .NET's `Guid.CompareTo` do.
+- **SQL Server: `b.NoOverlap(…)` over a text key of no length creates its index.** An `nvarchar(max)` key column
+  cannot key an index there; it is now carried in the index (`INCLUDE`), and the trigger's locked read still holds the
+  rule.
+- **SQL Server: a read face compares its Guids as its write side stores them.** A write context that does not apply
+  Rask's model conventions (`ModelRegistry.ApplyConventions`) keeps its `uniqueidentifier`s as they are, but its read
+  faces stored theirs time-ordered — so `Member.Count(m => m.Owner == id)` counted no row the write side had saved, and
+  a `Serializable` claim retried after a deadlock took the pistol a second time. A read model now follows the write
+  model it mirrors.
+- **`b.InOrder(…)` survives a trimmed publish** (IL2091): its `TChild` carries `HasMany<TChild>`'s annotation.
 - **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
   `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
   and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`

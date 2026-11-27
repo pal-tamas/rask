@@ -194,6 +194,29 @@ public sealed class SqlServerDbTransactionRaceTests : IAsyncLifetime
         Assert.All(failures, Assert.Null);
     }
 
+    [Fact]
+    public async Task A_read_face_reads_its_Guids_as_the_write_side_stores_them()
+    {
+        // Offline: the two models alone. TenancyDbContext names none of Rask's model conventions, so it stores its Guids
+        // as they are, and the faces must compare them so — the retry above counted no claim when they did not.
+        var services = new ServiceCollection();
+        services.AddRaskData<TenancyDbContext>();
+        services.AddDbContextFactory<TenancyDbContext>(static o => o.UseRaskSqlServerAt(Unused));
+        services.AddDbContextFactory<RaskReadDbContext>(static o => o.UseRaskSqlServerAt(Unused));
+        await using var app = services.BuildServiceProvider(validateScopes: true);
+        using var bound = Db.Use(app);
+
+        await using var write = await app.GetRequiredService<IDbContextFactory<TenancyDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await using var read = await app.GetRequiredService<IDbContextFactory<RaskReadDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var written = write.Model.FindEntityType(typeof(Member))!.FindProperty(nameof(Member.Owner))!;
+        var face = read.Model.GetEntityTypes().Single(static e => e.GetTableName() == "Member").FindProperty(nameof(Member.Owner))!;
+
+        Assert.Null(written.GetValueConverter());
+        Assert.Null(face.GetValueConverter());
+    }
+
+    private const string Unused = "Server=unused;Database=unused";
+
     private static TenancyDbContext Open() =>
         new(new DbContextOptionsBuilder<TenancyDbContext>().UseRaskSqlServerAt(SqlServer.Database(DatabaseName)).Options);
 }

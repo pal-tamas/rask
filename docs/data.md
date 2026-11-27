@@ -1883,7 +1883,9 @@ know, as on PostgreSQL:
 `ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
 `>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
 in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
-clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way. SQL Server compares
+clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way; PostgreSQL has no
+`min(uuid)` or `max(uuid)`, so `UseRaskPostgres` writes `Min`/`Max` of one over its text compared byte by byte
+(`min(x::text COLLATE "C")::uuid`), which is the same order. SQL Server compares
 a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every
 `uniqueidentifier` column — every `Guid`, `Guid?` and typed id over a `Guid`, keys and foreign keys alike, Rask's own
 tables included — with its bytes rearranged so SQL Server's order is the id's. The id the app reads, writes, prints
