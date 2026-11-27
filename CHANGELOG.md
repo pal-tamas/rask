@@ -225,6 +225,10 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A `Ui.Select` over a member that may hold none takes options of the type it holds.** A select bound to `CompanyId?`
+  (or `int?`, `Guid?`) is handed `Ui.SelectOption.Value(new CompanyId(3))` and rows of `CompanyId`, as the docs say,
+  without relying on the runtime to unbox one into the nullable; and an option of another type is refused naming both
+  types as the page wrote them (`holds CompanyId, and its Ui.Select holds Int32?`), not `Nullable`1`.
 - **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
   `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
   and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`

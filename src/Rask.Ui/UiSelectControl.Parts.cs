@@ -103,16 +103,26 @@ public abstract partial class UiSelectControl<T>
             }
         }
 
-        // An option cannot know which select it will be a child of, so its value is held to the select's type here.
+        // An option cannot know which select it will be a child of, so its value is held to the select's type here. A
+        // select that may hold none (`CompanyId?`) takes an option of the type it holds when it holds one (`CompanyId`).
         private static T ValueOf(UiSelectOption option) => option.Value switch
         {
             T typed => typed,
+            { } held when held.GetType() == Nullable.GetUnderlyingType(typeof(T)) => (T)held,
             null when (object)option.Text is T words => words,
             // No value, and words cannot stand in for one: the option that means "none" in a select that may hold none.
             null when default(T) is null => default!,
             _ => throw new InvalidOperationException(
-                $"Ui.SelectOption \"{option.Text}\" holds {option.Value?.GetType().Name ?? "no value"}, and its Ui.Select holds "
-                + $"{typeof(T).Name}: give it .Value(…) of that type."),
+                $"Ui.SelectOption \"{option.Text}\" holds {NameOf(option.Value?.GetType())}, and its Ui.Select holds "
+                + $"{NameOf(typeof(T))}: give it .Value(…) of that type."),
+        };
+
+        // `CompanyId?` rather than Nullable`1: the message names the type the page wrote.
+        private static string NameOf(Type? type) => type switch
+        {
+            null => "no value",
+            _ when Nullable.GetUnderlyingType(type) is { } held => held.Name + "?",
+            _ => type.Name,
         };
     }
 }
