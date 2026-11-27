@@ -199,7 +199,9 @@ Rask ships no user class. Your app declares one — `rask new` writes it into `F
 that is the account:
 
 ```csharp
-public sealed class User : Authenticatable
+public readonly partial record struct UserId(Guid Value);
+
+public sealed class User : Authenticatable<UserId>
 {
     // None until the person gives one: an account an administrator invites is made without it.
     public UserDisplayName? DisplayName { get; private set; }
@@ -220,28 +222,35 @@ when the app [has tenants](#accounts-and-tenants)),
 serializes a `User`'s public properties can ever carry it. Add the columns your app needs, then
 `rask db add AddUserColumns` — the app applies it when it starts.
 
-**It is an [aggregate](data.md) like any other.** `Authenticatable` derives from
-`Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable`, so a `User` has the reads, the writes, a generated
+**It is keyed by a [typed id](domain.md#strongly-typed-ids) over a `Guid`**, as every other aggregate is by default:
+`User.Id` is a `UserId`, and so are `Current.UserId` and `Current.UseUser(id)`. Rask carries the signed-in user as the
+`Guid` the id holds — the `NameIdentifier` claim (its text, as `UserId.ToString()` writes it), a session's and a
+passkey's `UserId`, the events, `Accounts.Remove(user.Id.Value)` — and stores the id as that `Guid`, so moving a users
+table from `Authenticatable` (a bare `Guid`) to `Authenticatable<UserId>` changes no column. On SQLite, where a `Guid`
+is text, a typed id is [written lower-case](domain.md#choosing-the-key-a-typed-id-over-a-guid) and EF Core's own `Guid`
+upper-case: lower-case the users' `Id` once (`UPDATE "User" SET "Id" = lower("Id")`) unless the column compares without
+regard to case. `Authenticatable` and `Authenticatable<string>` still work; any other key stops the host starting.
+
+**It is an [aggregate](data.md) like any other.** `Authenticatable<TKey>` derives from
+`Aggregate<TKey>, IHasTimestamps, IVersioned, IHasForm, IDeletable`, so a `User` has the reads, the writes, a generated
 `UserModel` for a profile form (never with the credentials on it), a `Version` and domain events. It does **not**
 soft-delete: soft delete is [a trait it does not name](domain.md#choosing-what-a-table-carries),
 and a deleted account has to free its address for the person to sign up again, so deleting a user removes the row.
 `Session` is the one Rask.Auth table that opts in (below):
 
 ```csharp
-var me = users.Current.UserId() is { } id
+var me = Current.UserId is { } id
     ? await User.Where(u => u.Id == id).FirstOrDefault(CancellationToken)
     : null;
 await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
 ```
 
-Other aggregates refer to a user by id rather than holding one — typed, so it is never mistaken for another id
+Other aggregates refer to a user by that id rather than holding one, so it is never mistaken for another id
 (a bare `Guid` there is [RASK130](diagnostics.md#rask130)):
 
 ```csharp
-public readonly partial record struct AccountId(Guid Value);
-
-public AccountId? Owner { get; private set; }   // new AccountId(id) from the signed-in user's Guid
+public UserId? Owner { get; private set; }   // Current.RequiredUserId
 ```
 
 **Set your own columns while registering.** `IAuth.Register` takes a lambda that runs on the new user
@@ -255,7 +264,7 @@ await auth.Register(model.Email, model.Password, (User user) => user.Rename(mode
 the tenant. Anything else your pages or policies read off the signed-in user, the user says itself:
 
 ```csharp
-public sealed class User : Authenticatable
+public sealed class User : Authenticatable<UserId>
 {
     public int LegacyId { get; private set; }
 
@@ -298,10 +307,11 @@ public sealed class User : Authenticatable<string>
 await auth.SignIn(username, password);
 ```
 
-- **The key** is a `Guid` or a `string` holding one, written as `Guid.ToString()` writes it (lower-case, with
-  hyphens). Rask carries the signed-in user as that Guid — `Current.UserId`, a session's `UserId`, the events — so
-  `Session`, `Passkey` and the instance claim are the same tables whichever key the app has. Any other key stops the
-  host starting; a row whose text is not a Guid cannot sign in.
+- **The key** is a `string` holding a `Guid`, written as `Guid.ToString()` writes it (lower-case, with hyphens) — or,
+  as for a new app, a typed id over a `Guid`. Rask carries the signed-in user as that Guid — a session's `UserId`, the
+  claims, the events — so `Session`, `Passkey` and the instance claim are the same tables whichever key the app has.
+  Any other key (a typed id over a number among them) stops the host starting; a row whose text is not a Guid cannot
+  sign in.
 - **`[SignInName]`** goes on a `string` or on a value object holding one string (read and written through its
   column's own mapping). It is unique within a tenant, as an address is, and compared as stored after trimming, so the
   column's collation decides whether `Admin` and `admin` are one name. Without it the account signs in with `Email`;
@@ -884,8 +894,32 @@ which tenant it belongs to, sign-in puts that on the principal as the `rask:tena
 tenant-scoped read filters by it with nothing passed. A restored session carries the claim too, so a
 reconnect comes back in the same tenant.
 
-The accounts table carries a tenant without being partitioned by one, because an administrator belongs to no
-tenant and a partitioned table refuses a row without one. That shapes three rules:
+**The user says which tenant it belongs to as any table does**, with `IBelongsTo<Tenant>` naming the app's tenant
+aggregate — and declares the column to read and set it, in the tenant's own key:
+
+```csharp
+public readonly partial record struct TenantId(Guid Value);
+public readonly partial record struct UserId(Guid Value);
+
+public sealed partial class Tenant : Aggregate<TenantId>, ITenant { … }
+
+public sealed partial class User : Authenticatable<UserId>, IBelongsTo<Tenant>
+{
+    public TenantId? TenantId { get; private set; }           // none for an administrator
+
+    public void JoinTenant(TenantId tenant) => TenantId = tenant;
+}
+
+await auth.Register(model.Email, model.Password, (User user) => user.JoinTenant(invite.Tenant), ReturnUrl);
+```
+
+That is the one place the tenant lives: `TenantId` is a foreign key to the tenant's table (a migration adds it), it
+is optional, and the principal carries the `Guid` it holds. Without `IBelongsTo<…>` the column is a `Guid?` — the
+one an app with no tenant aggregate declares as `public Guid? TenantId { get; private set; }` to set it.
+
+The accounts table carries a tenant without being partitioned by one — `IBelongsTo<Tenant>` on an account neither
+filters its reads nor stamps its inserts — because an administrator belongs to no tenant and a partitioned table
+refuses a row without one. That shapes three rules:
 
 - **An address is unique within a tenant**, not across all of them, so the same person can hold an account at
   two companies. With no tenants in play every account has none and the address is simply unique. The index
@@ -948,8 +982,9 @@ private Task Remove() => Accounts.Remove(UserId!);                // with their 
 - **The tenant in flight, and never an administrator.** A new account belongs to the tenant the administrator
   [acts in](multi-tenancy.md#acting-in-a-tenant) (`Current.Tenant`), or to none in an app without tenants. `Rename`,
   `SetPassword` and `Remove` reach only that tenant's accounts: another tenant's, an administrator's and an id
-  nobody has are all a `KeyNotFoundException`, and nothing changes. An id is the account's `Guid`, or its text key
-  for `Authenticatable<string>`.
+  nobody has are all a `KeyNotFoundException`, and nothing changes. An id is the `Guid` the account's key holds:
+  `user.Id.Value` for a `UserId`, the key itself for `Authenticatable`, the `Guid` its text spells for
+  `Authenticatable<string>`.
 - **`Remove` is one transaction.** The account, its sessions and its passkeys go in one save. Inside a
   `Db.Transaction` it joins it, and is rolled back with the rest of the work.
 - **The API checks too.** Every call reads the signed-in user's row and refuses one without the `admin` role with a

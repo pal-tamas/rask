@@ -118,6 +118,23 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING (auth): an account is `User : Authenticatable<UserId>, IBelongsTo<Tenant>` — keyed by a typed id over a
+  `Guid`, its tenant its own typed column.** `Authenticatable<TKey>` takes a typed id over a `Guid`
+  (`readonly partial record struct UserId(Guid Value)`) beside `Guid` and `string`: `User.Id`, `Current.UserId` and
+  `Current.UseUser` are the `UserId`, while Rask carries and stores the `Guid` it holds — the `NameIdentifier` claim (its
+  text), `Session.UserId`, `Passkey.UserId`, the events — so moving a users table from `Guid` to a `UserId` over one
+  changes no column (a differ test proves it on SQL Server; on SQLite, where the typed id is written lower-case, lower-case
+  the old upper-case keys once). The generated `AuthUser.Use<User, UserId>(wrap, unwrap)`
+  names the id; a typed id over a number stops the host as any other key does. **`Authenticatable.TenantId` (`Guid?`)
+  and `RecordTenant` are removed:** the user declares its tenant as every table does — `IBelongsTo<Tenant>` and, to
+  read and set it, `public TenantId? TenantId { get; private set; }` — which on an account types the optional column
+  and adds the foreign key to the tenant (a migration), and never filters or stamps (an administrator has none);
+  without `IBelongsTo` the column stays the `Guid?` it was, declared by a user that sets it. `TenantKey` (the unique
+  index's folded copy) holds the tenant as the carried `Guid` for any tenant key, and the principal is built from it.
+  `rask new` scaffolds `User : Authenticatable<UserId>`. Upgrade: `public void JoinTenant(Guid t) => RecordTenant(t);`
+  becomes a `TenantId` property set by your own method. A typed-id account's session resume is the one join a `Guid`
+  key's is (`ON s.UserId = u.Id`, no `CAST`) where the store keeps a `Guid` natively, and two reads on SQLite.
+  `docs/authentication.md#your-user`, `#accounts-and-tenants`.
 - **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
   error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
   (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.

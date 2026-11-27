@@ -114,6 +114,7 @@
     <InternalsVisibleTo Include="Rask.Auth"/>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
     <InternalsVisibleTo Include="Rask.Auth.SignInName.Tests"/>
+    <InternalsVisibleTo Include="Rask.Auth.TypedId.Tests"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Auth;` to downstream consumers. Same namespace as Rask.Auth, so an

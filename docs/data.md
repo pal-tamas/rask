@@ -478,7 +478,7 @@ public sealed class Product : Aggregate<Guid>
 
 | Member | What it answers |
 |---|---|
-| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, or your user's own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
+| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, your user's typed id (`UserId?`, as `rask new` writes it), or its own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
 | `Current.Claim(type)` | the value of the principal's first `type` claim (`string?`), or `null` when it has none or nobody is signed in |
@@ -494,7 +494,7 @@ job row records `UserId` and the runner re-enters it. Anywhere else (a hosted se
 `null`, and the `Required…` forms throw rather than let an anonymous write through looking like a signed-in one.
 
 **The user's own row is `Current.User`.** Say which aggregate is your user — Rask.Auth's `Authenticatable` says it
-already, so a `User : Authenticatable` needs nothing — and the build generates `Current.User` (its read face,
+already, so a `User : Authenticatable<UserId>` needs nothing — and the build generates `Current.User` (its read face,
 `UserRead?`) and `Current.RequiredUser`:
 
 ```csharp

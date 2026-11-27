@@ -102,7 +102,24 @@ internal static class AggregateShape
             traits |= TraitOf(trait, aggregate);
         }
 
-        return traits;
+        // An account's IBelongsTo<Tenant> types its optional TenantId and refers to the tenant, and partitions nothing:
+        // sign-in finds an account before it knows its tenant, and an administrator belongs to none. Rask.Auth maps it.
+        return IsAccount(symbol) ? traits & ~PerTenant : traits;
+    }
+
+    /// <summary>Whether <paramref name="symbol" /> derives from Rask.Auth's <c>Authenticatable</c>: the app's user.</summary>
+    public static bool IsAccount(INamedTypeSymbol symbol)
+    {
+        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current.Name is "Authenticatable" &&
+                string.Equals(current.ContainingNamespace?.ToDisplayString(), "Rask.Auth", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Whether <paramref name="symbol" /> says <paramref name="trait" />.</summary>
