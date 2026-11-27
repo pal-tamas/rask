@@ -714,7 +714,11 @@ public sealed class AppModel : IRaskModel
   (`Contains`, `StartsWith`, `EndsWith`) compare as SQL Server's do. **It needs PostgreSQL 18 or later**: `LIKE` refuses
   a nondeterministic collation before 18, so on an older server the migration stops at that statement and says so,
   rather than every search failing later. The collation is made `IF NOT EXISTS` — a database whose collation was made
-  under another locale keeps it until it is dropped. A collation that tells case and accents apart
+  under another locale keeps it until it is dropped. **A text key is binary**: a primary or alternate key column and a
+  foreign key column of text get `COLLATE "C"` instead, so an id compares byte for byte, its index deduplicates, and a
+  foreign key matches its principal by an equality no ICU rule can make ambiguous — ids are generated, never typed in
+  two cases. A trailing space is not padded away as SQL Server pads it (`'ABC' = 'ABC '` is true there, false under
+  `rask_text` and SQLite's `RASK_TEXT`), so a text that ends in one compares differently there. A collation that tells case and accents apart
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 

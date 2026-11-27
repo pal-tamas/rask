@@ -81,6 +81,13 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **PostgreSQL: a text key is binary.** Through `UseRaskPostgres` under a case-insensitive `c.OrderTextBy(…)`, a text
+  primary or alternate key column and a text foreign key column are now `COLLATE "C"` instead of `rask_text`: an id
+  compares byte for byte and its index deduplicates; every other text column keeps `rask_text`. A database already
+  created through `UseRaskPostgres` gets the change as a column alteration in its next migration. Pinned on
+  PostgreSQL 19 (`PostgresCapabilityTests`, `TrailingSpaceEqualityTests`): a `btree_gist` exclusion compares a
+  `rask_text` key case-insensitively, and a trailing space tells two texts apart on PostgreSQL and SQLite where SQL
+  Server pads it away.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
   where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
   time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter
