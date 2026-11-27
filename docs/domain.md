@@ -682,7 +682,9 @@ public sealed class Order : Aggregate<OrderId, Timestamps, Versioned, Model>
 `OrderId.New()` is a version-7 `Guid` (`Guid.CreateVersion7()`): time-ordered, so the primary-key index stays
 append-only as an identity's does, and unique without asking the database. That is what makes the id real before the
 save: an event raised in the factory, a child pointing at its parent, a log line, a redirect to `/orders/{id}` all name
-the row that will be written. `rask new`'s first-entity example and the generated `Create(model)` use it.
+the row that will be written. `rask new`'s first-entity example and the generated `Create(model)` use it. `ORDER BY
+Id` and paging by it (`Where(o => o.Id > last)`) follow that time on SQL Server, PostgreSQL and SQLite alike — see
+[Guid keys sort by time on every database](data.md#guid-keys-sort-by-time-on-every-database).
 
 An integer identity is for a table the database must number — one an existing schema owns, or one whose number is the
 business's (an invoice's, which [`Numbered`](data-writes.md#a-running-number) keeps gap-free). Its `Id` is `0` until

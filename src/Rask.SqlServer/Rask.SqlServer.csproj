@@ -39,6 +39,11 @@
     <!-- Rask's migrations differ, registered by RaskSqlServerOptionsExtension. Linked, since this package does not
          reference Rask.Data; internal in both, so an app holding both sees neither. -->
     <Compile Include="..\Rask.Data\RaskMigrationsModelDiffer.cs" Link="Shared\RaskMigrationsModelDiffer.cs"/>
+    <!-- The one-time rewrite the differ emits when the model starts storing its uniqueidentifier columns by time. -->
+    <Compile Include="..\Rask.Data\GuidOrderRewrite.cs" Link="Shared\GuidOrderRewrite.cs"/>
+    <Compile Include="..\Rask.Data\SqlServerGuidOrder.cs" Link="Shared\SqlServerGuidOrder.cs"/>
+    <Compile Include="..\Rask.Data\ProviderNames.cs" Link="Shared\ProviderNames.cs"/>
+    <Compile Include="..\Rask.Data\ExclusiveMigrations.cs" Link="Shared\ExclusiveMigrations.cs"/>
     <!-- An optional value object whose members are all optional, held in its row's columns (RaskSqlServerModelValidator). -->
     <Compile Include="..\Rask.Data\OptionalComplexValues.cs" Link="Shared\OptionalComplexValues.cs"/>
     <Compile Include="..\Rask.Data\TenantReference.cs" Link="Shared\TenantReference.cs"/>

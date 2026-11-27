@@ -40,7 +40,7 @@ public sealed class AppCommandTests : IDisposable
         await using var services = new ServiceCollection().BuildServiceProvider();
         using var error = new StringWriter();
 
-        var exit = await AppCommand.RunAsync(services, ["rask", "frobnicate"], error, Token);
+        var exit = await AppCommand.RunAsync(services, ["rask", "frobnicate"], TextWriter.Null, error, Token);
 
         Assert.Equal(2, exit);
         Assert.Contains("Unknown command 'rask frobnicate'", error.ToString(), StringComparison.Ordinal);
@@ -53,7 +53,7 @@ public sealed class AppCommandTests : IDisposable
         var app = StepApp(migrateOnStart: false);
         using var log = AppStepLog.Begin();
 
-        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "migrate"], TextWriter.Null, Token);
+        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "migrate"], TextWriter.Null, TextWriter.Null, Token);
 
         Assert.Equal(0, exit);
         Assert.Equal([CreateTallies.Id, FillTallies.Id], await AppliedAsync(app));
@@ -73,6 +73,43 @@ public sealed class AppCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Rask_db_pending_lists_the_migrations_the_database_has_not_had_in_order()
+    {
+        var app = StepApp(migrateOnStart: false);
+        using var output = new StringWriter();
+
+        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "pending"], output, TextWriter.Null, Token);
+
+        Assert.Equal(0, exit);
+        Assert.Equal([CreateTallies.Id, FillTallies.Id], Lines(output));
+    }
+
+    [Fact]
+    public async Task Rask_db_pending_marks_a_migration_that_rewrites_the_rows_exclusive()
+    {
+        var app = StepApp(migrateOnStart: false, rekeyed: true);
+        using var output = new StringWriter();
+
+        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "pending"], output, TextWriter.Null, Token);
+
+        Assert.Equal(0, exit);
+        Assert.Equal([CreateCounters.Id, RekeyCounters.Id + AppCommand.ExclusiveMark], Lines(output));
+    }
+
+    [Fact]
+    public async Task Rask_db_pending_lists_nothing_once_the_database_is_up_to_date()
+    {
+        var app = StepApp(migrateOnStart: false);
+        using var output = new StringWriter();
+        await AppCommand.RunAsync(app.Services, ["rask", "db", "migrate"], TextWriter.Null, TextWriter.Null, Token);
+
+        var exit = await AppCommand.RunAsync(app.Services, ["rask", "db", "pending"], output, TextWriter.Null, Token);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(Lines(output));
+    }
+
+    [Fact]
     public async Task A_command_that_needs_the_database_says_so_when_the_data_battery_is_off()
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
@@ -80,13 +117,16 @@ public sealed class AppCommandTests : IDisposable
         var built = app.Build<MinimalApp>();
         using var error = new StringWriter();
 
-        var exit = await AppCommand.RunAsync(built.Services, ["rask", "db", "migrate"], error, Token);
+        var exit = await AppCommand.RunAsync(built.Services, ["rask", "db", "migrate"], TextWriter.Null, error, Token);
 
         Assert.Equal(2, exit);
         Assert.Contains("Data battery off", error.ToString(), StringComparison.Ordinal);
     }
 
-    private WebApplication StepApp(bool migrateOnStart)
+    private static string[] Lines(StringWriter output) =>
+        output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private WebApplication StepApp(bool migrateOnStart, bool rekeyed = false)
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Configure(c =>
@@ -101,7 +141,15 @@ public sealed class AppCommandTests : IDisposable
             c.Ops.Off();
             c.Snapshots.Off();
         });
-        app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite(_database.ConnectionString));
+        if (rekeyed)
+        {
+            app.Services.AddDbContextFactory<CounterContext>(o => o.UseSqlite(_database.ConnectionString));
+        }
+        else
+        {
+            app.Services.AddDbContextFactory<TallyContext>(o => o.UseSqlite(_database.ConnectionString));
+        }
+
         return app.Build<MinimalApp>();
     }
 
@@ -184,4 +232,37 @@ public sealed class TallyContextModelSnapshot : ModelSnapshot
             b.ToTable("Tallies");
         });
     }
+}
+
+/// <summary>A context whose second migration rewrites the rows, as Rask's time-ordered Guid rewrite does.</summary>
+public sealed class CounterContext(DbContextOptions<CounterContext> options) : DbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<Tally>().ToTable("Counters");
+}
+
+[DbContext(typeof(CounterContext))]
+[Migration(Id)]
+public sealed class CreateCounters : Migration
+{
+    public const string Id = "20261127000000_CreateCounters";
+
+    protected override void Up(MigrationBuilder migrationBuilder) =>
+        migrationBuilder.CreateTable(
+            name: "Counters",
+            columns: table => new
+            {
+                Id = table.Column<int>(type: "INTEGER", nullable: false).Annotation("Sqlite:Autoincrement", true),
+                Count = table.Column<int>(type: "INTEGER", nullable: false),
+            },
+            constraints: table => table.PrimaryKey("PK_Counters", x => x.Id));
+}
+
+[DbContext(typeof(CounterContext))]
+[Migration(Id)]
+public sealed class RekeyCounters : Migration
+{
+    public const string Id = "20261127000001_RekeyCounters";
+
+    protected override void Up(MigrationBuilder migrationBuilder) =>
+        migrationBuilder.Sql(ExclusiveMigrations.Prefix + ": rewrites the rows\nUPDATE Counters SET Count = Count;");
 }

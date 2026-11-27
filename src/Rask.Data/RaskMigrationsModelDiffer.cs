@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Rask.Data;
 
@@ -39,7 +40,8 @@ internal sealed class RaskMigrationsModelDiffer(
     IRelationalAnnotationProvider relationalAnnotationProvider,
     IRowIdentityMapFactory rowIdentityMapFactory,
     CommandBatchPreparerDependencies commandBatchPreparerDependencies,
-    IDatabaseProvider databaseProvider)
+    IDatabaseProvider databaseProvider,
+    ISqlGenerationHelper sqlGenerationHelper)
     : MigrationsModelDiffer(
         typeMappingSource,
         migrationsAnnotationProvider,
@@ -49,6 +51,7 @@ internal sealed class RaskMigrationsModelDiffer(
 {
     private const string EmptyObject = "{}";
     private const string EmptyArray = "[]";
+    private const string RegisteredKey = "Rask:MigrationsModelDiffer";
 
     /// <summary>
     ///     Registers this differ in a context's internal services, from the <c>ApplyServices</c> of an options extension
@@ -61,8 +64,19 @@ internal sealed class RaskMigrationsModelDiffer(
     ///     context carries anyway adds none. Added, not tried: the provider may register EF Core's own differ first, and
     ///     the last registration wins.
     /// </remarks>
-    public static void Register(IServiceCollection services) =>
+    public static void Register(IServiceCollection services)
+    {
         services.AddScoped<IMigrationsModelDiffer, RaskMigrationsModelDiffer>();
+
+        // Keyed by name, not by a type: this file is compiled into Rask.SqlServer too, whose copy of a marker type would
+        // be another type to the convention in Rask.Data that asks for it.
+        services.TryAddKeyedSingleton<object>(RegisteredKey, RegisteredKey);
+    }
+
+    /// <summary>Whether this differ makes the migrations of the context <paramref name="services" /> belong to.</summary>
+    /// <param name="services">EF Core's internal service provider, as a convention is handed it.</param>
+    public static bool IsRegistered(IServiceProvider services) =>
+        services is IKeyedServiceProvider keyed && keyed.GetKeyedService<object>(RegisteredKey) is not null;
 
     /// <inheritdoc />
     public override IReadOnlyList<MigrationOperation> GetDifferences(IRelationalModel? source, IRelationalModel? target)
@@ -74,6 +88,7 @@ internal sealed class RaskMigrationsModelDiffer(
         }
 
         operations = WithTenantReferences(operations, source, target);
+        operations = WithGuidOrder(operations, source, target);
 
         foreach (var operation in operations)
         {
@@ -90,6 +105,16 @@ internal sealed class RaskMigrationsModelDiffer(
 
         return operations;
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     A model that starts or stops storing its ids in time order is a change a migration must make, though no column
+    ///     changes: an app started on it without one stops at <c>HasPendingModelChanges</c> instead of misreading the rows.
+    /// </remarks>
+    public override bool HasDifferences(IRelationalModel? source, IRelationalModel? target) =>
+        base.HasDifferences(source, target) ||
+        (source is not null && target is not null && IsOrderedByTime(source) != IsOrderedByTime(target) &&
+         string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal));
 
     // The tenant references the target declares and the source did not, added; the ones it no longer declares, dropped.
     private List<MigrationOperation> WithTenantReferences(
@@ -127,6 +152,42 @@ internal sealed class RaskMigrationsModelDiffer(
 
         return [.. drops, .. operations, .. adds];
     }
+
+    // The one-time rewrite of the rows a database holds when the model starts (or stops) storing its uniqueidentifier
+    // columns in time order. Turning it on, it runs after the schema has changed, so a column renamed, or retyped from
+    // text, by the same migration is rewritten under its new name — and before the seed data, which the model writes in
+    // the stored form already; tables the migration creates are empty. Turning it off, it runs first, on the columns as
+    // the database still has them.
+    private IReadOnlyList<MigrationOperation> WithGuidOrder(
+        IReadOnlyList<MigrationOperation> operations, IRelationalModel? source, IRelationalModel target)
+    {
+        var before = IsOrderedByTime(source);
+        var after = IsOrderedByTime(target);
+        if (source is null || before == after ||
+            !string.Equals(databaseProvider.Name, ProviderNames.SqlServer, StringComparison.Ordinal))
+        {
+            return operations;
+        }
+
+        if (!after)
+        {
+            return GuidOrderRewrite.Of(source, new HashSet<(string Name, string? Schema)>(), SqlServerGuidOrder.NativeFromStored, sqlGenerationHelper) is { } back
+                ? [back, .. operations]
+                : operations;
+        }
+
+        var created = operations.OfType<CreateTableOperation>().Select(static c => (c.Name, c.Schema)).ToHashSet();
+        if (GuidOrderRewrite.Of(target, created, SqlServerGuidOrder.StoredFromNative, sqlGenerationHelper) is not { } rewrite)
+        {
+            return operations;
+        }
+
+        var seeds = operations.ToList().FindIndex(static o => o is InsertDataOperation or UpdateDataOperation or DeleteDataOperation);
+        return seeds < 0 ? [.. operations, rewrite] : [.. operations.Take(seeds), rewrite, .. operations.Skip(seeds)];
+    }
+
+    private static bool IsOrderedByTime(IRelationalModel? model) =>
+        string.Equals(model?.Model.FindAnnotation(SqlServerGuidOrder.Annotation)?.Value as string, SqlServerGuidOrder.ByTime, StringComparison.Ordinal);
 
     private static AddForeignKeyOperation ForeignKey(string table, string? schema, string column, TenantReference reference) =>
         new()

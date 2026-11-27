@@ -1584,7 +1584,10 @@ migrates on start only when its `AddRaskData<TContext>(…)` says `.OwnsSchema()
 
 The release step itself can be the app: `dotnet App.dll rask db migrate` builds the host without starting it, applies
 the pending migrations the way a start would (`OwnsSchema` included), runs their [data steps](data-writes.md#moving-data-in-c-with-bdata),
-and exits — with `MigrateOnStart` on or off.
+and exits — with `MigrateOnStart` on or off. `dotnet App.dll rask db pending` lists the migrations the database has not
+had, one a line, in the order they apply; one that rewrites what the rows hold (and so no older version of the app may
+run beside) ends in ` exclusive` — what [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) asks a new image
+before it starts it.
 
 ### Taking over an existing schema
 
@@ -1850,6 +1853,47 @@ know, as on PostgreSQL:
 - **Litestream and snapshots do not apply.** Back up with `BACKUP DATABASE` or your provider's snapshots.
 - **Open connections through EF** (`context.Database.OpenConnectionAsync()`) in hand-written ADO code, or the
   session settings are not sent.
+
+### Guid keys sort by time on every database
+
+`ORDER BY Id`, keyset paging (`Where(x => x.Id > last)` — a typed id over a number or a `Guid` has `<`, `>`, `<=`,
+`>=` and `CompareTo`), `Min`/`Max`, a join and `Contains(ids)` answer the same on SQL Server, PostgreSQL and SQLite,
+in the order .NET's `Guid.CompareTo` gives — so a version-7 id (`XId.New()`) sorts by the time it was made, and a
+clustered key stays append-only. PostgreSQL's `uuid` and SQLite's text already compare that way. SQL Server compares
+a `uniqueidentifier`'s bytes in another order (10–15, 8, 9, 6, 7, 4, 5, 0–3), so on SQL Server Rask stores every
+`uniqueidentifier` column — every `Guid`, `Guid?` and typed id over a `Guid`, keys and foreign keys alike, Rask's own
+tables included — with its bytes rearranged so SQL Server's order is the id's. The id the app reads, writes, prints
+and serializes is unchanged; a column of text (`nvarchar`, or a Guid stored as text) and JSON are left as they are.
+No default is added: Rask assigns every key in the app.
+
+It applies where Rask's migrations do (`UseRaskSqlServer`, a `RaskApp`): the model carries a `Rask:GuidOrder`
+annotation, and **the first migration you add after upgrading rewrites the rows an existing database holds**, once —
+every `uniqueidentifier` column of every table the context's migrations own, with the foreign keys between them
+switched off while it runs and checked again after. A database the first migration creates needs none. Until that
+migration exists, `MigrateOnStart` refuses to start the app (a pending model change), so the new code never reads
+rows in the old layout; [`rask deploy`](deployment.md#one-command-deploy--rask-deploy) stops the old version before
+the new one applies it.
+
+**Raw SQL sees the stored form** — `FromSql`, Dapper, SSMS. EF's own parameters, `BulkInsert` and Rask's own
+statements convert for you. In T-SQL, the stored form of an id's text is
+
+```sql
+DECLARE @r binary(16) = CONVERT(binary(16), REPLACE(@id, '-', ''), 2);
+SELECT CAST(SUBSTRING(@r, 13, 4) + SUBSTRING(@r, 11, 2) + SUBSTRING(@r, 9, 2) + SUBSTRING(@r, 7, 2)
+          + SUBSTRING(@r, 1, 6) AS uniqueidentifier);
+```
+
+and a column `[c]` still in SQL Server's native layout is rewritten to it (what the generated migration does) with
+
+```sql
+-- @n = CAST([c] AS binary(16))
+CAST(SUBSTRING(@n, 13, 4) + SUBSTRING(@n, 11, 2) + SUBSTRING(@n, 9, 2) + SUBSTRING(@n, 8, 1) + SUBSTRING(@n, 7, 1)
+   + SUBSTRING(@n, 4, 1) + SUBSTRING(@n, 3, 1) + SUBSTRING(@n, 2, 1) + SUBSTRING(@n, 1, 1)
+   + SUBSTRING(@n, 6, 1) + SUBSTRING(@n, 5, 1) AS uniqueidentifier)
+```
+
+A migration of your own that re-keys rows writes ids through EF (`UpdateData`, a data step) and gets the stored form
+without either.
 
 One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.

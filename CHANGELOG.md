@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Typed ids over a number or a `Guid` are ordered: `<`, `>`, `<=`, `>=` and `IComparable<T>`.** `Where(x => x.Id >
+  last)` pages by the key in a query, and `ids.Order()` / `Min()` sort them in memory, by the value — a version-7 id's
+  by the time it was made. A text id gets none (the database orders it by its collation), and an order the author wrote
+  is kept.
+- **`dotnet App.dll rask db pending`: the migrations the database has not had, an exclusive one marked.** One line a
+  migration, in the order they apply; one that rewrites what the rows hold ends in ` exclusive`. `rask deploy` asks a
+  new image this before it starts it: an exclusive migration stops the old version first (stop-then-start instead of
+  blue-green, said why), and a start that then fails is not rolled back onto the old image, which could not read the
+  rewritten rows (docs/deployment.md).
 - **RASK145: an event that reads a key the database has not produced yet; client-generated keys are the default.**
   `Raise(new OrderPlaced(Id))` in a factory takes `Id` before the insert, and an `int`/`long` identity (or a typed id
   over one) is still `0` there — EF Core keeps the temporary key in its own entry — so the handlers got `0` for good.
@@ -70,6 +79,17 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING — on SQL Server every `uniqueidentifier` is stored time-ordered: `ORDER BY Id` is the order of creation
+  on all three databases.** SQL Server compares a `uniqueidentifier`'s bytes in its own order, so a version-7 key sorted
+  by its random tail there — paging, `Min`/`Max` and a clustered index's appends all differed from PostgreSQL and
+  SQLite. Through `UseRaskSqlServer` (or a `RaskApp`) Rask now stores every `Guid`, `Guid?` and typed id over a `Guid`
+  in a `uniqueidentifier` column — keys, foreign keys and Rask's own tables alike — with its bytes rearranged so SQL
+  Server's order is .NET's, PostgreSQL's and SQLite's; the id the app sees is unchanged, text and JSON columns are left
+  alone, and no default or generated key is added. **SQL Server apps with stored Guids get a one-time rewrite migration**
+  from the next `rask db add` / `dotnet ef migrations add` (every such column, foreign keys switched off and checked
+  again); until it exists `MigrateOnStart` refuses to start, so no new code reads the old layout. **Raw SQL (`FromSql`,
+  Dapper, SSMS) sees the stored form**; docs/data.md gives the T-SQL for an id's text and for rewriting a column.
+  PostgreSQL and SQLite are unchanged.
 - **A panel near the viewport's edge turns as Flux 2.22's does (#1189).** Every panel placed by `data-rask-place`
   (menus, context menus, popovers, select / autocomplete / pillbox lists, date / time pickers, tooltips) now counts
   the 5 px it keeps from the edge in what fits: one that would end 3 px from the edge turns to the other alignment
