@@ -30,7 +30,9 @@ public static class InOrderBuilderExtensions
     ///     <c>Position</c> of its own keeps it, and its order is then its own to keep.
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="children" /> does not name a property of the aggregate.</exception>
-    public static EntityTypeBuilder<TAggregate> InOrder<[DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate, TChild>(
+    public static EntityTypeBuilder<TAggregate> InOrder<
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] TAggregate,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TChild>(
         this EntityTypeBuilder<TAggregate> aggregate, Expression<Func<TAggregate, HasMany<TChild>>> children)
         where TAggregate : class
         where TChild : class, IEntity
