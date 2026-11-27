@@ -163,6 +163,99 @@ public class ReadModelGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
+    // TA's stock move: two typed ids of a child, each named after where the move goes, both ending in the aggregate Tank.
+    private const string StockMoves = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Fuel;
+        public readonly partial record struct TankId(Guid Value);
+        public readonly partial record struct VirtualTankId(Guid Value);
+        public readonly partial record struct StockMoveId(Guid Value);
+        public readonly partial record struct GaugeId(Guid Value);
+        public sealed class Tank : Aggregate<TankId>
+        {
+            private readonly List<VirtualTank> _virtualTanks = [];
+            private Tank() { }
+            public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+        }
+        public sealed class VirtualTank : Entity<VirtualTankId>
+        {
+            private VirtualTank() { }
+            public string Name { get; private set; } = "";
+        }
+        public sealed class StockMove : Aggregate<StockMoveId>
+        {
+            private StockMove() { }
+            public VirtualTankId FromVirtualTankId { get; private set; }
+            public VirtualTankId? ToVirtualTankId { get; private set; }
+            public TankId MeasuredAtId { get; private set; }
+            public GaugeId ReadOnTankId { get; private set; }
+        }
+        """;
+
+    [Fact]
+    public void A_typed_id_of_a_child_whose_name_ends_in_an_aggregate_reaches_the_child_its_type_names()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::Fuel.VirtualTankRead FromVirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("public global::Fuel.VirtualTankRead? ToVirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_typed_id_reaches_the_aggregate_its_type_names_whatever_the_property_is_called()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.Contains("public global::Fuel.TankRead MeasuredAt { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_typed_id_named_after_no_entity_is_no_reference_to_the_aggregate_its_name_ends_in()
+    {
+        var run = Run(StockMoves);
+
+        var face = run.GeneratedSource("Fuel_StockMoveRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::System.Guid ReadOnTankId { get; init; }", face, StringComparison.Ordinal);
+        Assert.DoesNotContain(" ReadOnTank {", face, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_typed_id_keying_one_entity_reaches_it_and_not_the_aggregate_its_name_ends_in()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Fuel;
+            public readonly partial record struct TankId(Guid Value);
+            public readonly partial record struct StorageKey(Guid Value);
+            public sealed class Tank : Aggregate<TankId> { private Tank() { } }
+            public sealed class Silo : Aggregate<StorageKey> { private Silo() { } }
+            public sealed class Delivery : Aggregate<Guid>
+            {
+                private Delivery() { }
+                public StorageKey UnloadedIntoTankId { get; private set; }
+            }
+            """);
+
+        var face = run.GeneratedSource("Fuel_DeliveryRead");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK089");
+        Assert.Contains("public global::Fuel.StorageKey UnloadedIntoTankId { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("public global::Fuel.SiloRead UnloadedIntoTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
     [Fact]
     public void An_id_whose_name_and_key_match_an_aggregate_becomes_a_navigation()
     {

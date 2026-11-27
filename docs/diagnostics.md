@@ -1874,6 +1874,11 @@ Inference is by name and by key type, both. A property that matches an aggregate
 or that matches two aggregates at once, produces no navigation at all — and the only symptom would be a join
 the author expected and never got.
 
+A typed id settles it by its type first: a type of the app's own that is exactly one entity's key — an aggregate's or
+a child's — points there, whatever the property is called, so a `FromVirtualTankId` of type `VirtualTankId` reaches
+the `VirtualTank` child and never the `Tank` aggregate its name ends in. A name whose entity has another key falls
+through to the next rule (a child entity, a longer suffix) before anything is reported.
+
 ```csharp
 public sealed class Customer : Aggregate<Guid> { }
 
