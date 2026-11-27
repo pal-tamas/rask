@@ -251,7 +251,8 @@ public sealed class StoreKeyRebuildModelTests
     {
         var sql = Script(o => o.UseRaskPostgresAt(PostgresOffline), ordered: true);
 
-        Assert.StartsWith(ExclusiveMigrations.Prefix + ": rebuilds the key of rask_key_rebuild.\"QueueRows\"", sql, StringComparison.Ordinal);
+        // After the model's own collation, which Rask's PostgreSQL provider creates first in every migration.
+        Assert.Contains(ExclusiveMigrations.Prefix + ": rebuilds the key of rask_key_rebuild.\"QueueRows\"", sql, StringComparison.Ordinal);
         Assert.Contains("RAISE EXCEPTION", sql, StringComparison.Ordinal);
         Assert.Contains("CREATE TABLE rask_key_rebuild.\"QueueRows_rask_rebuild\" AS SELECT", sql, StringComparison.Ordinal);
         Assert.Contains("AS uuid)", sql, StringComparison.Ordinal);
