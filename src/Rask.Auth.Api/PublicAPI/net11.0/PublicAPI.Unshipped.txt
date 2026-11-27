@@ -456,3 +456,23 @@ Rask.Auth.AuthOptions.Registration.set -> void
 Rask.Auth.Registration
 Rask.Auth.Registration.Closed = 1 -> Rask.Auth.Registration
 Rask.Auth.Registration.Open = 0 -> Rask.Auth.Registration
+Rask.Auth.AuthClient
+Rask.Auth.BearerIssue
+Rask.Auth.BearerIssue.BearerIssue(Rask.Wire.AuthResult! Result, string? Token, System.DateTimeOffset? ExpiresAt) -> void
+Rask.Auth.BearerIssue.ExpiresAt.get -> System.DateTimeOffset?
+Rask.Auth.BearerIssue.ExpiresAt.init -> void
+Rask.Auth.BearerIssue.Result.get -> Rask.Wire.AuthResult!
+Rask.Auth.BearerIssue.Result.init -> void
+Rask.Auth.BearerIssue.Token.get -> string?
+Rask.Auth.BearerIssue.Token.init -> void
+Rask.Auth.IBearerSignIn
+Rask.Auth.IBearerSignIn.SignIn(string! name, string! password, string? client, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.BearerIssue!>!
+static Rask.Auth.AuthClient.Of(Microsoft.AspNetCore.Http.HttpContext! context) -> string?
+Rask.Auth.BearerIssue.Deconstruct(out Rask.Wire.AuthResult! Result, out string? Token, out System.DateTimeOffset? ExpiresAt) -> void
+Rask.Auth.BearerIssue.Equals(Rask.Auth.BearerIssue? other) -> bool
+override Rask.Auth.BearerIssue.Equals(object? obj) -> bool
+override Rask.Auth.BearerIssue.GetHashCode() -> int
+override Rask.Auth.BearerIssue.ToString() -> string!
+static Rask.Auth.BearerIssue.operator !=(Rask.Auth.BearerIssue? left, Rask.Auth.BearerIssue? right) -> bool
+static Rask.Auth.BearerIssue.operator ==(Rask.Auth.BearerIssue? left, Rask.Auth.BearerIssue? right) -> bool
+Rask.Auth.BearerIssue.<Clone>$() -> Rask.Auth.BearerIssue!

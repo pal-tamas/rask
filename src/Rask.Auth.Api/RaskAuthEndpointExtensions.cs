@@ -450,9 +450,8 @@ public static class RaskAuthEndpointExtensions
     private static IResult Refuse(AuthResult result, int statusCode) =>
         Results.Json(new AuthFailure(result.Error.ToString(), result.Message), statusCode: statusCode);
 
-    // The address a throttle is keyed on. Behind a proxy this is the proxy's address unless the app runs
-    // UseForwardedHeaders, which is the ordinary ASP.NET arrangement for learning the client's.
-    private static string? Client(HttpContext context) => AuthThrottle.ClientOf(context.Connection.RemoteIpAddress);
+    // The address a throttle is keyed on: the one an app's own sign-in endpoint reads too.
+    private static string? Client(HttpContext context) => AuthClient.Of(context);
 
     // Where this app is being served from, used only when the app configured neither PasskeyOrigins nor PublicOrigin.
     // Built from the request's own scheme and host rather than the Origin header: a host is what the server was asked

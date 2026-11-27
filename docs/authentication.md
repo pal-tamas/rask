@@ -129,6 +129,44 @@ bearer-related and does not touch your scheme. Turning it on means the opposite 
 scheme'''s settings and configures them last, exactly as it owns the cookie'''s — so the two are a
 choice between, not a layering.
 
+### Keeping a legacy login contract
+
+A partner integration that already signs in somewhere else — `POST /api/auth` with a user name and a password,
+answered with the token as plain text — keeps that contract while Rask does the work. `IBearerSignIn` checks the
+password exactly as `POST /api/auth/login` does and issues the bearer token:
+
+```csharp
+// Before: the app checked the hash itself, throttled by hand and minted its own JWT with its own key.
+app.MapPost("/api/auth", async (PartnerLogin body, AuthService auth) =>
+    await auth.Login(body.Username, body.Password) is { } user
+        ? Results.Text(JwtTokenGenerator.Generate(user))
+        : Results.Unauthorized());
+
+// After: the same URL and the same answer; the password check, the throttle and the token are Rask's.
+app.MapPost("/api/auth", async (PartnerLogin body, HttpContext http, IBearerSignIn bearer) =>
+    await bearer.SignIn(body.Username, body.Password, AuthClient.Of(http)) is { Token: { } token }
+        ? Results.Text(token)
+        : Results.Unauthorized());
+
+record PartnerLogin(string Username, string Password);
+```
+
+The partner then sends `Authorization: Bearer <token>` to the endpoints it calls, and an endpoint that takes tokens
+alone says so: `.RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme })`.
+It needs `AuthOptions.Bearer` on and a `BearerSigningKey` — the old key's value can move into
+`Rask__Auth__BearerSigningKey`, though a token signed before the switch carries none of Rask's claims and is refused.
+
+- **The same checks as the login endpoint.** Throttled per name and client (`AuthClient.Of(http)` is the client the
+  login endpoint counts — an address, or an IPv6 /64), an unknown name costs a password check anyway, a carried-over
+  bcrypt hash is renewed, and a disabled or unconfirmed account is refused. `BearerIssue.Result` says which, as an
+  `AuthResult`; `Token` and `ExpiresAt` are set only on a success.
+- **A session row, which the token names.** Signing the user out everywhere, a password reset or removing the account
+  ends the token on its next request, as it does a cookie.
+- **The session lasts `BearerLifetime`, not `ExpireTimeSpan`,** and using the token does not extend it. A partner that
+  signs in every few minutes leaves rows that expire with their tokens and are swept a day later, not one per sign-in
+  living a fortnight.
+- **Bearer off is a thrown `InvalidOperationException`** naming the two settings, not a token nothing could check.
+
 ## On this page
 
 - [Your `User`](#your-user)
@@ -683,6 +721,12 @@ app.Configure(c => c.Auth.Configure(o =>
 Changing it is safe on a live app: every format is read — Rask's PBKDF2, bcrypt (`$2a$`, `$2b$`, `$2y$`) and ASP.NET
 Core Identity's V3 hashes — and a user's hash moves to the configured one the next time they sign in. bcrypt uses
 only the first 72 bytes of a password, so with bcrypt on a longer one is refused rather than silently cut.
+
+**Hashes an app brings with it keep working.** A `$2a$`/`$2b$` hash written by BCrypt.Net-Next or BCrypt-Core — at any
+cost, of a password with accents (`árvíztűrő`) or of one longer than 72 bytes — signs in with exactly the password its
+owner types today, and is renewed to PBKDF2 on that sign-in. Both libraries hash the UTF-8 bytes and read only the first
+72, so until the renewal a password past 72 bytes also matches anything that starts the same; afterwards the whole
+password counts. Copy the hashes into your `User`'s password column as they are: nobody has to reset anything.
 
 **Guessing is throttled, never locked out.** After `SignInAttemptsPerMinute` (5) failed sign-ins for one address from
 one client, that client is told to wait a minute (`AuthError.TooManyAttempts`, HTTP 429). The account is not locked:

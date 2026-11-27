@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`IBearerSignIn.SignIn(name, password, client)`: an app keeps its own login contract and Rask issues the token.**
+  A partner's `POST /api/auth` answering a plain-text token is now `await bearer.SignIn(body.Username, body.Password,
+  AuthClient.Of(http)) is { Token: { } token } ? Results.Text(token) : Results.Unauthorized()` — with the login
+  endpoint's throttle per name and client, its constant-cost miss, the renewal of a carried-over bcrypt hash and a
+  `Session` row the token names, so signing out everywhere or a reset ends it. The answer is a `BearerIssue(Result,
+  Token, ExpiresAt)`. A session started this way lasts `BearerLifetime` rather than `ExpireTimeSpan`, and no bearer
+  request extends a session any more, so periodic partner sign-ins leave short rows the sweep removes. `AuthClient.Of(
+  HttpContext)` is the client Rask's endpoints throttle on; a component sign-in on the Server host now counts an IPv6
+  caller by its /64 too, as the endpoints already did.
 - **`AuthOptions.Registration = Registration.Closed`: sign-up is shut, an administrator hands accounts out.**
   `MapRaskAuth` mapped `POST /api/auth/register` always, so anybody could register once the first account existed.
   Closed, the endpoint is not mapped (it answers what any unknown path does), `IAuth.Register` answers
