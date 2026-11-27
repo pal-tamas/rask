@@ -64,9 +64,8 @@ internal static class UiCalendarLook
 
     internal const string RowBelow = "flex mt-1";
 
-    internal const string Weekday = "flex items-center text-sm font-medium text-zinc-500 dark:text-zinc-300";
-
-    internal const string WeekdayText = "w-full text-center";
+    // Flux's heading holds the name itself, centred by the flex row (measured, Flux 2.22).
+    internal const string Weekday = "flex items-center justify-center text-sm font-medium text-zinc-500 dark:text-zinc-300";
 
     internal const string WeekNumber = "flex items-center justify-center text-xs font-medium text-zinc-400";
 
