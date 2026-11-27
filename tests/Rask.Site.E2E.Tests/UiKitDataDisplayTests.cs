@@ -22,6 +22,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
     [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-actions|ui-table-for|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
+    [InlineData("item", "Item", "ui-item|ui-item-single|ui-item-no-subheading|ui-item-actions|ui-item-media|ui-item-narrow|ui-item-team|ui-item-apps|ui-item-billing|ui-item-teams|ui-item-notifications|ui-item-danger")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
     [InlineData("carousel", "Carousel", "ui-carousel-basic|ui-carousel-indicators|ui-carousel-autoplay|ui-carousel-external|ui-carousel-position|ui-carousel-fade|ui-carousel-page|ui-carousel-outside|ui-carousel-rewind|ui-carousel-disabled")]
@@ -622,6 +623,49 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         var head = await area.Locator("thead").EvaluateAsync<double>(
             "el => el.getBoundingClientRect().top - el.closest('table').parentElement.getBoundingClientRect().top");
         Assert.InRange(head, -0.5, 0.5);
+    });
+
+    [Fact]
+    public Task An_item_is_drawn_as_Flux_draws_it_and_a_narrow_one_puts_its_button_under_the_text() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("item", "Item");
+
+        var single = Page.Locator("[data-testid='ui-item-single'] [data-ui-item]");
+        var narrow = Page.Locator("[data-testid='ui-item-narrow'] [data-ui-item]");
+
+        // Flux's numbers: 12px above and below a 20px heading and an 18px subheading 2px under it, 16px in, 14px from
+        // the end, a 1px border; the 32px button centred on the two lines.
+        var drawn = await single.EvaluateAsync<string[]>(
+            "el => { const s = getComputedStyle(el); const b = el.querySelector('[data-ui-button]').getBoundingClientRect(); const r = el.getBoundingClientRect();"
+            + " return [s.paddingTop, s.paddingLeft, s.paddingRight, s.borderTopLeftRadius, `${r.height}`, `${b.top - r.top}`, `${r.right - b.right}`]; }");
+        Assert.Equal(["12px", "16px", "14px", "12px", "66", "17", "15"], drawn);
+        // Under 24rem of its own width a button with words goes under the text, 12px below it; a switch stays at the end,
+        // 14px in (a grouped item draws no border of its own).
+        var under = await narrow.First.EvaluateAsync<double>(
+            "el => el.querySelector('[data-ui-item-actions]').getBoundingClientRect().top - el.querySelector('[data-ui-item-subheading]').getBoundingClientRect().bottom");
+        Assert.Equal(12, under);
+        var end = await narrow.Last.EvaluateAsync<double>(
+            "el => el.getBoundingClientRect().right - el.querySelector('[data-ui-item-actions]').getBoundingClientRect().right");
+        Assert.Equal(14, end);
+    });
+
+    [Fact]
+    public Task An_items_menu_changes_what_its_button_says() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("item", "Item");
+
+        var scope = Page.Locator("[data-testid='ui-item']");
+        var language = scope.Locator("[data-ui-dropdown] [data-ui-button]");
+        var french = scope.GetByRole(AriaRole.Menuitemradio, new LocatorGetByRoleOptions { Name = "Français" });
+
+        await Expect(language).ToHaveTextAsync("English");
+        await language.ClickAsync();
+        await Expect(french).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Pressed near its start: the radio group is an inline box around block rows, as Flux's is, which Chromium's
+        // elementsFromPoint lists above the row at its centre (UiKitActionsTests says more).
+        var row = (await french.BoundingBoxAsync())!;
+        await french.ClickAsync(new LocatorClickOptions { Position = new Position { X = 12, Y = row.Height / 2 } });
+        await Expect(language).ToHaveTextAsync("Français");
     });
 
     [Fact]

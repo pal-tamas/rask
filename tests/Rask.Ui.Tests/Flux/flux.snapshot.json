@@ -3742,6 +3742,61 @@
     },
     {
       "kind": "components",
+      "slug": "item",
+      "title": "Item",
+      "parts": [
+        {
+          "name": "flux:item.group",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:item",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:item.media",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:item.heading",
+          "props": [
+            {
+              "name": "level"
+            }
+          ]
+        },
+        {
+          "name": "flux:item.subheading",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "name": "flux:item.actions",
+          "slots": [
+            {
+              "name": "default"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
       "slug": "kanban",
       "title": "Kanban",
       "parts": [

@@ -137,12 +137,14 @@ internal static class UiButtonClasses
             + "[[data-ui-button-group]>[data-ui-tooltip]:last-child>&]:rounded-e-md",
     };
 
-    // Half of what the button is taller than its line: 6px at sm is on Flux's page, the other two follow it.
-    internal static string Inset(Ui.Inset inset, Ui.ButtonSize size) => UiClass.Compose(
+    // Up and down, half of what the button is taller than its line: 6px at sm is on Flux's page, the other two
+    // follow it. To a side, its own padding there, so what it holds lines up with the edge (measured on Flux's
+    // demos: a sm button with words 12px, beside its icon 8px); a square, the room around its glyph, as up and down.
+    internal static string Inset(Ui.Inset inset, Ui.ButtonSize size, Shape shape) => UiClass.Compose(
         inset.HasFlag(Ui.Inset.Top) ? Top(size) : null,
         inset.HasFlag(Ui.Inset.Bottom) ? Bottom(size) : null,
-        inset.HasFlag(Ui.Inset.Left) ? Start(size) : null,
-        inset.HasFlag(Ui.Inset.Right) ? End(size) : null);
+        inset.HasFlag(Ui.Inset.Left) ? Start(size, shape) : null,
+        inset.HasFlag(Ui.Inset.Right) ? End(size, shape) : null);
 
     private static string Top(Ui.ButtonSize size) => size switch
     {
@@ -158,18 +160,32 @@ internal static class UiButtonClasses
         _ => "[:where(&)]:-mb-2.5",
     };
 
-    private static string Start(Ui.ButtonSize size) => size switch
+    // The padding Size writes on the start side, as a margin the other way.
+    private static string Start(Ui.ButtonSize size, Shape shape) => (size, shape) switch
     {
-        Ui.ButtonSize.Sm => "[:where(&)]:-ms-1.5",
-        Ui.ButtonSize.Xs => "[:where(&)]:-ms-1",
-        _ => "[:where(&)]:-ms-2.5",
+        (Ui.ButtonSize.Sm, Shape.Square) => "[:where(&)]:-ms-1.5",
+        (Ui.ButtonSize.Sm, Shape.IconLeading or Shape.IconBoth) => "[:where(&)]:-ms-2",
+        (Ui.ButtonSize.Sm, _) => "[:where(&)]:-ms-3",
+        (Ui.ButtonSize.Xs, Shape.Square) => "[:where(&)]:-ms-1",
+        (Ui.ButtonSize.Xs, Shape.IconLeading or Shape.IconBoth) => "[:where(&)]:-ms-1.5",
+        (Ui.ButtonSize.Xs, _) => "[:where(&)]:-ms-2",
+        (_, Shape.Square) => "[:where(&)]:-ms-2.5",
+        (_, Shape.IconLeading or Shape.IconBoth) => "[:where(&)]:-ms-3",
+        _ => "[:where(&)]:-ms-4",
     };
 
-    private static string End(Ui.ButtonSize size) => size switch
+    // The padding Size writes on the end side, as a margin the other way.
+    private static string End(Ui.ButtonSize size, Shape shape) => (size, shape) switch
     {
-        Ui.ButtonSize.Sm => "[:where(&)]:-me-1.5",
-        Ui.ButtonSize.Xs => "[:where(&)]:-me-1",
-        _ => "[:where(&)]:-me-2.5",
+        (Ui.ButtonSize.Sm, Shape.Square) => "[:where(&)]:-me-1.5",
+        (Ui.ButtonSize.Sm, Shape.IconTrailing or Shape.IconBoth) => "[:where(&)]:-me-2",
+        (Ui.ButtonSize.Sm, _) => "[:where(&)]:-me-3",
+        (Ui.ButtonSize.Xs, Shape.Square) => "[:where(&)]:-me-1",
+        (Ui.ButtonSize.Xs, Shape.IconTrailing or Shape.IconBoth) => "[:where(&)]:-me-1.5",
+        (Ui.ButtonSize.Xs, _) => "[:where(&)]:-me-2",
+        (_, Shape.Square) => "[:where(&)]:-me-2.5",
+        (_, Shape.IconTrailing or Shape.IconBoth) => "[:where(&)]:-me-3",
+        _ => "[:where(&)]:-me-4",
     };
 
     /// <summary>Whether <paramref name="color" /> is one of the seventeen hues and not a gray.</summary>

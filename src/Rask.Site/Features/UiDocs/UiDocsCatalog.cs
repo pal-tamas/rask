@@ -255,6 +255,13 @@ internal static class UiDocsCatalog
         "A list row's actions behind one ⋯ in C#: view, edit, your own items and delete, held at the table's right edge; "
         + "the delete asks first.");
 
+    public static UiDocsEntry Item { get; } = new(
+        Routes.UiItemPage(), "Item", Components,
+        "Item rows in C#: Ui.Item and Ui.ItemGroup",
+        "Flux UI's item in C#: rows with a heading, a line of text and a control at the end, grouped on one surface for "
+        + "settings, accounts and people.",
+        "item");
+
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,
         "Kanban board in C#: Ui.Kanban",
@@ -498,7 +505,7 @@ internal static class UiDocsCatalog
         Header, Sidebar, AppFrame,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
         ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag, FormButtons, FormTabs,
-        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
+        Heading, Icon, Input, Item, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

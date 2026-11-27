@@ -2311,6 +2311,24 @@ Rask.UiInputIcon.Content.get -> Rask.Core.Component?
 Rask.UiInputIcon.Equals(Rask.UiInputIcon other) -> bool
 Rask.UiInputIcon.Name.get -> Rask.Ui.IconName?
 Rask.UiInputIcon.UiInputIcon() -> void
+Rask.UiItem
+Rask.UiItem.Class.get -> string?
+Rask.UiItem.Class.set -> void
+Rask.UiItem.UiItem() -> void
+Rask.UiItemActions
+Rask.UiItemActions.UiItemActions() -> void
+Rask.UiItemGroup
+Rask.UiItemGroup.Class.get -> string?
+Rask.UiItemGroup.Class.set -> void
+Rask.UiItemGroup.UiItemGroup() -> void
+Rask.UiItemHeading
+Rask.UiItemHeading.Level.get -> int?
+Rask.UiItemHeading.Level.set -> void
+Rask.UiItemHeading.UiItemHeading() -> void
+Rask.UiItemMedia
+Rask.UiItemMedia.UiItemMedia() -> void
+Rask.UiItemSubheading
+Rask.UiItemSubheading.UiItemSubheading() -> void
 Rask.UiKanban
 Rask.UiKanban.UiKanban() -> void
 Rask.UiKanbanCard
@@ -4090,6 +4108,12 @@ static Rask.Ui.Header.get -> Rask.UiHeader!
 static Rask.Ui.InputGroup.get -> Rask.UiInputGroup!
 static Rask.Ui.InputGroupPrefix.get -> Rask.UiInputGroupPrefix!
 static Rask.Ui.InputGroupSuffix.get -> Rask.UiInputGroupSuffix!
+static Rask.Ui.Item.get -> Rask.UiItem!
+static Rask.Ui.ItemActions.get -> Rask.UiItemActions!
+static Rask.Ui.ItemGroup.get -> Rask.UiItemGroup!
+static Rask.Ui.ItemHeading.get -> Rask.UiItemHeading!
+static Rask.Ui.ItemMedia.get -> Rask.UiItemMedia!
+static Rask.Ui.ItemSubheading.get -> Rask.UiItemSubheading!
 static Rask.Ui.Kanban.get -> Rask.UiKanban!
 static Rask.Ui.KanbanCard.get -> Rask.UiKanbanCard!
 static Rask.Ui.KanbanColumn.get -> Rask.UiKanbanColumn!
@@ -4273,6 +4297,8 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiForbidden(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFormButtons(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFormTab(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFormTabs(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiItemGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuRadio(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuSubmenu(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -4428,6 +4454,9 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFormTabs(Rask.Core.Comp
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInputGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInputGroupPrefix(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInputGroupSuffix(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiItem(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiItemGroup(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiItemHeading(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanCard(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __c0) -> void
@@ -4550,6 +4579,9 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFormTabs(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInputGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInputGroupPrefix(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInputGroupSuffix(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiItem(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiItemGroup(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiItemHeading(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanCard(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiKanbanColumnHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __c0, ulong __p) -> void
@@ -4822,6 +4854,10 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiFormTabs! __b, params System.
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFormTabs! __b, string? value) -> Rask.UiFormTabs!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiHeader! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiHeader!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiHeader! __b, string? value) -> Rask.UiHeader!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiItem! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiItem!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiItem! __b, string? value) -> Rask.UiItem!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiItemGroup! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiItemGroup!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiItemGroup! __b, string? value) -> Rask.UiItemGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckboxGroup! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuCheckboxGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckboxGroup! __b, string? value) -> Rask.UiMenuCheckboxGroup!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuRadio! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuRadio!
@@ -5817,6 +5853,7 @@ static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b) -> Rask.UiOtp
 static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b, bool? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.Lane(this Rask.UiWorkList! __b, string? value) -> Rask.UiWorkList!
 static RaskBuilderSettersRask_Ui.Lane(this Rask.UiWorkNotices! __b, string? value) -> Rask.UiWorkNotices!
+static RaskBuilderSettersRask_Ui.Level(this Rask.UiItemHeading! __b, int? value) -> Rask.UiItemHeading!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePicker! __b) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePicker! __b, bool? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!

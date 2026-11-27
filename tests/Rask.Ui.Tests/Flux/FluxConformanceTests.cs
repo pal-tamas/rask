@@ -71,6 +71,12 @@ public sealed class FluxConformanceTests
         ["flux:card.body"] = typeof(UiCardBody),
         ["flux:card.footer"] = typeof(UiCardFooter),
         ["flux:card.bleed"] = typeof(UiCardBleed),
+        ["flux:item.group"] = typeof(UiItemGroup),
+        ["flux:item"] = typeof(UiItem),
+        ["flux:item.media"] = typeof(UiItemMedia),
+        ["flux:item.heading"] = typeof(UiItemHeading),
+        ["flux:item.subheading"] = typeof(UiItemSubheading),
+        ["flux:item.actions"] = typeof(UiItemActions),
         ["flux:kanban"] = typeof(UiKanban),
         ["flux:kanban.column"] = typeof(UiKanbanColumn),
         ["flux:kanban.column.header"] = typeof(UiKanbanColumnHeader),
@@ -776,7 +782,7 @@ public sealed class FluxConformanceTests
     {
         var parts = Parts().Select(part => part.Name).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(54, Snapshot.RootElement.GetProperty("pages").GetArrayLength());
+        Assert.Equal(55, Snapshot.RootElement.GetProperty("pages").GetArrayLength());
         Assert.All(Built.Keys, part => Assert.Contains(part, parts));
     }
 
