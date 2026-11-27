@@ -63,7 +63,7 @@ public sealed partial class KeyedNavApp : Component
         Ul[
             _items.Select(i => Li
                 .Class("line")
-                .Data(new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
+                .Key(i)[
                 $"item {i}"])
         ]
     ];

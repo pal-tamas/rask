@@ -40,8 +40,8 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_key_after_user_data_is_not_duplicated()
     {
-        // data-rask-key follows other data-* entries; a literal Data["rask-key"] is dropped
-        // in favour of the canonical Key so there's exactly one data-rask-key.
+        // data-rask-key follows other data-* entries; a literal Data["rask-key"] is never
+        // written, so there's exactly one data-rask-key and it is Key's.
         Assert.Equal(
             "<li data-row=\"7\" data-rask-key=\"k\"></li>",
             Li.Data(new Dictionary<string, string?> { ["row"] = "7", ["rask-key"] = "from-data" }).Key("k")
@@ -49,12 +49,13 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_data_rask_key_without_the_Key_prop_still_emits_for_back_compat()
+    public void A_data_rask_key_without_the_Key_prop_is_not_written()
     {
-        // VirtualizePage-style keying via Data continues to work when Key isn't set.
-        Assert.Equal(
-            "<tr data-rask-key=\"3\"></tr>",
-            Tr.Data(new Dictionary<string, string?> { ["rask-key"] = "3" }).ToHtml());
+        var row = Tr.Data(new Dictionary<string, string?> { ["row"] = "3", ["rask-key"] = "3" });
+
+        var html = row.ToHtml();
+
+        Assert.Equal("<tr data-row=\"3\"></tr>", html);
     }
 
     [Fact]

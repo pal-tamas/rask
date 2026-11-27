@@ -47,9 +47,6 @@ public sealed class AuthOptions
     /// <summary>Where a confirmation link lands.</summary>
     public string ConfirmEmailPath { get; set; } = "/confirm-email";
 
-    /// <summary>Where a visitor asks for a password-reset link.</summary>
-    public string ForgotPasswordPath { get; set; } = "/forgot-password";
-
     /// <summary>Where a reset link lands.</summary>
     public string ResetPasswordPath { get; set; } = "/reset-password";
 
@@ -341,7 +338,6 @@ public sealed class AuthOptions
         NotEmpty(RegisterPath, nameof(RegisterPath));
         NotEmpty(LogoutPath, nameof(LogoutPath));
         NotEmpty(ConfirmEmailPath, nameof(ConfirmEmailPath));
-        NotEmpty(ForgotPasswordPath, nameof(ForgotPasswordPath));
         NotEmpty(ResetPasswordPath, nameof(ResetPasswordPath));
 
         if (ExpireTimeSpan <= TimeSpan.Zero)

@@ -24,7 +24,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot(WithProvider());
 
-        // Script is auto-injected even though the tree never mentions RaskRuntimeScript().
+        // Script is auto-injected though nothing in the tree places it.
         Assert.Contains(ScriptHtml + "</body>", html);
     }
 
@@ -37,19 +37,6 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("rask.js", html);
         Assert.Contains("<p>hi</p></body>", html);
-    }
-
-    [Fact]
-    public void A_legacy_runtime_script_still_in_the_tree_emits_exactly_one_script()
-    {
-        // RaskRuntimeScript() is a no-op; the framework injects one script at body close.
-        var view = new StubComponent(() => Shell(P["hi"], RaskRuntimeScript));
-
-        var html = view.RenderAsLiveRoot(WithProvider());
-
-        var first = html.IndexOf(ScriptHtml, StringComparison.Ordinal);
-        Assert.True(first >= 0, "expected the injected runtime script");
-        Assert.Equal(-1, html.IndexOf(ScriptHtml, first + ScriptHtml.Length, StringComparison.Ordinal));
     }
 
     [Fact]

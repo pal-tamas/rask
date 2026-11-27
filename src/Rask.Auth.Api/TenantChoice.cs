@@ -23,5 +23,5 @@ internal static class TenantChoice
     /// </summary>
     internal static bool MayChoose<TKey>(Authenticatable<TKey> user, AuthOptions options)
         where TKey : notnull =>
-        TenantChoosing.MayChoose(user.TenantId is not null, options.ActInTenantRole, user.IsInRole);
+        TenantChoosing.MayChoose(user.CarriedTenant is not null, options.ActInTenantRole, user.IsInRole);
 }
