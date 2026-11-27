@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 
 namespace Rask.Batteries.Generators;
 
-// A list of rows as a parameter — `Change(IReadOnlyList<SupplyPartSpec> parts)` for a `Children<SupplyPart, SupplyPartSpec>
+// A list of rows as a parameter — `Change(IReadOnlyList<SupplyPartSpec> parts)` for a `HasMany<SupplyPart>
 // .Sync` — is an editable list on the operation's form: `f.Parts`, a row per child the aggregate holds, each row's
 // fields the spec's members (`row.Quantity`), a row added with `f.Parts.Add(new())` and taken away with
 // `f.Parts.Remove(row)`. Each row is made into its spec, a refusal under its place (`Parts[1].Quantity`), which is
@@ -146,7 +146,7 @@ public sealed partial class OperationGenerator
         return null;
     }
 
-    // The child a row stands for: the entity of the aggregate's list of that name — `Children<SupplyPart, …> Parts`.
+    // The child a row stands for: the entity of the aggregate's list of that name — `HasMany<SupplyPart> Parts`.
     private static INamedTypeSymbol? ChildrenOf(INamedTypeSymbol aggregate, string property) =>
         PropertyNamed(aggregate, property)?.Type is INamedTypeSymbol held
             ? held.AllInterfaces.Concat([held])
