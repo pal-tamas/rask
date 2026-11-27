@@ -51,8 +51,8 @@ re-render reaches the browser DOM — differs by host:
 
 ### The runtime `<script>` is auto-injected
 
-`HtmlSerializer` injects the runtime as the **last child of `<body>`** — you never
-write `RaskRuntimeScript()`. On serializing the `</body>` close it resolves the
+`HtmlSerializer` injects the runtime as the **last child of `<body>`** — nothing in
+the component tree places it. On serializing the `</body>` close it resolves the
 host-registered `IRaskRuntimeScript` from DI and serializes its tag inline
 (`HtmlSerializer.cs`, `CloseShellElement`):
 

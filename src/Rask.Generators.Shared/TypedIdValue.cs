@@ -12,7 +12,7 @@ internal enum TypedIdValue
     /// <summary>A <c>long</c> — an identity column's number.</summary>
     Int64,
 
-    /// <summary>A <c>Guid</c> — the application's own, from <c>New()</c>.</summary>
+    /// <summary>A <c>Guid</c> — the application's own, from <c>Create()</c>.</summary>
     Guid,
 
     /// <summary>A <c>string</c> — a natural key.</summary>

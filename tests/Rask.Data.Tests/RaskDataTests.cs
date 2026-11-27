@@ -9,7 +9,7 @@ namespace Rask.Data.Tests;
 public sealed class RaskDataTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     private readonly EventRecorder _recorder = new();
     private readonly ServiceProvider _provider;
 

@@ -75,7 +75,7 @@ Fix the code, never the test. Each of these failed silently at least once before
 | In-doc links route to guides (a `../guide.md` link included) and every anchor names a heading | `Shared/Markdown.cs` | `DocsLinkTests`, `GuidesTests` |
 | Site identity (title, description, author, repo) stated once | `Shared/SiteIdentity.cs` | — |
 | Every page: `og:image` = the 1200×630 card, `twitter:card=summary_large_image`; the committed PNG really is that size | `PageMeta.cs`, `wwwroot/img/og-card.png` | `PageMetaTests`, `SiteExampleTests` (E2E) |
-| Every internal link carries the trailing-slash URL the host serves (`PageMeta.LinkTo`), never a bare path that 301s | `PageMeta.cs` and each link builder | `PageMetaTests.EveryInternalLinkPointsAtTheUrlTheHostServes` |
+| Every internal link carries the trailing-slash URL the host serves (`PageMeta.LinkTo`), never a bare path that 301s | `PageMeta.cs` and each link builder | `PageMetaTests.Every_internal_link_points_at_the_URL_the_host_serves` |
 
 ## Per change
 

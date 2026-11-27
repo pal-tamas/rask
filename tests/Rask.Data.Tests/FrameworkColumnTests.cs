@@ -88,7 +88,7 @@ public sealed class FrameworkColumnTests : IDisposable
     public async Task An_insert_and_an_update_stamp_the_timestamps_and_bump_the_version()
     {
         var start = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
-        var clock = new FakeClock(start);
+        var clock = new ManualClock(start);
         await using var database = await StartDatabaseAsync(clock);
 
         var memo = Memo.Write("once");

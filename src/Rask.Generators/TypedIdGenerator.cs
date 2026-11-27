@@ -57,7 +57,7 @@ public sealed partial class TypedIdGenerator : IIncrementalGenerator
             symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             value,
-            Declares(symbol, "New"),
+            DeclaresCreate(symbol),
             Declares(symbol, "Parse"),
             Declares(symbol, "TryParse"),
             Declares(symbol, nameof(ToString)),
@@ -70,13 +70,19 @@ public sealed partial class TypedIdGenerator : IIncrementalGenerator
     private static bool Declares(INamedTypeSymbol symbol, string name) =>
         symbol.GetMembers(name).Any(static member => !member.IsImplicitlyDeclared);
 
+    // Only a parameterless static Create() stands in for the generated one: a hand-written Create(Guid) or Create(string)
+    // is an overload beside it, not a clash.
+    private static bool DeclaresCreate(INamedTypeSymbol symbol) =>
+        symbol.GetMembers("Create").OfType<IMethodSymbol>()
+            .Any(static method => !method.IsImplicitlyDeclared && method.IsStatic && method.Parameters.Length == 0);
+
     /// <summary>One typed id, as far as its generated half needs to know it.</summary>
     private sealed record TypedId(
         string? Namespace,
         string Name,
         string FullName,
         TypedIdValue Value,
-        bool HasNew,
+        bool HasCreate,
         bool HasParse,
         bool HasTryParse,
         bool HasToString,

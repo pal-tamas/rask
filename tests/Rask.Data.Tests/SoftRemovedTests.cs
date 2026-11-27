@@ -66,7 +66,7 @@ public sealed class StallMark : Entity<Guid>
 public sealed class SoftRemovedTests : IDisposable
 {
     private readonly InMemorySqlite _sqlite = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2026, 3, 1, 8, 0, 0, TimeSpan.Zero));
+    private readonly ManualClock _clock = new(new DateTimeOffset(2026, 3, 1, 8, 0, 0, TimeSpan.Zero));
 
     public void Dispose() => _sqlite.Dispose();
 

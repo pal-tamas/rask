@@ -82,6 +82,6 @@ public partial class App : Component
     // `antialiased`: text smoothed as a native app smooths it, as the templates' app.css does (NATIVE FEEL).
     protected override string? BodyClass => "bg-zinc-50 antialiased dark:bg-zinc-900";
 
-    // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
+    // The runtime <script> is injected into <body> automatically.
     protected override Component? Render() => Router;
 }

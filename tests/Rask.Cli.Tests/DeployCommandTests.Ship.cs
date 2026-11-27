@@ -23,7 +23,7 @@ public sealed partial class DeployCommandTests
     private DeployCommand CreateAt(FakeFileSystem fs, FakeProcessRunner runner, StringConsole console)
     {
         var command = Create(fs, runner, console);
-        command.Clock = new FixedClock(DeployMoment);
+        command.Clock = new ManualClock(DeployMoment);
         return command;
     }
 
@@ -195,10 +195,5 @@ public sealed partial class DeployCommandTests
         var piped = runner.Invocations.Where(i => i.Arguments.Contains("save") || i.Arguments.Contains("load")).Select(i => i.Arguments).ToList();
         Assert.Equal(["save", "shop:current"], piped[0]);
         Assert.Equal(["-H", $"unix://{Path.Combine(directory, "docker.sock")}", "load"], piped[1]);
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

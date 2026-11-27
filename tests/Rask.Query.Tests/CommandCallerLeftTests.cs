@@ -16,7 +16,7 @@ public class CommandCallerLeftTests
     private static (SessionQueryClient Client, CountingDispatcher Dispatcher) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        return (new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
+        return (new SessionQueryClient(dispatcher, new ManualClock(DateTimeOffset.UnixEpoch)), dispatcher);
     }
 
     private static async Task Settle<T>(Query<T> query)

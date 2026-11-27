@@ -18,7 +18,7 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///         over one) is the store's identity, which EF Core keeps as a temporary value in its own entry until the insert,
 ///         so the entity's <c>Id</c> is still <c>0</c> — and so is the event, for good: the handlers that run after the
 ///         commit are handed the event as raised. A key the entity makes itself (a version-7 <c>Guid</c>, a typed id over
-///         one made with <c>New()</c>) is there from the start.
+///         one made with <c>Create()</c>) is there from the start.
 ///     </para>
 ///     <para>
 ///         Reported only where the entity is certainly new, so an operation on a stored aggregate — whose <c>Id</c> is
@@ -43,7 +43,7 @@ public sealed class StoreKeyEventAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask145 = new(
         "RASK145",
         "An event reads a key the database has not produced yet",
-        "The event raised in '{0}' reads '{1}', which the database produces only on insert: raised before the first save, it carries 0 — give '{2}' a client-generated key (a typed id over a Guid, made with New())",
+        "The event raised in '{0}' reads '{1}', which the database produces only on insert: raised before the first save, it carries 0 — give '{2}' a client-generated key (a typed id over a Guid, made with Create())",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -53,7 +53,7 @@ public sealed class StoreKeyEventAnalyzer : DiagnosticAnalyzer
                      + "entity is certainly new: Id read in the aggregate's constructor, or x.Id of a local the same method "
                      + "made with new or with a static factory of its type. Key the entity on the client instead: "
                      + "a typed id over a Guid (public readonly partial record struct OrderId(Guid Value)) made with "
-                     + "OrderId.New(), a time-ordered version-7 Guid. A warning by default; an error under <RaskStrict>.",
+                     + "OrderId.Create(), a time-ordered version-7 Guid. A warning by default; an error under <RaskStrict>.",
         helpLinkUri: DiagnosticHelp.Link("RASK145"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask145);

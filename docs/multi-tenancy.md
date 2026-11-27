@@ -271,17 +271,24 @@ user it answers alongside.
 ### Putting a user in a tenant
 
 Rask.Auth records the tenant on the account row but does not decide it — your app does, usually when an
-invitation is accepted or a company signs up. `Authenticatable` has a protected `RecordTenant`, so your `User`
-can say what joining a tenant means, and the registration lambda sets it in the same insert:
+invitation is accepted or a company signs up. The `User` says `IBelongsTo<Tenant>` like any table of the tenant's,
+declares the column in the tenant's key, and says what joining means; the registration lambda sets it in the same
+insert:
 
 ```csharp
-public sealed class User : Authenticatable
+public sealed partial class User : Authenticatable<UserId>, IBelongsTo<Tenant>
 {
-    public void JoinTenant(Guid tenant) => RecordTenant(tenant);
+    public TenantId? TenantId { get; private set; }
+
+    public void JoinTenant(TenantId tenant) => TenantId = tenant;
 }
 
 await auth.Register(model.Email, model.Password, (User user) => user.JoinTenant(invite.TenantId), ReturnUrl);
 ```
+
+On an account the trait types the column, makes it a foreign key to the tenant and partitions nothing: an
+administrator's row has no tenant, and sign-in finds an account before it knows its tenant, so the accounts are never
+filtered or stamped. An account an administrator creates with `Accounts.Create` joins the tenant they act in.
 
 A user with no tenant — an administrator — carries no claim, and is covered [below](#administrators).
 

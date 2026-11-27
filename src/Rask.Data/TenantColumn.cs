@@ -75,6 +75,19 @@ internal static class TenantColumn
     /// <summary>A stored typed id as the <see cref="Guid" /> the framework carries, or null when it is no tenant's id.</summary>
     internal static Guid? TypedCarried(object stored) => TypedFor(stored.GetType())?.Carried(stored);
 
+    /// <summary>
+    ///     A stored <c>TenantId</c> of any type a tenant is kept in — a <see cref="Guid" />, a number, the tenant's typed
+    ///     id — as the <see cref="Guid" /> the framework carries, or null for none.
+    /// </summary>
+    internal static Guid? Carried(object? stored) => stored switch
+    {
+        null => null,
+        Guid tenant => tenant,
+        int number => TenantNumber.ToGuid(number),
+        long number => TenantNumber.ToGuid(number),
+        _ => TypedCarried(stored),
+    };
+
     /// <summary>The type <paramref name="entityType" /> keeps its tenant in: what it declared, or <c>Guid?</c>.</summary>
     /// <exception cref="InvalidOperationException">It declared a <c>TenantId</c> of a type no tenant is kept in.</exception>
     internal static Type TypeFor(IReadOnlyEntityType entityType) =>
