@@ -81,6 +81,22 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING — `HasMany<TChild>` replaces `Children<TEntity, TSpec>`: an aggregate's children, read by everyone and
+  changed only by the aggregate.** Before: `public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();`, or a
+  hand-written `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;`. After:
+  `public HasMany<Pistol> Pistols { get; } = new();` with `Add(child)`, `Add(children)`, `Remove`, `RemoveAll(match)`,
+  `Clear()` and three `Sync`s — by the child's `Id` (`Sync(specs, s => s.Id, add, update, remove)`), by a key of its own
+  (`Sync(specs, specKey, childKey, add, update, remove)`), and a link from the other side's ids
+  (`Sync(vehicleIds, v => v.VehicleId, add)`); the spec type moved from the class to the method. A key given twice
+  throws, before anything changes. Moving from the `List` field and its view is **no migration** (the same navigation,
+  foreign key and columns — proved by EF Core's migration differ on SQLite, SQL Server and PostgreSQL). The `Position`
+  column is no longer added to every child: the order is kept only where the aggregate's `Configure` asks,
+  `b.InOrder(s => s.Parts)` — an app that used `Children<,>` and relies on the order adds that line (its `Position`
+  column stays as it was); one that does not drops the column in its next migration. RASK180 now covers every mutator
+  (`Add`, `Remove`, `RemoveAll`, `Clear`, `Sync`) and a cast to `ICollection<T>` outside the aggregate. New
+  **RASK192** (a suggestion; an error under `<RaskStrict>`) reports a child list exposed by hand — a `List<X>` field
+  behind a read-only view, or a public `List<X>`/`ICollection<X>` — with a quick-fix that rewrites it to `HasMany<X>`
+  and `_xs.Add(x)` to `Xs.Add(x)`.
 - **A panel is sized where it last landed, as Flux 2.22's is (#1189).** `rask-place.ts` measures an anchored panel
   where its previous open left it (the first time, where it hangs at the side it asks for), and places it again each
   time its width changes until it keeps one: a popover opened by the right edge of a page with a scrollbar's gutter

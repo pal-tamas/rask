@@ -709,19 +709,17 @@ stores a `Guid` natively (`uniqueidentifier`, `uuid`) is untouched.
 
 ## Children
 
-An aggregate holds its parts. Declare them as `Entity<TId>`, keep them in a field, and hand out a read-only
-view — nothing else is configured, and no `HasMany`, no foreign key and no key generation is written anywhere:
+An aggregate holds its parts. Declare them as `Entity<TId>` and hold them in one `HasMany<TChild>` — nothing else is
+configured, and no EF `HasMany(…)` call, no foreign key and no key generation is written anywhere:
 
 ```csharp
 public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
-    private readonly List<OrderLine> _lines = [];
-
     private Order() { }                                  // EF materialization
 
     public string Reference { get; private set; } = "";
 
-    public IReadOnlyCollection<OrderLine> Lines => _lines;
+    public HasMany<OrderLine> Lines { get; } = new();
 
     public static Order Place(string reference) =>
         new() { Id = Guid.CreateVersion7(), Reference = reference };
@@ -729,7 +727,7 @@ public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deleta
     public OrderLine Add(string product, int quantity)   // the aggregate guards its own invariants
     {
         var line = OrderLine.For(product, quantity);
-        _lines.Add(line);
+        Lines.Add(line);
         return line;
     }
 }
@@ -749,19 +747,41 @@ public sealed class OrderLine : Entity<Guid>
 }
 ```
 
-An auto-property works the same: `public IReadOnlyList<OrderLine> Lines { get; private set; } = [];`, refilled
-with `Lines = [.. Lines, line]`. Rask hands EF Core a collection it can add to whenever it loads or saves the lines.
+**Only the aggregate changes them.** Everyone reads `Lines` — it is an `IReadOnlyList<OrderLine>` — and only `Order`
+changes it: `Add` (one child, or several),
+`Remove`, `RemoveAll(match)`, `Clear()` and `Sync` called from any other type, or on the children held in a local, or
+the collection cast to `ICollection<OrderLine>` there, are [RASK180](diagnostics.md#rask180), an error. It is also the
+collection EF Core maps, through the property's own backing field: a child added is inserted, one changed is updated,
+one let go is deleted, all in the aggregate's save, and `Find` loads them with the root.
 
-**Children made from a form's rows: `Children<TEntity, TSpec>`.** When the aggregate's children are whatever a list
-of rows says — a delivery's parts, a driver's chips — declare them as one property, with no field and no view, and
-let `Sync` do the add/change/remove loop:
+Moving from the hand-written pair — `private readonly List<OrderLine> _lines = [];` and
+`public IReadOnlyList<OrderLine> Lines => _lines;` — is **no migration**: the navigation keeps its name and the child
+its foreign key (`OrderId`), and the schema EF Core creates is the same to the byte. [RASK192](diagnostics.md#rask192)
+suggests the move (an error under `<RaskStrict>`) and its quick-fix makes it, `_lines.Add(line)` becoming
+`Lines.Add(line)`. A read-only auto-property refilled whole — `IReadOnlyList<OrderLine> Lines { get; private set; } = [];`
+with `Lines = [.. Lines, line]` — still works too: Rask hands EF Core a collection it can add to as it loads or saves.
+
+**The order is kept only when it is asked for.** A store returns rows in no order of its own, so the children load in
+whatever order it reads them. Where the order is the data — the lines of a document, the items of a checklist — say so
+in the aggregate's `Configure`:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Supply> b) => b.InOrder(s => s.Parts);
+```
+
+Each part's place is then stored in a `Position` column Rask adds to the child's table (`Columns.Position`, a shadow
+property written on every save — so declaring it on children already stored is a migration), and the parts load back in
+the order the aggregate last gave them. A child that declares a `Position` of its own keeps it.
+
+**Children made from a form's rows: `Sync`.** When the children are whatever a list of rows says — a delivery's parts,
+a driver's chips — let `Sync` do the add/change/remove loop:
 
 ```csharp
 public sealed record SupplyPartSpec(SupplyPartId? Id, TankId Tank, decimal Quantity);   // a row of the form
 
 public sealed class Supply : Aggregate<SupplyId>
 {
-    public Children<SupplyPart, SupplyPartSpec> Parts { get; } = new();
+    public HasMany<SupplyPart> Parts { get; } = new();
 
     public void Change(IReadOnlyList<SupplyPartSpec> parts)
     {
@@ -774,19 +794,16 @@ public sealed class Supply : Aggregate<SupplyId>
 }
 ```
 
-`Parts` is an `IReadOnlyList<SupplyPart>` to everyone, in the specs' order — the order a form posted them, so a
-part's rule fails under `Parts[1].Quantity` as for any child. It is also the collection EF Core maps (through the
-property's own backing field): the part `Sync` adds is inserted, the one it changes is updated, the one it lets go
-is deleted, all by the aggregate's save. Each part's place is stored too, in a `Position` column Rask adds to the
-child's table (`Columns.Position`, a shadow property: a migration adds it), so the parts load back in the order the
-last `Sync` gave them, whatever order the store reads them in. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved
-one of its public properties — one its row left as it was is not there), `Removed`, and `Touched` (added or
-changed), which is what a rule over old rows asks so a row stored before the rule was tightened is let be. The key
-is the child's own `Id` type — a `SupplyPartId?`, not its `Guid` — and two rows naming one part, or a key of another
-type, are refused with an `ArgumentException` before any part is touched. The generated form model (`Model`) does not
-carry a `Children<,>` collection yet: an aggregate that declares one writes through its own methods and `Save()`, and
-the form over such a method is `Form.For(Supply.Change, id)` — a row per part, refused under its place
-([a form over an operation](forms.md#a-form-over-an-operation)).
+After it, `Parts` is in the specs' order — the order a form posted them, so a part's rule fails under
+`Parts[1].Quantity` as for any child. `Sync` returns what it did: `Added`, `Changed` (a part whose update moved one of
+its public properties — one its row left as it was is not there), `Removed`, and `Touched` (added or changed), which is
+what a rule over old rows asks so a row stored before the rule was tightened is let be. The key is the child's own `Id`
+type — a `SupplyPartId?`, not its `Guid`. **A key given twice throws**: two rows naming one part, or a key of another
+type, are refused with an `ArgumentException` before any part is touched — de-duplicate the rows first if they can
+repeat (`parts.DistinctBy(p => p.Id)`), deliberately, since which of two rows wins is the caller's decision. The
+generated form model (`Model`) does not carry a `HasMany` collection yet: an aggregate that declares one writes
+through its own methods and `Save()`, and the form over such a method is `Form.For(Supply.Change, id)` — a row per
+part, refused under its place ([a form over an operation](forms.md#a-form-over-an-operation)).
 
 Children matched by something other than their `Id` — a delivery note's fuellings by their transaction — take a key
 of their own on both sides, with the same refusal of a key named twice:
@@ -796,9 +813,14 @@ Fuellings.Sync(fuellings, f => f.TransactionId, f => f.TransactionId,
     add: DeliveryNoteTransaction.For, update: (f, s) => f.Use(s.Quantity));
 ```
 
-A child the aggregate makes itself, from no row, is `Add`ed — `Fuellings.Add(await Transaction.FreeFor(…))` — and
-one it lets go is `Remove`d. Both are the aggregate's alone: called from any other type, or on children held in a
-local, they are [RASK180](diagnostics.md#rask180), an error.
+A **link** — children that each name one row of another aggregate and hold nothing else, a driver's vehicles — is
+synced from the other side's ids alone: a child whose id is among them stays, an id no child holds adds one, the rest
+are let go, and an id given twice throws.
+
+```csharp
+public SyncResult<DriverVehicle> Drive(IReadOnlyList<VehicleId> vehicles) =>
+    Vehicles.Sync(vehicles, v => v.VehicleId, add: DriverVehicle.For);
+```
 
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
