@@ -104,8 +104,8 @@ namespace Rask.Postgres.Tests
             var inBudapest = InZone(Budapest, () => context.Deliveries.Where(d => d.At.Day == day).ToQueryString());
             var inNewYork = InZone(NewYork, () => context.Deliveries.Where(d => d.At.Day == day).ToQueryString());
 
-            Assert.Contains("timezone('Europe/Budapest', d.\"At\")::date", inBudapest, StringComparison.Ordinal);
-            Assert.Contains("timezone('America/New_York', d.\"At\")::date", inNewYork, StringComparison.Ordinal);
+            Assert.Contains("timezone('Europe/Budapest', d.at)::date", inBudapest, StringComparison.Ordinal);
+            Assert.Contains("timezone('America/New_York', d.at)::date", inNewYork, StringComparison.Ordinal);
         }
 
         [Fact]
