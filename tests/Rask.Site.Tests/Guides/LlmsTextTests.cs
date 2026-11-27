@@ -86,11 +86,11 @@ public sealed partial class LlmsTextTests
     public void Links_in_a_nested_doc_resolve_against_its_own_folder()
     {
         var twin = LlmsText.Twin(
-            "[the matrix](../browser-capabilities.md), [a sibling](notes.md) and [a benchmark](../../tests/Bench/sqlite.md)\n",
+            "[the table](../browser-apis-reference.md), [a sibling](notes.md) and [a benchmark](../../tests/Bench/sqlite.md)\n",
             "apis/geolocation.md");
 
         // Climbing a directory to reach a guide still reaches the guide.
-        Assert.Contains("](https://rask.sh/docs/guides/browser-capabilities/)", twin, StringComparison.Ordinal);
+        Assert.Contains("](https://rask.sh/docs/guides/browser-apis-reference/)", twin, StringComparison.Ordinal);
 
         // A sibling is a sibling — docs/apis/notes.md, not docs/notes.md.
         Assert.Contains("](https://github.com/pal-tamas/rask/blob/main/docs/apis/notes.md)", twin, StringComparison.Ordinal);
