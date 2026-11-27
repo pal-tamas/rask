@@ -48,4 +48,9 @@
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.Clock\ManualClock.cs" Link="ManualClock.cs"/>
+    <Using Include="Rask.Tests.Shared"/>
+  </ItemGroup>
+
 </Project>

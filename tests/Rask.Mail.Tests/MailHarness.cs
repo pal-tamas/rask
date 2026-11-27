@@ -73,17 +73,6 @@ public sealed class MailDbContext(DbContextOptions<MailDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskMail();
 }
 
-/// <summary>A hand-rolled fake clock (no external package): the processor's due/backoff checks read it, so
-/// tests drive time deterministically while the poll loop ticks on the real (short) interval.</summary>
-public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-}
-
 /// <summary>Builds a real-SQLite service provider, its database in memory and its own unless a test brings one, wired for mail, with a controllable clock and a fake sender.</summary>
 public sealed class MailHarness : IAsyncDisposable
 {
@@ -100,7 +89,7 @@ public sealed class MailHarness : IAsyncDisposable
     {
         _owned = connectionString is null ? new InMemorySqlite() : null;
         connectionString ??= _owned!.ConnectionString;
-        Clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        Clock = new ManualClock();
         Sender = sender ?? new RecordingMailSender();
 
         var services = new ServiceCollection();
@@ -121,7 +110,7 @@ public sealed class MailHarness : IAsyncDisposable
         db.Database.EnsureCreated();
     }
 
-    public FakeTimeProvider Clock { get; }
+    public ManualClock Clock { get; }
 
     public RecordingMailSender Sender { get; }
 
