@@ -184,23 +184,23 @@ public sealed class TenantReferencesTests : IAsyncLifetime
         var one = Created(referencesFirst);
         var other = Created(namesFirst);
 
-        Assert.Equal("Lorry_TenantId_fkey", one.Name);
-        Assert.Equal("Lorry_TenantId_fkey", other.Name);
-        Assert.Equal(["TenantId"], one.Columns);
-        Assert.Equal("Firm", one.PrincipalTable);
-        Assert.Equal(["Id"], one.PrincipalColumns!);
+        Assert.Equal("lorries_tenant_id_fkey", one.Name);
+        Assert.Equal("lorries_tenant_id_fkey", other.Name);
+        Assert.Equal(["tenant_id"], one.Columns);
+        Assert.Equal("firms", one.PrincipalTable);
+        Assert.Equal(["id"], one.PrincipalColumns!);
         Assert.Equal(ReferentialAction.NoAction, one.OnDelete);
     }
 
     [Fact]
-    public void Without_a_rule_the_reference_is_named_as_EF_Core_names_a_foreign_key()
+    public void Without_a_rule_the_reference_takes_rasks_own_foreign_key_name()
     {
         TheTenantIsFirm();
         using var db = Open<UnnamedReferencesContext>(o => new UnnamedReferencesContext(o));
 
         var key = Created(db);
 
-        Assert.Equal("FK_Lorry_Firm_TenantId", key.Name);
+        Assert.Equal("fk_lorries_tenant_id", key.Name);
     }
 
     [Fact]
@@ -211,7 +211,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
 
         var model = db.GetService<IDesignTimeModel>().Model;
 
-        Assert.Equal("Lorry_TenantId_fkey -> Firm(Id)", model.FindEntityType(typeof(Lorry))!.FindAnnotation("Rask:TenantReference")?.Value);
+        Assert.Equal("lorries_tenant_id_fkey -> firms(id)", model.FindEntityType(typeof(Lorry))!.FindAnnotation("Rask:TenantReference")?.Value);
         Assert.Null(model.FindEntityType(typeof(Firm))!.FindAnnotation("Rask:TenantReference"));
     }
 
@@ -220,7 +220,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
     {
         using var db = Open<NoReferencesContext>(o => new NoReferencesContext(o));
 
-        var create = Operations(db).OfType<CreateTableOperation>().Single(c => c.Name == "Lorry");
+        var create = Operations(db).OfType<CreateTableOperation>().Single(c => c.Name == "lorries");
 
         Assert.Empty(create.ForeignKeys);
     }
@@ -235,7 +235,7 @@ public sealed class TenantReferencesTests : IAsyncLifetime
             CurrentRowKind.Tenant, typeof(Guild), static key => row => row.Id == key, static row => row.Id));
 
     private static AddForeignKeyOperation Created(DbContext db) =>
-        Assert.Single(Operations(db).OfType<CreateTableOperation>().Single(c => c.Name == "Lorry").ForeignKeys);
+        Assert.Single(Operations(db).OfType<CreateTableOperation>().Single(c => c.Name == "lorries").ForeignKeys);
 
     private static IReadOnlyList<MigrationOperation> Operations(DbContext db) =>
         db.GetService<IMigrationsModelDiffer>().GetDifferences(null, db.GetService<IDesignTimeModel>().Model.GetRelationalModel());

@@ -67,10 +67,10 @@ public sealed class InverseCollectionNameTests : IAsyncLifetime
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
         await context.Database.ExecuteSqlRawAsync(
             """
-            CREATE TABLE "CatalogColumns" ("Id" INTEGER NOT NULL PRIMARY KEY, "Name" TEXT NOT NULL);
+            CREATE TABLE "CatalogColumns" ("id" INTEGER NOT NULL PRIMARY KEY, "name" TEXT NOT NULL);
             CREATE TABLE "ReportColumnTotals" (
-                "Id" INTEGER NOT NULL PRIMARY KEY, "Label" TEXT NOT NULL,
-                "ReportColumnColumnId" INTEGER NOT NULL, "TotalColumnId" INTEGER NULL);
+                "id" INTEGER NOT NULL PRIMARY KEY, "label" TEXT NOT NULL,
+                "report_column_column_id" INTEGER NOT NULL, "total_column_id" INTEGER NULL);
             INSERT INTO "CatalogColumns" VALUES (1, 'Net'), (2, 'Gross'), (3, 'Sum');
             INSERT INTO "ReportColumnTotals" VALUES (10, 'Net total', 1, 3), (11, 'Gross total', 2, 3), (12, 'Plain', 2, NULL);
             """,

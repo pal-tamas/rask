@@ -175,11 +175,14 @@ internal static class NeutralModelParity
     {
         var before = DateTimeOffset.UtcNow.AddMinutes(-5);
         var helper = db.GetService<ISqlGenerationHelper>();
-        var table = helper.DelimitIdentifier("Cistern", db.Database.IsSqlite() ? null : NeutralDbContext.Schema);
+        var cistern = db.Model.FindEntityType(typeof(Cistern))!;
+        var table = helper.DelimitIdentifier(cistern.GetTableName()!, cistern.GetSchema());
+        var id = helper.DelimitIdentifier(cistern.FindProperty(nameof(Cistern.Id))!.GetColumnName());
+        var name = helper.DelimitIdentifier(cistern.FindProperty(nameof(Cistern.Name))!.GetColumnName());
 
-#pragma warning disable EF1002 // The table and column names are constants of this test, quoted by the provider; the values are parameters.
+#pragma warning disable EF1002 // The table and column names are the model's, quoted by the provider; the values are parameters.
         await db.Database.ExecuteSqlRawAsync(
-            $"INSERT INTO {table} ({helper.DelimitIdentifier("Id")}, {helper.DelimitIdentifier("Name")}) VALUES ({{0}}, {{1}})",
+            $"INSERT INTO {table} ({id}, {name}) VALUES ({{0}}, {{1}})",
             [Guid.NewGuid(), "legacy"],
             cancellationToken);
 #pragma warning restore EF1002

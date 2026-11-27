@@ -30,6 +30,30 @@ public sealed class DeskBookingContext(DbContextOptions<DeskBookingContext> opti
     }
 }
 
+/// <summary>A locker lent by the day, keyed by a site named in a text of no length: nvarchar(max).</summary>
+public sealed class LockerLoan
+{
+    public int Id { get; set; }
+
+    public string Site { get; set; } = "";
+
+    public int LockerNo { get; set; }
+
+    public DateOnly From { get; set; }
+
+    public DateOnly? To { get; set; }
+}
+
+public sealed class LockerLoanContext(DbContextOptions<LockerLoanContext> options) : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<LockerLoan>()
+            .NoOverlap(l => new { l.Site, l.LockerNo }, l => l.From, l => l.To, "The locker is lent then.");
+    }
+}
+
 /// <summary><c>b.NoOverlap(…)</c> on SQL Server, as the schema script writes it: an index and a trigger.</summary>
 public sealed class NoOverlapScriptTests
 {
@@ -40,11 +64,23 @@ public sealed class NoOverlapScriptTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("CREATE INDEX [IX_DeskBooking_DeskId_StartsAt] ON [DeskBooking] ([DeskId], [StartsAt]);", script, StringComparison.Ordinal);
-        Assert.Contains("CREATE TRIGGER [TR_DeskBooking_DeskId_StartsAt] ON [DeskBooking] AFTER INSERT, UPDATE AS", script, StringComparison.Ordinal);
-        Assert.Contains("JOIN (SELECT * FROM [DeskBooking] WITH (UPDLOCK, HOLDLOCK) WHERE [Cancelled]", script, StringComparison.Ordinal);
-        Assert.Contains("AS x ON x.[DeskId] = n.[DeskId]", script, StringComparison.Ordinal);
-        Assert.Contains("THROW 51101, N'EX_DeskBooking_DeskId_StartsAt', 1;", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE INDEX [ix_desk_bookings_desk_id_starts_at] ON [desk_bookings] ([desk_id], [starts_at]);", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE TRIGGER [tr_desk_bookings_desk_id_starts_at] ON [desk_bookings] AFTER INSERT, UPDATE AS", script, StringComparison.Ordinal);
+        Assert.Contains("JOIN (SELECT * FROM [desk_bookings] WITH (UPDLOCK, HOLDLOCK) WHERE [cancelled]", script, StringComparison.Ordinal);
+        Assert.Contains("AS x ON x.[desk_id] = n.[desk_id]", script, StringComparison.Ordinal);
+        Assert.Contains("THROW 51101, N'xc_desk_bookings_desk_id_starts_at', 1;", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_of_a_max_type_is_carried_by_the_index_not_keyed_by_it()
+    {
+        using var context = new LockerLoanContext(Options<LockerLoanContext>());
+
+        var script = context.Database.GenerateCreateScript();
+
+        Assert.Contains("[site] nvarchar(max) NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("CREATE INDEX [ix_locker_loans_site_locker_no_from] ON [locker_loans] ([locker_no], [from]) INCLUDE ([site]);", script, StringComparison.Ordinal);
+        Assert.Contains("AS x ON x.[site] = n.[site] AND x.[locker_no] = n.[locker_no]", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -54,11 +90,14 @@ public sealed class NoOverlapScriptTests
 
         var entity = context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(DeskBooking))!;
 
-        Assert.Equal(["TR_DeskBooking_DeskId_StartsAt"], entity.GetDeclaredTriggers().Select(static t => t.ModelName));
+        Assert.Equal(["tr_desk_bookings_desk_id_starts_at"], entity.GetDeclaredTriggers().Select(static t => t.ModelName));
     }
 
-    private static DbContextOptions<DeskBookingContext> Options() =>
-        new DbContextOptionsBuilder<DeskBookingContext>()
+    private static DbContextOptions<DeskBookingContext> Options() => Options<DeskBookingContext>();
+
+    private static DbContextOptions<TContext> Options<TContext>()
+        where TContext : DbContext =>
+        new DbContextOptionsBuilder<TContext>()
             .UseRaskSqlServer(ConfigurationServices.With(new() { ["Rask:ConnectionStrings:App"] = "Server=unused;Database=unused" }))
             .Options;
 }

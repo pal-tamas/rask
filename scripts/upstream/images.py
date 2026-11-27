@@ -3,10 +3,12 @@
 
     curlimages/curl   DeployCommand.CurlImage, the health probe, and the tests that assert it
     alpine            DbCommand.Backup's SqliteImage, and the deploy-host E2E's images
-    postgres          the provider suite's Testcontainers server and the bulk-insert benchmark's (NN-alpine: the major moves too)
+    postgres          the provider suite's Testcontainers servers and the bulk-insert benchmark's (NN.N-alpine)
 
-A tag keeps its shape: 8.11.1 moves to the newest x.y.z, 3.21 to the newest x.y, 17-alpine to the newest
-NN-alpine, so a pin never turns into a floating one or a prerelease. Tags come from Docker Hub.
+A tag keeps its shape: 8.11.1 moves to the newest x.y.z, 3.21 to the newest x.y, 19.0-alpine to the newest
+NN.N-alpine, so a pin never turns into a floating one or a prerelease. The newest major an image is named at
+moves to a new major too; one named at an older major beside it is a supported floor (the provider suite's
+PostgreSQL 18) and moves within its own major only. Tags come from Docker Hub.
 The template Dockerfiles' FROM lines are Dependabot's (.github/dependabot.yml), not this.
 
 Usage:  scripts/upstream/images.py
@@ -45,8 +47,11 @@ def reference(image):
     return re.compile(r"(?<![\w./-])(" + official + re.escape(image) + r"):([0-9][\w.-]*)")
 
 
-def newest_like(tag, tags):
-    shape = re.compile(re.sub(r"\d+", r"\\d+", re.escape(tag)) + r"\Z")
+def newest_like(tag, tags, floor=False):
+    shape = re.sub(r"\d+", r"\\d+", re.escape(tag))
+    if floor:
+        shape = re.escape(str(numbers(tag)[0])) + shape[len(r"\d+"):]
+    shape = re.compile(shape + r"\Z")
     same = [t for t in tags if shape.match(t)]
     return max(same, key=numbers) if same else tag
 
@@ -62,7 +67,12 @@ def step():
             continue
         hub = fetch_json(f"https://hub.docker.com/v2/repositories/{repository}/tags?page_size=100&ordering=last_updated")
         tags = [t["name"] for t in hub["results"]]
-        bumps = {old: new for old in stated if numbers(new := newest_like(old, tags)) > numbers(old)}
+        newest_major = max(numbers(old)[0] for old in stated)
+        bumps = {
+            old: new
+            for old in stated
+            if numbers(new := newest_like(old, tags, floor=numbers(old)[0] < newest_major)) > numbers(old)
+        }
         if not bumps:
             continue
         for path, text in texts.items():

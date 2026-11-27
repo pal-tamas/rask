@@ -108,20 +108,14 @@ public abstract class ReadForUpdateParityTests(ProviderLeg leg) : ParityTests<Le
         return await db.Set<T>().Where(which).ForUpdate().ToListAsync(Ct);
     }
 
-    // Db and the read faces pointed at the leg for the length of the facts, as a host points them.
+    // Db and the read faces pointed at the leg for the length of the facts — for this flow alone, and what it starts
+    // (the Task.Runs inherit it): the three legs' classes run side by side, and a process-wide Configure of one would be
+    // Reset by another mid-fact ("the read faces have not been pointed at a database").
     private async Task<T> Configured<T>(Func<Task<T>> facts)
     {
-        Db.Configure(Open);
-        ReadDb.Configure(() => Leg.Open<RaskReadDbContext>(o => new RaskReadDbContext(o)));
-        try
-        {
-            return await facts();
-        }
-        finally
-        {
-            ReadDb.Reset();
-            Db.Reset();
-        }
+        using var write = Db.Use(Open);
+        using var read = ReadDb.Use(() => Leg.Open<RaskReadDbContext>(o => new RaskReadDbContext(o)));
+        return await facts();
     }
 
     private async Task<int> MonthAsync(string name)
@@ -134,6 +128,9 @@ public abstract class ReadForUpdateParityTests(ProviderLeg leg) : ParityTests<Le
     }
 }
 
+// Db.Configure and ReadDb.Configure are process-wide, and another class's Db.Reset() resets the read faces too, so the
+// SQLite leg runs in a collection that runs alone, as the servers' do.
+[Collection(SqlServerCollection.Name)]
 public sealed class SqliteReadForUpdateParityTests() : ReadForUpdateParityTests(ProviderLeg.Sqlite("read-for-update"));
 
 [Collection(SqlServerCollection.Name)]

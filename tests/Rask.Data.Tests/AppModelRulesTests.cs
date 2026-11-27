@@ -168,8 +168,8 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
 
         var sql = context.Set<Payee>().Where(p => p.Name == "Csaba").OrderBy(p => p.Name.InTextOrder()).ToQueryString();
 
-        Assert.Contains("WHERE \"p\".\"Name\" = 'Csaba'", sql, StringComparison.Ordinal);
-        Assert.Contains("ORDER BY \"p\".\"Name\"", sql, StringComparison.Ordinal);
+        Assert.Contains("WHERE \"p\".\"name\" = 'Csaba'", sql, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY \"p\".\"name\"", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("COLLATE", sql, StringComparison.Ordinal);
     }
 
@@ -204,9 +204,9 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
         var childKey = Payslip.GetForeignKeys().Single();
 
         Assert.Equal($"{table}_pkey", Payroll.FindPrimaryKey()!.GetName());
-        Assert.Equal($"{table}_Code_key", IndexOn(nameof(Rask.Data.Tests.Payroll.Code)).GetDatabaseName());
-        Assert.Equal($"{table}_Title_idx", IndexOn(nameof(Rask.Data.Tests.Payroll.Title)).GetDatabaseName());
-        Assert.Equal($"{table}_PayeeId_fkey", KeyOn(nameof(Rask.Data.Tests.Payroll.PayeeId)).GetConstraintName());
+        Assert.Equal($"{table}_code_key", IndexOn(nameof(Rask.Data.Tests.Payroll.Code)).GetDatabaseName());
+        Assert.Equal($"{table}_title_idx", IndexOn(nameof(Rask.Data.Tests.Payroll.Title)).GetDatabaseName());
+        Assert.Equal($"{table}_payee_id_fkey", KeyOn(nameof(Rask.Data.Tests.Payroll.PayeeId)).GetConstraintName());
         Assert.Equal($"{payslips}_{childKey.Properties[0].GetColumnName()}_fkey", childKey.GetConstraintName());
     }
 
@@ -277,8 +277,8 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
     public void A_unique_message_is_found_under_the_name_the_app_s_rule_gave_the_index()
     {
         using var context = PayrollModelFixture.Open("Data Source=:memory:");
-        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_Code_key";
-        var refusal = SqlServer(2601, $"Cannot insert duplicate key row in object 'dbo.Payroll' with unique index '{name}'.");
+        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_code_key";
+        var refusal = SqlServer(2601, $"Cannot insert duplicate key row in object 'dbo.payrolls' with unique index '{name}'.");
 
         var translated = UniqueViolation.Translate(context, new DbUpdateException("The save failed.", refusal));
 
@@ -303,7 +303,7 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
         using var context = PayrollModelFixture.Open("Data Source=:memory:");
         var payee = Payee.Named("Ann");
         context.Entry(payee).State = EntityState.Deleted;
-        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_PayeeId_fkey";
+        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_payee_id_fkey";
         var refusal = SqlServer(547, $"The DELETE statement conflicted with the REFERENCE constraint \"{name}\".");
 
         var translated = ReferencedDelete.Translate(

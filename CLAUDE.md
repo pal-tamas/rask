@@ -155,7 +155,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, moved daily by the `mdn` follower in `upstream.yml`, never by the build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–133, RASK140–147, RASK150, RASK165 and RASK184–188 (the aggregate-write analyzers) are documented in `docs/diagnostics.md`
-  (RASK025/027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100/102 are retired and never recycled; the next free id is RASK134; RASK140–149 is a block reserved for the domain analyzers, RASK148 its next; RASK150–159 is the value-object/forms block, RASK151 its next; RASK165–169 is the value-object/data block, RASK166 its next). **Grep `src/`
+  (RASK025/027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100/102 are retired and never recycled; the next free id is RASK134; RASK140–149 is a block reserved for the domain analyzers, RASK149 its next; RASK150–159 is the value-object/forms block, RASK151 its next; RASK165–169 is the value-object/data block, RASK166 its next). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

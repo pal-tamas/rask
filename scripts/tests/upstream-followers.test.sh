@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Pdf/build/Rask\.Pdf\.ChromePin\.props$|src/Rask\.Templates/[^/]+/Dockerfile$|Rask\.Core\.targets$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|GitHubActionsWorkflow\.cs$|src/Rask\.Ui/(UiDatetimePickerJoins\.g\.cs|Resources/cldr\.LICENSE\.txt)$|cldr-plurals\.json$
+# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Pdf/build/Rask\.Pdf\.ChromePin\.props$|src/Rask\.Templates/[^/]+/Dockerfile$|Rask\.Core\.targets$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|GitHubActionsWorkflow\.cs$|src/Rask\.Ui/(UiDatetimePickerJoins\.g\.cs|Resources/cldr\.LICENSE\.txt)$|cldr-plurals\.json$|ProviderServer\.cs$|PostgresBulkInsertReport\.cs$
 # The Python followers under scripts/upstream/, each run in a copy of the files it rewrites against saved
 # upstream answers (RASK_UPSTREAM_FIXTURES): a newer stable release moves every copy of the pin, with digests
 # computed from what was downloaded; a prerelease, an older release or a mismatched checksum moves nothing.
@@ -21,7 +21,8 @@ files=(scripts/upstream/upstream.py scripts/upstream/npm.py scripts/upstream/ima
        scripts/upstream/cldr.py scripts/upstream/cldr-plurals.py
        src/Rask.Ui/UiDatetimePickerJoins.g.cs src/Rask.Ui/Resources/cldr.LICENSE.txt tests/Rask.Generators.Tests/cldr-plurals.json
        src/Rask.Cli/Commands/DeployCommand.cs src/Rask.Cli/Commands/DbCommand.Backup.cs tests/Rask.Cli.Tests/DeployCommandTests.cs
-       tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs tests/Rask.Providers.E2E.Tests/ProviderServer.cs src/Rask.Templates/wasm/Dockerfile
+       tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs tests/Rask.Providers.E2E.Tests/ProviderServer.cs tests/Rask.Benchmarks/PostgresBulkInsertReport.cs
+       src/Rask.Templates/wasm/Dockerfile
        src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets
        src/Rask.Templates/server/Dockerfile src/Rask.Templates/wasm-hosted/Dockerfile
        src/Rask.Core/build/Rask.Core.targets src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs
@@ -54,7 +55,7 @@ alpine_was="$(sed -n 's/.*SqliteImage = "alpine:\([0-9.]*\)".*/\1/p' "$root/src/
 fresh
 hub curlimages/curl latest 99.1.0 99.0.3 99.2.0-rc1 7.0.0
 hub library/alpine latest edge 99.30.1 99.30 99.31-rc 20990101
-hub library/postgres 99-alpine 99.2-alpine 100beta1-alpine 99 latest
+hub library/postgres 99-alpine 99.2-alpine 99.3 100beta1-alpine 100.0rc1-alpine 18-alpine 18.9-alpine 18.10-alpine latest
 # However many images the E2E names — a new test adds one — every one of them moves.
 e2e_alpines="$(grep -cF "alpine:$alpine_was" "$tmp/tree/tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs" || true)"
 run images.py
@@ -64,13 +65,15 @@ check "alpine keeps its x.y shape"                     1 "$(count 'SqliteImage =
 check "...and no older alpine is left"                 0 "$(count "alpine:$alpine_was\"")"
 check "...in the E2E's images too, qualified or not"   "$e2e_alpines" "$(grep -cF 'alpine:99.30' "$tmp/tree/tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs")"
 check "...of which the E2E names some"                yes "$([ "$e2e_alpines" -gt 0 ] && echo yes || echo no)"
-check "postgres takes the new major, still -alpine"    1 "$(count 'postgres:99-alpine')"
+check "postgres takes the new major, still x.y-alpine" 2 "$(count 'postgres:99.2-alpine')"
+check "...and its floor the newest of its own major"   1 "$(count 'postgres:18.10-alpine')"
+check "...and no older postgres is left"              0 "$(grep -rhoE 'postgres:[0-9][^\"]*' "$tmp/tree" --exclude='*.py' | grep -cvE 'postgres:(99\.2|18\.10)-alpine$' || true)"
 check "an image the follower does not own is left"     "" "$(unchanged src/Rask.Templates/wasm/Dockerfile)"
 
 fresh
 hub curlimages/curl 1.0.0
 hub library/alpine 1.0
-hub library/postgres 1-alpine
+hub library/postgres 1.0-alpine 18.0-alpine
 run images.py
 check "an older tag moves nothing" "" "$(unchanged "${files[@]}")"
 

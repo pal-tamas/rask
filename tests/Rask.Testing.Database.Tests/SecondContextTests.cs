@@ -8,8 +8,14 @@ public sealed class CompanyTables(DbContextOptions<CompanyTables> options) : DbC
 {
     public DbSet<CompanyRow> Companies => Set<CompanyRow>();
 
+    // A plain context, so EF Core's names unless stated: these are the ones Rask gave Company's table.
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.Entity<CompanyRow>().ToTable(nameof(Company));
+        modelBuilder.Entity<CompanyRow>(b =>
+        {
+            b.ToTable("companies");
+            b.Property(c => c.Id).HasColumnName("id");
+            b.Property(c => c.Name).HasColumnName("name");
+        });
 }
 
 public sealed class CompanyRow

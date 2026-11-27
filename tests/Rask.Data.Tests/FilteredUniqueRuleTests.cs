@@ -40,7 +40,7 @@ public sealed class FilteredUniqueRuleTests : IAsyncLifetime
     {
         await using var context = await OpenAsync();
         await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-        await context.Database.ExecuteSqlRawAsync("DROP INDEX \"IX_PartnerGrant_Partner\"", TestContext.Current.CancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DROP INDEX \"uq_partner_grants_partner\"", TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

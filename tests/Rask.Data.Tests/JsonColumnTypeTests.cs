@@ -36,8 +36,8 @@ public sealed class JsonColumnTypeTests
 
         var script = context.Database.GenerateCreateScript();
 
-        Assert.Contains("\"Enclosures\" TEXT NOT NULL", script, StringComparison.Ordinal);
-        Assert.Contains("\"Labels\" TEXT NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("\"enclosures\" TEXT NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("\"labels\" TEXT NOT NULL", script, StringComparison.Ordinal);
         Assert.DoesNotContain("max", script, StringComparison.Ordinal);
     }
 

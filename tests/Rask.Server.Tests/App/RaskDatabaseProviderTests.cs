@@ -85,7 +85,7 @@ public sealed class RaskDatabaseProviderTests
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
 
         Assert.Equal(expected, db.Database.ProviderName);
-        Assert.Contains(db.Model.GetEntityTypes(), e => e.GetTableName() == "RaskLog");
+        Assert.Contains(db.Model.GetEntityTypes(), e => e.GetTableName() == "log_entries");
         Assert.Equal("DbContextLogStore`1", built.Services.GetRequiredService<ILogs>().GetType().Name);
         Assert.DoesNotContain(HostedServices(built), name => name == "SqliteSnapshotService");
     }
@@ -167,7 +167,7 @@ public sealed class RaskDatabaseProviderTests
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
         var script = db.Database.GenerateCreateScript();
 
-        Assert.Contains("RaskLog", script, StringComparison.Ordinal);
+        Assert.Contains("log_entries", script, StringComparison.Ordinal);
     }
 
     [Fact]

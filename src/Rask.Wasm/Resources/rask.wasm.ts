@@ -288,9 +288,6 @@ function triggerDownload(download: RaskFrameReply["download"]): void {
         // Token-pull path: bytes live in .NET, JSExport returns them directly as a Uint8Array.
         // No base64 inflation, no decode loop — render payload only carried the token string.
         bytes = dotnetExports.Rask.Wasm.JSInterop.PullDownload(download.token!);
-    } else if (typeof download.base64 === "string") {
-        // Legacy base64-inline path (test seam + back-compat).
-        bytes = decodeBase64(download.base64);
     }
     if (!bytes || bytes.length === 0) return;
     const blob = new Blob([bytes as BlobPart], {type: download.contentType || "application/octet-stream"});
@@ -309,14 +306,6 @@ function triggerDownload(download: RaskFrameReply["download"]): void {
         }
         URL.revokeObjectURL(url);
     }, 0);
-}
-
-function decodeBase64(b64: string): Uint8Array {
-    if (typeof b64 !== "string" || b64.length === 0) return new Uint8Array();
-    const bin = atob(b64);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
 }
 
 export function getLocation() {

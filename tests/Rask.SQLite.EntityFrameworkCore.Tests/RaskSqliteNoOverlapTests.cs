@@ -22,7 +22,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
         context.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
 
         var error = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
-        Assert.Contains("rask no overlap: EX_Bookings_RoomId_StartsAt", error.InnerException!.Message, StringComparison.Ordinal);
+        Assert.Contains("rask no overlap: xc_bookings_room_id_starts_at", error.InnerException!.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
 
         // The constraint lives in the database, so raw SQL is bound by it too.
         var error = await Assert.ThrowsAsync<SqliteException>(() => context.Database.ExecuteSqlRawAsync(
-            """INSERT INTO "Bookings" ("Id","RoomId","StartsAt","EndsAt","Building") VALUES (2,1,150,250,0);""", cancellationToken: TestContext.Current.CancellationToken));
+            """INSERT INTO "bookings" ("id","room_id","starts_at","ends_at","building") VALUES (2,1,150,250,0);""", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(1811, error.SqliteExtendedErrorCode);
     }
@@ -190,7 +190,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
         Migrate<UnruledBookingContext>(after);
 
         Assert.Equal(2, TriggerCount(after));
-        Assert.Contains("IX_Bookings_RoomId_StartsAt", Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("ix_bookings_room_id_starts_at", Ddl(after), StringComparison.Ordinal);
 
         after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
         await Assert.ThrowsAsync<DbUpdateException>(() => after.SaveChangesAsync(TestContext.Current.CancellationToken));
@@ -208,7 +208,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
         Migrate<BookingContext>(after);
 
         Assert.Equal(0, TriggerCount(after));
-        Assert.DoesNotContain("IX_Bookings_RoomId_StartsAt", Ddl(after), StringComparison.Ordinal);
+        Assert.DoesNotContain("ix_bookings_room_id_starts_at", Ddl(after), StringComparison.Ordinal);
 
         after.Bookings.Add(new Booking { Id = 1, RoomId = 1, StartsAt = 100, EndsAt = 200 });
         after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
@@ -229,8 +229,8 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
         await using var after = Create<UnpartitionedBookingContext>();
         Migrate<BookingContext>(after);
 
-        Assert.DoesNotContain("\"RoomId\", \"StartsAt\"", Ddl(after), StringComparison.Ordinal);
-        Assert.Contains("ON \"Bookings\" (\"Building\", \"StartsAt\")", Ddl(after), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"room_id\", \"starts_at\"", Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("ON \"bookings\" (\"building\", \"starts_at\")", Ddl(after), StringComparison.Ordinal);
 
         // Another room, the same hours: now an overlap, because the rule is the building's, not the room's.
         after.Bookings.Add(new Booking { Id = 2, RoomId = 2, StartsAt = 150, EndsAt = 250 });
@@ -323,7 +323,7 @@ public sealed class RaskSqliteNoOverlapTests : IDisposable
 
         // ... and so does strictness, which a non-STRICT table would happily accept.
         var error = await Assert.ThrowsAsync<SqliteException>(() => context.Database.ExecuteSqlRawAsync(
-            """UPDATE "Bookings" SET "RoomId" = 'lots' WHERE "Id" = 1;""", cancellationToken: TestContext.Current.CancellationToken));
+            """UPDATE "bookings" SET "room_id" = 'lots' WHERE "id" = 1;""", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("cannot store TEXT value in INTEGER column", error.Message, StringComparison.Ordinal);
     }
