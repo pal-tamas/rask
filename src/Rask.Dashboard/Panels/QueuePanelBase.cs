@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Rask.Dashboard.Panels;
 
@@ -7,10 +8,10 @@ namespace Rask.Dashboard.Panels;
 /// The counting, filtering and paging every queue panel shares, so there is a single definition of what
 /// "failed" means rather than three that can drift.
 /// <para>
-/// The predicates are written with <see cref="EF.Property{T}" /> against the three columns the outbox,
-/// jobs and mail tables have in common — <c>ProcessedAt</c>, <c>Attempts</c>, and a run-time column each
-/// adapter names. That is what allows one predicate to serve three entity types: filtering has to happen
-/// on the entity, because EF cannot compose a <c>Where</c> onto a projection into a non-entity type.
+/// The predicates over <c>Attempts</c> and <c>Error</c> are written with <see cref="EF.Property{T}" />, columns the
+/// outbox, jobs and mail tables share with one type. The two moments — when a row was processed and when it runs —
+/// each adapter states as expressions over its own entity, since each table holds them in its own type. Filtering
+/// has to happen on the entity, because EF cannot compose a <c>Where</c> onto a projection into a non-entity type.
 /// </para>
 /// </summary>
 /// <typeparam name="TContext">The application context that owns the table.</typeparam>
@@ -33,17 +34,41 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     /// <summary><c>true</c> when the battery's <c>AddRaskX</c> ran — probed via its options singleton.</summary>
     protected abstract bool IsRegistered { get; }
 
-    /// <summary>
-    /// The column holding "not eligible before this time" — <c>RunAt</c> for jobs and mail. The outbox has
-    /// no such column and names <c>OccurredAt</c> here, which correctly leaves its Delayed count at zero.
-    /// </summary>
-    protected abstract string RunAtProperty { get; }
+    /// <summary>The rows that are done: <c>ProcessedAt</c> is set.</summary>
+    protected abstract Expression<Func<TEntity, bool>> Processed { get; }
 
     /// <summary>Maps the entity onto the shared row shape. Applied after filtering, never before.</summary>
     protected abstract Expression<Func<TEntity, QueueRow>> Projection { get; }
 
     /// <summary>Whether this queue says which of its rows are in a handler right now — jobs do; mail and the outbox do not.</summary>
     protected virtual bool ShowsRunning => false;
+
+    /// <summary>The rows done before <paramref name="cutoff"/>.</summary>
+    /// <param name="cutoff">The moment asked about (UTC).</param>
+    /// <returns>The predicate.</returns>
+    protected abstract Expression<Func<TEntity, bool>> ProcessedBefore(DateTime cutoff);
+
+    /// <summary>
+    /// The rows eligible by <paramref name="now"/>: their "not eligible before this time" column — <c>RunAt</c> for jobs
+    /// and mail — is not after it. The outbox has no such column and asks <c>OccurredAt</c>, which correctly leaves its
+    /// Delayed count at zero.
+    /// </summary>
+    /// <param name="now">The moment asked about (UTC).</param>
+    /// <returns>The predicate.</returns>
+    protected abstract Expression<Func<TEntity, bool>> RunsBy(DateTime now);
+
+    /// <summary>The rows in the order the processor takes them: by that run-time column, then by id.</summary>
+    /// <param name="rows">The rows.</param>
+    /// <returns>The rows, ordered.</returns>
+    protected abstract IOrderedQueryable<TEntity> InRunOrder(IQueryable<TEntity> rows);
+
+    /// <summary>
+    /// What a retry moves besides the attempts: the run-time column to <paramref name="now"/>. A queue whose stand-in
+    /// column is a fact about the row — when the event happened — keeps it: the row is eligible again either way.
+    /// </summary>
+    /// <param name="setters">The update being built.</param>
+    /// <param name="now">The moment of the retry (UTC).</param>
+    protected abstract void Reschedule(UpdateSettersBuilder<TEntity> setters, DateTime now);
 
     /// <summary>The rows in a handler at <paramref name="now"/>. None, for a queue that does not say.</summary>
     protected virtual IQueryable<TEntity> OnlyRunning(IQueryable<TEntity> rows, DateTime now) => rows.Where(_ => false);
@@ -57,6 +82,9 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     /// exactly the state a dashboard should report as "not here" rather than crash on.
     /// </summary>
     public bool IsAvailable => IsRegistered && IsMapped();
+
+    // The rows still outstanding: not Processed.
+    private Expression<Func<TEntity, bool>> Pending => Not(Processed);
 
     public async Task<QueueCounts> Counts(CancellationToken cancellationToken)
     {
@@ -122,8 +150,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         // ProcessedAt IS NOT NULL is the whole guard: outstanding work and dead letters are both
         // untouched, whatever cutoff the caller passes.
         return await db.Set<TEntity>()
-            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null
-                        && EF.Property<DateTime?>(e, "ProcessedAt") < cutoff)
+            .Where(ProcessedBefore(cutoff))
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -141,10 +168,14 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         // Outstanding only. Deleting a processed row would erase the record of work that actually
         // happened, which is the one thing an operator can never undo.
         return await db.Set<TEntity>()
-            .Where(e => EF.Property<Guid>(e, "Id") == id && EF.Property<DateTime?>(e, "ProcessedAt") == null)
+            .Where(e => EF.Property<Guid>(e, "Id") == id)
+            .Where(Pending)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
+    private static Expression<Func<TEntity, bool>> Not(Expression<Func<TEntity, bool>> predicate) =>
+        Expression.Lambda<Func<TEntity, bool>>(Expression.Not(predicate.Body), predicate.Parameters);
 
     // The retry guard is the inverse of the drain query, so it can only ever match rows the processor has
     // already given up on — a row in flight is invisible to it, which is what makes this safe to run
@@ -159,33 +190,24 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var max = MaxAttempts;
-        var runAt = RunAtProperty;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
         // Not a row whose last attempt is running: its Attempts already reads as given up, and resetting it would run it again.
         return await WithoutRunning(db.Set<TEntity>(), now)
             .Where(scope)
-            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)
+            .Where(Pending)
+            .Where(e => EF.Property<int>(e, "Attempts") >= max)
             .ExecuteUpdateAsync(
                 s =>
                 {
                     s.SetProperty(e => EF.Property<int>(e, "Attempts"), 0)
                         .SetProperty(e => EF.Property<string?>(e, "Error"), (string?)null);
-                    if (RetryReschedules)
-                    {
-                        s.SetProperty(e => EF.Property<DateTime>(e, runAt), now);
-                    }
+                    Reschedule(s, now);
                 },
                 cancellationToken)
             .ConfigureAwait(false);
     }
-
-    /// <summary>
-    ///     Whether a retry moves <see cref="RunAtProperty" /> to now. A queue whose stand-in column is a fact about the row
-    ///     — when the event happened — keeps it: the row is eligible again either way.
-    /// </summary>
-    protected virtual bool RetryReschedules => true;
 
     private Task<int> CountAsync(TContext db, QueueFilter filter, DateTime now, CancellationToken ct) =>
         Filter(db.Set<TEntity>(), filter, now).CountAsync(ct);
@@ -194,38 +216,31 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     // (ProcessedAt == null && Attempts < MaxAttempts && RunAt <= now) — a row they will never take again.
     private IQueryable<TEntity> Filter(IQueryable<TEntity> rows, QueueFilter filter, DateTime now)
     {
-        var runAt = RunAtProperty;
         var max = MaxAttempts;
 
         // A running row is its own slice: not due (it has started), and not a dead letter while its last attempt runs.
         return filter switch
         {
             QueueFilter.Running => OnlyRunning(rows, now),
-            QueueFilter.Due => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") < max
-                && EF.Property<DateTime>(e, runAt) <= now),
-            QueueFilter.Delayed => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") < max
-                && EF.Property<DateTime>(e, runAt) > now),
-            QueueFilter.Failed => WithoutRunning(rows, now).Where(e =>
-                EF.Property<DateTime?>(e, "ProcessedAt") == null
-                && EF.Property<int>(e, "Attempts") >= max),
-            QueueFilter.Processed => rows.Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null),
-            _ => rows.Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null),
+            QueueFilter.Due => WithoutRunning(rows, now).Where(Pending)
+                .Where(e => EF.Property<int>(e, "Attempts") < max)
+                .Where(RunsBy(now)),
+            QueueFilter.Delayed => WithoutRunning(rows, now).Where(Pending)
+                .Where(e => EF.Property<int>(e, "Attempts") < max)
+                .Where(Not(RunsBy(now))),
+            QueueFilter.Failed => WithoutRunning(rows, now).Where(Pending)
+                .Where(e => EF.Property<int>(e, "Attempts") >= max),
+            QueueFilter.Processed => rows.Where(Processed),
+            _ => rows.Where(Pending),
         };
     }
 
     // Outstanding work reads best in the order the processor will actually take it; finished and
     // given-up work reads best newest-first, because that's where you look after something broke.
-    private IQueryable<TEntity> Order(IQueryable<TEntity> rows, QueueFilter filter)
-    {
-        var runAt = RunAtProperty;
-        return filter is QueueFilter.Processed or QueueFilter.Failed
+    private IQueryable<TEntity> Order(IQueryable<TEntity> rows, QueueFilter filter) =>
+        filter is QueueFilter.Processed or QueueFilter.Failed
             ? rows.OrderByDescending(e => EF.Property<Guid>(e, "Id"))
-            : rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<Guid>(e, "Id"));
-    }
+            : InRunOrder(rows);
 
     // EF builds the model once per app and caches it, so this is a dictionary lookup after the first call —
     // cached per panel instance anyway to keep it off the render path.

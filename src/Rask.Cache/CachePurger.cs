@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Values;
 
 namespace Rask.Caching;
 
@@ -39,7 +40,7 @@ public sealed partial class CachePurger<TContext>(
     {
         try
         {
-            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(timeProvider.GetUtcNow());
             var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             await using var dbScope = db.ConfigureAwait(false);
             await db.Set<CacheEntry>()

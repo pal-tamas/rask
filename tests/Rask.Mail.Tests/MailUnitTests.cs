@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Values;
 
 namespace Rask.Mailing.Tests;
 
@@ -48,7 +49,7 @@ public sealed class MailUnitTests
         var email = Mail.Message.To("ada@example.com").Subject("No body");
 
         Assert.Throws<ArgumentException>(() =>
-            MailSerializer.ToQueuedMail(email, new EmailAddress("from@example.com"), DateTime.UtcNow, DateTime.UtcNow));
+            MailSerializer.ToQueuedMail(email, new EmailAddress("from@example.com"), Timestamp.Now, DateTime.UtcNow));
     }
 
     [Fact]
@@ -64,7 +65,7 @@ public sealed class MailUnitTests
             .PlainText("body")
             .Attach("report.txt", "text/plain", [1, 2, 3]);
 
-        var row = MailSerializer.ToQueuedMail(email, new EmailAddress("noreply@example.com", "Example"), DateTime.UtcNow, DateTime.UtcNow);
+        var row = MailSerializer.ToQueuedMail(email, new EmailAddress("noreply@example.com", "Example"), Timestamp.Now, DateTime.UtcNow);
         var outgoing = MailSerializer.ToOutgoing(row);
 
         Assert.Equal("noreply@example.com", outgoing.From.Address);

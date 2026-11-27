@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Background;
 
@@ -25,7 +26,7 @@ internal sealed class JobsQueuePanel<TContext>(
 
     protected override bool IsRegistered => _options is not null;
 
-    protected override string RunAtProperty => nameof(Job.RunAt);
+    protected override Expression<Func<Job, bool>> Processed => j => j.ProcessedAt != null;
 
     protected override bool ShowsRunning => true;
 
@@ -37,6 +38,17 @@ internal sealed class JobsQueuePanel<TContext>(
         ClaimedUntil = j.ClaimedUntil,
         Stopped = j.Stopped,
     };
+
+    protected override Expression<Func<Job, bool>> ProcessedBefore(DateTime cutoff) =>
+        j => j.ProcessedAt != null && j.ProcessedAt < cutoff;
+
+    protected override Expression<Func<Job, bool>> RunsBy(DateTime now) => j => j.RunAt <= now;
+
+    protected override IOrderedQueryable<Job> InRunOrder(IQueryable<Job> rows) =>
+        rows.OrderBy(j => j.RunAt).ThenBy(j => j.Id);
+
+    protected override void Reschedule(UpdateSettersBuilder<Job> setters, DateTime now) =>
+        setters.SetProperty(j => j.RunAt, now);
 
     // Running is what the processor's own lane check calls busy: claimed, unexpired, unprocessed.
     protected override IQueryable<Job> OnlyRunning(IQueryable<Job> rows, DateTime now) =>

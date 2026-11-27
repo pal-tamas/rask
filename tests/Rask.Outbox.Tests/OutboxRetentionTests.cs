@@ -31,7 +31,7 @@ public sealed class OutboxRetentionTests : IDisposable
         await RunCycleAsync();
 
         var survivor = Assert.Single(await AllAsync());
-        Assert.Equal(now.AddDays(-1), survivor.ProcessedAt);
+        Assert.Equal(Timestamp.Create(now.AddDays(-1)), survivor.ProcessedAt);
     }
 
     [Fact]
@@ -65,6 +65,27 @@ public sealed class OutboxRetentionTests : IDisposable
         await RunCycleAsync();
 
         Assert.Single(await AllAsync());
+    }
+
+    [Fact]
+    public async Task Times_either_side_of_the_autumn_hour_are_stored_and_purged_as_the_utc_instants_they_are()
+    {
+        // In Budapest both rows were published at 02:30 on the wall: only their instants tell them apart, and the
+        // cutoff (01:00Z) falls between them.
+        using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
+        _clock.Advance(new DateTimeOffset(2026, 11, 1, 1, 0, 0, TimeSpan.Zero) - _clock.GetUtcNow());
+        Build(o => o.Retention = TimeSpan.FromDays(7));
+        var first = new DateTime(2026, 10, 25, 0, 30, 0, DateTimeKind.Utc);
+        var second = new DateTime(2026, 10, 25, 1, 30, 0, DateTimeKind.Utc);
+        await SeedAsync(Message(occurredAt: first, processedAt: first), Message(occurredAt: second, processedAt: second));
+
+        await RunCycleAsync();
+
+        var survivor = Assert.Single(await AllAsync());
+        Assert.Equal(new DateTimeOffset(second), survivor.OccurredAt.Instant);
+        Assert.Equal(new DateTimeOffset(second), survivor.ProcessedAt!.Instant);
+        Assert.Equal(new DateTime(2026, 10, 25, 2, 30, 0), survivor.ProcessedAt.Value);
+        Assert.Equal(["2026-10-25 01:30:00"], await StoredProcessedAtAsync());
     }
 
     [Fact]
@@ -160,6 +181,13 @@ public sealed class OutboxRetentionTests : IDisposable
         return await db.Set<OutboxMessage>().OrderBy(m => m.Id).ToListAsync();
     }
 
+    // The processed column as the database holds it, read past every converter.
+    private async Task<List<string>> StoredProcessedAtAsync()
+    {
+        await using var db = NewContext();
+        return await db.Database.SqlQueryRaw<string>("SELECT \"ProcessedAt\" AS \"Value\" FROM \"OutboxMessage\"").ToListAsync();
+    }
+
     private async Task SeedAsync(params OutboxMessage[] messages)
     {
         await using var db = NewContext();
@@ -174,11 +202,11 @@ public sealed class OutboxRetentionTests : IDisposable
     private OutboxMessage Message(
         DateTime? occurredAt = null, DateTime? processedAt = null, int attempts = 0, string? error = null)
     {
-        var message = OutboxMessage.For("Some.Event", "{}", "Some.Handler:Some.Event", occurredAt ?? _clock.GetUtcNow().UtcDateTime);
+        var message = OutboxMessage.For("Some.Event", "{}", "Some.Handler:Some.Event", Timestamp.Create(occurredAt ?? _clock.GetUtcNow().UtcDateTime));
 
         if (processedAt is { } published)
         {
-            message.Published(published);
+            message.Published(Timestamp.Create(published));
         }
 
         if (error is not null)

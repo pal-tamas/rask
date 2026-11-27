@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Mailing;
 
@@ -38,9 +39,11 @@ public sealed partial class MailProcessor<TContext>(
     /// too. See <c>JobProcessor.ClaimAsync</c> for why the compare-and-swap is portable and why the
     /// predicate tests lease expiry rather than <c>ClaimToken == null</c>.
     /// </summary>
-    internal async Task<List<QueuedMail>> ClaimAsync(TContext db, DateTime now, CancellationToken cancellationToken)
+    internal async Task<List<QueuedMail>> ClaimAsync(TContext db, DateTime utcNow, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
+
+        var now = Timestamp.Create(utcNow);
 
         var ids = await db.Set<QueuedMail>()
             .Where(m => m.ProcessedAt == null
@@ -62,7 +65,7 @@ public sealed partial class MailProcessor<TContext>(
         ids.Sort();
 
         var token = Guid.NewGuid();
-        var until = now + options.LeaseDuration;
+        var until = Timestamp.At(now.Instant + options.LeaseDuration);
 
         // Attempts is incremented HERE, not on failure — a send that takes the process down never reaches
         // the failure path, and counting only failures would retry it forever.
@@ -120,7 +123,7 @@ public sealed partial class MailProcessor<TContext>(
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(m => m.ClaimToken, (Guid?)null)
-                        .SetProperty(m => m.ClaimedUntil, (DateTime?)null)
+                        .SetProperty(m => m.ClaimedUntil, (Timestamp?)null)
                         .SetProperty(m => m.Attempts, m => m.Attempts - 1),
                     CancellationToken.None)
                 .ConfigureAwait(false);
@@ -272,7 +275,7 @@ public sealed partial class MailProcessor<TContext>(
         {
             var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
             await using var dbScope = db.ConfigureAwait(false);
-            var until = timeProvider.GetUtcNow().UtcDateTime + options.LeaseDuration;
+            var until = Timestamp.At(timeProvider.GetUtcNow() + options.LeaseDuration);
             await db.Set<QueuedMail>()
                 .Where(m => m.ClaimToken == lease && m.ProcessedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(m => m.ClaimedUntil, until), CancellationToken.None)
@@ -293,7 +296,7 @@ public sealed partial class MailProcessor<TContext>(
         try
         {
             await DeliverAsync(message, graceToken).ConfigureAwait(false);
-            message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
+            message.ProcessedAt = Timestamp.At(timeProvider.GetUtcNow());
             message.Error = null;
             Release(message);
             metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -394,7 +397,7 @@ public sealed partial class MailProcessor<TContext>(
     private void Fail(QueuedMail message, string error)
     {
         message.Error = error;
-        message.RunAt = timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(message.Attempts);
+        message.RunAt = Timestamp.At(timeProvider.GetUtcNow() + options.RetryDelay(message.Attempts));
         Release(message);
     }
 
@@ -446,7 +449,7 @@ public sealed partial class MailProcessor<TContext>(
         }
 
         _lastPurge = now;
-        var cutoff = now - options.Retention;
+        var cutoff = Timestamp.Create(now - options.Retention);
         const int page = 1000;
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

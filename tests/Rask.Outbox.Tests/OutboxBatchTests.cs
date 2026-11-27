@@ -149,7 +149,7 @@ public sealed class OutboxBatchTests : IDisposable
         while (DateTime.UtcNow < deadline)
         {
             await using var db = NewContext();
-            var now = _clock.GetUtcNow().UtcDateTime;
+            var now = Timestamp.At(_clock.GetUtcNow());
             if (await db.Set<OutboxMessage>().AnyAsync(m => m.Payload.Contains("second") && m.ClaimedUntil > now, Ct))
             {
                 return true;

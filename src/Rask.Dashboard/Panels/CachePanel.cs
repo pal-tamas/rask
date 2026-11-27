@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Caching;
+using Rask.Values;
 
 namespace Rask.Dashboard.Panels;
 
@@ -29,7 +30,7 @@ internal sealed class CachePanel<TContext>(
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = Timestamp.At(timeProvider.GetUtcNow());
         var entries = db.Set<CacheEntry>();
 
         return new CacheStats(
@@ -61,7 +62,7 @@ internal sealed class CachePanel<TContext>(
             .OrderBy(e => e.ExpiresAt)
             .Skip(skip)
             .Take(take)
-            .Select(e => new CacheKeyRow(e.Key, e.Value.Length, e.CreatedAt, e.ExpiresAt, e.SlidingSeconds))
+            .Select(e => new CacheKeyRow(e.Key, e.Value.Length, e.CreatedAt, e.ExpiresAt.Instant.UtcDateTime, e.SlidingSeconds))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

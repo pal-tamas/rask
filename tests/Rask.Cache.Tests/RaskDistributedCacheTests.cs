@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Rask.Caching.Tests;
@@ -19,6 +20,36 @@ public sealed class RaskDistributedCacheTests
 
         Assert.NotNull(got);
         Assert.Equal("hello", Str(got));
+    }
+
+    [Fact]
+    public async Task Deadlines_either_side_of_the_autumn_hour_expire_as_the_utc_instants_they_are()
+    {
+        // In Budapest both deadlines read 02:30 on the wall: only their instants tell them apart, and 01:00Z falls between.
+        using var zone = AmbientClock.UseZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"));
+        await using var harness = new CacheHarness(start: new DateTimeOffset(2026, 10, 25, 0, 0, 0, TimeSpan.Zero));
+        await harness.Distributed.SetAsync("earlier", Bytes("a"),
+            new DistributedCacheEntryOptions { AbsoluteExpiration = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero) },
+            TestContext.Current.CancellationToken);
+        await harness.Distributed.SetAsync("later", Bytes("b"),
+            new DistributedCacheEntryOptions { AbsoluteExpiration = new DateTimeOffset(2026, 10, 25, 1, 30, 0, TimeSpan.Zero) },
+            TestContext.Current.CancellationToken);
+        await harness.Distributed.SetAsync("kept", Bytes("c"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
+
+        harness.Clock.Advance(TimeSpan.FromHours(1));
+
+        Assert.Null(await harness.Distributed.GetAsync("earlier", TestContext.Current.CancellationToken));
+        Assert.Equal("b", Str((await harness.Distributed.GetAsync("later", TestContext.Current.CancellationToken))!));
+        Assert.Equal("c", Str((await harness.Distributed.GetAsync("kept", TestContext.Current.CancellationToken))!));
+        await using var db = harness.NewContext();
+        var later = await db.Set<CacheEntry>().SingleAsync(e => e.Key == "later", TestContext.Current.CancellationToken);
+        Assert.Equal(new DateTimeOffset(2026, 10, 25, 1, 30, 0, TimeSpan.Zero), later.ExpiresAt.Instant);
+        Assert.Equal(later.ExpiresAt, later.AbsoluteExpiration);
+        Assert.Equal(CacheEntry.Never, (await db.Set<CacheEntry>().SingleAsync(e => e.Key == "kept", TestContext.Current.CancellationToken)).ExpiresAt);
+        var stored = await db.Database
+            .SqlQueryRaw<string>("SELECT \"ExpiresAt\" AS \"Value\" FROM \"CacheEntry\" ORDER BY \"ExpiresAt\"")
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["2026-10-25 01:30:00", "9999-12-31 23:59:59.9999999"], stored);
     }
 
     [Fact]

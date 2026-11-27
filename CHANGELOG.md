@@ -118,6 +118,17 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: the outbox's, mail queue's, cache's and Web Push's own times are `Timestamp`s, not bare `DateTime`s.**
+  Time is one way everywhere: `OutboxMessage.OccurredAt`/`ProcessedAt`/`ClaimedUntil`, `QueuedMail.RunAt`/
+  `ProcessedAt`/`ClaimedUntil`, `CacheEntry.ExpiresAt`/`AbsoluteExpiration` and `PushSubscriber.ExpiresAt` hold a
+  `Rask.Values.Timestamp` (`.Instant` the UTC instant, `.Value` the app's wall clock); `OutboxMessage.For(…, occurredAt)`,
+  `OutboxMessage.Published(at)` and `CacheEntry.For(…, expiresAt, …, absoluteExpiration)` take one, and
+  `CacheEntry.Never` is the deadline of an entry that never expires. The columns are unchanged: each is stored as the UTC
+  instant it was always written as, on any context — a plain `DbContext` on a provider Rask does not configure included —
+  so no migration rewrites them, and the autumn hour the clock shows twice is two moments, not one. Their read faces
+  (`OutboxMessageRead`, `QueuedMailRead`, `CacheEntryRead`, `PushSubscriberRead`) show the wall clock, as every
+  moment's does; the dashboard's queue and cache rows still show UTC. The interfaces Rask implements keep the platform's
+  types: `IDistributedCache`'s `DistributedCacheEntryOptions`, `IMail.Add(…, DateTimeOffset? at, …)`.
 - **The file log store (`logs.db`) is keyed by a `Guid` Rask makes before the insert, not by its rowid.** The
   last store-numbered key in Rask: `RaskLog` in `logs.db` is a `WITHOUT ROWID` table whose primary key is the entry's
   version-7 `Guid` (`OrderedGuid.New()`, the same as the application-database store), where each id used to be derived

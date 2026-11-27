@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Caching;
 
@@ -51,14 +52,15 @@ public sealed partial class RaskDistributedCache<TContext>(
             return null;
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        if (entry.ExpiresAt <= now)
+        var now = timeProvider.GetUtcNow();
+        if (entry.ExpiresAt.Instant <= now)
         {
             // Past its deadline: a miss. Evict lazily so the row doesn't wait for the next purge sweep. The
             // ExpiresAt guard avoids deleting a row a concurrent writer just refreshed between this read and now.
             // Best-effort: a failed evict just leaves the row for the purger — it must not make the read throw.
+            var expired = Timestamp.At(now);
             await BestEffortWriteAsync(
-                db.Set<CacheEntry>().Where(e => e.Key == key && e.ExpiresAt <= now).ExecuteDeleteAsync(token),
+                db.Set<CacheEntry>().Where(e => e.Key == key && e.ExpiresAt <= expired).ExecuteDeleteAsync(token),
                 token).ConfigureAwait(false);
             return null;
         }
@@ -66,7 +68,7 @@ public sealed partial class RaskDistributedCache<TContext>(
         // A read renews the sliding window (capped by any absolute deadline).
         if (entry.SlidingSeconds is { } seconds)
         {
-            var renewed = now.AddSeconds(seconds);
+            var renewed = Timestamp.At(now.AddSeconds(seconds));
             if (entry.AbsoluteExpiration is { } absolute && renewed > absolute)
             {
                 renewed = absolute;
@@ -141,7 +143,7 @@ public sealed partial class RaskDistributedCache<TContext>(
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(options);
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var (absolute, sliding, expiresAt) = Resolve(options, now);
 
         var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
@@ -158,7 +160,7 @@ public sealed partial class RaskDistributedCache<TContext>(
         }
 
         db.Set<CacheEntry>().Add(
-            CacheEntry.For(key, value, expiresAt, now, absolute, sliding?.TotalSeconds));
+            CacheEntry.For(key, value, expiresAt, now.UtcDateTime, absolute, sliding?.TotalSeconds));
         try
         {
             await db.SaveChangesAsync(token).ConfigureAwait(false);
@@ -170,7 +172,7 @@ public sealed partial class RaskDistributedCache<TContext>(
             // clash. If no row matches, the failure was NOT a duplicate-key conflict (some other write error), so
             // rethrow rather than swallow it — a Set must not silently lose the value.
             db.ChangeTracker.Clear();
-            if (await OverwriteAsync(db, key, value, (absolute, sliding, expiresAt), now, token).ConfigureAwait(false) == 0)
+            if (await OverwriteAsync(db, key, value, (absolute, sliding, expiresAt), now.UtcDateTime, token).ConfigureAwait(false) == 0)
             {
                 ThrowIfKeyTooLong(db, key, error);
                 throw;
@@ -183,7 +185,7 @@ public sealed partial class RaskDistributedCache<TContext>(
         TContext db,
         string key,
         byte[] value,
-        (DateTime? Absolute, TimeSpan? Sliding, DateTime ExpiresAt) expiry,
+        (Timestamp? Absolute, TimeSpan? Sliding, Timestamp ExpiresAt) expiry,
         DateTime now,
         CancellationToken token) =>
         db.Set<CacheEntry>()
@@ -217,9 +219,9 @@ public sealed partial class RaskDistributedCache<TContext>(
 
     // Resolve the entry-options (absolute, relative-to-now, sliding) plus this instance's DefaultSlidingExpiration
     // into a concrete absolute deadline, sliding window, and the effective next-expiry timestamp.
-    private (DateTime? Absolute, TimeSpan? Sliding, DateTime ExpiresAt) Resolve(DistributedCacheEntryOptions entryOptions, DateTime now)
+    private (Timestamp? Absolute, TimeSpan? Sliding, Timestamp ExpiresAt) Resolve(DistributedCacheEntryOptions entryOptions, DateTimeOffset now)
     {
-        DateTime? absolute = entryOptions.AbsoluteExpiration?.UtcDateTime;
+        var absolute = entryOptions.AbsoluteExpiration;
         if (entryOptions.AbsoluteExpirationRelativeToNow is { } relative)
         {
             var relativeAbsolute = now + relative;
@@ -234,7 +236,7 @@ public sealed partial class RaskDistributedCache<TContext>(
             sliding = options.DefaultSlidingExpiration;
         }
 
-        DateTime expiresAt;
+        DateTimeOffset expiresAt;
         if (sliding is { } window)
         {
             expiresAt = now + window;
@@ -249,10 +251,10 @@ public sealed partial class RaskDistributedCache<TContext>(
         }
         else
         {
-            expiresAt = DateTime.MaxValue; // No expiration was requested: keep until explicitly removed.
+            return (null, null, CacheEntry.Never); // No expiration was requested: keep until explicitly removed.
         }
 
-        return (absolute, sliding, expiresAt);
+        return (absolute is { } at ? Timestamp.At(at) : null, sliding, Timestamp.At(expiresAt));
     }
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Best-effort cache maintenance write failed; ignoring.")]

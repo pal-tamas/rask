@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Mailing;
 
@@ -19,7 +20,7 @@ public sealed class MailOutbox<TContext>(IDbContextFactory<TContext> contextFact
     public async Task Add(Mail.Message email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(email);
-        var runAt = (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;
+        var runAt = Timestamp.At(at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero));
         var from = email.FromAddress ?? new EmailAddress(options.From, options.FromName);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var message = MailSerializer.ToQueuedMail(email, from, runAt, now);

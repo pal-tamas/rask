@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
+using Rask.Values;
 
 namespace Rask.Outbox;
 
@@ -26,7 +27,7 @@ internal sealed class OutboxEventStore<TContext>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            db.AddRange(OutboxInterceptor.Rows(e, handlers, timeProvider.GetUtcNow().UtcDateTime));
+            db.AddRange(OutboxInterceptor.Rows(e, handlers, Timestamp.At(timeProvider.GetUtcNow())));
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 

@@ -26,6 +26,10 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Handler).HasMaxLength(1024);
         builder.Property(x => x.Payload).IsRequired();
+        // Rask's own moments: each stored as the UTC instant it holds, on any context.
+        TimestampColumn.Map(builder.Property(x => x.OccurredAt));
+        TimestampColumn.Map(builder.Property(x => x.ProcessedAt));
+        TimestampColumn.Map(builder.Property(x => x.ClaimedUntil));
 
         // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
         // that states none, and would otherwise cut these off.

@@ -1,5 +1,6 @@
 using Rask.Batteries;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Outbox;
 
@@ -38,11 +39,11 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     /// <summary>The JSON-serialized event payload.</summary>
     public string Payload { get; private set; } = "";
 
-    /// <summary>When the event was enqueued (UTC).</summary>
-    public DateTime OccurredAt { get; private set; }
+    /// <summary>When the event was enqueued.</summary>
+    public Timestamp OccurredAt { get; private set; } = null!;
 
-    /// <summary>When the event was successfully published (UTC), or <c>null</c> while it is pending.</summary>
-    public DateTime? ProcessedAt { get; private set; }
+    /// <summary>When the event was successfully published, or <c>null</c> while it is pending.</summary>
+    public Timestamp? ProcessedAt { get; private set; }
 
     /// <summary>How many publish attempts have been made.</summary>
 #pragma warning disable S1144 // EF materializes the column through the setter; code only moves it with ExecuteUpdate
@@ -62,10 +63,10 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     public Guid? ClaimToken { get; private set; }
 
     /// <summary>
-    /// When the current claim expires (UTC). Null or in the past means the message is claimable — which is
+    /// When the current claim expires. Null or in the past means the message is claimable — which is
     /// also how a processor that died mid-dispatch releases its work: the lease simply runs out.
     /// </summary>
-    public DateTime? ClaimedUntil { get; private set; }
+    public Timestamp? ClaimedUntil { get; private set; }
 
     /// <summary>
     /// The user the event was raised for — <c>Current.UserId</c> at the time — or <c>null</c> when it was
@@ -90,7 +91,7 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     /// <param name="type">The event's registered type name.</param>
     /// <param name="payload">The serialized event.</param>
     /// <param name="handler">The durable handler this row runs (see <see cref="Handler"/>).</param>
-    /// <param name="occurredAt">When the event was raised (UTC).</param>
+    /// <param name="occurredAt">When the event was raised.</param>
     /// <remarks>
     ///     <para>The key is the store's, and is also the processing order, so nothing assigns one here.</para>
     ///     <para>
@@ -99,7 +100,7 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     ///         and refusing to write it would be wrong.
     ///     </para>
     /// </remarks>
-    public static OutboxMessage For(string type, string payload, string handler, DateTime occurredAt)
+    public static OutboxMessage For(string type, string payload, string handler, Timestamp occurredAt)
     {
         return new OutboxMessage
         {
@@ -114,8 +115,8 @@ public sealed class OutboxMessage : Aggregate<Guid>, IHasUpdatedAt, IInfrastruct
     }
 
     /// <summary>Records a successful publish, clearing any error from an earlier attempt.</summary>
-    /// <param name="at">When it was published (UTC).</param>
-    public void Published(DateTime at)
+    /// <param name="at">When it was published.</param>
+    public void Published(Timestamp at)
     {
         ProcessedAt = at;
         Error = null;

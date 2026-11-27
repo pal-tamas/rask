@@ -1,4 +1,5 @@
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Caching;
 
@@ -21,16 +22,16 @@ public sealed class CacheEntry : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     /// <summary>Starts an entry under <paramref name="key" />.</summary>
     /// <param name="key">The cache key.</param>
     /// <param name="value">The bytes to cache.</param>
-    /// <param name="expiresAt">When it stops being served (UTC).</param>
+    /// <param name="expiresAt">When it stops being served.</param>
     /// <param name="savedAt">When it was written (UTC).</param>
     /// <param name="absoluteExpiration">Its absolute deadline, if it has one.</param>
     /// <param name="slidingSeconds">Its sliding window in seconds, if it has one.</param>
     public static CacheEntry For(
         string key,
         byte[] value,
-        DateTime expiresAt,
+        Timestamp expiresAt,
         DateTime savedAt,
-        DateTime? absoluteExpiration = null,
+        Timestamp? absoluteExpiration = null,
         double? slidingSeconds = null)
     {
         var entry = new CacheEntry
@@ -52,17 +53,20 @@ public sealed class CacheEntry : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     /// <summary>The cached bytes.</summary>
     public byte[] Value { get; internal set; } = [];
 
-    /// <summary>The absolute time (UTC) the entry expires, or <c>null</c> when it has no absolute deadline.</summary>
-    public DateTime? AbsoluteExpiration { get; internal set; }
+    /// <summary>The absolute moment the entry expires, or <c>null</c> when it has no absolute deadline.</summary>
+    public Timestamp? AbsoluteExpiration { get; internal set; }
 
     /// <summary>The sliding window in seconds — each read within the window pushes <see cref="ExpiresAt"/> forward. <c>null</c> = no sliding.</summary>
     public double? SlidingSeconds { get; internal set; }
 
     /// <summary>
-    /// The effective time (UTC) the entry stops being served: the earlier of the absolute expiry and the last
-    /// read plus the sliding window (<see cref="DateTime.MaxValue"/> when the entry never expires). Drives both the
+    /// The effective moment the entry stops being served: the earlier of the absolute expiry and the last
+    /// read plus the sliding window (<see cref="Never"/> when the entry never expires). Drives both the
     /// read-time freshness check and the purge sweep.
     /// </summary>
-    public DateTime ExpiresAt { get; internal set; }
+    public Timestamp ExpiresAt { get; internal set; } = null!;
+
+    /// <summary>The <see cref="ExpiresAt"/> of an entry that never expires: the last instant a <see cref="DateTime"/> holds, in UTC.</summary>
+    public static Timestamp Never => Timestamp.At(DateTimeOffset.MaxValue);
 
 }

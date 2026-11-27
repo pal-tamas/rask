@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Rask.Batteries;
 using Rask.Data;
+using Rask.Values;
 
 namespace Rask.Mailing;
 
@@ -21,7 +22,7 @@ namespace Rask.Mailing;
 public sealed class QueuedMail : Aggregate<Guid>, IHasTimestamps, IInfrastructure
 {
     /// <summary>The row for <paramref name="email" />, sent from <paramref name="from" /> once <paramref name="runAt" /> comes.</summary>
-    internal static QueuedMail For(Mail.Message email, EmailAddress from, DateTime runAt) => new()
+    internal static QueuedMail For(Mail.Message email, EmailAddress from, Timestamp runAt) => new()
     {
         Id = OrderedGuid.New(),
         From = MailSerializer.SerializeAddress(from),
@@ -68,11 +69,11 @@ public sealed class QueuedMail : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     /// <summary>The attachments, as a JSON array (or <c>null</c>).</summary>
     public string? Attachments { get; internal set; }
 
-    /// <summary>The earliest time (UTC) the email is eligible to send — enqueue time, or later for a delayed send or a backed-off retry.</summary>
-    public DateTime RunAt { get; internal set; }
+    /// <summary>The earliest moment the email is eligible to send — enqueue time, or later for a delayed send or a backed-off retry.</summary>
+    public Timestamp RunAt { get; internal set; } = null!;
 
-    /// <summary>When the email was sent successfully (UTC), or <c>null</c> while it is pending.</summary>
-    public DateTime? ProcessedAt { get; internal set; }
+    /// <summary>When the email was sent successfully, or <c>null</c> while it is pending.</summary>
+    public Timestamp? ProcessedAt { get; internal set; }
 
     /// <summary>How many times delivery has been attempted.</summary>
     public int Attempts { get; internal set; }
@@ -90,10 +91,10 @@ public sealed class QueuedMail : Aggregate<Guid>, IHasTimestamps, IInfrastructur
     public Guid? ClaimToken { get; internal set; }
 
     /// <summary>
-    /// When the current claim expires (UTC). Null or in the past means the email is claimable — which is
+    /// When the current claim expires. Null or in the past means the email is claimable — which is
     /// also how a processor that died mid-send releases its work: the lease simply runs out.
     /// </summary>
-    public DateTime? ClaimedUntil { get; internal set; }
+    public Timestamp? ClaimedUntil { get; internal set; }
 
     /// <summary>
     /// The user the email was queued for — <c>Current.UserId</c> at the time — or <c>null</c> when it was
