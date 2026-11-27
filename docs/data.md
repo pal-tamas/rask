@@ -718,6 +718,25 @@ public sealed class AppModel : IRaskModel
   (`Hungarian_100_CS_AS`) needs none: `InTextOrder()` orders by the language's ICU collation (`"hu-HU-x-icu"`), as it
   does through a plain `UseNpgsql`, which every server built with ICU (the official images are) imports.
 
+  PostgreSQL refuses every substring search by a nondeterministic collation but `LIKE` — `strpos`, `replace`, the
+  regular expressions and `ILIKE` fail with *nondeterministic collations are not supported* — and Npgsql writes several
+  string members as those. So on a column in `rask_text` (or `rask_search`, `x.Loosely()`'s), `UseRaskPostgres` writes
+  them as below; *the language's collation* is its deterministic ICU one (`"hu-HU-x-icu"`; `"und-x-icu"` for
+  `rask_search`). A column given a deterministic collation of its own is left to Npgsql, and so is a plain `UseNpgsql`.
+
+  | On PostgreSQL through `UseRaskPostgres` | written as | compares | vs SQL Server / SQLite (`Hungarian_100_CI_AS`) |
+  |---|---|---|---|
+  | `Contains` / `StartsWith` / `EndsWith` of a constant or a parameter | Npgsql's `LIKE @p`, the value's `%`, `_` and `\` escaped | by `rask_text`: case aside, accents as the collation says | the same |
+  | the same of another column or an expression | `LIKE '%' \|\| (escaped value COLLATE rask_text) \|\| '%' ESCAPE '\'` — not `strpos`, `left`, `right` | by `rask_text`, `%`/`_` in the value literal | the same |
+  | `IndexOf(string)` / `IndexOf(char)` | `strpos(lower(x COLLATE "hu-HU-x-icu"), lower(v COLLATE "hu-HU-x-icu")) - 1` (no `lower` when the collation tells case apart) | case aside, **accents always counted** | the same for an `_AS` collation; under an `_AI` one SQL Server and SQLite also ignore accents |
+  | `Replace` | `replace(x COLLATE "hu-HU-x-icu", …) COLLATE rask_text` | the exact value, **case counted** | as SQLite; SQL Server's `REPLACE` matches case aside |
+  | `Regex.IsMatch` / `Replace` / `Count`, `EF.Functions.ILike` | Npgsql's, the text `COLLATE "hu-HU-x-icu"` | as .NET's `Regex` and PostgreSQL's `ILIKE` do | PostgreSQL only |
+  | `==`, `ToUpper()`/`ToLower()`, `Trim`, `Substring`, `Length`, `OrderBy` | unchanged | by `rask_text` | the same |
+
+  A text `Replace` or a regular expression answers is given `rask_text` back, so `x.Name.Replace(a, b) == "KOVÁCS"`
+  still compares case aside. `lower()` maps `İ` to two characters, so `IndexOf` past one is off by one — Hungarian has
+  none.
+
   ```csharp
   // before — the collation repeated in every query
   .OrderBy(x => EF.Functions.Collate(x.Name, "Hungarian_100_CI_AS"))

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -104,11 +105,26 @@ public abstract class TextOrderParityTests : IAsyncLifetime
     }
 
     private protected static Speaker Named(string name, string code) => new() { Name = name, Code = code };
+
+    /// <summary>A context on the seeded table with <paramref name="speakers" /> added beside the seed.</summary>
+    private protected async Task<TextOrderDbContext> WithAsync(params Speaker[] speakers)
+    {
+        var db = NewContext();
+        db.Speakers.AddRange(speakers);
+        await db.SaveChangesAsync(Ct);
+        return db;
+    }
 }
 
 /// <summary>Where the database compares text as the collation says — SQL Server, and SQLite through <c>UseRaskSqlite</c>.</summary>
 public abstract class CaseInsensitiveTextOrderParityTests : TextOrderParityTests
 {
+    /// <summary>
+    ///     Whether <c>Replace</c> matches the value case aside: SQL Server's <c>REPLACE</c> does, by the collation;
+    ///     SQLite's <c>replace</c> and PostgreSQL's (which refuses a nondeterministic collation) replace the exact value.
+    /// </summary>
+    private protected virtual bool ReplaceIgnoresCase => false;
+
     [Fact]
     public async Task Equality_ignores_case_beyond_ASCII_and_keeps_accents_apart()
     {
@@ -139,6 +155,92 @@ public abstract class CaseInsensitiveTextOrderParityTests : TextOrderParityTests
     }
 
     [Fact]
+    public async Task A_typed_search_ignores_case_and_keeps_accents_apart()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = await WithAsync(Named("Kovács Béla", "k-1"));
+        var typed = "kovács";
+        var start = "KOV";
+        var end = "S BÉLA";
+        var unaccented = "kovacs";
+
+        var contains = await db.Speakers.Where(s => s.Name.Contains(typed)).Select(s => s.Code).ToListAsync(Ct);
+        var starts = await db.Speakers.Where(s => s.Name.StartsWith(start)).Select(s => s.Code).ToListAsync(Ct);
+        var ends = await db.Speakers.Where(s => s.Name.EndsWith(end)).Select(s => s.Code).ToListAsync(Ct);
+        var accentsApart = await db.Speakers.CountAsync(s => s.Name.Contains(unaccented), Ct);
+
+        Assert.Equal(["k-1"], contains);
+        Assert.Equal(["k-1"], starts);
+        Assert.Equal(["k-1"], ends);
+        Assert.Equal(0, accentsApart);
+    }
+
+    [Fact]
+    public async Task A_percent_or_an_underscore_in_the_search_matches_only_itself()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = await WithAsync(Named("50% off_now", "p-1"), Named("500 offXnow", "p-2"));
+        var percent = "0% OFF_";
+        var underscore = "_";
+
+        var found = await db.Speakers.Where(s => s.Name.Contains(percent)).Select(s => s.Code).ToListAsync(Ct);
+        var underscored = await db.Speakers.Where(s => s.Name.Contains(underscore)).Select(s => s.Code).ToListAsync(Ct);
+
+        Assert.Equal(["p-1"], found);
+        Assert.Equal(["p-1"], underscored);
+    }
+
+    [Fact]
+    public async Task Searching_by_another_column_ignores_case_and_takes_its_percent_literally()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = await WithAsync(
+            Named("Nagy X-9 Elek", "x-9"),
+            Named("Abxdz", "b%d"),
+            Named("Ab%Ez", "B%E"),
+            Named("X-7 Kiss", "x-7"),
+            Named("Kiss x-8", "X-8"));
+
+        var contains = await db.Speakers.Where(s => s.Name.Contains(s.Code)).Select(s => s.Code).ToListAsync(Ct);
+        var starts = await db.Speakers.Where(s => s.Name.StartsWith(s.Code)).Select(s => s.Code).ToListAsync(Ct);
+        var ends = await db.Speakers.Where(s => s.Name.EndsWith(s.Code)).Select(s => s.Code).ToListAsync(Ct);
+
+        Assert.Equal(["B%E", "X-8", "x-7", "x-9"], contains.Order(StringComparer.Ordinal));
+        Assert.Equal(["x-7"], starts);
+        Assert.Equal(["X-8"], ends);
+    }
+
+    [Fact]
+    public async Task IndexOf_ignores_case_and_keeps_accents_apart()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = NewContext();
+        var typed = "TŰRŐ";
+        var unaccented = "turo";
+
+        var at = await db.Speakers.Where(s => s.Code == "a-1").Select(s => s.Name.IndexOf(typed)).SingleAsync(Ct);
+        var missing = await db.Speakers.Where(s => s.Code == "a-1").Select(s => s.Name.IndexOf(unaccented)).SingleAsync(Ct);
+
+        Assert.Equal(5, at);
+        Assert.Equal(-1, missing);
+    }
+
+    [Fact]
+    public async Task Replace_replaces_the_value_in_the_case_the_provider_matches_it()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = NewContext();
+        var exact = "tűrő";
+        var upper = "TŰRŐ";
+
+        var replaced = await db.Speakers.Where(s => s.Code == "a-1").Select(s => s.Name.Replace(exact, "-")).SingleAsync(Ct);
+        var otherCase = await db.Speakers.Where(s => s.Code == "a-1").Select(s => s.Name.Replace(upper, "-")).SingleAsync(Ct);
+
+        Assert.Equal("Árvíz- Tükörfúrógép", replaced);
+        Assert.Equal(ReplaceIgnoresCase ? "Árvíz- Tükörfúrógép" : "Árvíztűrő Tükörfúrógép", otherCase);
+    }
+
+    [Fact]
     public async Task A_unique_index_refuses_the_same_text_in_another_case()
     {
         Assert.SkipUnless(Available, SkipReason);
@@ -156,6 +258,8 @@ public sealed class SqlServerTextOrderTests : CaseInsensitiveTextOrderParityTest
     private const string DatabaseName = "rask_e2e_text_order";
 
     private protected override bool Available => SqlServer.Available;
+
+    private protected override bool ReplaceIgnoresCase => true;
 
     private protected override string SkipReason => SqlServer.SkipReason;
 
@@ -209,4 +313,29 @@ public sealed class PostgresTextOrderTests : CaseInsensitiveTextOrderParityTests
     private protected override Task Recreate(DbContext db) => Postgres.ResetSchemaAsync(db, TextOrderDbContext.Schema);
 
     private protected override Task Drop(DbContext db) => Postgres.DropSchemaAsync(db, TextOrderDbContext.Schema);
+
+    [Fact]
+    public async Task A_regular_expression_and_ILike_run_on_the_nondeterministic_column()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = NewContext();
+
+        var regex = await db.Speakers.Where(s => Regex.IsMatch(s.Name, "^Árv")).Select(s => s.Code).ToListAsync(Ct);
+        var ilike = await db.Speakers.Where(s => EF.Functions.ILike(s.Name, "árvíz%")).Select(s => s.Code).ToListAsync(Ct);
+
+        Assert.Equal(["a-1"], regex);
+        Assert.Equal(["a-1"], ilike);
+    }
+
+    [Fact]
+    public async Task Replace_s_answer_compares_by_the_column_s_collation_again()
+    {
+        Assert.SkipUnless(Available, SkipReason);
+        await using var db = NewContext();
+        var exact = "tűrő";
+
+        var found = await db.Speakers.Where(s => s.Name.Replace(exact, "-") == "ÁRVÍZ- TÜKÖRFÚRÓGÉP").Select(s => s.Code).ToListAsync(Ct);
+
+        Assert.Equal(["a-1"], found);
+    }
 }

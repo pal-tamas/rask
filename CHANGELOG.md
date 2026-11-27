@@ -147,6 +147,16 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **PostgreSQL: string operations on a case-insensitive text column no longer fail at run time.** Under
+  `UseRaskPostgres` + `OrderTextBy("…_CI_…")` every text column is in `rask_text`, a nondeterministic ICU collation,
+  and PostgreSQL refuses `strpos`, `replace`, the regular expressions and `ILIKE` by one — so `x.Name.Contains(x.Code)`
+  (another column), `IndexOf`, `Replace`, `Regex.IsMatch` and `EF.Functions.ILike` threw *nondeterministic collations
+  are not supported*. `Contains`/`StartsWith`/`EndsWith` of a column or an expression are now an escaped `LIKE` by the
+  column's collation (case aside, `%`/`_` literal, as SQL Server and SQLite); `IndexOf` is `strpos` over `lower()` by
+  the language's deterministic ICU collation (case aside, accents counted); `Replace`, the `Regex` methods and `ILike`
+  run by that collation (`Replace` matches the exact value, as SQLite's does — SQL Server's ignores case), their text
+  answer given `rask_text` back. Of a constant or a parameter they were already Npgsql's escaped `LIKE`, unchanged. The
+  same holds for `x.Loosely()`'s `rask_search`. `docs/data.md` lists what each string member is written as.
 - **A typed id's `New()` is strictly increasing within the process: two ids made in one millisecond come out in order.**
   Before, the generated `XId.New()` was `Guid.CreateVersion7()`, which fills the 12 bits after the millisecond at random,
   so ids made in the same millisecond sorted in either order — an `ORDER BY Id` (or `Guid.CompareTo`) that was meant

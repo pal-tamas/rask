@@ -33,7 +33,7 @@ public sealed class CaseSensitivePayees(DbContextOptions<CaseSensitivePayees> op
 // migrations create; a plain UseNpgsql orders by the language's ICU collation and changes no column.
 public sealed class TextOrderTests
 {
-    private static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
+    internal static readonly IServiceProvider Services = new ConfigurationServices(new ConfigurationBuilder()
         .AddInMemoryCollection([new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", "Host=localhost;Database=rask")])
         .Build());
 
