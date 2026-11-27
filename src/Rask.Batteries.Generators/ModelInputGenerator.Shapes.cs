@@ -21,7 +21,7 @@ public sealed partial class ModelInputGenerator
     private sealed record ShapedModel(string Type, string Key, List<(string Property, string Shape)> Fields);
 
     // The C# of a member's shape, read where its type is in hand: a value object declared from a base record
-    // answers its own `__Field`; an enum lists its members. Null for any other type.
+    // answers its own `__Field`; a typed id is another row's id; an enum lists its members. Null for any other type.
     private static string? ShapeOf(ITypeSymbol type, ValueObjectShape? valueObject)
     {
         if (valueObject is { ValueBase: "Text" or "Number" or "Integer" or "Day" or "Moment" or "Range" })
@@ -32,6 +32,11 @@ public sealed partial class ModelInputGenerator
         var held = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
             ? nullable.TypeArguments[0]
             : type;
+
+        if (TypedIdShape.Is(held))
+        {
+            return "new " + FieldShapeType + "(" + FieldKindType + ".Id)";
+        }
 
         return held is INamedTypeSymbol { TypeKind: TypeKind.Enum } choice ? ChoiceOf(choice) : null;
     }

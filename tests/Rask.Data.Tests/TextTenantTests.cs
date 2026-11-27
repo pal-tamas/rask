@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 /// A table that already exists, whose tenant is a <see cref="Guid" /> kept as TEXT: a string key and a text
 /// <c>TenantId</c> column, as a database another tool made often has it.
 /// </summary>
-public sealed class Branch : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Branch : Aggregate<string>, IHasForm, IDeletable, IBelongsTo<GuidShop>
 {
     private Branch() { }
 
@@ -29,7 +29,7 @@ public sealed class Branch : Aggregate<string, Model, Deletable, PerTenant>
 }
 
 /// <summary>A market stand of a tenant's, its code unique among every tenant's stands and the ones of none.</summary>
-public sealed class Stand : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Stand : Aggregate<string>, IHasForm, IDeletable, IBelongsTo<GuidShop>
 {
     public const string CodeTaken = "A stand with this code already exists.";
 

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A return that is filed, unfiled and filed again: its filings are the history, and one at most is in force.</summary>
-public sealed class TaxReturn : Aggregate<Guid, Versioned, OneInForce<ReturnFiled>>
+public sealed class TaxReturn : Aggregate<Guid>, IVersioned
 {
     private readonly List<ReturnFiled> _filings = [];
 
@@ -46,10 +46,10 @@ public sealed class ReturnFiled : Entity<Guid>
 }
 
 /// <summary>
-/// F-32: <see cref="OneInForce{TChild}" /> keeps one child in force — a partial unique index the database holds, the
+/// F-32: a child that says <c>InForceWhile(…)</c> keeps one of itself in force — a partial unique index the database holds, the
 /// history beside it, and InForce / Put / End asking the same condition in memory.
 /// </summary>
-public sealed class OneInForceTests : IDisposable
+public sealed class InForceTests : IDisposable
 {
     private static readonly DateTime March = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);
 

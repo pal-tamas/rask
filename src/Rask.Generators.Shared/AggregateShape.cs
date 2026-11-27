@@ -28,6 +28,8 @@ internal static class AggregateShape
     private const string RaskValuesNamespace = "Rask.Values";
     private const string EntityBase = "Entity";
     private const string AggregateBase = "Aggregate";
+    private const string BelongsTo = "IBelongsTo";
+    private const string BelongsToTenantThrough = "IBelongsToTenantThrough";
 
     /// <summary>
     ///     Walks the base chain to <c>Rask.Data.Entity&lt;TId&gt;</c>, handing back <c>TId</c>. Returns false for a type
@@ -82,109 +84,122 @@ internal static class AggregateShape
     public const int SoftRemoved = 512;
 
     /// <summary>
-    ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
-    ///     — as <c>Rask.Data.TraitSet</c> bits. None when it names none: a table carries only what it asks for.
+    ///     The traits <paramref name="symbol" /> says — <c>Aggregate&lt;Guid&gt;, IHasTimestamps, ISoftDeletes</c> — as
+    ///     <c>Rask.Data.TraitSet</c> bits. None when it says none: a table carries only what it asks for.
     /// </summary>
     /// <remarks>
-    ///     Read at compile time and carried out as an int, since an ISymbol must not cross an incremental-generator step.
+    ///     Read off every interface the class has, its bases' included, so a user deriving from Rask.Auth's
+    ///     <c>Authenticatable</c> carries what that says. Read at compile time and carried out as an int, since an
+    ///     ISymbol must not cross an incremental-generator step.
     /// </remarks>
     public static int TraitsOf(INamedTypeSymbol symbol)
     {
         var traits = 0;
+        var aggregate = IsAggregate(symbol);
 
-        foreach (var argument in TraitArguments(symbol))
+        foreach (var trait in Traits(symbol))
         {
-            traits |= TraitOf(argument);
+            traits |= TraitOf(trait, aggregate);
         }
 
         return traits;
     }
 
-    /// <summary>Whether the base of <paramref name="symbol" /> names <paramref name="trait" />.</summary>
+    /// <summary>Whether <paramref name="symbol" /> says <paramref name="trait" />.</summary>
     public static bool Has(INamedTypeSymbol symbol, int trait) => (TraitsOf(symbol) & trait) == trait;
 
     /// <summary>
-    ///     The key type <c>PerTenant&lt;TKey&gt;</c> names, fully qualified — <c>global::System.Int32</c> — or null
-    ///     for plain <c>PerTenant</c> or none.
+    ///     The key type of the tenant <c>IBelongsTo&lt;TTenant&gt;</c> names, fully qualified — <c>global::System.Int32</c>
+    ///     — or null for a tenant kept as a <c>Guid</c> (a <c>Guid</c> or a <c>string</c> key), or none.
     /// </summary>
     public static string? TenantKeyOf(INamedTypeSymbol symbol) =>
         TenantKeyTypeOf(symbol)?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    /// <summary>The key type <c>PerTenant&lt;TKey&gt;</c> names, or null for plain <c>PerTenant</c> or none.</summary>
-    public static ITypeSymbol? TenantKeyTypeOf(INamedTypeSymbol symbol) =>
-        TraitArguments(symbol)
-            .OfType<INamedTypeSymbol>()
-            .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
-            .Select(static t => t.TypeArguments[0])
-            .FirstOrDefault();
+    /// <summary>
+    ///     The key type of the tenant <c>IBelongsTo&lt;TTenant&gt;</c> names, or null for a tenant kept as a <c>Guid</c>
+    ///     (a <c>Guid</c> or a <c>string</c> key), or none.
+    /// </summary>
+    public static ITypeSymbol? TenantKeyTypeOf(INamedTypeSymbol symbol)
+    {
+        if (TenantOf(symbol) is not { } tenant || !TryGetIdType(tenant, out var key) || key is null)
+        {
+            return null;
+        }
+
+        return key.SpecialType == SpecialType.System_String ||
+               string.Equals(key.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), "global::System.Guid", StringComparison.Ordinal)
+            ? null
+            : key;
+    }
+
+    /// <summary>The tenant aggregate <c>IBelongsTo&lt;TTenant&gt;</c> names, or null when the class names none.</summary>
+    public static INamedTypeSymbol? TenantOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, BelongsTo).FirstOrDefault();
 
     /// <summary>
-    ///     The aggregate <c>PerTenantThrough&lt;TParent&gt;</c> names, fully qualified, or null when the base names none.
+    ///     The aggregate <c>IBelongsToTenantThrough&lt;TParent&gt;</c> names, fully qualified, or null when the class names
+    ///     none.
     /// </summary>
-    public static string? TenantParentOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "PerTenantThrough").FirstOrDefault();
+    public static string? TenantParentOf(INamedTypeSymbol symbol) =>
+        TypeArgumentOf(symbol, BelongsToTenantThrough).FirstOrDefault()?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    /// <summary>The children each <c>OneInForce&lt;TChild&gt;</c> the base names, fully qualified.</summary>
-    public static IEnumerable<string> InForceChildrenOf(INamedTypeSymbol symbol) => TypeArgumentOf(symbol, "OneInForce");
-
-    /// <summary>Whether a removed child keeps its row, stamped: its base names <c>SoftRemoved</c>.</summary>
+    /// <summary>Whether a removed child keeps its row, stamped: it says <c>ISoftDeletes</c>.</summary>
     public static bool SoftRemoves(INamedTypeSymbol entity) => !IsAggregate(entity) && Has(entity, SoftRemoved);
 
-    private static IEnumerable<string> TypeArgumentOf(INamedTypeSymbol symbol, string trait) =>
-        TraitArguments(symbol)
-            .OfType<INamedTypeSymbol>()
-            .Where(t => string.Equals(t.Name, trait, StringComparison.Ordinal) && t.TypeArguments.Length == 1 && IsRaskDataType(t))
-            .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+    /// <summary>The Rask.Data traits <paramref name="symbol" /> says, by their names — for the analyzer that checks them.</summary>
+    public static IEnumerable<string> TraitNamesOf(INamedTypeSymbol symbol) =>
+        symbol.Interfaces.Where(static face => TraitOf(face, aggregate: true) != 0 || IsTraitGroup(face)).Select(static face => face.Name);
 
-    /// <summary>Whether the table has <c>CreatedAt</c>: only when its base names <c>Created</c> or <c>Timestamps</c>.</summary>
+    private static IEnumerable<INamedTypeSymbol> TypeArgumentOf(INamedTypeSymbol symbol, string trait) =>
+        Traits(symbol)
+            .Where(t => string.Equals(t.Name, trait, StringComparison.Ordinal) && t.TypeArguments.Length == 1)
+            .Select(static t => t.TypeArguments[0])
+            .OfType<INamedTypeSymbol>();
+
+    /// <summary>Whether the table has <c>CreatedAt</c>: only when it says <c>IHasCreatedAt</c> or <c>IHasTimestamps</c>.</summary>
     public static bool StampsCreated(INamedTypeSymbol entity) => Has(entity, Created);
 
-    /// <summary>Whether the table has <c>UpdatedAt</c>: only when its base names <c>Updated</c> or <c>Timestamps</c>.</summary>
+    /// <summary>Whether the table has <c>UpdatedAt</c>: only when it says <c>IHasUpdatedAt</c> or <c>IHasTimestamps</c>.</summary>
     public static bool StampsUpdated(INamedTypeSymbol entity) => Has(entity, Updated);
 
-    /// <summary>Whether the aggregate has a <c>Version</c>: only when its base names <c>Versioned</c>.</summary>
+    /// <summary>Whether the aggregate has a <c>Version</c>: only when it says <c>IVersioned</c>.</summary>
     public static bool HasVersion(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, Versioned);
 
-    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when its base names <c>SoftDelete</c>.</summary>
+    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it says <c>ISoftDeletes</c>.</summary>
     public static bool SoftDeletes(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, SoftDelete);
 
-    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>Deletable</c> or <c>SoftDelete</c>.</summary>
+    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>IDeletable</c> or <c>ISoftDeletes</c>.</summary>
     public static bool IsDeletable(INamedTypeSymbol entity) =>
         IsAggregate(entity) && (TraitsOf(entity) & (Deletable | SoftDelete)) != 0;
 
-    // The type arguments after TId, on every Rask.Data base in the chain.
-    private static IEnumerable<ITypeSymbol> TraitArguments(INamedTypeSymbol symbol)
-    {
-        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current is { Name: EntityBase or AggregateBase, TypeArguments.Length: > 1 } && IsRaskDataType(current))
-            {
-                foreach (var argument in current.TypeArguments.Skip(1))
-                {
-                    yield return argument;
-                }
-            }
-        }
-    }
+    // Every Rask.Data interface the class has, its bases' and the groups' halves included.
+    private static IEnumerable<INamedTypeSymbol> Traits(INamedTypeSymbol symbol) =>
+        symbol.AllInterfaces.Where(IsRaskDataType);
 
-    private static int TraitOf(ITypeSymbol argument) =>
-        argument is INamedTypeSymbol named && IsRaskDataType(named)
-            ? named.Name switch
-            {
-                "Created" => Created,
-                "Updated" => Updated,
-                "Timestamps" => Created | Updated,
-                "Versioned" => Versioned,
-                "Model" => CreateModel | UpdateModel,
-                "CreateModel" => CreateModel,
-                "UpdateModel" => UpdateModel,
-                "Deletable" => Deletable,
-                "SoftDelete" => SoftDelete,
-                "PerTenant" or "PerTenantThrough" => PerTenant,
-                "Broadcast" => Broadcast,
-                "SoftRemoved" => SoftRemoved,
-                _ => 0,
-            }
-            : 0;
+    private static bool IsTraitGroup(INamedTypeSymbol face) =>
+        IsRaskDataType(face) && face.Name is "IHasTimestamps" or "IHasForm";
+
+    // ISoftDeletes means what its place makes it: a root's delete is a stamp, a child's removal keeps the row.
+    private static int TraitOf(INamedTypeSymbol trait, bool aggregate)
+    {
+        if (!IsRaskDataType(trait))
+        {
+            return 0;
+        }
+
+        return trait.Name switch
+        {
+            "IHasCreatedAt" => Created,
+            "IHasUpdatedAt" => Updated,
+            "IVersioned" => Versioned,
+            "IHasCreateForm" => CreateModel,
+            "IHasUpdateForm" => UpdateModel,
+            "IDeletable" => Deletable,
+            "ISoftDeletes" => aggregate ? SoftDelete : SoftRemoved,
+            BelongsTo or BelongsToTenantThrough => PerTenant,
+            "IBroadcasts" => Broadcast,
+            _ => 0,
+        };
+    }
 
     /// <summary>A type that becomes a table: concrete, non-static, non-generic, and an entity.</summary>
     public static bool IsMappedEntity(INamedTypeSymbol symbol) =>

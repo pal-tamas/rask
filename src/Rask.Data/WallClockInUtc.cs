@@ -13,10 +13,9 @@ namespace Rask.Data;
 ///         <c>AddRask(timeZone: …)</c> are both followed.
 ///     </para>
 ///     <para>
-///         A wall time the clock skips (the hour lost when summer time begins) is read with the offset in force before
-///         the jump, so it is stored as the instant just after it; a wall time the clock shows twice (the hour gained in
-///         autumn) is stored as its standard-time instant, as <see cref="TimeZoneInfo.ConvertTimeToUtc(DateTime, TimeZoneInfo)" />
-///         reads it.
+///         A wall time names its instant by the one rule a <c>Moment</c> follows (<see cref="WallClock" />): one the clock
+///         skips when summer time begins is moved forward by the jump, and one it shows twice when summer time ends is
+///         its first occurrence — as SQL Server's <c>AT TIME ZONE</c> reads them.
 ///     </para>
 /// </remarks>
 internal static class WallClockInUtc
@@ -24,32 +23,13 @@ internal static class WallClockInUtc
     /// <summary>The converter, wall clock to UTC and back.</summary>
     public static ValueConverter<DateTime, DateTime> Converter { get; } = new(wall => ToUtc(wall), utc => ToWall(utc));
 
-    /// <summary>The UTC instant a wall-clock time of <see cref="Clock.Zone" /> is.</summary>
+    /// <summary>The UTC instant a wall-clock time of <see cref="Clock.Zone" /> is, by the rule a <c>Moment</c> follows.</summary>
     /// <param name="wall">The wall-clock time; a UTC one is kept as it is.</param>
     /// <returns>The instant, of <see cref="DateTimeKind.Utc" />.</returns>
-    public static DateTime ToUtc(DateTime wall)
-    {
-        if (wall.Kind == DateTimeKind.Utc)
-        {
-            return wall;
-        }
-
-        var zone = Clock.Zone;
-        var unspecified = DateTime.SpecifyKind(wall, DateTimeKind.Unspecified);
-        if (!zone.IsInvalidTime(unspecified))
-        {
-            return TimeZoneInfo.ConvertTimeToUtc(unspecified, zone);
-        }
-
-        // No skipped stretch of a zone in use is longer than a few hours: the offset three hours before is the old one.
-        var before = zone.GetUtcOffset(unspecified.AddHours(-3));
-        return DateTime.SpecifyKind(unspecified - before, DateTimeKind.Utc);
-    }
+    public static DateTime ToUtc(DateTime wall) => WallClock.ToUtc(wall, Clock.Zone);
 
     /// <summary>The wall-clock time of <see cref="Clock.Zone" /> a UTC instant shows.</summary>
     /// <param name="utc">The instant, as the database hands it back.</param>
     /// <returns>The wall-clock time, of <see cref="DateTimeKind.Unspecified" />.</returns>
-    public static DateTime ToWall(DateTime utc) =>
-        DateTime.SpecifyKind(
-            TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Clock.Zone), DateTimeKind.Unspecified);
+    public static DateTime ToWall(DateTime utc) => WallClock.ToWall(utc, Clock.Zone);
 }

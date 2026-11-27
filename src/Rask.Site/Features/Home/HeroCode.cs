@@ -80,7 +80,7 @@ public sealed partial class HeroCode : Component
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
         "Product", "ProductId", "ProductName", "UnitPrice", "Text", "Number", "Aggregate", "Guid",
-        "Timestamps", "Versioned", "Deletable", "Refuse", "PriceForm", "Component", "Form", "Ui",
+        "IHasTimestamps", "IVersioned", "IDeletable", "Refuse", "PriceForm", "Component", "Form", "Ui",
         "ProductTests", "Fact", "Task", "TestDatabase", "Test",
     };
 
@@ -101,7 +101,7 @@ public sealed partial class HeroCode : Component
 
         // The aggregate is the table, and each method is one write.
         public sealed partial class Product
-            : Aggregate<ProductId, Timestamps, Versioned, Deletable>
+            : Aggregate<ProductId>, IHasTimestamps, IVersioned, IDeletable
         {
             public ProductName Name { get; private set; } = null!;
             public UnitPrice Price { get; private set; } = null!;

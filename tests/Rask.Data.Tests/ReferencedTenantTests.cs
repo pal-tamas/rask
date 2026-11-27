@@ -6,7 +6,7 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's company: every reference to one that names none says so in the company's words.</summary>
-public sealed class RefCompany : Aggregate<Guid, PerTenant>
+public sealed class RefCompany : Aggregate<Guid>, IBelongsTo<GuidShop>
 {
     private RefCompany() { }
 
@@ -18,7 +18,7 @@ public sealed class RefCompany : Aggregate<Guid, PerTenant>
 }
 
 /// <summary>A tenant's depot, with no sentence of its own.</summary>
-public sealed class RefDepot : Aggregate<Guid, PerTenant>
+public sealed class RefDepot : Aggregate<Guid>, IBelongsTo<GuidShop>
 {
     private RefDepot() { }
 
@@ -28,7 +28,7 @@ public sealed class RefDepot : Aggregate<Guid, PerTenant>
 }
 
 /// <summary>A tenant's truck: of a company, parked at a depot, its axles each serviced at a depot.</summary>
-public sealed class RefTruck : Aggregate<Guid, PerTenant>
+public sealed class RefTruck : Aggregate<Guid>, IBelongsTo<GuidShop>
 {
     private RefTruck() { }
 
@@ -69,7 +69,7 @@ public sealed class RefAxle : Entity<Guid>
 }
 
 /// <summary>A load with no tenant of its own: the tenant's whose truck carries it.</summary>
-public sealed class RefLoad : Aggregate<Guid, PerTenantThrough<RefTruck>>
+public sealed class RefLoad : Aggregate<Guid>, IBelongsToTenantThrough<RefTruck>
 {
     private RefLoad() { }
 
@@ -82,7 +82,7 @@ public sealed class RefLoad : Aggregate<Guid, PerTenantThrough<RefTruck>>
 }
 
 /// <summary>
-///     A save of a <see cref="PerTenant" /> row refuses a reference it sets to another tenant-scoped table that names no
+///     A save of a <see cref="IBelongsTo{TTenant}" /> row refuses a reference it sets to another tenant-scoped table that names no
 ///     row the tenant in flight reads — another tenant's, or none — under the reference's field.
 /// </summary>
 public sealed class ReferencedTenantTests : IDisposable

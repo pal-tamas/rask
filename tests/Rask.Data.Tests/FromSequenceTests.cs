@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A provider whose key comes from a sequence starting at 1000, known before its insert.</summary>
-public sealed class SequencedProvider : Aggregate<int, Versioned>
+public sealed class SequencedProvider : Aggregate<int>, IVersioned
 {
     private SequencedProvider() { }
 

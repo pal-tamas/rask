@@ -81,6 +81,7 @@
          without a public name nobody but a provider would ever type. -->
     <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
     <InternalsVisibleTo Include="Rask.Data.Tests"/>
+    <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore.Tests"/>
     <InternalsVisibleTo Include="Rask.Postgres"/>
     <!-- The host asks the app's tenant resolver as a request starts and as a live session opens
          (ResolvedTenant.Capture), which is a moment only the host knows and no app should have to name. -->
@@ -111,6 +112,8 @@
     <InternalsVisibleTo Include="Rask.WebPush"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <InternalsVisibleTo Include="Rask.Storage.Tests"/>
+    <!-- The app's tenant named for one test's flow (CurrentRows.Use), as the generated registration of ITenant names it. -->
+    <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore.Tests"/>
     <!-- Test.Make<T>() reads the rules a value object hands its base (DeclaredRules) to build a sample they accept:
          a test helper, so no public name an app would ever type. -->
   </ItemGroup>

@@ -3,7 +3,7 @@ using Rask.Data;
 namespace Rask.Testing.Fixture.Pumps;
 
 /// <summary>A pump: the one aggregate of this assembly, registered by its module initializer.</summary>
-public sealed class Pump : Aggregate<Guid, Model>
+public sealed class Pump : Aggregate<Guid>, IHasForm
 {
     private Pump() { } // EF materialization
 

@@ -36,7 +36,7 @@ internal static class BulkSetWrite
         if (!ConventionRegistry.IsDeletable(typeof(T)))
         {
             throw new InvalidOperationException(
-                $"{typeof(T).Name} names neither Deletable nor SoftDelete, so {typeof(T).Name}.DeleteWhere has nothing it may do; " +
+                $"{typeof(T).Name} says neither IDeletable nor ISoftDeletes, so {typeof(T).Name}.DeleteWhere has nothing it may do; " +
                 "retire the rows through a method of their own (Cancel, Archive) instead.");
         }
 

@@ -14,6 +14,19 @@ them until tagged releases begin.
   are reported as a suggestion, faded as unneeded, and the quick fix (with Fix all) deletes them — the call out of its
   chain, and a statement left saying nothing with it. A project that restates the pattern (`TableNames`, `ColumnNames`,
   `ConstraintNames`) gets no report.
+- **RASK147: the domain holds a bare `DateTime`.** A stored `DateTime` or `DateTimeOffset` (auto-property, setter,
+  positional member, field) on an aggregate, an entity, a value object, a domain event (`IEvent`) or a read model
+  (`IReadModel`) is a warning, an error under `<RaskStrict>`; the quick-fix declares a `Moment` record (or a `Day` record,
+  offered first for `*Date`/`*Day`/`*On`) and types the member as it. RASK130 no longer reports a `DateTime` where
+  RASK147 does. Rask's own types (namespace `Rask.*`) and the stamps it writes are left alone.
+- **`FuelingMoment.FromWall(local, zone)`: a wall-clock time from outside made a `Moment` by one fixed rule.** A pump
+  or a file that writes its local time without an offset is made an instant where it comes in — `FromWall(local)` reads
+  it on `Clock.Zone`. A time the clock shows twice when summer time ends is its FIRST occurrence (still in summer time),
+  one it skips when summer time begins moves forward by the jump: SQL Server's `AT TIME ZONE` rule, which PostgreSQL's
+  UTC column now follows too (it took the standard-time occurrence). A `Moment` now holds its instant: `.Instant` (UTC
+  `DateTimeOffset`) beside `.Value` (the app's wall clock), `.WallIn(zone)` for another zone's clock; two moments compare,
+  order and are equal by their instant, so the two `02:30`s of an October night made from UTC stay two moments.
+  `docs/domain.md#moment-and-day`.
 - **Typed ids over a number or a `Guid` are ordered: `<`, `>`, `<=`, `>=` and `IComparable<T>`.** `Where(x => x.Id >
   last)` pages by the key in a query, and `ids.Order()` / `Min()` sort them in memory, by the value — a version-7 id's
   by the time it was made. A text id gets none (the database orders it by its collation), and an order the author wrote
@@ -132,6 +145,48 @@ them until tagged releases begin.
   Raw SQL that names the old tables or columns changes with them. To keep EF Core's names for now:
   `c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`
   ([Names](docs/data.md#names-rasks-own-in-postgresqls-style), [the next migration renames](docs/data.md#rasks-names-the-next-migration-renames)).
+- **`dotnet App.dll rask db migrate` exits `1` when a migration or a data step fails**, with the reason on standard
+  error, instead of crashing with an unhandled exception — so a one-off migration container's exit code is the answer
+  (0 done, 1 failed, 2 wrong command line). `docs/deployment.md#migrations-as-a-one-off-step` describes the cutover.
+- **BREAKING (data): a `Moment` is stored as its UTC instant on SQL Server and SQLite too, as on PostgreSQL.** The
+  column holds `.Instant` to the tick and the row comes back as exactly that instant, so the two `02:30`s of an October
+  night stay two moments and order, compare, `Min`/`Max` alike on all three. A database that kept moments as the wall
+  clock is rewritten by its next migration: every moment column is marked in the model (`Rask:MomentInUtc`, kept in the
+  snapshot), so the app refuses to start until `rask db add MomentsInUtc` adds one step per column, which Rask's SQL
+  generator applies as an `UPDATE` in the app's zone inside the migration's transaction (`AT TIME ZONE` on SQL Server,
+  `rask_moment_utc(…)` on SQLite). `GroupBy(f => f.At.Day)` and `f.At.Day == day` now read the day on the app's wall
+  calendar in SQL on all three; `f.At.Value.Date`/`.Year`/`.Hour` on such a column — the UTC instant's parts — is
+  refused with the way to say it. A moment inside a JSON document keeps the wall clock. `UseRaskPostgres` refuses a bare
+  `DateTime` on an aggregate or an entity as the model is built (a `HasConversion` of the app's own, Rask's own types
+  and tables outside the domain are left alone). `docs/data.md#dates-and-moments-what-each-database-keeps`.
+- **BREAKING: a table's traits are marker interfaces on the class, read like a sentence.** The trait type arguments of
+  the base and the bases of extra arity are gone:
+  `public sealed partial class Company : Aggregate<CompanyId>, IBelongsTo<Tenant>, ISoftDeletes, IHasForm` replaces
+  `Aggregate<CompanyId, PerTenant<int>, SoftDelete, Model>`. The map: `Timestamps`/`Created`/`Updated` →
+  `IHasTimestamps : IHasCreatedAt, IHasUpdatedAt`; `Versioned` → `IVersioned`; `Model`/`CreateModel`/`UpdateModel` →
+  `IHasForm : IHasCreateForm, IHasUpdateForm`; `Deletable` → `IDeletable`; `SoftDelete` and `SoftRemoved` → one
+  `ISoftDeletes`, whose meaning is its place (a root soft-deletes, a child is soft-removed; the model's refusal of
+  `SoftRemoved` on a root goes with it); `Broadcast` → `IBroadcasts`; `PerTenant` / `PerTenant<TKey>` →
+  `IBelongsTo<TTenant>`, naming the app's tenant aggregate, whose key decides the `TenantId` column (a typed id
+  included); `PerTenantThrough<TParent>` → `IBelongsToTenantThrough<TParent>`; `b.Infrastructure()` → `IInfrastructure`
+  on the class (Rask's own tables say it). `OneInForce<TChild>` is gone: the child's `b.InForceWhile(…)` alone makes the
+  index, on the aggregate that holds it in a collection. `c.TenantReferences<T>()` is gone: every table that
+  `IBelongsTo` the aggregate that says `ITenant` refers to the tenant's key, so **an app that did not call it gets a
+  migration adding those foreign keys** — rows whose tenant has no row fail it. RASK146 (an error) takes the place of
+  the compiler's refusal: an aggregate's trait on a child entity, `IBelongsTo` beside `IBelongsToTenantThrough`,
+  `IDeletable` beside `ISoftDeletes`, `IBelongsTo<T>` of an aggregate other than the app's tenant. The registry's
+  `TraitSet` is unchanged, so the EF Core model is otherwise identical (the Rask.Data test model, all 4564 lines of its
+  debug view, did not change): rewrite the class lines, and the tenant references are all a migration adds.
+- **BREAKING: a generated form model holds another row's typed id AS the typed id.** `CompanyId Company` on an
+  aggregate (`readonly partial record struct CompanyId(int Value)`, or a `Guid`/`long`/`string` one) was `int? Company`
+  on its `XModel`; it is now `CompanyId? Company`, and a `List<TagId>` value collection stays one. So
+  `Ui.Select.Bind(() => m.Company).Choices(Company.Choices(c => c.Name))` — and `Ui.Field`, `Ui.Pillbox`, a paged
+  `Ui.ChoiceRows` source — binds the read face's `IChoiceSource<CompanyId>` with no bridge to the number, a query string
+  parses it through its own `IParsable`, and the save hands it to the aggregate as it is. A non-nullable one is still
+  required with the same message, and its field shape is still `FieldKind.Id`. **Upgrade:** drop a `.AsNumbers()`-style
+  bridge and the `new CompanyId(n)` / `.Value` an app wrote between the model and an id; `model.Company = 5` becomes
+  `model.Company = new CompanyId(5)`. A one-value record that is not a typed id (no `partial`, or no `Id` name) is still
+  carried as the value it holds.
 - **BREAKING — Rask's own tables no longer let the database number their rows: `Job`, `OutboxMessage`, `QueuedMail`
   and the `RaskLog` table are keyed by a version-7 `Guid` Rask makes before the insert.** No identity column or sequence
   is left in a battery's table, so two hosts, a blue/green pair or a restored backup never fight over the next number.
@@ -268,6 +323,16 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **RASK089 no longer fires on a typed id whose name merely ends in an aggregate.** A `StockMove.FromVirtualTankId`
+  of type `VirtualTankId` was matched to the aggregate `Tank` by its name's suffix and reported as the wrong key
+  type. A typed id that is exactly one entity's key now settles the reference by its type, whatever the property is
+  called — it reaches the `VirtualTank` child — and a name whose entity has another key falls through to the child
+  entities and the next rule before anything is reported.
+- **`b.Numbered(…)` ordered by a typed id kept as text no longer fails to translate.** The order's members were each
+  unwrapped to their `.Value`, so `by: f => new { f.Moment, f.Number, f.Id }` sorted by `f.Id.Value` — which EF Core
+  cannot translate once the id's column is text (SQLite's every Guid, a column an app's converter keeps as text). Each member is now
+  ordered by as it is mapped, so the database orders by its column exactly as for an untyped id; only the first
+  member's place is still compared by a value object's value, and only where that value has an order.
 - **A `Ui.Select` over a member that may hold none takes options of the type it holds.** A select bound to `CompanyId?`
   (or `int?`, `Guid?`) is handed `Ui.SelectOption.Value(new CompanyId(3))` and rows of `CompanyId`, as the docs say,
   without relying on the runtime to unbox one into the nullable; and an option of another type is refused naming both

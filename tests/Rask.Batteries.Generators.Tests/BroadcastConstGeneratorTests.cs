@@ -17,7 +17,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, Broadcast>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBroadcasts
             {
             }
             """);
@@ -38,7 +38,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, ISoftDeletes
             {
             }
             """);

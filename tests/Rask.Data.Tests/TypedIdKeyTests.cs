@@ -11,7 +11,7 @@ public readonly partial record struct TerminalId(int Value);
 public readonly partial record struct BarrelId(Guid Value);
 
 // An id over an int keys an identity column: the store numbers the terminal, as it would an int key.
-public sealed class Terminal : Aggregate<TerminalId, Model>
+public sealed class Terminal : Aggregate<TerminalId>, IHasForm
 {
     private Terminal() { }
 

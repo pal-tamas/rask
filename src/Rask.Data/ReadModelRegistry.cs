@@ -79,7 +79,7 @@ public static class ReadModelRegistry
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
-        // Before any convention finalizes the model: one that writes the schema (TenantReferences) skips a read model.
+        // Before any convention finalizes the model: one that writes the schema (the tenant references) skips a read model.
         modelBuilder.HasAnnotation(Annotation, true);
 
         var all = Contributions.Values.SelectMany(static c => c).ToList();
@@ -116,7 +116,7 @@ public static class ReadModelRegistry
                 continue;
             }
 
-            // PerTenantThrough<TParent> asks the face of the aggregate it points at; a child, the face that holds it.
+            // IBelongsToTenantThrough<TParent> asks the face of the aggregate it points at; a child, the face that holds it.
             var keys = ConventionRegistry.TenantParentOf(mapping.WriteType) is { } parent &&
                        all.Find(m => m.WriteType == parent) is { } parentFace
                 ? TenantParents.KeysTo(face, parentFace.ReadType)

@@ -6,7 +6,7 @@ namespace Rask.Cqrs;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Published for an entity that names <c>Broadcast</c> on its base, and consumed by
+///         Published for an entity that says <c>IBroadcasts</c>, and consumed by
 ///         <c>Rask.Query</c>, which refetches the queries that declared they read that entity. An application
 ///         rarely names it: <c>Broadcast</c> on the aggregate's base and a live query are the whole of it.
 ///     </para>

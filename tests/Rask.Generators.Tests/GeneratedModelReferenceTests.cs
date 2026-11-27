@@ -45,7 +45,7 @@ public class GeneratedModelReferenceTests
         }
         namespace Shop
         {
-            public sealed class Product : Rask.Data.Aggregate<System.Guid, Rask.Data.Timestamps, Rask.Data.Versioned, Rask.Data.Model, Rask.Data.Deletable>
+            public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.IHasTimestamps, Rask.Data.IVersioned, Rask.Data.IHasForm, Rask.Data.IDeletable
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -149,7 +149,7 @@ public class GeneratedModelReferenceTests
             }
             namespace Shop.Catalog
             {
-                public sealed class Product : Rask.Data.Aggregate<int, Rask.Data.Timestamps, Rask.Data.Versioned, Rask.Data.Model, Rask.Data.Deletable>
+                public sealed class Product : Rask.Data.Aggregate<int>, Rask.Data.IHasTimestamps, Rask.Data.IVersioned, Rask.Data.IHasForm, Rask.Data.IDeletable
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

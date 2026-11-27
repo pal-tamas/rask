@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK145, RASK150, RASK165, RASK170–RASK193, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK147, RASK150, RASK165, RASK170–RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -33,6 +33,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK131** | rewrites `[DisplayName("X")]` as `[Display(Name = "X")]`, adding `using System.ComponentModel.DataAnnotations;` where it is missing |
 | **RASK133** | calls the factory's generated entry: `await using var db = …; db.Add(Product.Place(n)); await db.SaveChangesAsync(t);` → `await Product.Place(n, cancellationToken: t);` |
 | **RASK140** | reads Rask's `Clock` instead of the machine's: `DateTime.Now` → `Clock.Wall`, `DateTime.UtcNow` → `Clock.Now.UtcDateTime`, `x.ToLocalTime()` → `TimeZoneInfo.ConvertTimeFromUtc(x, Clock.Zone)` |
+| **RASK147** | holds the member as a value object of Rask's — *Hold it as a Moment* (`public DateTime FueledAt` → `public DeliveryFueledAt FueledAt`, with `public sealed partial record DeliveryFueledAt(DateTime Value) : Moment(Value);` written after the type) or *Hold it as a Day* (over a `DateOnly`), the `Day` offered first where the name says a day (`DueDate`, `PayDay`, `DeliveredOn`) |
 | **RASK150** | starts the required value object as `= null!` instead of a made-up value |
 | **RASK184** | refuses instead of throwing: `if (c) throw new InvalidOperationException(m);` → `Refuse.When(c, m);` (`if (!c)` → `Refuse.Unless(c, m)`; an `ArgumentException(m, nameof(x))` → `Refuse.When(c, () => x, m)`), any other throw → `throw new RaskValidationException(m)` |
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
@@ -167,6 +168,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK143](#rask143) | Info | `[Key]` on an aggregate or an entity |
 | [RASK144](#rask144) | Info | `[Compare]` names a property the model does not have |
 | [RASK145](#rask145) | Warning (Error under `<RaskStrict>`) | An event reads a key the database has not produced yet |
+| [RASK146](#rask146) | Error | A trait the class cannot carry |
+| [RASK147](#rask147) | Warning (Error under `<RaskStrict>`) | The domain holds a bare `DateTime` |
 | [RASK150](#rask150) | Warning | A required value object starts from a placeholder |
 | [RASK165](#rask165) | Warning | A configuration call the generators read is written where they cannot see it |
 | [RASK170](#rask170) | Warning | An aggregate calls an operation's generated entry by its bare name |
@@ -1543,7 +1546,7 @@ battery simply does not wire.
 
 **A type already has the generated model's name** · Error
 
-An aggregate that names `Model` (or `CreateModel` / `UpdateModel`) gets a generated form model emitted beside
+An aggregate that says `IHasForm` (or `IHasCreateForm` / `IHasUpdateForm`) gets a generated form model emitted beside
 it, in the same namespace, as `{Aggregate}Model`. A
 hand-written, non-`partial` type of that name, often a request model written before the generator existed,
 would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
@@ -1551,7 +1554,7 @@ generator stands down for that aggregate and says why: no `ProductModel` is gene
 `Create`, `Update` and `Delete` that take it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model> { /* … */ }
+public sealed class Product : Aggregate<Guid>, IHasForm { /* … */ }
 
 public sealed class ProductModel                  // ✗ RASK082: the generated model's name
 {
@@ -1587,7 +1590,7 @@ model is generated for it.
 ```csharp
 public static class Catalog
 {
-    public sealed class Product : Aggregate<Guid, Model> { }  // ⚠ RASK083: nested in Catalog
+    public sealed class Product : Aggregate<Guid>, IHasForm { }  // ⚠ RASK083: nested in Catalog
 }
 ```
 
@@ -1596,7 +1599,7 @@ public static class Catalog
 ```csharp
 namespace Shop.Catalog;
 
-public sealed class Product : Aggregate<Guid, Model> { }      // ✓ gets ProductModel
+public sealed class Product : Aggregate<Guid>, IHasForm { }      // ✓ gets ProductModel
 ```
 
 ---
@@ -1725,14 +1728,14 @@ type split across several files, or a member that already has the field's name.
 
 **Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
-An aggregate that names `Model` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
+An aggregate that says `IHasForm` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
 ([data guide](domain.md#writing-create-update-delete)). `Product.Create(model)` starts from a new, empty
 aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, IHasForm, IDeletable
 {
     public Product(string name) => Name = name;   // ⚠ RASK086: the only constructor takes a name
 
@@ -1743,7 +1746,7 @@ public sealed class Product : Aggregate<Guid, Model, Deletable>
 **Fix:** declare no constructor, and put domain creation in a static factory:
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, IHasForm, IDeletable
 {
     public string Name { get; private set; } = "";
 
@@ -1875,6 +1878,11 @@ aggregate `X`, so `Order.CustomerId` gives you `OrderRead.Customer`.
 Inference is by name and by key type, both. A property that matches an aggregate's name but not its key type,
 or that matches two aggregates at once, produces no navigation at all — and the only symptom would be a join
 the author expected and never got.
+
+A typed id settles it by its type first: a type of the app's own that is exactly one entity's key — an aggregate's or
+a child's — points there, whatever the property is called, so a `FromVirtualTankId` of type `VirtualTankId` reaches
+the `VirtualTank` child and never the `Tank` aggregate its name ends in. A name whose entity has another key falls
+through to the next rule (a child entity, a longer suffix) before anything is reported.
 
 ```csharp
 public sealed class Customer : Aggregate<Guid> { }
@@ -2051,7 +2059,7 @@ public sealed class Money                       // ✗ RASK105: compares by refe
     public string Currency { get; private set; } = "";
 }
 
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     public Money Total { get; private set; } = null!;
 }
@@ -2108,7 +2116,7 @@ Reported when:
 - the entity already declares `Id`, or a name an aggregate or entity part generates;
 - an entity part's own key cannot be built;
 - the entity is an **aggregate root** — a key of several columns is for a child its aggregate holds;
-- an aggregate whose **form** (its base names `Model`, `CreateModel` or `UpdateModel`) would carry such a child it
+- an aggregate whose **form** (it says `IHasForm`, `IHasCreateForm` or `IHasUpdateForm`) would carry such a child it
   cannot carry. A form carries a link as a list of ids (`ActivityIds`) and a row with fields of its own as a list of
   rows (`Columns`) — see [Link tables and child rows on the form](domain.md#link-tables-and-child-rows-on-the-form) —
   and refuses, rather than leaving the child out:
@@ -2118,14 +2126,14 @@ Reported when:
   - a link whose list of ids takes a name the aggregate already declares.
 
 > 'ReportColumn' has a key of several columns, but 'Report.Layout' holds it on a form, and its rows hold rows of their
-> own ('Totals'), which a form does not carry; take 'Model' (or 'CreateModel' / 'UpdateModel') off 'Report''s base
+> own ('Totals'), which a form does not carry; take 'IHasForm' (or 'IHasCreateForm' / 'IHasUpdateForm') off 'Report'
 > and fill 'Layout' through a method of 'Report' — Report.Update(id, x => x.Fill(…))
 
 **Fix:** declare the class `partial`, name each value part and declare its property. For a child a form cannot carry,
 fill the collection through a method of the aggregate rather than a form:
 
 ```csharp
-public sealed class Report : Aggregate<int, PerTenant<int>>   // no Model on the base
+public sealed class Report : Aggregate<int>, IBelongsTo<Tenant>   // no IHasForm
 {
     private readonly List<ReportColumn> _layout = [];
 
@@ -2152,7 +2160,7 @@ a form, the generated `X.Create(model)`. A child is made by its own type or by t
 what a `private` parameterless constructor used to say, so that constructor need not be written.
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     public string Reference { get; private set; } = "";
 
@@ -2725,41 +2733,47 @@ public sealed class Partner : Aggregate<int>, ITenant { }   // ✗ RASK113
 The framework carries the current tenant and user as a `Guid` and reads the row back by the key that `Guid` stands for:
 a `Guid`, a `string` holding one, the `int` or `long` it carries (`Tenant.Use(42)`), or a typed id holding a `Guid`, an
 `int` or a `long` (`Aggregate<TenantId>`). The marked type must be an aggregate with one such key. The tenant's key must
-also be the one its `PerTenant` tables keep in `TenantId` — a `Guid` (or `string`) tenant for `Guid` columns, the same
-number type for number columns, the same typed id for a typed tenant (`TenantId? TenantId`, or `PerTenant<TenantId>`)
-— or a filter and the row would name different tenants.
+also be the one its tables keep in `TenantId` — a table that says `IBelongsTo<Tenant>` keeps the tenant's key, so this is
+a `TenantId` the table declares in another type: a `Guid` (or `string`) tenant for `Guid?` columns, the same number type
+for number columns, the same typed id for a typed tenant (`TenantId? TenantId`) — or a filter and the row would name
+different tenants.
 
 ```csharp
-public sealed class Tenant : Aggregate<Guid>, ITenant { }          // ✗ RASK114
-public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   //   keeps its tenant as int
+public sealed class Tenant : Aggregate<Guid>, ITenant { }                         // ✗ RASK114
+public sealed class Invoice : Aggregate<int>, IBelongsTo<Tenant>
+{
+    public int? TenantId { get; private set; }                                    //   keeps its tenant as int
+}
 ```
 
 ```text
 'Tenant' says ITenant, but its key is Guid and 'Invoice' keeps its tenant as int; give the tenant the key its tables keep, or the tables the tenant's
 ```
 
-A typed tenant holds its tables to the id itself, so a plain `PerTenant` (a `Guid?`) or a `Guid? TenantId` beside it
-is the same error:
+A typed tenant holds its tables to the id itself, so a `Guid? TenantId` beside it is the same error:
 
 ```text
-'Tenant' says ITenant, but its key is TenantId and 'Invoice' keeps its tenant as Guid; give the tables the tenant's key: TenantId? TenantId, or PerTenant<TenantId>
+'Tenant' says ITenant, but its key is TenantId and 'Invoice' keeps its tenant as Guid; give the tables the tenant's key: TenantId? TenantId, or leave it to IBelongsTo<Tenant>
 ```
 
-**Fix:** key the tenant like its tables (`Aggregate<int>` here), or the tables like the tenant.
+**Fix:** key the tenant like its tables (`Aggregate<int>` here), or declare the tables' `TenantId` in the tenant's key —
+or leave it out, and `IBelongsTo<Tenant>` gives them the tenant's.
 
 ## RASK115
 
 **Tenant-scoped tables and no tenant aggregate** · Warning
 
-A project with `PerTenant` tables and no aggregate that says `ITenant` has no `Current.Tenant`. It used to be the
-tenant's `Guid`; it is now the app's own tenant row, generated once one aggregate says so.
+A project with tables that belong to a tenant (`IBelongsTo<Tenant>`) and no aggregate that says `ITenant` has no
+`Current.Tenant`. It used to be the tenant's `Guid`; it is now the app's own tenant row, generated once one aggregate says
+so.
 
 ```csharp
-public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   // ⚠ RASK115
+public sealed class Tenant : Aggregate<int> { }
+public sealed class Invoice : Aggregate<int>, IBelongsTo<Tenant> { }   // ⚠ RASK115
 ```
 
 ```text
-'Invoice' is PerTenant, but no aggregate in this project says ITenant, so there is no Current.Tenant. Say it on the tenant aggregate: public sealed class Tenant : Aggregate<int>, ITenant.
+'Invoice' says IBelongsTo<Tenant>, but no aggregate in this project says ITenant, so there is no Current.Tenant. Say it on the tenant aggregate: public sealed class Tenant : Aggregate<…>, ITenant.
 ```
 
 **Fix:** say `ITenant` on the tenant aggregate. A project whose tenant lives in another assembly (a feature library)
@@ -3512,6 +3526,70 @@ public sealed class Order : Aggregate<OrderId>
 A table that must stay numbered by the database (an existing schema) raises the event from an operation that runs once
 the row is stored, or names the row by something the code already holds.
 
+## RASK146
+
+**A trait the class cannot carry** · Error
+
+A trait is a marker interface on the class, read like a sentence — `Company : Aggregate<CompanyId>, IBelongsTo<Tenant>,
+ISoftDeletes, IHasForm` — and the build reads it. The compiler takes any interface on any class, so the shapes the old
+type-argument traits refused (`Entity<TId, Versioned>` did not compile) are this error:
+
+- an aggregate root's trait on a child entity: `IVersioned`, `IHasForm` / `IHasCreateForm` / `IHasUpdateForm`,
+  `IDeletable`, `IBelongsTo<T>`, `IBelongsToTenantThrough<T>`, `IBroadcasts` (a child says `IHasTimestamps`,
+  `IHasCreatedAt`, `IHasUpdatedAt` and `ISoftDeletes`, and belongs to its root's tenant);
+- `IBelongsTo<T>` beside `IBelongsToTenantThrough<TParent>`: a table keeps its own tenant or reads its parent's;
+- `IDeletable` beside `ISoftDeletes`, which is the generated `Delete` already;
+- `IBelongsTo<T>` naming an aggregate other than the one that says `ITenant`.
+
+```csharp
+public sealed class Tenant : Aggregate<int>, ITenant { }
+public sealed class Branch : Aggregate<int> { }
+public sealed class Invoice : Aggregate<int>, IBelongsTo<Branch> { }   // ✗ RASK146
+```
+
+```text
+'Invoice' says IBelongsTo<Branch>, but 'Tenant' is the app's tenant, the aggregate that says ITenant; say IBelongsTo<Tenant>
+```
+
+**Fix:** say the trait where it belongs — on the aggregate, once, and `IBelongsTo<T>` of the app's tenant.
+
+## RASK147
+
+**The domain holds a bare `DateTime`** · Warning (Error under `<RaskStrict>`) · quick-fix
+
+Rask holds time one way: a [`Moment`](domain.md#moment-and-day) for an instant — stored as UTC on every database —
+and a `Day` for a calendar day. A bare `DateTime` or `DateTimeOffset` says neither which it is nor which clock it was
+read on (the app's wall clock, UTC, the machine's), and PostgreSQL refuses a `DateTime` that is not UTC only when the
+row is saved. Reported for the state of an aggregate, an entity, a value object, a domain event (an `IEvent`) or a read
+model (an `IReadModel`): an auto-property, a property with a setter, a record's positional member, a field — nullable or
+not. A property computed from others, a static member, a constant and the stamps Rask writes (`CreatedAt`,
+`UpdatedAt`, `DeletedAt`) are not, nor are Rask's own types (a namespace `Rask` or `Rask.*`).
+
+```csharp
+public sealed class Delivery : Aggregate<DeliveryId>
+{
+    public DateTime FueledAt { get; private set; }     // ⚠ RASK147
+    public DateTime? DueDate { get; private set; }     // ⚠ RASK147
+}
+```
+
+> 'FueledAt' in 'Delivery' is a bare DateTime — hold an instant as a Moment and a calendar day as a Day
+
+**Fix:** a value object of Rask's, which the quick-fix declares and types the member as — the reads and writes of the
+member are then the compiler's to name:
+
+```csharp
+public sealed partial record DeliveryFueledAt(DateTime Value) : Moment(Value);
+public sealed partial record DeliveryDueDate(DateOnly Value) : Day(Value);
+
+public DeliveryFueledAt FueledAt { get; private set; } = null!;
+public DeliveryDueDate? DueDate { get; private set; }
+```
+
+A wall-clock time from outside — a pump's local time without an offset — becomes a moment where it comes in:
+`DeliveryFueledAt.FromWall(reading.LocalTime, pumpZone)`. On PostgreSQL a bare `DateTime` left on an aggregate or an
+entity is also refused as the model is built ([data.md](data.md#dates-and-moments-what-each-database-keeps)).
+
 ## RASK150
 
 **A required value object starts from a placeholder** · Warning
@@ -3524,7 +3602,7 @@ get-only one (a constant of the type), one initialized with `null!`, and any typ
 alone.
 
 ```csharp
-public sealed class Delivery : Aggregate<Guid, Model>
+public sealed class Delivery : Aggregate<Guid>, IHasForm
 {
     public DriverName Driver { get; private set; } = DriverName.Create("Unknown");   // ⚠ RASK150
     public DriverName? Mate { get; private set; }                                     // ✓ optional
@@ -3580,7 +3658,7 @@ meant: it loads ANOTHER copy, changes and saves that one in a transaction of its
 as it was.
 
 ```csharp
-public sealed partial class Supply : Aggregate<Guid, Versioned>
+public sealed partial class Supply : Aggregate<Guid>, IVersioned
 {
     public void Change(string note) => Note = note;
     public Task Again(Guid other) => Change(other, 0, "again");   // ⚠ RASK170
@@ -3938,7 +4016,7 @@ default; a warning under `<RaskStrict>`.
 The work of a [`Db.Transaction(…)`](domain.md#a-check-and-the-writes-it-guards-dbtransaction) uses an aggregate held
 in a local declared before the block. That read was not part of the transaction: the isolation the block asks for
 does not cover it, so a check the work makes on the copy is a check on what was there before the transaction began —
-and on a retrying context the work runs again on the same copy, which on a `Versioned` aggregate is a conflict no
+and on a retrying context the work runs again on the same copy, which on an `IVersioned` aggregate is a conflict no
 retry gets past. Loaded inside the block, every attempt reads what it changes. A local the work assigns itself is not
 reported, nor an aggregate a parameter hands in, nor a nested block's (it joins the outer one).
 
@@ -3978,7 +4056,7 @@ await Supply.Change(id, read, details);                           // ✓ its rol
 ```
 
 Reported only when the rewrite means the same: the lambda does nothing but call the operation on the aggregate it is
-handed, with arguments that do not read it; no `db:` is given; a `Versioned` aggregate is given an `int` version (the
+handed, with arguments that do not read it; no `db:` is given; an `IVersioned` aggregate is given an `int` version (the
 entry takes no `null`); and the updated aggregate the update hands back is not used.
 
 **Fix:** call the entry (**quick-fix available** — the id, the version, the operation's arguments and a

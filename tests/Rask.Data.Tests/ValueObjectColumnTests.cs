@@ -38,7 +38,7 @@ public sealed record ContactCode
 public readonly record struct ContactRank(int Value);
 
 /// <summary>An adopted table whose name is a value object — and is what the unique rule is over.</summary>
-public sealed class Contact : Aggregate<int, Model, Deletable, PerTenant>
+public sealed class Contact : Aggregate<int>, IHasForm, IDeletable, IBelongsTo<GuidShop>
 {
     public const string NameTaken = "Ilyen néven már van névjegy.";
     public const string CodeTaken = "This code is already in use.";

@@ -21,7 +21,7 @@ Raise it where it happens — in the aggregate's own operation — and its save 
 ([domain events](domain.md#domain-events)):
 
 ```csharp
-public sealed partial class Order : Aggregate<Guid, Versioned>
+public sealed partial class Order : Aggregate<Guid>, IVersioned
 {
     public CustomerName Customer { get; private set; } = null!;
     public Amount Total { get; private set; } = null!;

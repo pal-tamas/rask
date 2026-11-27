@@ -441,7 +441,7 @@ await database.ArrangeGone<User>(u => u.Id == anna);                            
 ```
 
 - **Setup, never the write under test.** Every tenant's rows are matched and soft-deleted ones too (no query filter); a
-  `SoftDelete` aggregate's row is removed, not stamped. No `LockedBy` is asked, `UpdatedAt` and `Version` stay as they
+  `ISoftDeletes` aggregate's row is removed, not stamped. No `LockedBy` is asked, `UpdatedAt` and `Version` stay as they
   were, no live page is told and nothing counts toward [`manyAggregates:`](#one-aggregate-per-transaction-dbrecord).
 - **What the app does goes through the aggregate**: `X.UpdateWhere(…)` / `X.DeleteWhere(…)` and its entries keep all of
   the above. EF Core's own `ExecuteUpdateAsync`/`ExecuteDeleteAsync` in a test is

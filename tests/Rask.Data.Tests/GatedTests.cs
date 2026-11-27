@@ -10,7 +10,7 @@ public enum TruckModule
 }
 
 /// <summary>A driver whose card only the tachograph module may write.</summary>
-public sealed class Trucker : Aggregate<Guid, Versioned>
+public sealed class Trucker : Aggregate<Guid>, IVersioned
 {
     private Trucker() { }
 

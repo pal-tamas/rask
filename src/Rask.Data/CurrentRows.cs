@@ -71,8 +71,8 @@ public static class CurrentRows
     /// <param name="wrap">The id holding a value: <c>value =&gt; new TenantId(value)</c>.</param>
     /// <param name="unwrap">The value an id holds: <c>id =&gt; id.Value</c>.</param>
     /// <remarks>
-    ///     The id is also a type a <c>PerTenant</c> table may keep its tenant in — <c>TenantId? TenantId</c>, or
-    ///     <c>PerTenant&lt;TenantId&gt;</c> — filtered by and stamped with the tenant in flight.
+    ///     The id is also the type a table that says <c>IBelongsTo&lt;Tenant&gt;</c> keeps its tenant in —
+    ///     <c>TenantId? TenantId</c>, or a shadow column of it — filtered by and stamped with the tenant in flight.
     /// </remarks>
     public static void UseTenant<TAggregate, [DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey, TValue>(
         Func<TKey, Expression<Func<TRead, bool>>> byKey, Func<TRead, TKey> keyOf, Func<TValue, TKey> wrap, Func<TKey, TValue> unwrap)
@@ -252,6 +252,9 @@ public static class CurrentRows
 
     /// <summary>Whether the app's tenant aggregate is keyed by a number, so a numeric tenant claim names a tenant.</summary>
     internal static bool NumberedTenant => TenantRow?.IsNumbered == true;
+
+    /// <summary>The aggregate that says <see cref="ITenant" />, as the app registered it, or null.</summary>
+    internal static Type? TenantAggregate => TenantRow?.Aggregate;
 
     /// <summary>Whether the app named a tenant or a user aggregate, so there is anything to read ahead or drop.</summary>
     internal static bool IsOn => TenantRow is not null || UserRow is not null;

@@ -87,7 +87,7 @@ public sealed record MemoLineSpec(Litres Quantity);
 ///     A partial aggregate, so its private factory has a generated entry beside it and a form of its own
 ///     (<c>MemoWriteInput</c>) that Test.FormShows fills in.
 /// </summary>
-public sealed partial class Memo : Aggregate<Guid, Versioned>
+public sealed partial class Memo : Aggregate<Guid>, IVersioned
 {
     public const string NeedsATitle = "A memo needs a title.";
     public const string TooMuch = "At most a hundred litres a line.";

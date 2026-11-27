@@ -19,6 +19,8 @@
         code, Task.WhenAll over database work in Db.Transaction, a [Compare] naming no property
       - RASK145 an error (rask-strict.globalconfig): an event raised about an entity just made that reads a key the
         database produces only on insert, so it carries 0
+      - RASK147 an error (rask-strict.globalconfig): a bare DateTime or DateTimeOffset in the domain, which is a
+        Moment or a Day
       - RASK184-RASK187 warnings (rask-strict.globalconfig): an aggregate throwing InvalidOperationException or
         ArgumentException, an aggregate loaded before the Db.Transaction that changes it, an Update that only runs an
         operation with a generated entry, a raw ExecuteUpdate/ExecuteDelete over an aggregate's rows

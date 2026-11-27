@@ -22,6 +22,12 @@ internal sealed class RaskPostgresModelValidator(
     INpgsqlSingletonOptions npgsqlSingletonOptions)
     : NpgsqlModelValidator(dependencies, relationalDependencies, npgsqlSingletonOptions)
 {
+    public override void Validate(IModel model, IDiagnosticsLogger<DbLoggerCategory.Model.Validation> logger)
+    {
+        base.Validate(model, logger);
+        BareDateTimeColumns.Refuse(model);
+    }
+
     protected override void ValidatePropertyMapping(
         IComplexProperty complexProperty, IDiagnosticsLogger<DbLoggerCategory.Model.Validation> logger) =>
         OptionalComplexValues.Validate(complexProperty, () => base.ValidatePropertyMapping(complexProperty, logger));

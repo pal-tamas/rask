@@ -10,12 +10,15 @@ namespace Rask;
 /// <remarks>
 ///     <para>
 ///         The host is built and never started: no port is bound, no worker runs, so a command can run beside the app
-///         serving the same database. The exit code is the answer — 0 done, 2 the command line was wrong.
+///         serving the same database — or as a one-off container that migrates before a release starts. The exit code is
+///         the answer — 0 done, 1 the command failed (the reason on standard error, nothing half-applied: each migration
+///         is its own transaction), 2 the command line was wrong.
 ///     </para>
 /// </remarks>
 internal static class AppCommand
 {
     private const int Done = 0;
+    private const int Failed = 1;
     private const int Usage = 2;
 
     private const string Help =
@@ -63,8 +66,16 @@ internal static class AppCommand
             return Usage;
         }
 
-        await migration.MigrateAsync(cancellationToken).ConfigureAwait(false);
-        return Done;
+        try
+        {
+            await migration.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            return Done;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            await Say(error, "rask db migrate failed: " + e.Message, cancellationToken).ConfigureAwait(false);
+            return Failed;
+        }
     }
 
     // One line a migration, in the order they apply: what `rask deploy` reads off a new image before it starts it.

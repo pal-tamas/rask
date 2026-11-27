@@ -17,7 +17,7 @@ public class StatedRulesProjectionTests
 
         namespace Shop
         {
-            public sealed class Supply : Aggregate<Guid, Model>
+            public sealed class Supply : Aggregate<Guid>, IHasForm
             {
                 private readonly List<SupplyPart> _parts = [];
                 private Supply() { }
