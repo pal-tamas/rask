@@ -15,7 +15,7 @@ public sealed class RaskDataOptions
     /// <remarks>
     ///     Counted per transaction — a nested <c>Db.Transaction</c> joins the outermost and is counted with it — from what
     ///     its saves write, a child counted as its aggregate. Rask's own tables (the outbox, jobs, mail, sessions, stored
-    ///     files) are not aggregates of the app's and never count, nor is a table the app marks <c>b.Infrastructure()</c>.
+    ///     files) are not aggregates of the app's and never count, nor is a table that says <see cref="IInfrastructure" />.
     ///     A bulk write (<c>ExecuteUpdate</c>, <c>BulkInsert</c>) is not a save and is not counted.
     /// </remarks>
     public AggregatePolicy OneAggregatePerTransaction { get; set; } = AggregatePolicy.Warn;

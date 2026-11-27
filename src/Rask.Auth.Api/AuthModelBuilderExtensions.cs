@@ -69,9 +69,9 @@ public static class AuthModelBuilderExtensions
         // together. Without tenants nothing sets TenantId, every row's TenantKey is Guid.Empty, and this
         // means exactly what a unique index on Email alone meant.
         //
-        // Rask.Auth maps the tenant ITSELF rather than naming PerTenant, because this
+        // Rask.Auth maps the tenant ITSELF rather than saying IBelongsTo<Tenant>, because this
         // one table's tenant is optional: an administrator belongs to no tenant, and a tenant-scoped row
-        // is stamped from the ambient tenant and refused without one — so a PerTenant accounts table
+        // is stamped from the ambient tenant and refused without one — so a tenant-scoped accounts table
         // could not have an admin inserted into it at all.
         //
         // The index is on TenantKey, not TenantId, because NULL in a unique index is not portable: SQLite

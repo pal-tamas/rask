@@ -158,8 +158,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 CompositeKeyGenerator.Rask106,
                 entity.Location?.ToLocation(),
                 parts[1],
-                $"'{entity.Name}.{parts[0]}' holds it on a form, and {parts[2]}; take 'Model' (or 'CreateModel' / "
-                + $"'UpdateModel') off '{entity.Name}''s base and fill '{parts[0]}' through a method of '{entity.Name}' "
+                $"'{entity.Name}.{parts[0]}' holds it on a form, and {parts[2]}; take 'IHasForm' (or 'IHasCreateForm' / "
+                + $"'IHasUpdateForm') off '{entity.Name}' and fill '{parts[0]}' through a method of '{entity.Name}' "
                 + $"— {entity.Name}.Update(id, x => x.Fill(…))"));
         }
     }

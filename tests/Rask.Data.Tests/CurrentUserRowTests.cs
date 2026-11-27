@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // The user aggregate. It does not say IUser — the test names it to CurrentRows as the generated code would — so this
 // assembly is free to keep other user-like aggregates.
-public sealed class Member : Aggregate<Guid, Model, Deletable>
+public sealed class Member : Aggregate<Guid>, IHasForm, IDeletable
 {
     private Member() { }
 

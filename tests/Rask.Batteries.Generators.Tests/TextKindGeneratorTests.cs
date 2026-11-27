@@ -24,7 +24,7 @@ public class TextKindGeneratorTests
         public sealed partial record Remark(string Value) : Multiline(Value, MaxLength: 4000);
         public sealed partial record Code(string Value) : Email(Value, Upper: true);
 
-        public sealed class Customer : Aggregate<Guid, Model>
+        public sealed class Customer : Aggregate<Guid>, IHasForm
         {
             private Customer() { }
             public ContactEmail Email { get; private set; } = ContactEmail.Create("a@b.hu");

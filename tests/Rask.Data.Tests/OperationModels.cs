@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // A partial aggregate whose public methods are operations and whose non-public factory is born through its generated
 // entry; sealing it takes a captain or an admiral, planning one an admiral (OperationEntryTests).
-public sealed partial class Expedition : Aggregate<Guid, Versioned, Deletable>
+public sealed partial class Expedition : Aggregate<Guid>, IVersioned, IDeletable
 {
     private Expedition() { } // EF materialization
 

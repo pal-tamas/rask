@@ -11,7 +11,7 @@ public class ChildOfTwoRootsGeneratorTests
         using Rask.Data;
         namespace Fleet;
 
-        public sealed class Driver : Aggregate<string, Timestamps, Versioned, Model, Deletable, PerTenant>
+        public sealed class Driver : Aggregate<string>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
         {
             private readonly List<Chip> _chips = [];
             private Driver() { }
@@ -20,7 +20,7 @@ public class ChildOfTwoRootsGeneratorTests
             public IReadOnlyList<Chip> Chips => _chips;
         }
 
-        public sealed class Vehicle : Aggregate<string, Timestamps, Versioned, Model, Deletable>
+        public sealed class Vehicle : Aggregate<string>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private readonly List<Chip> _chips = [];
             private Vehicle() { }
@@ -35,6 +35,7 @@ public class ChildOfTwoRootsGeneratorTests
             public string? DriverId { get; private set; }
             public string? VehicleId { get; private set; }
         }
+        public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
         """;
 
     private static GeneratorRun Run() =>
@@ -68,7 +69,7 @@ public class ChildOfTwoRootsGeneratorTests
             using Rask.Data;
             namespace Rounds;
 
-            public sealed class Tour : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+            public sealed class Tour : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
             {
                 private readonly List<Drop> _drops = [];
                 private Tour() { }
@@ -87,6 +88,7 @@ public class ChildOfTwoRootsGeneratorTests
                 private Packet() { }
                 public string Label { get; private set; } = "";
             }
+            public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
             """,
             [new ModelInputGenerator(), new ModelRegistryGenerator(), new ReadModelGenerator()],
             "Rask.Data",

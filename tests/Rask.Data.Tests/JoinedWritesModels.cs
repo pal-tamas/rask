@@ -6,7 +6,7 @@ public readonly partial record struct HayLoadId(int Value);
 
 // A load of hay brought in from a field, born through its factory's generated entry with a key the store makes — what a
 // Db.Transaction around several writes calls first, and whose id the rows added after it need (DbTransactionJoinedWritesTests).
-public sealed partial class HayLoad : Aggregate<HayLoadId, Timestamps, Versioned, Deletable>
+public sealed partial class HayLoad : Aggregate<HayLoadId>, IHasTimestamps, IVersioned, IDeletable
 {
     private HayLoad() { } // EF materialization
 
@@ -20,7 +20,7 @@ public sealed partial class HayLoad : Aggregate<HayLoadId, Timestamps, Versioned
 }
 
 // A bale of a load, tagged: the rows an app adds on its own context after the load's entry, or clears with DeleteWhere.
-public sealed class HayBale : Aggregate<Guid, Timestamps, Versioned, Deletable>
+public sealed class HayBale : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
 {
     private HayBale() { } // EF materialization
 

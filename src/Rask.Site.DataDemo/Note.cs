@@ -9,7 +9,7 @@ namespace Rask.Site.DataDemo;
 ///     The one aggregate: a note with a title and a body. That is the whole declaration — the generator writes
 ///     <c>NoteModel</c> for the form, <c>Note.Create(model)</c> to save it and <c>Note.Where(…)</c> to query it.
 /// </summary>
-public sealed partial class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed partial class Note : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
 {
     /// <summary>What the list shows first, and what a search ranks highest.</summary>
     [MaxLength(120)]

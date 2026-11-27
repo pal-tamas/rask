@@ -106,37 +106,3 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>, IGenerated
         UpdatedAt = at;
     }
 }
-
-/// <summary>
-/// An entity that keeps timestamps of its own — a child of an aggregate, or a table that is not one:
-/// <c>OrderLine : Entity&lt;Guid, Timestamps&gt;</c>. Only an <see cref="IEntityTrait" /> fits here; everything
-/// else is the aggregate's.
-/// </summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1"><see cref="Created" />, <see cref="Updated" /> or <see cref="Timestamps" />.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type argument IS the declaration, read by the generator.")]
-public abstract class Entity<TId, T1> : Entity<TId>
-    where T1 : IEntityTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Entity()
-    {
-    }
-}
-
-/// <summary>
-/// A child entity that names two traits, in any order: <c>VirtualTank : Entity&lt;VirtualTankId, Timestamps, SoftRemoved&gt;</c>.
-/// </summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1">An <see cref="IEntityTrait" />.</typeparam>
-/// <typeparam name="T2">An <see cref="IEntityTrait" />.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type arguments ARE the declaration, read by the generator.")]
-public abstract class Entity<TId, T1, T2> : Entity<TId>
-    where T1 : IEntityTrait
-    where T2 : IEntityTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Entity()
-    {
-    }
-}

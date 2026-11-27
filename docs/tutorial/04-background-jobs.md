@@ -19,7 +19,7 @@ members at the end of the `Order` class in `Features/Orders/Order.cs`:
 ```
 
 That is all: `MarkReceiptSent` is an operation like `Ship`, so the build gives it an entry —
-`await Order.MarkReceiptSent(id, version)` — and, because the aggregate is `Versioned`, a second one with no version:
+`await Order.MarkReceiptSent(id, version)` — and, because the aggregate is `IVersioned`, a second one with no version:
 `await Order.MarkReceiptSent(id)`. That one loads the order as it now stands and runs the method on that. It is the
 **system's** call, for a job or an event handler that read no version, never a form's: a person changes what they
 read ([operations](../domain.md#operations-what-the-aggregate-does)).

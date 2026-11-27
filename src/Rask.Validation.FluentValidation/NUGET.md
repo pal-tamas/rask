@@ -55,7 +55,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
 ```
 
 ```csharp
-public sealed partial class Supplier : Aggregate<SupplierId, Model>
+public sealed partial class Supplier : Aggregate<SupplierId>, IHasForm
 {
     public string Name { get; private set; } = "";
 

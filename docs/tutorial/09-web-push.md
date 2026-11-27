@@ -144,7 +144,7 @@ public enum OrderStatus
     Shipped,
 }
 
-public sealed partial class Order : Aggregate<OrderId, Timestamps, Versioned, Deletable>
+public sealed partial class Order : Aggregate<OrderId>, IHasTimestamps, IVersioned, IDeletable
 {
     public CustomerEmail Customer { get; private set; } = null!;
 

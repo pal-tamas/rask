@@ -22,17 +22,18 @@ public sealed class OperationFormEntryTests : global::Rask.Core.RaskMarkup, IDis
         var convoy = await StoredAsync(new ConvoyTruckSpec(null, "AAA-111", ConvoyLoad.Create(10)), new ConvoyTruckSpec(null, "BBB-222", ConvoyLoad.Create(20)));
         var form = Form.For(Convoy.Line, convoy.Id);
 
+        // The trucks are a HasMany with no InOrder, so no order is promised: each is found by its plate.
         var input = (await form.Read(Token))!;
-        var read = input.Trucks.Select(static t => (t.Plate, t.Load)).ToList();
-        input.Trucks.RemoveAt(0);
-        input.Trucks[0].Load = 25;
+        var read = input.Trucks.Select(static t => (t.Plate, t.Load)).OrderBy(static t => t.Plate).ToList();
+        input.Trucks.RemoveAll(static t => t.Plate == "AAA-111");
+        input.Trucks.Single(static t => t.Plate == "BBB-222").Load = 25;
         input.Trucks.Add(new() { Plate = "CCC-333", Load = 5 });
         await form.Submit(input, Token);
         var stored = (await database.Load<Convoy>(convoy.Id, Token))!;
 
         Assert.Equal([("AAA-111", 10m), ("BBB-222", 20m)], read);
-        Assert.Equal([("BBB-222", 25m), ("CCC-333", 5m)], stored.Trucks.Select(static t => (t.Plate, t.Load)));
-        Assert.Equal(convoy.Trucks[1].Id, stored.Trucks[0].Id);
+        Assert.Equal([("BBB-222", 25m), ("CCC-333", 5m)], stored.Trucks.Select(static t => (t.Plate, t.Load)).OrderBy(static t => t.Plate));
+        Assert.Equal(convoy.Trucks.Single(static t => t.Plate == "BBB-222").Id, stored.Trucks.Single(static t => t.Plate == "BBB-222").Id);
     }
 
     [Fact]

@@ -8,7 +8,7 @@ namespace Rask.Data;
 
 /// <summary>
 ///     The aggregates one <c>Db.Transaction</c> has written, each once: a saved child counts as its aggregate, and a
-///     table of infrastructure (<see cref="InfrastructureBuilderExtensions.Infrastructure{TEntity}" />) not at all.
+///     table of infrastructure (<see cref="IInfrastructure" />) not at all.
 /// </summary>
 internal sealed class WrittenAggregates
 {
@@ -166,7 +166,7 @@ internal sealed class WrittenAggregates
             : null;
 
     private static bool IsInfrastructure(IEntityType type) =>
-        InfrastructureBuilderExtensions.IsInfrastructure(type.ClrType) ||
+        typeof(IInfrastructure).IsAssignableFrom(type.ClrType) ||
         (type.FindOwnership() is { } ownership && IsInfrastructure(ownership.PrincipalEntityType));
 
     private static string Named(IEntityType type, string key) => type.ClrType.Name + " " + key;

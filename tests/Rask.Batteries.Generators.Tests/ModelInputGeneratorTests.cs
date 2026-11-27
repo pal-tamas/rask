@@ -44,7 +44,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -72,7 +72,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Chip : Aggregate<Guid, Timestamps, Versioned, Deletable>
+            public sealed class Chip : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
             {
                 private Chip() { }
                 public string Name { get; private set; } = "";
@@ -101,7 +101,7 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [Range(0, 1000)] public decimal Price { get; private set; }
@@ -145,7 +145,7 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [DisplayName("Remarks")] public string? Notes { get; private set; }
@@ -176,7 +176,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public static class Names { public static string Notes => "Megjegyzés"; }
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [StringLength(5)] {{attributes}} public string? Notes { get; private set; }
@@ -200,7 +200,7 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [Required, MaxLength(200)] public string Name { get; private set; } = "";
@@ -266,7 +266,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -293,7 +293,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Tag : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Tag : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public string Label { get; private set; } = "";
             }
@@ -313,7 +313,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public string Name { get; private set; } = "";
                 public int Views { get; private set; }
@@ -344,7 +344,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public readonly record struct ProductId(Guid Value);
-            public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -380,13 +380,13 @@ public class ModelInputGeneratorTests
             public readonly record struct ProductId(Guid Value);
             public readonly record struct OrderNumber(long Value);
             public readonly record struct Sku(string Value);
-            public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable> { private Product() { } }
-            public sealed class Tag : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { private Tag() { } }
-            public sealed class Note : Aggregate<int, Timestamps, Versioned, Model, Deletable> { private Note() { } }
-            public sealed class Entry : Aggregate<long, Timestamps, Versioned, Model, Deletable> { private Entry() { } }
-            public sealed class Order : Aggregate<OrderNumber, Timestamps, Versioned, Model, Deletable> { private Order() { } }
-            public sealed class Item : Aggregate<Sku, Timestamps, Versioned, Model, Deletable> { private Item() { } }
-            public sealed class Country : Aggregate<string, Timestamps, Versioned, Model, Deletable> { private Country() { } }
+            public sealed class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Product() { } }
+            public sealed class Tag : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Tag() { } }
+            public sealed class Note : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Note() { } }
+            public sealed class Entry : Aggregate<long>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Entry() { } }
+            public sealed class Order : Aggregate<OrderNumber>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Order() { } }
+            public sealed class Item : Aggregate<Sku>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Item() { } }
+            public sealed class Country : Aggregate<string>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Country() { } }
             """);
 
         Assert.Empty(run.Diagnostics);
@@ -444,7 +444,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public readonly partial record struct ProductId(Guid Value);
-            public sealed class Product : Aggregate<ProductId, Timestamps, Versioned, Model, Deletable> { private Product() { } }
+            public sealed class Product : Aggregate<ProductId>, IHasTimestamps, IVersioned, IHasForm, IDeletable { private Product() { } }
             """);
 
         var source = run.GeneratedSource("Shop.ProductModel");
@@ -466,7 +466,7 @@ public class ModelInputGeneratorTests
                 public Money Cost { get; set; } = new(0m, "EUR");
                 public string Material { get; set; } = "card";
             }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public Money Total { get; private set; } = new(0m, "EUR");
@@ -496,7 +496,7 @@ public class ModelInputGeneratorTests
             public sealed record Zip(string Value);
             public sealed record Geo(decimal Lat, decimal? Alt);
             public sealed record Address(string Street, string? Floor, int? Door, Zip Code, Zip? OldCode, Geo At, Geo? Was, [property: Range(1, 9)] int Zone);
-            public sealed class Depot : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Depot : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Depot() { }
                 public Address Site { get; private set; } = null!;
@@ -565,7 +565,7 @@ public class ModelInputGeneratorTests
                 public bool Main { get; private set; }
                 public Geo? Was { get; private set; }
             }
-            public sealed class Depot : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Depot : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Depot() { }
                 public Yard Site { get; private set; } = new("", 0);
@@ -633,7 +633,7 @@ public class ModelInputGeneratorTests
             {
                 public string Display => $"{Amount} {Currency}";
             }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public Money Total { get; private set; } = new(0m, "EUR");
@@ -670,7 +670,7 @@ public class ModelInputGeneratorTests
                 public decimal Amount { get; set; }
                 public CurrencyCode Currency { get; set; }
             }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public Money Total { get; private set; } = new();
@@ -689,7 +689,7 @@ public class ModelInputGeneratorTests
         var run = Run("""
             using Rask.Data;
             namespace Shop;
-            public sealed class Coupon : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+            public sealed class Coupon : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Coupon() { }
                 public string Code { get; private set; } = "";
@@ -718,7 +718,7 @@ public class ModelInputGeneratorTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class Coupon : Aggregate<{{id}}, Timestamps, Versioned, Model, Deletable>
+            public sealed class Coupon : Aggregate<{{id}}>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Coupon() { }
                 public string Code { get; private set; } = "";
@@ -758,7 +758,7 @@ public class ModelInputGeneratorTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class Coupon : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+            public sealed class Coupon : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Coupon() { }
                 public string Code { get; private set; } = "";
@@ -808,7 +808,7 @@ public class ModelInputGeneratorTests
                 public decimal Width { get; private set; }
                 public decimal Height { get; private set; }
             }
-            public sealed class Shipment : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Shipment : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Shipment() { }
                 public Address Destination { get; private set; } = null!;
@@ -853,19 +853,19 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public abstract class ValueKeyed<TId> : Aggregate<TId, Timestamps, Versioned, Model, Deletable> where TId : struct
+            public abstract class ValueKeyed<TId> : Aggregate<TId>, IHasTimestamps, IVersioned, IHasForm, IDeletable where TId : struct
             {
                 public string Name { get; private set; } = "";
             }
-            public abstract class NotNullKeyed<TId> : Aggregate<TId, Timestamps, Versioned, Model, Deletable> where TId : notnull
+            public abstract class NotNullKeyed<TId> : Aggregate<TId>, IHasTimestamps, IVersioned, IHasForm, IDeletable where TId : notnull
             {
                 public string Code { get; private set; } = "";
             }
-            public abstract class ReferenceKeyed<TKey> : Aggregate<TKey, Timestamps, Versioned, Model, Deletable> where TKey : class
+            public abstract class ReferenceKeyed<TKey> : Aggregate<TKey>, IHasTimestamps, IVersioned, IHasForm, IDeletable where TKey : class
             {
                 public string Label { get; private set; } = "";
             }
-            public abstract class Ranked<TId, TSelf> : Aggregate<TId, Timestamps, Versioned, Model, Deletable>
+            public abstract class Ranked<TId, TSelf> : Aggregate<TId>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 where TId : unmanaged, IComparable<TId>
                 where TSelf : Ranked<TId, TSelf>, new()
             {
@@ -897,7 +897,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public sealed record Email(string Value);
-            public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public Email Email { get; private set; } = new("");
                 public Email? Backup { get; private set; }
@@ -929,7 +929,7 @@ public class ModelInputGeneratorTests
             namespace Shop
             {
                 public sealed record Money(decimal Amount, string Currency);
-                public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 {
                     private Order() { }
                     public Money Total { get; private set; } = new(0m, "EUR");
@@ -960,7 +960,7 @@ public class ModelInputGeneratorTests
             public sealed record C(D D);
             public sealed record B(C C);
             public sealed record A(B B);
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public A Deep { get; private set; } = null!;
@@ -981,7 +981,7 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 [AllowedValues("draft", "live")] public string Status { get; private set; } = "draft";
@@ -1000,11 +1000,11 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Customer() { }
             }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public Customer Customer { get; private set; } = null!;
@@ -1039,7 +1039,7 @@ public class ModelInputGeneratorTests
         using System.Linq;
         using Rask.Data;
         namespace Shop;
-        public sealed class Basket : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Basket : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private readonly List<BasketLine> _lines = new();
             private readonly List<string> _tags = new();
@@ -1099,7 +1099,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public sealed record Stop(string City, int Day);
-            public sealed class Trip : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Trip : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<string> _tags = new();
                 private readonly List<Stop> _stops = new();
@@ -1140,7 +1140,7 @@ public class ModelInputGeneratorTests
     {
         var run = Run("""
             using Rask.Data;
-            internal sealed class Note : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+            internal sealed class Note : Aggregate<int>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Note() { }
                 public string Text { get; private set; } = "";
@@ -1172,7 +1172,7 @@ public class ModelInputGeneratorTests
             using System.Threading.Tasks;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public string Name { get; private set; } = "";
                 public static Product Make() => new() { Id = Guid.CreateVersion7() };
@@ -1217,7 +1217,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public Product(string name) => Name = name;
                 public string Name { get; private set; }
@@ -1244,7 +1244,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<OrderLine> _lines = [];
                 private Order() { }
@@ -1288,7 +1288,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public List<OrderLine> Lines { get; private set; } = [];
@@ -1327,7 +1327,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Rask.Auth;
-            public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Session : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public Guid UserId { get; private set; }
             }
@@ -1362,7 +1362,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public string Reference { get; private set; } = "";
             }
@@ -1385,7 +1385,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Club;
-            public sealed class Shooter : Aggregate<int, PerTenant<int>>
+            public sealed class Shooter : Aggregate<int>, IBelongsTo<IntTenant>
             {
                 private readonly List<Pistol> _pistols = [];
                 public IReadOnlyList<Pistol> Pistols => _pistols;
@@ -1394,6 +1394,7 @@ public class ModelInputGeneratorTests
             {
                 public string Serial { get; private set; } = "";
             }
+            public sealed class IntTenant : Rask.Data.Aggregate<int> { }
             """,
             options: null);
 
@@ -1430,7 +1431,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
+            public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
             {
                 public string Name { get; private set; } = "";
                 public void Rename(string name) => Name = name;
@@ -1458,15 +1459,15 @@ public class ModelInputGeneratorTests
     // ---- Deletable / SoftDelete: whether Delete is generated -----------------------------------------
 
     [Theory]
-    [InlineData("Deletable")]
-    [InlineData("SoftDelete")]
+    [InlineData("IDeletable")]
+    [InlineData("ISoftDeletes")]
     public void A_deletable_aggregate_gets_a_Delete_of_its_own_beside_Save(string trait)
     {
         var run = Run($$"""
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class QueuedFile : Aggregate<Guid, {{trait}}>
+            public sealed class QueuedFile : Aggregate<Guid>, {{trait}}
             {
                 public bool Expired { get; private set; }
             }
@@ -1486,7 +1487,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model>
+            public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm
             {
                 public string Status { get; private set; } = "Open";
                 public void Cancel() => Status = "Cancelled";
@@ -1504,15 +1505,15 @@ public class ModelInputGeneratorTests
     }
 
     [Theory]
-    [InlineData("Deletable")]
-    [InlineData("SoftDelete")]
-    public void Either_Deletable_or_SoftDelete_on_the_base_generates_Delete(string deletes)
+    [InlineData("IDeletable")]
+    [InlineData("ISoftDeletes")]
+    public void A_class_that_says_it_is_deleted_either_way_gets_a_generated_Delete(string deletes)
     {
         var run = Run($$"""
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Invoice : Aggregate<Guid, {{deletes}}>
+            public sealed class Invoice : Aggregate<Guid>, {{deletes}}
             {
                 public string Status { get; private set; } = "Open";
             }
@@ -1523,8 +1524,8 @@ public class ModelInputGeneratorTests
     }
 
     [Theory]
-    [InlineData("Aggregate<Guid, Versioned>", true)]
-    [InlineData("Aggregate<Guid, Versioned, Deletable>", false)]   // the control: the call DOES bind when Delete exists
+    [InlineData("Aggregate<Guid>, IVersioned", true)]
+    [InlineData("Aggregate<Guid>, IVersioned, IDeletable", false)]   // the control: the call DOES bind when Delete exists
     public void Calling_Delete_on_an_aggregate_that_is_not_deletable_does_not_compile(string @base, bool refused)
     {
         // The mistake is a build error at the call site, not a runtime surprise.
@@ -1565,7 +1566,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
+            public sealed class Passkey : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
             {
                 public string Name { get; private set; } = "";
             }
@@ -1585,7 +1586,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, UpdateModel, Deletable>
+            public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasUpdateForm, IDeletable
             {
                 public string Title { get; private set; } = "";
             }
@@ -1612,7 +1613,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 public string Title { get; private set; } = "";
             }
@@ -1636,7 +1637,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<OrderLine> _lines = [];
                 public IReadOnlyCollection<OrderLine> Lines => _lines;
@@ -1662,7 +1663,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IDeletable
             {
                 private readonly List<OrderLine> _lines = [];
                 public IReadOnlyCollection<OrderLine> Lines => _lines;
@@ -1690,13 +1691,13 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<Shipment> _shipments = [];
                 private Order() { }
                 public IReadOnlyCollection<Shipment> Shipments => _shipments;
             }
-            public sealed class Shipment : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Shipment : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Shipment() { }
                 public string Carrier { get; private set; } = "";
@@ -1730,12 +1731,12 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public Customer Customer { get; private set; } = null!;
             }
-            public sealed class Customer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Customer : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Customer() { }
                 public string Name { get; private set; } = "";
@@ -1764,7 +1765,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Order() { }
                 public OrderNote Note { get; private set; } = null!;
@@ -1789,7 +1790,7 @@ public class ModelInputGeneratorTests
             using System.Linq;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Order : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<OrderLine> _paid = [];
                 private readonly List<OrderLine> _unpaid = [];
@@ -1820,7 +1821,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Model>
+            public sealed class Order : Aggregate<Guid>, IHasForm
             {
                 public IReadOnlyList<OrderLine> Lines { get; private set; } = [];
                 public IReadOnlyList<string> Tags { get; private set; } = [];
@@ -1847,7 +1848,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
             }
@@ -1870,7 +1871,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -1895,7 +1896,7 @@ public class ModelInputGeneratorTests
             namespace Shop;
             public static class Catalog
             {
-                public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Product : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
                 {
                     private Product() { }
                 }
@@ -1915,25 +1916,26 @@ public class ModelInputGeneratorTests
         using Rask.Data;
         namespace Shop;
 
-        public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+        public sealed class Invoice : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
         {
             private Invoice() { }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+        public sealed class Receipt : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable, IBelongsTo<GuidTenant>
         {
             private Receipt() { }
             public Guid? TenantId { get; private set; }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Delivery : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class Delivery : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
         {
             private Delivery() { }
             public Guid? TenantId { get; set; }
             public string Number { get; private set; } = "";
         }
+        public sealed class GuidTenant : Rask.Data.Aggregate<System.Guid> { }
         """;
 
     [Theory]
@@ -1959,7 +1961,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Depot : Aggregate<int, Timestamps, Model, Deletable>
+            public sealed class Depot : Aggregate<int>, IHasTimestamps, IHasForm, IDeletable
             {
                 private Depot() { }
                 public string Name { get; private set; } = "";
@@ -1982,7 +1984,7 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Roster : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class Roster : Aggregate<Guid>, IHasTimestamps, IVersioned, IHasForm, IDeletable
             {
                 private readonly List<Slot> _slots = [];
                 private readonly List<Badge> _badges = [];

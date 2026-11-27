@@ -12,7 +12,7 @@ using Rask.Tests.Shared;
 namespace Rask.Server.Tests.App;
 
 /// <summary>A bollard that says it was raised: the domain event its save publishes once it has committed.</summary>
-public sealed class Bollard : Aggregate<Guid, Model>
+public sealed class Bollard : Aggregate<Guid>, IHasForm
 {
     private Bollard() { }
 
