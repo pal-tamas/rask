@@ -112,8 +112,8 @@ public sealed class InheritedValueObjectTests : IDisposable
         {
             var barcode = filing.FindProperty(nameof(Filing.Barcode))!;
             var office = filing.FindProperty(nameof(Filing.Office))!;
-            Assert.Equal(("Barcode", typeof(string), true), (barcode.GetColumnName(), barcode.GetValueConverter()!.ProviderClrType, barcode.IsNullable));
-            Assert.Equal(("Office", typeof(string), false), (office.GetColumnName(), office.GetValueConverter()!.ProviderClrType, office.IsNullable));
+            Assert.Equal(("barcode", typeof(string), true), (barcode.GetColumnName(), barcode.GetValueConverter()!.ProviderClrType, barcode.IsNullable));
+            Assert.Equal(("office", typeof(string), false), (office.GetColumnName(), office.GetValueConverter()!.ProviderClrType, office.IsNullable));
             Assert.NotNull(filing.FindComplexProperty(nameof(Filing.Period)));
             Assert.True(filing.FindProperty(nameof(Filing.Tags))!.IsPrimitiveCollection);
         }

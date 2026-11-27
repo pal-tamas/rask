@@ -311,14 +311,14 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     public void A_key_set_on_a_row_reaches_the_rendered_html()
     {
         // Documents the recommended keying pattern for VirtualizeModel rows: setting
-        // Data["rask-key"] makes the client-side morph engage its keyed reconciliation
+        // .Key(...) makes the client-side morph engage its keyed reconciliation
         // path so reordered / scrolled rows keep their DOM identity (focus, scroll
         // state) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
         var view = new StubComponent(() => Virtualize.Items(
             ctx => Div[
                 ctx.VisibleItems.Select(item =>
-                    Div.Data(new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
+                    Div.Key(item.Index)[
                         item.Value!])
             ],
             items,

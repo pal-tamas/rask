@@ -12,7 +12,7 @@ namespace Rask.Core.Components;
 // the state's OnScroll handler into a scrollable container and reads OffsetBefore /
 // OffsetAfter / VisibleValues to drive their own markup.
 //
-// To preserve row identity across scroll / reorder, set Data["rask-key"] = item.Index
+// To preserve row identity across scroll / reorder, chain `.Key(item.Index)`
 // (or any stable per-row identity) on the row element. The client morph engages a keyed
 // reconciliation path when any child carries data-rask-key, moving existing DOM nodes
 // into place instead of replacing them — focus and scroll state survive the

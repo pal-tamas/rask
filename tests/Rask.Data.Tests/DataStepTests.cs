@@ -70,7 +70,7 @@ public sealed class DataStepTests
     [InlineData("sqlserver")]
     public void Every_provider_writes_a_data_step_into_the_migrations_sql_as_a_comment_alone(string provider)
     {
-        var builder = new DbContextOptionsBuilder<SteppedContext>();
+        var builder = OptionsLayout.LikeAddDbContext<SteppedContext>();
         _ = provider == "sqlite" ? builder.UseSqlite("Data Source=:memory:") : builder.UseSqlServer("Server=nowhere;Database=none");
         using var context = new SteppedContext(builder.Options);
 

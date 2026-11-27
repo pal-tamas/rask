@@ -42,7 +42,7 @@ public sealed class EventJobWithoutHandlerAnalyzer : DiagnosticAnalyzer
         if (call.TargetMethod is not { Name: "Job", IsGenericMethod: true, TypeArguments.Length: 1 } job ||
             !string.Equals(job.ContainingType?.ToDisplayString(), "Rask.Background.JobsModelBuilderExtensions", StringComparison.Ordinal) ||
             call.Arguments.FirstOrDefault()?.Value is not { } receiver ||
-            Unwrapped(receiver).Type is not INamedTypeSymbol { Name: "EntityTypeBuilder", TypeArguments.Length: 1 } builder ||
+            receiver.WithoutImplicitConversion().Type is not INamedTypeSymbol { Name: "EntityTypeBuilder", TypeArguments.Length: 1 } builder ||
             builder.TypeArguments[0] is not INamedTypeSymbol aggregate)
         {
             return;
@@ -55,9 +55,6 @@ public sealed class EventJobWithoutHandlerAnalyzer : DiagnosticAnalyzer
                 Rask189, call.Syntax.GetLocation(), aggregate.Name, eventType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
         }
     }
-
-    private static IOperation Unwrapped(IOperation value) =>
-        value is IConversionOperation { IsImplicit: true, Operand: var operand } ? operand : value;
 
     private static bool Handles(INamedTypeSymbol aggregate, ITypeSymbol eventType) =>
         aggregate.GetMembers("On").OfType<IMethodSymbol>().Any(m =>

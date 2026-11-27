@@ -138,7 +138,7 @@ public sealed class TextTenantTests : IDisposable
 
         // A literal here would be cached with the query and served to the next tenant.
         var statement = sql.Split("\n\n")[^1];
-        Assert.Contains("\"TenantId\" = @", statement, StringComparison.Ordinal);
+        Assert.Contains("\"tenant_id\" = @", statement, StringComparison.Ordinal);
         Assert.DoesNotContain(Acme.ToString(), statement, StringComparison.Ordinal);
     }
 
@@ -203,7 +203,7 @@ public sealed class TextTenantTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Branches (Id, Name, TenantId) VALUES ('b-9', 'Szeged', {Acme.ToString()})", TestContext.Current.CancellationToken);
+            $"INSERT INTO Branches (id, name, tenant_id) VALUES ('b-9', 'Szeged', {Acme.ToString()})", TestContext.Current.CancellationToken);
 
         using (Tenant.Use(Acme))
         {
@@ -222,7 +222,7 @@ public sealed class TextTenantTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, "b-1", "Budapest");
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Branches (Id, Name, TenantId) VALUES ('b-0', 'Nowhere', NULL)", TestContext.Current.CancellationToken);
+            $"INSERT INTO Branches (id, name, tenant_id) VALUES ('b-0', 'Nowhere', NULL)", TestContext.Current.CancellationToken);
 
         List<string> names;
         Exception? updated;
@@ -248,7 +248,7 @@ public sealed class TextTenantTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         await database.Context.Database.ExecuteSqlAsync(
-            $"INSERT INTO Stands (Id, Code, TenantId) VALUES ('s-0', 'K-1', NULL)", TestContext.Current.CancellationToken);
+            $"INSERT INTO Stands (id, code, tenant_id) VALUES ('s-0', 'K-1', NULL)", TestContext.Current.CancellationToken);
 
         Exception? refused;
         using (Tenant.Use(Acme))
@@ -298,12 +298,12 @@ public sealed class TextTenantTests : IDisposable
     // Straight to the table, past every filter and stamp: what the database holds, whoever is asking.
     private static async Task<string?> StoredTenantAsync(TestDatabase database, string key) =>
         (await database.Context.Database
-            .SqlQuery<string?>($"SELECT TenantId AS Value FROM Branches WHERE Id = {key}")
+            .SqlQuery<string?>($"SELECT tenant_id AS Value FROM Branches WHERE id = {key}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private static async Task<string> StoredNameAsync(TestDatabase database, string key) =>
         (await database.Context.Database
-            .SqlQuery<string>($"SELECT Name AS Value FROM Branches WHERE Id = {key}")
+            .SqlQuery<string>($"SELECT name AS Value FROM Branches WHERE id = {key}")
             .ToListAsync(TestContext.Current.CancellationToken)).Single();
 
     private Task<TestDatabase> StartDatabaseAsync() =>

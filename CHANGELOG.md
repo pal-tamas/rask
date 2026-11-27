@@ -10,6 +10,20 @@ them until tagged releases begin.
 ### Added
 - **`Uuid.Create()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
   the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `Create()` returns it
+- **RASK192: a name the configuration states that Rask gives anyway.** `b.ToTable("fuelings")`,
+  `b.Property(x => x.PistolId).HasColumnName("pistol_id")`, `HasDatabaseName("ix_fuelings_created_at")`,
+  `HasName("pk_fuelings")`, `HasConstraintName("fk_fuelings_pistol_id")`, `[Table("fuelings")]` and `[Column("pistol_id")]`
+  are reported as a suggestion, faded as unneeded, and the quick fix (with Fix all) deletes them — the call out of its
+  chain, and a statement left saying nothing with it. A project that restates the pattern (`TableNames`, `ColumnNames`,
+  `ConstraintNames`) gets no report.
+- **BREAKING — Rask requires C# 15.** A project that pins `<LangVersion>` below 15 (`14`, `13.0`, `ISO-2`, …) stops at
+  build with `RASKLANG001`, naming the setting, instead of failing inside generated source. .NET 11 defaults to C# 15,
+  so an app that leaves `<LangVersion>` unset is unaffected. With it go the below-C# 14 fallbacks: the routes generator
+  always emits the per-page `Url()`/`Go()` extension members (the `Routes.X()` entries stay), and `Route.To<T>()` reads
+  a page's template from the generated route registry alone — the `[Route]` reflection fallback is gone, so a page whose
+  assembly did not run the generator throws rather than being read by reflection.
+- **`OrderedGuid.New()`: the one maker of Rask's ids — a version-7 `Guid`, time-ordered and strictly increasing.** In
+  the `Rask.Wire` package (namespace `Rask`, so every app sees it). A typed id's generated `New()` now returns it
   instead of emitting its own copy, and every key Rask makes is one: the batteries' rows (jobs, outbox, mail, logs,
   cache entries, push subscribers, recurring-job state), the auth accounts, sessions and passkeys, a job batch, and the
   `Create(model)` the form generator writes for a `Guid` key. Before, those were `Guid.CreateVersion7()`, whose 12 bits
@@ -135,6 +149,76 @@ them until tagged releases begin.
   `OrderId.New()` is now `OrderId.Create()` (a version-7 id from `Uuid.Create()`); a typed id that declares its own
   parameterless `Create()` keeps it, and a hand-written `Create(Guid)` or other overload sits beside the generated one.
   Replace `XId.New()` with `XId.Create()` at each call site.
+- **BREAKING (wire): a background job that ended with a warning crosses as `"state": "Warned"`.** It no longer also
+  crosses as `"Done"` with an `"outcome"` beside it for a tab opened before warnings existed; such a tab, if one is
+  still open, reads the unknown state as done, as it reads any state it does not know.
+- **BREAKING: six public members that did nothing are gone.** `RaskRuntimeScript` (a no-op since the runtime
+  `<script>` is injected at `</body>`; drop it from a tree that still names it), `RaskCultureOptions.ApplyToCurrentCulture`
+  (nothing read it: the ambient culture is pinned whenever Rask's culture is on), `AuthOptions.ForgotPasswordPath`
+  (no endpoint or page read it), `RouteAuthorizationGuard.ForbidPath`, `BuilderRuntime.ResetNothing` and
+  `FormData.FileKeys`.
+- **BREAKING (server): the kept-answer layer for an app's own sign-in is removed — `AddSessionRevalidator<T>()`,
+  `.Keep(…)`, `.ForgetOnSave<T>()`, `Sessions.Forget(…)` / `ISessions`.** It existed so a host that signed its users in
+  itself could stop its revalidator reading its users table on every event. Rask.Auth's sign-in is the way to sign
+  users in now (bcrypt hashes carried over, `[SignInName]`, typed ids, `IBearerSignIn` for a partner's own token
+  endpoint), and its revalidator reads the session's row every time on purpose, so nothing in Rask keeps an answer.
+  A host with a sign-in Rask does not own (an external identity provider) still registers its own
+  `ISessionRevalidator` with `AddSingleton`, asked at every event. Upgrade: move the sign-in onto Rask.Auth
+  (`docs/authentication.md`), or register the revalidator with `services.AddSingleton<ISessionRevalidator, T>()`
+  and drop the `Keep`/`ForgetOnSave`/`Sessions.Forget` calls.
+- **BREAKING (auth): an account is `User : Authenticatable<UserId>, IBelongsTo<Tenant>` — keyed by a typed id over a
+  `Guid`, its tenant its own typed column.** `Authenticatable<TKey>` takes a typed id over a `Guid`
+  (`readonly partial record struct UserId(Guid Value)`) beside `Guid` and `string`: `User.Id`, `Current.UserId` and
+  `Current.UseUser` are the `UserId`, while Rask carries and stores the `Guid` it holds — the `NameIdentifier` claim (its
+  text), `Session.UserId`, `Passkey.UserId`, the events — so moving a users table from `Guid` to a `UserId` over one
+  changes no column (a differ test proves it on SQL Server; on SQLite, where the typed id is written lower-case, lower-case
+  the old upper-case keys once). The generated `AuthUser.Use<User, UserId>(wrap, unwrap)`
+  names the id; a typed id over a number stops the host as any other key does. **`Authenticatable.TenantId` (`Guid?`)
+  and `RecordTenant` are removed:** the user declares its tenant as every table does — `IBelongsTo<Tenant>` and, to
+  read and set it, `public TenantId? TenantId { get; private set; }` — which on an account types the optional column
+  and adds the foreign key to the tenant (a migration), and never filters or stamps (an administrator has none);
+  without `IBelongsTo` the column stays the `Guid?` it was, declared by a user that sets it. `TenantKey` (the unique
+  index's folded copy) holds the tenant as the carried `Guid` for any tenant key, and the principal is built from it.
+  `rask new` scaffolds `User : Authenticatable<UserId>`. Upgrade: `public void JoinTenant(Guid t) => RecordTenant(t);`
+  becomes a `TenantId` property set by your own method. A typed-id account's session resume is the one join a `Guid`
+  key's is (`ON s.UserId = u.Id`, no `CAST`) where the store keeps a `Guid` natively, and two reads on SQLite.
+  `docs/authentication.md#your-user`, `#accounts-and-tenants`.
+- **BREAKING (core): `.Key(...)` is the only keyed identity; a `Data["rask-key"]` entry is no longer written.** It used
+  to stand in for a key when no `Key` was set, and RASK022 accepted it. Now the `rask-key` name in a `Data` bag is
+  reserved and dropped at render, and RASK022 reports a list keyed that way: chain `.Key(item.Id)` instead (it still
+  renders `data-rask-key`, so E2E selectors on that attribute keep working).
+- **BREAKING: SQLite's migrations SQL generators are named for what they are.** `RaskSqliteRangeExclusionSqlGenerator`
+  is `RaskSqliteMigrationsSqlGenerator` (the generator `UseRaskSqlite(...)` registers: `NoOverlap(...)`, full-text search
+  and JSON-index DDL), and `RaskSqliteStrictRangeExclusionSqlGenerator` is gone into `RaskSqliteStrictMigrationsSqlGenerator`,
+  which now derives from it and adds `STRICT` tables (`StrictTables = true`) — the strict generator on its own, without
+  the rest of Rask's DDL, no longer exists. Only code that names either type (a `ReplaceService`, an `IsType` in a
+  test) changes.
+- **BREAKING — Rask names the model in PostgreSQL's style on every database.** Before: a Rask context kept EF Core's
+  names (`Fuelings` after the `DbSet`, `PistolId`, `IX_Fuelings_PistolId`, `FK_Fuelings_Pistols_PistolId`), and Rask's
+  own tables theirs (`RaskAuthSession`, `RaskLog`, `Jobs`). Now every `RaskDbContext`/`RaskAppDbContext` names a table
+  after its class in snake case and plural (Rails' plural: `DeliveryNote` → `delivery_notes`, `Company` →
+  `companies`, `Person` → `people`), a column after its property's path in snake case (`pistol_id`, `km_start`,
+  `discriminator`), and its constraints `pk_{table}`, `fk_{table}_{columns}`, `uq_{table}_{columns}`,
+  `ix_{table}_{columns}`, `ck_{table}_{name}`, `xc_{table}_{columns}` for a `NoOverlap` rule (its SQL Server
+  trigger `tr_…`, its SQLite index `ix_…`) and (SQL Server) `df_{table}_{column}` — cut to PostgreSQL's 63 bytes on
+  every database, a longer one ending in a hash of the whole name. Rask's battery tables follow too (`jobs`,
+  `outbox_messages`, `queued_mails`, `cache_entries`, `stored_files`, `push_subscribers`, `auth_sessions`,
+  `auth_passkeys`, `auth_instance_claims`, `log_entries`, …). A name stated in `Configure` (`ToTable`,
+  `HasColumnName`, `HasDatabaseName`, `HasConstraintName`, `[Table]`, `[Column]`) still wins; `TableNames`,
+  `ColumnNames` and `ConstraintNames` in the app's `IRaskModel` are the one way to change the pattern (new
+  `t.SnakeCasePlural`, `n.Prefixed`, `n.AsDeclared` and `ConstraintKind.Check` say Rask's and EF Core's names). A plain
+  `DbContext` keeps EF Core's. **Upgrading:** delete the naming lines Rask now gives anyway (RASK192 finds them; Fix
+  all deletes them), then `rask db add RaskNames` — the migration only renames: `RenameTable`, `RenameColumn`,
+  `RenameIndex`, and each primary, foreign and unique key renamed in place (`ALTER TABLE … RENAME CONSTRAINT` on
+  PostgreSQL, `sp_rename` on SQL Server; on SQLite nothing for a key's name), where EF Core would drop and add it.
+  Raw SQL that names the old tables or columns changes with them. To keep EF Core's names for now:
+  `c.TableNames(t => t.AsDeclared).ColumnNames(n => n.AsDeclared).ConstraintNames(_ => null)`
+  ([Names](docs/data.md#names-rasks-own-in-postgresqls-style), [the next migration renames](docs/data.md#rasks-names-the-next-migration-renames)).
+- **BREAKING: a download reaches the browser by URL (Server) or token (WASM) only — the base64-inline path is gone.**
+  `PendingDownload` loses its `Bytes` member (`new PendingDownload(name, type, url, token)`), the render payload no
+  longer carries a `download.bytes` field, and the WASM client drops its base64 decoder. `TestDownloadSink.TryConsume`
+  now hands each download on as a token, like the WASM sink; its `Staged` list still holds the bytes for assertions.
+  A custom `IDownloadSink` that set `Bytes` keeps them itself and hands on a token.
 - **BREAKING (wire): a `Moment` travels as the UTC instant it holds, not its wall-clock `.Value`.** The generated CQRS
   codec, the API client and System.Text.Json (each record declared from `Moment` now gets its own generated
   `[JsonConverter]`, over `Rask.Values.MomentJsonConverter<T>`) write `"2026-10-25T00:30:00Z"`, so the hour the clock

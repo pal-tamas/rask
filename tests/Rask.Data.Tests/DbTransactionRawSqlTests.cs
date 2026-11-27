@@ -25,7 +25,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await Db.Transaction(async () =>
         {
             await GeneratedModelWrites.Create(Widget.Create("tongs"), cancellationToken: TestContext.Current.CancellationToken);
-            await mine.Database.ExecuteSqlRawAsync("UPDATE Widget SET Name = 'renamed' WHERE Name = 'anvil'", TestContext.Current.CancellationToken);
+            await mine.Database.ExecuteSqlRawAsync("UPDATE widgets SET name = 'renamed' WHERE name = 'anvil'", TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
         }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
@@ -43,7 +43,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await Db.Transaction(async () =>
         {
             await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
-            seen = await mine.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM Widget").SingleAsync(TestContext.Current.CancellationToken);
+            seen = await mine.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM widgets").SingleAsync(TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
         }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await Db.Transaction(async () =>
         {
             await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
-            seen = await mine.Set<Widget>().FromSqlRaw("SELECT * FROM Widget").Select(w => w.Name).ToListAsync(TestContext.Current.CancellationToken);
+            seen = await mine.Set<Widget>().FromSqlRaw("SELECT * FROM widgets").Select(w => w.Name).ToListAsync(TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("hammer"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
         }, manyAggregates: "Widgets written beside raw SQL", cancellationToken: TestContext.Current.CancellationToken);
@@ -81,7 +81,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         {
             await GeneratedModelWrites.Create(Widget.Create("anvil"), db: mine, cancellationToken: TestContext.Current.CancellationToken);
             await mine.SaveChangesAsync(TestContext.Current.CancellationToken);
-            await mine.Database.ExecuteSqlRawAsync("UPDATE Widget SET Name = 'renamed'", TestContext.Current.CancellationToken);
+            await mine.Database.ExecuteSqlRawAsync("UPDATE widgets SET name = 'renamed'", TestContext.Current.CancellationToken);
             throw new InvalidOperationException("roll back");
         }, cancellationToken: TestContext.Current.CancellationToken));
 
@@ -98,7 +98,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
             await GeneratedModelWrites.Create(Widget.Create("tongs"), cancellationToken: TestContext.Current.CancellationToken);
-            await mine.Database.ExecuteSqlRawAsync("UPDATE Widget SET Name = 'renamed' WHERE Name = 'anvil'", TestContext.Current.CancellationToken);
+            await mine.Database.ExecuteSqlRawAsync("UPDATE widgets SET name = 'renamed' WHERE name = 'anvil'", TestContext.Current.CancellationToken);
             throw new InvalidOperationException("roll back");
         }, cancellationToken: TestContext.Current.CancellationToken));
 
@@ -114,7 +114,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
             await mine.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
-            await mine.Database.ExecuteSqlRawAsync("DELETE FROM Widget", TestContext.Current.CancellationToken);
+            await mine.Database.ExecuteSqlRawAsync("DELETE FROM widgets", TestContext.Current.CancellationToken);
             await mine.Database.CloseConnectionAsync();
             await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
             throw new InvalidOperationException("roll back");
@@ -147,7 +147,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
-            await other.Database.ExecuteSqlRawAsync("DELETE FROM Widget", TestContext.Current.CancellationToken);
+            await other.Database.ExecuteSqlRawAsync("DELETE FROM widgets", TestContext.Current.CancellationToken);
             await GeneratedModelWrites.Create(Widget.Create("elsewhere"), db: other, cancellationToken: TestContext.Current.CancellationToken);
         }, cancellationToken: TestContext.Current.CancellationToken));
 
@@ -164,7 +164,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
 
         await Db.Transaction(async () =>
         {
-            await mine.Database.ExecuteSqlRawAsync("DELETE FROM Widget", TestContext.Current.CancellationToken);
+            await mine.Database.ExecuteSqlRawAsync("DELETE FROM widgets", TestContext.Current.CancellationToken);
             joined = mine.Database.GetDbConnection();
         }, cancellationToken: TestContext.Current.CancellationToken);
         mine.Add(Widget.Create("hammer"));
@@ -184,7 +184,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
         await using var mine = Db.CreateOwnContext();
         var own = mine.Database.GetDbConnection();
 
-        await mine.Database.ExecuteSqlRawAsync("DELETE FROM Widget", TestContext.Current.CancellationToken);
+        await mine.Database.ExecuteSqlRawAsync("DELETE FROM widgets", TestContext.Current.CancellationToken);
 
         Assert.Same(own, mine.Database.GetDbConnection());
         Assert.Null(mine.Database.CurrentTransaction);

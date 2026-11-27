@@ -112,10 +112,10 @@ internal static class NoOverlapSql
     private static bool IsMax(ITable table, string column) =>
         table.FindColumn(column)?.StoreType.EndsWith("(max)", StringComparison.OrdinalIgnoreCase) == true;
 
-    /// <summary>The name a rule's trigger takes on SQL Server: <c>TR_</c> in place of <c>EX_</c>.</summary>
-    internal static string Trigger(string rule, int limit) => Limited("TR_" + rule[3..], limit);
+    /// <summary>The name a rule's trigger takes on SQL Server: <c>tr_</c> in place of <c>xc_</c>.</summary>
+    internal static string Trigger(string rule, int limit) => Limited("tr_" + rule[3..], limit);
 
-    private static string Index(string rule, int limit) => Limited("IX_" + rule[3..], limit);
+    private static string Index(string rule, int limit) => Limited("ix_" + rule[3..], limit);
 
     private static string Limited(string name, int limit) => name.Length > limit ? name[..limit] : name;
 

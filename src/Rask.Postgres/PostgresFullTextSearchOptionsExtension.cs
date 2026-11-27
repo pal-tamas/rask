@@ -50,6 +50,8 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
 
         // A moment's day on the wall calendar, read in a query off its UTC column (MomentDayTranslator).
         services.TryAddScoped<IMomentDays, PostgresMomentDays>();
+        // RaskDbContext adds the same translator (ValueObjectQueryOptionsExtension); it is added here too for a context
+        // that is not one, and TryAdd keeps a single registration.
         new EntityFrameworkRelationalServicesBuilder(services).TryAdd<IMemberTranslatorPlugin, MomentDayTranslator>();
 
         // That day is written with the zone in its SQL, so the zone is a part of every compiled query's cache key: a

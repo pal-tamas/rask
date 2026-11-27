@@ -4,7 +4,7 @@ using Rask.Batteries;
 namespace Rask.Logging;
 
 /// <summary>
-/// One row of the <c>RaskLog</c> table in the application's database — the storage shape behind
+/// One row of the <c>log_entries</c> table in the application's database — the storage shape behind
 /// <see cref="LogRecord"/> for <c>AddRaskLogging&lt;TContext&gt;()</c>.
 /// </summary>
 /// <remarks>

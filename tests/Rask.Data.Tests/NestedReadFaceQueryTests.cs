@@ -78,7 +78,7 @@ public sealed class NestedReadFaceQueryTests : IDisposable
 
         Assert.Equal(["X-1"], plates);
         var select = Assert.Single(log.Texts);
-        Assert.Contains("TruckFleet", select, StringComparison.Ordinal);
+        Assert.Contains("truck_fleets", select, StringComparison.Ordinal);
     }
 
     [Fact]

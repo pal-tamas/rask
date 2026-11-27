@@ -91,7 +91,7 @@ public sealed class KeepEmptyTests : IDisposable
         await database.Context.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
         var connection = database.Context.Database.GetDbConnection();
         await using var command = connection.CreateCommand();
-        command.CommandText = $"SELECT \"Vat\", \"GroupVat\", \"Note\" FROM \"{Table(database)}\" WHERE \"Id\" = {id}";
+        command.CommandText = $"SELECT \"vat\", \"group_vat\", \"note\" FROM \"{Table(database)}\" WHERE \"id\" = {id}";
         await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
         await reader.ReadAsync(TestContext.Current.CancellationToken);
         return [.. Enumerable.Range(0, 3).Select(i => reader.IsDBNull(i) ? null : reader.GetString(i))];
@@ -102,7 +102,7 @@ public sealed class KeepEmptyTests : IDisposable
     {
 #pragma warning disable EF1002 // the table name comes from the model, the id is a parameter
         await database.Context.Database.ExecuteSqlRawAsync(
-            $"UPDATE \"{Table(database)}\" SET \"Vat\" = NULL, \"GroupVat\" = NULL, \"Note\" = NULL WHERE \"Id\" = {{0}}",
+            $"UPDATE \"{Table(database)}\" SET \"vat\" = NULL, \"group_vat\" = NULL, \"note\" = NULL WHERE \"id\" = {{0}}",
             [id], TestContext.Current.CancellationToken);
 #pragma warning restore EF1002
     }

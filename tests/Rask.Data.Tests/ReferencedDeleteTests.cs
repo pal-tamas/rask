@@ -169,7 +169,7 @@ public sealed class ReferencedDeleteTests : IDisposable
         Assert.Equal(Trailer.OnADocket, failure.Message);
         Assert.Empty(failure.Fields);
         Assert.Null(failure.Marked);
-        Assert.Equal("FK_Docket_Trailer_TrailerId", failure.Source);
+        Assert.Equal("fk_dockets_trailer_id", failure.Source);
         Assert.Equal([Trailer.OnADocket], refused.Errors[""]);
         Assert.Single(refused.Errors);
         Assert.IsType<DbUpdateException>(refused.InnerException);
@@ -209,7 +209,7 @@ public sealed class ReferencedDeleteTests : IDisposable
         await tractor.Save(cancellationToken: Cancellation);
         await database.Context.Database.ExecuteSqlAsync(
             $"""
-             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "TractorId" INTEGER NOT NULL REFERENCES "Tractor" ("Id"));
+             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "TractorId" INTEGER NOT NULL REFERENCES "tractors" ("id"));
              INSERT INTO "TripLog" ("TractorId") VALUES ({tractor.Id});
              """,
             Cancellation);
@@ -254,7 +254,7 @@ public sealed class ReferencedDeleteTests : IDisposable
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Trailer.OnADocket, failure.Message);
         Assert.Empty(failure.Fields);
-        Assert.Equal("FK_Docket_Trailer_TrailerId", failure.Source);
+        Assert.Equal("fk_dockets_trailer_id", failure.Source);
         Assert.IsType<InvalidOperationException>(refused.InnerException);
     }
 
@@ -342,7 +342,7 @@ public sealed class ReferencedDeleteTests : IDisposable
 
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Yard.HasAFence, failure.Message);
-        Assert.Equal("FK_Fence_Yard_YardId", failure.Source);
+        Assert.Equal("fk_fences_yard_id", failure.Source);
     }
 
     [Fact]
@@ -358,7 +358,7 @@ public sealed class ReferencedDeleteTests : IDisposable
 
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Yard.InUse, failure.Message);
-        Assert.Equal("FK_Shed_Yard_YardId", failure.Source);
+        Assert.Equal("fk_sheds_yard_id", failure.Source);
     }
 
     [Fact]
@@ -395,7 +395,7 @@ public sealed class ReferencedDeleteTests : IDisposable
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Yard.HasAGate, failure.Message);
         Assert.Empty(failure.Fields);
-        Assert.Equal("FK_Gate_Yard_YardId", failure.Source);
+        Assert.Equal("fk_gates_yard_id", failure.Source);
         Assert.IsAssignableFrom<DbException>(refused.InnerException);
     }
 
@@ -407,7 +407,7 @@ public sealed class ReferencedDeleteTests : IDisposable
         await tractor.Save(cancellationToken: Cancellation);
         await database.Context.Database.ExecuteSqlAsync(
             $"""
-             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "TractorId" INTEGER NOT NULL REFERENCES "Tractor" ("Id"));
+             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "TractorId" INTEGER NOT NULL REFERENCES "tractors" ("id"));
              INSERT INTO "TripLog" ("TractorId") VALUES ({tractor.Id});
              """,
             Cancellation);
@@ -540,13 +540,13 @@ public sealed class ReferencedDeleteTests : IDisposable
     public async Task A_constraint_postgresql_names_is_answered_by_that_relationships_sentence()
     {
         await using var database = await StartDatabaseAsync();
-        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, Postgres("FK_Fence_Yard_YardId"));
+        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, Postgres("fk_fences_yard_id"));
 
         var translated = ReferencedDelete.Translate(null, refusal);
 
         var failure = Assert.Single(translated!.Failures);
         Assert.Equal(Yard.HasAFence, failure.Message);
-        Assert.Equal("FK_Fence_Yard_YardId", failure.Source);
+        Assert.Equal("fk_fences_yard_id", failure.Source);
     }
 
     [Fact]
@@ -555,29 +555,29 @@ public sealed class ReferencedDeleteTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var restrict = new ProviderRefusal(
             "23001: update or delete on table \"Yard\" violates RESTRICT setting of foreign key constraint " +
-            "\"FK_Fence_Yard_YardId\" on table \"Fence\"",
+            "\"fk_fences_yard_id\" on table \"Fence\"",
             "23001");
-        restrict.Data["ConstraintName"] = "FK_Fence_Yard_YardId";
+        restrict.Data["ConstraintName"] = "fk_fences_yard_id";
         var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, restrict);
 
         var translated = ReferencedDelete.Translate(null, refusal);
 
         var failure = Assert.Single(translated!.Failures);
         Assert.Equal(Yard.HasAFence, failure.Message);
-        Assert.Equal("FK_Fence_Yard_YardId", failure.Source);
+        Assert.Equal("fk_fences_yard_id", failure.Source);
     }
 
     [Fact]
     public async Task A_constraint_sql_server_quotes_is_answered_by_that_relationships_sentence()
     {
         await using var database = await StartDatabaseAsync();
-        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, SqlServer("FK_Gate_Yard_YardId"));
+        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, SqlServer("fk_gates_yard_id"));
 
         var translated = ReferencedDelete.Translate(null, refusal);
 
         var failure = Assert.Single(translated!.Failures);
         Assert.Equal(Yard.HasAGate, failure.Message);
-        Assert.Equal("FK_Gate_Yard_YardId", failure.Source);
+        Assert.Equal("fk_gates_yard_id", failure.Source);
     }
 
     [Fact]
@@ -608,7 +608,7 @@ public sealed class ReferencedDeleteTests : IDisposable
     public async Task A_named_constraint_that_refused_an_insert_is_not_a_refused_delete()
     {
         await using var database = await StartDatabaseAsync();
-        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Added, Postgres("FK_Fence_Yard_YardId"));
+        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Added, Postgres("fk_fences_yard_id"));
 
         var translated = ReferencedDelete.Translate(null, refusal);
 

@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 namespace Rask.SQLite;
 
 /// <summary>
-/// A migrations SQL generator that emits <c>CREATE TABLE … ) STRICT</c>, so SQLite enforces each
-/// column's declared type instead of coercing whatever it is handed. Registered by
+/// The <see cref="RaskSqliteMigrationsSqlGenerator" /> that also emits <c>CREATE TABLE … ) STRICT</c>, so SQLite
+/// enforces each column's declared type instead of coercing whatever it is handed. Registered by
 /// <c>UseRaskSqlite(…, o => o.StrictTables = true)</c>.
 /// </summary>
 /// <remarks>
@@ -27,8 +27,13 @@ namespace Rask.SQLite;
 /// Strictness is per table, so enabling this does not require a migration: existing tables stay as they
 /// are and newly created ones are strict. Converting an existing table means rebuilding it.
 /// </para>
+/// <para>
+/// EF Core resolves exactly one <see cref="IMigrationsSqlGenerator" />, so strictness is a subclass of the
+/// generator that adds Rask's other DDL (<c>NoOverlap(…)</c>, full-text search, JSON indexes) rather than a
+/// second generator: two registered side by side would silently keep only whichever was replaced last.
+/// </para>
 /// </remarks>
-public class RaskSqliteStrictMigrationsSqlGenerator : SqliteMigrationsSqlGenerator
+public class RaskSqliteStrictMigrationsSqlGenerator : RaskSqliteMigrationsSqlGenerator
 {
     /// <summary>Creates the generator. Resolved by Entity Framework Core, not constructed directly.</summary>
     /// <param name="dependencies">The migrations SQL generator dependencies.</param>

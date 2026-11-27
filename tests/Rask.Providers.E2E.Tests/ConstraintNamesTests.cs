@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Generators.Shared;
 
 namespace Rask.Providers.E2E.Tests;
 
@@ -33,8 +34,8 @@ public sealed class NamedSubscriberDbContext(DbContextOptions<NamedSubscriberDbC
 }
 
 /// <summary>
-/// <c>ConstraintNames</c> on a real SQL Server: the names reach the schema, cut to its 128 characters, and a unique
-/// index's message still finds the index under the name the rule gave it.
+/// <c>ConstraintNames</c> on a real SQL Server: the names reach the schema, cut to its 128 characters and ended in a
+/// hash of the whole name, and a unique index's message still finds the index under the name the rule gave it.
 /// </summary>
 [Collection(SqlServerCollection.Name)]
 public sealed class SqlServerConstraintNamesTests : IAsyncLifetime
@@ -67,7 +68,7 @@ public sealed class SqlServerConstraintNamesTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_schema_carries_the_rule_s_names_cut_to_128_characters()
+    public async Task The_schema_carries_the_rule_s_names_cut_to_128_characters_and_a_hash()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
         await using var app = App();
@@ -81,9 +82,9 @@ public sealed class SqlServerConstraintNamesTests : IAsyncLifetime
             .ToListAsync(TestContext.Current.CancellationToken);
 
         var table = NamedSubscriberDbContext.Table;
-        Assert.Contains($"{table}_pkey"[..128], names);
-        Assert.Contains($"{table}_Email_key"[..128], names);
-        Assert.Contains($"{table}_Room_df"[..128], names);
+        Assert.Contains(StoreNames.Fit($"{table}_pkey", 128), names);
+        Assert.Contains(StoreNames.Fit($"{table}_Email_key", 128), names);
+        Assert.Contains(StoreNames.Fit($"{table}_Room_df", 128), names);
         Assert.Contains("subscriber_nickname_as_written", names);
     }
 

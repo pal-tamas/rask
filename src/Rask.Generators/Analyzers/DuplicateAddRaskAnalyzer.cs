@@ -28,7 +28,7 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
     private static readonly ImmutableHashSet<string> HostAssemblies =
         ImmutableHashSet.Create(StringComparer.Ordinal, "Rask.Server");
 
-    private static readonly DiagnosticDescriptor Rask056 = new(
+    private static readonly DiagnosticDescriptor Rask060 = new(
         "RASK060",
         "AddRask is called twice on the same service collection",
         "'{0}' is passed to AddRask more than once — the two calls do not merge, and which one wins "
@@ -47,7 +47,7 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
         helpLinkUri: DiagnosticHelp.Link("RASK060"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(Rask056);
+        ImmutableArray.Create(Rask060);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -110,7 +110,7 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
             foreach (var extra in calls.OrderBy(static c => c.SpanStart).Skip(1))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask056, NameLocation(extra), Receiver(extra)));
+                    Rask060, NameLocation(extra), Receiver(extra)));
             }
         }
     }

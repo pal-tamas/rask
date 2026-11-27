@@ -93,7 +93,7 @@ public sealed partial class RaskApp
         configure?.Invoke(builder);
 
         // NOT AddRask — that waits for Build. Its options go in with TryAddSingleton, so the first call
-        // wins and a second one is silently discarded (RASK056). Calling it here would freeze the culture
+        // wins and a second one is silently discarded (RASK060). Calling it here would freeze the culture
         // list and the render-mode ceiling before Configure had a chance to say anything, and the app
         // would ship with no languages while its Program.cs plainly listed some.
         // The live-session pool reports on it: Degraded at 80% of MaxSessions, Unhealthy once new sessions are

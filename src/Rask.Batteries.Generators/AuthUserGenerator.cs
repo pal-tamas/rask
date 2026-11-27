@@ -11,7 +11,7 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Finds the application's user type — the one class deriving from <c>Rask.Auth.Authenticatable</c>, or from
-/// <c>Authenticatable&lt;TKey&gt;</c> for a text key — and emits a
+/// <c>Authenticatable&lt;TKey&gt;</c> for a typed id over a <c>Guid</c> or a text key — and emits a
 /// <c>[ModuleInitializer]</c> naming it to <c>Rask.Auth.AuthUser</c>,
 /// so <c>AddRaskAuth()</c> and <c>modelBuilder.AddRaskAuth()</c> need no type argument.
 /// </summary>
@@ -63,7 +63,7 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
 
         // Abstract or generic cannot be closed over; a user type also needs the parameterless
         // constructor registration builds a new user with.
-        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || KeyOf(symbol) is not { } key)
+        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || KeyTypeOf(symbol) is not { } keyType)
         {
             return null;
         }
@@ -74,24 +74,29 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
             return null;
         }
 
+        var key = keyType.Length == 1 ? keyType[0] : null;
         return new Candidate(
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            key,
+            key?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
+            IsTypedOverGuid(key),
             SymbolLocation.From(symbol));
     }
 
-    // The key the user type is named with: empty for one deriving from the Guid-keyed Authenticatable, whose binding
-    // names no key, and Authenticatable<TKey>'s TKey otherwise. Null for a class that derives from neither.
-    private static string? KeyOf(INamedTypeSymbol symbol)
+    // A typed id over a Guid — `UserId(Guid Value)`, declared here or in a referenced assembly — which the binding
+    // crosses with two lambdas, so Rask.Auth carries the Guid it holds without reflecting over it.
+    private static bool IsTypedOverGuid(ITypeSymbol? key) =>
+        key is not null && (TypedIdShape.Of(key) == TypedIdValue.Guid || TypedIdShape.OfReferenced(key) == TypedIdValue.Guid);
+
+    // The type arguments the user type's Authenticatable is closed with: none for the Guid-keyed Authenticatable, whose
+    // binding names no key, and Authenticatable<TKey>'s TKey otherwise. Null for a class that derives from neither.
+    private static ImmutableArray<ITypeSymbol>? KeyTypeOf(INamedTypeSymbol symbol)
     {
         for (var current = symbol.BaseType; current is not null; current = current.BaseType)
         {
             if (current.Name is AuthenticatableBase &&
                 current.ContainingNamespace?.ToDisplayString() is AuthNamespace)
             {
-                return current.TypeArguments.Length == 1
-                    ? current.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                    : string.Empty;
+                return current.TypeArguments;
             }
         }
 
@@ -137,11 +142,18 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
             source.Append(", ").Append(users[0].Key);
         }
 
-        source.AppendLine(">();");
+        if (users[0].IsTyped)
+        {
+            source.Append(">(static value => new ").Append(users[0].Key).AppendLine("(value), static id => id.Value);");
+        }
+        else
+        {
+            source.AppendLine(">();");
+        }
         source.AppendLine("}");
 
         context.AddSource("__RaskAuthUser.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
-    private readonly record struct Candidate(string FullyQualifiedName, string Key, SymbolLocation? Location);
+    private readonly record struct Candidate(string FullyQualifiedName, string Key, bool IsTyped, SymbolLocation? Location);
 }

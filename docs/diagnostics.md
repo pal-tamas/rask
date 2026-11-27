@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK191, RASK193, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK133, RASK139–RASK148, RASK150, RASK165, RASK170–RASK193, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -40,6 +40,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK185** | moves the aggregate's load into the `Db.Transaction` block, as its first statement |
 | **RASK186** | calls the operation's generated entry: `Supply.Update(id, s => s.Change(d), version: v)` → `Supply.Change(id, v, d)` |
 | **RASK187** | calls the aggregate's own set write: `db.Pairings.Where(p => …).ExecuteDeleteAsync()` → `Pairing.DeleteWhere(p => …)`, `ExecuteUpdateAsync(s => …)` → `Pairing.UpdateWhere(p => …, s => …)` |
+| **RASK192** | deletes the line that says what Rask names it anyway — `.ToTable("fuelings")`, `.HasColumnName("pistol_id")`, `.HasDatabaseName("ix_fuelings_created_at")`, `[Table("fuelings")]` — and a statement left saying nothing with it; Fix all does a whole document, project or solution |
 | **RASK193** | declares the children as one `HasMany<X>`: `private readonly List<Pistol> _pistols = []; public IReadOnlyList<Pistol> Pistols => _pistols;` → `public HasMany<Pistol> Pistols { get; } = new();`, and `_pistols.Add(p)` / `_pistols.AddRange(ps)` in the aggregate → `Pistols.Add(p)` / `Pistols.Add(ps)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -194,6 +195,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK189](#rask189) | Warning | A job is declared for an event the aggregate does not handle |
 | [RASK190](#rask190) | Error | An aggregate's `OnDelete` is not a delete hook |
 | [RASK191](#rask191) | Error | An aggregate's event handler cannot be registered |
+| [RASK192](#rask192) | Info | The configuration says what Rask's conventions already say |
 | [RASK193](#rask193) | Info (Error under `<RaskStrict>`) | A child list exposed by hand |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
@@ -2610,6 +2612,7 @@ and no quick-fix.
 
 | Code | What happened | Fix |
 | --- | --- | --- |
+| `RASKLANG001` | The project pins a `<LangVersion>` below C# 15 (`14`, `13.0`, `ISO-2`, …). Rask's generated code — the per-page `Url()`/`Go()` extension members among it — needs C# 15. | Remove `<LangVersion>` (.NET 11 defaults to C# 15) or set it to `15`, `latest` or `preview`. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net11.0-browser`. |
@@ -4188,6 +4191,33 @@ public sealed class Fueling : Aggregate<int>              // ✗ RASK191: it is 
 ```
 
 **Fix:** declare the aggregate `partial` (and at namespace level, not generic).
+
+## RASK192
+
+**The configuration says what Rask's conventions already say** · Info
+
+Rask [names every table, column and constraint itself](data.md#names-rasks-own-in-postgresqls-style) —
+`fuelings`, `pistol_id`, `ix_fuelings_created_at`. A name stated in an entity's configuration that is exactly that name
+changes nothing, and is one more line to keep in step with the model; the IDE shows it faded, as unneeded.
+
+```csharp
+b.ToTable("fuelings");                                                  // ✗ RASK192: Fueling's table anyway
+b.Property(x => x.PistolId).HasColumnName("pistol_id");                 // ✗ RASK192
+b.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_fuelings_created_at"); // ✗ RASK192
+b.HasOne<Pistol>().WithMany().HasForeignKey(x => x.PistolId)
+    .HasConstraintName("fk_fuelings_pistol_id");                         // ✗ RASK192
+b.ToTable("Fueling");                                                   // ✓ a name that is not Rask's
+```
+
+It compares `ToTable`, `HasColumnName` (a property, or a value object's member), `HasDatabaseName` (an index, `uq_`
+when it is unique), `HasName` (a primary or alternate key), `HasConstraintName` (a foreign key held by the entity
+being configured), and `[Table]`/`[Column]`, each with Rask's own name for it — on an entity's own table (not a
+hierarchy's derived type, not an owned type), against the table the same method names when it names one. A project
+that restates the pattern (`TableNames`, `ColumnNames` or `ConstraintNames` anywhere in it) gets no report: there Rask's
+names are not the model's.
+
+**Fix:** delete it — the quick fix does, taking the call out of its chain (`.HasColumnName("pistol_id").HasMaxLength(9)`
+→ `.HasMaxLength(9)`) and a statement left saying nothing with it; **Fix all** does every one at once.
 
 ## RASK193
 

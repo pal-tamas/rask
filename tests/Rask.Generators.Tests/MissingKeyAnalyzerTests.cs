@@ -89,12 +89,12 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task A_Select_projection_with_a_data_rask_key_reports_nothing()
+    public async Task A_Select_projection_keyed_only_by_a_data_rask_key_reports_RASK022()
     {
-        Assert.Empty(await Diagnostics(App("""
-                                           return Ul[ _items.Select(i => Li(
-                                               Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[i.ToString()]) ];
-                                           """)));
+        var d = Assert.Single(await Diagnostics(App(
+            "return Ul[ _items.Select(i => Li.Data(\"rask-key\", i.ToString())[i.ToString()]) ];")));
+
+        Assert.Equal("RASK022", d.Id);
     }
 
     [Fact]

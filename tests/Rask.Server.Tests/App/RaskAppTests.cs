@@ -586,7 +586,7 @@ public sealed class RaskAppTests
     public void Cultures_named_in_Configure_actually_reach_the_app()
     {
         // AddRask's options go in with TryAddSingleton, so the FIRST call wins and any later one is
-        // silently discarded — which is exactly what RASK056 reports. Create must therefore NOT call
+        // silently discarded — which is exactly what RASK060 reports. Create must therefore NOT call
         // AddRask: if it did, the culture list would be frozen empty before Configure ran, and the app
         // would ship with no languages while its Program.cs plainly listed two.
         var app = NewApp(a => a.Configure(c =>

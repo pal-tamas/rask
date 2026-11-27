@@ -45,8 +45,8 @@ public sealed class QuietRefusalTests : IDisposable
         await tractor.Save(cancellationToken: Cancellation);
         await database.Context.Database.ExecuteSqlAsync(
             $"""
-             CREATE TABLE "TripLog" ("Id" INTEGER PRIMARY KEY, "TractorId" INTEGER NOT NULL REFERENCES "Tractor" ("Id"));
-             INSERT INTO "TripLog" ("TractorId") VALUES ({tractor.Id});
+             CREATE TABLE "trip_logs" ("id" INTEGER PRIMARY KEY, "tractor_id" INTEGER NOT NULL REFERENCES "tractors" ("id"));
+             INSERT INTO "trip_logs" ("tractor_id") VALUES ({tractor.Id});
              """,
             Cancellation);
 

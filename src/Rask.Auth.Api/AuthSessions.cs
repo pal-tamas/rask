@@ -54,11 +54,24 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
 
     // Compiled once: a live page resumes before every event, and translating the same LINQ each time was most of
     // what a resume cost. Both query filters apply: an ended (soft-deleted) session and a deleted user are not found.
-    // A Guid key joins the session to its user in one query; a text key reads them one after the other, because the
-    // session holds the Guid the text carries and turning one into the other inside SQL is spelled differently on
-    // every database.
-    private static readonly Func<TContext, Guid, CancellationToken, Task<Row?>> FindRow =
-        typeof(TKey) == typeof(Guid) ? Joined() : FindApart;
+    // A Guid key joins the session to its user in one query, and so does a typed id over one where the store keeps a
+    // Guid natively. A text key reads them one after the other, because the session holds the Guid the text carries and
+    // turning one into the other inside SQL is spelled differently on every database — and so does a typed id kept as
+    // text (SQLite), which Rask writes lower-case while the session's plain Guid column is the provider's own spelling.
+    private static readonly Func<TContext, Guid, CancellationToken, Task<Row?>> FindRow = Finder();
+
+    // The typed id's way, chosen at the first read from the model: one join, or two reads where the key is text.
+    private static Func<TContext, Guid, CancellationToken, Task<Row?>>? _typedFinder;
+
+    private static Func<TContext, Guid, CancellationToken, Task<Row?>> Finder()
+    {
+        if (typeof(TKey) == typeof(Guid))
+        {
+            return Joined();
+        }
+
+        return AccountKey<TKey>.IsTyped ? FindTyped : FindApart;
+    }
 
     private static Func<TContext, Guid, CancellationToken, Task<Row?>> Joined() =>
         EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
@@ -66,6 +79,25 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
              join u in db.Set<TUser>().AsNoTracking() on s.UserId equals EF.Property<Guid>(u, KeyProperty)
              where s.Id == sessionId
              select new Row(u, s.ExpiresAt, s.LastSeenAt, s.ActingInTenant)).FirstOrDefault());
+
+    // A typed id over a Guid is stored as that Guid, so the session's column and the user's key are one store type. EF
+    // Core compares a column only with one of its own CLR type — a Guid with a UserId is "never equal", ON 0 — so the
+    // key is read through object as the Guid it is stored as, which EF Core drops: `ON s.UserId = u.Id`, no CAST, and
+    // the user's key is still sought by its index.
+    private static Func<TContext, Guid, CancellationToken, Task<Row?>> JoinedTyped() =>
+        EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
+            (from s in db.Set<Session>().AsNoTracking()
+             join u in db.Set<TUser>().AsNoTracking() on s.UserId equals (Guid)(object)EF.Property<TKey>(u, KeyProperty)
+             where s.Id == sessionId
+             select new Row(u, s.ExpiresAt, s.LastSeenAt, s.ActingInTenant)).FirstOrDefault());
+
+    private static Task<Row?> FindTyped(TContext db, Guid sessionId, CancellationToken cancellationToken) =>
+        (_typedFinder ??= KeptAsText(db) ? FindApartTyped : JoinedTyped())(db, sessionId, cancellationToken);
+
+    // Whether the store keeps the user's key as text — what its converter hands the provider.
+    private static bool KeptAsText(TContext db) =>
+        db.Model.FindEntityType(typeof(TUser))?.FindPrimaryKey()?.Properties is [var key]
+        && (key.GetTypeMapping().Converter?.ProviderClrType ?? key.GetTypeMapping().ClrType) == typeof(string);
 
     private static readonly Func<TContext, Guid, CancellationToken, Task<SessionRow?>> FindSession =
         EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
@@ -78,6 +110,11 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         EF.CompileAsyncQuery((TContext db, string key, CancellationToken _) =>
             db.Set<TUser>().AsNoTracking().FirstOrDefault(u => EF.Property<string>(u, KeyProperty) == key));
 
+    // The key's own Equals, which EF Core translates to the column's = through the typed id's converter.
+    private static readonly Func<TContext, TKey, CancellationToken, Task<TUser?>> FindUserByKey =
+        EF.CompileAsyncQuery((TContext db, TKey key, CancellationToken _) =>
+            db.Set<TUser>().AsNoTracking().FirstOrDefault(u => EF.Property<TKey>(u, KeyProperty).Equals(key)));
+
     private static async Task<Row?> FindApart(TContext db, Guid sessionId, CancellationToken cancellationToken)
     {
         if (await FindSession(db, sessionId, cancellationToken).ConfigureAwait(false) is not { } session)
@@ -86,6 +123,18 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         }
 
         return await FindUserByText(db, session.UserId.ToString(), cancellationToken).ConfigureAwait(false) is { } user
+            ? new Row(user, session.ExpiresAt, session.LastSeenAt, session.ActingInTenant)
+            : null;
+    }
+
+    private static async Task<Row?> FindApartTyped(TContext db, Guid sessionId, CancellationToken cancellationToken)
+    {
+        if (await FindSession(db, sessionId, cancellationToken).ConfigureAwait(false) is not { } session)
+        {
+            return null;
+        }
+
+        return await FindUserByKey(db, AccountKey<TKey>.From(session.UserId), cancellationToken).ConfigureAwait(false) is { } user
             ? new Row(user, session.ExpiresAt, session.LastSeenAt, session.ActingInTenant)
             : null;
     }
@@ -125,7 +174,7 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         try
         {
             var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
-            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
+            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= Session.TouchInterval)
             {
                 var expiresAt = slide && options.SlidingExpiration ? now + options.ExpireTimeSpan : found.ExpiresAt;
                 await TouchAsync(db, sessionId, now, expiresAt, cancellationToken).ConfigureAwait(false);
@@ -265,12 +314,12 @@ internal sealed class AuthSessions<TContext, TUser, TKey>(
         string Name, string Email, string[] Roles, Guid? TenantId, Guid? ActingIn, OwnClaim[] OwnClaims)
     {
         internal static Issued From(Row row, Guid? actingIn) =>
-            new(row.SignInName, row.User.Email, [.. row.User.Roles], row.User.TenantId, actingIn, row.User.OwnClaims());
+            new(row.SignInName, row.User.Email, [.. row.User.Roles], row.User.CarriedTenant, actingIn, row.User.OwnClaims());
 
         internal bool StillSays(Row row, Guid? actingIn) =>
             string.Equals(Name, row.SignInName, StringComparison.Ordinal)
             && string.Equals(Email, row.User.Email, StringComparison.Ordinal)
-            && TenantId == row.User.TenantId
+            && TenantId == row.User.CarriedTenant
             && ActingIn == actingIn
             && Roles.AsSpan().SequenceEqual([.. row.User.Roles])
             && OwnClaims.AsSpan().SequenceEqual(row.User.OwnClaims());

@@ -128,6 +128,9 @@ public abstract class ReadForUpdateParityTests(ProviderLeg leg) : ParityTests<Le
     }
 }
 
+// Db.Configure and ReadDb.Configure are process-wide, and another class's Db.Reset() resets the read faces too, so the
+// SQLite leg runs in a collection that runs alone, as the servers' do.
+[Collection(SqlServerCollection.Name)]
 public sealed class SqliteReadForUpdateParityTests() : ReadForUpdateParityTests(ProviderLeg.Sqlite("read-for-update"));
 
 [Collection(SqlServerCollection.Name)]
