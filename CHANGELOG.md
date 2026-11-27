@@ -54,6 +54,16 @@ them until tagged releases begin.
   rules a save numbers it by — `by`, `skip`, `Same`, `SkipWhen` — under the same per-group lock, in a `Db.Transaction` of
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
+### Changed
+- **`Rask.Postgres` ships stable, at the version of every other package, on Npgsql's stable EF Core 11 provider.**
+  `Npgsql.EntityFrameworkCore.PostgreSQL` moves from 11.0.0-rc.3 to 11.0.0, which asks for EF Core [11.0.0, 12.0.0),
+  the line the rest of Rask is on. The November hold is lifted: no `x.y.z-rc.1` suffix on a stable tag, no NU1608 for a
+  Postgres app to silence (drop the `<NoWarn>$(NoWarn);NU1608</NoWarn>` 0.24 asked for), and no direct EF Core
+  references under the provider. The plan to bundle it in `Rask.Server` again is dropped: `Rask.Postgres` stays a
+  separate package a PostgreSQL app adds (`dotnet add package Rask.Postgres`), so an app on SQLite or SQL Server never
+  restores Npgsql, and `Rask.Server` keeps finding it by name. `publish_packages.py` and the CLI build gates no longer
+  accept a package held as a prerelease of the set's version.
+
 ### Documentation
 - **RASK177 names the fix for `HasColumnType("date")` on a `DateTime`: a `DateOnly`, or a `Day` value object**
   (`record InvoiceDay(DateOnly Value) : Day(Value)`) — `date` on SQL Server and PostgreSQL both, so no migration. In

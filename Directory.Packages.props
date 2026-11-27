@@ -50,10 +50,9 @@
     <PackageVersion Include="Microsoft.Playwright" Version="1.65.1" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
     <!-- Rask.Postgres. Npgsql versions on its own line (11.0.x tracks EF Core 11 but not its patch numbers), so it
-         is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
-         A RELEASE CANDIDATE on purpose: 11.0.0-rc.3 is the newest Npgsql provider for EF Core 11, and EF Core 10's
-         provider does not load under EF Core 11. Move it to 11.0.0 the day that ships (Dependabot will offer it). -->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.3" />
+         is deliberately outside the Microsoft platform-stack family the pin tests hold to one version. 11.0.0 asks
+         for EF Core [11.0.0, 12.0.0), the line the platform stack above is on. -->
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0" />
     <!-- Test-only: Rask.Pdf.Tests reads the printed PDFs back (text, page sizes, page count). Rask.Pdf itself has
          no dependency. -->
     <PackageVersion Include="PdfPig" Version="0.1.16" />

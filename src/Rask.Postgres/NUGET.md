@@ -14,11 +14,9 @@ than one file can serve.
 dotnet add package Rask.Postgres
 ```
 
-A release candidate while Npgsql's EF Core 11 provider is one (`11.0.0-rc.3`): that provider pins EF Core to exactly
-its own rc build and Rask is on EF Core 11.0.0, so the app restores with NU1608 — add
-`<NoWarn>$(NoWarn);NU1608</NoWarn>` under warnings-as-errors. With `Rask:Database:Provider` set to `postgres`,
-`Rask.Server` finds this package by name; it becomes stable, and part of `Rask.Server` again, with Npgsql's stable
-provider.
+A package of its own, at the version of the rest of Rask, on Npgsql's stable EF Core 11 provider: `Rask.Server` does
+not bundle it, so an app on SQLite or SQL Server never restores Npgsql. With `Rask:Database:Provider` set to
+`postgres`, `Rask.Server` finds this package by name.
 
 ## Use
 

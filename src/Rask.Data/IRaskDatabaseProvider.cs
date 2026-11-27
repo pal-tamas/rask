@@ -3,12 +3,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     A database provider package the server host finds by name rather than references: Rask.Postgres, while it ships
-///     as a release candidate on Npgsql's release-candidate EF Core 11 provider.
+///     A database provider package the server host finds by name rather than references: Rask.Postgres, a separate
+///     package that only a PostgreSQL app adds.
 /// </summary>
 /// <remarks>
-///     A stable Rask.Server cannot depend on a prerelease package (NU5104), so it names the provider's entry type as a
-///     constant and asks for it at run time; an app that added the package has it, one that did not is told so.
+///     Rask.Server does not depend on it, so an app on SQLite or SQL Server never restores Npgsql. The host names the
+///     provider's entry type as a constant and asks for it at run time; an app that added the package has it, one that
+///     did not is told so.
 /// </remarks>
 internal interface IRaskDatabaseProvider
 {

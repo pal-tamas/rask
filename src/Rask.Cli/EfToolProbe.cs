@@ -25,7 +25,7 @@ internal static class EfToolProbe
     ///         so it is carried out rather than recited.
     ///     </para>
     ///     <para>
-    ///         The pin's release part: a prerelease pin ("11.0.0-rc.3.26522.148", while EF Core is held for Npgsql)
+    ///         The pin's release part: a prerelease pin ("11.0.0-rc.3.26522.148", a release candidate)
     ///         is floored at its release, the way an installed tool's version is read below.
     ///     </para>
     /// </remarks>

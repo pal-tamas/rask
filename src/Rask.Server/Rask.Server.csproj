@@ -50,10 +50,9 @@
     <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- The other databases Rask:Database:Provider can name. Bundled rather than left to the app so switching is a
          configuration edit and nothing else: UseRaskDatabase(sp) calls these directly, with no reflection.
-         EXCEPT Rask.Postgres, for now: it ships as a release candidate while Npgsql's EF Core 11 provider is one, and
-         a stable package cannot depend on a prerelease one (NU5104). A Postgres app adds the Rask.Postgres package
-         and UseRaskDatabase finds it by name (App/PostgresLoader.cs). It is bundled again when Npgsql's provider is
-         stable (Rask.Postgres.csproj, RaskPostgresPreRelease). -->
+         EXCEPT Rask.Postgres: it is a separate package, so an app on SQLite or SQL Server never restores Npgsql. A
+         Postgres app adds the Rask.Postgres package and UseRaskDatabase finds it by name (App/PostgresLoader.cs);
+         PostgresPackageTests keeps this project from referencing it. -->
     <ProjectReference Include="..\Rask.SqlServer\Rask.SqlServer.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- HTTP endpoints: Rask.Api carries the hosting and the client generator, Rask.Api.Client the runtime the

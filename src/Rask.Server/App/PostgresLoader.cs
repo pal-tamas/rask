@@ -6,12 +6,9 @@ namespace Rask;
 /// <summary>Opens PostgreSQL through the Rask.Postgres package the app added, found by name.</summary>
 /// <remarks>
 ///     <para>
-///         Rask.Postgres ships as a release candidate while Npgsql's EF Core 11 provider is one, and a stable Rask.Server
-///         cannot depend on a prerelease package (NU5104). So, as with Rask.Pdf (<c>PdfLoader</c>), the host asks for the
+///         Rask.Postgres is a separate package that only a PostgreSQL app adds, so an app on SQLite or SQL Server never
+///         restores Npgsql. Rask.Server does not reference it: as with Rask.Pdf (<c>PdfLoader</c>), the host asks for the
 ///         provider's entry type BY NAME. The name is a constant, so the trimmer resolves it and keeps the type.
-///     </para>
-///     <para>
-///         Goes back to a plain reference when Rask.Postgres is stable again, with the move to Npgsql's stable provider.
 ///     </para>
 /// </remarks>
 internal static class PostgresLoader

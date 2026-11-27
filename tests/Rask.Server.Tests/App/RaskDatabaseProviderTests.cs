@@ -29,7 +29,7 @@ public sealed class RaskDatabaseProviderTests
     [Fact]
     public void The_postgres_provider_is_found_by_the_name_Rask_Server_asks_for()
     {
-        // Rask.Server no longer references Rask.Postgres (a release candidate), so it asks for the provider by name. A
+        // Rask.Server does not reference Rask.Postgres (a separate package), so it asks for the provider by name. A
         // rename on either side would compile, and leave every Postgres app with "add the Rask.Postgres package".
         var type = Type.GetType(PostgresLoader.ProviderTypeName, throwOnError: false);
 
