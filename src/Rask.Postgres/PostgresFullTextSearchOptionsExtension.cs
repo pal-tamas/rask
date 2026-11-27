@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NpgsqlTypes;
@@ -16,7 +17,8 @@ namespace Rask.Postgres;
 
 /// <summary>
 ///     Registers the model and query halves of PostgreSQL full-text search on a context, and stores a <c>Moment</c> value
-///     object as UTC (<see cref="PostgresMomentConventionSetPlugin" />).
+///     object as UTC (<see cref="PostgresMomentConventionSetPlugin" />) and writes <c>Min</c>/<c>Max</c> of a <c>uuid</c>
+///     (<see cref="PostgresUuidAggregatePlugin" />).
 /// </summary>
 internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptionsExtension
 {
@@ -31,6 +33,9 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
             .TryAdd<IConventionSetPlugin, PostgresMomentConventionSetPlugin>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor, PostgresFullTextSearchQueryInterceptor>());
+
+        // Min and Max of a uuid, which PostgreSQL has no aggregate for.
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IAggregateMethodCallTranslatorPlugin, PostgresUuidAggregatePlugin>());
 
         // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
         RaskMigrationsModelDiffer.Register(services);
