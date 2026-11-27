@@ -13,9 +13,9 @@ public class TypedIdFormModelTests
         namespace Shop;
         public readonly partial record struct CompanyId(int Value);
         public readonly partial record struct DepotId(Guid Value) { public static DepotId New() => new(Guid.CreateVersion7()); }
-        public sealed class Company : Aggregate<CompanyId, Model> { private Company() { } public string Name { get; private set; } = ""; }
-        public sealed class Depot : Aggregate<DepotId, Model> { private Depot() { } public string Name { get; private set; } = ""; }
-        public sealed class Contract : Aggregate<Guid, Model>
+        public sealed class Company : Aggregate<CompanyId>, IHasForm { private Company() { } public string Name { get; private set; } = ""; }
+        public sealed class Depot : Aggregate<DepotId>, IHasForm { private Depot() { } public string Name { get; private set; } = ""; }
+        public sealed class Contract : Aggregate<Guid>, IHasForm
         {
             private Contract() { }
             public CompanyId Company { get; private set; }
