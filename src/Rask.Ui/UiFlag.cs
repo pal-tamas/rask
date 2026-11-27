@@ -75,7 +75,7 @@ public sealed partial class UiFlag : Component
 
         return source is null
             ? frame
-            : frame[Img.Src(source).Alt(Alt ?? "").Loading(Loading.Lazy).Decoding(Decoding.Async).Class("size-full object-cover").Attributes(UiChromeImage.NotDragged)];
+            : frame[Img.Src(source).Alt(Alt ?? "").Loading(Loading.Lazy).Decoding(Decoding.Async).Class("absolute inset-0 size-full object-cover").Attributes(UiChromeImage.NotDragged)];
     }
 
     private string? Drawing() =>

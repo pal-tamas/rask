@@ -55,6 +55,8 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **`Ui.Flag`'s picture lies over its frame, as Flux 2.22's does (#1189).** The `<img>` is `absolute inset-0` inside the
+  frame (it was in the frame's flow); so are the flags of `Ui.Phone`'s country list and button. Same box, same look.
 - **A calendar's weekday row is Flux 2.22's (#1189).** Each heading of `Ui.Calendar` — and of the date and datetime
   pickers' calendars — holds the day's short name itself, centred by its own flex row (`justify-center`), where it
   wrapped it in a `<div>`. Nothing moves on the page.
