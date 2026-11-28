@@ -876,6 +876,7 @@ Rask.Core.Css.AlignContentKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.Stretch.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords
 Rask.Core.Css.AlignItemsKeywords.AlignItemsKeywords() -> void
+Rask.Core.Css.AlignItemsKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.End.get -> Rask.Core.Css
@@ -898,6 +899,7 @@ Rask.Core.Css.AlignmentBaselineKeywords.Middle.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords
 Rask.Core.Css.AlignSelfKeywords.AlignSelfKeywords() -> void
 Rask.Core.Css.AlignSelfKeywords.AnchorCenter.get -> Rask.Core.Css
+Rask.Core.Css.AlignSelfKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.Center.get -> Rask.Core.Css
@@ -2383,6 +2385,7 @@ Rask.Core.Css.JustifyContentKeywords.SpaceEvenly.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.Stretch.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords
+Rask.Core.Css.JustifyItemsKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.End.get -> Rask.Core.Css
@@ -2399,6 +2402,7 @@ Rask.Core.Css.JustifyItemsKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.Stretch.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords
 Rask.Core.Css.JustifySelfKeywords.AnchorCenter.get -> Rask.Core.Css
+Rask.Core.Css.JustifySelfKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.Center.get -> Rask.Core.Css
@@ -2927,6 +2931,7 @@ Rask.Core.Css.PlaceContentKeywords.SpaceEvenly.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.Stretch.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords
+Rask.Core.Css.PlaceItemsKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.End.get -> Rask.Core.Css
@@ -2940,6 +2945,7 @@ Rask.Core.Css.PlaceItemsKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.Stretch.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords
 Rask.Core.Css.PlaceSelfKeywords.AnchorCenter.get -> Rask.Core.Css
+Rask.Core.Css.PlaceSelfKeywords.AnchorOrigin.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.Baseline.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.Center.get -> Rask.Core.Css
@@ -2972,15 +2978,18 @@ Rask.Core.Css.PositionAnchorKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.PositionAnchorKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.PositionAnchorKeywords.PositionAnchorKeywords() -> void
 Rask.Core.Css.PositionAreaKeywords
+Rask.Core.Css.PositionAreaKeywords.Back.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.BlockEnd.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.BlockStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.Bottom.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.End.get -> Rask.Core.Css
+Rask.Core.Css.PositionAreaKeywords.Front.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.InlineEnd.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.InlineStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.Left.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.None.get -> Rask.Core.Css
+Rask.Core.Css.PositionAreaKeywords.Origin.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.PositionAreaKeywords() -> void
 Rask.Core.Css.PositionAreaKeywords.Right.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SelfBlockEnd.get -> Rask.Core.Css
@@ -2994,10 +3003,12 @@ Rask.Core.Css.PositionAreaKeywords.SelfXStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SelfYEnd.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SelfYStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanAll.get -> Rask.Core.Css
+Rask.Core.Css.PositionAreaKeywords.SpanBack.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanBlockEnd.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanBlockStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanBottom.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanEnd.get -> Rask.Core.Css
+Rask.Core.Css.PositionAreaKeywords.SpanFront.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanInlineEnd.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanInlineStart.get -> Rask.Core.Css
 Rask.Core.Css.PositionAreaKeywords.SpanLeft.get -> Rask.Core.Css
@@ -3029,6 +3040,7 @@ Rask.Core.Css.PositionKeywords.Absolute.get -> Rask.Core.Css
 Rask.Core.Css.PositionKeywords.Fixed.get -> Rask.Core.Css
 Rask.Core.Css.PositionKeywords.PositionKeywords() -> void
 Rask.Core.Css.PositionKeywords.Relative.get -> Rask.Core.Css
+Rask.Core.Css.PositionKeywords.SpatialAbsolute.get -> Rask.Core.Css
 Rask.Core.Css.PositionKeywords.Static.get -> Rask.Core.Css
 Rask.Core.Css.PositionKeywords.Sticky.get -> Rask.Core.Css
 Rask.Core.Css.PositionTryFallbacksKeywords

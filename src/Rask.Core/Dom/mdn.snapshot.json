@@ -2,14 +2,14 @@
  "schema": 1,
  "sources": {
   "@mdn/browser-compat-data": "8.1.11",
-  "@webref/css": "8.7.10",
+  "@webref/css": "8.8.0",
   "@webref/elements": "2.9.2",
-  "@webref/events": "1.28.0",
-  "@webref/idl": "3.87.1",
-  "webref/dfns": "9c57ab2a180c05339d8b2111706c36b4ee57fbf8",
+  "@webref/events": "1.29.0",
+  "@webref/idl": "3.88.0",
+  "webref/dfns": "eb199197d5fcef0b6a4771103b0447060dae378f",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
-  "w3c/aria": "820df3f12975757541aa37a3ab404f962afd1b22"
+  "w3c/aria": "718e3a99636c3f96eb11ace6aa66cdde387d2f63"
  },
  "engines": [
   "chrome",
@@ -70163,7 +70163,7 @@
     {
      "kind": "attribute",
      "name": "confidence",
-     "type": "PerformanceTimingConfidence",
+     "type": "PerformanceTimingConfidence?",
      "readonly": true,
      "experimental": true,
      "support": {
@@ -140967,7 +140967,8 @@
      "self-start",
      "self-end",
      "flex-start",
-     "flex-end"
+     "flex-end",
+     "anchor-origin"
     ],
     "accepts": [],
     "support": {
@@ -140992,6 +140993,7 @@
      "flex-end",
      "stretch",
      "baseline",
+     "anchor-origin",
      "anchor-center"
     ],
     "accepts": [],
@@ -145748,7 +145750,8 @@
      "flex-end",
      "left",
      "right",
-     "legacy"
+     "legacy",
+     "anchor-origin"
     ],
     "accepts": [],
     "support": {
@@ -145775,6 +145778,7 @@
      "right",
      "stretch",
      "baseline",
+     "anchor-origin",
      "anchor-center"
     ],
     "accepts": [],
@@ -147211,7 +147215,7 @@
      "safari": "16"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/overscroll-behavior",
-    "spec": "https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior"
+    "spec": "https://drafts.csswg.org/css-overscroll-2/#propdef-overscroll-behavior"
    },
    {
     "name": "overscroll-behavior-block",
@@ -147228,7 +147232,7 @@
      "safari": "16"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/overscroll-behavior-block",
-    "spec": "https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-block"
+    "spec": "https://drafts.csswg.org/css-overscroll-2/#propdef-overscroll-behavior-block"
    },
    {
     "name": "overscroll-behavior-inline",
@@ -147245,7 +147249,7 @@
      "safari": "16"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/overscroll-behavior-inline",
-    "spec": "https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-inline"
+    "spec": "https://drafts.csswg.org/css-overscroll-2/#propdef-overscroll-behavior-inline"
    },
    {
     "name": "overscroll-behavior-x",
@@ -147262,7 +147266,7 @@
      "safari": "16"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/overscroll-behavior-x",
-    "spec": "https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-x"
+    "spec": "https://drafts.csswg.org/css-overscroll-2/#propdef-overscroll-behavior-x"
    },
    {
     "name": "overscroll-behavior-y",
@@ -147279,7 +147283,7 @@
      "safari": "16"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/overscroll-behavior-y",
-    "spec": "https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-y"
+    "spec": "https://drafts.csswg.org/css-overscroll-2/#propdef-overscroll-behavior-y"
    },
    {
     "name": "padding",
@@ -147576,7 +147580,8 @@
      "self-start",
      "self-end",
      "flex-start",
-     "flex-end"
+     "flex-end",
+     "anchor-origin"
     ],
     "accepts": [],
     "longhands": [
@@ -147605,6 +147610,7 @@
      "flex-end",
      "stretch",
      "baseline",
+     "anchor-origin",
      "anchor-center"
     ],
     "accepts": [],
@@ -147651,7 +147657,8 @@
      "relative",
      "absolute",
      "sticky",
-     "fixed"
+     "fixed",
+     "spatial-absolute"
     ],
     "accepts": [],
     "support": {
@@ -147734,7 +147741,12 @@
      "self-start",
      "self-end",
      "span-self-start",
-     "span-self-end"
+     "span-self-end",
+     "front",
+     "back",
+     "span-front",
+     "span-back",
+     "origin"
     ],
     "accepts": [],
     "support": {
