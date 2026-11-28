@@ -20600,3 +20600,16 @@ Rask.Values.MomentJsonConverter<TMoment>.MomentJsonConverter() -> void
 override sealed Rask.Values.MomentJsonConverter<TMoment>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TMoment!
 override sealed Rask.Values.MomentJsonConverter<TMoment>.Write(System.Text.Json.Utf8JsonWriter! writer, TMoment! value, System.Text.Json.JsonSerializerOptions! options) -> void
 abstract Rask.Values.MomentJsonConverter<TMoment>.Make(System.DateTime moment) -> TMoment!
+Rask.Core.Globalization.RaskString.SignInHeading = 306 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInEmail = 307 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInPassword = 308 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInRemember = 309 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInSubmit = 310 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInOr = 311 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInPasskey = 312 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInWrongEmail = 313 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInWrongName = 314 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInTooManyAttempts = 315 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInNotAllowed = 316 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInEmailNotConfirmed = 317 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignInPasskeyRejected = 318 -> Rask.Core.Globalization.RaskString

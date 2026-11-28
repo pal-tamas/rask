@@ -330,5 +330,18 @@
   "EditorNotFound": "Ez már nem létezik.",
   "EditorDelete": "Törlés",
   "EditorDeleteQuestion": "Biztosan törli? Ez nem vonható vissza.",
-  "ChangeClear": "Törlés"
+  "ChangeClear": "Törlés",
+  "SignInHeading": "Bejelentkezés",
+  "SignInEmail": "E-mail-cím",
+  "SignInPassword": "Jelszó",
+  "SignInRemember": "Emlékezzen rám",
+  "SignInSubmit": "Bejelentkezés",
+  "SignInOr": "vagy",
+  "SignInPasskey": "Bejelentkezés azonosítókulccsal",
+  "SignInWrongEmail": "Hibás e-mail-cím vagy jelszó.",
+  "SignInWrongName": "Hibás felhasználónév vagy jelszó.",
+  "SignInTooManyAttempts": "Túl sok próbálkozás. Várjon egy percet, és próbálja újra.",
+  "SignInNotAllowed": "Ez a fiók nem jelentkezhet be.",
+  "SignInEmailNotConfirmed": "Bejelentkezés előtt erősítse meg az e-mail-címét. A linket a regisztrációkor küldtük el.",
+  "SignInPasskeyRejected": "Ezt az azonosítókulcsot nem sikerült használni. Próbálja újra, vagy adja meg a jelszavát."
 }

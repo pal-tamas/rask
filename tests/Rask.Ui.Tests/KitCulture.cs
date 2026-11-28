@@ -44,4 +44,19 @@ internal static class KitCulture
             CultureInfo.CurrentUICulture = before;
         }
     }
+
+    /// <summary>What <paramref name="act" /> does for a visitor who reads <paramref name="language" />, awaited.</summary>
+    internal static async Task In(string language, Func<Task> act)
+    {
+        var before = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(language);
+        try
+        {
+            await act();
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = before;
+        }
+    }
 }

@@ -350,6 +350,19 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("EditorDeleteQuestion", 0),
         ("ChangeClear", 0),
         ("FileTooLarge", 0),
+        ("SignInHeading", 0),
+        ("SignInEmail", 0),
+        ("SignInPassword", 0),
+        ("SignInRemember", 0),
+        ("SignInSubmit", 0),
+        ("SignInOr", 0),
+        ("SignInPasskey", 0),
+        ("SignInWrongEmail", 0),
+        ("SignInWrongName", 0),
+        ("SignInTooManyAttempts", 0),
+        ("SignInNotAllowed", 0),
+        ("SignInEmailNotConfirmed", 0),
+        ("SignInPasskeyRejected", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

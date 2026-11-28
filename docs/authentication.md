@@ -8,11 +8,46 @@ row you can list and end, and the first account to register becomes the administ
 Core Identity underneath: Rask.Auth hashes passwords, issues links, throttles guessing and tracks sessions
 itself, on standard .NET pieces (PBKDF2 or bcrypt, Data Protection, cookie authentication).
 
-**The sign-in pages are yours.** `rask new` writes them into `Features/Auth` — `/login`, `/register`,
-`/logout`, `/forgot-password`, `/reset-password`, `/confirm-email` and `/devices` — drawn with the
-[UI kit](ui-kit.md)'s components and compiled by the app's own Tailwind like every other page, so
-restyling them is editing them. They are ordinary components written against `IAuth`, so the flows themselves keep coming
-from `Rask.Auth`.
+**The sign-in card is Rask's; the page it sits on is yours.** `Ui.SignIn` is the whole sign-in form — the
+app's name and mark, the address (or the `[SignInName]` name) and the password, the refusal under the form, and the
+way back to `?returnUrl=` — so an app's `/login` is one line, and `rask new` writes exactly that:
+
+```csharp
+[AllowAnonymous, Guest, Route("/login")]
+public sealed partial class LoginPage : Component
+{
+    protected override Component? Render() => Ui.SignIn.Title("PPTA");
+}
+```
+
+Your own page at `/login` is what is shown — Rask serves none — so a page that wants another look draws its own
+form on `IAuth` in place of the card. The other pages — `/register`, `/logout`, `/forgot-password`,
+`/reset-password`, `/confirm-email` and `/devices` — are written into `Features/Auth` by `rask new`, drawn with the
+[UI kit](ui-kit.md)'s components and compiled by the app's own Tailwind like every other page, so restyling them is
+editing them. They are ordinary components written against `IAuth`, so the flows themselves keep coming from
+`Rask.Auth`.
+
+### `Ui.SignIn`
+
+| Step | What it does |
+|---|---|
+| `.Title("PPTA")` | The heading: the app's name. "Sign in" (`SignInHeading`) unless set. |
+| `.Logo("/logo.svg")` | The mark above it: a string is an image's address, a component (`Ui.Icon…`) is drawn as it is — as `Ui.Brand.Logo` takes one. |
+| `.NameLabel("Felhasználónév")` | For accounts that sign in by name (`[SignInName]`): the first field is plain text with that label, and a refusal says "Wrong name or password." Unset, it is the email address. |
+| `.Remember()` | Offers "Remember me": a session that outlives the browser session. |
+| `.Passkey()` | Offers "Sign in with a passkey" beside the password, where `IWebAuthn.IsSupported()` says the browser can. |
+| `[…]` | What goes under the form: `Ui.SignIn[Ui.Text[Ui.Link.Href(Routes.RegisterPage())["Create an account"]]]`. |
+
+- **Signs in through `IAuth`**, so it is the same card on the Server host and in WebAssembly, and the throttle and the
+  slowdown are the account store's own: once they stop further tries the card says "Too many attempts. Wait a minute
+  and try again." A wrong address and a wrong password read alike, so the card never tells anyone which accounts exist.
+- **The way back is local only.** `?returnUrl=` — what the route guard and the cookie challenge append — is followed
+  when it is an address of this site (`LocalUrl.Sanitize`); another site, `//host` or `/\host` lands on `/`.
+- **Every word is the string catalog's** (`SignIn*` in [localization](localization.md)), Hungarian included; the
+  card is centred on a plain page, light and dark, and fits a phone.
+- **The ids are fixed** — `email`, `password`, `login-submit`, `login-error` — and are what
+  `Rask.Testing.Playwright`'s sign-in drives.
+- Claiming an unclaimed app with its first-run token stays on `/register`, the page that creates the first account.
 
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
 signed-in, and `IUserProvider` to read who that is — identical on the Server host and in WebAssembly.
@@ -23,7 +58,7 @@ Any other client reaches the same flows through `/api/auth`.
 | Package | Use it when | What it adds |
 | --- | --- | --- |
 | `Rask.Auth.Api` | The host renders **no** Rask components — a plain ASP.NET app or API | Accounts and sessions, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
-| `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus `IAuth` for components and email bodies written as components; `rask new` adds the pages |
+| `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus `IAuth` for components and email bodies written as components; `rask new` adds the pages, `/login` on `Ui.SignIn` |
 
 Reference one or the other, never both: `Rask.Auth` already contains `Rask.Auth.Api`. Both put their
 types in the `Rask.Auth` namespace and both call the battery `AddRaskAuth` / `MapRaskAuth`, so moving an
@@ -737,7 +772,7 @@ registration at all.
 ## Passkeys
 
 **A passkey is another way in, not a replacement for the password.** A signed-in person adds one on `/devices`;
-`/login` then offers "Sign in with a passkey", with no email and no password typed. Everything else is unchanged:
+`/login` then offers "Sign in with a passkey" (`Ui.SignIn.Passkey()`), with no email and no password typed. Everything else is unchanged:
 the sign-in starts the same `Session` row, shows up on the same device list, and the account keeps its password.
 
 ```csharp
@@ -980,7 +1015,7 @@ first registration would succeed and then be unable to sign in — including you
 to fix it is the one that cannot be sent. In development the mail battery writes each message to
 `./mail-pickup` as an `.eml`, so the link is there to open even with no mail server anywhere.
 
-Three scaffolded pages, yours to edit like `/login`:
+Three scaffolded pages, yours to edit like `/register`:
 
 | Route | What it does |
 |---|---|
@@ -1179,7 +1214,7 @@ is already in. Mark them `[Guest]`, and a **signed-in** reader is sent on instea
 [AllowAnonymous]
 [Guest]                                    // signed in already: to "/"
 [Route("/login")]
-public sealed partial class LoginPage : AuthPage { … }
+public sealed partial class LoginPage : Component { … }
 
 [Guest(Then = "/app")]                     // or to a page of your choosing
 [Route("/register")]

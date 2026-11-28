@@ -980,4 +980,43 @@ public enum RaskString
 
     /// <summary>What a file picker says of a file larger than it takes (<c>Ui.FilePicker</c>).</summary>
     FileTooLarge,
+
+    /// <summary>The heading of the sign-in card (<c>Ui.SignIn</c>), when the app gives it no title.</summary>
+    SignInHeading,
+
+    /// <summary>The label of the sign-in card's address field (<c>Ui.SignIn</c>).</summary>
+    SignInEmail,
+
+    /// <summary>The label of the sign-in card's password field (<c>Ui.SignIn</c>).</summary>
+    SignInPassword,
+
+    /// <summary>The sign-in card's keep-me-signed-in checkbox (<c>Ui.SignIn.Remember()</c>).</summary>
+    SignInRemember,
+
+    /// <summary>The sign-in card's submit button (<c>Ui.SignIn</c>).</summary>
+    SignInSubmit,
+
+    /// <summary>The word on the line between the password form and the passkey button (<c>Ui.SignIn.Passkey()</c>).</summary>
+    SignInOr,
+
+    /// <summary>The sign-in card's passkey button (<c>Ui.SignIn.Passkey()</c>).</summary>
+    SignInPasskey,
+
+    /// <summary>What the sign-in card says to a wrong address or password — never which of the two (<c>Ui.SignIn</c>).</summary>
+    SignInWrongEmail,
+
+    /// <summary>What the sign-in card says to a wrong name or password, for an app that signs in by name (<c>Ui.SignIn.NameLabel</c>).</summary>
+    SignInWrongName,
+
+    /// <summary>What the sign-in card says once the throttle has stopped further tries for a while (<c>Ui.SignIn</c>).</summary>
+    SignInTooManyAttempts,
+
+    /// <summary>What the sign-in card says to an account that may not sign in (<c>Ui.SignIn</c>).</summary>
+    SignInNotAllowed,
+
+    /// <summary>What the sign-in card says to an account whose address is not confirmed yet (<c>Ui.SignIn</c>).</summary>
+    SignInEmailNotConfirmed,
+
+    /// <summary>What the sign-in card says when a passkey could not be used (<c>Ui.SignIn.Passkey()</c>).</summary>
+    SignInPasskeyRejected,
 }

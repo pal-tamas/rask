@@ -1094,6 +1094,21 @@ Ui.NotFound.Home(Routes.DashboardPage())      // the button leads there instead 
 
 The words are the catalog's `PageNotFound`, `NotFoundBackHome` and `PageForbidden` ([localization](localization.md)).
 
+### Sign in
+
+**The sign-in card an app's `/login` page places** (owner-approved, not Flux): Flux's card, heading, inputs and
+button composed as Flux's own sign-in example, centred on a plain page, signing in through `IAuth`
+([authentication](authentication.md)).
+
+```csharp
+Ui.SignIn.Title("PPTA")                                         // the address and the password
+Ui.SignIn.Title("ESZAF").Logo("/logo.svg").NameLabel("Felhasználónév")   // signs in by name
+Ui.SignIn.Remember().Passkey()[Ui.Text[Ui.Link.Href("/register")["Create an account"]]]
+```
+
+The words are the catalog's `SignIn*` ([localization](localization.md)); `?returnUrl=` is followed only when it is an
+address of this site.
+
 ## Tooltips
 
 `Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside its first child,

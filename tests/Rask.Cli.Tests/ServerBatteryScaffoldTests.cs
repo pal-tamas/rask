@@ -79,11 +79,10 @@ public sealed class ServerBatteryScaffoldTests
     {
         var files = Generate("data");
 
-        // A passkey is another way in, so the sign-in page has to offer it beside the password, and the device
-        // list is where one is added and taken away. Both go through IAuth, so the ceremony stays in Rask.Auth.
+        // A passkey is another way in, so the sign-in card offers it beside the password, and the device list is
+        // where one is added and taken away. Both go through IAuth, so the ceremony stays in Rask.Auth.
         var login = files["Features/Auth/LoginPage.cs"];
-        Assert.Contains("SignInWithPasskey", login, StringComparison.Ordinal);
-        Assert.Contains("Sign in with a passkey", login, StringComparison.Ordinal);
+        Assert.Contains(".Passkey()", login, StringComparison.Ordinal);
 
         var devices = files["Features/Auth/DevicesPage.cs"];
         Assert.Contains("AddPasskey", devices, StringComparison.Ordinal);
@@ -91,6 +90,18 @@ public sealed class ServerBatteryScaffoldTests
 
         // The support check is a browser call, so the API they inject it from must be in scope for both pages.
         Assert.Contains("global using Rask.Core.Browser;", files["GlobalUsings.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_sign_in_page_places_the_kits_sign_in_card_instead_of_writing_the_form()
+    {
+        var files = Generate("data");
+
+        var login = files["Features/Auth/LoginPage.cs"];
+
+        Assert.Contains("Ui.SignIn.Title(\"App\")", login, StringComparison.Ordinal);
+        Assert.DoesNotContain("Form.Model", login, StringComparison.Ordinal);
+        Assert.DoesNotContain("IAuth", login, StringComparison.Ordinal);
     }
 
     public static TheoryData<string> GuestPages =>
