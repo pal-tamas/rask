@@ -182,6 +182,15 @@ them until tagged releases begin.
   its own or the one in progress, writes only the numbers that changed and answers how many (`docs/data-writes.md#a-running-number`).
 
 ### Changed
+- **BREAKING: a one-value value object's System.Text.Json form is its bare value.** A record declared from `Text`
+  (and `Email`, `Phone`, `Url`, `Multiline`), `Number`, `Integer`, `Day`, or `Value` over one member is written as
+  `"Ada"`, `12.5`, `"2026-11-28"` — no longer `{"Value":"Ada"}` — through a `[JsonConverter]` the value object
+  generator nests in each record (`ValueJsonConverter<TValue, THeld>`; no reflection, trims and runs AOT), matching the
+  CQRS wire. Read, the value is made through the record's constructor (its rules asked), and the old object form
+  `{"Value":…}` in any casing is still read, so stored JSON keeps reading. The generated API client's codec now carries
+  exactly these value objects bare too, so it agrees with a System.Text.Json server. A `Password`, a generic record, one
+  over a nullable member and one naming its own `[JsonConverter]` are unchanged. **Upgrade:** a consumer that parsed
+  `{"value":…}` out of an endpoint's JSON reads the bare value instead.
 - **BREAKING (auth): Rask.Auth's stored times are `Timestamp`s.** `Session.LastSeenAt`/`ExpiresAt`, `Passkey.LastUsedAt`,
   `Authenticatable.EmailConfirmedAt`/`PasswordChangedAt` and `AuthInstanceClaim.ClaimedUtc` were `DateTime`/`DateTime?`
   and are now `Timestamp`/`Timestamp?` (`Rask.Values`): read `.Instant` for the UTC instant, `.Value` for the wall clock

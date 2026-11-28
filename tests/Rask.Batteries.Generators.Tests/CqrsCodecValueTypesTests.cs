@@ -155,7 +155,7 @@ public class CqrsCodecValueTypesTests
     }
 
     [Fact]
-    public void The_api_client_walk_keeps_value_objects_and_typed_ids_as_objects_for_its_system_text_json_server()
+    public void The_api_client_walk_keeps_a_typed_id_as_an_object_for_its_system_text_json_server()
     {
         var run = Run(Contracts);
         var vehicle = run.Compilation.GetTypeByMetadataName("Fleet.Contracts.VehicleId")!;

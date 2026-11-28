@@ -1,22 +1,19 @@
-using System.Linq;
+using System.Globalization;
 using System.Text;
-using Microsoft.CodeAnalysis;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
-// How System.Text.Json writes a value object declared from Moment — `FuelingMoment(DateTime Value) : Moment(Value)`: as
-// the UTC instant it holds (Rask.Values.MomentJsonConverter), not as an object whose wall-clock Value collapses the
-// hour the clock shows twice in autumn. System.Text.Json reads no [JsonConverter] off a base type, so each record is
-// given its own, naming a nested subclass that makes it — a plain `new`, no reflection, so it trims and runs AOT. One
-// the record names itself is left alone, and so is a generic record or one over a nullable member.
+// How System.Text.Json writes a value object of one value — `DriverName(string Value) : Text(Value)`, `Litres(decimal
+// Value) : Number(Value)`, `Rank(int Value) : Value`: as the value it holds (Rask.Values.ValueJsonConverter), `"Ada"`
+// rather than `{"Value":"Ada"}`, as Rask's own wires carry it; one declared from Moment as the UTC instant it holds
+// (Rask.Values.MomentJsonConverter), so the hour the clock shows twice in autumn survives. System.Text.Json reads no
+// [JsonConverter] off a base type, so each record is given its own, naming a nested subclass that makes it — a plain
+// `new`, no reflection, so it trims and runs AOT. Which records get one is ValueObjectJson's to say, for the API client's
+// codec agrees with it: never a password, a generic record, one over a nullable member, or one that names its own.
 public sealed partial class ValueObjectFactoryGenerator
 {
-    private const string JsonConverterName = "__Json";
-
-    private static bool HasJson(ValueObject value) =>
-        !value.OwnJson && value.OneValue && !value.Generic && !value.Parameters[0].Nullable &&
-        string.Equals(value.ValueBase, "Moment", System.StringComparison.Ordinal) &&
-        string.Equals(value.Parameters[0].Iso, "yyyy-MM-ddTHH:mm:ss", System.StringComparison.Ordinal);
+    private static bool HasJson(ValueObject value) => value.Json is not null && value.OneValue && !value.Generic;
 
     // The attribute, on the record's own generated part.
     private static void AppendJsonAttribute(StringBuilder s, ValueObject value)
@@ -24,7 +21,7 @@ public sealed partial class ValueObjectFactoryGenerator
         if (HasJson(value))
         {
             s.Append("[global::System.Text.Json.Serialization.JsonConverter(typeof(").Append(value.Name).Append('.')
-                .Append(JsonConverterName).AppendLine("))]");
+                .Append(ValueObjectJson.ConverterName).AppendLine("))]");
         }
     }
 
@@ -36,11 +33,43 @@ public sealed partial class ValueObjectFactoryGenerator
             return;
         }
 
+        if (value.Json!.Moment)
+        {
+            AppendMomentConverter(s, value.Name);
+            return;
+        }
+
+        var json = value.Json;
         var name = value.Name;
         s.AppendLine();
         s.Append("    /// <summary>Writes and reads a <see cref=\"").Append(name)
+            .AppendLine("\" /> as the value it holds, for System.Text.Json.</summary>");
+        s.Append("    internal sealed class ").Append(ValueObjectJson.ConverterName).Append(" : global::Rask.Values.ValueJsonConverter<")
+            .Append(name).Append(", ").Append(json.HeldType).AppendLine(">");
+        s.AppendLine("    {");
+        s.AppendLine("        /// <summary>Names the member the value is held in.</summary>");
+        s.Append("        public ").Append(ValueObjectJson.ConverterName).Append("() : base(\"").Append(json.Member).AppendLine("\") { }");
+        s.AppendLine();
+        s.AppendLine("        /// <inheritdoc />");
+        s.Append("        protected override ").Append(json.HeldType)
+            .Append(" ReadHeld(ref global::System.Text.Json.Utf8JsonReader reader, string property) => ").Append(json.Read).AppendLine(";");
+        s.AppendLine();
+        s.AppendLine("        /// <inheritdoc />");
+        s.Append("        protected override void WriteHeld(global::System.Text.Json.Utf8JsonWriter writer, ").Append(name).Append(" value) => ")
+            .Append(string.Format(CultureInfo.InvariantCulture, json.Write, "value." + json.Member)).AppendLine(";");
+        s.AppendLine();
+        s.AppendLine("        /// <inheritdoc />");
+        s.Append("        protected override ").Append(name).Append(" Make(").Append(json.HeldType).Append(" held) => new ").Append(name)
+            .AppendLine("(held);");
+        s.AppendLine("    }");
+    }
+
+    private static void AppendMomentConverter(StringBuilder s, string name)
+    {
+        s.AppendLine();
+        s.Append("    /// <summary>Writes and reads a <see cref=\"").Append(name)
             .AppendLine("\" /> as the UTC instant it holds, for System.Text.Json.</summary>");
-        s.Append("    internal sealed class ").Append(JsonConverterName).Append(" : global::Rask.Values.MomentJsonConverter<").Append(name)
+        s.Append("    internal sealed class ").Append(ValueObjectJson.ConverterName).Append(" : global::Rask.Values.MomentJsonConverter<").Append(name)
             .AppendLine(">");
         s.AppendLine("    {");
         s.AppendLine("        /// <inheritdoc />");
@@ -48,9 +77,4 @@ public sealed partial class ValueObjectFactoryGenerator
             .AppendLine("(moment);");
         s.AppendLine("    }");
     }
-
-    // A [JsonConverter] of its own, declared in any part of the record.
-    private static bool DeclaresJson(INamedTypeSymbol type) =>
-        type.GetAttributes().Any(static a =>
-            string.Equals(a.AttributeClass?.ToDisplayString(), "System.Text.Json.Serialization.JsonConverterAttribute", System.StringComparison.Ordinal));
 }

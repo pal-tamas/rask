@@ -342,6 +342,16 @@ given a value they refuse: the request is answered `400` with each refusal under
 browser rebuilds what the server answers as a loaded row is, unchecked, so a value stored before a rule was
 tightened still reaches the page. See [the wire codecs](cqrs.md#wire-codecs-and-rask053).
 
+**In System.Text.Json it is its value too.** A read row an endpoint returns, an API body, a job's stored command or
+an outbox message writes a one-value value object — declared from `Text` or one of its kinds (`Email`, `Phone`,
+`Url`, `Multiline`), `Number`, `Integer`, `Day`, or `Value` over one member — as the value it holds: `"Ada"`,
+`12.5`, `"2026-11-28"`, never `{"Value":"Ada"}`, the same as the wire codecs and the generated API client. The value
+object generator gives each record its own `[JsonConverter]` (System.Text.Json reads none off a base type) — no
+reflection, so it trims and runs AOT. Read, the value is made through the record's constructor, so its rules are
+asked; the object form written before, `{"Value":"Ada"}` in any casing, is still read. A `Password` (input only),
+a generic record, one over a nullable member and one that names its own `[JsonConverter]` keep their object form;
+a `Moment` is [its instant](#moment-and-day).
+
 **The column takes what the value object declares**, read from its base arguments when the app is compiled —
 constants included (`Text(Value, MaxLength: Limits.Name)`), and without building an instance: a `Text(Value,
 MaxLength: 1000)` is `HasMaxLength(1000)`, a `Number(Value, Scale: 2, Precision: 9)` is `HasPrecision(9, 2)` (a

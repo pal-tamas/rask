@@ -36,7 +36,8 @@ internal static class WireShape
     ///     (<c>record struct VehicleId(int Value)</c>) — travels as that value (<c>"ABC-123"</c>, <c>42</c>), and
     ///     whether a <c>Rask.Data</c> value object is rebuilt through its generated <c>Create</c> — checked where a
     ///     server reads it, loaded as sent where a browser does (<see cref="WireCodecEmitter" />). True for the CQRS codecs, whose two ends are both generated from this walk; false for
-    ///     the API client, whose server reads the same body with System.Text.Json, which knows neither rule.
+    ///     the API client, whose server reads the same body with System.Text.Json: there only the value objects that
+    ///     System.Text.Json itself writes bare (<see cref="ValueObjectJson" />) travel as their value.
     /// </param>
     public static WireType Classify(
         ITypeSymbol type,
@@ -113,9 +114,9 @@ internal static class WireShape
             return sequence;
         }
 
-        // A moment travels as its instant on every wire, a System.Text.Json server's too: the value object generator gives
-        // it a converter that writes it so (Rask.Values.MomentJsonConverter).
-        if ((unwrapValues || IsMoment(type)) && TryClassifyOneValue(type, stack, compilation) is { } one)
+        // A value object of one value travels as that value on every wire, a System.Text.Json server's too: the value
+        // object generator gives each one its own converter that writes it so (ValueObjectJson) — a moment as its instant.
+        if ((unwrapValues || ValueObjectJson.Of(type) is not null) && TryClassifyOneValue(type, stack, compilation) is { } one)
         {
             return one;
         }
@@ -156,10 +157,15 @@ internal static class WireShape
         string.Equals(AggregateShape.DeclaredValueBaseOf(type), "Moment", StringComparison.Ordinal);
 
     // The one value a type holds, fed by its one public constructor — or null when it holds more, or none. A value
-    // object declared from Text, Number, Integer or Day holds its base's Value; a value object declared from Value, and a
-    // record struct, hold the one property their one constructor parameter feeds.
+    // object of one value holds it where ValueObjectJson finds it; any other value object, and a record struct, hold the
+    // one property their one constructor parameter feeds.
     private static IPropertySymbol? OneValue(INamedTypeSymbol type)
     {
+        if (AggregateShape.ValueBaseOf(type) is not null)
+        {
+            return ValueObjectJson.HeldOf(type);
+        }
+
         var isValueObject = AggregateShape.DeclaredValueBaseOf(type) is not null;
         if (type.IsGenericType || !(isValueObject || type is { IsRecord: true, TypeKind: TypeKind.Struct }))
         {
@@ -175,9 +181,7 @@ internal static class WireShape
         }
 
         var parameter = constructors[0].Parameters[0];
-        var properties = AggregateShape.ValueBaseOf(type) is not null
-            ? AggregateShape.StoredProperties(type).ToList()
-            : PublicProperties(type).Where(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+        var properties = PublicProperties(type).Where(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)).ToList();
 
         return properties.Count == 1 && SymbolEqualityComparer.Default.Equals(properties[0].Type, parameter.Type)
             ? properties[0]
@@ -187,15 +191,9 @@ internal static class WireShape
     // The shapes that need no walk: scalars, enums, a message's file, and bytes.
     private static WireType? TryClassifyLeaf(ITypeSymbol type, bool allowFile, Compilation? compilation)
     {
-        if (Scalars.TryGetValue(type.SpecialType, out var special))
+        if (WireScalars.Of(type) is { } scalar)
         {
-            return Scalar(type, special.Read, special.Write);
-        }
-
-        var byName = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        if (NamedScalars.TryGetValue(byName, out var named))
-        {
-            return Scalar(type, named.Read, named.Write);
+            return Scalar(type, scalar.Read, scalar.Write);
         }
 
         if (type.TypeKind == TypeKind.Enum)
@@ -753,35 +751,6 @@ internal static class WireShape
     // full. Its bare name would not bind from the generated codec's namespace.
     private static string Fqn(ITypeSymbol type, Compilation? compilation) =>
         GeneratedModelShape.DisplayName(type, FqnFormat, compilation);
-
-    private static readonly Dictionary<SpecialType, (string Read, string Write)> Scalars = new()
-    {
-        [SpecialType.System_Boolean] = ("global::Rask.Wire.WireJson.ReadBoolean", "writer.WriteBooleanValue({0})"),
-        [SpecialType.System_Byte] = ("global::Rask.Wire.WireJson.ReadByte", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_SByte] = ("global::Rask.Wire.WireJson.ReadSByte", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int16] = ("global::Rask.Wire.WireJson.ReadInt16", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt16] = ("global::Rask.Wire.WireJson.ReadUInt16", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int32] = ("global::Rask.Wire.WireJson.ReadInt32", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt32] = ("global::Rask.Wire.WireJson.ReadUInt32", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int64] = ("global::Rask.Wire.WireJson.ReadInt64", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt64] = ("global::Rask.Wire.WireJson.ReadUInt64", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Single] = ("global::Rask.Wire.WireJson.ReadSingle", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Double] = ("global::Rask.Wire.WireJson.ReadDouble", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Decimal] = ("global::Rask.Wire.WireJson.ReadDecimal", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Char] = ("global::Rask.Wire.WireJson.ReadChar", "global::Rask.Wire.WireJson.WriteCharValue(writer, {0})"),
-        [SpecialType.System_String] = ("global::Rask.Wire.WireJson.ReadString", "writer.WriteStringValue({0})"),
-        [SpecialType.System_DateTime] = ("global::Rask.Wire.WireJson.ReadDateTime", "writer.WriteStringValue({0})"),
-    };
-
-    private static readonly Dictionary<string, (string Read, string Write)> NamedScalars = new(StringComparer.Ordinal)
-    {
-        ["global::System.Guid"] = ("global::Rask.Wire.WireJson.ReadGuid", "writer.WriteStringValue({0})"),
-        ["global::System.DateTimeOffset"] = ("global::Rask.Wire.WireJson.ReadDateTimeOffset", "writer.WriteStringValue({0})"),
-        ["global::System.DateOnly"] = ("global::Rask.Wire.WireJson.ReadDateOnly", "global::Rask.Wire.WireJson.WriteDateOnlyValue(writer, {0})"),
-        ["global::System.TimeOnly"] = ("global::Rask.Wire.WireJson.ReadTimeOnly", "global::Rask.Wire.WireJson.WriteTimeOnlyValue(writer, {0})"),
-        ["global::System.TimeSpan"] = ("global::Rask.Wire.WireJson.ReadTimeSpan", "global::Rask.Wire.WireJson.WriteTimeSpanValue(writer, {0})"),
-        ["global::System.Uri"] = ("global::Rask.Wire.WireJson.ReadUri", "global::Rask.Wire.WireJson.WriteUriValue(writer, {0})"),
-    };
 
     private static readonly HashSet<string> DictionaryDefinitions = new(StringComparer.Ordinal)
     {

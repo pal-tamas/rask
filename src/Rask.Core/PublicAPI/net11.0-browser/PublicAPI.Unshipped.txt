@@ -20600,3 +20600,10 @@ Rask.Values.MomentJsonConverter<TMoment>.MomentJsonConverter() -> void
 override sealed Rask.Values.MomentJsonConverter<TMoment>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TMoment!
 override sealed Rask.Values.MomentJsonConverter<TMoment>.Write(System.Text.Json.Utf8JsonWriter! writer, TMoment! value, System.Text.Json.JsonSerializerOptions! options) -> void
 abstract Rask.Values.MomentJsonConverter<TMoment>.Make(System.DateTime moment) -> TMoment!
+Rask.Values.ValueJsonConverter<TValue, THeld>
+Rask.Values.ValueJsonConverter<TValue, THeld>.ValueJsonConverter(string! member) -> void
+override sealed Rask.Values.ValueJsonConverter<TValue, THeld>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TValue!
+override sealed Rask.Values.ValueJsonConverter<TValue, THeld>.Write(System.Text.Json.Utf8JsonWriter! writer, TValue! value, System.Text.Json.JsonSerializerOptions! options) -> void
+abstract Rask.Values.ValueJsonConverter<TValue, THeld>.ReadHeld(ref System.Text.Json.Utf8JsonReader reader, string! property) -> THeld
+abstract Rask.Values.ValueJsonConverter<TValue, THeld>.WriteHeld(System.Text.Json.Utf8JsonWriter! writer, TValue! value) -> void
+abstract Rask.Values.ValueJsonConverter<TValue, THeld>.Make(THeld held) -> TValue!

@@ -526,8 +526,10 @@ public sealed record AssignDriver(VehicleId Vehicle, DriverName Driver, KmRange 
   built with its constructor.
 - A one-value record **class** that is not a value object keeps its object shape (`{"text":"…"}`), as before.
 
-The generated API client (`Rask.Api.Client`) does not unwrap: its server reads the same body with
-System.Text.Json, so a record struct there is an object of its members, `{"value":42}`.
+The generated API client (`Rask.Api.Client`) unwraps only what System.Text.Json itself writes bare, since its
+server reads the same body with System.Text.Json: a one-value value object is its value there too (the value object
+generator gives each one a `[JsonConverter]` that writes it so — [domain modelling](domain.md#value-objects)), while
+a record struct is an object of its members, `{"value":42}`, and a `Password` keeps its object form.
 
 ## Diagnostics
 
