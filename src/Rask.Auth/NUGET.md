@@ -30,7 +30,7 @@ public sealed class Header(IUserProvider users) : Component
 
 Registering emails a confirmation link; `/forgot-password` emails a reset link. Both go out through
 the app's own mail queue, and `/reset-password` and `/confirm-email` are where those links land —
-pages `rask new` writes into the app, like `/login`.
+pages `rask new` writes into the app, like `/register`; the sign-in form itself is the kit's `Ui.SignIn`, placed by the app's own `/login` page.
 
 **Confirmation does not block sign-in by default.** A freshly scaffolded app has no SMTP configured,
 so requiring it out of the box would let the first registration succeed and then be unable to sign in,

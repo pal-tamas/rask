@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.SignIn` — the sign-in card an app's `/login` page places.** The whole sign-in form on `IAuth`, on both hosts:
+  `protected override Component? Render() => Ui.SignIn.Title("PPTA");`. A centred `Ui.Card` with the app's name
+  (`.Title`) and optional mark (`.Logo("/logo.svg")`), the address — or, with `.NameLabel("Felhasználónév")`, the
+  `[SignInName]` name — and the password, the refusal under the form in the string catalog's words (new `SignIn*`
+  keys, Hungarian shipped; the throttle's "Too many attempts"), `.Remember()` and `.Passkey()` on request, and
+  whatever the page puts inside drawn under the form. `?returnUrl=` is followed only when it is an address of this
+  site. Rask still serves no page at `/login`: the app's own page is what is shown. `rask new` now writes a one-line
+  `LoginPage` on `Ui.SignIn` instead of the full form; `/register` and the recovery pages stay the app's.
 - **BREAKING: Rask's own times are moments — `Timestamp`, the framework's `Moment`.** `Entity<TId>.CreatedAt` /
   `UpdatedAt` and `Aggregate<TId>.DeletedAt` are a `Rask.Values.Timestamp` (`Timestamp?` for `DeletedAt`), stored as the
   UTC instant on every database, and so are the times of Rask's own tables (jobs, recurring jobs, the outbox, queued

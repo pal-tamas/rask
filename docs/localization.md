@@ -910,6 +910,19 @@ they say when you set nothing.
 | `EditorDelete` | Editor: The label of an editor dialog's delete button (`Ui.EditorDialog.Delete`). | `Delete` |
 | `EditorDeleteQuestion` | Editor: What an editor dialog asks before it deletes its record (`Ui.EditorDialog.Delete`). | `Delete it? This cannot be undone.` |
 | `ChangeClear` | Change: the Clear beside a field whose value may be taken away rather than kept (`Change<T>`, `Ui.Field.Bind`) | `Clear` |
+| `SignInHeading` | Sign in: the card's heading when no `Title` is given | `Sign in` |
+| `SignInEmail` | Sign in: the address field's label | `Email` |
+| `SignInPassword` | Sign in: the password field's label | `Password` |
+| `SignInRemember` | Sign in: the remember-me checkbox (`Remember()`) | `Remember me` |
+| `SignInSubmit` | Sign in: the submit button | `Sign in` |
+| `SignInOr` | Sign in: between the form and the passkey button | `or` |
+| `SignInPasskey` | Sign in: the passkey button (`Passkey()`) | `Sign in with a passkey` |
+| `SignInWrongEmail` | Sign in: a wrong address or password | `Wrong email or password.` |
+| `SignInWrongName` | Sign in: a wrong name or password (`NameLabel`) | `Wrong name or password.` |
+| `SignInTooManyAttempts` | Sign in: the throttle has stopped further tries | `Too many attempts. Wait a minute and try again.` |
+| `SignInNotAllowed` | Sign in: an account that may not sign in | `This account is not allowed to sign in.` |
+| `SignInEmailNotConfirmed` | Sign in: an address not confirmed yet | `Confirm your email address before signing in. The link was sent when you registered.` |
+| `SignInPasskeyRejected` | Sign in: a passkey that could not be used | `That passkey could not be used. Try again, or use your password.` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

@@ -288,6 +288,7 @@ public sealed class FluxConformanceTests
         [typeof(UiBoundField<>)] = "the owner, 2026-11-23: flux:field drawn from a bound member — F-73",
         [typeof(UiNotFound)] = "the owner, 2026-11-06: the built-in 404 inside the app's frame, as Flux's warning callout (TA+Eszaf survey, step 10)",
         [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
+        [typeof(UiSignIn)] = "the owner, 2026-11-28: the sign-in card an app's /login page places, flux:card with flux:heading, flux:input and flux:button laid out as Flux's own sign-in example; TA and Eszaf delete their sign-in pages",
         [typeof(UiFormTabs)] = "the owner, 2026-11-06: a long form's flux:tabs, a red flux:badge counting each tab's invalid fields, the first opened on a refused save (TA+Eszaf survey, step 8)",
         [typeof(UiFormTab)] = "the owner, 2026-11-06: one tab of a UiFormTabs — its words, the fields it holds, its flux:tab.panel",
         [typeof(UiWorkNotices)] = "the owner, 2026-11-17: the user's background work as a bell — flux:dropdown opening flux:popover, a ghost flux:button with the bell icon, flux:badge for the count, flux:progress for each bar; Flux has no notifications (#1293)",

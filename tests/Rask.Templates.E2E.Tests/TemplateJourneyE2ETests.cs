@@ -111,6 +111,46 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     }
 
     /// <summary>
+    ///     A scaffolded app signs its administrator in through its <c>/login</c> page — <c>Ui.SignIn</c> and nothing of its
+    ///     own: a wrong password is refused under the form, the right one lands where the challenge was sent from.
+    /// </summary>
+    [Fact]
+    public async Task A_scaffolded_app_signs_in_through_the_kits_sign_in_card_and_goes_back_where_it_was_sent_from()
+    {
+        Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
+        var (projectDirectory, name) = await ScaffoldAndBuildAsync("server", "Card");
+        try
+        {
+            await using var site = new RaskSite(Path.Combine(projectDirectory, "bin", "Debug", "net11.0", name + ".dll"))
+            {
+                ContentRoot = projectDirectory,
+            };
+            // The administrator's account: the first sign-in claims the app through /register.
+            await (await site.SignedIn(site.Admin)).CloseAsync();
+            var page = await site.SignedOut();
+
+            await page.GotoAsync("/devices");
+            await page.WaitForURLAsync("**/login?returnUrl=%2Fdevices");
+            await page.WaitForRask();
+            await page.Locator("#email").FillAsync(site.Admin);
+            await page.Locator("#password").FillAsync(site.Password + "-wrong");
+            await page.Locator("#login-submit").ClickAsync();
+            var refused = await page.Locator("#login-error").InnerTextAsync();
+            await page.Locator("#email").FillAsync(site.Admin);
+            await page.Locator("#password").FillAsync(site.Password);
+            await page.Locator("#login-submit").ClickAsync();
+            await page.WaitForURLAsync("**/devices");
+
+            Assert.Contains("Wrong email or password.", refused, StringComparison.Ordinal);
+            Assert.EndsWith("/devices", new Uri(page.Url).AbsolutePath, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(Path.GetDirectoryName(projectDirectory)!);
+        }
+    }
+
+    /// <summary>
     ///     A scaffolded app with a database applies the first migration <c>rask new</c> made for it when it first starts.
     /// </summary>
     /// <remarks>

@@ -9531,3 +9531,26 @@ Rask.UiSelect<T>.Choices<TValue>(Rask.IChoiceSource<TValue>! source) -> Rask.UiS
 static Rask.UiSelectChoices.Choices<T>(this Rask.UiSelect<T?>! select, Rask.IChoiceSource<T>! source) -> Rask.UiSelect<T?>!
 Rask.UiBoundField<T>.Choices<TValue>(Rask.IChoiceSource<TValue>! source) -> Rask.UiBoundField<T>!
 static Rask.UiBoundFieldChoices.Choices<T>(this Rask.UiBoundField<T?>! field, Rask.IChoiceSource<T>! source) -> Rask.UiBoundField<T?>!
+Rask.UiSignIn
+Rask.UiSignIn.Logo.get -> Rask.Core.Component?
+Rask.UiSignIn.Logo.set -> void
+Rask.UiSignIn.NameLabel.get -> string?
+Rask.UiSignIn.NameLabel.set -> void
+Rask.UiSignIn.Passkey.get -> bool?
+Rask.UiSignIn.Passkey.set -> void
+Rask.UiSignIn.Remember.get -> bool?
+Rask.UiSignIn.Remember.set -> void
+Rask.UiSignIn.Title.get -> string?
+Rask.UiSignIn.Title.set -> void
+Rask.UiSignIn.UiSignIn(Rask.Core.Authentication.IAuth! auth, Rask.Core.Routing.RouteState! route, Rask.Core.Browser.IWebAuthn! webAuthn) -> void
+static Rask.Ui.SignIn.get -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Logo(this Rask.UiSignIn! __b, Rask.Core.Component? value) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.NameLabel(this Rask.UiSignIn! __b, string? value) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Passkey(this Rask.UiSignIn! __b) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Passkey(this Rask.UiSignIn! __b, bool? value) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Remember(this Rask.UiSignIn! __b) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Remember(this Rask.UiSignIn! __b, bool? value) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.Title(this Rask.UiSignIn! __b, string? value) -> Rask.UiSignIn!
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSignIn(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSignIn(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSignIn(Rask.Core.Component! __c0, ulong __p) -> void
