@@ -46,7 +46,7 @@ public sealed class ValueJsonTests
     [Theory]
     [InlineData(typeof(JsonDriver), "\"Ada\"", """{"value":"Ada"}""")]
     [InlineData(typeof(JsonContact), "\"ada@example.com\"", """{"Value":"ada@example.com"}""")]
-    [InlineData(typeof(JsonMobile), "\"+36 30 123 4567\"", """{"VALUE":"+36 30 123 4567"}""")]
+    [InlineData(typeof(JsonMobile), "\"06 30 123 4567\"", """{"VALUE":"06 30 123 4567"}""")]
     [InlineData(typeof(JsonSite), "\"https://rask.sh/\"", """{"value":"https://rask.sh/","kind":"Url"}""")]
     [InlineData(typeof(JsonNote), "\"two\\nlines\"", """{"value":"two\nlines"}""")]
     [InlineData(typeof(JsonLitres), "12.5", """{"value":12.5}""")]
