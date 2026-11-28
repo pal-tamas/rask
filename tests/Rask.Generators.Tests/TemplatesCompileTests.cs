@@ -163,6 +163,8 @@ public class TemplatesCompileTests
                 new ComponentFactoryGenerator().AsSourceGenerator(),
                 new RoutesGenerator().AsSourceGenerator(),
                 new ValueObjectFactoryGenerator().AsSourceGenerator(),
+                // The scaffold's UserId(Guid) gets its Create() from here, and the form model's insert calls it.
+                new TypedIdGenerator().AsSourceGenerator(),
                 new ValidatorRegistryGenerator().AsSourceGenerator(),
                 new ReadModelGenerator().AsSourceGenerator(),
                 new ModelRegistryGenerator().AsSourceGenerator(),
