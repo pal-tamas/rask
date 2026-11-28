@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -121,6 +122,28 @@ public sealed class DbTransactionRetryTests : IDisposable
         Assert.Empty(anvil.DomainEvents);
     }
 
+    [Fact]
+    public async Task A_serialization_failure_on_the_save_is_retried_rather_than_refused_as_a_stale_row()
+    {
+        var losing = new LoseTheFirstSave();
+        await using var database = await TestDatabase.Start(o => o
+            .UseSqlite(_sqlite.ConnectionString, s => s.ExecutionStrategy(d => new RetryOnTransient(d)))
+            .AddInterceptors(losing),
+            cancellationToken: TestContext.Current.CancellationToken);
+        var anvil = Widget.Create("anvil");
+        var attempts = 0;
+
+        await Db.Transaction(async () =>
+        {
+            attempts++;
+            await GeneratedModelWrites.Create(anvil, cancellationToken: TestContext.Current.CancellationToken);
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var stored = await Widget.Find(anvil.Id, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(2, attempts);
+        Assert.Equal("anvil", stored?.Name);
+    }
+
     // The first attempt's saves are written, then a transient failure rolls it back and the strategy runs it again.
     private static void FailTheFirst(int attempt)
     {
@@ -139,5 +162,28 @@ public sealed class DbTransactionRetryTests : IDisposable
         : ExecutionStrategy(dependencies, maxRetryCount: 2, maxRetryDelay: TimeSpan.Zero)
     {
         protected override bool ShouldRetryOn(Exception exception) => exception is TimeoutException;
+    }
+
+    // Npgsql's spelling of PostgreSQL's 40001: a concurrency exception over a provider error that says retry me.
+    private sealed class LoseTheFirstSave : SaveChangesInterceptor
+    {
+        private int _saves;
+
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default) =>
+            Interlocked.Increment(ref _saves) == 1
+                ? throw new DbUpdateConcurrencyException("could not serialize access", new SerializationFailure())
+                : ValueTask.FromResult(result);
+    }
+
+    private sealed class SerializationFailure() : DbException("40001: could not serialize access")
+    {
+        public override bool IsTransient => true;
+    }
+
+    private sealed class RetryOnTransient(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 2, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is DbException { IsTransient: true };
     }
 }

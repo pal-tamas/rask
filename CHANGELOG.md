@@ -493,6 +493,11 @@ them until tagged releases begin.
   benchmark project's `postgres-bulk-insert` subcommand starts it on Testcontainers behind `tc netem`.
 
 ### Fixed
+- **A serializable save that loses on PostgreSQL is retried, not refused as stale.** Npgsql files `40001` (could not
+  serialize access) as a `DbUpdateConcurrencyException`, and a generated write turned every one of those into the "someone
+  else changed this" validation failure, so the retrying strategy never saw it and a `Db.Transaction` at `Serializable`
+  surfaced a form error instead of running again. A concurrency failure the provider marks transient now passes through
+  and is retried; a version that really moved is still refused with the sentence.
 - **A moment's change tracking follows its instant.** EF Core compared, hashed and snapshotted a `Moment` column by its
   wall-clock `.Value`, so a moment moved from the first `02:30` of an October night to the second was not seen as a
   change, and a snapshot rebuilt from the wall time came back as the first. It now compares by the instant and keeps the

@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Rask.Cqrs;
 using Rask.Wire;
@@ -34,15 +35,23 @@ internal static class StaleWrite
     ///     Saves <paramref name="context" /> as one unit (<see cref="SaveUnit" />), refusing a stale save with the sentence
     ///     instead of EF's exception.
     /// </summary>
+    /// <remarks>
+    ///     A concurrency failure the database says is worth retrying is not a stale row: Npgsql files PostgreSQL's
+    ///     <c>40001</c> (a serializable transaction that lost) as a <see cref="DbUpdateConcurrencyException" /> too. That one
+    ///     stays as it is, so the retrying strategy around the save or the <c>Db.Transaction</c> block runs it again.
+    /// </remarks>
     internal static async Task SaveAsync(DbContext context, CancellationToken cancellationToken)
     {
         try
         {
             await SaveUnit.SaveAsync(context, cancellationToken).ConfigureAwait(false);
         }
-        catch (DbUpdateConcurrencyException stale)
+        catch (DbUpdateConcurrencyException stale) when (!IsTransient(stale))
         {
             throw Refusal(stale);
         }
     }
+
+    private static bool IsTransient(DbUpdateConcurrencyException failure) =>
+        failure.InnerException is DbException { IsTransient: true };
 }
